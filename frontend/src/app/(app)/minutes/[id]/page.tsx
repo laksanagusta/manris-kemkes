@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AIFeaturesDisabledState } from "@/components/shared/ai-features-disabled-state";
+import { ActionButton } from "@/components/shared/design-system";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { useAuth } from "@/contexts/auth-context";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
@@ -28,7 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2, CalendarDays, Users, CheckCircle2, Link2, AlertCircle, Clock, Trash2, Download } from "@/components/ui/icons";
+import { Loader2, CalendarDays, Users, CheckCircle2, Link2, AlertCircle, Clock, Trash2, Download, ArrowLeft } from "@/components/ui/icons";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -88,7 +89,15 @@ function MeetingMinuteDetailContent() {
           <AlertCircle className="size-10 text-destructive mx-auto mb-4" />
           <h2 className="text-xl font-bold">Briefing Tidak Ditemukan</h2>
           <p className="text-sm text-muted-foreground mt-2 mb-4">Briefing tidak ditemukan atau Anda tidak memiliki akses.</p>
-          <Button onClick={() => router.push("/minutes")} variant="outline">Kembali ke Daftar Briefing</Button>
+          <ActionButton
+            type="button"
+            variant="secondary"
+            size="sm"
+            icon={<ArrowLeft className="size-3.5" aria-hidden="true" />}
+            onClick={() => router.push("/minutes")}
+          >
+            Kembali ke Daftar Briefing
+          </ActionButton>
         </div>
       </div>
     );
@@ -128,7 +137,6 @@ function MeetingMinuteDetailContent() {
     <FormPage>
       <FormHeader
         title={minutes.title}
-        description="Detail briefing rapat dan informasi terkait."
         badges={
           <>
             <Badge variant="outline" className="font-mono text-[10px]">

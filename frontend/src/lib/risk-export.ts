@@ -48,6 +48,7 @@ export type RiskExportItem = {
   probability?: number;
   impact?: number;
   weight?: number;
+  nilai?: number;
   inherentScore?: number;
   riskPriority?: number;
   riskAppetite?: string;
@@ -369,9 +370,9 @@ function buildRiskExportSheet(
 
   risks.forEach((risk, index) => {
     const dataRow = sheet.getRow(EXCEL_EXPORT_DATA_START_ROW + index);
-    const inherentScore = risk.inherentScore ?? (risk.probability != null && risk.impact != null && risk.weight != null
+    const inherentScore = risk.nilai ?? (risk.probability != null && risk.impact != null && risk.weight != null
       ? calculateNilai(risk.probability, risk.impact, risk.weight)
-      : "");
+      : risk.inherentScore ?? "");
     const targetScore = getTargetScore(risk);
     const targetLevel = typeof targetScore === "number" ? getRiskAssessmentLevelLabel(targetScore) : "";
     const riskLevel = typeof inherentScore === "number" ? getRiskAssessmentLevelLabel(inherentScore) : "";

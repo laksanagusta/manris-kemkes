@@ -35,7 +35,6 @@ type ReportData struct {
 	Risks     []*Risk           // All cycle risks, sorted by score desc
 	TopRisks  []*Risk           // Top 10 risks by score
 	Incidents []*Incident       // Incidents linked to cycle risks
-	KRIs      []*KRI            // KRIs linked to cycle risks
 	TrendData []CycleTrendPoint // Recent cycles trend data
 }
 

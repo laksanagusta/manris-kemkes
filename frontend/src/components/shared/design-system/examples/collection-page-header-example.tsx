@@ -1,4 +1,5 @@
-import { Plus, ShieldCheck, Upload } from "@/components/ui/icons";
+import Link from "next/link";
+import { ArrowLeft, Plus, ShieldCheck, Upload } from "@/components/ui/icons";
 
 import {
   AccentButton,
@@ -9,9 +10,22 @@ import {
 export function CollectionPageHeaderExample() {
   return (
     <CollectionPageHeader
+      backAction={
+        <ActionButton
+          asChild
+          variant="secondary"
+          size="sm"
+          className="border-0 text-sm font-normal"
+        >
+          <Link href="/risk/register">
+            <ArrowLeft className="size-3.5" />
+            Kembali
+          </Link>
+        </ActionButton>
+      }
       icon={<ShieldCheck className="size-7" strokeWidth={1.8} />}
       title="Daftar Risiko"
-      description="Kelola dan pantau seluruh risiko organisasi."
+      showTitle
       actions={
         <>
           <ActionButton icon={<Upload className="size-3.5" strokeWidth={2.5} />}>

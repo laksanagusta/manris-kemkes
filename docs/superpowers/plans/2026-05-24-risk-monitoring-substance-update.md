@@ -283,7 +283,6 @@ func mitigationsEqual(a, b []entity.Mitigation) bool {
 				"resourcesRequired":      strings.TrimSpace(item.ResourcesRequired),
 				"contingencyPlan":        strings.TrimSpace(item.ContingencyPlan),
 				"potentialObstacle":      strings.TrimSpace(item.PotentialObstacle),
-				"costBenefitNote":        strings.TrimSpace(item.CostBenefitNote),
 				"isBreakthroughActivity": item.IsBreakthroughActivity,
 				"isExistingControl":      item.IsExistingControl,
 			})

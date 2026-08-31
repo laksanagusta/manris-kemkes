@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 export type StandardCardProps = {
@@ -21,14 +21,14 @@ export function StandardCard({
   return (
     <Card
       className={cn(
-        "gap-0 overflow-hidden rounded-xl bg-card p-0",
+        "surface-hairline gap-0 overflow-hidden rounded-xl bg-card p-0",
         className,
       )}
     >
       <CardHeader className="flex flex-row items-center justify-between px-4 py-4 !pb-4">
-        <CardTitle className="font-sans text-sm font-medium normal-case leading-5 text-foreground">
+        <h2 className="font-sans text-sm font-medium normal-case leading-5 text-foreground">
           {title}
-        </CardTitle>
+        </h2>
         {action ? <div className="shrink-0">{action}</div> : null}
       </CardHeader>
       <CardContent className={cn("p-4", contentClassName)}>

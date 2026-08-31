@@ -8,6 +8,7 @@ export { ButtonVariantsExample } from "./button-variants-example";
 export { CardPatternsExample } from "./card-patterns-example";
 export { CollectionLayoutExample } from "./collection-layout-example";
 export { CollectionPageHeaderExample } from "./collection-page-header-example";
+export { CollapsibleCardExample } from "./collapsible-card-example";
 export { ColorPaletteExample } from "./color-palette-example";
 export { DesignSystemColorSwatch } from "./color-swatch";
 export { DesignSystemSectionLabel } from "./section-label";

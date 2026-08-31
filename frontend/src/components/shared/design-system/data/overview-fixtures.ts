@@ -1,19 +1,11 @@
-import type {
-  DashboardKpiTone,
-  DashboardKpiTrend,
-} from "../layout/dashboard-kpi-card";
-
 export const designSystemOverviewDashboardKpis: ReadonlyArray<{
   title: string;
   value: string;
-  change: string;
-  trend: DashboardKpiTrend;
-  tone: DashboardKpiTone;
 }> = [
-  { title: "Total Risiko", value: "248", change: "12%", trend: "up", tone: "neutral" },
-  { title: "Risiko Tinggi", value: "36", change: "4%", trend: "down", tone: "success" },
-  { title: "Overdue", value: "11", change: "2%", trend: "up", tone: "warning" },
-  { title: "Risk Exposure", value: "1,284", change: "—", trend: "unavailable", tone: "neutral" },
+  { title: "Total Risiko", value: "248" },
+  { title: "Risiko Tinggi", value: "36" },
+  { title: "Overdue", value: "11" },
+  { title: "Risk Exposure", value: "1,284" },
 ];
 
 export const designSystemOverviewCategorySegments = [

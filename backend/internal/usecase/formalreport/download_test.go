@@ -95,7 +95,6 @@ func TestDownloadUseCase_Execute(t *testing.T) {
 			"summary": map[string]any{
 				"riskCount":     12,
 				"incidentCount": 3,
-				"kriCount":      5,
 				"tmpmrScore":    4.2,
 			},
 		},

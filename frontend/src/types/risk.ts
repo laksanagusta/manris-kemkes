@@ -40,10 +40,9 @@ export interface RiskMitigation {
   quantitativeTarget?: string;
   supportingUnit?: string;
   resourcesRequired?: string;
-  contingencyPlan?: string;
-  potentialObstacle?: string;
-  costBenefitNote?: string;
-  isBreakthroughActivity?: boolean;
+	contingencyPlan?: string;
+	potentialObstacle?: string;
+	isBreakthroughActivity?: boolean;
   isExistingControl?: boolean;
 }
 
@@ -358,17 +357,6 @@ export interface HeatmapVelocityCell {
   downCount: number;
   stableCount: number;
   newCount: number;
-}
-
-export interface KRIBreachItem {
-  kriId: string;
-  kriName: string;
-  threshold: number;
-  actualValue: number;
-  unit: string;
-  status: 'safe' | 'warning' | 'breach';
-  riskTitle: string;
-  orgName: string;
 }
 
 /** Subset of Risk fields returned by GET /api/v1/dashboard/top-risks */

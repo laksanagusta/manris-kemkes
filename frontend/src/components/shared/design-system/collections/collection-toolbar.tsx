@@ -20,13 +20,13 @@ export function CollectionToolbar({
   return (
     <div
       className={cn(
-        "flex flex-col gap-3 md:flex-row md:items-center",
-        hasContext ? "md:justify-between" : "md:justify-end",
+        "flex flex-col gap-3 sm:flex-row sm:items-center",
+        hasContext ? "sm:justify-between" : "sm:justify-end",
         className,
       )}
     >
       {hasContext ? (
-        <div>
+        <div className={cn("min-w-0", leading && "flex-1")}>
           {leading}
           {title ? (
             <h2 className="text-base font-medium tracking-tight text-foreground text-balance">
@@ -41,7 +41,7 @@ export function CollectionToolbar({
         </div>
       ) : null}
       {actions ? (
-        <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center md:w-auto">
+        <div className="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:shrink-0 sm:flex-row sm:items-center sm:justify-end">
           {actions}
         </div>
       ) : null}

@@ -14,7 +14,6 @@ const (
 	RiskMonitoringStatusFinal = "final"
 	// Deprecated alias kept for callers that still use the old name.
 	RiskMonitoringStatusFinalized = RiskMonitoringStatusFinal
-	RiskMonitoringStatusVoid      = "void"
 
 	RiskMonitoringModeScoreOnly           = "score_only"
 	RiskMonitoringModeWithProfileRevision = "with_profile_revision"
@@ -39,11 +38,6 @@ type RiskMonitoring struct {
 	ObservedWeight              float64                     `json:"observedWeight"`
 	ObservedNilai               float64                     `json:"observedNilai"`
 	ObservedLevel               string                      `json:"observedLevel"`
-	ConditionSummary            string                      `json:"conditionSummary"`
-	EventSummary                string                      `json:"eventSummary"`
-	Trend                       string                      `json:"trend"`
-	EffectivenessConclusion     string                      `json:"effectivenessConclusion"`
-	FollowUpNote                string                      `json:"followUpNote"`
 	Conclusion                  string                      `json:"conclusion"`
 	MitigationProgressSummary   string                      `json:"mitigationProgressSummary"`
 	MitigationCompletionPercent int                         `json:"mitigationCompletionPercent"`
@@ -65,9 +59,6 @@ type RiskMonitoring struct {
 	StartedAt                   time.Time                   `json:"startedAt"`
 	FinalizedBy                 *uuid.UUID                  `json:"finalizedBy,omitempty"`
 	FinalizedAt                 *time.Time                  `json:"finalizedAt,omitempty"`
-	VoidedBy                    *uuid.UUID                  `json:"voidedBy,omitempty"`
-	VoidedAt                    *time.Time                  `json:"voidedAt,omitempty"`
-	VoidReason                  string                      `json:"voidReason"`
 	CreatedAt                   time.Time                   `json:"createdAt"`
 	UpdatedAt                   time.Time                   `json:"updatedAt"`
 	SourceRisk                  *Risk                       `json:"sourceRisk,omitempty"`
@@ -102,9 +93,6 @@ type RiskMonitoringDraftValues struct {
 	Mitigations          []Mitigation
 	Probability          int
 	Impact               int
-	ConditionSummary     string
-	EventSummary         string
-	Effectiveness        string
 	Conclusion           string
 	ChangeReason         string
 }
@@ -127,7 +115,6 @@ func NewRiskMonitoringDraft(source *Risk, cycle string, startedBy uuid.UUID) *Ri
 		ObservedWeight:      source.Weight,
 		ObservedNilai:       source.EffectiveNilai(),
 		ObservedLevel:       source.GetRiskLevel(),
-		Trend:               "stable",
 		StartedBy:           &startedBy,
 	}
 	draft.SetDraftPayload(NewRiskMonitoringDraftPayloadFromRisk(source))
@@ -327,7 +314,7 @@ func (m *RiskMonitoring) Validate() error {
 	if m.Status == "" {
 		return errors.Wrap(errors.ErrInvalidInput, "status is required")
 	}
-	if m.Status != RiskMonitoringStatusDraft && m.Status != RiskMonitoringStatusFinal && m.Status != RiskMonitoringStatusVoid {
+	if m.Status != RiskMonitoringStatusDraft && m.Status != RiskMonitoringStatusFinal {
 		return errors.Wrap(errors.ErrInvalidInput, "status pemantauan tidak valid")
 	}
 	if m.Mode == "" {

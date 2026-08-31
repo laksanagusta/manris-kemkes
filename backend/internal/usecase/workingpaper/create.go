@@ -3,7 +3,6 @@ package workingpaper
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -47,10 +46,6 @@ func (uc *UseCase) Create(ctx context.Context, input CreateWorkingPaperInput) (*
 	for _, decision := range input.Decisions {
 		if decision.Included {
 			included++
-			continue
-		}
-		if strings.TrimSpace(decision.ExclusionReason) == "" {
-			return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "exclusion reason is required"}
 		}
 	}
 	if included == 0 {
@@ -123,7 +118,7 @@ func buildWorkingPaperRiskData(risk *entity.Risk) entity.WorkingPaperRiskData {
 		RiskAppetite:         risk.RiskAppetite,
 		TreatmentOption:      risk.TreatmentOption,
 		TargetProbability:    risk.TargetProbability,
-		TargetImpact:          risk.TargetImpact,
+		TargetImpact:         risk.TargetImpact,
 		TargetBobot:          risk.TargetWeight,
 		TargetNilai:          risk.TargetNilai,
 		AssessmentCycle:      risk.AssessmentCycle,

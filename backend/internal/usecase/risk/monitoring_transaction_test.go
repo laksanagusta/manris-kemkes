@@ -90,19 +90,6 @@ func (f *fakeMonitoringTransactionRepo) UpdateTaskMonitoringIDs(context.Context,
 	return nil
 }
 
-func (f *fakeMonitoringTransactionRepo) VoidAndCreateCorrection(_ context.Context, monitoringID uuid.UUID, draft *entity.RiskMonitoring, _ uuid.UUID, _ string) (*entity.RiskMonitoring, error) {
-	if _, ok := f.byID[monitoringID]; !ok {
-		return nil, domainerrors.ErrRiskNotFound
-	}
-	if draft.ID == uuid.Nil {
-		draft.ID = uuid.New()
-	}
-	if err := f.Create(context.Background(), draft); err != nil {
-		return nil, err
-	}
-	return cloneRiskMonitoringForTest(draft), nil
-}
-
 func (f *fakeMonitoringTransactionRepo) Finalize(_ context.Context, monitoringID uuid.UUID, resultRisk *entity.Risk, finalizedBy uuid.UUID) (*entity.RiskMonitoring, error) {
 	m, ok := f.byID[monitoringID]
 	if !ok {
@@ -331,11 +318,6 @@ func TestUpdateMonitoringUseCase_DetectsProfileRevision(t *testing.T) {
 		OrgIDs:                      []uuid.UUID{orgID},
 		ObservedProbability:         3,
 		ObservedImpact:              4,
-		ConditionSummary:            "Changed",
-		EventSummary:                "Event",
-		Trend:                       "meningkat",
-		EffectivenessConclusion:     "Tidak efektif",
-		FollowUpNote:                "Follow up",
 		Conclusion:                  "Perlu revisi",
 		MitigationProgressSummary:   "60%",
 		MitigationCompletionPercent: 60,
@@ -350,7 +332,6 @@ func TestUpdateMonitoringUseCase_DetectsProfileRevision(t *testing.T) {
 			ControlEffectiveness: "efektif",
 			TreatmentOption:      "accept",
 			Mitigations:          []entity.Mitigation{{Action: "New action", Owner: "Unit"}},
-			ChangeReason:         "because it changed",
 		},
 	})
 	if err != nil {
@@ -397,7 +378,7 @@ func TestUpdateMonitoringUseCase_MergesOmittedScoresAndDescription(t *testing.T)
 	out, err := uc.Execute(context.Background(), UpdateMonitoringInput{
 		MonitoringID: monitoringID,
 		OrgIDs:       []uuid.UUID{orgID},
-		// Deliberately omit probability and impact to model a partial MCP update.
+		// Deliberately omit probability and impact to model a partial update.
 		Values: entity.RiskMonitoringDraftValues{
 			Description:  "Updated description",
 			ChangeReason: "Description was clarified",
@@ -455,7 +436,6 @@ func TestFinalizeMonitoringUseCase_BuildsRiskVersion(t *testing.T) {
 	monitoring.ObservedProbability = 3
 	monitoring.ObservedImpact = 4
 	monitoring.CalculateObservedScore()
-	monitoring.Conclusion = "Monitoring summary"
 
 	monitoringRepo := newFakeMonitoringTransactionRepo()
 	monitoringRepo.byID[monitoringID] = monitoring
@@ -498,5 +478,52 @@ func TestFinalizeMonitoringUseCase_BuildsRiskVersion(t *testing.T) {
 	}
 	if resultRisk.AssessmentCycle != "2026-Q2" {
 		t.Fatalf("expected result risk assessment cycle 2026-Q2, got %q", resultRisk.AssessmentCycle)
+	}
+}
+
+func TestFinalizeMonitoringUseCase_BuildsRiskVersionForScoreOnlyMonitoring(t *testing.T) {
+	orgID := uuid.New()
+	sourceID := uuid.New()
+	monitoringID := uuid.New()
+	source := &entity.Risk{
+		ID:             sourceID,
+		Code:           "R-SCORE-ONLY",
+		Title:          "Score only source",
+		Category:       entity.RiskCategoryOperasional,
+		Status:         entity.RiskStatusApproved,
+		VersionGroupID: uuid.New(),
+		IsCurrent:      true,
+		IsCycleCurrent: true,
+		VersionNumber:  4,
+		OrganizationID: &orgID,
+		Probability:    4,
+		Impact:         4,
+		Weight:         entity.GetBobot(4, 4),
+	}
+	monitoring := entity.NewRiskMonitoringDraft(source, "2026-Q3", uuid.New())
+	monitoring.ID = monitoringID
+	monitoring.ObservedProbability = 2
+	monitoring.ObservedImpact = 3
+	monitoring.CalculateObservedScore()
+
+	monitoringRepo := newFakeMonitoringTransactionRepo()
+	monitoringRepo.byID[monitoringID] = monitoring
+	riskRepo := &fakeMonitoringRiskRepoForUsecase{risks: map[uuid.UUID]*entity.Risk{sourceID: source}}
+	uc := NewFinalizeMonitoringUseCase(riskRepo, monitoringRepo, nil, nil)
+
+	_, err := uc.Execute(context.Background(), FinalizeMonitoringInput{
+		MonitoringID: monitoringID,
+		OrgIDs:       []uuid.UUID{orgID},
+		FinalizedBy:  uuid.New(),
+	})
+	if err != nil {
+		t.Fatalf("expected score-only monitoring to finalize, got %v", err)
+	}
+	if len(monitoringRepo.finalizedR) != 1 {
+		t.Fatalf("expected one official result risk, got %d", len(monitoringRepo.finalizedR))
+	}
+	result := monitoringRepo.finalizedR[0]
+	if result.VersionNumber != 5 || result.Probability != 2 || result.Impact != 3 {
+		t.Fatalf("expected next version with observed score, got version=%d score=%d/%d", result.VersionNumber, result.Probability, result.Impact)
 	}
 }

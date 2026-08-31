@@ -221,7 +221,7 @@ export default function RegisterScreen() {
                     value={name}
                     onChange={(event) => setName(event.target.value)}
                     placeholder="Contoh: Dr. Andi Pratama, M.Kes"
-                    className="h-10 border-border/50 bg-muted/30"
+                    className="h-10 border-input bg-muted/30"
                     required
                   />
                 </div>
@@ -238,7 +238,7 @@ export default function RegisterScreen() {
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     placeholder="nama@kemenkes.go.id"
-                    className="h-10 border-border/50 bg-muted/30"
+                    className="h-10 border-input bg-muted/30"
                     required
                   />
                 </div>
@@ -251,7 +251,7 @@ export default function RegisterScreen() {
                     value={phoneNumber}
                     onChange={(event) => setPhoneNumber(event.target.value)}
                     placeholder="08xxxxxxxxxx"
-                    className="h-10 border-border/50 bg-muted/30"
+                    className="h-10 border-input bg-muted/30"
                     required
                   />
                 </div>
@@ -273,7 +273,7 @@ export default function RegisterScreen() {
                         role="combobox"
                         aria-expanded={organizationPickerOpen}
                         disabled={orgLoading}
-                        className="h-10 w-full justify-between gap-2 border-border/50 bg-muted/30 font-normal"
+                        className="h-10 w-full justify-between gap-2 border-input bg-muted/30 font-normal"
                       >
                         <span className="min-w-0 flex-1 truncate text-left">
                           {orgLoading
@@ -344,7 +344,7 @@ export default function RegisterScreen() {
                     value={nip}
                     onChange={(event) => setNip(event.target.value)}
                     placeholder="Nomor induk pegawai"
-                    className="h-10 border-border/50 bg-muted/30"
+                    className="h-10 border-input bg-muted/30"
                     required
                   />
                 </div>
@@ -360,7 +360,7 @@ export default function RegisterScreen() {
                     value={jabatan}
                     onChange={(event) => setJabatan(event.target.value)}
                     placeholder="Jabatan"
-                    className="h-10 border-border/50 bg-muted/30"
+                    className="h-10 border-input bg-muted/30"
                   />
                 </div>
                 <div className="space-y-2">
@@ -372,7 +372,7 @@ export default function RegisterScreen() {
                     value={pangkat}
                     onChange={(event) => setPangkat(event.target.value)}
                     placeholder="Pangkat"
-                    className="h-10 border-border/50 bg-muted/30"
+                    className="h-10 border-input bg-muted/30"
                   />
                 </div>
               </div>
@@ -389,7 +389,7 @@ export default function RegisterScreen() {
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
                       placeholder="Buat password sendiri"
-                      className="h-10 border-border/50 bg-muted/30 pr-10"
+                      className="h-10 border-input bg-muted/30 pr-10"
                       required
                     />
                     <button
@@ -421,7 +421,7 @@ export default function RegisterScreen() {
                         setConfirmPassword(event.target.value)
                       }
                       placeholder="Ulangi password"
-                      className="h-10 border-border/50 bg-muted/30 pr-10"
+                      className="h-10 border-input bg-muted/30 pr-10"
                       required
                     />
                     <button
@@ -444,7 +444,7 @@ export default function RegisterScreen() {
               <div className="flex flex-col gap-3 pt-1">
                 <Button
                   type="submit"
-                  className="h-10 gap-2 text-sm font-semibold shadow-lg shadow-primary/20 hover:shadow-xl hover:shadow-primary/30"
+                  className="h-10 gap-2 text-sm font-semibold"
                   disabled={loading || orgLoading}
                 >
                   {loading ? (

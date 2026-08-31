@@ -12,6 +12,9 @@ export function ButtonVariantsExample() {
         <AccentButton icon={<Plus className="size-3.5" strokeWidth={2.5} />}>
           Primary
         </AccentButton>
+        <Button variant="secondary" size="md">
+          Secondary
+        </Button>
         <Button variant="outline" size="md" className="border-transparent shadow-none">
           <Save className="size-3.5" />
           Outline

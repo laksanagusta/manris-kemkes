@@ -110,7 +110,7 @@ export function OrganizationGroupPicker({
           aria-expanded={open}
           disabled={disabled}
           className={cn(
-            "h-8 w-full min-w-0 justify-between overflow-hidden border-border/50 bg-background/80 px-3 text-xs font-normal shadow-none",
+            "h-10 w-full min-w-0 justify-between overflow-hidden border-input bg-background/80 px-3 text-xs font-normal shadow-none",
             className,
           )}
         >
@@ -134,7 +134,7 @@ export function OrganizationGroupPicker({
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder={searchPlaceholder}
-            className="h-9 rounded-none border-0 bg-transparent px-0 py-2 text-xs shadow-none"
+            className="h-10 rounded-none border-0 bg-transparent px-0 py-2 text-xs shadow-none"
           />
         </div>
         <ScrollArea className="h-56">

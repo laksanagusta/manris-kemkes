@@ -29,9 +29,6 @@ type AIRepository interface {
 	// GenerateRiskSuggestions generates unique risk suggestions different from existing ones
 	GenerateRiskSuggestions(ctx context.Context, orgContext string) (*entity.RiskSuggestions, error)
 
-	// GenerateKRI generates KRI suggestions based on a risk's title and description
-	GenerateKRI(ctx context.Context, req entity.AIRequest, orgContext string) (*entity.KRISuggestions, error)
-
 	// AnalyzeDocument analyzes a text-extracted document and returns structured intelligence results.
 	AnalyzeDocument(ctx context.Context, req entity.DocumentAnalysisRequest, orgContext string) (*entity.DocumentIntelligenceResult, error)
 

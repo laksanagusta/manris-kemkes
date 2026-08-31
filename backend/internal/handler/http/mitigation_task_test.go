@@ -151,9 +151,6 @@ func (r *mitigationRiskRepoStub) GetHeatmapVelocity(context.Context, string, str
 func (r *mitigationRiskRepoStub) GetOverdueMitigationTimeline(context.Context, []uuid.UUID) ([]entity.OverdueMitigationTimelineItem, error) {
 	return []entity.OverdueMitigationTimelineItem{}, nil
 }
-func (r *mitigationRiskRepoStub) GetKRIBreachSummary(context.Context, []uuid.UUID) ([]entity.KRIBreachItem, error) {
-	return []entity.KRIBreachItem{}, nil
-}
 func (r *mitigationRiskRepoStub) GetUnitResponseTime(context.Context, []uuid.UUID) ([]entity.UnitResponseTime, error) {
 	return []entity.UnitResponseTime{}, nil
 }

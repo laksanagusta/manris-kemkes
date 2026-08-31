@@ -31,6 +31,7 @@ import {
 import { Input } from "@/components/ui/input";
 import {
   CollectionPageHeader,
+  CollectionToolbar,
   PageStack,
 } from "@/components/shared/design-system";
 
@@ -70,12 +71,24 @@ export default function ControlsPage() {
 
   return (
     <PageStack>
-      <CollectionPageHeader
-        title="Control Library"
-        description="Pustaka pengendalian risiko dan pencatatan hasil testing"
+      <CollectionPageHeader title="Control Library" />
+
+      <CollectionToolbar
+        className="w-full"
+        leading={
+          <div className="relative min-w-0 w-full sm:w-80 sm:flex-none">
+            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Cari kontrol..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              className="h-10 bg-card pl-8 text-xs"
+            />
+          </div>
+        }
         actions={
           (!user?.isGlobal && !user?.organizationId) ? null : (
-            <Button asChild className="gap-2 shadow-lg shadow-primary/20">
+            <Button asChild className="w-full gap-2 sm:w-auto">
               <Link href="/compliance/controls/new">
                 <Plus className="size-4" />
                 Tambah Kontrol
@@ -84,17 +97,6 @@ export default function ControlsPage() {
           )
         }
       />
-
-       {/* Search */}
-       <div className="relative max-w-sm">
-         <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-         <Input
-           placeholder="Cari kontrol..."
-           value={search}
-           onChange={(event) => setSearch(event.target.value)}
-           className="h-8 pl-8 text-xs bg-card border-border/50"
-         />
-       </div>
 
       {/* Control Cards */}
       <div className="space-y-3">

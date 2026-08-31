@@ -45,14 +45,14 @@ export function FormalReportCard({
   const subtitle = summary?.headline || "";
 
   return (
-    <Card className="group flex h-full flex-col rounded-lg bg-card">
+    <Card className="group flex h-full flex-col rounded-xl bg-card">
       <CardHeader className="pb-4">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1.5">
             <CardTitle className="text-sm font-medium normal-case leading-5 text-balance">
               {title}
             </CardTitle>
-            <p className="text-sm leading-6 text-muted-foreground">
+            <p className="text-sm leading-6 text-secondary-foreground">
               {subtitle || description}
             </p>
           </div>
@@ -66,7 +66,7 @@ export function FormalReportCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="rounded-2xl border border-border/50 bg-muted/20 px-4 py-3">
+        <div className="surface-hairline rounded-2xl bg-muted/20 px-4 py-3">
           <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
             Latest generated
           </p>

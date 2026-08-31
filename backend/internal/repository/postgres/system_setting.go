@@ -166,14 +166,10 @@ func (r *systemSettingRepository) GetAIModels(ctx context.Context) (*entity.AIMo
 			models.Predictive = s.Value
 		case "ai.model.minutes":
 			models.Minutes = s.Value
-		case "ai.model.kri":
-			models.KRI = s.Value
 		case "ai.model.risk-suggestion":
 			models.RiskSuggestion = s.Value
 		case "ai.model.incident":
 			models.Incident = s.Value
-		case "ai.model.cba":
-			models.CBA = s.Value
 		}
 	}
 

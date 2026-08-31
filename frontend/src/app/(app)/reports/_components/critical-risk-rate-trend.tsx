@@ -5,16 +5,28 @@ import {
   CartesianGrid,
   ComposedChart,
   Line,
-  ResponsiveContainer,
-  Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 import { Badge } from "@/components/ui/badge";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
+import { CHART_COLORS } from "@/lib/chart-colors";
 import type { CriticalRiskRateDatum } from "@/lib/dashboard-insights";
 import { StandardCard } from "@/components/shared/design-system";
 
-const RATE_COLOR = "oklch(0.68 0.15 190)";
+const RATE_COLOR = CHART_COLORS.primary;
+
+const chartConfig = {
+  highExtremeRate: {
+    label: "Tingkat Kritis",
+    color: RATE_COLOR,
+  },
+} satisfies ChartConfig;
 
 interface CriticalRiskRateTrendProps {
   loading?: boolean;
@@ -33,7 +45,7 @@ export function CriticalRiskRateTrend({
       <StandardCard
         title="Tingkat Risiko Kritis"
         className="h-full"
-        contentClassName="space-y-4"
+        contentClassName="flex flex-col gap-4"
       >
         <div data-testid="critical-risk-rate-trend">
           <div className="flex h-56 items-center justify-center text-sm text-muted-foreground">
@@ -55,24 +67,25 @@ export function CriticalRiskRateTrend({
         ) : null
       }
       className="h-full"
-      contentClassName="space-y-4"
+      contentClassName="flex flex-col gap-4"
     >
       <div data-testid="critical-risk-rate-trend">
         {!hasData ? (
-          <div className="flex h-56 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
+          <div className="flex h-56 items-center justify-center rounded-lg border border-dashed border-surface-border bg-muted/20 px-6 text-center text-sm text-muted-foreground">
             Belum ada data kuartal untuk menampilkan tren risiko kritis.
           </div>
         ) : (
           <>
             <div className="h-56">
-              <ResponsiveContainer width="100%" height="100%">
+              <ChartContainer config={chartConfig} className="h-full w-full">
                 <ComposedChart
+                  accessibilityLayer
                   data={data}
                   margin={{ top: 4, right: 12, left: -12, bottom: 0 }}
                 >
                   <defs>
                     <linearGradient
-                      id="criticalRateGradient"
+                      id="critical-rate-gradient"
                       x1="0"
                       y1="0"
                       x2="0"
@@ -92,61 +105,61 @@ export function CriticalRiskRateTrend({
                   </defs>
                   <CartesianGrid
                     strokeDasharray="3 3"
-                    stroke="oklch(0.5 0 0 / 8%)"
+                    stroke="var(--chart-grid)"
                     vertical={false}
                   />
                   <XAxis
                     dataKey="period"
-                    tick={{ fontSize: 10, fill: "oklch(0.6 0.02 265)" }}
+                    tick={{ fontSize: 10 }}
                     axisLine={false}
                     tickLine={false}
                   />
                   <YAxis
-                    tick={{ fontSize: 10, fill: "oklch(0.6 0.02 265)" }}
+                    tick={{ fontSize: 10 }}
                     axisLine={false}
                     tickLine={false}
                     tickFormatter={(v) => `${v}%`}
                     domain={[0, (max: number) => Math.max(max + 10, 20)]}
                   />
-                  <Tooltip
-                    formatter={(value, name) => {
-                      if (name === "highExtremeRate")
-                        return [`${value ?? 0}%`, "Tingkat Kritis"];
-                      return [`${value ?? 0}%`, String(name)];
-                    }}
-                    labelFormatter={(label) => {
-                      const item = data.find((d) => d.period === label);
-                      if (!item) return String(label);
-                      return `${label} — ${item.mediumCount} sedang, ${item.highCount} tinggi, ${item.extremeCount} sangat tinggi dari ${item.totalRisks} total`;
-                    }}
-                    contentStyle={{
-                      background: "oklch(0.98 0.003 170 / 95%)",
-                      border: "1px solid oklch(0.91 0.008 170)",
-                      borderRadius: "8px",
-                      fontSize: "11px",
-                    }}
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        indicator="line"
+                        formatter={(value, name) => {
+                          if (name === "highExtremeRate") {
+                            return [`${value ?? 0}%`, "Tingkat Kritis"];
+                          }
+                          return [`${value ?? 0}%`, String(name)];
+                        }}
+                        labelFormatter={(label) => {
+                          const item = data.find((d) => d.period === label);
+                          if (!item) return String(label);
+                          return `${label} — ${item.mediumCount} sedang, ${item.highCount} tinggi, ${item.extremeCount} sangat tinggi dari ${item.totalRisks} total`;
+                        }}
+                      />
+                    }
                   />
                   <Area
                     type="monotone"
                     dataKey="highExtremeRate"
-                    fill="url(#criticalRateGradient)"
+                    fill="url(#critical-rate-gradient)"
                     stroke="none"
                   />
                   <Line
                     type="monotone"
                     dataKey="highExtremeRate"
-                    stroke={RATE_COLOR}
+                    stroke="var(--color-highExtremeRate)"
                     strokeWidth={2.5}
                     dot={{
                       r: 4,
-                      fill: RATE_COLOR,
+                      fill: "var(--color-highExtremeRate)",
                       strokeWidth: 2,
-                      stroke: "#fff",
+                      stroke: "var(--card)",
                     }}
                     activeDot={{ r: 6 }}
                   />
                 </ComposedChart>
-              </ResponsiveContainer>
+              </ChartContainer>
             </div>
             <div className="mt-3 flex items-center justify-center gap-4 border-t border-border/40 pt-3">
               <div className="flex items-center gap-1.5">

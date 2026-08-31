@@ -49,7 +49,6 @@ type RiskHandler struct {
 	listApprovedUC          *riskuc.ListApprovedRisksUseCase
 	heatmapVelocityUC       *riskuc.HeatmapVelocityUseCase
 	overdueTimelineUC       *riskuc.OverdueMitigationTimelineUseCase
-	kriBreachSummaryUC      *riskuc.KRIBreachSummaryUseCase
 	unitResponseTimeUC      *riskuc.UnitResponseTimeUseCase
 	monitoringSpreadsheetUC *riskuc.BulkMonitoringSpreadsheetUseCase
 	createMonitoringBatchUC *riskuc.CreateMonitoringBatchUseCase
@@ -57,7 +56,6 @@ type RiskHandler struct {
 	getMonitoringUC         *riskuc.GetMonitoringUseCase
 	updateMonitoringUC      *riskuc.UpdateMonitoringUseCase
 	finalizeMonitoringUC    *riskuc.FinalizeMonitoringUseCase
-	correctMonitoringUC     *riskuc.CorrectMonitoringUseCase
 	mmRepo                  repository.MeetingMinuteRepository
 }
 
@@ -94,7 +92,6 @@ func NewRiskHandler(
 	listApprovedUC *riskuc.ListApprovedRisksUseCase,
 	heatmapVelocityUC *riskuc.HeatmapVelocityUseCase,
 	overdueTimelineUC *riskuc.OverdueMitigationTimelineUseCase,
-	kriBreachSummaryUC *riskuc.KRIBreachSummaryUseCase,
 	unitResponseTimeUC *riskuc.UnitResponseTimeUseCase,
 	monitoringSpreadsheetUC *riskuc.BulkMonitoringSpreadsheetUseCase,
 	createMonitoringBatchUC *riskuc.CreateMonitoringBatchUseCase,
@@ -102,7 +99,6 @@ func NewRiskHandler(
 	getMonitoringUC *riskuc.GetMonitoringUseCase,
 	updateMonitoringUC *riskuc.UpdateMonitoringUseCase,
 	finalizeMonitoringUC *riskuc.FinalizeMonitoringUseCase,
-	correctMonitoringUC *riskuc.CorrectMonitoringUseCase,
 	mmRepo repository.MeetingMinuteRepository,
 ) *RiskHandler {
 	return &RiskHandler{
@@ -134,7 +130,6 @@ func NewRiskHandler(
 		listApprovedUC:          listApprovedUC,
 		heatmapVelocityUC:       heatmapVelocityUC,
 		overdueTimelineUC:       overdueTimelineUC,
-		kriBreachSummaryUC:      kriBreachSummaryUC,
 		unitResponseTimeUC:      unitResponseTimeUC,
 		monitoringSpreadsheetUC: monitoringSpreadsheetUC,
 		createMonitoringBatchUC: createMonitoringBatchUC,
@@ -142,7 +137,6 @@ func NewRiskHandler(
 		getMonitoringUC:         getMonitoringUC,
 		updateMonitoringUC:      updateMonitoringUC,
 		finalizeMonitoringUC:    finalizeMonitoringUC,
-		correctMonitoringUC:     correctMonitoringUC,
 		mmRepo:                  mmRepo,
 	}
 }
@@ -566,11 +560,6 @@ type startMonitoringRequest struct {
 type updateMonitoringRequest struct {
 	ObservedProbability         int                              `json:"observedProbability"`
 	ObservedImpact              int                              `json:"observedImpact"`
-	ConditionSummary            string                           `json:"conditionSummary"`
-	EventSummary                string                           `json:"eventSummary"`
-	Trend                       string                           `json:"trend"`
-	EffectivenessConclusion     string                           `json:"effectivenessConclusion"`
-	FollowUpNote                string                           `json:"followUpNote"`
 	Conclusion                  string                           `json:"conclusion"`
 	MitigationProgressSummary   string                           `json:"mitigationProgressSummary"`
 	MitigationCompletionPercent int                              `json:"mitigationCompletionPercent"`
@@ -579,10 +568,6 @@ type updateMonitoringRequest struct {
 
 type finalizeMonitoringRequest struct {
 	FinalizedBy uuid.UUID `json:"finalizedBy"`
-}
-
-type correctMonitoringRequest struct {
-	Reason string `json:"reason"`
 }
 
 // CreateRisk handles POST /api/risks
@@ -980,11 +965,6 @@ func (h *RiskHandler) UpdateMonitoring(c *fiber.Ctx) error {
 		OrgIDs:                      orgIDs,
 		ObservedProbability:         req.Values.Probability,
 		ObservedImpact:              req.Values.Impact,
-		ConditionSummary:            req.ConditionSummary,
-		EventSummary:                req.EventSummary,
-		Trend:                       req.Trend,
-		EffectivenessConclusion:     req.EffectivenessConclusion,
-		FollowUpNote:                req.FollowUpNote,
 		Conclusion:                  req.Conclusion,
 		MitigationProgressSummary:   req.MitigationProgressSummary,
 		MitigationCompletionPercent: req.MitigationCompletionPercent,
@@ -1037,43 +1017,6 @@ func (h *RiskHandler) FinalizeMonitoring(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{"data": result})
-}
-
-// CorrectMonitoring voids a finalized monitoring and opens a new draft for
-// the same quarter.
-func (h *RiskHandler) CorrectMonitoring(c *fiber.Ctx) error {
-	if h.correctMonitoringUC == nil {
-		return sendProblemDetails(c, fiber.StatusNotImplemented, "Belum Diimplementasikan", "https://api.manris.com/errors/not-implemented", "use case koreksi pemantauan belum dikonfigurasi")
-	}
-
-	id, err := uuid.Parse(c.Params("id"))
-	if err != nil {
-		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID pemantauan tidak valid")
-	}
-	var req correctMonitoringRequest
-	if err := c.BodyParser(&req); err != nil {
-		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "body permintaan tidak valid")
-	}
-
-	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveOperationalOrgIDs(scope, "")
-	if err != nil {
-		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
-		}
-		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
-	}
-	correctedBy, _ := c.Locals("userId").(uuid.UUID)
-	result, err := h.correctMonitoringUC.Execute(c.Context(), riskuc.CorrectMonitoringInput{
-		MonitoringID: id,
-		OrgIDs:       orgIDs,
-		CorrectedBy:  correctedBy,
-		Reason:       req.Reason,
-	})
-	if err != nil {
-		return handleError(c, err)
-	}
-	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"data": result})
 }
 
 // UpdateRisk handles PUT /api/risks/:id
@@ -1452,25 +1395,6 @@ func (h *RiskHandler) GetOverdueMitigationsTimeline(c *fiber.Ctx) error {
 	}
 	if data == nil {
 		data = []entity.OverdueMitigationTimelineItem{}
-	}
-	return c.JSON(fiber.Map{"data": data})
-}
-
-func (h *RiskHandler) GetKRIBreachSummary(c *fiber.Ctx) error {
-	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveOperationalOrgIDs(scope, "")
-	if err != nil {
-		if errors.Is(err, domainerrors.ErrForbidden) {
-			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
-		}
-		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
-	}
-	data, err := h.kriBreachSummaryUC.Execute(c.Context(), riskuc.KRIBreachSummaryInput{OrgIDs: orgIDs})
-	if err != nil {
-		return handleError(c, err)
-	}
-	if data == nil {
-		data = []entity.KRIBreachItem{}
 	}
 	return c.JSON(fiber.Map{"data": data})
 }

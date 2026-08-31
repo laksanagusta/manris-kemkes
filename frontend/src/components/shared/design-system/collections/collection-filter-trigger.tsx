@@ -7,6 +7,7 @@ export function CollectionFilterTrigger() {
     <ActionButton
       icon={<Filter className="size-3.5" strokeWidth={2.5} />}
       variant="outline"
+      className="h-10"
     >
       Filter
     </ActionButton>

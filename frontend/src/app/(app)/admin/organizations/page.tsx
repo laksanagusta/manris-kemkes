@@ -20,9 +20,11 @@ import { Button } from "@/components/ui/button";
 import {
   CollectionPageHeader,
   CollectionPagination,
+  CollectionToolbar,
+  KpiCard,
+  MetricGrid,
   PageStack,
 } from "@/components/shared/design-system";
-import { KpiCard } from "@/components/ui/kpi-card";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -122,7 +124,9 @@ function OrgRow({
       <TableCell className="max-w-[220px]">
         <div className="flex items-center gap-2">
           <Building2 className="size-4 shrink-0 text-muted-foreground" />
-          <span className="truncate text-xs font-medium">{org.name}</span>
+          <span className="truncate text-xs font-medium text-foreground">
+            {org.name}
+          </span>
         </div>
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">
@@ -337,12 +341,38 @@ export default function OrganizationsManagementPage() {
   return (
     <PageStack>
       <div className="space-y-6">
-        <CollectionPageHeader
-          title="Organization Management"
-          description="Kelola struktur organisasi dan unit kerja"
+        <CollectionPageHeader title="Organization Management" />
+
+        <MetricGrid className="md:grid-cols-3 xl:grid-cols-3">
+          <KpiCard
+            label="Total Unit"
+            value={total}
+            tone="white"
+            icon={<Building2 className="size-5 text-muted-foreground" />}
+          />
+          <KpiCard label="Unit Induk" value={rootUnits} tone="white" />
+          <KpiCard label="Sub Unit" value={subUnits} tone="white" />
+        </MetricGrid>
+
+        <CollectionToolbar
+          className="w-full"
+          leading={
+            <div className="relative min-w-0 w-full sm:w-80 sm:flex-none">
+              <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                placeholder="Cari organisasi..."
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(1);
+                }}
+                className="h-10 bg-card pl-8 text-xs"
+              />
+            </div>
+          }
           actions={
             <Button
-              className="gap-2 shadow-lg shadow-primary/20"
+              className="w-full gap-2 sm:w-auto"
               onClick={handleCreateClick}
               aria-label="Tambah Organisasi"
             >
@@ -351,30 +381,6 @@ export default function OrganizationsManagementPage() {
             </Button>
           }
         />
-
-        <div className="grid gap-4 md:grid-cols-3">
-          <KpiCard
-            label="Total Unit"
-            value={total}
-            tone="white"
-            icon={<Building2 className="size-5 text-muted-foreground" />}
-          />
-          <KpiCard label="Unit Induk" value={rootUnits} tone="zinc" />
-          <KpiCard label="Sub Unit" value={subUnits} tone="zinc" />
-        </div>
-
-        <div className="relative max-w-sm">
-          <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Cari organisasi..."
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value);
-              setPage(1);
-            }}
-            className="h-8 pl-8 text-xs bg-card border-border/50"
-          />
-        </div>
 
         <Card className="bg-card/80 backdrop-blur-sm overflow-hidden">
           <Table>

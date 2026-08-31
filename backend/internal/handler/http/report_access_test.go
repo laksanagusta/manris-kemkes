@@ -67,24 +67,6 @@ func (reportIncidentRepoStub) GetSummary(context.Context, []uuid.UUID) (map[stri
 
 var _ repository.IncidentRepository = reportIncidentRepoStub{}
 
-type reportKRIRepoStub struct{}
-
-func (reportKRIRepoStub) Create(context.Context, *entity.KRI) error { return nil }
-func (reportKRIRepoStub) GetByID(context.Context, uuid.UUID, []uuid.UUID) (*entity.KRI, error) {
-	return nil, nil
-}
-func (reportKRIRepoStub) Update(context.Context, *entity.KRI) error        { return nil }
-func (reportKRIRepoStub) Delete(context.Context, uuid.UUID) error          { return nil }
-func (reportKRIRepoStub) Archive(context.Context, uuid.UUID, string) error { return nil }
-func (reportKRIRepoStub) List(context.Context, []uuid.UUID, bool) ([]*entity.KRI, error) {
-	return []*entity.KRI{}, nil
-}
-func (reportKRIRepoStub) GetDashboard(context.Context, []uuid.UUID) (map[string]interface{}, error) {
-	return map[string]interface{}{}, nil
-}
-
-var _ repository.KRIRepository = reportKRIRepoStub{}
-
 type reportPDFRendererStub struct{}
 
 func (reportPDFRendererStub) Render(context.Context, *entity.ReportData) ([]byte, error) {
@@ -104,7 +86,7 @@ func TestGenerateRiskPDFDefaultsToOwnOrgWhenOrgFilterMissing(t *testing.T) {
 	own := uuid.New()
 	descendant := uuid.New()
 	riskRepo := &reportRiskRepoStub{riskRegisterRepoStub: &riskRegisterRepoStub{}}
-	uc := reportuc.NewGenerateReportUseCase(riskRepo, reportIncidentRepoStub{}, reportKRIRepoStub{})
+	uc := reportuc.NewGenerateReportUseCase(riskRepo, reportIncidentRepoStub{})
 	handler := NewReportHandler(uc, reportPDFRendererStub{}, nil)
 
 	app := fiber.New()
@@ -136,7 +118,7 @@ func TestGenerateRiskPDFAllowsExplicitDescendantSelection(t *testing.T) {
 	own := uuid.New()
 	descendant := uuid.New()
 	riskRepo := &reportRiskRepoStub{riskRegisterRepoStub: &riskRegisterRepoStub{}}
-	uc := reportuc.NewGenerateReportUseCase(riskRepo, reportIncidentRepoStub{}, reportKRIRepoStub{})
+	uc := reportuc.NewGenerateReportUseCase(riskRepo, reportIncidentRepoStub{})
 	handler := NewReportHandler(uc, reportPDFRendererStub{}, nil)
 
 	app := fiber.New()
@@ -230,7 +212,7 @@ func TestGenerateRiskPDFAllowsOrganizationGroupSelection(t *testing.T) {
 	own := uuid.New()
 	member := uuid.New()
 	riskRepo := &reportRiskRepoStub{riskRegisterRepoStub: &riskRegisterRepoStub{}}
-	uc := reportuc.NewGenerateReportUseCase(riskRepo, reportIncidentRepoStub{}, reportKRIRepoStub{})
+	uc := reportuc.NewGenerateReportUseCase(riskRepo, reportIncidentRepoStub{})
 	handler := NewReportHandler(uc, reportPDFRendererStub{}, reportOrgGroupResolverStub{orgIDs: []uuid.UUID{member}})
 
 	app := fiber.New()

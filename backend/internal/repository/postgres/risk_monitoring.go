@@ -51,12 +51,12 @@ func insertRiskMonitoring(
 			source_risk_id, version_group_id, result_risk_id, assessment_cycle, status, mode,
 			source_probability, source_impact, source_weight, source_nilai, source_level, source_version_number,
 			observed_probability, observed_impact, observed_weight, observed_nilai, observed_level,
-			condition_summary, event_summary, trend, effectiveness_conclusion, follow_up_note, conclusion,
+			conclusion,
 			mitigation_progress_summary, mitigation_completion_percent,
 			draft_payload,
 			profile_change_summary, change_reason, started_by, started_at
 		)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25)
 		RETURNING id, started_at, created_at, updated_at`,
 		monitoring.SourceRiskID,
 		monitoring.VersionGroupID,
@@ -75,11 +75,6 @@ func insertRiskMonitoring(
 		monitoring.ObservedWeight,
 		monitoring.ObservedNilai,
 		monitoring.ObservedLevel,
-		monitoring.ConditionSummary,
-		monitoring.EventSummary,
-		monitoring.Trend,
-		monitoring.EffectivenessConclusion,
-		monitoring.FollowUpNote,
 		monitoring.Conclusion,
 		monitoring.MitigationProgressSummary,
 		monitoring.MitigationCompletionPercent,
@@ -262,10 +257,8 @@ func (r *riskMonitoringRepository) List(ctx context.Context, filter repository.R
 			COALESCE(src.title, '') ILIKE $%d OR
 			COALESCE(rm.draft_payload->>'title', '') ILIKE $%d OR
 			COALESCE(rm.draft_payload->>'category', '') ILIKE $%d OR
-			COALESCE(rm.draft_payload->>'riskSource', '') ILIKE $%d OR
-			COALESCE(rm.condition_summary, '') ILIKE $%d OR
-			COALESCE(rm.event_summary, '') ILIKE $%d
-		)`, argIdx, argIdx, argIdx, argIdx, argIdx, argIdx, argIdx)
+			COALESCE(rm.draft_payload->>'riskSource', '') ILIKE $%d
+		)`, argIdx, argIdx, argIdx, argIdx, argIdx)
 		countQuery += clause
 		dataQuery += clause
 		args = append(args, "%"+filter.Query+"%")
@@ -327,20 +320,15 @@ func (r *riskMonitoringRepository) UpdateDraft(ctx context.Context, monitoring *
 		SET mode = $2,
 		    observed_probability = $3,
 		    observed_impact = $4,
-		    observed_weight = $5,
-		    observed_nilai = $6,
-		    observed_level = $7,
-		    condition_summary = $8,
-		    event_summary = $9,
-		    trend = $10,
-		    effectiveness_conclusion = $11,
-		    follow_up_note = $12,
-		    conclusion = $13,
-		    mitigation_progress_summary = $14,
-		    mitigation_completion_percent = $15,
-		    draft_payload = $16,
-		    profile_change_summary = $17,
-		    change_reason = $18,
+			observed_weight = $5,
+			observed_nilai = $6,
+			observed_level = $7,
+			conclusion = $8,
+			mitigation_progress_summary = $9,
+			mitigation_completion_percent = $10,
+			draft_payload = $11,
+			profile_change_summary = $12,
+			change_reason = $13,
 		    updated_at = now()
 		WHERE id = $1 AND status = 'draft'
 	`,
@@ -351,11 +339,6 @@ func (r *riskMonitoringRepository) UpdateDraft(ctx context.Context, monitoring *
 		monitoring.ObservedWeight,
 		monitoring.ObservedNilai,
 		monitoring.ObservedLevel,
-		monitoring.ConditionSummary,
-		monitoring.EventSummary,
-		monitoring.Trend,
-		monitoring.EffectivenessConclusion,
-		monitoring.FollowUpNote,
 		monitoring.Conclusion,
 		monitoring.MitigationProgressSummary,
 		monitoring.MitigationCompletionPercent,
@@ -435,11 +418,11 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 		if _, err := tx.Exec(ctx, `
 			UPDATE risks
 			SET finalized_by = $2,
-			    finalized_at = $3,
-			    effective_from = $3::date,
+			    finalized_at = $3::timestamptz,
+			    effective_from = $4::date,
 			    updated_at = now()
 			WHERE id = $1
-		`, resultRisk.ID, actor, now); err != nil {
+		`, resultRisk.ID, actor, now, now); err != nil {
 			return nil, fmt.Errorf("record monitoring result risk finalization: %w", err)
 		}
 	}
@@ -478,88 +461,24 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 	return r.GetByID(ctx, monitoringID, nil)
 }
 
-// VoidAndCreateCorrection preserves a finalized monitoring as an immutable
-// void record and opens a new draft for the same reporting period.
-func (r *riskMonitoringRepository) VoidAndCreateCorrection(ctx context.Context, monitoringID uuid.UUID, draft *entity.RiskMonitoring, voidedBy uuid.UUID, reason string) (*entity.RiskMonitoring, error) {
-	tx, err := r.pool.Begin(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("begin monitoring correction: %w", err)
-	}
-	defer tx.Rollback(ctx)
-
-	var versionGroupID uuid.UUID
-	var cycle, status string
-	if err := tx.QueryRow(ctx, `
-		SELECT version_group_id, assessment_cycle, status
-		FROM risk_monitorings
-		WHERE id = $1
-		FOR UPDATE
-	`, monitoringID).Scan(&versionGroupID, &cycle, &status); err != nil {
-		return nil, fmt.Errorf("load monitoring for correction: %w", err)
-	}
-	if status != entity.RiskMonitoringStatusFinal {
-		return nil, domainerrors.ErrMonitoringNotFinalizable
-	}
-
-	now := time.Now().UTC()
-	if _, err := tx.Exec(ctx, `
-		UPDATE risk_monitorings
-		SET status = 'void', voided_by = $2, voided_at = $3, void_reason = $4, updated_at = now()
-		WHERE id = $1 AND status = 'final'
-	`, monitoringID, voidedBy, now, reason); err != nil {
-		return nil, fmt.Errorf("void finalized monitoring: %w", err)
-	}
-
-	draft.VersionGroupID = versionGroupID
-	draft.AssessmentCycle = cycle
-	draft.Status = entity.RiskMonitoringStatusDraft
-	if draft.StartedAt.IsZero() {
-		draft.StartedAt = now
-	}
-	if err := insertRiskMonitoring(ctx, tx, draft); err != nil {
-		return nil, fmt.Errorf("insert monitoring correction draft: %w", err)
-	}
-	if _, err := tx.Exec(ctx, `
-		UPDATE mitigation_tasks
-		SET monitoring_id = $1, updated_at = now()
-		WHERE risk_id = $2 AND period_label = $3 AND status IN ('pending', 'overdue')
-	`, draft.ID, draft.SourceRiskID, cycle); err != nil {
-		return nil, fmt.Errorf("relink pending mitigation tasks to correction: %w", err)
-	}
-
-	if _, err := tx.Exec(ctx, `
-		UPDATE risk_monitoring_periods
-		SET status = CASE WHEN due_date < CURRENT_DATE THEN 'overdue' ELSE 'pending' END,
-		    completed_monitoring_id = NULL, completed_at = NULL, updated_at = now()
-		WHERE version_group_id = $1 AND period_label = $2
-	`, versionGroupID, cycle); err != nil {
-		return nil, fmt.Errorf("reopen monitoring period: %w", err)
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		return nil, fmt.Errorf("commit monitoring correction: %w", err)
-	}
-	return r.GetByID(ctx, draft.ID, nil)
-}
-
 func baseRiskMonitoringSelect() string {
 	return `
 		SELECT
 			rm.id, rm.source_risk_id, rm.version_group_id, rm.result_risk_id, rm.assessment_cycle, rm.status, rm.mode,
 			rm.source_probability, rm.source_impact, rm.source_weight, rm.source_nilai, rm.source_level, rm.source_version_number,
 			rm.observed_probability, rm.observed_impact, rm.observed_weight, rm.observed_nilai, rm.observed_level,
-			rm.condition_summary, rm.event_summary, rm.trend, rm.effectiveness_conclusion, rm.follow_up_note, rm.conclusion,
+			rm.conclusion,
 			rm.mitigation_progress_summary, rm.mitigation_completion_percent,
 			rm.draft_payload, rm.profile_change_summary, rm.change_reason,
-			rm.started_by, rm.started_at, rm.finalized_by, rm.finalized_at, rm.voided_by, rm.voided_at, rm.void_reason,
+			rm.started_by, rm.started_at, rm.finalized_by, rm.finalized_at,
 			rm.created_at, rm.updated_at,
 			src.id, src.code, src.title, src.description, src.category, src.status, src.version_group_id, src.previous_risk_id,
 			src.is_current, src.is_cycle_current, src.version_number, src.archived_at, src.archived_reason, src.organization_id,
 			src.created_by, src.objective_id, src.ro_id, src.likelihood_assessment_id, src.impact_criteria_id, COALESCE(src.impact_justification, ''),
 			src.cause, src.risk_source, src.controllability, src.impact_description,
-			src.existing_control, src.control_effectiveness, src.probability, src.impact, src.weight, src.nilai, src.inherent_score,
+				src.existing_control, src.control_effectiveness, src.probability, src.impact, src.weight, src.nilai, ROUND(COALESCE(src.nilai, 0))::int,
 			src.risk_priority, src.risk_appetite, src.treatment_option,
-			src.target_probability, src.target_impact, src.target_weight, src.target_nilai, src.target_score, src.residual_acceptance_reason,
+				src.target_probability, src.target_impact, src.target_weight, src.target_nilai, ROUND(COALESCE(src.target_nilai, 0))::int, src.residual_acceptance_reason,
 			src.next_review_date::text, COALESCE(src.review_schedule_text, ''), COALESCE(src.assessment_cycle, ''), COALESCE(src.review_type, ''),
 			COALESCE(src.change_reason, ''), COALESCE(src.review_summary, ''), src.review_started_at, src.review_submitted_at, src.review_approved_at,
 			src.created_at, src.updated_at, COALESCE(src_org.name, ''), COALESCE(src_user.name, ''),
@@ -567,9 +486,9 @@ func baseRiskMonitoringSelect() string {
 			COALESCE(res.is_current, FALSE), COALESCE(res.is_cycle_current, FALSE), COALESCE(res.version_number, 0), res.archived_at, COALESCE(res.archived_reason, ''), res.organization_id,
 			res.created_by, res.objective_id, res.ro_id, res.likelihood_assessment_id, res.impact_criteria_id, COALESCE(res.impact_justification, ''),
 			COALESCE(res.cause, '{}'::text[]), COALESCE(res.risk_source, ''), COALESCE(res.controllability, ''), COALESCE(res.impact_description, '{}'::text[]),
-			COALESCE(res.existing_control, ''), COALESCE(res.control_effectiveness, ''), COALESCE(res.probability, 0), COALESCE(res.impact, 0), COALESCE(res.weight, 0), COALESCE(res.nilai, 0), COALESCE(res.inherent_score, 0),
+				COALESCE(res.existing_control, ''), COALESCE(res.control_effectiveness, ''), COALESCE(res.probability, 0), COALESCE(res.impact, 0), COALESCE(res.weight, 0), COALESCE(res.nilai, 0), ROUND(COALESCE(res.nilai, 0))::int,
 			COALESCE(res.risk_priority, 0), COALESCE(res.risk_appetite, ''), COALESCE(res.treatment_option, ''),
-			COALESCE(res.target_probability, 0), COALESCE(res.target_impact, 0), COALESCE(res.target_weight, 0), COALESCE(res.target_nilai, 0), COALESCE(res.target_score, 0), COALESCE(res.residual_acceptance_reason, ''),
+				COALESCE(res.target_probability, 0), COALESCE(res.target_impact, 0), COALESCE(res.target_weight, 0), COALESCE(res.target_nilai, 0), ROUND(COALESCE(res.target_nilai, 0))::int, COALESCE(res.residual_acceptance_reason, ''),
 			COALESCE(res.next_review_date::text, ''), COALESCE(res.review_schedule_text, ''), COALESCE(res.assessment_cycle, ''), COALESCE(res.review_type, ''),
 			COALESCE(res.change_reason, ''), COALESCE(res.review_summary, ''), res.review_started_at, res.review_submitted_at, res.review_approved_at,
 			COALESCE(res.created_at, now()), COALESCE(res.updated_at, now()), COALESCE(res_org.name, ''), COALESCE(res_user.name, '')
@@ -603,10 +522,10 @@ func scanRiskMonitoring(row pgx.Row) (*entity.RiskMonitoring, error) {
 		&monitoring.ID, &monitoring.SourceRiskID, &monitoring.VersionGroupID, &monitoring.ResultRiskID, &monitoring.AssessmentCycle, &monitoring.Status, &monitoring.Mode,
 		&monitoring.SourceProbability, &monitoring.SourceImpact, &monitoring.SourceWeight, &monitoring.SourceNilai, &monitoring.SourceLevel, &monitoring.SourceVersionNumber,
 		&monitoring.ObservedProbability, &monitoring.ObservedImpact, &monitoring.ObservedWeight, &monitoring.ObservedNilai, &monitoring.ObservedLevel,
-		&monitoring.ConditionSummary, &monitoring.EventSummary, &monitoring.Trend, &monitoring.EffectivenessConclusion, &monitoring.FollowUpNote, &monitoring.Conclusion,
+		&monitoring.Conclusion,
 		&monitoring.MitigationProgressSummary, &monitoring.MitigationCompletionPercent,
 		&draftPayloadRaw, &profileChangesRaw, &monitoring.ChangeReason,
-		&monitoring.StartedBy, &monitoring.StartedAt, &monitoring.FinalizedBy, &monitoring.FinalizedAt, &monitoring.VoidedBy, &monitoring.VoidedAt, &monitoring.VoidReason,
+		&monitoring.StartedBy, &monitoring.StartedAt, &monitoring.FinalizedBy, &monitoring.FinalizedAt,
 		&monitoring.CreatedAt, &monitoring.UpdatedAt,
 		&sourceRisk.ID, &sourceRisk.Code, &sourceRisk.Title, &sourceRisk.Description, &sourceRisk.Category, &sourceRisk.Status, &sourceRisk.VersionGroupID, &sourceRisk.PreviousRiskID,
 		&sourceRisk.IsCurrent, &sourceRisk.IsCycleCurrent, &sourceRisk.VersionNumber, &sourceRisk.ArchivedAt, &sourceRisk.ArchivedReason, &sourceRisk.OrganizationID,
@@ -675,9 +594,9 @@ func getRiskByIDWithQueryer(ctx context.Context, q riskMonitoringQueryer, id uui
 	query := `
 		SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.objective_id, r.ro_id, r.likelihood_assessment_id, r.impact_criteria_id, COALESCE(r.impact_justification, '') as impact_justification,
 		       r.cause, r.risk_source, r.controllability, r.impact_description,
-		       r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, r.inherent_score,
+		       r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, ROUND(COALESCE(r.nilai, 0))::int,
 		       r.risk_priority, r.risk_appetite, r.treatment_option,
-		       r.target_probability, r.target_impact, r.target_weight, r.target_nilai, r.target_score, r.residual_acceptance_reason,
+		       r.target_probability, r.target_impact, r.target_weight, r.target_nilai, ROUND(COALESCE(r.target_nilai, 0))::int, r.residual_acceptance_reason,
 		       r.next_review_date::text, COALESCE(r.review_schedule_text, ''), COALESCE(r.assessment_cycle, ''), COALESCE(r.review_type, ''), COALESCE(r.change_reason, ''), COALESCE(r.review_summary, ''),
 		       r.review_started_at, r.review_submitted_at, r.review_approved_at,
 		       COALESCE(r.draft_approval_line, '[]'::jsonb),

@@ -31,7 +31,7 @@ export function FormContainer({
             </CardTitle>
           ) : null}
           {description ? (
-            <p className="text-xs text-muted-foreground">{description}</p>
+            <p className="text-xs text-secondary-foreground">{description}</p>
           ) : null}
         </CardHeader>
       ) : null}

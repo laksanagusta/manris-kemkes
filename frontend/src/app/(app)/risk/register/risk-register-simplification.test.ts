@@ -7,11 +7,6 @@ const sidebarSource = readFileSync(
   new URL("../../../../components/app-sidebar.tsx", import.meta.url),
   "utf8",
 );
-const monitoringProgressSource = readFileSync(
-  new URL("../../../../components/shared/design-system/domain/monitoring-transaction-progress.tsx", import.meta.url),
-  "utf8",
-);
-
 test("risk register keeps navigation compact and removes KPI cards", () => {
   assert.doesNotMatch(registerSource, /import \{ KpiCard \}/);
   assert.doesNotMatch(registerSource, /riskSummaryCards/);
@@ -26,12 +21,14 @@ test("sidebar does not duplicate the page-level create-risk action", () => {
   assert.doesNotMatch(sidebarSource, /href="\/risk\/register\/new"/);
 });
 
-test("risk register table exposes accessible sorting and monitoring states", () => {
+test("risk register table exposes accessible sorting and monitoring progress", () => {
   assert.match(registerSource, /aria-sort=\{scoreAriaSort\}/);
   assert.match(registerSource, /aria-label=\{`Urutkan berdasarkan skor/);
   assert.match(registerSource, /<MonitoringTransactionProgress/);
-  assert.match(monitoringProgressSource, /aria-label=\{ariaLabel\}/);
-  assert.match(monitoringProgressSource, /transaksi pemantauan/);
+  assert.match(registerSource, /<MonitoringTransactionProgress\s+data=\{risk\.semesterMonitoring\}\s+countLabel=""/);
+  assert.doesNotMatch(registerSource, /<CollectionTableHead[^>]*>\s*Kode\s*<\/CollectionTableHead>/);
+  assert.match(registerSource, /<CollectionTableHead className="min-w-\[176px\] px-3">\s*Pemantauan/);
+  assert.match(registerSource, /Mulai Pemantauan/);
 });
 
 test("risk register data rows stay compact", () => {
@@ -56,7 +53,7 @@ test("risk register table keeps actions discoverable without redundant chrome", 
     /<h2 className="text-base font-medium tracking-tight text-foreground text-balance">\s*Daftar Risiko\s*<\/h2>/,
   );
   assert.match(registerSource, /text-xs text-muted-foreground/);
-  assert.match(registerSource, /h-10 w-\[72px\]/);
+  assert.match(registerSource, /min-w-\[176px\]/);
 });
 
 test("risk register table and search use compact defined surfaces", () => {
@@ -69,34 +66,19 @@ test("risk register table and search use compact defined surfaces", () => {
     /Card className="[^"]*(?:border|ring-|shadow-none)[^"]*bg-card p-0/,
   );
   assert.doesNotMatch(registerSource, /<div className="-mx-4">/);
-  assert.match(registerSource, /className="bg-card pl-10 text-sm ring-1 ring-inset ring-border\/40"/);
+  assert.match(registerSource, /<CollectionSearchField/);
 });
 
-test("risk register tabs stay compact and fully rounded", () => {
-  assert.match(
-    registerSource,
-    /TabsList className="group-data-horizontal\/tabs:!h-9 rounded-full ring-1 ring-inset ring-border\/50 bg-muted\/50 p-0\.5"/,
-  );
-  assert.match(
-    registerSource,
-    /TabsTrigger value="all-risks" className="h-full rounded-full border border-transparent px-2\.5 text-xs font-medium leading-none/,
-  );
-  assert.match(
-    registerSource,
-    /TabsTrigger[\s\S]*value="monitoring-transactions"[\s\S]*className="h-full rounded-full border border-transparent px-2\.5 text-xs font-medium leading-none/,
-  );
+test("risk register renders one collection without a secondary monitoring tab", () => {
+  assert.doesNotMatch(registerSource, /<Tabs|TabsContent|TabsTrigger|SidebarTabsList/);
+  assert.doesNotMatch(registerSource, /monitoring-transactions/);
+  assert.match(registerSource, /Lanjutkan Pemantauan/);
 });
 
-test("risk register header uses a blended neutral surface", () => {
+test("risk register header uses the shared compact neutral surface", () => {
   assert.match(
     registerSource,
-    /TableHeader className="bg-\[#fafafa\] \[&_tr\]:border-b \[&_tr\]:border-border"/,
-  );
-  assert.match(registerSource, /capitalize text-table-header-foreground/);
-  assert.doesNotMatch(registerSource, /capitalize text-zinc-600/);
-  assert.doesNotMatch(
-    registerSource,
-    /TableHeader className="[^\"]*"[\s\S]*?capitalize text-muted-foreground[\s\S]*?<\/TableHeader>/,
+    /<CollectionTableHeader density="compact">/,
   );
 });
 
@@ -107,17 +89,18 @@ test("risk register body rows do not use separator borders", () => {
   );
   assert.match(
     registerSource,
-    /className="border border-zinc-200\/70 bg-white text-foreground shadow-\[0_1px_2px_rgba\(0,0,0,0\.04\)\] hover:bg-white hover:text-foreground aria-expanded:bg-white aria-expanded:text-foreground"/,
+    /className="text-muted-foreground"\s+icon=\{/,
   );
   assert.match(
     registerSource,
-    /className="sticky right-0 bg-background px-3 py-2 transition-colors group-hover:bg-muted\/50"/,
+    /className="sticky right-0 bg-card px-3 py-2 transition-colors group-hover:bg-muted\/50"/,
   );
   assert.doesNotMatch(
     registerSource,
     /className="text-muted-foreground"\s*aria-label={`Aksi risiko/,
   );
-  assert.doesNotMatch(registerSource, /SemesterIndicator data=\{risk\.semesterMonitoring\}/);
+  assert.match(registerSource, /<MonitoringTransactionProgress\s+data=\{risk\.semesterMonitoring\}/);
+  assert.match(registerSource, /className="text-sm font-normal tabular-nums text-muted-foreground"/);
   assert.doesNotMatch(registerSource, /Pemantauan \{new Date\(\)\.getFullYear\(\)\}/);
   assert.doesNotMatch(
     registerSource,
@@ -128,12 +111,10 @@ test("risk register body rows do not use separator borders", () => {
 test("risk register pagination footer stays inside the shared table cards", () => {
   assert.match(
     registerSource,
-    /<CollectionTableCard title="Daftar Risiko">[\s\S]*?<CollectionPagination[\s\S]*?<\/CollectionTableCard>/,
+    /<CollectionTableCard>[\s\S]*?<CollectionPagination[\s\S]*?<\/CollectionTableCard>/,
   );
-  assert.match(
-    registerSource,
-    /<CollectionTableCard title="Transaksi Pemantauan">[\s\S]*?<CollectionPagination[\s\S]*?<\/CollectionTableCard>/,
-  );
+  assert.equal(registerSource.match(/<CollectionPagination/g)?.length, 1);
+  assert.doesNotMatch(registerSource, /monitoring-transactions/i);
   assert.doesNotMatch(
     registerSource,
     /mt-4 grid gap-3 px-1 text-sm text-muted-foreground/,

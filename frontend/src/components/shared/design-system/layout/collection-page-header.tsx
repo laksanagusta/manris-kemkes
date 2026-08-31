@@ -7,7 +7,7 @@ export function CollectionPageHeader({
   eyebrow,
   backAction,
   title,
-  description,
+  showTitle = false,
   actions,
   actionsPlacement = "header",
   className,
@@ -16,12 +16,19 @@ export function CollectionPageHeader({
   eyebrow?: ReactNode;
   backAction?: ReactNode;
   title: ReactNode;
-  description?: ReactNode;
+  showTitle?: boolean;
   actions?: ReactNode;
   actionsPlacement?: "header" | "title";
   className?: string;
 }) {
-  const actionsInTitleRow = actionsPlacement === "title" && Boolean(actions);
+  const actionsInTitleRow =
+    showTitle && actionsPlacement === "title" && Boolean(actions);
+  const hasLeftContent = Boolean(backAction || eyebrow || (showTitle && title));
+  const hasHeaderContent = hasLeftContent || Boolean(actions);
+
+  if (!hasHeaderContent) {
+    return null;
+  }
 
   return (
     <header
@@ -31,41 +38,52 @@ export function CollectionPageHeader({
         className,
       )}
     >
-      <div className="min-w-0 space-y-3">
-        {backAction ? <div>{backAction}</div> : null}
-        {eyebrow ? <div>{eyebrow}</div> : null}
+      {hasLeftContent ? (
         <div
           className={cn(
-            actionsInTitleRow &&
-              "flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between",
+            "min-w-0",
+            (backAction || eyebrow || (showTitle && title)) && "space-y-3",
           )}
         >
-          <div className="min-w-0">
-            <div className="flex items-center gap-2.5">
-              {icon ? (
-                <span className="flex size-7 shrink-0 items-center justify-center text-foreground">
-                  {icon}
-                </span>
+          {backAction ? <div>{backAction}</div> : null}
+          {eyebrow ? <div>{eyebrow}</div> : null}
+          {showTitle ? (
+            <div
+              className={cn(
+                actionsInTitleRow &&
+                  "flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between",
+              )}
+            >
+              <div className="min-w-0">
+                <div className="flex items-center gap-2.5">
+                  {icon ? (
+                    <span className="flex size-7 shrink-0 items-center justify-center text-foreground">
+                      {icon}
+                    </span>
+                  ) : null}
+                  <h1 className="text-2xl leading-8 font-semibold tracking-[-0.16px] text-foreground text-balance">
+                    {title}
+                  </h1>
+                </div>
+              </div>
+              {actionsInTitleRow ? (
+                <div className="flex shrink-0 flex-wrap items-center gap-2">
+                  {actions}
+                </div>
               ) : null}
-              <h1 className="text-[30px] leading-9 font-semibold tracking-[-0.16px] text-foreground text-balance">
-                {title}
-              </h1>
-            </div>
-            {description ? (
-              <p className="mt-2 text-sm leading-5 text-muted-foreground text-pretty">
-                {description}
-              </p>
-            ) : null}
-          </div>
-          {actionsInTitleRow ? (
-            <div className="flex shrink-0 flex-wrap items-center gap-2">
-              {actions}
             </div>
           ) : null}
         </div>
-      </div>
+      ) : (
+        <div aria-hidden="true" />
+      )}
       {actions && !actionsInTitleRow ? (
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <div
+          className={cn(
+            "flex shrink-0 flex-wrap items-center gap-2",
+            !hasLeftContent && "sm:ms-auto",
+          )}
+        >
           {actions}
         </div>
       ) : null}

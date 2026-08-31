@@ -87,7 +87,6 @@ export default function SettingsGroupsPage() {
     <PageStack>
       <CollectionPageHeader
         title="Grup"
-        description="Kelola grup organisasi sekarang."
       />
 
       <Tabs defaultValue="organizations" className="space-y-6">

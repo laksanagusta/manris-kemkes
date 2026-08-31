@@ -134,13 +134,8 @@ func TestWorkingPaperRiskDataMarshalsMonitoringSnapshot(t *testing.T) {
 			SourceNilai:                 16,
 			ObservedNilai:               12,
 			ObservedLevel:               entity.RiskLevelTinggi,
-			Trend:                       "down",
 			MitigationCompletionPercent: 75,
 			MitigationProgressSummary:   "Tiga dari empat aksi selesai",
-			EffectivenessConclusion:     "Kontrol cukup efektif",
-			ConditionSummary:            "Gangguan menurun",
-			EventSummary:                "Satu insiden minor",
-			FollowUpNote:                "Pantau mingguan",
 			UpdatedAt:                   finalizedAt,
 			FinalizedAt:                 &finalizedAt,
 		},
@@ -170,7 +165,7 @@ func TestWorkingPaperRiskDataMarshalsMonitoringSnapshot(t *testing.T) {
 	}
 }
 
-func TestWorkingPaperRiskDataNormalizeDerivedScoresPrefersInherentScore(t *testing.T) {
+func TestWorkingPaperRiskDataNormalizeDerivedScoresUsesCanonicalNilai(t *testing.T) {
 	risk := entity.WorkingPaperRiskData{
 		Probability:     4,
 		Impact:          5,
@@ -181,11 +176,11 @@ func TestWorkingPaperRiskDataNormalizeDerivedScoresPrefersInherentScore(t *testi
 
 	risk.NormalizeDerivedScores()
 
-	if risk.TingkatRisiko != entity.RiskLevelTinggi {
-		t.Fatalf("expected tingkat risiko %q, got %q", entity.RiskLevelTinggi, risk.TingkatRisiko)
+	if risk.TingkatRisiko != entity.RiskLevelSedang {
+		t.Fatalf("expected tingkat risiko %q, got %q", entity.RiskLevelSedang, risk.TingkatRisiko)
 	}
-	if risk.PrioritasRisiko != 2 {
-		t.Fatalf("expected finalized priority 2, got %d", risk.PrioritasRisiko)
+	if risk.PrioritasRisiko != 3 {
+		t.Fatalf("expected canonical priority 3, got %d", risk.PrioritasRisiko)
 	}
 }
 
@@ -204,14 +199,14 @@ func TestBuildWorkingPaperRiskDataIncludesInherentScore(t *testing.T) {
 
 	data := buildWorkingPaperRiskData(risk)
 
-	if data.InherentScore != 16 {
-		t.Fatalf("expected inherent score 16, got %d", data.InherentScore)
+	if data.InherentScore != 12 {
+		t.Fatalf("expected derived inherent score 12, got %d", data.InherentScore)
 	}
-	if data.TingkatRisiko != entity.RiskLevelTinggi {
-		t.Fatalf("expected tingkat risiko %q, got %q", entity.RiskLevelTinggi, data.TingkatRisiko)
+	if data.TingkatRisiko != entity.RiskLevelSedang {
+		t.Fatalf("expected tingkat risiko %q, got %q", entity.RiskLevelSedang, data.TingkatRisiko)
 	}
-	if data.PrioritasRisiko != 2 {
-		t.Fatalf("expected priority 2, got %d", data.PrioritasRisiko)
+	if data.PrioritasRisiko != 3 {
+		t.Fatalf("expected canonical priority 3, got %d", data.PrioritasRisiko)
 	}
 }
 

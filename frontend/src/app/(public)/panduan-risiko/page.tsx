@@ -41,7 +41,7 @@ export default function PublicRiskGuidePage() {
             </p>
           </CardContent>
           <CardFooter className="justify-start border-t-0 bg-transparent px-4 pb-5 pt-0">
-            <Button asChild size="lg" className="font-semibold shadow-sm">
+            <Button asChild size="lg" className="font-semibold">
               <Link href="/login">
                 Masuk ke MANRIS
                 <ArrowRight data-icon="inline-end" />

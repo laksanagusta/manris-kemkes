@@ -54,7 +54,7 @@ export function FormDialogExample() {
             <div className="space-y-2">
               <Label htmlFor="design-system-organization">Organisasi</Label>
               <Select defaultValue="pusat">
-                <SelectTrigger id="design-system-organization" className="h-9 text-sm">
+                <SelectTrigger id="design-system-organization" className="h-10 text-sm">
                   <SelectValue placeholder="Pilih organisasi" />
                 </SelectTrigger>
                 <SelectContent>
@@ -67,7 +67,7 @@ export function FormDialogExample() {
             <div className="space-y-2">
               <Label htmlFor="design-system-period">Periode</Label>
               <Select defaultValue="2026-H2">
-                <SelectTrigger id="design-system-period" className="h-9 text-sm">
+                <SelectTrigger id="design-system-period" className="h-10 text-sm">
                   <SelectValue placeholder="Pilih periode" />
                 </SelectTrigger>
                 <SelectContent>

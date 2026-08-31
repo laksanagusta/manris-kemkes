@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowDownRight, ArrowUpRight, MoreHorizontal, Minus } from "@/components/ui/icons";
+import { MoreHorizontal } from "@/components/ui/icons";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -18,13 +18,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import {
   CollectionEmptyState,
-  CollectionStatusBadge,
   CollectionTableHead,
   CollectionTableHeader,
   CollectionTableHeaderRow,
@@ -33,54 +27,27 @@ import {
   WORKING_PAPER_MONITORING_COLUMNS,
   buildWorkingPaperMonitoringRowFromLink,
 } from "@/lib/working-paper-monitoring-table";
-import { cn } from "@/lib/utils";
 import type { WorkingPaperRiskLink } from "@/types/working-paper";
 
-const levelBadgeTone: Record<
-  string,
-  "success" | "info" | "warning" | "danger" | "neutral"
-> = {
-  "Sangat Rendah": "success",
-  Rendah: "info",
-  Sedang: "warning",
-  Tinggi: "danger",
-  "Sangat Tinggi": "danger",
-};
+type MonitoringRow = ReturnType<typeof buildWorkingPaperMonitoringRowFromLink>;
 
-const monitoringStatusTone = {
-  draft: "neutral",
-  final: "success",
-  unmonitored: "neutral",
-} as const;
-
-const versionBadgeTone = {
-  source: "neutral",
-  result: "info",
-} as const;
-
-function NarrativeCell({ value }: { value: string }) {
-  if (value === "-") {
-    return     <span className="text-muted-foreground">-</span>;
+function getMonitoringStatusTone(row: MonitoringRow) {
+  if (row.statusLabel === "Data tidak konsisten") {
+    return "danger" as const;
   }
-
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span className="block max-w-[220px] whitespace-pre-line line-clamp-2 text-xs leading-5 text-muted-foreground">
-          {value}
-        </span>
-      </TooltipTrigger>
-      <TooltipContent side="top" align="start" className="max-w-sm whitespace-pre-line">
-        {value}
-      </TooltipContent>
-    </Tooltip>
-  );
+  if (row.status === "draft") {
+    return "progress" as const;
+  }
+  if (row.status === "final") {
+    return "success" as const;
+  }
+  return "neutral" as const;
 }
 
 function MonitoringActionMenu({
   row,
 }: {
-  row: ReturnType<typeof buildWorkingPaperMonitoringRowFromLink>;
+  row: MonitoringRow;
 }) {
   return (
     <DropdownMenu>
@@ -111,20 +78,6 @@ function MonitoringActionMenu({
   );
 }
 
-function TrendCell({ trend }: { trend: "up" | "down" | "stable" | null }) {
-  const Icon =
-    trend === "up" ? ArrowUpRight : trend === "down" ? ArrowDownRight : trend === "stable" ? Minus : null;
-
-  const label = trend === "up" ? "Meningkat" : trend === "down" ? "Menurun" : trend === "stable" ? "Tetap" : "-";
-
-  return (
-    <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-xs text-muted-foreground">
-      {Icon ? <Icon className="size-3.5" aria-hidden="true" /> : null}
-      {label}
-    </span>
-  );
-}
-
 export function WorkingPaperMonitoringTable({
   links,
 }: {
@@ -133,27 +86,32 @@ export function WorkingPaperMonitoringTable({
   const rows = links.map((link) => buildWorkingPaperMonitoringRowFromLink(link));
 
   return (
-    <Table>
-      <CollectionTableHeader>
+    <Table className="w-full table-fixed">
+      <colgroup>
+        <col className="w-[13%]" />
+        <col className="w-[9%]" />
+        <col className="w-[33%]" />
+        <col className="w-[22%]" />
+        <col className="w-[13%]" />
+        <col className="w-[10%]" />
+      </colgroup>
+      <CollectionTableHeader density="compact">
         <CollectionTableHeaderRow>
-          {WORKING_PAPER_MONITORING_COLUMNS.map((column, index) => (
-            <CollectionTableHead
-              key={column.key}
-              className={cn(
-                "whitespace-nowrap px-2.5 text-left align-middle text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground",
-                index === 0 && "w-40 min-w-40 max-w-40",
-                index === 1 && "w-[320px] min-w-[320px] max-w-[320px] overflow-hidden",
-              )}
-            >
-              {column.label}
-            </CollectionTableHead>
-          ))}
+          <CollectionTableHead className="pl-4 pr-3">Kode</CollectionTableHead>
+          <CollectionTableHead className="px-3">Versi</CollectionTableHead>
+          <CollectionTableHead className="px-3">Risiko</CollectionTableHead>
+          <CollectionTableHead className="px-3">Perubahan Skor</CollectionTableHead>
+          <CollectionTableHead className="px-3">Status</CollectionTableHead>
+          <CollectionTableHead className="px-3 text-center">Aksi</CollectionTableHead>
         </CollectionTableHeaderRow>
       </CollectionTableHeader>
       <TableBody>
         {rows.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={10} className="h-24 px-4">
+            <TableCell
+              colSpan={WORKING_PAPER_MONITORING_COLUMNS.length}
+              className="h-24 px-4"
+            >
               <CollectionEmptyState
                 title="Belum ada risiko"
                 description="Dokumen ini belum memuat risiko apa pun"
@@ -164,73 +122,46 @@ export function WorkingPaperMonitoringTable({
           rows.map((row) => (
             <TableRow
               key={row.id}
-              className="group border-border transition-colors hover:bg-muted/50"
+              className="group h-10 border-0 hover:bg-muted/50"
             >
-              <TableCell className="w-40 min-w-40 max-w-40 px-2.5 font-mono text-xs text-muted-foreground">
-                <span className="flex items-center gap-1.5">
-                  {row.code}
-                  {row.sourceVersionNumber != null ? (
-                    <Badge tone={versionBadgeTone.source} size="micro">
-                      Sumber v{row.sourceVersionNumber}
-                    </Badge>
-                  ) : null}
-                  {row.resultVersionNumber != null ? (
-                    <Badge tone={versionBadgeTone.result} size="micro">
-                      Hasil v{row.resultVersionNumber}
-                    </Badge>
-                  ) : row.versionNumber != null && row.versionNumber > 1 ? (
-                    <Badge tone={versionBadgeTone.source} size="micro">
-                      v{row.versionNumber}
-                    </Badge>
-                  ) : null}
-                </span>
+              <TableCell className="py-2 pl-4 pr-3 font-mono text-sm text-foreground">
+                {row.code}
               </TableCell>
-              <TableCell className="w-[320px] min-w-[320px] max-w-[320px] overflow-hidden px-2.5">
-                <span className="line-clamp-2 text-xs font-medium text-foreground">
+              <TableCell className="truncate px-3 py-2 font-mono text-xs text-muted-foreground">
+                {row.versionNumber != null ? `v${row.versionNumber}` : "-"}
+              </TableCell>
+              <TableCell className="max-w-0 px-3 py-2">
+                <span
+                  className="block truncate text-sm font-semibold leading-relaxed text-foreground"
+                  title={row.title}
+                >
                   {row.title}
                 </span>
               </TableCell>
-              <TableCell className="px-2.5">
+              <TableCell className="px-3 py-2">
                 <div className="flex items-center gap-1.5 whitespace-nowrap">
-                  <span className="font-mono text-xs font-semibold text-foreground">
+                  <span className="font-mono text-sm font-medium tabular-nums text-foreground">
                     {row.sourceScore}
                     {row.observedScore == null ? "" : ` -> ${row.observedScore}`}
                   </span>
-                  {row.observedScore != null ? (
-                    <Badge
-                      tone={levelBadgeTone[row.observedLevelLabel] || "info"}
-                      size="micro"
-                      className="font-semibold"
-                    >
+                {row.observedScore != null ? (
+                    <span className="truncate text-xs font-medium text-muted-foreground">
                       {row.observedLevelLabel}
-                    </Badge>
+                    </span>
                   ) : null}
                 </div>
               </TableCell>
-              <TableCell className="px-2.5">
-                <TrendCell trend={row.trend} />
-              </TableCell>
-              <TableCell className="px-2.5">
-                <span className="block max-w-[200px] truncate text-xs text-muted-foreground">
-                  {row.effectiveness}
-                </span>
-              </TableCell>
-              <TableCell className="px-2.5">
-                <NarrativeCell value={row.condition} />
-              </TableCell>
-              <TableCell className="px-2.5">
-                <NarrativeCell value={row.followUp} />
-              </TableCell>
-              <TableCell className="px-2.5">
-                <CollectionStatusBadge
-                  size="micro"
-                  tone={monitoringStatusTone[row.status] || "neutral"}
-                  className="font-medium"
+              <TableCell className="max-w-0 px-3 py-2">
+                <Badge
+                  size="compact"
+                  tone={getMonitoringStatusTone(row)}
+                  className="max-w-full truncate"
+                  title={row.statusLabel}
                 >
                   {row.statusLabel}
-                </CollectionStatusBadge>
+                </Badge>
               </TableCell>
-              <TableCell className="px-2.5 text-right">
+              <TableCell className="px-3 py-2 text-center">
                 <MonitoringActionMenu row={row} />
               </TableCell>
             </TableRow>

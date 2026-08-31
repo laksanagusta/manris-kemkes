@@ -5,7 +5,6 @@ import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { KpiCard } from "@/components/ui/kpi-card";
 import {
   Table,
   TableBody,
@@ -30,7 +29,12 @@ import { api } from "@/lib/api";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { useAuth } from "@/contexts/auth-context";
 import { AIFeaturesDisabledState } from "@/components/shared/ai-features-disabled-state";
-import { PageStack } from "@/components/shared/design-system";
+import {
+  CollectionPageHeader,
+  KpiCard,
+  MetricGrid,
+  PageStack,
+} from "@/components/shared/design-system";
 
 
 const levelColors: Record<string, string> = {
@@ -117,34 +121,28 @@ function PredictivePageContent() {
 
   return (
     <PageStack>
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="page-title">
-            AI Predictive Scoring
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Prediksi tren level risiko berdasarkan data historis
-          </p>
-        </div>
-        <Button
-          onClick={handleRunPrediction}
-          className="gap-2 shadow-lg shadow-primary/20"
-          disabled={isRunning}
-        >
-          {isRunning ? (
-            <>
-              <RefreshCw className="size-4 animate-spin" />
-              Predicting...
-            </>
-          ) : (
-            <>
-              <Sparkles className="size-4" />
-              Run Prediction
-            </>
-          )}
-        </Button>
-      </div>
+      <CollectionPageHeader
+        title="AI Predictive Scoring"
+        actions={
+          <Button
+            onClick={handleRunPrediction}
+            className="gap-2"
+            disabled={isRunning}
+          >
+            {isRunning ? (
+              <>
+                <RefreshCw className="size-4 animate-spin" />
+                Predicting...
+              </>
+            ) : (
+              <>
+                <Sparkles className="size-4" />
+                Run Prediction
+              </>
+            )}
+          </Button>
+        }
+      />
 
       {/* Executive Summary */}
       <Card className="bg-card/80">
@@ -156,11 +154,11 @@ function PredictivePageContent() {
             <div>
               <h3 className="text-sm font-semibold">Ringkasan Eksekutif AI</h3>
               {predictions.length === 0 ? (
-                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                <p className="text-xs text-secondary-foreground mt-1.5 leading-relaxed">
                   Belum ada data prediksi. Klik tombol &quot;Run Prediction&quot; untuk memulai analisis profil risiko.
                 </p>
               ) : (
-                <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+                <p className="text-xs text-secondary-foreground mt-1.5 leading-relaxed">
                   Dari {predictions.length} risiko yang dianalisis,{" "}
                   <span className="font-medium text-success">{downCount} diprediksi membaik</span>,{" "}
                   <span className="font-medium text-risk-extreme">{upCount} diprediksi memburuk</span>, dan{" "}
@@ -174,26 +172,26 @@ function PredictivePageContent() {
       </Card>
 
       {/* Trend Summary */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <MetricGrid className="md:grid-cols-3 xl:grid-cols-3">
         <KpiCard
           label="Tren Naik"
           value={upCount}
-          tone="rose"
+          tone="white"
           icon={<TrendingUp className="size-5 text-risk-extreme" />}
         />
         <KpiCard
           label="Tren Turun"
           value={downCount}
-          tone="emerald"
+          tone="white"
           icon={<TrendingDown className="size-5 text-success" />}
         />
         <KpiCard
           label="Stabil"
           value={stableCount}
-          tone="zinc"
+          tone="white"
           icon={<Minus className="size-5 text-muted-foreground" />}
         />
-      </div>
+      </MetricGrid>
 
       {/* Predictions Table */}
        <Card className="bg-card/80 overflow-hidden">
@@ -229,7 +227,7 @@ function PredictivePageContent() {
                   {pred.riskCode}
                 </TableCell>
                 <TableCell className="text-xs font-medium max-w-[200px]">
-                  <span className="line-clamp-1">{pred.title}</span>
+                  <span className="line-clamp-1 text-foreground">{pred.title}</span>
                 </TableCell>
                 <TableCell>
                   <Badge

@@ -10,7 +10,7 @@ export function ReportDrilldownSummary({
   onReset: () => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/20 px-4 py-3 text-xs text-muted-foreground">
+    <div className="surface-hairline flex flex-wrap items-center gap-2 rounded-lg bg-muted/20 px-4 py-3 text-xs text-muted-foreground">
       <span className="font-medium text-foreground">Drilldown aktif:</span>
       {children}
       <button

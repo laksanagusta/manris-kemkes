@@ -42,14 +42,12 @@ export {
 } from "./feedback/version-timeline";
 
 export { AccordionFormSection } from "./layout/accordion-form-section";
-export {
-  DashboardKpiCard,
-  type DashboardKpiTone,
-  type DashboardKpiTrend,
-} from "./layout/dashboard-kpi-card";
+export { CollapsibleCard } from "./layout/collapsible-card";
+export { DashboardKpiCard } from "./layout/dashboard-kpi-card";
 export { FormContainer } from "./layout/form-container";
 export { InlineCard } from "./layout/inline-card";
 export { MetricGrid } from "./layout/metric-grid";
+export { KpiCard, type KpiCardTone } from "@/components/ui/kpi-card";
 export { PageHeader } from "./layout/page-header";
 export { PageStack } from "./layout/page-stack";
 export { CollectionPageHeader } from "./layout/collection-page-header";

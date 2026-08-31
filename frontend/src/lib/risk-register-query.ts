@@ -1,6 +1,3 @@
-export type RiskRegisterTab =
-  | "all-risks"
-  | "monitoring-transactions";
 export type RiskRegisterStatusFilter =
   | "all"
   | "draft"
@@ -17,7 +14,6 @@ export type RiskRegisterCategoryFilter =
 export type RiskRegisterSortOrder = "asc" | "desc";
 
 export type RiskRegisterQueryState = {
-  activeTab: RiskRegisterTab;
   search: string;
   lifecycleFilter: RiskRegisterLifecycleFilter;
   statusFilter: RiskRegisterStatusFilter;
@@ -29,14 +25,6 @@ export type RiskRegisterQueryState = {
   sortBy: string;
   sortOrder: RiskRegisterSortOrder;
 };
-
-function getRiskRegisterTab(value: string | null): RiskRegisterTab {
-  if (value === "monitoring-transactions") {
-    return value;
-  }
-
-  return "all-risks";
-}
 
 function getRiskRegisterLifecycleFilter(
   value: string | null,
@@ -92,7 +80,6 @@ export function parseRiskRegisterQueryState(
   searchParams: URLSearchParams,
 ): RiskRegisterQueryState {
   return {
-    activeTab: getRiskRegisterTab(searchParams.get("tab")),
     search: searchParams.get("q") ?? "",
     lifecycleFilter: getRiskRegisterLifecycleFilter(
       searchParams.get("lifecycle"),
@@ -117,10 +104,6 @@ export function buildRiskRegisterQueryString(
   const normalizedSearch = state.search.trim();
   const normalizedAssessmentCycle = state.assessmentCycleFilter.trim();
   const normalizedCreatedAt = state.createdAtFilter.trim();
-
-  if (state.activeTab !== "all-risks") {
-    nextParams.set("tab", state.activeTab);
-  }
 
   if (normalizedSearch) {
     nextParams.set("q", normalizedSearch);

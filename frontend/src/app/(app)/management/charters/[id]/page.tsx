@@ -285,11 +285,6 @@ export default function RiskCharterDetailPage() {
     <FormPage className="max-w-5xl">
       <FormHeader
         title={isCreateMode ? "Buat Piagam" : "Detail Piagam"}
-        description={
-          isCreateMode
-            ? "Lengkapi konteks, dasar hukum, dan identitas piagam untuk memudahkan peninjauan ulang."
-            : "Perbarui isi piagam sesuai kebutuhan unit kerja."
-        }
         onBack={() => router.push("/management/charters")}
         backLabel="Kembali ke Piagam"
         badges={

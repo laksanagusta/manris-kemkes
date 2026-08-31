@@ -19,6 +19,7 @@ export function CollectionPagination({
   itemLabel,
   page,
   pageSize,
+  pageSizeOptions = [10, 20, 50, 100],
   total,
   disabled = false,
   onPageChange,
@@ -27,6 +28,7 @@ export function CollectionPagination({
   itemLabel: string;
   page: number;
   pageSize: number;
+  pageSizeOptions?: number[];
   total: number;
   disabled?: boolean;
   onPageChange: (page: number) => void;
@@ -88,13 +90,13 @@ export function CollectionPagination({
             onValueChange={(value) => onPageSizeChange(Number(value))}
           >
             <SelectTrigger
-              className="h-10 w-[72px] rounded-lg border-border/60 bg-white px-3 text-sm shadow-none"
+              className="h-10 w-[72px] rounded-lg border-input bg-white px-3 text-sm shadow-none"
               aria-label="Items per page"
             >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {[10, 20, 50, 100].map((size) => (
+              {pageSizeOptions.map((size) => (
                 <SelectItem key={size} value={size.toString()}>
                   {size}
                 </SelectItem>

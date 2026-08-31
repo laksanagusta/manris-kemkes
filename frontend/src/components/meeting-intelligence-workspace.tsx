@@ -50,7 +50,10 @@ import {
   normalizeMeetingMinuteDate,
 } from "@/lib/meeting-minutes-utils";
 import { exportMeetingMinuteDocument } from "@/lib/meeting-minute-export";
-import { PageStack } from "@/components/shared/design-system";
+import {
+  CollectionPageHeader,
+  PageStack,
+} from "@/components/shared/design-system";
 import {
   AlertTriangle,
   CalendarDays,
@@ -744,17 +747,14 @@ function MeetingIntelligenceWorkspaceContent({
 
   return (
     <PageStack>
-      <section className="space-y-2">
-        <Badge variant="outline" className="text-[10px] uppercase tracking-[0.18em]">
-          Briefing
-        </Badge>
-        <h1 className="page-title">
-          Tinjau rapat, lalu susun briefing atau tinjauan risiko.
-        </h1>
-        <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-          Paste transkrip sekali, lalu pilih apakah Anda ingin menyusun briefing formal atau menilai perubahan risiko.
-        </p>
-      </section>
+      <CollectionPageHeader
+        eyebrow={
+          <Badge variant="outline" className="text-[10px] uppercase tracking-[0.18em]">
+            Briefing
+          </Badge>
+        }
+        title="Tinjau rapat, lalu susun briefing atau tinjauan risiko."
+      />
 
       <section className="space-y-6">
           <Card className="overflow-hidden bg-card/90">
@@ -765,7 +765,7 @@ function MeetingIntelligenceWorkspaceContent({
                     <ClipboardPaste className="size-4 text-primary" />
                     Transkrip
                   </CardTitle>
-                  <p className="text-sm leading-6 text-muted-foreground">
+                  <p className="text-sm leading-6 text-secondary-foreground">
                     Pilih satu keluaran dulu. Anda bisa memakai transkrip yang sama lagi nanti.
                   </p>
                 </div>
@@ -817,7 +817,7 @@ function MeetingIntelligenceWorkspaceContent({
                   value={transcript}
                   onChange={(event) => setTranscript(event.target.value)}
                   placeholder="Paste transkrip atau catatan rapat di sini. Sertakan keputusan, isu utama, dan tindak lanjut bila sudah ada."
-                  className="min-h-[220px] resize-none border-border/60 bg-muted/[0.14] text-sm leading-6"
+                  className="min-h-[220px] resize-none border-input bg-muted/[0.14] text-sm leading-6"
                 />
               </div>
 
@@ -831,7 +831,7 @@ function MeetingIntelligenceWorkspaceContent({
                   >
                     Kosongkan
                   </Button>
-                  <Button onClick={handleRun} disabled={isWorking} className="gap-2 shadow-sm shadow-primary/20">
+                  <Button onClick={handleRun} disabled={isWorking} className="gap-2">
                     {isWorking ? (
                       <>
                         <RefreshCw className="size-4 animate-spin" />
@@ -1032,7 +1032,7 @@ function MeetingIntelligenceWorkspaceContent({
                                   return (
                                     <TableRow key={`${item.task}-${index}`} className="border-border/50 hover:bg-muted/20">
                                       <TableCell className="max-w-[280px] align-top">
-                                        <p className="truncate text-sm font-medium leading-snug" title={item.task}>
+                                        <p className="truncate text-sm font-medium leading-snug text-foreground" title={item.task}>
                                           {item.task}
                                         </p>
                                         {item.ownerUnit && (

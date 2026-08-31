@@ -258,7 +258,7 @@ export function OrganizationFormDialog({
                 <Button
                   type="button"
                   variant="outline"
-                  className="w-full justify-between gap-2 font-normal"
+                  className="h-10 w-full justify-between gap-2 font-normal"
                   disabled={isSubmitting}
                 >
                   <span className="truncate">

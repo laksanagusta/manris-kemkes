@@ -49,9 +49,7 @@ export function ApprovalModal({
       ? "Pemantauan"
       : requestType === "working_paper"
         ? "Kertas Kerja"
-          : requestType === "kri_report"
-            ? "Laporan KRI"
-            : "Risiko";
+        : "Risiko";
 
   const title = isApprove
     ? isReviewer

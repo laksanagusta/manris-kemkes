@@ -56,7 +56,7 @@ test("desktop sidebar fills the viewport and keeps only the trailing divider", (
 test("authenticated pages share the design-system main-content wrapper", () => {
   assert.match(
     shell,
-    /<div className="mx-auto w-full max-w-\[1200px\] py-8">\{children\}<\/div>/,
+    /<div className="mx-auto w-full max-w-\[1400px\] min-w-0 pb-8">\s*\{children\}\s*<\/div>/,
   );
   assert.match(designSystemPage, /<div className="space-y-12">/);
   assert.doesNotMatch(

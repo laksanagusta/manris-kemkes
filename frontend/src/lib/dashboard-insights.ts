@@ -1,5 +1,6 @@
 import type { DashboardRiskCategoryItem } from "../types/risk";
 import { dashboardCategoryLabels, getBobot, resolveRiskScoreSemantics } from "./risk.js";
+import { RISK_CHART_COLORS } from "./chart-colors.js";
 
 type Severity = "Sangat Rendah" | "Rendah" | "Sedang" | "Tinggi" | "Sangat Tinggi";
 
@@ -316,9 +317,9 @@ export function buildMovementChartData(comparisons: ComparisonLike[]): MovementC
   }
 
   return [
-    { label: "Naik", value: counts.up, fill: "oklch(0.72 0.13 190)" },
-    { label: "Turun", value: counts.down, fill: "oklch(0.82 0.08 190)" },
-    { label: "Stabil", value: counts.stable, fill: "oklch(0.65 0.05 190 / 50%)" },
+    { label: "Naik", value: counts.up, fill: RISK_CHART_COLORS.high },
+    { label: "Turun", value: counts.down, fill: RISK_CHART_COLORS.low },
+    { label: "Stabil", value: counts.stable, fill: RISK_CHART_COLORS.veryLow },
   ];
 }
 

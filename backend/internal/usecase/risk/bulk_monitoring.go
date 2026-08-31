@@ -459,12 +459,9 @@ func writeMonitoringDataRows(f *excelize.File, sheet string, risks []*entity.Ris
 			f.SetCellValue(sheet, cell, targetBobot)
 		}
 
-		// Col G (7): Target Nilai (prefilled from inherent score)
+		// Col G (7): Target Nilai (canonical target value)
 		cell, _ = excelize.CoordinatesToCellName(7, row)
-		targetNilai := float64(risk.InherentScore)
-		if targetNilai == 0 {
-			targetNilai = risk.TargetNilai
-		}
+		targetNilai := risk.TargetNilai
 		if targetNilai == 0 && risk.TargetProbability > 0 && risk.TargetImpact > 0 && targetBobot > 0 {
 			targetNilai = entity.CalculateNilai(risk.TargetProbability, risk.TargetImpact, targetBobot)
 		}
@@ -851,10 +848,7 @@ func mapBulkMonitoringRecord(
 			item.TargetP = risk.TargetProbability
 			item.TargetD = risk.TargetImpact
 			item.TargetBobot = risk.TargetWeight
-			item.TargetNilai = item.InherentScore
-			if item.TargetNilai == 0 {
-				item.TargetNilai = risk.TargetNilai
-			}
+			item.TargetNilai = risk.TargetNilai
 			item.TargetTingkat = entity.GetRiskLevelFromNilai(item.TargetNilai)
 
 			if item.TargetBobot == 0 && item.TargetP > 0 && item.TargetD > 0 {

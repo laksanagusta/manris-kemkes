@@ -183,7 +183,6 @@ func buildFormalReportSummary(report *entity.FormalReport) entity.ReportSummary 
 	if raw, ok := report.Metadata["summary"].(map[string]any); ok {
 		summary.TotalRisks = toInt(raw["riskCount"])
 		summary.HighExtremeCount = toInt(raw["incidentCount"])
-		summary.OverdueMitigations = toInt(raw["kriCount"])
 		summary.AvgExposureScore = toFloat(raw["tmpmrScore"])
 		if breakdown, ok := raw["categoryBreakdown"].(map[string]any); ok {
 			summary.CategoryBreakdown = make(map[string]int, len(breakdown))

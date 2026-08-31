@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { useForm, useFieldArray, SubmitHandler } from "react-hook-form";
@@ -17,7 +18,6 @@ import { createEmptyWorkingPaperSignatory } from "@/lib/working-paper-signatorie
 import {
   buildInitialRosterDecisions,
   summarizeRosterDecisions,
-  validateRosterDecisions,
   ROSTER_STATUS_LABELS,
   type RosterDecision,
 } from "@/lib/working-paper-roster";
@@ -26,21 +26,25 @@ import type {
 } from "@/types/working-paper";
 import type { UserPickerOption } from "@/lib/risk-register-user-picker";
 
+import { FormPage, FormSection } from "@/components/shared/form-shell";
 import {
-  FormPage,
-  FormHeader,
-  FormSection,
-} from "@/components/shared/form-shell";
+  ActionButton,
+  AccentButton,
+  CollectionEmptyState,
+  CollectionLoadingState,
+  CollectionPageHeader,
+  CollectionSearchField,
+  CollectionTableCard,
+  CollectionTableHead,
+  CollectionTableHeader,
+  CollectionTableHeaderRow,
+} from "@/components/shared/design-system";
 import { OrderedUserSelectionTable } from "@/components/risk/ordered-user-selection-table";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
-  TableHeader,
   TableRow,
 } from "@/components/ui/table";
 import {
@@ -54,7 +58,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Save, FileSearch, X } from "@/components/ui/icons";
+import { ArrowLeft, Loader2, Save } from "@/components/ui/icons";
 
 const formSchema = z.object({
   assessment_cycle: z.string().optional(),
@@ -97,9 +101,9 @@ function toUserPickerOption(user: UserListItem): UserPickerOption {
 }
 
 const ROSTER_STATUS_TO_TONE = {
-  finalized_result: "success",
-  existing_draft: "neutral",
-  draft_will_be_created: "info",
+  not_started: "neutral",
+  in_progress: "info",
+  finalized: "success",
 } as const;
 
 export default function CreateWorkingPaperPage() {
@@ -116,9 +120,6 @@ export default function CreateWorkingPaperPage() {
   const [preview, setPreview] =
     useState<WorkingPaperRosterPreview | null>(null);
   const [decisions, setDecisions] = useState<RosterDecision[]>([]);
-  const [decisionErrors, setDecisionErrors] = useState<
-    Record<string, string>
-  >({});
   const [searchRisk, setSearchRisk] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
 
@@ -169,7 +170,6 @@ export default function CreateWorkingPaperPage() {
         if (cancelled) return;
         setPreview(result);
         setDecisions(buildInitialRosterDecisions(result));
-        setDecisionErrors({});
       } catch (error) {
         console.error("Failed to load roster preview", error);
         toast.error("Gagal memuat roster risiko untuk periode ini.");
@@ -204,46 +204,16 @@ export default function CreateWorkingPaperPage() {
     setDecisions((prev) =>
       prev.map((d) =>
         d.versionGroupId === versionGroupId
-          ? {
-              ...d,
-              included: checked,
-              exclusionReason: checked ? "" : d.exclusionReason,
-            }
+          ? { ...d, included: checked }
           : d,
       ),
     );
-    setDecisionErrors((prev) => {
-      const next = { ...prev };
-      delete next[versionGroupId];
-      return next;
-    });
   };
 
   const handleToggleAll = (checked: boolean) => {
     setDecisions((prev) =>
       prev.map((d) => ({ ...d, included: checked })),
     );
-    if (checked) setDecisionErrors({});
-  };
-
-  const handleExclusionReasonChange = (
-    versionGroupId: string,
-    reason: string,
-  ) => {
-    setDecisions((prev) =>
-      prev.map((d) =>
-        d.versionGroupId === versionGroupId
-          ? { ...d, exclusionReason: reason }
-          : d,
-      ),
-    );
-    setDecisionErrors((prev) => {
-      const next = { ...prev };
-      if (reason.trim()) {
-        delete next[versionGroupId];
-      }
-      return next;
-    });
   };
 
   const loadSignatoryOptions = useCallback(
@@ -325,11 +295,6 @@ export default function CreateWorkingPaperPage() {
   }));
 
   const handleConfirmOpen = () => {
-    const errs = validateRosterDecisions(decisions);
-    if (Object.keys(errs).length > 0) {
-      setDecisionErrors(errs);
-      return;
-    }
     setShowConfirm(true);
   };
 
@@ -346,9 +311,6 @@ export default function CreateWorkingPaperPage() {
         roster_decisions: decisions.map((d) => ({
           version_group_id: d.versionGroupId,
           included: d.included,
-          exclusion_reason: d.included
-            ? undefined
-            : d.exclusionReason,
         })),
         signatories: data.signatories.map((sig, idx) => ({
           user_id: sig.user_id,
@@ -369,17 +331,30 @@ export default function CreateWorkingPaperPage() {
     }
   };
 
+  const backAction = (
+    <ActionButton
+      asChild
+      variant="secondary"
+      size="sm"
+    >
+      <Link href="/risk/working-papers">
+        <ArrowLeft className="size-3.5" />
+        Kembali ke daftar kertas kerja
+      </Link>
+    </ActionButton>
+  );
+
   if (!organizationId) {
     return (
-      <FormPage className="space-y-6 pb-0">
-        <FormHeader
+      <FormPage className="max-w-7xl space-y-6 pb-0">
+        <CollectionPageHeader
+          backAction={backAction}
           title="Buat Kertas Kerja Baru"
         />
-        <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
-          <p className="text-sm text-muted-foreground">
-            Pilih unit kerja terlebih dahulu untuk melihat roster risiko.
-          </p>
-        </div>
+        <CollectionEmptyState
+          title="Unit kerja belum dipilih"
+          description="Pilih unit kerja terlebih dahulu untuk memuat roster risiko."
+        />
       </FormPage>
     );
   }
@@ -389,284 +364,202 @@ export default function CreateWorkingPaperPage() {
     : null;
 
   return (
-    <FormPage className="space-y-6 pb-0">
-      <FormHeader
+    <FormPage className="max-w-7xl space-y-6 pb-0">
+      <CollectionPageHeader
+        backAction={backAction}
+        actionsPlacement="title"
         title="Buat Kertas Kerja Baru"
-        description={
-          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            Roster risiko kuartal{" "}
-            <Badge
-              tone="info"
-              size="micro"
-              className="font-mono"
-            >
-              {assessmentCycle}
-            </Badge>
-            {preview && (
-              <span className="text-muted-foreground">
-                — {preview.monitoringCycle}
-              </span>
-            )}
-          </span>
+        eyebrow={
+          <Badge tone="info" size="micro" className="font-mono tracking-tight">
+            Siklus asesmen {assessmentCycle}
+          </Badge>
         }
         actions={
-          <Button
+          <AccentButton
+            type="button"
             onClick={handleConfirmOpen}
             disabled={isSubmitting || loadingPreview}
+            icon={
+              isSubmitting ? (
+                <Loader2 className="size-3.5 animate-spin" />
+              ) : (
+                <Save className="size-3.5" />
+              )
+            }
           >
-            {isSubmitting ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Menyimpan...
-              </>
-            ) : (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                Buat Kertas Kerja
-              </>
-            )}
-          </Button>
+            {isSubmitting ? "Menyimpan..." : "Buat Kertas Kerja"}
+          </AccentButton>
         }
       />
 
       <form
         id="working-paper-create-form"
         onSubmit={handleSubmit(onSubmit)}
-        className="space-y-8"
+        className="space-y-6"
       >
         <FormSection
           title="Daftar Risiko"
-          description={`Risiko yang aktif pada kuartal ${assessmentCycle}. Semua risiko otomatis dipilih. Risiko yang dikecualikan wajib diberi alasan.`}
           action={
-            <Badge tone="neutral" size="micro">
-              {decisions.filter((d) => d.included).length} dipilih dari{" "}
-              {decisions.length} risiko
-            </Badge>
+            <CollectionSearchField
+              value={searchRisk}
+              onChange={(event) => setSearchRisk(event.target.value)}
+              placeholder="Cari judul atau kode risiko"
+              aria-label="Cari judul atau kode risiko"
+              containerClassName="w-full sm:w-80"
+            />
           }
-          className="rounded-lg ring-1 ring-inset ring-border border-0"
-          contentClassName="space-y-4"
         >
-          <div className="flex items-center gap-2 max-w-sm">
-            <div className="relative flex-1">
-              <Input
-                placeholder="Cari judul atau kode risiko..."
-                value={searchRisk}
-                onChange={(e) => setSearchRisk(e.target.value)}
-                className="h-9 pr-8"
-              />
-              {searchRisk && (
-                <button
-                  type="button"
-                  onClick={() => setSearchRisk("")}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-0.5 text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  <X className="size-3.5" />
-                </button>
-              )}
-            </div>
-          </div>
 
           {loadingPreview ? (
-            <div className="flex items-center justify-center p-8 text-muted-foreground">
-              <Loader2 className="mr-2 h-6 w-6 animate-spin" /> Memuat
-              roster risiko...
-            </div>
+            <CollectionLoadingState message="Memuat roster risiko..." />
           ) : !preview || preview.entries.length === 0 ? (
-            <div className="flex flex-col items-center justify-center gap-3 px-6 py-12 text-center">
-              <div className="inline-flex size-12 items-center justify-center rounded-full bg-muted">
-                <FileSearch className="size-6 text-muted-foreground" />
-              </div>
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-foreground">
-                  Belum ada risiko aktif untuk kuartal ini
-                </p>
-                <p className="max-w-sm text-sm leading-6 text-muted-foreground">
-                  Tidak ada risiko final dalam periode kuartal{" "}
-                  {assessmentCycle} untuk unit kerja ini.
-                </p>
-              </div>
-            </div>
+            <CollectionEmptyState
+              title="Belum ada risiko aktif untuk siklus ini"
+              description={`Tidak ada risiko final pada siklus ${assessmentCycle} untuk unit kerja ini.`}
+            />
+          ) : filteredEntries.length === 0 ? (
+            <CollectionEmptyState
+              title="Risiko tidak ditemukan"
+              description="Ubah kata kunci pencarian untuk melihat risiko lain."
+            />
           ) : (
-            <div className="overflow-hidden rounded-lg bg-card smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
-              <div className="relative w-full overflow-x-auto">
-                <Table className="w-full caption-bottom text-sm">
-                  <TableHeader className="sticky top-0 z-10 bg-table-header [&_tr]:border-b">
-                    <TableRow>
-                      <TableHead className="h-10 px-2 text-center w-[50px]">
-                        <Checkbox
-                          checked={
-                            decisions.length > 0 &&
-                            decisions.every((d) => d.included)
-                          }
-                          onCheckedChange={(checked) =>
-                            handleToggleAll(!!checked)
-                          }
-                          aria-label="Pilih semua risiko"
-                        />
-                      </TableHead>
-                      <TableHead className="h-10 px-2 w-[100px]">
-                        Kode
-                      </TableHead>
-                      <TableHead className="h-10 px-2 w-[90px] text-center">
-                        Versi Sumber
-                      </TableHead>
-                      <TableHead className="h-10 px-2 w-[140px] text-center">
-                        Periode
-                      </TableHead>
-                      <TableHead className="h-10 px-2 max-w-[280px]">
-                        Judul Risiko
-                      </TableHead>
-                      <TableHead className="h-10 px-2 w-[220px] text-center">
-                        Status Monitoring
-                      </TableHead>
-                      <TableHead className="h-10 px-2 w-[280px]">
-                        Alasan Pengecualian
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredEntries.map((entry) => {
-                      const decision = decisionMap.get(
-                        entry.versionGroupId,
-                      );
-                      const isIncluded =
-                        decision?.included ?? true;
-                      const error =
-                        decisionErrors[entry.versionGroupId];
+            <CollectionTableCard>
+              <Table className="w-full table-fixed">
+              <CollectionTableHeader
+                density="compact"
+                className="sticky top-0 z-10"
+              >
+                <CollectionTableHeaderRow>
+                  <CollectionTableHead className="w-[18%] min-w-0 px-2 align-middle">
+                    <div className="flex items-center gap-2">
+                      <Checkbox
+                        checked={
+                          decisions.length > 0 &&
+                          decisions.every((d) => d.included)
+                        }
+                        onCheckedChange={(checked) =>
+                          handleToggleAll(!!checked)
+                        }
+                        aria-label="Pilih semua risiko"
+                      />
+                      <span>Kode</span>
+                    </div>
+                  </CollectionTableHead>
+                  <CollectionTableHead className="w-[14%] min-w-0 whitespace-normal px-2 text-center leading-tight">
+                    Periode
+                  </CollectionTableHead>
+                  <CollectionTableHead className="w-[44%] min-w-0 px-2">
+                    Judul risiko
+                  </CollectionTableHead>
+                  <CollectionTableHead className="w-[24%] min-w-0 whitespace-normal px-2 text-center leading-tight">
+                    Status monitoring
+                  </CollectionTableHead>
+                </CollectionTableHeaderRow>
+              </CollectionTableHeader>
+              <TableBody>
+                {filteredEntries.map((entry) => {
+                  const decision = decisionMap.get(entry.versionGroupId);
+                  const isIncluded = decision?.included ?? true;
 
-                      return (
-                        <TableRow
-                          key={entry.versionGroupId}
-                          className="border-b transition-colors hover:bg-muted/50"
+                  return (
+                    <TableRow
+                      key={entry.versionGroupId}
+                      className="h-14 border-b border-border/60 hover:bg-muted/30"
+                    >
+                      <TableCell className="w-[18%] min-w-0 px-2 py-3 align-middle">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <Checkbox
+                            checked={isIncluded}
+                            onCheckedChange={(checked) =>
+                              handleToggleEntry(
+                                entry.versionGroupId,
+                                !!checked,
+                              )
+                            }
+                            aria-label={`Sertakan risiko ${entry.code}`}
+                          />
+                          <span
+                            className="block min-w-0 truncate font-mono text-xs font-medium text-foreground"
+                            title={entry.code}
+                          >
+                            {entry.code}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="w-[14%] min-w-0 px-2 py-3 text-center font-mono text-xs text-muted-foreground">
+                        <span
+                          className="block truncate"
+                          title={entry.monitoringCycle}
                         >
-                          <TableCell className="p-2 text-center">
-                            <Checkbox
-                              checked={isIncluded}
-                              onCheckedChange={(checked) =>
-                                handleToggleEntry(
-                                  entry.versionGroupId,
-                                  !!checked,
-                                )
-                              }
-                            />
-                          </TableCell>
-                          <TableCell className="p-2 whitespace-nowrap">
-                            <span className="text-sm font-medium text-foreground">
-                              {entry.code}
-                            </span>
-                          </TableCell>
-                          <TableCell className="p-2 whitespace-nowrap text-center">
-                            <Badge
-                              tone="neutral"
-                              size="micro"
-                            >
-                              v{entry.sourceVersionNumber}
-                            </Badge>
-                            {entry.resultVersionNumber && (
-                              <Badge
-                                tone="info"
-                                size="micro"
-                                className="ml-1"
-                              >
-                                Hasil: v{entry.resultVersionNumber}
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="p-2 whitespace-nowrap text-center text-sm text-muted-foreground">
-                            {entry.monitoringCycle}
-                          </TableCell>
-                          <TableCell className="p-2 whitespace-nowrap">
-                            <span
-                              className="block max-w-[280px] truncate text-sm font-medium text-foreground"
-                              title={entry.title}
-                            >
-                              {entry.title}
-                            </span>
-                          </TableCell>
-                          <TableCell className="p-2 text-center">
-                            <Badge
-                              tone={ROSTER_STATUS_TO_TONE[entry.rosterStatus] ?? "neutral"}
-                              size="micro"
-                            >
-                              {ROSTER_STATUS_LABELS[entry.rosterStatus]}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="p-2">
-                            {isIncluded ? (
-                              <span className="text-sm text-muted-foreground">
-                                &mdash;
-                              </span>
-                            ) : (
-                              <div>
-                                <Input
-                                  placeholder="Alasan pengecualian"
-                                  value={decision?.exclusionReason ?? ""}
-                                  onChange={(e) =>
-                                    handleExclusionReasonChange(
-                                      entry.versionGroupId,
-                                      e.target.value,
-                                    )
-                                  }
-                                  className="h-8 text-xs"
-                                />
-                                {error && (
-                                  <p className="mt-1 text-xs text-destructive">
-                                    {error}
-                                  </p>
-                                )}
-                              </div>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            </div>
+                          {entry.monitoringCycle}
+                        </span>
+                      </TableCell>
+                      <TableCell className="w-[44%] min-w-0 px-2 py-3">
+                        <span
+                          className="block max-w-full truncate text-sm font-medium text-foreground"
+                          title={entry.title}
+                        >
+                          {entry.title}
+                        </span>
+                      </TableCell>
+                      <TableCell className="w-[24%] min-w-0 px-2 py-3 text-center">
+                        <Badge
+                          tone={
+                            ROSTER_STATUS_TO_TONE[entry.rosterStatus] ??
+                            "neutral"
+                          }
+                          size="micro"
+                          className="max-w-full truncate"
+                        >
+                          {ROSTER_STATUS_LABELS[entry.rosterStatus]}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+              </Table>
+            </CollectionTableCard>
           )}
         </FormSection>
 
         <FormSection
           title="Konfigurasi Penandatangan"
-          description="Tambah penandatangan dan atur urutan dengan drag handle."
           action={
             <Badge tone="neutral" size="compact">
               {signatoryFields.length} penandatangan
             </Badge>
           }
-          className="rounded-lg ring-1 ring-inset ring-border border-0"
         >
-          <div className="space-y-3">
-            {errors.signatories &&
-              typeof errors.signatories.message === "string" && (
-                <p className="text-xs text-destructive">
-                  {errors.signatories.message}
-                </p>
-              )}
 
-            <OrderedUserSelectionTable
-              rows={signatoryRows}
-              loadOptions={loadSignatoryOptions}
-              onSelectRow={handleUserSelect}
-              onAddRow={handleAddSignatory}
-              onRemoveRow={handleRemoveSignatory}
-              onMoveRow={moveSignatory}
-              pickerTitle="Pilih penandatangan"
-              pickerDescription="Cari penandatangan yang akan dimasukkan ke urutan dokumen kertas kerja."
-              pickerPlaceholder="Pilih penandatangan"
-              pickerSearchPlaceholder="Cari pengguna"
-              pickerEmptyMessage="Penandatangan tidak ditemukan."
-              emptyStateMessage="Belum ada penandatangan. Tambahkan minimal satu user untuk menyusun urutan tanda tangan."
-              addRowLabel="Tambah Penandatangan"
-              footerNote="Urutan baris menentukan sequence penandatangan pada payload dokumen."
-              canRemoveRow={() => signatoryFields.length > 1}
-              getRowError={(_, index) =>
-                errors.signatories?.[index]?.user_id?.message
-              }
-              dndGroup="working-paper-signatories"
-            />
-          </div>
+          {errors.signatories &&
+            typeof errors.signatories.message === "string" && (
+              <p className="rounded-lg border border-destructive/20 bg-destructive/[0.04] px-3 py-2 text-xs text-destructive">
+                {errors.signatories.message}
+              </p>
+            )}
+
+          <OrderedUserSelectionTable
+            rows={signatoryRows}
+            loadOptions={loadSignatoryOptions}
+            onSelectRow={handleUserSelect}
+            onAddRow={handleAddSignatory}
+            onRemoveRow={handleRemoveSignatory}
+            onMoveRow={moveSignatory}
+            pickerTitle="Pilih penandatangan"
+            pickerDescription="Cari penandatangan yang akan dimasukkan ke urutan dokumen kertas kerja."
+            pickerPlaceholder="Pilih penandatangan"
+            pickerSearchPlaceholder="Cari pengguna"
+            pickerEmptyMessage="Penandatangan tidak ditemukan."
+            emptyStateMessage="Belum ada penandatangan. Tambahkan minimal satu user untuk menyusun urutan tanda tangan."
+            addRowLabel="Tambah Penandatangan"
+            footerNote="Urutan baris menentukan sequence penandatangan pada payload dokumen."
+            canRemoveRow={() => signatoryFields.length > 1}
+            getRowError={(_, index) =>
+              errors.signatories?.[index]?.user_id?.message
+            }
+            dndGroup="working-paper-signatories"
+          />
         </FormSection>
       </form>
 
@@ -677,45 +570,52 @@ export default function CreateWorkingPaperPage() {
         >
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>
-                Konfirmasi Pembuatan Kertas Kerja
-              </AlertDialogTitle>
-              <AlertDialogDescription asChild>
-                <div className="space-y-2 text-sm">
-                  <p>
-                    {summary.newDraftCount} dari {summary.includedCount}{" "}
-                    risiko akan dibuatkan draft monitoring{" "}
-                    <strong>{preview?.monitoringCycle}</strong>.
-                  </p>
-                  <ul className="list-disc pl-5 space-y-1">
-                    <li>
-                      Total risiko eligible: {summary.eligibleCount}
-                    </li>
-                    <li>
-                      Termasuk: {summary.includedCount} risiko
-                    </li>
-                    <li>
-                      Dikecualikan: {summary.excludedCount} risiko
-                    </li>
-                    <li>
-                      Monitoring sudah final:{" "}
-                      {summary.finalizedCount}
-                    </li>
-                    <li>
-                      Draft monitoring tersedia:{" "}
-                      {summary.existingDraftCount}
-                    </li>
-                    <li>
-                      Draft baru akan dibuat:{" "}
-                      {summary.newDraftCount}
-                    </li>
-                  </ul>
-                </div>
+              <AlertDialogTitle>Konfirmasi Kertas Kerja</AlertDialogTitle>
+              <AlertDialogDescription>
+                Snapshot risiko akan dibuat untuk siklus{" "}
+                <span className="font-medium text-foreground">
+                  {preview?.monitoringCycle}
+                </span>
+                . Pemantauan selanjutnya dilakukan dari menu Risiko.
               </AlertDialogDescription>
             </AlertDialogHeader>
+            <dl className="grid grid-cols-2 gap-2 rounded-xl bg-muted/50 p-3">
+              <div className="rounded-lg bg-card px-3 py-2">
+                <dt className="text-xs text-muted-foreground">
+                  Risiko eligible
+                </dt>
+                <dd className="mt-1 font-mono text-base font-semibold tabular-nums text-foreground">
+                  {summary.eligibleCount}
+                </dd>
+              </div>
+              <div className="rounded-lg bg-card px-3 py-2">
+                <dt className="text-xs text-muted-foreground">Termasuk</dt>
+                <dd className="mt-1 font-mono text-base font-semibold tabular-nums text-foreground">
+                  {summary.includedCount}
+                </dd>
+              </div>
+              <div className="rounded-lg bg-card px-3 py-2">
+                <dt className="text-xs text-muted-foreground">
+                  Dikecualikan
+                </dt>
+                <dd className="mt-1 font-mono text-base font-semibold tabular-nums text-foreground">
+                  {summary.excludedCount}
+                </dd>
+              </div>
+              <div className="rounded-lg bg-card px-3 py-2">
+                <dt className="text-xs text-muted-foreground">Sudah final</dt>
+                <dd className="mt-1 font-mono text-base font-semibold tabular-nums text-foreground">
+                  {summary.finalizedCount}
+                </dd>
+              </div>
+            </dl>
             <AlertDialogFooter>
-              <AlertDialogCancel>Kembali</AlertDialogCancel>
+              <AlertDialogCancel variant="outline" size="md">
+                Batal
+              </AlertDialogCancel>
               <AlertDialogAction
+                variant="primary"
+                size="primary"
                 onClick={handleSubmit(onSubmit)}
               >
                 Buat Kertas Kerja

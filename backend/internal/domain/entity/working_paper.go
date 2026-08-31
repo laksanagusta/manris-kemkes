@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"math"
 	"time"
 
 	"github.com/google/uuid"
@@ -19,9 +20,9 @@ const (
 )
 
 const (
-	WorkingPaperRosterFinalizedResult    = "finalized_result"
-	WorkingPaperRosterExistingDraft      = "existing_draft"
-	WorkingPaperRosterDraftWillBeCreated = "draft_will_be_created"
+	WorkingPaperRosterNotStarted = "not_started"
+	WorkingPaperRosterInProgress = "in_progress"
+	WorkingPaperRosterFinalized  = "finalized"
 )
 
 type WorkingPaper struct {
@@ -79,10 +80,10 @@ type WorkingPaperRosterEntry struct {
 }
 
 type WorkingPaperRosterSummary struct {
-	EligibleCount      int `json:"eligibleCount"`
-	FinalizedCount     int `json:"finalizedCount"`
-	ExistingDraftCount int `json:"existingDraftCount"`
-	NewDraftCount      int `json:"newDraftCount"`
+	EligibleCount   int `json:"eligibleCount"`
+	NotStartedCount int `json:"notStartedCount"`
+	InProgressCount int `json:"inProgressCount"`
+	FinalizedCount  int `json:"finalizedCount"`
 }
 
 type WorkingPaperRosterPreview struct {
@@ -124,13 +125,8 @@ type WorkingPaperRiskMonitoring struct {
 	ObservedWeight              float64    `json:"observedWeight"`
 	ObservedNilai               float64    `json:"observedNilai"`
 	ObservedLevel               string     `json:"observedLevel"`
-	Trend                       string     `json:"trend"`
 	MitigationCompletionPercent int        `json:"mitigationCompletionPercent"`
 	MitigationProgressSummary   string     `json:"mitigationProgressSummary"`
-	EffectivenessConclusion     string     `json:"effectivenessConclusion"`
-	ConditionSummary            string     `json:"conditionSummary"`
-	EventSummary                string     `json:"eventSummary"`
-	FollowUpNote                string     `json:"followUpNote"`
 	StartedAt                   time.Time  `json:"startedAt"`
 	UpdatedAt                   time.Time  `json:"updatedAt"`
 	FinalizedAt                 *time.Time `json:"finalizedAt,omitempty"`
@@ -198,8 +194,6 @@ type WorkingPaperRiskData struct {
 	MonitoringInherentScore        int                         `json:"monitoring_inherent_score,omitempty"`
 	MonitoringTingkatRisiko        string                      `json:"monitoring_tingkat_risiko,omitempty"`
 	MonitoringTingkatRisikoDisplay string                      `json:"monitoring_tingkat_risiko_display,omitempty"`
-	MonitoringSimpulan             string                      `json:"monitoring_simpulan,omitempty"`
-	MonitoringEfektivitas          string                      `json:"monitoring_efektivitas,omitempty"`
 	JadwalPelaksanaan              string                      `json:"jadwal_pelaksanaan,omitempty"`
 	PenanggungJawab                string                      `json:"penanggung_jawab,omitempty"`
 }
@@ -244,10 +238,10 @@ func (r *WorkingPaperRiskData) NormalizeDerivedScores() {
 	if r.Nilai == 0 && r.Bobot > 0 && r.Probability > 0 && r.Impact > 0 {
 		r.Nilai = CalculateNilai(r.Probability, r.Impact, r.Bobot)
 	}
+	// Nilai is the canonical value. InherentScore is only its rounded API
+	// representation and must not become a second source of truth.
 	currentScore := r.Nilai
-	if r.InherentScore > 0 {
-		currentScore = float64(r.InherentScore)
-	}
+	r.InherentScore = int(math.Round(currentScore))
 	r.TingkatRisiko = GetRiskLevelFromNilai(currentScore)
 	r.PrioritasRisiko = GetRiskPriorityFromLevel(r.TingkatRisiko)
 
@@ -258,11 +252,11 @@ func (r *WorkingPaperRiskData) NormalizeDerivedScores() {
 		r.TargetNilai = CalculateNilai(r.TargetProbability, r.TargetImpact, r.TargetBobot)
 	}
 	targetScore := r.TargetNilai
-	if r.TargetScore > 0 {
-		targetScore = float64(r.TargetScore)
-	}
 	if targetScore > 0 {
+		r.TargetScore = int(math.Round(targetScore))
 		r.TargetTingkatRisiko = GetRiskLevelFromNilai(targetScore)
+	} else {
+		r.TargetScore = 0
 	}
 
 	// Set display labels
@@ -273,12 +267,12 @@ func (r *WorkingPaperRiskData) NormalizeDerivedScores() {
 	r.ControlEffectivenessDisplay = GetControlEffectivenessDisplay(r.ControlEffectiveness)
 
 	monScore := r.MonitoringNilai
-	if r.MonitoringInherentScore > 0 {
-		monScore = float64(r.MonitoringInherentScore)
-	}
 	if monScore > 0 {
+		r.MonitoringInherentScore = int(math.Round(monScore))
 		r.MonitoringTingkatRisiko = GetRiskLevelFromNilai(monScore)
 		r.MonitoringTingkatRisikoDisplay = GetRiskLevelDisplay(r.MonitoringTingkatRisiko)
+	} else {
+		r.MonitoringInherentScore = 0
 	}
 
 	if r.Previous != nil {
@@ -286,13 +280,10 @@ func (r *WorkingPaperRiskData) NormalizeDerivedScores() {
 	}
 }
 
-// PreviousNilai returns the previous semester baseline score (nilai or inherent_score).
+// PreviousNilai returns the previous-semester canonical nilai.
 func (r *WorkingPaperRiskData) PreviousNilai() float64 {
 	if r.Previous == nil {
 		return 0
-	}
-	if r.Previous.InherentScore > 0 {
-		return float64(r.Previous.InherentScore)
 	}
 	return r.Previous.Nilai
 }
@@ -305,10 +296,9 @@ func (s *WorkingPaperRiskSnapshot) Normalize() {
 	if s.Nilai == 0 && s.Bobot > 0 && s.Probability > 0 && s.Impact > 0 {
 		s.Nilai = CalculateNilai(s.Probability, s.Impact, s.Bobot)
 	}
+	// Nilai is canonical; InherentScore is a rounded compatibility projection.
 	score := s.Nilai
-	if s.InherentScore > 0 {
-		score = float64(s.InherentScore)
-	}
+	s.InherentScore = int(math.Round(score))
 	if score > 0 {
 		s.TingkatRisiko = GetRiskLevelFromNilai(score)
 		s.TingkatRisikoDisplay = GetRiskLevelDisplay(s.TingkatRisiko)
@@ -322,11 +312,11 @@ func (s *WorkingPaperRiskSnapshot) Normalize() {
 		s.TargetNilai = CalculateNilai(s.TargetProbability, s.TargetImpact, s.TargetBobot)
 	}
 	targetScore := s.TargetNilai
-	if s.TargetScore > 0 {
-		targetScore = float64(s.TargetScore)
-	}
 	if targetScore > 0 {
+		s.TargetScore = int(math.Round(targetScore))
 		s.TargetTingkatRisiko = GetRiskLevelFromNilai(targetScore)
+	} else {
+		s.TargetScore = 0
 		s.TargetTingkatRisikoDisplay = GetRiskLevelDisplay(s.TargetTingkatRisiko)
 	}
 

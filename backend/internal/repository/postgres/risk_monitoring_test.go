@@ -48,7 +48,6 @@ func TestRiskMonitoringRepositoryCreatesAndLoadsDraft(t *testing.T) {
 	monitoring.ObservedProbability = 5
 	monitoring.ObservedImpact = 5
 	monitoring.CalculateObservedScore()
-	monitoring.ConditionSummary = "Observed condition"
 	monitoring.Conclusion = "Need follow-up"
 
 	if err := monitoringRepo.Create(ctx, monitoring); err != nil {
@@ -154,6 +153,12 @@ func TestRiskMonitoringRepositoryFinalizesAndLinksResultRisk(t *testing.T) {
 	}
 	if !stored.IsCurrent || !stored.IsCycleCurrent {
 		t.Fatal("expected result risk to be current and cycle-current")
+	}
+	if stored.FinalizedAt == nil {
+		t.Fatal("expected result risk finalized_at")
+	}
+	if stored.EffectiveFrom == nil {
+		t.Fatal("expected result risk effective_from")
 	}
 }
 

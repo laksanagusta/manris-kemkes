@@ -38,7 +38,7 @@ export function MonitoringTransactionProgress({
   data,
   className,
   items,
-  countLabel = "transaksi",
+  countLabel = "",
   ariaLabelOverride,
 }: {
   data?: MonitoringTransactionQuarters | null;
@@ -55,13 +55,14 @@ export function MonitoringTransactionProgress({
     }));
   const completed = transactions.filter(({ status }) => isCompleted(status)).length;
   const total = transactions.length;
+  const countContext = countLabel ? `${countLabel} ` : "";
   const detail = transactions
     .map(({ label, status }) => `${label}: ${getStatusLabel(status)}`)
     .join(", ");
   const ariaLabel =
     ariaLabelOverride ??
     (items
-      ? `${completed} dari ${total} ${countLabel} berstatus selesai${detail ? `. ${detail}` : ""}`
+      ? `${completed} dari ${total} ${countContext}berstatus selesai${detail ? `. ${detail}` : ""}`
       : `${completed} dari ${total} transaksi pemantauan berstatus final${detail ? `. ${detail}` : ""}`);
 
   return (
@@ -85,7 +86,7 @@ export function MonitoringTransactionProgress({
         />
       ))}
       <span className="text-sm leading-none tabular-nums text-muted-foreground">
-        {completed}/{total} {countLabel}
+        {completed}/{total}{countLabel ? ` ${countLabel}` : ""}
       </span>
     </span>
   );

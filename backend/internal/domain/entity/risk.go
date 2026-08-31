@@ -79,8 +79,11 @@ type Risk struct {
 	Probability          int     `json:"probability"`
 	Impact               int     `json:"impact"`
 	Weight               float64 `json:"weight,omitempty"`
-	Nilai                float64 `json:"nilai,omitempty"` // Nilai = Probability × Impact × Weight
-	InherentScore        int     `json:"inherentScore"`
+	Nilai                float64 `json:"nilai,omitempty"` // Canonical inherent value = Probability × Impact × Weight.
+	// InherentScore is a rounded compatibility value derived from Nilai. It is
+	// kept in the API/domain model for existing consumers, but is not an
+	// independent persisted value.
+	InherentScore int `json:"inherentScore"`
 
 	// Section 3
 	RiskPriority    int    `json:"riskPriority,omitempty"`
@@ -91,10 +94,11 @@ type Risk struct {
 	Mitigations []Mitigation `json:"mitigations,omitempty"`
 
 	// Section 5
-	TargetProbability        int                  `json:"targetProbability,omitempty"`
-	TargetImpact             int                  `json:"targetImpact,omitempty"`
-	TargetWeight             float64              `json:"targetWeight,omitempty"`
-	TargetNilai              float64              `json:"targetNilai,omitempty"`
+	TargetProbability int     `json:"targetProbability,omitempty"`
+	TargetImpact      int     `json:"targetImpact,omitempty"`
+	TargetWeight      float64 `json:"targetWeight,omitempty"`
+	TargetNilai       float64 `json:"targetNilai,omitempty"` // Canonical target value.
+	// TargetScore is the rounded compatibility value derived from TargetNilai.
 	TargetScore              int                  `json:"targetScore,omitempty"`
 	ResidualAcceptanceReason string               `json:"residualAcceptanceReason,omitempty"`
 	NextReviewDate           *string              `json:"nextReviewDate,omitempty"`
@@ -228,19 +232,19 @@ func CalculateNilai(probability, impact int, weight float64) float64 {
 	return math.Round(raw*100) / 100
 }
 
-// GetInherentScore calculates inherent score
+// GetInherentScore returns the rounded compatibility score derived from Nilai.
 func (r *Risk) GetInherentScore() int {
-	return int(math.Round(float64(r.Probability) * float64(r.Impact) * r.Weight))
+	return int(math.Round(r.Nilai))
 }
 
-// CalculateInherentScore calculates and sets the inherent score
+// CalculateInherentScore derives the compatibility score from canonical Nilai.
 func (r *Risk) CalculateInherentScore() {
-	r.InherentScore = int(math.Round(float64(r.Probability) * float64(r.Impact) * r.Weight))
+	r.InherentScore = r.GetInherentScore()
 }
 
-// CalculateTargetScore calculates and sets the target score
+// CalculateTargetScore derives the compatibility target score from canonical TargetNilai.
 func (r *Risk) CalculateTargetScore() {
-	r.TargetScore = int(math.Round(float64(r.TargetProbability) * float64(r.TargetImpact) * r.TargetWeight))
+	r.TargetScore = int(math.Round(r.TargetNilai))
 }
 
 // CalculateBobot calculates and sets the weight based on probability and impact
@@ -340,7 +344,7 @@ func ResolveRiskAppetite(inherentScore int) string {
 // IsRiskUtama returns true if risk level is Sedang or higher.
 // Per KMK: inherentScore >= 10 corresponds to Sedang/Tinggi/SangatTinggi level.
 func (r Risk) IsRiskUtama() bool {
-	return r.InherentScore >= 10
+	return r.GetEffectiveScore() >= 10
 }
 
 // GetRiskAppetiteDisplay returns the Indonesian display name for risk appetite
@@ -437,9 +441,6 @@ func (r *Risk) AddMitigation(mitigation Mitigation) {
 }
 
 func (r *Risk) effectivePreliminaryScore() int {
-	if r.InherentScore > 0 {
-		return r.InherentScore
-	}
 	if r.Nilai > 0 {
 		return int(math.Round(r.Nilai))
 	}

@@ -12,14 +12,14 @@ export function CollectionSearchField({
   return (
     <div
       className={cn(
-        "relative min-w-0 flex-1 sm:w-64 md:flex-none",
+        "relative min-w-0 w-full sm:w-80 sm:flex-none",
         containerClassName,
       )}
     >
       <Search className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
       <SearchInput
         className={cn(
-          "border border-border bg-card pl-10 text-sm",
+          "border border-input bg-card pl-10 text-sm",
           className,
         )}
         {...props}

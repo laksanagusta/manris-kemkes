@@ -24,7 +24,10 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { PageStack } from "@/components/shared/design-system";
+import {
+  CollectionPageHeader,
+  PageStack,
+} from "@/components/shared/design-system";
 
 type ProfileFormState = {
   name: string;
@@ -149,17 +152,14 @@ export default function AccountPage() {
 
   return (
     <PageStack className="max-w-3xl">
-      <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h1 className="page-title">Akun Saya</h1>
-          <p className="text-sm text-muted-foreground">
-            Kelola profil dan keamanan akun untuk sesi aktif Anda.
-          </p>
-        </div>
-        <div className="text-sm text-muted-foreground">
-          {user?.orgName ? `${roleLabel} • ${user.orgName}` : roleLabel}
-        </div>
-      </div>
+      <CollectionPageHeader
+        title="Akun Saya"
+        actions={
+          <div className="text-sm text-muted-foreground">
+            {user?.orgName ? `${roleLabel} • ${user.orgName}` : roleLabel}
+          </div>
+        }
+      />
 
       <Card className="bg-card">
         <CardHeader>

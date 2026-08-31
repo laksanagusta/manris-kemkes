@@ -108,10 +108,6 @@ func (r *fakeReportRiskRepo) GetOverdueMitigationTimeline(context.Context, []uui
 	return nil, errors.New("not implemented")
 }
 
-func (r *fakeReportRiskRepo) GetKRIBreachSummary(context.Context, []uuid.UUID) ([]entity.KRIBreachItem, error) {
-	return nil, errors.New("not implemented")
-}
-
 func (r *fakeReportRiskRepo) GetUnitResponseTime(context.Context, []uuid.UUID) ([]entity.UnitResponseTime, error) {
 	return nil, errors.New("not implemented")
 }
@@ -147,41 +143,6 @@ func (r *fakeReportIncidentRepo) GetSummary(context.Context, []uuid.UUID) (map[s
 	return nil, errors.New("not implemented")
 }
 
-type fakeReportKRIRepo struct {
-	list func(context.Context, []uuid.UUID, bool) ([]*entity.KRI, error)
-}
-
-func (r *fakeReportKRIRepo) Create(context.Context, *entity.KRI) error {
-	return errors.New("not implemented")
-}
-
-func (r *fakeReportKRIRepo) GetByID(_ context.Context, _ uuid.UUID, _ []uuid.UUID) (*entity.KRI, error) {
-	return nil, errors.New("not implemented")
-}
-
-func (r *fakeReportKRIRepo) Update(context.Context, *entity.KRI) error {
-	return errors.New("not implemented")
-}
-
-func (r *fakeReportKRIRepo) Delete(context.Context, uuid.UUID) error {
-	return errors.New("not implemented")
-}
-
-func (r *fakeReportKRIRepo) Archive(context.Context, uuid.UUID, string) error {
-	return errors.New("not implemented")
-}
-
-func (r *fakeReportKRIRepo) List(ctx context.Context, orgIDs []uuid.UUID, includeArchived bool) ([]*entity.KRI, error) {
-	if r.list != nil {
-		return r.list(ctx, orgIDs, includeArchived)
-	}
-	return nil, nil
-}
-
-func (r *fakeReportKRIRepo) GetDashboard(context.Context, []uuid.UUID) (map[string]interface{}, error) {
-	return nil, errors.New("not implemented")
-}
-
 func TestGenerateReportUseCase_ExecuteUsesEffectiveSemanticsForPrimaryOutputs(t *testing.T) {
 	alpha := approvedRiskWithReviewedBundle("R-ALPHA", "Alpha", entity.RiskCategoryKebijakan, "2026-H1", 5, 4, 23)
 	alpha.Mitigations = []entity.Mitigation{{Action: "Escalate vendor"}}
@@ -206,8 +167,7 @@ func TestGenerateReportUseCase_ExecuteUsesEffectiveSemanticsForPrimaryOutputs(t 
 	}
 
 	incidentRepo := &fakeReportIncidentRepo{}
-	kriRepo := &fakeReportKRIRepo{}
-	uc := NewGenerateReportUseCase(riskRepo, incidentRepo, kriRepo)
+	uc := NewGenerateReportUseCase(riskRepo, incidentRepo)
 
 	reportData, err := uc.Execute(context.Background(), GenerateReportInput{Cycle: "2026-H1"})
 	if err != nil {
@@ -275,7 +235,7 @@ func TestGenerateReportUseCase_ExecuteKeepsFallbackAndDraftIsolationCompatible(t
 		},
 	}
 
-	uc := NewGenerateReportUseCase(riskRepo, &fakeReportIncidentRepo{}, &fakeReportKRIRepo{})
+	uc := NewGenerateReportUseCase(riskRepo, &fakeReportIncidentRepo{})
 	reportData, err := uc.Execute(context.Background(), GenerateReportInput{Cycle: "2026-H1"})
 	if err != nil {
 		t.Fatalf("Execute() error = %v", err)
@@ -304,9 +264,6 @@ func TestReportExcludesSiblingOrgData(t *testing.T) {
 
 	incidentA := &entity.Incident{ID: uuid.New(), Title: "OrgA Incident", LinkedRiskID: &riskA.ID, OrganizationID: &orgA}
 	incidentB := &entity.Incident{ID: uuid.New(), Title: "OrgB Incident", LinkedRiskID: &riskB.ID, OrganizationID: &orgB}
-
-	kriA := &entity.KRI{ID: uuid.New(), RiskID: riskA.ID, Name: "OrgA KRI", OrganizationID: &orgA}
-	kriB := &entity.KRI{ID: uuid.New(), RiskID: riskB.ID, Name: "OrgB KRI", OrganizationID: &orgB}
 
 	riskRepo := &fakeReportRiskRepo{
 		listCycleSnapshot: func(_ context.Context, cycle string, orgIDs []uuid.UUID) ([]*entity.Risk, error) {
@@ -341,28 +298,7 @@ func TestReportExcludesSiblingOrgData(t *testing.T) {
 		},
 	}
 
-	kriRepo := &fakeReportKRIRepo{
-		list: func(_ context.Context, orgIDs []uuid.UUID, _ bool) ([]*entity.KRI, error) {
-			if len(orgIDs) == 0 {
-				t.Fatal("kriRepo.List called with nil/empty orgIDs — data leak")
-			}
-			var result []*entity.KRI
-			allowed := make(map[uuid.UUID]struct{}, len(orgIDs))
-			for _, id := range orgIDs {
-				allowed[id] = struct{}{}
-			}
-			for _, kri := range []*entity.KRI{kriA, kriB} {
-				if kri.OrganizationID != nil {
-					if _, ok := allowed[*kri.OrganizationID]; ok {
-						result = append(result, kri)
-					}
-				}
-			}
-			return result, nil
-		},
-	}
-
-	uc := NewGenerateReportUseCase(riskRepo, incidentRepo, kriRepo)
+	uc := NewGenerateReportUseCase(riskRepo, incidentRepo)
 	report, err := uc.Execute(context.Background(), GenerateReportInput{
 		Cycle:  "2026-H1",
 		OrgIDs: []uuid.UUID{orgA},
@@ -381,15 +317,6 @@ func TestReportExcludesSiblingOrgData(t *testing.T) {
 		t.Fatalf("Incidents = %v, want exactly 1 OrgA Incident", report.Incidents)
 	}
 
-	// Verify only orgA KRIs are present
-	for _, kri := range report.KRIs {
-		if kri.OrganizationID != nil && *kri.OrganizationID == orgB {
-			t.Fatalf("report contains sibling org B KRI %q — data leak", kri.Name)
-		}
-	}
-	if len(report.KRIs) != 1 || report.KRIs[0].Name != "OrgA KRI" {
-		t.Fatalf("KRIs = %v, want exactly 1 OrgA KRI", report.KRIs)
-	}
 }
 
 func TestGenerateReportUseCase_IgnoresNilItems(t *testing.T) {
@@ -408,13 +335,7 @@ func TestGenerateReportUseCase_IgnoresNilItems(t *testing.T) {
 			return []*entity.Incident{nil}, nil
 		},
 	}
-	kriRepo := &fakeReportKRIRepo{
-		list: func(context.Context, []uuid.UUID, bool) ([]*entity.KRI, error) {
-			return []*entity.KRI{nil}, nil
-		},
-	}
-
-	uc := NewGenerateReportUseCase(riskRepo, incidentRepo, kriRepo)
+	uc := NewGenerateReportUseCase(riskRepo, incidentRepo)
 	reportData, err := uc.Execute(context.Background(), GenerateReportInput{Cycle: "2026-H1"})
 	if err != nil {
 		t.Fatalf("Execute() error = %v", err)
@@ -425,9 +346,6 @@ func TestGenerateReportUseCase_IgnoresNilItems(t *testing.T) {
 	}
 	if len(reportData.Incidents) != 0 {
 		t.Fatalf("Incidents = %#v, want empty after nil filtering", reportData.Incidents)
-	}
-	if len(reportData.KRIs) != 0 {
-		t.Fatalf("KRIs = %#v, want empty after nil filtering", reportData.KRIs)
 	}
 }
 

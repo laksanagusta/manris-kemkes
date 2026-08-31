@@ -78,9 +78,6 @@ func (r *fakeApprovalSyncRiskRepo) GetHeatmapVelocity(context.Context, string, s
 func (r *fakeApprovalSyncRiskRepo) GetOverdueMitigationTimeline(context.Context, []uuid.UUID) ([]entity.OverdueMitigationTimelineItem, error) {
 	return nil, nil
 }
-func (r *fakeApprovalSyncRiskRepo) GetKRIBreachSummary(context.Context, []uuid.UUID) ([]entity.KRIBreachItem, error) {
-	return nil, nil
-}
 func (r *fakeApprovalSyncRiskRepo) GetUnitResponseTime(context.Context, []uuid.UUID) ([]entity.UnitResponseTime, error) {
 	return nil, nil
 }

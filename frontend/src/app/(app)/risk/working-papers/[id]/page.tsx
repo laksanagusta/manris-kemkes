@@ -1,6 +1,7 @@
 "use client";
 
 import { use, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
@@ -17,14 +18,18 @@ import { buildWorkingPaperDetailViewModel } from "@/lib/working-paper-detail-vie
 import { WorkingPaperMonitoringTable } from "./working-paper-monitoring-table";
 import { WorkingPaperStatusActions } from "./working-paper-status-actions";
 import { WorkingPaperSignatureTimeline } from "./working-paper-signature-timeline";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import {
+  ActionButton,
+  AccentButton,
+  CollectionPageHeader,
+  CollectionTableCard,
   StandardCard,
 } from "@/components/shared/design-system";
 import {
   AlertDialog,
+  AlertDialogAction,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -40,18 +45,16 @@ import {
   CollectionEmptyState,
   CollectionErrorState,
   CollectionLoadingState,
-  CollectionTableCard,
 } from "@/components/shared/design-system";
 
 import { cn } from "@/lib/utils";
-import { useSetHeaderActions } from "@/lib/header-actions-context";
 import {
   AlertCircle,
+  ArrowLeft,
   CalendarDays,
   CheckCircle2,
   CircleDot,
   Clock3,
-  Download,
   FileText,
   Pen,
 } from "@/components/ui/icons";
@@ -94,13 +97,26 @@ interface SigningBlocker {
   monitoring_status: string;
 }
 
+function monitoringStatusLabel(status: string) {
+  switch (status) {
+    case "draft":
+      return "Sedang Berjalan";
+    case "final":
+      return "Selesai";
+    case "missing":
+      return "Belum Dimulai";
+    default:
+      return status;
+  }
+}
+
 function formatSigningError(err: unknown): string {
   if (err && typeof err === "object" && "details" in err) {
     const details = (err as { details?: SigningBlocker[] }).details;
     if (Array.isArray(details) && details.length > 0) {
       const items = details
-        .map((b) => `${b.code} (${b.monitoring_status})`)
-        .join(", ");
+        .map((b) => `${b.code} (${monitoringStatusLabel(b.monitoring_status)})`)
+      .join(", ");
       return `Monitoring belum final: ${items}`;
     }
   }
@@ -128,9 +144,7 @@ export default function WorkingPaperDetailPage(props: {
   const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  const setHeaderActions = useSetHeaderActions();
-
-  const handleExport = async () => {
+  const handleExport = useCallback(async () => {
     if (!data) return;
     try {
       const { exportWorkingPaper } =
@@ -144,43 +158,7 @@ export default function WorkingPaperDetailPage(props: {
         err instanceof Error ? err.message : "Gagal mengekspor kertas kerja.",
       );
     }
-  };
-
-  useEffect(() => {
-    if (!token || !data) return;
-    const vm = buildWorkingPaperDetailViewModel(data, user?.id);
-    setHeaderActions(
-      <div className="flex items-center gap-2">
-        <WorkingPaperStatusActions
-          canStartSigning={vm.canStartSigning}
-          canSkipTTE={vm.canSkipTTE}
-          canCancel={vm.canCancel}
-          canDelete={vm.canDelete}
-          onStartSigning={() => setStartSigningDialogOpen(true)}
-          onSkipTTE={() => setSkipDialogOpen(true)}
-          onCancel={() => setCancelDialogOpen(true)}
-          onDelete={() => setDeleteDialogOpen(true)}
-        />
-        {vm.canStartSigning && (
-          <Button size="sm" onClick={() => setStartSigningDialogOpen(true)}>
-            <Pen className="w-4 h-4 mr-2" />
-            Mulai Proses TTE
-          </Button>
-        )}
-        {vm.canSign && (
-          <Button size="sm" onClick={() => setSignDialogOpen(true)}>
-            <Pen className="w-4 h-4 mr-2" />
-            Tanda Tangani
-          </Button>
-        )}
-        <Button variant="outline" size="sm" onClick={handleExport}>
-          <Download className="w-4 h-4 mr-2" />
-          Ekspor Excel
-        </Button>
-      </div>,
-    );
-    return () => setHeaderActions(null);
-  }, [token, setHeaderActions, data, user?.id, handleExport, setStartSigningDialogOpen, setSignDialogOpen, setSkipDialogOpen, setCancelDialogOpen, setDeleteDialogOpen]);
+  }, [data]);
 
   const loadData = useCallback(async () => {
     try {
@@ -273,7 +251,6 @@ export default function WorkingPaperDetailPage(props: {
       <FormPage className="space-y-6 pb-0">
         <FormHeader
           title="Memuat detail kertas kerja"
-          description="Sistem sedang menyiapkan ringkasan dokumen, status tanda tangan, dan daftar risiko."
         />
         <CollectionLoadingState message="Memuat detail kertas kerja..." />
       </FormPage>
@@ -285,7 +262,6 @@ export default function WorkingPaperDetailPage(props: {
       <FormPage className="space-y-6 pb-0">
         <FormHeader
           title="Detail kertas kerja belum tersedia"
-          description="Halaman ini membutuhkan data dokumen yang valid sebelum Anda bisa meninjau tindakan penandatanganan."
         />
         <CollectionErrorState
           title="Gagal memuat kertas kerja"
@@ -301,7 +277,6 @@ export default function WorkingPaperDetailPage(props: {
       <FormPage className="space-y-6 pb-0">
         <FormHeader
           title="Kertas kerja tidak ditemukan"
-          description="Dokumen yang Anda cari mungkin sudah dipindahkan, tidak lagi tersedia, atau Anda tidak memiliki akses untuk melihatnya."
         />
         <CollectionEmptyState
           title="Dokumen tidak ditemukan"
@@ -359,8 +334,59 @@ export default function WorkingPaperDetailPage(props: {
     },
   ];
 
+  const backAction = (
+    <ActionButton
+      asChild
+      variant="secondary"
+      size="sm"
+    >
+      <Link href="/risk/working-papers">
+        <ArrowLeft className="size-3.5" />
+        Kembali ke daftar kertas kerja
+      </Link>
+    </ActionButton>
+  );
+
+  const headerActions = (
+    <>
+      <WorkingPaperStatusActions
+        canStartSigning={viewModel.canStartSigning}
+        canSkipTTE={viewModel.canSkipTTE}
+        canCancel={viewModel.canCancel}
+        canDelete={viewModel.canDelete}
+        onStartSigning={() => setStartSigningDialogOpen(true)}
+        onSkipTTE={() => setSkipDialogOpen(true)}
+        onCancel={() => setCancelDialogOpen(true)}
+        onDelete={() => setDeleteDialogOpen(true)}
+        onExport={handleExport}
+      />
+      {viewModel.canStartSigning && (
+        <AccentButton
+          onClick={() => setStartSigningDialogOpen(true)}
+          icon={<Pen className="size-3.5" />}
+        >
+          Mulai Proses TTE
+        </AccentButton>
+      )}
+      {viewModel.canSign && (
+        <AccentButton
+          onClick={() => setSignDialogOpen(true)}
+          icon={<Pen className="size-3.5" />}
+        >
+          Tanda Tangani
+        </AccentButton>
+      )}
+    </>
+  );
+
   return (
-    <FormPage className="space-y-6 pb-0">
+    <FormPage className="max-w-[1400px] space-y-6 pb-0">
+      <CollectionPageHeader
+        backAction={backAction}
+        title="Detail Kertas Kerja"
+        actions={headerActions}
+      />
+
       {viewModel.monitoringBlockers.length > 0 ? (
         <Card className="rounded-2xl bg-amber-50/80">
           <CardContent className="space-y-1 p-4 text-sm text-amber-900">
@@ -380,10 +406,19 @@ export default function WorkingPaperDetailPage(props: {
         </Card>
       ) : null}
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="min-w-0 space-y-4">
-          <StandardCard title="Ringkasan dokumen">
-            <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
+          <CollectionTableCard>
+            <WorkingPaperMonitoringTable links={data.risks ?? []} />
+          </CollectionTableCard>
+        </div>
+
+        <div className="min-w-0 space-y-4 lg:sticky lg:top-6 lg:self-start">
+          <StandardCard
+            title="Ringkasan dokumen"
+            contentClassName="px-4 pb-4 pt-2"
+          >
+            <div className="flex flex-col gap-4">
               {summaryItems.map(({ icon: Icon, label, value }) => (
                 <div key={label} className="flex min-w-0 flex-col gap-2">
                   <p className="text-sm text-muted-foreground">{label}</p>
@@ -438,16 +473,7 @@ export default function WorkingPaperDetailPage(props: {
               </div>
             )}
           </StandardCard>
-          <CollectionTableCard>
-            <WorkingPaperMonitoringTable links={data.risks ?? []} />
-          </CollectionTableCard>
-        </div>
-
-        <div>
-          <StandardCard
-            title="Status Tanda Tangan"
-            className="sticky top-6"
-          >
+          <StandardCard title="Status Tanda Tangan">
             <WorkingPaperSignatureTimeline timeline={viewModel.timeline} />
           </StandardCard>
         </div>
@@ -460,22 +486,22 @@ export default function WorkingPaperDetailPage(props: {
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-[10px] font-mono font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+            <AlertDialogTitle>
               Mulai proses TTE
             </AlertDialogTitle>
+            <AlertDialogDescription>
+              Status akan diubah dari draft menjadi proses tanda tangan.
+              Setelah itu, para penandatangan bisa mulai menandatangani
+              dokumen ini.
+            </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogDescription>
-            Status akan diubah dari draft menjadi proses tanda tangan.
-            Setelah itu, para penandatangan bisa mulai menandatangani
-            dokumen ini.
-          </AlertDialogDescription>
           <AlertDialogFooter>
             <CollectionDialogCancel onClick={() => setStartSigningDialogOpen(false)}>
               Batal
             </CollectionDialogCancel>
-            <Button size="sm" onClick={handleStartSigning}>
+            <AlertDialogAction variant="primary" size="primary" onClick={handleStartSigning}>
               Mulai proses TTE
-            </Button>
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -483,21 +509,21 @@ export default function WorkingPaperDetailPage(props: {
       <AlertDialog open={signDialogOpen} onOpenChange={setSignDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-[10px] font-mono font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+            <AlertDialogTitle>
               Tanda tangani kertas kerja
             </AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menandatangani dokumen ini? Tindakan ini
+              akan menyimpan data Anda sebagai penandatangan sah.
+            </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogDescription>
-            Apakah Anda yakin ingin menandatangani dokumen ini? Tindakan ini
-            akan menyimpan data Anda sebagai penandatangan sah.
-          </AlertDialogDescription>
           <AlertDialogFooter>
             <CollectionDialogCancel onClick={() => setSignDialogOpen(false)}>
               Batal
             </CollectionDialogCancel>
-            <Button size="sm" onClick={handleSign}>
+            <AlertDialogAction variant="primary" size="primary" onClick={handleSign}>
               Tanda Tangani
-            </Button>
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -505,25 +531,25 @@ export default function WorkingPaperDetailPage(props: {
       <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-[10px] font-mono font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+            <AlertDialogTitle>
               Batalkan kertas kerja
             </AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin membatalkan kertas kerja ini? Dokumen
+              yang dibatalkan tidak dapat ditandatangani lagi.
+            </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogDescription>
-            Apakah Anda yakin ingin membatalkan kertas kerja ini? Dokumen
-            yang dibatalkan tidak dapat ditandatangani lagi.
-          </AlertDialogDescription>
           <AlertDialogFooter>
             <CollectionDialogCancel onClick={() => setCancelDialogOpen(false)}>
-              Kembali
+              Batal
             </CollectionDialogCancel>
-            <Button
-              size="sm"
+            <AlertDialogAction
+              variant="primary"
+              size="primary"
               onClick={handleCancel}
-              className="bg-amber-600 hover:bg-amber-700"
             >
               Batalkan Dokumen
-            </Button>
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -531,22 +557,22 @@ export default function WorkingPaperDetailPage(props: {
       <AlertDialog open={skipDialogOpen} onOpenChange={setSkipDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-[10px] font-mono font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+            <AlertDialogTitle>
               Lewati tanda tangan elektronik
             </AlertDialogTitle>
+            <AlertDialogDescription>
+              Tindakan ini akan menyelesaikan kertas kerja tanpa tanda tangan
+              elektronik dan langsung mengunci versi risiko terkait. Pastikan
+              semua risiko di dalam dokumen sudah selesai diproses.
+            </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogDescription>
-            Tindakan ini akan menyelesaikan kertas kerja tanpa tanda tangan
-            elektronik dan langsung mengunci versi risiko terkait. Pastikan
-            semua risiko di dalam dokumen sudah selesai diproses.
-          </AlertDialogDescription>
           <AlertDialogFooter>
             <CollectionDialogCancel onClick={() => setSkipDialogOpen(false)}>
               Batal
             </CollectionDialogCancel>
-            <Button size="sm" onClick={handleSkipTTE}>
+            <AlertDialogAction variant="primary" size="primary" onClick={handleSkipTTE}>
               Lewati tanda tangan elektronik
-            </Button>
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -554,21 +580,21 @@ export default function WorkingPaperDetailPage(props: {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-[10px] font-mono font-semibold uppercase tracking-[0.15em] text-muted-foreground">
+            <AlertDialogTitle>
               Hapus kertas kerja
             </AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menghapus kertas kerja ini? Tindakan ini
+              tidak dapat dibatalkan.
+            </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogDescription>
-            Apakah Anda yakin ingin menghapus kertas kerja ini? Tindakan ini
-            tidak dapat dibatalkan.
-          </AlertDialogDescription>
           <AlertDialogFooter>
             <CollectionDialogCancel onClick={() => setDeleteDialogOpen(false)}>
               Batal
             </CollectionDialogCancel>
-            <Button size="sm" variant="destructive" onClick={handleDelete}>
+            <AlertDialogAction variant="destructive" size="md" onClick={handleDelete}>
               Ya, hapus
-            </Button>
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

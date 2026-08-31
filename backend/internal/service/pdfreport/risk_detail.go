@@ -191,7 +191,7 @@ func addRiskDetailMitigationTable(pdf *gofpdf.Fpdf, mitigations []entity.Mitigat
 			safePDFText(mitigation.Owner),
 			riskDetailFirstNonEmpty(strings.TrimSpace(mitigation.ExecutionScheduleText), strings.TrimSpace(mitigation.Frequency), strings.TrimSpace(mitigation.MitigationType)),
 			riskDetailFirstNonEmpty(formatRiskDetailStringDate(mitigation.DueDate), "-"),
-			riskDetailFirstNonEmpty(strings.TrimSpace(mitigation.PotentialObstacle), strings.TrimSpace(mitigation.CostBenefitNote), "-"),
+			riskDetailFirstNonEmpty(strings.TrimSpace(mitigation.PotentialObstacle), "-"),
 		}
 		height := riskDetailTableRowHeight(pdf, row, widths, false)
 		if pdf.GetY()+height > riskDetailBottomY {

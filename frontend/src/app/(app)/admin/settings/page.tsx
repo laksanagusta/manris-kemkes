@@ -8,7 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
-import { PageStack } from "@/components/shared/design-system";
+import {
+  CollectionPageHeader,
+  PageStack,
+} from "@/components/shared/design-system";
 import {
   Settings2,
   Save,
@@ -46,21 +49,15 @@ const scaleColors = [
 export default function CriteriaPage() {
   return (
     <PageStack>
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="page-title">
-            Scope, Context & Criteria
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Parameter dasar manajemen risiko sesuai ISO 31000 Step 1
-          </p>
-        </div>
-        <Button className="gap-2 shadow-lg shadow-primary/20">
-          <Save className="size-4" />
-          Simpan Perubahan
-        </Button>
-      </div>
+      <CollectionPageHeader
+        title="Scope, Context & Criteria"
+        actions={
+          <Button className="gap-2">
+            <Save className="size-4" />
+            Simpan Perubahan
+          </Button>
+        }
+      />
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Scope */}
@@ -74,17 +71,17 @@ export default function CriteriaPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label className="text-xs">Jenis Objek</Label>
-              <Input defaultValue="Direktorat Jenderal" className="h-8 text-xs bg-muted/20 border-border/50" />
+              <Input defaultValue="Direktorat Jenderal" className="h-10 text-xs bg-muted/20 border-input" />
             </div>
             <div className="space-y-2">
               <Label className="text-xs">Nama Objek</Label>
-              <Input defaultValue="Ditjen Pencegahan dan Pengendalian Penyakit (P2P)" className="h-8 text-xs bg-muted/20 border-border/50" />
+              <Input defaultValue="Ditjen Pencegahan dan Pengendalian Penyakit (P2P)" className="h-10 text-xs bg-muted/20 border-input" />
             </div>
             <div className="space-y-2">
               <Label className="text-xs">Pernyataan Ruang Lingkup</Label>
               <Textarea
                 defaultValue="Manajemen risiko mencakup seluruh kegiatan pencegahan, pengendalian, dan penanggulangan penyakit yang berada di bawah koordinasi Ditjen P2P Kementerian Kesehatan RI."
-                className="min-h-[80px] text-xs bg-muted/20 border-border/50 resize-none"
+                className="min-h-[80px] text-xs bg-muted/20 border-input resize-none"
               />
             </div>
           </CardContent>
@@ -103,14 +100,14 @@ export default function CriteriaPage() {
               <Label className="text-xs">Konteks Internal</Label>
               <Textarea
                 defaultValue="Struktur organisasi, SDM, anggaran, kapasitas laboratorium, sistem informasi kesehatan, infrastruktur logistik vaksin dan obat."
-                className="min-h-[80px] text-xs bg-muted/20 border-border/50 resize-none"
+                className="min-h-[80px] text-xs bg-muted/20 border-input resize-none"
               />
             </div>
             <div className="space-y-2">
               <Label className="text-xs">Konteks Eksternal</Label>
               <Textarea
                 defaultValue="Regulasi WHO, pandemi global, perubahan iklim, resistensi antimikroba, dinamika politik kesehatan, kerjasama lintas sektor."
-                className="min-h-[80px] text-xs bg-muted/20 border-border/50 resize-none"
+                className="min-h-[80px] text-xs bg-muted/20 border-input resize-none"
               />
             </div>
           </CardContent>
@@ -127,14 +124,14 @@ export default function CriteriaPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label className="text-xs">Risk Appetite</Label>
-              <Input defaultValue="Sedang (skor ≤ 9)" className="h-8 text-xs bg-muted/20 border-border/50" />
+              <Input defaultValue="Sedang (skor ≤ 9)" className="h-10 text-xs bg-muted/20 border-input" />
               <p className="text-[10px] text-muted-foreground">
                 Batas selera risiko yang bisa diterima organisasi
               </p>
             </div>
             <div className="space-y-2">
               <Label className="text-xs">Risk Tolerance</Label>
-              <Input defaultValue="Tinggi (skor ≤ 16)" className="h-8 text-xs bg-muted/20 border-border/50" />
+              <Input defaultValue="Tinggi (skor ≤ 16)" className="h-10 text-xs bg-muted/20 border-input" />
               <p className="text-[10px] text-muted-foreground">
                 Batas toleransi penyimpangan dari appetite
               </p>
@@ -176,7 +173,7 @@ export default function CriteriaPage() {
                 </div>
                 <Input
                   defaultValue={item.description}
-                  className="h-7 text-[11px] max-w-[300px] bg-muted/20 border-border/50 hidden lg:block"
+                  className="h-10 text-[11px] max-w-[300px] bg-muted/20 border-input hidden lg:block"
                 />
               </div>
             ))}
@@ -217,7 +214,7 @@ export default function CriteriaPage() {
                 </div>
                 <Input
                   defaultValue={item.description}
-                  className="h-7 text-[11px] max-w-[300px] bg-muted/20 border-border/50 hidden lg:block"
+                  className="h-10 text-[11px] max-w-[300px] bg-muted/20 border-input hidden lg:block"
                 />
               </div>
             ))}

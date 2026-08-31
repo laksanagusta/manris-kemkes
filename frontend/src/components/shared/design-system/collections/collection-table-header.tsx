@@ -13,7 +13,7 @@ export function CollectionTableHeader({
   return (
     <TableHeader
       className={cn(
-        "bg-table-header [&_tr]:border-b [&_tr]:border-border",
+        "bg-table-header [&_tr]:border-b [&_tr]:border-border/60",
         density === "compact"
           ? "[&_tr]:!h-10 [&_th]:!h-10 [&_th]:!py-0"
           : undefined,

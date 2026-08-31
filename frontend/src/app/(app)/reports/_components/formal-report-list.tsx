@@ -80,10 +80,10 @@ export function FormalReportList({
   };
 
   return (
-    <Card className="rounded-lg bg-card">
+    <Card className="rounded-xl bg-card">
       <div className="flex items-center justify-between gap-3 border-b border-border/40 px-6 py-4">
         <div className="space-y-1">
-          <p className="text-xs text-muted-foreground">
+          <p className="text-xs text-secondary-foreground">
             Histori semua laporan Monitoring & Evaluasi yang sudah dibuat dari
             data sistem.
           </p>
@@ -139,15 +139,17 @@ export function FormalReportList({
                       {orgName}
                     </TableCell>
                     <TableCell className="max-w-[280px] truncate">
-                      {(() => {
-                        const summary = parseFormalReportSummary(
-                          report.metadata,
-                        );
-                        return (
-                          summary?.headline ||
-                          formalReportTypeLabels[report.reportType]
-                        );
-                      })()}
+                      <span className="text-foreground">
+                        {(() => {
+                          const summary = parseFormalReportSummary(
+                            report.metadata,
+                          );
+                          return (
+                            summary?.headline ||
+                            formalReportTypeLabels[report.reportType]
+                          );
+                        })()}
+                      </span>
                     </TableCell>
                     <TableCell>
                       <Badge

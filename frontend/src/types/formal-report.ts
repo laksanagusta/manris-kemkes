@@ -47,7 +47,6 @@ export interface FormalReportSummary {
   focus: string;
   riskCount: number;
   incidentCount: number;
-  kriCount: number;
   tmpmrCount: number;
   tmpmrScore: number;
   tmpmrLevel: string;
@@ -69,7 +68,6 @@ export function parseFormalReportSummary(
     focus: typeof summary.focus === "string" ? summary.focus : "",
     riskCount: typeof summary.riskCount === "number" ? summary.riskCount : 0,
     incidentCount: typeof summary.incidentCount === "number" ? summary.incidentCount : 0,
-    kriCount: typeof summary.kriCount === "number" ? summary.kriCount : 0,
     tmpmrCount: typeof summary.tmpmrCount === "number" ? summary.tmpmrCount : 0,
     tmpmrScore: typeof summary.tmpmrScore === "number" ? summary.tmpmrScore : 0,
     tmpmrLevel: typeof summary.tmpmrLevel === "string" ? summary.tmpmrLevel : "",

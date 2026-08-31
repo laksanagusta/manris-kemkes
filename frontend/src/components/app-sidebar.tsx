@@ -15,10 +15,10 @@ import {
   ClipboardList,
   FileText,
   FileSearch,
-  Users,
-  Settings2,
-  Calculator,
-  Building2,
+  MonitorDot,
+		Users,
+		Settings2,
+		Building2,
   FileSignature,
   ClipboardPenLine,
   Goal,
@@ -27,7 +27,6 @@ import {
   User as UserIcon,
 } from "@/components/ui/icons";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,7 +35,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { adminMenuGroup, mainMenuItems, settingsMenuGroup } from "@/lib/app-navigation";
+import { adminMenuGroup, mainMenuItems } from "@/lib/app-navigation";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sidebar,
@@ -60,6 +59,7 @@ interface NavItem {
   icon: React.ElementType;
   badge?: string;
   matchHrefs?: string[];
+  adminOnly?: boolean;
 }
 
 interface NavGroup {
@@ -82,6 +82,7 @@ const iconMap: Record<string, React.ElementType> = {
   Goal,
   GitBranch,
   FileText,
+  MonitorDot,
   Users,
   Building2,
   Settings2,
@@ -91,9 +92,9 @@ const reportsNavigation: NavGroup = {
   title: "LAPORAN",
   items: [
     {
-      label: "Analisis Risiko",
+      label: "Laporan",
       href: "/reports",
-      icon: ShieldAlert,
+      icon: FileBarChart,
     },
     // {
     //   label: "Laporan Formal",
@@ -150,7 +151,7 @@ const navigation: NavGroup[] = [
     }),
   reportsNavigation,
   {
-    title: "AI & Automation",
+    title: "AI & OTOMASI",
     items: [
       {
         label: "Meeting",
@@ -169,24 +170,12 @@ const navigation: NavGroup[] = [
       //   href: "/intelligence/predictive",
       //   icon: TrendingUp,
       // },
-      {
-        label: "Cost Benefit Analysis",
-        href: "/intelligence/cba",
-        icon: Calculator,
-      },
-    ],
+	],
   },
   {
     ...adminMenuGroup,
     icon: Settings2,
     items: adminMenuGroup.items.map((item) => ({
-      ...item,
-      icon: iconMap[item.icon] ?? Settings2,
-    })),
-  },
-  {
-    ...settingsMenuGroup,
-    items: settingsMenuGroup.items.map((item) => ({
       ...item,
       icon: iconMap[item.icon] ?? Settings2,
     })),
@@ -277,13 +266,11 @@ function NavLink({
     <SidebarNavItem
       badge={
         displayBadge !== undefined && displayBadge > 0 ? (
-          <Badge
-            tone="neutral"
-            size="micro"
-            className="relative z-10 ml-auto min-w-5 bg-sidebar-foreground px-1.5 leading-5 text-sidebar group-data-[collapsible=icon]:hidden"
+          <span
+            className="relative z-10 ml-auto min-w-4 text-center text-[11px] font-normal tabular-nums text-sidebar-foreground/60 group-data-[collapsible=icon]:hidden"
           >
             {displayBadge}
-          </Badge>
+          </span>
         ) : undefined
       }
       className="hover:bg-sidebar-accent active:bg-sidebar-accent"
@@ -326,17 +313,20 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
   const currentHash = useLocationHash();
   const aiFeaturesDisabled = isAIFeaturesDisabled();
   const visibleNavigation = useMemo(() => {
-    const baseNavigation = navigation.filter((group) => {
-      if (group.title !== adminMenuGroup.title) return true;
-      if (user?.role === "superadmin") return true;
-      return false;
-    });
+    const baseNavigation = navigation
+      .map((group) => ({
+        ...group,
+        items: group.items?.filter(
+          (item) => !item.adminOnly || user?.role === "superadmin",
+        ),
+      }))
+      .filter((group) => (group.items?.length ?? 0) > 0);
 
     if (!aiFeaturesDisabled) {
       return baseNavigation;
     }
 
-    return baseNavigation.filter((group) => group.title !== "AI & Automation");
+    return baseNavigation.filter((group) => group.title !== "AI & OTOMASI");
   }, [aiFeaturesDisabled, user]);
 
 
@@ -344,13 +334,13 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
   return (
     <Sidebar
       className={cn(
+        "md:top-14 md:h-[calc(100svh-3.5rem)]",
         "*:data-[slot=sidebar-inner]:bg-sidebar",
-        "**:data-[slot=sidebar-menu-button]:[&>span]:text-sidebar-foreground/75",
       )}
       collapsible="icon"
       variant="sidebar"
     >
-      <SidebarHeader className="h-14 justify-center px-2">
+      <SidebarHeader className="h-14 justify-center px-2 md:hidden">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild size="lg" tooltip="Manris">
@@ -363,7 +353,7 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
                   priority
                   className="size-5 shrink-0 object-contain"
                 />
-                <span className="text-base font-semibold text-sidebar-foreground group-data-[collapsible=icon]:hidden">
+                <span className="text-base font-normal text-sidebar-foreground group-data-[collapsible=icon]:hidden">
                   Manris
                 </span>
               </Link>
@@ -435,7 +425,7 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
                       </Avatar>
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium text-sidebar-foreground">
+                      <p className="truncate text-sm font-normal text-sidebar-foreground">
                         {user?.name || "User"}
                       </p>
                       <p className="truncate text-xs text-sidebar-foreground/60">
@@ -447,7 +437,7 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="font-display w-56 pl-2">
                 <DropdownMenuLabel className="space-y-1 px-2 py-1.5">
-                  <div className="truncate text-sm font-medium text-foreground">
+                  <div className="truncate text-sm font-normal text-foreground">
                     {user?.name || "User"}
                   </div>
                   <div className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">

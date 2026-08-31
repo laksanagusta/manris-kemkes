@@ -29,45 +29,45 @@ const toneStyles: Record<
 > = {
   white: {
     container:
-      "min-h-[108px] rounded-xl bg-card px-4 py-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30",
+      "surface-hairline min-h-[108px] rounded-xl bg-card px-4 py-4",
     label:
       "text-xs font-medium uppercase tracking-[0.14em] text-zinc-500 text-pretty",
     value:
       "text-2xl font-semibold tabular-nums text-zinc-900 tracking-tight leading-none",
     valueWrap: "mt-3 flex items-baseline gap-1",
-    description: "mt-2 text-[11px] text-zinc-500",
+    description: "mt-2 text-[11px] text-secondary-foreground",
   },
   zinc: {
     container:
-      "min-h-[108px] rounded-lg bg-muted px-4 py-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30",
+      "surface-hairline min-h-[108px] rounded-lg bg-muted px-4 py-4",
     label: "text-xs font-medium uppercase tracking-[0.14em] text-zinc-500",
     value: "mt-1 text-xl font-semibold tabular-nums text-zinc-900 leading-none",
     valueWrap: "mt-3 flex items-center justify-between gap-3",
-    description: "mt-2 text-[11px] text-zinc-500",
+    description: "mt-2 text-[11px] text-secondary-foreground",
   },
   emerald: {
     container:
-      "min-h-[108px] rounded-lg bg-emerald-50/60 px-4 py-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30",
+      "surface-hairline min-h-[108px] rounded-lg bg-emerald-50/60 px-4 py-4",
     label: "text-xs font-medium uppercase tracking-[0.14em] text-emerald-700",
     value:
       "mt-1 text-xl font-semibold tabular-nums text-emerald-900 leading-none",
     valueWrap: "mt-3 flex items-center justify-between gap-3",
-    description: "mt-2 text-[11px] text-emerald-800/70",
+    description: "mt-2 text-[11px] text-secondary-foreground",
   },
   rose: {
     container:
-      "min-h-[108px] rounded-lg bg-rose-50/60 px-4 py-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30",
+      "surface-hairline min-h-[108px] rounded-lg bg-rose-50/60 px-4 py-4",
     label: "text-xs font-medium uppercase tracking-[0.14em] text-rose-700",
     value: "mt-1 text-xl font-semibold tabular-nums text-rose-900 leading-none",
     valueWrap: "mt-3 flex items-center justify-between gap-3",
-    description: "mt-2 text-[11px] text-rose-800/70",
+    description: "mt-2 text-[11px] text-secondary-foreground",
   },
 };
 
 export function KpiCard({
   label,
   value,
-  tone = "zinc",
+  tone = "white",
   icon,
   description,
   className,

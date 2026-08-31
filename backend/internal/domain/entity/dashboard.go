@@ -81,18 +81,6 @@ type OverdueMitigationTimelineItem struct {
 	TotalCount         int    `json:"totalCount"`
 }
 
-// KRIBreachItem holds a single KRI breach or warning entry
-type KRIBreachItem struct {
-	KRIID       string  `json:"kriId"`
-	KRIName     string  `json:"kriName"`
-	Threshold   float64 `json:"threshold"`
-	ActualValue float64 `json:"actualValue"`
-	Unit        string  `json:"unit"`
-	Status      string  `json:"status"`
-	RiskTitle   string  `json:"riskTitle"`
-	OrgName     string  `json:"orgName"`
-}
-
 // UnitResponseTime holds average response metrics per organization
 type UnitResponseTime struct {
 	OrgID             string  `json:"orgId"`

@@ -50,7 +50,6 @@ Platform SaaS untuk **mendigitalisasi seluruh siklus manajemen risiko dan pelapo
 | Dashboard | ✅ | ✅ | ✅ | ✅ |
 | Inbox Persetujuan | ✅ | ❌ | ❌ | ✅ |
 | Risk Assessments | ✅ | ✅ | ✅ | ✅ |
-| KRI Monitor | ✅ | ✅ | ✅ | ✅ |
 | Control Library | ✅ | ✅ | ✅ | ❌ |
 | Monitoring & Review | ✅ | ✅ | ✅ | ✅ |
 | Lessons Learned | ✅ | ✅ | ✅ | ✅ |
@@ -194,24 +193,6 @@ Dilengkapi dengan:
 - `/incident/new` — Form pelaporan insiden baru
 
 ---
-
-### 4.7 📈 KRI Monitor (Key Risk Indicators)
-
-Indikator risiko kunci yang dipasang pada masing-masing risiko untuk monitoring berkelanjutan.
-
-**Setiap KRI memiliki:**
-- Nama & deskripsi indikator
-- **Threshold (batas aman):** Nilai minimum dan maksimum yang dianggap aman
-- **Nilai saat ini** — Di-update secara berkala
-- **Frekuensi update:** Harian, Mingguan, atau Bulanan
-- **Arah indikator:** "Semakin tinggi semakin buruk" atau "Semakin rendah semakin buruk"
-- **Satuan ukur** (metric)
-
-**Visual:** Indikator berubah warna jika nilai saat ini keluar dari range threshold (merah = di luar batas aman).
-
-**Fitur AI:** Tombol "AI Generate KRI" yang otomatis memberikan rekomendasi KRI berdasarkan deskripsi risiko.
-
-**Halaman:** `/kri` — KRI Monitor (semua KRI dari semua risiko)
 
 ---
 
@@ -494,7 +475,6 @@ Saat mengisi form pembuatan/edit risiko, setiap field yang kompleks memiliki tom
 | Generate Existing Control | Deskripsi + Penyebab | Saran kontrol yang sudah ada |
 | Generate Risk Source | Deskripsi risiko | Identifikasi sumber risiko |
 | Generate Mitigation Action | Deskripsi + Penyebab + Dampak | Saran rencana mitigasi |
-| Generate KRI | Judul + Deskripsi risiko | Rekomendasi KRI (nama, threshold, frekuensi) |
 
 Ini mempercepat proses pengisian form secara drastis, terutama untuk user yang belum familiar dengan terminologi manajemen risiko.
 
@@ -511,7 +491,7 @@ Berikut mapping lengkap antara tahapan ISO 31000 dengan fitur MANRIS:
 | **3. Risk Analysis** | Form Risiko Section 2 (scoring: Probabilitas × Dampak → Level) |
 | **4. Risk Evaluation** | Heatmap 5×5, Prioritas, Appetite, Treatment Option |
 | **5. Risk Treatment** | Rencana Mitigasi (action, owner, due date, frequency, target cost) |
-| **6. Monitoring & Review** | Overdue Monitoring, KRI, Periodic Review, Risk Versioning |
+| **6. Monitoring & Review** | Overdue Monitoring, Periodic Review, Risk Versioning |
 | **7. Communication & Consultation** | Communication Log per risiko |
 | **8. Recording & Reporting** | Audit Trail, CSV Export, Risk Trend Reports, Lessons Learned |
 
@@ -526,7 +506,6 @@ Berikut mapping lengkap antara tahapan ISO 31000 dengan fitur MANRIS:
 │   ├── Dashboard ─────────── Executive Dashboard (KPI, Heatmap, Trends)
 │   ├── Inbox Persetujuan ─── Approval queue untuk Pimpinan
 │   ├── Risk Assessments ──── Risk Register + CRUD
-│   ├── KRI Monitor ───────── Key Risk Indicators monitoring
 │   ├── Control Library ───── Pustaka kontrol + Testing
 │   ├── Monitoring & Review ─ Overdue monitoring + eskalasi
 │   ├── Lessons Learned ───── Repository pembelajaran
@@ -567,7 +546,6 @@ Berikut mapping lengkap antara tahapan ISO 31000 dengan fitur MANRIS:
 - [ ] Approval Workflow (Inbox Persetujuan)
 
 ### Fase 4 — Advanced ISO 31000 Compliance
-- [ ] KRI Monitor
 - [ ] Control Library & Testing
 - [ ] Communication & Consultation Log
 - [ ] Residual Risk Acceptance

@@ -17,15 +17,12 @@ import (
 	aiuc "github.com/manris/backend/internal/usecase/ai"
 	approvaluc "github.com/manris/backend/internal/usecase/approval"
 	authuc "github.com/manris/backend/internal/usecase/auth"
-	cbauc "github.com/manris/backend/internal/usecase/cba"
 	commloguc "github.com/manris/backend/internal/usecase/communication_log"
 	controluc "github.com/manris/backend/internal/usecase/control"
 	evaluationuc "github.com/manris/backend/internal/usecase/evaluation"
 	externalextPICuc "github.com/manris/backend/internal/usecase/external_pic"
 	formalreportuc "github.com/manris/backend/internal/usecase/formalreport"
 	impactcriteriauc "github.com/manris/backend/internal/usecase/impactcriteria"
-	kriuc "github.com/manris/backend/internal/usecase/kri"
-	krireportuc "github.com/manris/backend/internal/usecase/kri_report"
 	likelihoodassessmentuc "github.com/manris/backend/internal/usecase/likelihoodassessment"
 	mmuc "github.com/manris/backend/internal/usecase/meeting_minute"
 	mtuc "github.com/manris/backend/internal/usecase/mitigation_task"
@@ -56,13 +53,11 @@ type Container struct {
 	RiskRepository                 domainrepo.RiskRepository
 	RiskCascadeRepository          domainrepo.RiskCascadeRepository
 	IncidentRepository             domainrepo.IncidentRepository
-	KRIRepository                  domainrepo.KRIRepository
 	ControlRepository              domainrepo.ControlRepository
 	ApprovalRepository             domainrepo.ApprovalRepository
 	SystemRepository               domainrepo.SystemRepository
 	SystemSettingRepository        domainrepo.SystemSettingRepository
 	MitigationTaskRepository       domainrepo.MitigationTaskRepository
-	KRIReportRepository            domainrepo.KRIReportRepository
 	CommLogRepository              domainrepo.CommunicationLogRepository
 	MMRepository                   domainrepo.MeetingMinuteRepository
 	ExternalPICRepository          domainrepo.ExternalPICRepository
@@ -88,7 +83,6 @@ type Container struct {
 	// AI Infrastructure
 	ModelProvider openairepo.AIModelProvider
 	AIRepository  domainrepo.AIRepository
-	CBARepository domainrepo.CBARepository
 
 	// Risk UseCases
 	RiskCreateUC                *riskuc.CreateRiskUseCase
@@ -118,7 +112,6 @@ type Container struct {
 	RiskListApprovedUC          *riskuc.ListApprovedRisksUseCase
 	RiskHeatmapVelocityUC       *riskuc.HeatmapVelocityUseCase
 	RiskOverdueTimelineUC       *riskuc.OverdueMitigationTimelineUseCase
-	RiskKRIBreachUC             *riskuc.KRIBreachSummaryUseCase
 	RiskUnitResponseUC          *riskuc.UnitResponseTimeUseCase
 	RiskListCycleSnapshotUC     *riskuc.ListRiskCycleSnapshotUseCase
 	RiskMonitoringSpreadsheetUC *riskuc.BulkMonitoringSpreadsheetUseCase
@@ -127,7 +120,6 @@ type Container struct {
 	RiskMonitoringGetUC         *riskuc.GetMonitoringUseCase
 	RiskMonitoringUpdateUC      *riskuc.UpdateMonitoringUseCase
 	RiskMonitoringFinalizeUC    *riskuc.FinalizeMonitoringUseCase
-	RiskMonitoringCorrectUC     *riskuc.CorrectMonitoringUseCase
 
 	// Risk Cascade UseCases
 	RiskCascadeCreateMandatoryUC *riskcascadeuc.CreateMandatoryUseCase
@@ -154,14 +146,6 @@ type Container struct {
 	ControlListUC      *controluc.ListControlsUseCase
 	ControlDashboardUC *controluc.ControlDashboardUseCase
 
-	// KRI UseCases
-	KRICreateUC    *kriuc.CreateKRIUseCase
-	KRIGetUC       *kriuc.GetKRIUseCase
-	KRIUpdateUC    *kriuc.UpdateKRIUseCase
-	KRIArchiveUC   *kriuc.ArchiveKRIUseCase
-	KRIListUC      *kriuc.ListKRIsUseCase
-	KRIDashboardUC *kriuc.KRIDashboardUseCase
-
 	// Approval UseCases
 	ApprovalListUC            *approvaluc.ListApprovalUseCase
 	ApprovalSubmitUC          *approvaluc.SubmitApprovalUseCase
@@ -186,14 +170,9 @@ type Container struct {
 	AIApplyTranscriptRiskChangeUC *aiuc.ApplyTranscriptRiskChangesUseCase
 	AIPredictiveUC                *aiuc.GeneratePredictiveUseCase
 	AIRiskSuggestionUC            *aiuc.GenerateRiskSuggestionsUseCase
-	AIKIUUC                       *aiuc.GenerateKRIUseCase
 	AIIncidentBatchUC             *aiuc.GenerateIncidentBatchExtractionUseCase
 	AIIncidentRiskUC              *aiuc.GenerateManualIncidentRiskSuggestionsUseCase
 	AIDocumentIntelligenceUC      *aiuc.AnalyzeDocumentIntelligenceUseCase
-
-	// CBA UseCases
-	CBARecommendUC *cbauc.RecommendVariablesUseCase
-	CBACalculateUC *cbauc.CalculateUseCase
 
 	// Organization UseCases
 	OrgCreateUC       *organizationuc.CreateOrganizationUseCase
@@ -266,15 +245,6 @@ type Container struct {
 	MTGenerateUC     *mtuc.GenerateTasksUseCase
 	MTOverdueUC      *mtuc.MarkOverdueUseCase
 
-	// KRI Report UseCases
-	KRIReportListUC     *krireportuc.ListReportsUseCase
-	KRIReportSubmitUC   *krireportuc.SubmitReportUseCase
-	KRIReportAcceptUC   *krireportuc.AcceptReportUseCase
-	KRIReportRevisionUC *krireportuc.RequestRevisionUseCase
-	KRIReportSkipUC     *krireportuc.SkipReportUseCase
-	KRIReportGenerateUC *krireportuc.GenerateReportsUseCase
-	KRIReportOverdueUC  *krireportuc.MarkOverdueUseCase
-
 	// Communication Log UseCases
 	CommLogCreateUC *commloguc.CreateCommunicationLogUseCase
 	CommLogListUC   *commloguc.ListCommunicationLogsUseCase
@@ -319,13 +289,11 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.RiskRepository = postgresrepo.NewRiskRepository(pool)
 	c.RiskCascadeRepository = postgresrepo.NewRiskCascadeRepository(pool)
 	c.IncidentRepository = postgresrepo.NewIncidentRepository(pool)
-	c.KRIRepository = postgresrepo.NewKRIRepository(pool)
 	c.ControlRepository = postgresrepo.NewControlRepository(pool)
 	c.ApprovalRepository = postgresrepo.NewApprovalRepository(pool)
 	c.SystemRepository = postgresrepo.NewSystemRepository(pool)
 	c.SystemSettingRepository = postgresrepo.NewSystemSettingRepository(pool)
 	c.MitigationTaskRepository = postgresrepo.NewMitigationTaskRepository(pool)
-	c.KRIReportRepository = postgresrepo.NewKRIReportRepository(pool)
 	c.CommLogRepository = postgresrepo.NewCommunicationLogRepository(pool)
 	c.MMRepository = postgresrepo.NewMeetingMinuteRepository(pool)
 	c.ExternalPICRepository = postgresrepo.NewExternalPICRepository(pool)
@@ -367,7 +335,6 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 
 	c.ModelProvider = openairepo.NewModelProviderAdapter(c.SystemSettingGetUC)
 	c.AIRepository = openairepo.NewAIRepository(cfg.OpenAIKey, c.RiskRepository, c.ModelProvider)
-	c.CBARepository = openairepo.NewCBARepository(c.AIRepository)
 
 	// ============================================================================
 	// Risk UseCases
@@ -400,7 +367,6 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.RiskListApprovedUC = riskuc.NewListApprovedRisksUseCase(c.RiskRepository, c.OrgHierarchySvc)
 	c.RiskHeatmapVelocityUC = riskuc.NewHeatmapVelocityUseCase(c.RiskRepository)
 	c.RiskOverdueTimelineUC = riskuc.NewOverdueMitigationTimelineUseCase(c.RiskRepository)
-	c.RiskKRIBreachUC = riskuc.NewKRIBreachSummaryUseCase(c.RiskRepository)
 	c.RiskUnitResponseUC = riskuc.NewUnitResponseTimeUseCase(c.RiskRepository)
 	c.RiskListCycleSnapshotUC = riskuc.NewListRiskCycleSnapshotUseCase(c.RiskRepository, c.OrgHierarchySvc)
 	c.RiskMonitoringSpreadsheetUC = riskuc.NewBulkMonitoringSpreadsheetUseCase(c.OrgRepository, c.UserRepository, c.RiskRepository)
@@ -413,7 +379,6 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.RiskMonitoringGetUC = riskuc.NewGetMonitoringUseCase(c.RiskMonitoringRepository)
 	c.RiskMonitoringUpdateUC = riskuc.NewUpdateMonitoringUseCase(c.RiskRepository, c.RiskMonitoringRepository)
 	c.RiskMonitoringFinalizeUC = riskuc.NewFinalizeMonitoringUseCase(c.RiskRepository, c.RiskMonitoringRepository, c.MitigationTaskRepository, c.RiskRepository)
-	c.RiskMonitoringCorrectUC = riskuc.NewCorrectMonitoringUseCase(c.RiskRepository, c.RiskMonitoringRepository)
 
 	c.RiskCascadeCreateMandatoryUC = riskcascadeuc.NewCreateMandatoryUseCase(c.RiskCascadeRepository, c.RiskRepository, c.OrgRepository)
 	c.RiskCascadeCreateBottomUpUC = riskcascadeuc.NewCreateBottomUpUseCase(c.RiskCascadeRepository, c.RiskRepository, c.OrgRepository)
@@ -444,17 +409,6 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.ControlDeleteUC = controluc.NewDeleteControlUseCase(c.ControlRepository)
 	c.ControlListUC = controluc.NewListControlsUseCase(c.ControlRepository, c.OrgHierarchySvc)
 	c.ControlDashboardUC = controluc.NewControlDashboardUseCase(c.ControlRepository, c.OrgHierarchySvc)
-
-	// ============================================================================
-	// KRI UseCases
-	// ============================================================================
-
-	c.KRICreateUC = kriuc.NewCreateKRIUseCase(c.KRIRepository, c.RiskRepository, c.OrgRepository)
-	c.KRIGetUC = kriuc.NewGetKRIUseCase(c.KRIRepository)
-	c.KRIUpdateUC = kriuc.NewUpdateKRIUseCase(c.KRIRepository, c.RiskRepository, c.OrgRepository)
-	c.KRIArchiveUC = kriuc.NewArchiveKRIUseCase(c.KRIRepository)
-	c.KRIListUC = kriuc.NewListKRIsUseCase(c.KRIRepository, c.OrgHierarchySvc)
-	c.KRIDashboardUC = kriuc.NewKRIDashboardUseCase(c.KRIRepository, c.OrgHierarchySvc)
 
 	// ============================================================================
 	// Approval UseCases
@@ -489,7 +443,6 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.AIApplyTranscriptRiskChangeUC = aiuc.NewApplyTranscriptRiskChangesUseCase(c.RiskRepository)
 	c.AIPredictiveUC = aiuc.NewGeneratePredictiveUseCase(c.AIRepository, c.OrgRepository)
 	c.AIRiskSuggestionUC = aiuc.NewGenerateRiskSuggestionsUseCase(c.AIRepository, c.OrgRepository)
-	c.AIKIUUC = aiuc.NewGenerateKRIUseCase(c.AIRepository, c.OrgRepository)
 	c.AIIncidentBatchUC = aiuc.NewGenerateIncidentBatchExtractionUseCase(c.AIRepository, c.OrgRepository)
 	c.AIIncidentRiskUC = aiuc.NewGenerateManualIncidentRiskSuggestionsUseCase(c.AIRepository, c.OrgRepository)
 	c.AIDocumentIntelligenceUC = aiuc.NewAnalyzeDocumentIntelligenceUseCase(
@@ -502,13 +455,6 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 
 	c.PlanningROOptionsUC = planninguc.NewListROOptionsUseCase(c.PlanningHierarchyRepository)
 	c.PlanningObjectiveCompatUC = planninguc.NewListObjectiveCompatibilityUseCase(c.PlanningHierarchyRepository)
-
-	// ============================================================================
-	// CBA UseCases
-	// ============================================================================
-
-	c.CBARecommendUC = cbauc.NewRecommendVariablesUseCase(c.CBARepository, c.OrgRepository)
-	c.CBACalculateUC = cbauc.NewCalculateUseCase()
 
 	// ============================================================================
 	// Organization UseCases
@@ -556,7 +502,6 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 		c.FormalReportRepository,
 		c.RiskRepository,
 		c.IncidentRepository,
-		c.KRIRepository,
 		c.TMPMRRepository,
 	)
 	c.FormalReportGetUC = formalreportuc.NewGetUseCase(c.FormalReportRepository)
@@ -598,18 +543,6 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.MTOverdueUC = mtuc.NewMarkOverdueUseCase(c.MitigationTaskRepository)
 
 	// ============================================================================
-	// KRI Report UseCases
-	// ============================================================================
-
-	c.KRIReportListUC = krireportuc.NewListReportsUseCase(c.KRIReportRepository, c.KRIRepository)
-	c.KRIReportSubmitUC = krireportuc.NewSubmitReportUseCase(c.KRIReportRepository, c.KRIRepository)
-	c.KRIReportAcceptUC = krireportuc.NewAcceptReportUseCase(c.KRIReportRepository, c.KRIRepository)
-	c.KRIReportRevisionUC = krireportuc.NewRequestRevisionUseCase(c.KRIReportRepository, c.KRIRepository)
-	c.KRIReportSkipUC = krireportuc.NewSkipReportUseCase(c.KRIReportRepository, c.KRIRepository)
-	c.KRIReportGenerateUC = krireportuc.NewGenerateReportsUseCase(c.KRIReportRepository)
-	c.KRIReportOverdueUC = krireportuc.NewMarkOverdueUseCase(c.KRIReportRepository)
-
-	// ============================================================================
 	// Communication Log UseCases
 	// ============================================================================
 
@@ -637,7 +570,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	// Report UseCases
 	// ============================================================================
 
-	c.GenerateReportUC = reportuc.NewGenerateReportUseCase(c.RiskRepository, c.IncidentRepository, c.KRIRepository)
+	c.GenerateReportUC = reportuc.NewGenerateReportUseCase(c.RiskRepository, c.IncidentRepository)
 	return c, nil
 }
 

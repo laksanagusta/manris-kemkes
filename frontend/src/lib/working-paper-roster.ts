@@ -6,31 +6,30 @@ import type {
 export interface RosterDecision {
   versionGroupId: string;
   included: boolean;
-  exclusionReason: string;
 }
 
 export interface RosterSummary {
   eligibleCount: number;
   includedCount: number;
   excludedCount: number;
+  notStartedCount: number;
+  inProgressCount: number;
   finalizedCount: number;
-  existingDraftCount: number;
-  newDraftCount: number;
 }
 
 export const ROSTER_STATUS_LABELS: Record<WorkingPaperRosterStatus, string> = {
-  finalized_result: "Hasil monitoring tersedia",
-  existing_draft: "Draft monitoring tersedia",
-  draft_will_be_created: "Draft monitoring akan dibuat",
+  not_started: "Belum dimulai",
+  in_progress: "Sedang berjalan",
+  finalized: "Selesai",
 };
 
 export const ROSTER_STATUS_BADGE_CLASSES: Record<WorkingPaperRosterStatus, string> = {
-  finalized_result:
-    "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300",
-  existing_draft:
+  not_started:
+    "bg-slate-50 text-slate-700 dark:bg-slate-950 dark:text-slate-300",
+  in_progress:
     "bg-yellow-50 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300",
-  draft_will_be_created:
-    "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
+  finalized:
+    "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300",
 };
 
 export function buildInitialRosterDecisions(
@@ -39,7 +38,6 @@ export function buildInitialRosterDecisions(
   return preview.entries.map((entry) => ({
     versionGroupId: entry.versionGroupId,
     included: true,
-    exclusionReason: "",
   }));
 }
 
@@ -53,9 +51,9 @@ export function summarizeRosterDecisions(
 
   let includedCount = 0;
   let excludedCount = 0;
+  let notStartedCount = 0;
+  let inProgressCount = 0;
   let finalizedCount = 0;
-  let existingDraftCount = 0;
-  let newDraftCount = 0;
 
   for (const entry of preview.entries) {
     const decision = decisionMap.get(entry.versionGroupId);
@@ -64,30 +62,17 @@ export function summarizeRosterDecisions(
       continue;
     }
     includedCount++;
-    if (entry.rosterStatus === "finalized_result") finalizedCount++;
-    else if (entry.rosterStatus === "existing_draft") existingDraftCount++;
-    else if (entry.rosterStatus === "draft_will_be_created") newDraftCount++;
+    if (entry.rosterStatus === "not_started") notStartedCount++;
+    else if (entry.rosterStatus === "in_progress") inProgressCount++;
+    else if (entry.rosterStatus === "finalized") finalizedCount++;
   }
 
   return {
     eligibleCount: preview.entries.length,
     includedCount,
     excludedCount,
+    notStartedCount,
+    inProgressCount,
     finalizedCount,
-    existingDraftCount,
-    newDraftCount,
   };
-}
-
-export function validateRosterDecisions(
-  decisions: RosterDecision[],
-): Record<string, string> {
-  const errors: Record<string, string> = {};
-  for (const decision of decisions) {
-    if (!decision.included && !decision.exclusionReason.trim()) {
-      errors[decision.versionGroupId] =
-        "Alasan pengecualian wajib diisi.";
-    }
-  }
-  return errors;
 }

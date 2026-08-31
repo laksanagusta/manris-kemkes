@@ -5,13 +5,18 @@ import {
   LineChart as RechartsLineChart,
   Line,
   CartesianGrid,
-  ResponsiveContainer,
-  Tooltip as RechartsTooltip,
   XAxis,
   YAxis,
 } from "recharts";
 import { StandardCard } from "@/components/shared/design-system";
 import { OverviewPanelState } from "@/components/shared/design-system";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
+import { CHART_COLORS } from "@/lib/chart-colors";
 import { buildSemesterScoreTargetTrendData } from "@/lib/dashboard-insights";
 import { shiftAssessmentCycle } from "@/lib/risk-cycle-options";
 import type { Risk } from "@/types/risk";
@@ -21,6 +26,7 @@ interface UnitTotalRiskScoreChartProps {
   currentCycle: string;
   loading?: boolean;
   error?: boolean;
+  onRetry?: () => void;
 }
 
 function getLastNQuarters(currentCycle: string, n: number): string[] {
@@ -29,11 +35,23 @@ function getLastNQuarters(currentCycle: string, n: number): string[] {
   );
 }
 
+const chartConfig = {
+  actualScore: {
+    label: "Skor Aktual",
+    color: CHART_COLORS.primary,
+  },
+  targetScore: {
+    label: "Skor Target",
+    color: CHART_COLORS.secondary,
+  },
+} satisfies ChartConfig;
+
 export function UnitTotalRiskScoreChart({
   risks,
   currentCycle,
   loading,
   error,
+  onRetry,
 }: UnitTotalRiskScoreChartProps) {
   const chartData = useMemo(() => {
     const trend = buildSemesterScoreTargetTrendData(risks);
@@ -43,7 +61,7 @@ export function UnitTotalRiskScoreChart({
       return {
         period: p,
         actualScore: found?.actualScore ?? 0,
-        targetScore: found?.targetScore ?? 0,
+        targetScore: found?.targetScore ?? null,
       };
     });
   }, [risks, currentCycle]);
@@ -66,6 +84,7 @@ export function UnitTotalRiskScoreChart({
           state="error"
           message="Tren skor risiko tidak dapat dimuat."
           className="min-h-80"
+          onRetry={onRetry}
         />
       ) : !hasData ? (
         <OverviewPanelState
@@ -81,11 +100,11 @@ export function UnitTotalRiskScoreChart({
             className="mb-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground"
           >
             <span role="listitem" className="inline-flex items-center gap-2">
-              <span aria-hidden="true" className="h-0.5 w-6 rounded bg-[oklch(0.72_0.13_190)]" />
+              <span aria-hidden="true" className="h-0.5 w-6 rounded bg-chart-1" />
               Skor aktual
             </span>
             <span role="listitem" className="inline-flex items-center gap-2">
-              <span aria-hidden="true" className="w-6 border-t-2 border-dashed border-[oklch(0.82_0.08_190)]" />
+              <span aria-hidden="true" className="w-6 border-t-2 border-dashed border-chart-2" />
               Skor target
             </span>
           </div>
@@ -94,67 +113,67 @@ export function UnitTotalRiskScoreChart({
             aria-label={`Grafik skor aktual dan target dari ${chartData[0]?.period} sampai ${chartData.at(-1)?.period}`}
             className="h-72 w-full sm:h-80"
           >
-            <ResponsiveContainer width="100%" height="100%">
+            <ChartContainer config={chartConfig} className="h-full w-full">
               <RechartsLineChart
+                accessibilityLayer
                 data={chartData}
                 margin={{ top: 8, right: 8, left: 0, bottom: 4 }}
               >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="oklch(0.5 0 0 / 8%)"
-                  vertical={false}
+                  <CartesianGrid
+                    strokeDasharray="3 3"
+                    stroke="var(--chart-grid)"
+                    vertical={false}
                 />
                 <XAxis
                   dataKey="period"
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: "oklch(0.6 0 0)", fontSize: 10 }}
+                  tick={{ fontSize: 10 }}
                 />
                 <YAxis
                   orientation="right"
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fill: "oklch(0.6 0 0)", fontSize: 10 }}
+                  tick={{ fontSize: 10 }}
                   width={32}
                 />
-                <RechartsTooltip
-                  cursor={{ stroke: "oklch(0.5 0 0 / 12%)" }}
-                  formatter={(value, name) => [
-                    value,
-                    name === "actualScore" ? "Skor Aktual" : "Skor Target",
-                  ]}
-                  labelFormatter={(label) => `Kuartal ${label}`}
-                  contentStyle={{
-                    background: "var(--popover)",
-                    border: "1px solid var(--border)",
-                    borderRadius: "8px",
-                    fontSize: "11px",
-                    color: "var(--popover-foreground)",
-                  }}
+                <ChartTooltip
+                  cursor={{ stroke: "var(--chart-crosshair)" }}
+                  content={
+                    <ChartTooltipContent
+                      indicator="line"
+                      formatter={(value, name) => [
+                        value ?? "—",
+                        name === "actualScore" ? "Skor Aktual" : "Skor Target",
+                      ]}
+                      labelFormatter={(label) => `Kuartal ${label}`}
+                    />
+                  }
                 />
                 <Line
                   type="monotone"
                   dataKey="actualScore"
-                  stroke="oklch(0.72 0.13 190)"
+                  stroke="var(--color-actualScore)"
                   strokeWidth={2}
-                  dot={{ r: 4, fill: "oklch(0.72 0.13 190)" }}
+                  dot={{ r: 4, fill: "var(--color-actualScore)" }}
                   activeDot={{ r: 6 }}
                 />
                 <Line
                   type="monotone"
                   dataKey="targetScore"
-                  stroke="oklch(0.82 0.08 190)"
+                  stroke="var(--color-targetScore)"
                   strokeWidth={2}
                   strokeDasharray="4 3"
-                  dot={{ r: 3, fill: "oklch(0.82 0.08 190)" }}
+                  dot={{ r: 3, fill: "var(--color-targetScore)" }}
+                  connectNulls={false}
                 />
               </RechartsLineChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           </div>
           <ul className="sr-only">
             {chartData.map((item) => (
               <li key={item.period}>
-                {item.period}: skor aktual {item.actualScore}, skor target {item.targetScore}
+                {item.period}: skor aktual {item.actualScore}, skor target {item.targetScore ?? "belum tersedia"}
               </li>
             ))}
           </ul>

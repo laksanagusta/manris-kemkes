@@ -28,7 +28,7 @@ export function TableExample() {
           <col className="w-[130.03px]" />
           <col className="w-[121.55px]" />
         </colgroup>
-      <CollectionTableHeader className="bg-table-header [&_tr]:border-b [&_tr]:border-border">
+        <CollectionTableHeader className="bg-table-header [&_tr]:border-b [&_tr]:border-border/60">
           <CollectionTableHeaderRow className="h-[40.5px]">
             <CollectionTableHead
               density="compact"
@@ -80,10 +80,10 @@ export function TableExample() {
                   <Server className="size-3.5" strokeWidth={1.75} />
                 </div>
                 <div className="flex h-10 min-w-0 flex-col justify-start">
-                  <span className="truncate text-sm font-semibold leading-5 text-[#111827]">
+                  <span className="truncate text-sm font-normal leading-5 text-foreground">
                     Rencana Penanganan
                   </span>
-                  <span className="truncate font-mono text-sm font-medium tracking-wide text-muted-foreground">
+                  <span className="truncate font-mono text-sm font-normal tracking-wide text-muted-foreground">
                     R-151
                   </span>
                 </div>
@@ -93,14 +93,14 @@ export function TableExample() {
               <Badge
                 size="compact"
                 tone="success"
-                className="h-5 px-2 text-xs font-semibold leading-5"
+                className="h-5 px-2 text-xs font-normal leading-5"
               >
                 active
               </Badge>
             </TableCell>
             <TableCell className="h-[72.5px] p-4 px-6 align-middle">
               <div className="flex h-10 flex-col justify-start">
-                <span className="text-sm font-medium leading-5 text-[#111827]">
+                <span className="text-sm font-normal leading-5 text-foreground">
                   Monthly
                 </span>
                 <span className="text-sm font-normal leading-5 text-muted-foreground">
@@ -124,7 +124,7 @@ export function TableExample() {
               <Button
                 variant="ghost"
                 size="xs"
-                className="bg-muted px-3 text-xs font-medium text-foreground shadow-none hover:bg-accent hover:text-foreground"
+                className="bg-muted px-3 text-xs font-normal text-foreground shadow-none hover:bg-accent hover:text-foreground"
               >
                 Manage
               </Button>

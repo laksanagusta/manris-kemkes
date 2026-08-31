@@ -21,7 +21,6 @@ func normalizeMitigationKMKFields(m *entity.Mitigation) {
 	m.ResourcesRequired = strings.TrimSpace(m.ResourcesRequired)
 	m.ContingencyPlan = strings.TrimSpace(m.ContingencyPlan)
 	m.PotentialObstacle = strings.TrimSpace(m.PotentialObstacle)
-	m.CostBenefitNote = strings.TrimSpace(m.CostBenefitNote)
 }
 
 func pruneEmptyMitigations(mitigations []entity.Mitigation) []entity.Mitigation {
@@ -68,8 +67,7 @@ func mitigationHasContent(m entity.Mitigation) bool {
 		strings.TrimSpace(m.SupportingUnit) != "" ||
 		strings.TrimSpace(m.ResourcesRequired) != "" ||
 		strings.TrimSpace(m.ContingencyPlan) != "" ||
-		strings.TrimSpace(m.PotentialObstacle) != "" ||
-		strings.TrimSpace(m.CostBenefitNote) != "" {
+		strings.TrimSpace(m.PotentialObstacle) != "" {
 		return true
 	}
 	if m.IsBreakthroughActivity || m.IsExistingControl {

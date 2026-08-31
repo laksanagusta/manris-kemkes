@@ -19,8 +19,7 @@ import { listTMPMRAssessments } from "@/lib/api/tmpmr";
 import type { TMPMRAssessment, TMPMRStatus } from "@/types/tmpmr";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { KpiCard } from "@/components/ui/kpi-card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   Select,
@@ -40,6 +39,9 @@ import {
 import { cn } from "@/lib/utils";
 import {
   CollectionPageHeader,
+  CollectionToolbar,
+  KpiCard,
+  MetricGrid,
   PageStack,
 } from "@/components/shared/design-system";
 
@@ -189,130 +191,111 @@ export default function TMPMRListPage() {
           </p>
         }
         title="TMPMR"
-        description="Kelola penilaian maturitas manajemen risiko per organisasi dan periode, lalu lanjutkan alurnya dari draft hingga approval."
-        actions={
-          <Button asChild className="gap-2">
-            <Link href="/management/tmpmr/new">
-              <Plus className="size-4" />
-              Buat Assessment
-            </Link>
-          </Button>
-        }
       />
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <MetricGrid>
         {[
-          { label: "Total Assessment", value: summary.total, tone: "white" as const },
-          { label: "Draft", value: summary.draft, tone: "zinc" as const },
-          { label: "Submitted", value: summary.submitted, tone: "zinc" as const },
-          { label: "Approved", value: summary.approved, tone: "emerald" as const },
+          { label: "Total Assessment", value: summary.total },
+          { label: "Draft", value: summary.draft },
+          { label: "Submitted", value: summary.submitted },
+          { label: "Approved", value: summary.approved },
         ].map((item) => (
           <KpiCard
             key={item.label}
             label={item.label}
             value={item.value}
-            tone={item.tone}
+            tone="white"
             icon={<ClipboardList className="size-5 text-muted-foreground" />}
           />
         ))}
-      </div>
+      </MetricGrid>
 
-      <Card className="bg-card/80 backdrop-blur-sm overflow-hidden">
-        <CardHeader className="border-b border-border/40 pb-4">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-            <div className="space-y-1">
-
-              <p className="text-xs text-muted-foreground">
-                Filter berdasarkan periode dan status, lalu buka detail untuk mengisi skor, evidence, dan review.
-              </p>
+      <CollectionToolbar
+        className="w-full"
+        leading={
+          <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+            <div className="relative min-w-0 flex-none w-full sm:w-80">
+              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="tmpmr-search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Cari organisasi, skor, maturity level, atau periode"
+                className="h-10 pl-9"
+              />
             </div>
+
+            <Select value={periodFilter} onValueChange={setPeriodFilter}>
+              <SelectTrigger id="tmpmr-period" className="w-full sm:w-44">
+                <SelectValue placeholder="Semua periode" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua periode</SelectItem>
+                {availablePeriods.map((period) => (
+                  <SelectItem key={period} value={period}>
+                    {period}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            <Select
+              value={statusFilter}
+              onValueChange={(value) => setStatusFilter(value as TMPMRStatus | "all")}
+            >
+              <SelectTrigger id="tmpmr-status" className="w-full sm:w-40">
+                <SelectValue placeholder="Semua status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua status</SelectItem>
+                <SelectItem value="draft">Draft</SelectItem>
+                <SelectItem value="submitted">Submitted</SelectItem>
+                <SelectItem value="reviewed">Reviewed</SelectItem>
+                <SelectItem value="approved">Approved</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <div className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+              <Badge variant="outline" className="gap-1.5 whitespace-nowrap">
+                <SlidersHorizontal className="size-3.5" />
+                {filteredItems.length} hasil
+              </Badge>
+              {hasActiveFilters ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 px-2 text-xs"
+                  onClick={() => {
+                    setSearch("");
+                    setPeriodFilter("all");
+                    setStatusFilter("all");
+                  }}
+                >
+                  Reset filter
+                </Button>
+              ) : null}
+            </div>
+          </div>
+        }
+        actions={
+          <>
             <Button variant="outline" size="sm" className="gap-2" onClick={loadData}>
               <RefreshCw className="size-4" />
               Muat Ulang
             </Button>
-          </div>
-        </CardHeader>
+            <Button asChild className="gap-2">
+              <Link href="/management/tmpmr/new">
+                <Plus className="size-4" />
+                Buat Assessment
+              </Link>
+            </Button>
+          </>
+        }
+      />
 
+      <Card className="overflow-hidden bg-card/80 backdrop-blur-sm">
         <CardContent className="space-y-5">
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px_180px]">
-            <div className="space-y-2">
-              <label htmlFor="tmpmr-search" className="text-sm font-medium">
-                Cari assessment
-              </label>
-              <div className="relative">
-                <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="tmpmr-search"
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                  placeholder="Cari organisasi, skor, maturity level, atau periode"
-                  className="pl-9"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="tmpmr-period" className="text-sm font-medium">
-                Periode
-              </label>
-              <Select value={periodFilter} onValueChange={setPeriodFilter}>
-                <SelectTrigger id="tmpmr-period">
-                  <SelectValue placeholder="Semua periode" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua periode</SelectItem>
-                  {availablePeriods.map((period) => (
-                    <SelectItem key={period} value={period}>
-                      {period}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <label htmlFor="tmpmr-status" className="text-sm font-medium">
-                Status
-              </label>
-              <Select
-                value={statusFilter}
-                onValueChange={(value) => setStatusFilter(value as TMPMRStatus | "all")}
-              >
-                <SelectTrigger id="tmpmr-status">
-                  <SelectValue placeholder="Semua status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua status</SelectItem>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="submitted">Submitted</SelectItem>
-                  <SelectItem value="reviewed">Reviewed</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <Badge variant="outline" className="gap-1.5">
-              <SlidersHorizontal className="size-3.5" />
-              {filteredItems.length} hasil
-            </Badge>
-            {hasActiveFilters ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="h-6 px-2 text-xs"
-                onClick={() => {
-                  setSearch("");
-                  setPeriodFilter("all");
-                  setStatusFilter("all");
-                }}
-              >
-                Reset filter
-              </Button>
-            ) : null}
-          </div>
 
           {loading ? (
             <div className="flex min-h-56 items-center justify-center gap-3 text-sm text-muted-foreground">
@@ -351,7 +334,9 @@ export default function TMPMRListPage() {
                       return (
                         <TableRow key={item.id}>
                           <TableCell className="whitespace-nowrap font-medium">{item.period}</TableCell>
-                          <TableCell className="max-w-[240px] truncate">{orgName}</TableCell>
+                          <TableCell className="max-w-[240px] truncate">
+                            <span className="text-foreground">{orgName}</span>
+                          </TableCell>
                           <TableCell className="whitespace-nowrap font-medium">
                             {item.score.toFixed(2)}
                           </TableCell>

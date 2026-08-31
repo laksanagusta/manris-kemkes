@@ -283,8 +283,20 @@ func TestWorkingPaperMonitoringExprPrefersFinalizedInSameQuarter(t *testing.T) {
 		}
 	}
 
-	if strings.Contains(expr, "rm.status = 'void'") {
-		t.Fatalf("monitoring expression must exclude void transactions, got:\n%s", expr)
+}
+
+func TestWorkingPaperRosterCreationDoesNotCreateMonitoring(t *testing.T) {
+	source, err := os.ReadFile("working_paper_roster.go")
+	if err != nil {
+		t.Fatalf("read working_paper_roster.go: %v", err)
+	}
+	contents := string(source)
+
+	if !strings.Contains(contents, "entry.MonitoringID") {
+		t.Fatal("roster creation must persist the existing monitoring reference when present")
+	}
+	if strings.Contains(contents, "NewRiskMonitoringDraft(") || strings.Contains(contents, "insertRiskMonitoring(ctx, tx") {
+		t.Fatal("roster creation must not create monitoring rows")
 	}
 }
 
@@ -347,42 +359,13 @@ func TestWorkingPaperRepositoryHydratesMonitoringSelection(t *testing.T) {
 	}
 	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM risks WHERE id = $1`, draftSource.ID) })
 
-	voidSource := &entity.Risk{
-		Code:            "R-WP-MON-003",
-		Title:           "Void monitoring source risk",
-		Description:     "Competing void monitoring source",
-		Category:        entity.RiskCategoryOperasional,
-		Status:          entity.RiskStatusApproved,
-		VersionGroupID:  versionGroupID,
-		IsCurrent:       false,
-		IsCycleCurrent:  true,
-		VersionNumber:   5,
-		OrganizationID:  &orgID,
-		CreatedBy:       &userID,
-		AssessmentCycle: "2025-H2",
-		Probability:     4,
-		Impact:          3,
-		RiskSource:      "internal",
-		Controllability: "C",
-		TreatmentOption: "mitigasi",
-	}
-	if err := riskRepo.Create(ctx, voidSource); err != nil {
-		t.Fatalf("Create void source risk: %v", err)
-	}
-	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM risks WHERE id = $1`, voidSource.ID) })
-
 	finalMonitoring := entity.NewRiskMonitoringDraft(sourceRisk, "2026-H1", userID)
 	finalMonitoring.Status = entity.RiskMonitoringStatusFinalized
 	finalMonitoring.ObservedProbability = 2
 	finalMonitoring.ObservedImpact = 3
 	finalMonitoring.CalculateObservedScore()
-	finalMonitoring.ConditionSummary = "Kondisi membaik"
-	finalMonitoring.EventSummary = "Satu insiden minor"
 	finalMonitoring.MitigationProgressSummary = "Tiga aksi selesai"
 	finalMonitoring.MitigationCompletionPercent = 75
-	finalMonitoring.FollowUpNote = "Pantau mingguan"
-	finalMonitoring.Trend = "down"
-	finalMonitoring.EffectivenessConclusion = "Kontrol cukup efektif"
 	if err := monitoringRepo.Create(ctx, finalMonitoring); err != nil {
 		t.Fatalf("Create finalized monitoring: %v", err)
 	}
@@ -394,29 +377,13 @@ func TestWorkingPaperRepositoryHydratesMonitoringSelection(t *testing.T) {
 	draftMonitoring.ObservedProbability = 4
 	draftMonitoring.ObservedImpact = 4
 	draftMonitoring.CalculateObservedScore()
-	draftMonitoring.ConditionSummary = "Draft condition"
 	draftMonitoring.MitigationProgressSummary = "Dua aksi berjalan"
 	draftMonitoring.MitigationCompletionPercent = 50
-	draftMonitoring.Trend = "stable"
 	if err := monitoringRepo.Create(ctx, draftMonitoring); err != nil {
 		t.Fatalf("Create draft monitoring: %v", err)
 	}
 	t.Cleanup(func() {
 		_, _ = pool.Exec(context.Background(), `DELETE FROM risk_monitorings WHERE id = $1`, draftMonitoring.ID)
-	})
-
-	voidMonitoring := entity.NewRiskMonitoringDraft(voidSource, "2026-H1", userID)
-	voidMonitoring.Status = entity.RiskMonitoringStatusVoid
-	voidMonitoring.ObservedProbability = 5
-	voidMonitoring.ObservedImpact = 5
-	voidMonitoring.CalculateObservedScore()
-	voidMonitoring.MitigationProgressSummary = "Tidak dipakai"
-	voidMonitoring.Trend = "up"
-	if err := monitoringRepo.Create(ctx, voidMonitoring); err != nil {
-		t.Fatalf("Create void monitoring: %v", err)
-	}
-	t.Cleanup(func() {
-		_, _ = pool.Exec(context.Background(), `DELETE FROM risk_monitorings WHERE id = $1`, voidMonitoring.ID)
 	})
 
 	wp := &entity.WorkingPaper{
@@ -470,20 +437,8 @@ func TestWorkingPaperRepositoryHydratesMonitoringSelection(t *testing.T) {
 	if monitoring.AssessmentCycle != "2026-H1" {
 		t.Fatalf("expected target quarter 2026-H1, got %q", monitoring.AssessmentCycle)
 	}
-	if monitoring.Trend != "down" {
-		t.Fatalf("expected trend down, got %q", monitoring.Trend)
-	}
 	if monitoring.MitigationCompletionPercent != 75 {
 		t.Fatalf("expected completion 75, got %d", monitoring.MitigationCompletionPercent)
-	}
-	if monitoring.EffectivenessConclusion != "Kontrol cukup efektif" {
-		t.Fatalf("expected effectiveness conclusion to come from monitoring row, got %q", monitoring.EffectivenessConclusion)
-	}
-	if got.Risks[0].Risk.MonitoringSimpulan != "Menurun" {
-		t.Fatalf("expected monitoring simpulan Menurun, got %q", got.Risks[0].Risk.MonitoringSimpulan)
-	}
-	if got.Risks[0].Risk.MonitoringEfektivitas != "Kontrol cukup efektif" {
-		t.Fatalf("expected monitoring efektivitas to mirror monitoring row, got %q", got.Risks[0].Risk.MonitoringEfektivitas)
 	}
 	if got.Risks[0].Risk.MonitoringP != 2 || got.Risks[0].Risk.MonitoringD != 3 {
 		t.Fatalf("expected observed P/D 2/3, got %d/%d", got.Risks[0].Risk.MonitoringP, got.Risks[0].Risk.MonitoringD)

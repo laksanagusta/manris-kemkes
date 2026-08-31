@@ -172,7 +172,7 @@ export function RiskAnalysisTab({
   return (
     <div className="space-y-5">
       <div className="grid gap-3 md:grid-cols-4">
-        <div className="rounded-2xl bg-card/80 px-4 py-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+        <div className="surface-hairline rounded-2xl bg-card/80 px-4 py-3">
           <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
             Nilai risiko terkini
           </p>
@@ -183,7 +183,7 @@ export function RiskAnalysisTab({
             {latest ? latest.level : "Belum ada data"}
           </p>
         </div>
-        <div className="rounded-2xl bg-card/80 px-4 py-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+        <div className="surface-hairline rounded-2xl bg-card/80 px-4 py-3">
           <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
             Nilai sebelumnya
           </p>
@@ -194,7 +194,7 @@ export function RiskAnalysisTab({
             {previous ? previous.level : "Belum ada pembanding"}
           </p>
         </div>
-        <div className="rounded-2xl bg-card/80 px-4 py-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+        <div className="surface-hairline rounded-2xl bg-card/80 px-4 py-3">
           <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
             Perubahan
           </p>
@@ -210,7 +210,7 @@ export function RiskAnalysisTab({
             {trendLabel}
           </span>
         </div>
-        <div className="rounded-2xl bg-card/80 px-4 py-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+        <div className="surface-hairline rounded-2xl bg-card/80 px-4 py-3">
           <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
             Selisih dari target
           </p>
@@ -233,7 +233,7 @@ export function RiskAnalysisTab({
                 <CardTitle className="text-sm font-medium normal-case">
                   Tren nilai risiko
                 </CardTitle>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 text-xs text-secondary-foreground">
                   Pergerakan nilai risiko dari versi ke versi, dibandingkan
                   dengan target penanganan.
                 </p>
@@ -329,7 +329,7 @@ export function RiskAnalysisTab({
             </div>
           </div>
           <CardContent className="pt-0">
-            <div className="overflow-hidden rounded-lg bg-card smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+            <div className="surface-hairline overflow-hidden rounded-lg bg-card">
               <div className="relative w-full overflow-x-auto">
                 <Table className="w-full caption-bottom text-sm">
                   <TableHeader className="sticky top-0 z-10 bg-table-header [&_tr]:border-b">

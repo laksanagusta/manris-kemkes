@@ -19,11 +19,9 @@ Dokumen ini secara spesifik menganalisis kesenjangan pada modul-modul berikut:
 - Suite Kecerdasan Buatan untuk analisis risiko
 
 **Tidak Termasuk dalam Analisis:**
-- **KRI (Key Risk Indicators)** - Modul pemantauan indikator risiko kunci
 - **Incident Management** - Modul pencatatan dan penanganan insiden
-- **CBA (Cost-Benefit Analysis)** - Modul analisis biaya-manfaat
 
-Ketiga modul di atas merupakan bagian dari sistem Manris v2 secara keseluruhan namun sengaja dikecualikan dari analisis kesenjangan ini untuk menjaga fokus pada transformasi inti manajemen risiko.
+Modul incident management merupakan bagian dari sistem Manris v2 secara keseluruhan namun sengaja dikecualikan dari analisis kesenjangan ini untuk menjaga fokus pada transformasi inti manajemen risiko.
 
 ---
 

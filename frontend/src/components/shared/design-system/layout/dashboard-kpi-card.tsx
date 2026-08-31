@@ -1,78 +1,33 @@
 "use client";
 
-import { Minus, TrendingDown, TrendingUp } from "@/components/ui/icons";
-
-import { cn } from "@/lib/utils";
-
-export type DashboardKpiTone = "success" | "warning" | "neutral";
-export type DashboardKpiTrend = "up" | "down" | "stable" | "unavailable";
-
 export function DashboardKpiCard({
   title,
   value,
-  change,
-  trend,
-  tone,
   loading = false,
   error = false,
 }: {
   title: string;
   value: string;
-  change: string;
-  trend: DashboardKpiTrend;
-  tone: DashboardKpiTone;
   loading?: boolean;
   error?: boolean;
 }) {
-  const statusLabel = error
-    ? "Data tidak tersedia"
-    : trend === "up"
-      ? `Naik ${change} dari siklus sebelumnya`
-      : trend === "down"
-        ? `Turun ${change} dari siklus sebelumnya`
-        : trend === "stable"
-          ? "Tidak berubah dari siklus sebelumnya"
-          : change === "Baru"
-            ? "Data baru pada siklus ini"
-            : "Belum ada data pembanding";
-
   return (
     <div
       aria-busy={loading}
-      className="flex min-h-28 flex-col rounded-xl bg-card smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
+      className="surface-hairline flex min-h-28 flex-col overflow-hidden rounded-xl bg-card"
     >
-      <div className="flex items-center px-4 py-3">
-        <p className="font-sans text-[10px] font-medium uppercase tracking-[0.5px] leading-5 text-muted-foreground">
+      <div className="mb-1 flex items-center px-4 pb-1 pt-3">
+        <h2 className="font-sans text-xs font-medium capitalize leading-4 text-muted-foreground">
           {title}
-        </p>
+        </h2>
       </div>
-      <div className="mt-auto flex min-h-16 items-end gap-2 px-4 pb-4 pt-3">
+      <div className="flex items-baseline gap-3 px-4 pb-2 pt-0">
         {loading ? (
-          <div className="h-9 w-28 rounded-lg bg-muted/50 motion-safe:animate-pulse" />
+          <div className="h-7 w-28 rounded-lg bg-muted/50 motion-safe:animate-pulse" />
         ) : (
-          <>
-            <span className="text-3xl font-mono font-medium tracking-tight text-foreground tabular-nums">
-              {error ? "—" : value}
-            </span>
-            <div
-              title={statusLabel}
-              aria-label={statusLabel}
-              className={cn(
-                "mb-0.5 inline-flex min-h-6 items-center gap-1 rounded-lg px-1.5 text-xs font-mono font-medium",
-                trend === "up" && tone === "warning" && "text-destructive",
-                trend === "up" && tone !== "warning" && "text-muted-foreground",
-                trend === "down" && "text-success",
-                (trend === "stable" || trend === "unavailable") &&
-                  "text-muted-foreground",
-                error && "text-destructive",
-              )}
-            >
-              {!error && trend === "up" && <TrendingUp aria-hidden="true" className="size-3" />}
-              {!error && trend === "down" && <TrendingDown aria-hidden="true" className="size-3" />}
-              {!error && trend === "stable" && <Minus aria-hidden="true" className="size-3" />}
-              {error ? "Tidak tersedia" : change}
-            </div>
-          </>
+          <span className="text-2xl font-sans font-semibold leading-7 tracking-tight text-foreground tabular-nums">
+            {error ? "—" : value}
+          </span>
         )}
       </div>
     </div>

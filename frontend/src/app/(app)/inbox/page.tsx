@@ -4,14 +4,9 @@ import Link from "next/link";
 import { useEffect, useMemo, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
-  AlertCircle,
-  BarChart3,
-  Check,
-  ClipboardCheck,
   Clock,
   FileSignature,
   FileText,
-  X,
 } from "@/components/ui/icons";
 
 import { Badge } from "@/components/ui/badge";
@@ -29,13 +24,12 @@ import {
   CollectionTabsList,
   CollectionTabsTrigger,
   CollectionToolbar,
+  KpiCard,
 } from "@/components/shared/design-system";
 import {
-  ActionButton,
   MetricGrid,
   PageStack,
 } from "@/components/shared/design-system";
-import { KpiCard } from "@/components/ui/kpi-card";
 import {
   Select,
   SelectContent,
@@ -50,19 +44,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Tabs } from "@/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner";
 
 interface ApprovalRequest {
   id: string;
@@ -80,25 +64,6 @@ interface ApprovalRequest {
   notes?: string;
 }
 
-interface KRIReportReview {
-  id: string;
-  requestType: "kri_report";
-  kriId: string;
-  kriName: string;
-  kriMetric: string;
-  riskCode: string;
-  riskTitle: string;
-  periodLabel: string;
-  periodStart: string;
-  periodEnd: string;
-  dueDate: string;
-  value: number | null;
-  notes: string;
-  status: "submitted" | "revision_requested";
-  submittedByName: string;
-  submittedAt: string;
-}
-
 interface WorkingPaperSigningItem {
   id: string;
   requestType: "working_paper";
@@ -112,7 +77,7 @@ interface WorkingPaperSigningItem {
   createdAt: string;
 }
 
-type InboxItem = ApprovalRequest | KRIReportReview | WorkingPaperSigningItem;
+type InboxItem = ApprovalRequest | WorkingPaperSigningItem;
 
 const statusVariant: Record<string, string> = {
   pending: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
@@ -149,11 +114,6 @@ const requestTypeConfig: Record<
     icon: FileText,
     label: "Penilaian Risiko",
     href: (id) => `/risk/monitoring/${id}`,
-  },
-  kri_report: {
-    icon: BarChart3,
-    label: "Laporan KRI",
-    href: (id, kriId) => `/compliance/kri/${kriId}`,
   },
   working_paper: {
     icon: FileSignature,
@@ -196,35 +156,6 @@ async function getApprovalRequests(
     `/approvals?${qs.toString()}`,
     token,
   );
-}
-
-async function getKRIReportReviewQueue(
-  token: string,
-): Promise<KRIReportReview[]> {
-  const response = await api.get<
-    {
-      id: string;
-      kriId: string;
-      kriName: string;
-      kriMetric: string;
-      riskCode: string;
-      riskTitle: string;
-      periodLabel: string;
-      periodStart: string;
-      periodEnd: string;
-      dueDate: string;
-      value: number | null;
-      notes: string;
-      status: string;
-      submittedByName: string;
-      submittedAt: string;
-    }[]
-  >("/kri-reports/review-queue", token);
-  return response.map((item) => ({
-    ...item,
-    requestType: "kri_report" as const,
-    status: item.status as "submitted" | "revision_requested",
-  }));
 }
 
 async function getWorkingPaperSigningItems(
@@ -280,12 +211,10 @@ export default function InboxPage() {
     return "all";
   });
   const [typeFilter, setTypeFilter] = useState<
-    "all" | "risk" | "kri_report" | "working_paper"
+    "all" | "risk" | "working_paper"
   >(() => {
     const value = searchParams.get("type");
-    return value === "risk" ||
-      value === "kri_report" ||
-      value === "working_paper"
+    return value === "risk" || value === "working_paper"
       ? value
       : "all";
   });
@@ -300,42 +229,21 @@ export default function InboxPage() {
     parsePositiveInt(searchParams.get("limit"), 10),
   );
   const [approvalTotal, setApprovalTotal] = useState(0);
-  const [reviewModalOpen, setReviewModalOpen] = useState(false);
-  const [reviewMessage, setReviewMessage] = useState("");
-  const [reviewSubmitting, setReviewSubmitting] = useState(false);
-  const [selectedApproval, setSelectedApproval] = useState<{
-    id: string;
-    title: string;
-    requestType: string;
-    approverRole: string;
-  } | null>(null);
-  const [kriModalOpen, setKriModalOpen] = useState(false);
-  const [kriModalAction, setKriModalAction] = useState<"accept" | "revision">(
-    "accept",
-  );
-  const [selectedKRIReport, setSelectedKRIReport] = useState<{
-    id: string;
-    title: string;
-  } | null>(null);
-  const [kriNote, setKriNote] = useState("");
-  const [kriSubmitting, setKriSubmitting] = useState(false);
-
   const refreshRequests = async () => {
     if (!token) return;
 
     try {
       setLoading(true);
       setError(null);
-      const [approvalsRes, kriReports, wpSigningItems] = await Promise.all([
+      const [approvalsRes, wpSigningItems] = await Promise.all([
         getApprovalRequests(token, { status: "all", page, limit }),
-        getKRIReportReviewQueue(token),
         getWorkingPaperSigningItems(token).catch(() => []),
       ]);
       setApprovalTotal(approvalsRes.total ?? 0);
       setPage(approvalsRes.page ?? page);
       setLimit(approvalsRes.limit ?? limit);
       setRequests(
-        [...(approvalsRes.data ?? []), ...kriReports, ...wpSigningItems].sort(
+        [...(approvalsRes.data ?? []), ...wpSigningItems].sort(
           (a, b) => {
             const dateA =
               (a as any).requestedAt ||
@@ -386,9 +294,7 @@ export default function InboxPage() {
       setFilter("all");
     }
     setTypeFilter(
-      queryType === "risk" ||
-        queryType === "kri_report" ||
-        queryType === "working_paper"
+      queryType === "risk" || queryType === "working_paper"
         ? queryType
         : "all",
     );
@@ -407,16 +313,15 @@ export default function InboxPage() {
       try {
         setLoading(true);
         setError(null);
-        const [approvalsRes, kriReports, wpSigningItems] = await Promise.all([
+        const [approvalsRes, wpSigningItems] = await Promise.all([
           getApprovalRequests(token, { status: "all", page, limit }),
-          getKRIReportReviewQueue(token),
           getWorkingPaperSigningItems(token).catch(() => []),
         ]);
         setApprovalTotal(approvalsRes.total ?? 0);
         setPage(approvalsRes.page ?? page);
         setLimit(approvalsRes.limit ?? limit);
         setRequests(
-          [...(approvalsRes.data ?? []), ...kriReports, ...wpSigningItems].sort(
+          [...(approvalsRes.data ?? []), ...wpSigningItems].sort(
             (a, b) => {
               const dateA =
                 (a as any).requestedAt ||
@@ -507,9 +412,6 @@ export default function InboxPage() {
   ]);
 
   const getStatus = (item: InboxItem): string => {
-    if (item.requestType === "kri_report") {
-      return (item as KRIReportReview).status;
-    }
     if (item.requestType === "working_paper") {
       return (item as WorkingPaperSigningItem).status;
     }
@@ -517,9 +419,6 @@ export default function InboxPage() {
   };
 
   const isMyApproval = (item: InboxItem): boolean => {
-    if (item.requestType === "kri_report") {
-      return (item as KRIReportReview).status === "submitted";
-    }
     if (item.requestType === "working_paper") {
       return true;
     }
@@ -537,13 +436,11 @@ export default function InboxPage() {
       myApprovals: requests.filter(isMyApproval).length,
       approved: requests.filter(
         (item) =>
-          item.requestType !== "kri_report" &&
           item.requestType !== "working_paper" &&
           (item as ApprovalRequest).currentStatus === "approved",
       ).length,
       rejected: requests.filter(
         (item) =>
-          item.requestType !== "kri_report" &&
           item.requestType !== "working_paper" &&
           (item as ApprovalRequest).currentStatus === "rejected",
       ).length,
@@ -579,11 +476,9 @@ export default function InboxPage() {
       if (filter === "my_approvals") {
         if (!isMyApproval(item)) return false;
       } else if (filter === "approved") {
-        if (item.requestType === "kri_report") return false;
         if (item.requestType === "working_paper") return false;
         if ((item as ApprovalRequest).currentStatus !== filter) return false;
       } else if (filter === "rejected") {
-        if (item.requestType === "kri_report") return false;
         if (item.requestType === "working_paper") return false;
         if ((item as ApprovalRequest).currentStatus !== filter) return false;
       }
@@ -594,19 +489,6 @@ export default function InboxPage() {
       // Filter by search
       const keyword = search.trim().toLowerCase();
       if (!keyword) return true;
-
-      if (item.requestType === "kri_report") {
-        const kriItem = item as KRIReportReview;
-        return [
-          kriItem.kriName,
-          kriItem.riskCode,
-          kriItem.riskTitle,
-          kriItem.periodLabel,
-          kriItem.submittedByName,
-        ]
-          .filter(Boolean)
-          .some((value) => value!.toLowerCase().includes(keyword));
-      }
 
       if (item.requestType === "working_paper") {
         const wpItem = item as WorkingPaperSigningItem;
@@ -633,97 +515,6 @@ export default function InboxPage() {
     });
   }, [filter, requests, search, typeFilter, currentUserId]);
 
-  const openApprovalModal = (
-    id: string,
-    title: string,
-    type: "approve" | "reject",
-    reqType: string,
-    approverRole: string,
-  ) => {
-    setSelectedApproval({ id, title, requestType: reqType, approverRole });
-    setReviewMessage("");
-    setReviewModalOpen(true);
-  };
-
-  const openKRIReportModal = (
-    id: string,
-    title: string,
-    action: "accept" | "revision",
-  ) => {
-    setSelectedKRIReport({ id, title });
-    setKriModalAction(action);
-    setKriNote("");
-    setKriModalOpen(true);
-  };
-
-  const handleKRIReportAction = async () => {
-    if (!token || !selectedKRIReport) return;
-
-    if (kriModalAction === "revision" && !kriNote.trim()) {
-      return;
-    }
-
-    try {
-      setKriSubmitting(true);
-      const endpoint =
-        kriModalAction === "accept"
-          ? `/kri-reports/${selectedKRIReport.id}/accept`
-          : `/kri-reports/${selectedKRIReport.id}/request-revision`;
-
-      await api.post(
-        endpoint,
-        kriModalAction === "accept" ? {} : { review_note: kriNote },
-        token,
-      );
-
-      toast.success(
-        kriModalAction === "accept"
-          ? "Laporan KRI diterima"
-          : "Permintaan revisi dikirim",
-      );
-      setKriModalOpen(false);
-      refreshRequests();
-    } catch (err) {
-      console.error(err);
-      toast.error(err instanceof Error ? err.message : "Gagal memproses aksi");
-    } finally {
-      setKriSubmitting(false);
-    }
-  };
-
-  const handleReviewAction = async (action: "approve" | "reject") => {
-    if (!token || !selectedApproval) return;
-
-    try {
-      setReviewSubmitting(true);
-      await api.post(
-        `/approvals/${selectedApproval.id}/action`,
-        { action, comments: reviewMessage },
-        token,
-      );
-      toast.success(
-        action === "approve"
-          ? "Persetujuan berhasil disimpan"
-          : "Penolakan berhasil disimpan",
-      );
-      setReviewModalOpen(false);
-      refreshRequests();
-    } catch (error) {
-      console.error("Failed to process approval action:", error);
-      toast.error(
-        action === "approve"
-          ? "Gagal menyimpan persetujuan"
-          : "Gagal menyimpan penolakan",
-        {
-          description:
-            error instanceof Error ? error.message : "Terjadi kesalahan",
-        },
-      );
-    } finally {
-      setReviewSubmitting(false);
-    }
-  };
-
   if (loading) {
     return (
       <PageStack>
@@ -748,7 +539,6 @@ export default function InboxPage() {
     <PageStack>
       <CollectionPageHeader
         title="Persetujuan & TTE"
-        description="Tinjau, setujui, dan tindak lanjuti permintaan yang masuk."
       />
 
       <Tabs
@@ -786,41 +576,36 @@ export default function InboxPage() {
             label={card.label}
             value={card.value}
             tone="white"
-            className="flex min-h-[96px] flex-col rounded-lg ring-1 ring-inset ring-border p-4"
-            labelClassName="capitalize tracking-normal"
-            valueClassName="font-medium"
-            valueWrapClassName="mt-auto"
           />
         ))}
       </MetricGrid>
 
       <CollectionToolbar
-        actions={
-          <>
-          <CollectionSearchField
-            placeholder="Cari kode, judul, unit, atau pemohon..."
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            aria-label="Cari permintaan persetujuan"
-          />
-          <Select
-            value={typeFilter}
-            onValueChange={(value) => {
-              setTypeFilter(value as typeof typeFilter);
-              setPage(1);
-            }}
-          >
-            <SelectTrigger className="h-9 w-40 border-0 bg-muted/50 text-sm">
-              <SelectValue placeholder="Jenis Permintaan" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Semua Jenis</SelectItem>
-              <SelectItem value="risk">Risiko</SelectItem>
-              <SelectItem value="kri_report">Laporan KRI</SelectItem>
-              <SelectItem value="working_paper">Kertas Kerja</SelectItem>
-            </SelectContent>
-          </Select>
-          </>
+        leading={
+          <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+            <CollectionSearchField
+              placeholder="Cari kode, judul, unit, atau pemohon..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              aria-label="Cari permintaan persetujuan"
+            />
+            <Select
+              value={typeFilter}
+              onValueChange={(value) => {
+                setTypeFilter(value as typeof typeFilter);
+                setPage(1);
+              }}
+            >
+              <SelectTrigger className="h-10 w-full bg-muted/50 text-sm sm:w-40">
+                <SelectValue placeholder="Jenis Permintaan" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Jenis</SelectItem>
+                <SelectItem value="risk">Risiko</SelectItem>
+                <SelectItem value="working_paper">Kertas Kerja</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         }
       />
 
@@ -831,16 +616,13 @@ export default function InboxPage() {
             description="Ubah filter pencarian atau jenis permintaan untuk melihat data lain."
           />
         ) : (
-          <Table className="min-w-[1120px] table-fixed">
+          <Table className="min-w-[760px] table-fixed">
             <colgroup>
-              <col className="w-[10%]" />
-              <col className="w-[26%]" />
-              <col className="w-[13%]" />
-              <col className="w-[10%]" />
+              <col className="w-[14%]" />
+              <col className="w-[44%]" />
+              <col className="w-[16%]" />
+              <col className="w-[14%]" />
               <col className="w-[12%]" />
-              <col className="w-[11%]" />
-              <col className="w-[10%]" />
-              <col className="w-[8%]" />
             </colgroup>
             <CollectionTableHeader>
               <CollectionTableHeaderRow>
@@ -851,22 +633,13 @@ export default function InboxPage() {
                   Entitas
                 </CollectionTableHead>
                 <CollectionTableHead className="px-3">
-                  Unit Kerja
-                </CollectionTableHead>
-                <CollectionTableHead className="px-3">
                   Jenis
-                </CollectionTableHead>
-                <CollectionTableHead className="px-3">
-                  Pemohon
                 </CollectionTableHead>
                 <CollectionTableHead className="px-3">
                   Tanggal
                 </CollectionTableHead>
                 <CollectionTableHead className="px-3">
                   Status
-                </CollectionTableHead>
-                <CollectionTableHead className="px-3 text-right">
-                  Tindakan
                 </CollectionTableHead>
               </CollectionTableHeaderRow>
             </CollectionTableHeader>
@@ -876,62 +649,32 @@ export default function InboxPage() {
                   requestTypeConfig[item.requestType] ?? requestTypeConfig.risk;
                 const Icon = typeConfig.icon;
                 const status = getStatus(item);
-                const isKRIReport = item.requestType === "kri_report";
                 const isWorkingPaper = item.requestType === "working_paper";
-                const kriItem = isKRIReport ? (item as KRIReportReview) : null;
                 const wpItem = isWorkingPaper
                   ? (item as WorkingPaperSigningItem)
                   : null;
-                const approvalItem =
-                  !isKRIReport && !isWorkingPaper
-                    ? (item as ApprovalRequest)
-                    : null;
-                const isRisk = item.requestType === "risk";
-                const canAction = isKRIReport
-                  ? kriItem!.status === "submitted"
-                  : isWorkingPaper
-                    ? false
-                    : approvalItem!.currentStatus === "pending" && !isRisk;
+                const approvalItem = !isWorkingPaper
+                  ? (item as ApprovalRequest)
+                  : null;
 
-                const displayCode = isKRIReport
-                  ? kriItem!.riskCode
-                  : isWorkingPaper
-                    ? `KK-${wpItem!.workingPaperId.slice(0, 6)}`
-                    : approvalItem!.entityCode;
-                const displayTitle = isKRIReport
-                  ? kriItem!.kriName
-                  : isWorkingPaper
-                    ? wpItem!.title
-                    : approvalItem!.entityTitle;
-                const displaySubtitle = isKRIReport
-                  ? `${kriItem!.periodLabel} • Nilai: ${kriItem!.value !== null ? kriItem!.value : "—"} ${kriItem!.kriMetric || ""}`
-                  : isWorkingPaper
-                    ? wpItem!.signerPangkat
-                      ? `Penandatangan #${wpItem!.sequenceNo} (${wpItem!.signerPangkat})`
-                      : `Penandatangan #${wpItem!.sequenceNo}`
-                    : approvalItem!.notes ||
-                      `Menunggu review ${approvalItem!.currentApproverRole}`;
-                const displayOrg = isKRIReport
-                  ? kriItem!.riskTitle
-                  : isWorkingPaper
-                    ? wpItem!.assessmentCycle || "—"
-                    : approvalItem!.entityOrgName;
-                const displayRequester = isKRIReport
-                  ? kriItem!.submittedByName
-                  : isWorkingPaper
-                    ? "Sistem"
-                    : approvalItem!.requestedByName;
-                const displayDate = isKRIReport
-                  ? kriItem!.submittedAt
-                  : isWorkingPaper
-                    ? wpItem!.createdAt
-                    : approvalItem!.requestedAt;
-                const entityId = isKRIReport
-                  ? kriItem!.id
-                  : isWorkingPaper
-                    ? wpItem!.workingPaperId
-                    : approvalItem!.entityId;
-                const extraId = isKRIReport ? kriItem!.kriId : undefined;
+                const displayCode = isWorkingPaper
+                  ? `KK-${wpItem!.workingPaperId.slice(0, 6)}`
+                  : approvalItem!.entityCode;
+                const displayTitle = isWorkingPaper
+                  ? wpItem!.title
+                  : approvalItem!.entityTitle;
+                const displaySubtitle = isWorkingPaper
+                  ? wpItem!.signerPangkat
+                    ? `Penandatangan #${wpItem!.sequenceNo} (${wpItem!.signerPangkat})`
+                    : `Penandatangan #${wpItem!.sequenceNo}`
+                  : approvalItem!.notes ||
+                    `Menunggu review ${approvalItem!.currentApproverRole}`;
+                const displayDate = isWorkingPaper
+                  ? wpItem!.createdAt
+                  : approvalItem!.requestedAt;
+                const entityId = isWorkingPaper
+                  ? wpItem!.workingPaperId
+                  : approvalItem!.entityId;
 
                 return (
                   <TableRow
@@ -944,7 +687,7 @@ export default function InboxPage() {
                     <TableCell className="px-3 py-2">
                       <div className="min-w-0">
                         <Link
-                          href={typeConfig.href(entityId, extraId)}
+                          href={typeConfig.href(entityId)}
                           className="block min-w-0 truncate text-sm font-normal leading-relaxed text-foreground hover:text-primary"
                         >
                           {displayTitle || "Tanpa judul"}
@@ -954,9 +697,6 @@ export default function InboxPage() {
                         </p>
                       </div>
                     </TableCell>
-                    <TableCell className="px-3 py-2 text-muted-foreground">
-                      {displayOrg || "—"}
-                    </TableCell>
                     <TableCell className="px-3 py-2">
                       <Badge variant="outline" className="h-5 px-1.5 text-xs">
                         <span className="inline-flex items-center gap-1">
@@ -964,18 +704,6 @@ export default function InboxPage() {
                           {typeConfig.label}
                         </span>
                       </Badge>
-                    </TableCell>
-                    <TableCell className="px-3 py-2">
-                      <div>
-                        <p className="text-sm font-medium">
-                          {displayRequester || "System"}
-                        </p>
-                        {!isKRIReport && !isWorkingPaper && (
-                          <p className="mt-0.5 text-sm text-muted-foreground capitalize">
-                            Approver: {approvalItem!.currentApproverRole || "-"}
-                          </p>
-                        )}
-                      </div>
                     </TableCell>
                     <TableCell className="px-3 py-2 text-muted-foreground">
                       <span className="inline-flex items-center gap-1.5">
@@ -992,82 +720,6 @@ export default function InboxPage() {
                       >
                         {statusLabel[status]}
                       </Badge>
-                    </TableCell>
-                    <TableCell className="py-2 pl-3 pr-4 text-right">
-                      {isWorkingPaper ? (
-                        <ActionButton
-                          size="sm"
-                          asChild
-                          className="h-7 px-2 text-xs"
-                        >
-                          <Link
-                            href={`/risk/working-papers/${wpItem!.workingPaperId}`}
-                          >
-                            <FileSignature className="size-3" />
-                            Tanda Tangan
-                          </Link>
-                        </ActionButton>
-                      ) : canAction ? (
-                        isKRIReport ? (
-                          <div className="inline-flex gap-1">
-                            <ActionButton
-                              size="sm"
-                              onClick={() =>
-                                openKRIReportModal(
-                                  kriItem!.id,
-                                  kriItem!.kriName,
-                                  "accept",
-                                )
-                              }
-                              className="h-7 px-2 text-xs"
-                              icon={<Check className="size-3" />}
-                            >
-                              Setujui
-                            </ActionButton>
-                            <ActionButton
-                              variant="outline"
-                              size="sm"
-                              onClick={() =>
-                                openKRIReportModal(
-                                  kriItem!.id,
-                                  kriItem!.kriName,
-                                  "revision",
-                                )
-                              }
-                              className="h-7 px-2 text-xs text-orange-600 hover:bg-orange-50 hover:text-orange-700"
-                              icon={<AlertCircle className="size-3" />}
-                            >
-                              Revisi
-                            </ActionButton>
-                          </div>
-                        ) : (
-                          <ActionButton
-                            size="sm"
-                            variant="outline"
-                            onClick={() =>
-                              openApprovalModal(
-                                item.id,
-                                displayTitle || "Tanpa judul",
-                                "approve",
-                                item.requestType,
-                                approvalItem!.currentApproverRole,
-                              )
-                            }
-                            className="h-7 px-2.5 text-xs"
-                            icon={<ClipboardCheck className="size-3" />}
-                          >
-                            Tinjau
-                          </ActionButton>
-                        )
-                      ) : (
-                        <span className="px-2 text-[10px] text-muted-foreground">
-                          {isKRIReport
-                            ? "Menunggu review"
-                            : isRisk
-                              ? "Klik judul untuk review"
-                              : "Tidak ada aksi"}
-                        </span>
-                      )}
                     </TableCell>
                   </TableRow>
                 );
@@ -1090,119 +742,6 @@ export default function InboxPage() {
           />
       </CollectionTableCard>
 
-      <Dialog open={kriModalOpen} onOpenChange={setKriModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <div className="flex items-center gap-2">
-              <div
-                className={cn(
-                  "flex size-8 items-center justify-center rounded-lg",
-                  kriModalAction === "accept"
-                    ? "bg-primary/15 text-primary"
-                    : "bg-orange-500/15 text-orange-600",
-                )}
-              >
-                {kriModalAction === "accept" ? (
-                  <Check className="size-4" />
-                ) : (
-                  <AlertCircle className="size-4" />
-                )}
-              </div>
-              <DialogTitle>
-                {kriModalAction === "accept"
-                  ? "Setujui Laporan KRI"
-                  : "Minta Revisi Laporan KRI"}
-              </DialogTitle>
-            </div>
-            <DialogDescription>
-              {kriModalAction === "accept"
-                ? `Setujui laporan "${selectedKRIReport?.title}"? Nilai akan diperbarui secara otomatis.`
-                : `Minta revisi untuk laporan "${selectedKRIReport?.title}". Unit pelapor dapat mengirim ulang setelah revisi.`}
-            </DialogDescription>
-          </DialogHeader>
-
-          {kriModalAction === "revision" && (
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Catatan Revisi</label>
-              <Textarea
-                value={kriNote}
-                onChange={(e) => setKriNote(e.target.value)}
-                placeholder="Jelaskan apa yang perlu direvisi..."
-                rows={3}
-              />
-            </div>
-          )}
-
-          <DialogFooter>
-            <ActionButton variant="outline" onClick={() => setKriModalOpen(false)}>
-              Batal
-            </ActionButton>
-            <ActionButton
-              onClick={handleKRIReportAction}
-              disabled={
-                kriSubmitting ||
-                (kriModalAction === "revision" && !kriNote.trim())
-              }
-              variant={kriModalAction === "revision" ? "outline" : "default"}
-              className={
-                kriModalAction === "revision"
-                  ? "border-orange-500/20 bg-orange-600 text-white hover:bg-orange-700"
-                  : ""
-              }
-              loading={kriSubmitting}
-            >
-              {kriModalAction === "accept"
-                ? "Setujui"
-                : "Kirim Permintaan Revisi"}
-            </ActionButton>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={reviewModalOpen} onOpenChange={setReviewModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedApproval?.approverRole === "reviewer"
-                ? "Tinjau Pemantauan"
-                : "Beri Persetujuan"}
-            </DialogTitle>
-            <DialogDescription>
-              Berikan keputusan persetujuan atau penolakan untuk item ini.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-2">
-            <Textarea
-              placeholder="Tambahkan pesan persetujuan atau alasan penolakan..."
-              value={reviewMessage}
-              onChange={(e) => setReviewMessage(e.target.value)}
-              disabled={reviewSubmitting}
-              className="min-h-[80px] resize-none"
-            />
-            <div className="flex gap-2 pt-2">
-              <ActionButton
-                variant="outline"
-                onClick={() => handleReviewAction("reject")}
-                disabled={reviewSubmitting}
-                className="flex-1 border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive/20"
-                icon={reviewSubmitting ? undefined : <X className="size-4" />}
-                loading={reviewSubmitting}
-              >
-                Tolak
-              </ActionButton>
-              <ActionButton
-                onClick={() => handleReviewAction("approve")}
-                disabled={reviewSubmitting}
-                className="flex-1"
-                loading={reviewSubmitting}
-                icon={reviewSubmitting ? undefined : <Check className="size-4" />}
-              >
-                Setujui
-              </ActionButton>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </PageStack>
   );
 }

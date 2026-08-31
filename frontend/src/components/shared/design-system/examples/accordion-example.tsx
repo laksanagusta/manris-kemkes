@@ -14,7 +14,7 @@ export function AccordionExample() {
       >
         <div className="flex flex-col gap-2">
           <Label htmlFor="accordion-input">Form Field</Label>
-          <Input id="accordion-input" placeholder="Placeholder text..." className="h-9 text-sm" />
+          <Input id="accordion-input" placeholder="Placeholder text..." className="h-10 text-sm" />
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="accordion-textarea">Textarea Field</Label>

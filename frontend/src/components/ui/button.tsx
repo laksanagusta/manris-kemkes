@@ -10,15 +10,15 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground hover:bg-primary/90 [a]:hover:bg-primary/90 shadow-[0_1px_2px_-0.5px_rgba(0,0,0,0.08),inset_0_-0.5px_0_0_rgba(0,0,0,0.12)] bg-clip-border border-[rgba(10,10,10,0.16)] active:scale-[0.97]",
+          "bg-primary text-primary-foreground hover:bg-primary/90 [a]:hover:bg-primary/90 shadow-none bg-clip-border border-primary/15 active:scale-[0.97]",
         primary:
-          "box-border relative shrink-0 overflow-hidden border-0 bg-[#090909] bg-no-repeat bg-[length:100%_100%] [background-image:linear-gradient(180deg,_#2e2e2e_0%,_#090909_100%)] text-white shadow-[0_1px_2px_0_#00000038] transition-[filter] duration-150 hover:brightness-110 active:brightness-90",
+          "box-border relative shrink-0 overflow-hidden border-0 bg-primary text-primary-foreground shadow-none transition-[filter] duration-150 hover:brightness-110 active:brightness-90",
         success:
           "bg-success text-white hover:bg-success/90 focus-visible:border-success/40 focus-visible:ring-success/20 active:scale-[0.97]",
         outline:
           "border-border bg-card text-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground aria-expanded:bg-sidebar-accent aria-expanded:text-sidebar-accent-foreground active:scale-[0.97]",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground aria-expanded:bg-sidebar-accent aria-expanded:text-sidebar-accent-foreground active:scale-[0.97]",
+          "border-border/60 bg-secondary text-secondary-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground aria-expanded:bg-sidebar-accent aria-expanded:text-sidebar-accent-foreground active:scale-[0.97]",
         ghost:
           "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground aria-expanded:bg-sidebar-accent aria-expanded:text-sidebar-accent-foreground",
         destructive:

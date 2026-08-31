@@ -120,10 +120,6 @@ func (r *fakeCreateRiskRepo) GetOverdueMitigationTimeline(context.Context, []uui
 	return nil, nil
 }
 
-func (r *fakeCreateRiskRepo) GetKRIBreachSummary(context.Context, []uuid.UUID) ([]entity.KRIBreachItem, error) {
-	return nil, nil
-}
-
 func (r *fakeCreateRiskRepo) GetUnitResponseTime(context.Context, []uuid.UUID) ([]entity.UnitResponseTime, error) {
 	return nil, nil
 }
@@ -212,9 +208,9 @@ func (r *fakeCreateWorkingPaperRepo) ListSigningBlockers(context.Context, uuid.U
 }
 
 type fakeCreateMonitoringRepo struct {
-	draftBySourceAndCycle        *entity.RiskMonitoring
+	draftBySourceAndCycle         *entity.RiskMonitoring
 	hasFinalizedForSourceAndCycle bool
-	createdMonitorings           []*entity.RiskMonitoring
+	createdMonitorings            []*entity.RiskMonitoring
 }
 
 func (r *fakeCreateMonitoringRepo) GetByID(context.Context, uuid.UUID, []uuid.UUID) (*entity.RiskMonitoring, error) {
@@ -254,21 +250,22 @@ func (r *fakeCreateMonitoringRepo) UpdateTaskMonitoringIDs(context.Context, uuid
 	return nil
 }
 
-func TestCreateRejectsExcludedRiskWithoutReason(t *testing.T) {
+func TestCreateAllowsExcludedRiskWithoutReason(t *testing.T) {
 	uc := NewWorkingPaperUseCase(&fakeCreateWorkingPaperRepo{}, nil, nil)
 	_, err := uc.Create(context.Background(), CreateWorkingPaperInput{
-		AssessmentCycle: "2026-H1",
+		AssessmentCycle: "2026-Q1",
 		OrganizationID:  uuid.New(),
 		CreatedByUserID: uuid.New(),
 		Decisions: []entity.WorkingPaperRosterDecision{
 			{VersionGroupID: uuid.New(), Included: false, ExclusionReason: ""},
+			{VersionGroupID: uuid.New(), Included: true},
 		},
 		Signatories: []CreateSignatoryInput{{
 			UserID: uuid.New(), SequenceNo: 1, SignerName: "Rina", SignerPangkat: "Pembina Tk. I (IV/b)",
 		}},
 	})
-	if err == nil {
-		t.Fatal("expected error for exclusion without reason")
+	if err != nil {
+		t.Fatalf("expected excluded risk without reason to be accepted: %v", err)
 	}
 }
 

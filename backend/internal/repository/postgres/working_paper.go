@@ -84,7 +84,7 @@ func previousApprovedWorkingPaperJoinExpr() string {
 			prev.impact,
 			prev.weight,
 			prev.nilai,
-			prev.inherent_score,
+			ROUND(COALESCE(prev.nilai, 0))::int,
 			prev.risk_appetite,
 			prev.treatment_option,
 			prev.existing_control,
@@ -93,7 +93,7 @@ func previousApprovedWorkingPaperJoinExpr() string {
 			prev.target_impact,
 			prev.target_weight,
 			prev.target_nilai,
-			prev.target_score,
+			ROUND(COALESCE(prev.target_nilai, 0))::int,
 			prev.cause,
 			prev.risk_source,
 			prev.controllability,
@@ -143,13 +143,8 @@ func workingPaperMonitoringExpr() string {
 			rm.observed_weight,
 			rm.observed_nilai,
 			rm.observed_level,
-			rm.trend,
 			rm.mitigation_completion_percent,
 			rm.mitigation_progress_summary,
-			rm.effectiveness_conclusion,
-			rm.condition_summary,
-			rm.event_summary,
-			rm.follow_up_note,
 			rm.started_at,
 			rm.updated_at,
 			rm.finalized_at
@@ -172,14 +167,14 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 	// Prefer the latest final risk from the previous quarter.
 	// If none exists, fall back to the latest approved version below the active one.
 	query := fmt.Sprintf(`SELECT wpr.id, wpr.working_paper_id, wpr.risk_id, wpr.sort_order, wpr.source_mode, wpr.created_at,
-		       COALESCE(wpr.version_group_id, risk.version_group_id), COALESCE(wpr.source_risk_id, wpr.risk_id), wpr.monitoring_id, wpr.result_risk_id,
+		       COALESCE(wpr.version_group_id, risk.version_group_id), COALESCE(wpr.source_risk_id, wpr.risk_id), COALESCE(monitoring.id, wpr.monitoring_id), wpr.result_risk_id,
 		       risk.id, risk.code, risk.title, risk.description, risk.category, risk.status,
 		       COALESCE(org.name, ''),
 		       %s AS probability,
 		       %s AS impact,
 		       %s AS bobot,
 		       %s AS nilai,
-		       COALESCE(risk.inherent_score, 0),
+		       ROUND(COALESCE(risk.nilai, 0))::int,
 		       COALESCE(risk.cause, ARRAY[]::text[]),
 		       COALESCE(risk.risk_source, ''),
 		       COALESCE(risk.controllability, ''),
@@ -200,7 +195,6 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		       	CASE WHEN btrim(COALESCE(m.resources_required, '')) <> '' THEN 'Sumber daya: ' || m.resources_required END,
 		       	CASE WHEN btrim(COALESCE(m.contingency_plan, '')) <> '' THEN 'Kontinjensi: ' || m.contingency_plan END,
 		       	CASE WHEN btrim(COALESCE(m.potential_obstacle, '')) <> '' THEN 'Hambatan: ' || m.potential_obstacle END,
-		       	CASE WHEN btrim(COALESCE(m.cost_benefit_note, '')) <> '' THEN 'Cost-benefit: ' || m.cost_benefit_note END,
 		       	CASE WHEN m.is_breakthrough_activity THEN 'Breakthrough: Ya' END,
 		       	CASE WHEN m.is_existing_control THEN 'Kontrol eksisting: Ya' END
 		       ) ORDER BY m.sort_order) FROM mitigations m WHERE m.risk_id = risk.id), ARRAY[]::text[]),
@@ -208,7 +202,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		       risk.target_impact,
 		       risk.target_weight,
 		       risk.target_nilai,
-		       COALESCE(risk.target_score, 0),
+		       ROUND(COALESCE(risk.target_nilai, 0))::int,
 		       COALESCE(risk.assessment_cycle, ''),
 		       risk.version_number,
 		       COALESCE(source_risk.next_review_date::text, ''),
@@ -219,7 +213,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		       COALESCE(prev_risk.impact, 0),
 		       COALESCE(prev_risk.weight, 0),
 		       COALESCE(prev_risk.nilai, 0),
-		       COALESCE(prev_risk.inherent_score, 0),
+		       ROUND(COALESCE(prev_risk.nilai, 0))::int,
 		       COALESCE(prev_risk.risk_appetite, ''),
 		       COALESCE(prev_risk.treatment_option, ''),
 		       COALESCE(prev_risk.existing_control, ''),
@@ -228,7 +222,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		       COALESCE(prev_risk.target_impact, 0),
 		       COALESCE(prev_risk.target_weight, 0),
 		       COALESCE(prev_risk.target_nilai, 0),
-		       COALESCE(prev_risk.target_score, 0),
+		       ROUND(COALESCE(prev_risk.target_nilai, 0))::int,
 		       COALESCE(prev_risk.cause, ARRAY[]::text[]),
 		       COALESCE(prev_risk.risk_source, ''),
 		       COALESCE(prev_risk.controllability, ''),
@@ -245,7 +239,6 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		       	CASE WHEN btrim(COALESCE(pm.resources_required, '')) <> '' THEN 'Sumber daya: ' || pm.resources_required END,
 		       	CASE WHEN btrim(COALESCE(pm.contingency_plan, '')) <> '' THEN 'Kontinjensi: ' || pm.contingency_plan END,
 		       	CASE WHEN btrim(COALESCE(pm.potential_obstacle, '')) <> '' THEN 'Hambatan: ' || pm.potential_obstacle END,
-		       	CASE WHEN btrim(COALESCE(pm.cost_benefit_note, '')) <> '' THEN 'Cost-benefit: ' || pm.cost_benefit_note END,
 		       	CASE WHEN pm.is_breakthrough_activity THEN 'Breakthrough: Ya' END,
 		       	CASE WHEN pm.is_existing_control THEN 'Kontrol eksisting: Ya' END
 		       ) ORDER BY pm.sort_order) FROM mitigations pm WHERE pm.risk_id = prev_risk.id), ARRAY[]::text[]),
@@ -262,14 +255,9 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		       COALESCE(monitoring.observed_impact, 0),
 		       COALESCE(monitoring.observed_weight, 0),
 		       COALESCE(monitoring.observed_nilai, 0),
-		       COALESCE(monitoring.observed_level, ''),
-		       COALESCE(monitoring.trend, ''),
-		       COALESCE(monitoring.mitigation_completion_percent, 0),
-		       COALESCE(monitoring.mitigation_progress_summary, ''),
-		       COALESCE(monitoring.effectiveness_conclusion, ''),
-		       COALESCE(monitoring.condition_summary, ''),
-		       COALESCE(monitoring.event_summary, ''),
-		       COALESCE(monitoring.follow_up_note, ''),
+			   COALESCE(monitoring.observed_level, ''),
+			   COALESCE(monitoring.mitigation_completion_percent, 0),
+			   COALESCE(monitoring.mitigation_progress_summary, ''),
 		       monitoring.started_at,
 		       monitoring.updated_at,
 		       monitoring.finalized_at
@@ -311,10 +299,9 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		var monitoringSourceLevel string
 		var monitoringObservedProbability, monitoringObservedImpact int
 		var monitoringObservedWeight, monitoringObservedNilai float64
-		var monitoringObservedLevel, monitoringTrend string
+		var monitoringObservedLevel string
 		var monitoringCompletionPercent int
-		var monitoringProgressSummary, monitoringEffectiveness string
-		var monitoringConditionSummary, monitoringEventSummary, monitoringFollowUpNote string
+		var monitoringProgressSummary string
 		var monitoringStartedAt, monitoringUpdatedAt, monitoringFinalizedAt *time.Time
 
 		// Nullable fields that may be empty arrays from COALESCE
@@ -403,13 +390,8 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 			&monitoringObservedWeight,
 			&monitoringObservedNilai,
 			&monitoringObservedLevel,
-			&monitoringTrend,
 			&monitoringCompletionPercent,
 			&monitoringProgressSummary,
-			&monitoringEffectiveness,
-			&monitoringConditionSummary,
-			&monitoringEventSummary,
-			&monitoringFollowUpNote,
 			&monitoringStartedAt,
 			&monitoringUpdatedAt,
 			&monitoringFinalizedAt,
@@ -466,30 +448,6 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 				observedScore = float64(monitoringObservedProbability * monitoringObservedImpact)
 			}
 
-			trend := monitoringTrend
-			if trend == "" {
-				sourceScore := monitoringSourceNilai
-				if sourceScore == 0 {
-					sourceScore = float64(link.Risk.InherentScore)
-				}
-				switch {
-				case observedScore > sourceScore:
-					trend = "up"
-				case observedScore < sourceScore:
-					trend = "down"
-				default:
-					trend = "stable"
-				}
-			}
-			effectiveness := monitoringEffectiveness
-			if effectiveness == "" {
-				if trend == "up" {
-					effectiveness = "Tidak Efektif"
-				} else {
-					effectiveness = "Efektif"
-				}
-			}
-
 			link.Risk.Monitoring = &entity.WorkingPaperRiskMonitoring{
 				ID:                          *monitoringID,
 				Status:                      monitoringStatus,
@@ -504,13 +462,8 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 				ObservedWeight:              monitoringObservedWeight,
 				ObservedNilai:               monitoringObservedNilai,
 				ObservedLevel:               monitoringObservedLevel,
-				Trend:                       trend,
 				MitigationCompletionPercent: monitoringCompletionPercent,
 				MitigationProgressSummary:   monitoringProgressSummary,
-				EffectivenessConclusion:     effectiveness,
-				ConditionSummary:            monitoringConditionSummary,
-				EventSummary:                monitoringEventSummary,
-				FollowUpNote:                monitoringFollowUpNote,
 				StartedAt:                   time.Time{},
 				UpdatedAt:                   time.Time{},
 				FinalizedAt:                 monitoringFinalizedAt,
@@ -532,15 +485,6 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 				link.Risk.MonitoringTingkatRisiko = entity.GetRiskLevelFromNilai(observedScore)
 			}
 			link.Risk.MonitoringTingkatRisikoDisplay = entity.GetRiskLevelDisplay(link.Risk.MonitoringTingkatRisiko)
-			switch trend {
-			case "up":
-				link.Risk.MonitoringSimpulan = "Meningkat"
-			case "down":
-				link.Risk.MonitoringSimpulan = "Menurun"
-			default:
-				link.Risk.MonitoringSimpulan = "Tetap"
-			}
-			link.Risk.MonitoringEfektivitas = effectiveness
 		}
 
 		link.Risk.NormalizeDerivedScores()

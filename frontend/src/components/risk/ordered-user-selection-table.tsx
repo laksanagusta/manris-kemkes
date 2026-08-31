@@ -7,13 +7,17 @@ import { useSortable } from "@dnd-kit/react/sortable";
 import { GripVertical, Plus, Trash2 } from "@/components/ui/icons";
 
 import { RemoteUserPicker } from "@/components/risk/remote-user-picker";
+import {
+  CollectionTableCard,
+  CollectionTableHead,
+  CollectionTableHeader,
+  CollectionTableHeaderRow,
+} from "@/components/shared/design-system";
 import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
-  TableHeader,
   TableRow,
 } from "@/components/ui/table";
 import type { ApprovalLineRow } from "@/lib/risk-approval-line";
@@ -230,75 +234,86 @@ export function OrderedUserSelectionTable({
     [onMoveRow],
   );
 
+  const tableContent = (
+    <>
+      <Table>
+        <CollectionTableHeader density="compact">
+          <CollectionTableHeaderRow>
+            <CollectionTableHead density="compact" className="w-10">
+              <span className="sr-only">Pegangan drag</span>
+            </CollectionTableHead>
+            <CollectionTableHead
+              density="compact"
+              className="w-10 text-center"
+            >
+              <span className="sr-only">Urutan</span>
+            </CollectionTableHead>
+            <CollectionTableHead density="compact" className="w-[360px]">
+              Nama
+            </CollectionTableHead>
+            <CollectionTableHead density="compact" className="w-[220px]">
+              NIP
+            </CollectionTableHead>
+            <CollectionTableHead density="compact">Jabatan</CollectionTableHead>
+          </CollectionTableHeaderRow>
+        </CollectionTableHeader>
+        <TableBody>
+          {rows.length === 0 ? (
+            <TableRow>
+              <TableCell
+                colSpan={5}
+                className="h-24 text-sm text-muted-foreground"
+              >
+                {emptyStateMessage}
+              </TableCell>
+            </TableRow>
+          ) : (
+            rows.map((row, index) => (
+              <SortableOrderedUserSelectionRow
+                key={row.rowId}
+                row={row}
+                index={index}
+                disabled={disabled}
+                canRemove={canRemoveRow ? canRemoveRow(row, index) : true}
+                errorMessage={getRowError?.(row, index)}
+                pickerTitle={pickerTitle}
+                pickerDescription={pickerDescription}
+                pickerPlaceholder={pickerPlaceholder}
+                pickerSearchPlaceholder={pickerSearchPlaceholder}
+                pickerEmptyMessage={pickerEmptyMessage}
+                dndGroup={dndGroup}
+                onSelectRow={onSelectRow}
+                onRemoveRow={onRemoveRow}
+                loadOptions={loadOptions}
+              />
+            ))
+          )}
+        </TableBody>
+      </Table>
+
+      <div className="flex items-center justify-between gap-3 border-t border-border/30 px-4 py-3">
+        <p className="text-xs text-muted-foreground">
+          {footerNote ??
+            "Urutan baris menentukan sequence peninjauan dan persetujuan."}
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={onAddRow}
+          disabled={disabled}
+          className="gap-2 border-dashed text-xs text-muted-foreground hover:border-primary/50 hover:text-primary"
+        >
+          <Plus className="size-3.5" />
+          {addRowLabel}
+        </Button>
+      </div>
+    </>
+  );
+
   return (
     <DragDropProvider onDragEnd={handleDragEnd}>
-      <div className="overflow-hidden rounded-xl bg-card/80 backdrop-blur-sm smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
-        <Table>
-          <TableHeader className="bg-table-header">
-            <TableRow className="hover:bg-transparent">
-              <TableHead className="w-10">
-                <span className="sr-only">Pegangan drag</span>
-              </TableHead>
-              <TableHead className="w-10 text-center">
-                <span className="sr-only">Urutan</span>
-              </TableHead>
-              <TableHead className="w-[360px] whitespace-nowrap">Nama</TableHead>
-              <TableHead className="w-[220px] whitespace-nowrap">NIP</TableHead>
-              <TableHead className="whitespace-nowrap">Jabatan</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {rows.length === 0 ? (
-              <TableRow>
-                <TableCell
-                  colSpan={5}
-                  className="h-24 text-sm text-muted-foreground"
-                >
-                  {emptyStateMessage}
-                </TableCell>
-              </TableRow>
-            ) : (
-              rows.map((row, index) => (
-                <SortableOrderedUserSelectionRow
-                  key={row.rowId}
-                  row={row}
-                  index={index}
-                  disabled={disabled}
-                  canRemove={canRemoveRow ? canRemoveRow(row, index) : true}
-                  errorMessage={getRowError?.(row, index)}
-                  pickerTitle={pickerTitle}
-                  pickerDescription={pickerDescription}
-                  pickerPlaceholder={pickerPlaceholder}
-                  pickerSearchPlaceholder={pickerSearchPlaceholder}
-                  pickerEmptyMessage={pickerEmptyMessage}
-                  dndGroup={dndGroup}
-                  onSelectRow={onSelectRow}
-                  onRemoveRow={onRemoveRow}
-                  loadOptions={loadOptions}
-                />
-              ))
-            )}
-          </TableBody>
-        </Table>
-
-        <div className="flex items-center justify-between gap-3 border-t border-border/30 px-4 py-3">
-          <p className="text-xs text-muted-foreground">
-            {footerNote ??
-              "Urutan baris menentukan sequence peninjauan dan persetujuan."}
-          </p>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={onAddRow}
-            disabled={disabled}
-            className="gap-2 border-dashed text-xs text-muted-foreground hover:border-primary/50 hover:text-primary"
-          >
-            <Plus className="size-3.5" />
-            {addRowLabel}
-          </Button>
-        </div>
-      </div>
+      <CollectionTableCard>{tableContent}</CollectionTableCard>
     </DragDropProvider>
   );
 }

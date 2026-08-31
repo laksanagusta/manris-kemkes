@@ -42,40 +42,6 @@ export function MitigationProgressForm({
   return (
     <MitigationProgressFormShell>
       <div className="flex flex-col gap-2">
-        <Label className="text-sm" htmlFor={evidenceId}>
-          Link Bukti / Evidence
-          <span className="text-destructive ml-0.5" aria-hidden="true">
-            *
-          </span>
-        </Label>
-        <Input
-          id={evidenceId}
-          ref={evidenceInputRef}
-          value={evidenceUrl}
-          onChange={(event) => onEvidenceUrlChange(event.target.value)}
-          className="text-base sm:text-sm"
-          placeholder={evidencePlaceholder}
-          required
-          aria-required="true"
-          aria-invalid={Boolean(showValidationErrors && evidenceError)}
-          aria-describedby={
-            showValidationErrors && evidenceError
-              ? `${evidenceId}-error`
-              : undefined
-          }
-        />
-        {showValidationErrors && evidenceError ? (
-          <p
-            id={`${evidenceId}-error`}
-            role="alert"
-            className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-150 motion-safe:ease-(--ease-out) text-xs leading-5 text-destructive"
-          >
-            {evidenceError}
-          </p>
-        ) : null}
-      </div>
-
-      <div className="flex flex-col gap-2">
         <Label className="text-sm" htmlFor={notesId}>
           Catatan Pelaksanaan
           <span className="text-destructive ml-0.5">*</span>
@@ -101,6 +67,38 @@ export function MitigationProgressForm({
             className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-150 motion-safe:ease-(--ease-out) text-xs leading-5 text-destructive"
           >
             {notesError}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label className="text-sm" htmlFor={evidenceId}>
+          Link Bukti / Evidence
+          <span className="ml-1 text-xs font-normal text-muted-foreground">
+            (opsional)
+          </span>
+        </Label>
+        <Input
+          id={evidenceId}
+          ref={evidenceInputRef}
+          value={evidenceUrl}
+          onChange={(event) => onEvidenceUrlChange(event.target.value)}
+          className="text-base sm:text-sm"
+          placeholder={evidencePlaceholder}
+          aria-invalid={Boolean(showValidationErrors && evidenceError)}
+          aria-describedby={
+            showValidationErrors && evidenceError
+              ? `${evidenceId}-error`
+              : undefined
+          }
+        />
+        {showValidationErrors && evidenceError ? (
+          <p
+            id={`${evidenceId}-error`}
+            role="alert"
+            className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-1 motion-safe:duration-150 motion-safe:ease-(--ease-out) text-xs leading-5 text-destructive"
+          >
+            {evidenceError}
           </p>
         ) : null}
       </div>

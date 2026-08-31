@@ -2,8 +2,8 @@ package control
 
 import (
 	"context"
-	"fmt"
 	stderrors "errors"
+	"fmt"
 	"testing"
 
 	"github.com/google/uuid"
@@ -103,9 +103,6 @@ func (r *scopeCtrlRiskRepo) GetHeatmapVelocity(context.Context, string, string, 
 	return nil, nil
 }
 func (r *scopeCtrlRiskRepo) GetOverdueMitigationTimeline(context.Context, []uuid.UUID) ([]entity.OverdueMitigationTimelineItem, error) {
-	return nil, nil
-}
-func (r *scopeCtrlRiskRepo) GetKRIBreachSummary(context.Context, []uuid.UUID) ([]entity.KRIBreachItem, error) {
 	return nil, nil
 }
 func (r *scopeCtrlRiskRepo) GetUnitResponseTime(context.Context, []uuid.UUID) ([]entity.UnitResponseTime, error) {

@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/shared/de
 export function CardPatternsExample() {
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      <Card className="gap-0 overflow-hidden rounded-2xl bg-card p-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+      <Card className="gap-0 overflow-hidden rounded-2xl bg-card p-0">
         <CardHeader className="px-4 py-6 !pb-6">
           <CardTitle className="text-sm font-medium normal-case text-foreground">
             Standard Card
@@ -13,12 +13,12 @@ export function CardPatternsExample() {
         </CardHeader>
         <CardContent className="p-4">
           <p className="text-sm text-muted-foreground">
-            Card standar dengan outline neutral yang terlihat jelas dan shadow tipis dekat edge.
+            Card standar memakai border-shadow berbasis shadow-custom untuk perimeter dan lift yang konsisten.
           </p>
         </CardContent>
       </Card>
 
-      <Card className="gap-0 overflow-hidden rounded-2xl bg-card/80 p-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 backdrop-blur-lg transition-colors duration-300">
+      <Card className="gap-0 overflow-hidden rounded-2xl bg-card/80 p-0 backdrop-blur-lg transition-colors duration-300">
         <CardHeader className="px-4 py-6 !pb-6">
           <CardTitle className="text-sm font-medium normal-case text-foreground">
             Frosted Glass Card
@@ -31,7 +31,7 @@ export function CardPatternsExample() {
         </CardContent>
       </Card>
 
-      <Card className="relative gap-0 overflow-hidden rounded-2xl bg-card p-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+      <Card className="relative gap-0 overflow-hidden rounded-2xl bg-card p-0">
         <CardHeader className="px-4 py-6 !pb-6">
           <CardTitle className="text-sm font-medium normal-case text-foreground">
             Table Card
@@ -39,12 +39,12 @@ export function CardPatternsExample() {
         </CardHeader>
         <CardContent className="p-0">
           <div className="px-4 py-4 text-sm text-muted-foreground">
-            Card table menggunakan elevation yang sama agar boundary dan shadow tetap satu lapisan.
+            Card table menggunakan shadow-custom yang sama agar boundary dan lift tetap satu lapisan.
           </div>
         </CardContent>
       </Card>
 
-      <Card className="rounded-2xl bg-card smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+      <Card className="rounded-2xl bg-card">
         <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-sm font-medium normal-case text-foreground">

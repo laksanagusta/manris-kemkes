@@ -1,16 +1,16 @@
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 import { Agentation } from "agentation";
-import { JetBrains_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import { Inter, JetBrains_Mono } from "next/font/google";
 import { AuthProvider } from "@/contexts/auth-context";
 import { Toaster } from "@/components/ui/sonner";
 import { SuppressRadixWarnings } from "@/components/suppress-radix-warnings";
 import { SmoothCorners } from "@/components/smooth-corners";
 import "./globals.css";
 
-const jakartaSans = Plus_Jakarta_Sans({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-jakarta-sans",
+  variable: "--font-inter",
   display: "swap",
 });
 
@@ -22,9 +22,9 @@ const jetbrainsMono = JetBrains_Mono({
 
 const fontVariables = {
   "--font-sans":
-    "var(--font-jakarta-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    "var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   "--font-display":
-    "var(--font-jakarta-sans), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+    "var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   "--font-mono":
     "var(--font-jetbrains-mono), ui-monospace, 'SFMono-Regular', 'SF Mono', Consolas, 'Liberation Mono', monospace",
 } as CSSProperties;
@@ -47,9 +47,9 @@ export default function RootLayout({
     <html
       lang="id"
       style={fontVariables}
-      className={`${jakartaSans.variable} ${jetbrainsMono.variable}`}
+      className={`${inter.variable} ${jetbrainsMono.variable}`}
     >
-      <body className="antialiased">
+      <body className="bg-background antialiased">
         <AuthProvider>
           {children}
           <Toaster />

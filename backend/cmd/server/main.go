@@ -42,16 +42,13 @@ func main() {
 	cleanRiskHandler := httpHandler.NewRiskHandler(
 		container.RiskCreateUC, container.RiskCreateBatchUC, container.RiskSpreadsheetUC, container.RiskGetUC, container.RiskExportPDFUC, container.RiskArchiveUC, container.RiskRestoreUC, container.RiskUpdateUC, container.RiskDeleteUC, container.RiskListUC, container.RiskListRegisterUC, container.RiskListMonitoringUC, container.RiskListCycleSnapshotUC, container.RiskListVersionsUC, container.RiskReviewQueueUC, container.RiskCompareCyclesUC, container.RiskCompareCycleDetailsUC, container.RiskReviewSummaryUC,
 		container.RiskDashboardSummaryUC, container.RiskActionPressureUC, container.RiskExecutiveAlertsUC, container.RiskHeatmapDataUC, container.RiskHeatmapMultiUC, container.RiskTopRisksUC, container.RiskDashboardCategoriesUC, container.RiskListApprovedUC,
-		container.RiskHeatmapVelocityUC, container.RiskOverdueTimelineUC, container.RiskKRIBreachUC, container.RiskUnitResponseUC, container.RiskMonitoringSpreadsheetUC, container.RiskCreateMonitoringBatchUC, container.RiskMonitoringStartUC, container.RiskMonitoringGetUC, container.RiskMonitoringUpdateUC, container.RiskMonitoringFinalizeUC, container.RiskMonitoringCorrectUC, container.MMRepository,
+		container.RiskHeatmapVelocityUC, container.RiskOverdueTimelineUC, container.RiskUnitResponseUC, container.RiskMonitoringSpreadsheetUC, container.RiskCreateMonitoringBatchUC, container.RiskMonitoringStartUC, container.RiskMonitoringGetUC, container.RiskMonitoringUpdateUC, container.RiskMonitoringFinalizeUC, container.MMRepository,
 	)
 	cleanUserHandler := httpHandler.NewUserHandler(
 		container.UserCreateUC, container.UserGetUC, container.UserUpdateUC, container.UserDeleteUC, container.UserListUC, container.UserListFilterUC, container.UserApproveRegistrationUC, container.UserRejectRegistrationUC,
 	)
 	cleanControlHandler := httpHandler.NewControlHandler(
 		container.ControlCreateUC, container.ControlGetUC, container.ControlUpdateUC, container.ControlDeleteUC, container.ControlListUC, container.ControlDashboardUC,
-	)
-	cleanKRIHandler := httpHandler.NewKRIHandler(
-		container.KRICreateUC, container.KRIGetUC, container.KRIUpdateUC, container.KRIArchiveUC, container.KRIListUC, container.KRIDashboardUC,
 	)
 	approvalHandler := httpHandler.NewApprovalHandler(
 		container.ApprovalListUC, container.ApprovalSubmitUC, container.ApprovalActionUC, container.ApprovalGetDetailUC, container.ApprovalGetPendingCountUC, container.ApprovalGetByEntityUC,
@@ -70,14 +67,10 @@ func main() {
 		container.AIApplyTranscriptRiskChangeUC,
 		container.AIPredictiveUC,
 		container.AIRiskSuggestionUC,
-		container.AIKIUUC,
 		container.AIIncidentBatchUC,
 		container.AIIncidentRiskUC,
 		container.AIDocumentIntelligenceUC,
 	)
-
-	// CBA handler (Clean Architecture)
-	cleanCBAHandler := httpHandler.NewCBAHandler(container.CBARecommendUC, container.CBACalculateUC)
 
 	// Organization handlers (Clean Architecture)
 	cleanOrgHandler := httpHandler.NewOrganizationHandler(container.OrgCreateUC, container.OrgGetUC, container.OrgUpdateUC, container.OrgDeleteUC, container.OrgListUC, container.OrgListFilterUC)
@@ -155,11 +148,6 @@ func main() {
 	// Mitigation Task handler
 	cleanMitigationTaskHandler := httpHandler.NewMitigationTaskHandler(
 		container.MTListUC, container.MTSubmitUC, container.MTSubmitReportUC, container.MTGenerateUC, container.MTOverdueUC,
-	)
-
-	// KRI Report handler
-	cleanKRIReportHandler := httpHandler.NewKRIReportHandler(
-		container.KRIReportListUC, container.KRIReportSubmitUC, container.KRIReportAcceptUC, container.KRIReportRevisionUC, container.KRIReportSkipUC, container.KRIReportGenerateUC, container.KRIReportOverdueUC,
 	)
 
 	// Communication Log handler
@@ -329,7 +317,6 @@ func main() {
 	protected.Get("/risk-monitorings/:id", cleanRiskHandler.GetMonitoring)
 	protected.Put("/risk-monitorings/:id", cleanRiskHandler.UpdateMonitoring)
 	protected.Post("/risk-monitorings/:id/finalize", cleanRiskHandler.FinalizeMonitoring)
-	protected.Post("/risk-monitorings/:id/correct", cleanRiskHandler.CorrectMonitoring)
 
 	// Risk Dashboard (Clean Architecture)
 	protected.Get("/dashboard/summary", cleanRiskHandler.DashboardSummary)
@@ -342,19 +329,10 @@ func main() {
 	protected.Get("/dashboard/risk-categories", cleanRiskHandler.GetDashboardRiskCategories)
 	protected.Get("/dashboard/heatmap-velocity", cleanRiskHandler.GetHeatmapVelocity)
 	protected.Get("/dashboard/overdue-mitigation-timeline", cleanRiskHandler.GetOverdueMitigationsTimeline)
-	protected.Get("/dashboard/kri-breach-summary", cleanRiskHandler.GetKRIBreachSummary)
 	protected.Get("/dashboard/unit-response-time", cleanRiskHandler.GetUnitResponseTime)
 
 	// Reports (Clean Architecture)
 	protected.Get("/reports/risk-pdf", cleanReportHandler.GenerateRiskPDF)
-
-	// KRIs (Clean Architecture)
-	protected.Get("/kris", cleanKRIHandler.ListKRIs)
-	protected.Get("/kris/dashboard", cleanKRIHandler.KRIDashboard)
-	protected.Post("/kris", cleanKRIHandler.CreateKRI)
-	protected.Get("/kris/:id", cleanKRIHandler.GetKRI)
-	protected.Put("/kris/:id", cleanKRIHandler.UpdateKRI)
-	protected.Post("/kris/:id/archive", cleanKRIHandler.ArchiveKRI)
 
 	// Controls (Clean Architecture)
 	protected.Get("/controls", cleanControlHandler.ListControls)
@@ -378,12 +356,7 @@ func main() {
 	protected.Post("/ai/transcripts/apply-risk-change", cleanAIHandler.ApplyTranscriptRiskChange)
 	protected.Post("/ai/predictive-analyses", cleanAIHandler.GeneratePredictive)
 	protected.Post("/ai/risk-suggestions", cleanAIHandler.GenerateRiskSuggestion)
-	protected.Post("/ai/kris", cleanAIHandler.GenerateKRI)
 	protected.Post("/ai/document-intelligence/analyze", cleanAIHandler.AnalyzeDocumentIntelligence)
-
-	// CBA Advocacy (Clean Architecture)
-	protected.Post("/cba/recommend", cleanCBAHandler.RecommendVariables)
-	protected.Post("/cba/calculate", cleanCBAHandler.Calculate)
 
 	// Approval Workflow (New Clean Architecture)
 	protected.Get("/approvals", approvalHandler.List)
@@ -402,16 +375,6 @@ func main() {
 	protected.Get("/risk-monitorings/:id/tasks", cleanMitigationTaskHandler.ListByMonitoring)
 	protected.Get("/risk-monitorings/:id/validate-finalize", cleanMitigationTaskHandler.ValidateFinalize)
 	protected.Post("/mitigation-tasks/generate", cleanMitigationTaskHandler.TriggerGenerate)
-
-	// KRI Reports (Periodic Reporting)
-	protected.Get("/kris/:kriId/reports", cleanKRIReportHandler.ListByKRI)
-	protected.Get("/kri-reports/my", cleanKRIReportHandler.ListMyReports)
-	protected.Get("/kri-reports/review-queue", cleanKRIReportHandler.ListReviewQueue)
-	protected.Post("/kri-reports/:id/submit", cleanKRIReportHandler.SubmitReport)
-	protected.Post("/kri-reports/:id/skip", cleanKRIReportHandler.SkipReport)
-	protected.Post("/kri-reports/:id/accept", cleanKRIReportHandler.AcceptReport)
-	protected.Post("/kri-reports/:id/request-revision", cleanKRIReportHandler.RequestRevision)
-	protected.Post("/kri-reports/generate", cleanKRIReportHandler.TriggerGenerate)
 
 	// Communication Logs
 	protected.Get("/risks/:riskId/communication-logs", cleanCommLogHandler.List)

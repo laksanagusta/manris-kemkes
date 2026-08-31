@@ -1,6 +1,6 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
+import { ActionButton } from "@/components/shared/design-system";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
+  Download,
   MoreHorizontal,
   ShieldAlert,
   SkipForward,
@@ -26,6 +27,7 @@ export function WorkingPaperStatusActions({
   onSkipTTE,
   onCancel,
   onDelete,
+  onExport,
 }: {
   canStartSigning: boolean;
   canSkipTTE: boolean;
@@ -35,8 +37,11 @@ export function WorkingPaperStatusActions({
   onSkipTTE: () => void;
   onCancel: () => void;
   onDelete: () => void;
+  onExport: () => void;
 }) {
-  const hasActions = canStartSigning || canSkipTTE || canCancel || canDelete;
+  const hasWorkflowActions =
+    canStartSigning || canSkipTTE || canCancel || canDelete;
+  const hasActions = hasWorkflowActions || Boolean(onExport);
 
   if (!hasActions) {
     return null;
@@ -45,14 +50,10 @@ export function WorkingPaperStatusActions({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-2 border-border/70 bg-background/90"
-        >
+        <ActionButton variant="outline" size="md">
           <MoreHorizontal className="size-4" />
           Tindakan
-        </Button>
+        </ActionButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>Pilih tindakan</DropdownMenuLabel>
@@ -62,7 +63,7 @@ export function WorkingPaperStatusActions({
             Mulai proses TTE
           </DropdownMenuItem>
         ) : null}
-        {canSkipTTE || canCancel || canDelete ? (
+        {canStartSigning && (canSkipTTE || canCancel || canDelete) ? (
           <DropdownMenuSeparator />
         ) : null}
         {canSkipTTE ? (
@@ -86,6 +87,11 @@ export function WorkingPaperStatusActions({
             Hapus kertas kerja
           </DropdownMenuItem>
         ) : null}
+        {hasWorkflowActions ? <DropdownMenuSeparator /> : null}
+        <DropdownMenuItem className="gap-2" onClick={onExport}>
+          <Download className="size-3.5" />
+          Ekspor Excel
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );

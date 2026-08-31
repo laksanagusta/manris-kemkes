@@ -1,13 +1,11 @@
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { TrendingUp, TrendingDown, Minus } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
-import { RiskAssessmentSummaryStrip } from "@/components/shared/design-system";
+import { Badge } from "@/components/shared/design-system";
 import {
   getBobot,
-  getSimpulanEfektifitasColor,
   getSimpulanEfektifitas,
+  getRiskLevelLabel,
   resolveRiskAssessmentClassification,
 } from "@/lib/risk";
 import { resolveAssessmentScoreComparison } from "@/lib/risk-assessment-summary";
@@ -33,14 +31,12 @@ export function SimpulanCard({
 
   if (isInvalid) {
     return (
-      <Card className="bg-muted/30">
-        <CardContent className="pt-6">
-          <p className="text-sm text-muted-foreground">
-            Pilih probabilitas dan dampak terlebih dahulu untuk melihat simpulan
-            tingkat risiko dan efektifitas mitigasi.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="rounded-xl border border-dashed border-border/60 bg-muted/10 px-3 py-4">
+        <p className="text-xs leading-5 text-muted-foreground">
+          Pilih probabilitas dan dampak terlebih dahulu untuk melihat simpulan
+          tingkat risiko dan efektifitas mitigasi.
+        </p>
+      </div>
     );
   }
 
@@ -63,12 +59,10 @@ export function SimpulanCard({
 
   const normalizedTargetScore = Math.round(targetScore);
   let progress = 0;
-  let progressLabel = "Kedekatan ke Target";
 
   if (normalizedTargetScore > 0) {
     if (newScore <= normalizedTargetScore) {
       progress = 100;
-      progressLabel = "Target tercapai";
     } else if (
       currentScore > normalizedTargetScore &&
       newScore < currentScore
@@ -79,110 +73,136 @@ export function SimpulanCard({
       progress = Math.min(100, Math.max(0, Math.round(rawProgress)));
     } else {
       progress = 0;
-      progressLabel = "Masih di atas target";
     }
   }
 
-  const efektifitasColor = getSimpulanEfektifitasColor(currentScore, newScore);
   const efektifitasLabel = getSimpulanEfektifitas(currentScore, newScore);
-  const trendLabel = isStable ? "Stabil" : isDecrease ? "Turun" : "Naik";
-  const trendTone = isStable ? "neutral" : isDecrease ? "success" : "warning";
+  const riskLevelTone =
+    levelBaru === "sangat_rendah" || levelBaru === "rendah"
+      ? "success"
+      : levelBaru === "sedang"
+        ? "warning"
+        : "danger";
 
   return (
-    <div className="space-y-3">
-      <RiskAssessmentSummaryStrip
-        title="Hasil Pemantauan"
-        score={newScore}
-        level={levelBaru}
-        scoreLabel="Skor risiko"
-        statusLabel={trendLabel}
-        statusTone={trendTone}
-        helperText="Ringkasan otomatis dari skor sebelumnya dan perhitungan ulang berdasarkan probabilitas serta dampak."
-      metrics={[
-        {
-          label: "Bobot",
-          value: (
-            <span className="font-mono tabular-nums">{bobot.toFixed(2)}</span>
-          ),
-        },
-        {
-          label: "Prioritas",
-          value: <span className="tabular-nums">{scoreClassification.priority}</span>,
-        },
-        {
-          label: "Selera",
-          value: (
-            <Badge
-              variant="outline"
-              className={cn(
-                "h-5 rounded-full px-2 text-[10px] font-semibold tracking-[0.12em]",
-                scoreClassification.appetite === "di_atas_batas"
-                  ? "border-amber-200 bg-amber-50 text-amber-700"
-                  : "border-emerald-200 bg-emerald-50 text-emerald-700",
-              )}
-            >
-              {scoreClassification.appetite === "di_atas_batas"
-                ? "Di Atas Batas"
-                : "Dalam Batas"}
-            </Badge>
-          ),
-        },
-      ]}
-      />
-
-      <div className="rounded-xl bg-background p-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
-        <div className="space-y-4">
-          <div>
-            <p className="mb-1 text-xs font-medium text-muted-foreground">
-              Perubahan Skor
-            </p>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-sm font-medium text-foreground">
-                {currentScore} &rarr; {newScore}
+    <div className="space-y-4">
+      <section aria-label="Hasil Pemantauan">
+        <dl>
+          <div className="flex items-center justify-between gap-3 py-2">
+            <dt className="text-xs text-muted-foreground">Skor risiko</dt>
+            <dd className="flex items-center gap-2 text-right">
+              <span className="font-mono text-xs font-semibold tabular-nums text-foreground">
+                {newScore}
               </span>
-              <span
-                className={cn(
-                  "text-xs flex items-center font-medium",
-                  trendColorClass,
-                )}
+              <Badge
+                tone={riskLevelTone}
+                size="compact"
               >
-                <TrendIcon className="mr-1 size-3.5" />({delta > 0 ? "+" : ""}
-                {Math.round(delta)})
+                {getRiskLevelLabel(levelBaru)}
+              </Badge>
+            </dd>
+          </div>
+          <div className="flex items-center justify-between gap-3 py-2">
+            <dt className="text-xs text-muted-foreground">Bobot</dt>
+            <dd className="font-mono text-xs font-semibold tabular-nums text-foreground">
+              {bobot.toFixed(2)}
+            </dd>
+          </div>
+          <div className="flex items-center justify-between gap-3 py-2">
+            <dt className="text-xs text-muted-foreground">Prioritas</dt>
+            <dd className="text-xs font-semibold tabular-nums text-foreground">
+              {scoreClassification.priority}
+            </dd>
+          </div>
+          <div className="flex items-center justify-between gap-3 py-2">
+            <dt className="text-xs text-muted-foreground">Selera risiko</dt>
+            <dd>
+              <Badge
+                tone={
+                  scoreClassification.appetite === "di_atas_batas"
+                    ? "warning"
+                    : "success"
+                }
+                size="compact"
+              >
+                {scoreClassification.appetite === "di_atas_batas"
+                  ? "Di Atas Batas"
+                  : "Dalam Batas"}
+              </Badge>
+            </dd>
+          </div>
+        </dl>
+      </section>
+
+      <section
+        aria-labelledby="monitoring-score-change"
+        className="border-t border-dashed border-border/50 pt-3.5"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <h3
+            id="monitoring-score-change"
+            className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70"
+          >
+            Perubahan Skor
+          </h3>
+          <span
+            className={cn(
+              "flex items-center gap-1 text-xs font-medium",
+              trendColorClass,
+            )}
+          >
+            <TrendIcon className="size-3.5" />
+            {delta > 0 ? "+" : ""}
+            {Math.round(delta)}
+          </span>
+        </div>
+        <div className="mt-3 flex items-center justify-between gap-3">
+          <span className="font-mono text-xs font-semibold tabular-nums text-foreground">
+            {currentScore} &rarr; {newScore}
+          </span>
+        </div>
+        {targetScore > 0 && (
+          <div
+            role="group"
+            aria-label="Progres target"
+            className="mt-4"
+          >
+            <div className="text-right">
+              <span className="text-xs font-medium tabular-nums text-foreground">
+                {newScore} / {normalizedTargetScore}
               </span>
             </div>
-          </div>
-
-          {targetScore > 0 && (
-            <div className="border-t border-border/50 pt-4">
-              <div className="mb-2 flex items-end justify-between">
-                <p className="text-xs font-medium text-muted-foreground">
-                  {progressLabel}
-                </p>
-                <div className="text-right">
-                  <span className="text-xs font-medium text-foreground">
-                    {newScore} / {normalizedTargetScore}
-                  </span>
-                  <span className="ml-1 text-xs text-muted-foreground">
-                    ({Math.max(0, newScore - normalizedTargetScore)} selisih)
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <Progress value={progress} className="h-2 flex-1" />
-                <span className="w-8 text-right text-xs font-medium text-muted-foreground">
-                  {progress}%
-                </span>
-              </div>
+            <div className="mt-3 flex items-center gap-3">
+              <Progress value={progress} className="h-2 flex-1" />
+              <span className="w-8 text-right text-xs font-medium tabular-nums text-muted-foreground">
+                {progress}%
+              </span>
             </div>
-          )}
-
-          <div className="border-t border-border/50 pt-4">
-            <p className="mb-1 text-xs font-medium text-muted-foreground">
-              Status Tingkat Risiko
+            <p className="mt-1.5 text-right text-xs text-muted-foreground">
+              {newScore <= normalizedTargetScore
+                ? "Target tercapai"
+                : `${Math.max(0, newScore - normalizedTargetScore)} di atas target`}
             </p>
-            <p
+          </div>
+        )}
+      </section>
+
+      <section
+        aria-labelledby="monitoring-risk-evaluation"
+        className="border-t border-dashed border-border/50 pt-3.5"
+      >
+        <h3
+          id="monitoring-risk-evaluation"
+          className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70"
+        >
+          Evaluasi
+        </h3>
+        <dl className="mt-3">
+          <div className="flex items-start justify-between gap-3 py-2">
+            <dt className="text-xs text-muted-foreground">Tingkat risiko</dt>
+            <dd
               className={cn(
-                "text-xs font-medium",
+                "whitespace-nowrap text-right text-xs font-medium",
                 isStable
                   ? "text-muted-foreground"
                   : isDecrease
@@ -194,25 +214,22 @@ export function SimpulanCard({
                 ? "Tidak ada penurunan tingkat risiko"
                 : isDecrease
                   ? "Tingkat risiko mengalami penurunan"
-                : "Tingkat risiko mengalami peningkatan"}
-            </p>
-            <div className="mt-3 border-t border-border/50 pt-3">
-              <p className="mb-1 text-xs font-medium text-muted-foreground">
-                Efektivitas
-              </p>
+                  : "Tingkat risiko mengalami peningkatan"}
+            </dd>
+          </div>
+          <div className="flex items-center justify-between gap-3 py-2">
+            <dt className="text-xs text-muted-foreground">Efektivitas</dt>
+            <dd>
               <Badge
-                variant="outline"
-                className={cn(
-                  "border-transparent font-medium",
-                  efektifitasColor,
-                )}
+                tone={efektifitasLabel === "Efektif" ? "success" : "danger"}
+                size="compact"
               >
                 {efektifitasLabel}
               </Badge>
-            </div>
+            </dd>
           </div>
-        </div>
-      </div>
+        </dl>
+      </section>
     </div>
   );
 }

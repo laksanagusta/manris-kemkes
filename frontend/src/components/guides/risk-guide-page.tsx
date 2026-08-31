@@ -255,12 +255,12 @@ export function RiskGuidePage({
                 {content.video.title}
               </CardTitle>
             </div>
-            <CardDescription className="text-xs leading-6 text-muted-foreground">
+            <CardDescription className="text-xs leading-6 text-secondary-foreground">
               {content.video.description}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 p-4">
-            <div className="overflow-hidden rounded-xl border border-border/50 bg-black shadow-sm">
+            <div className="overflow-hidden rounded-xl border border-border/50 bg-primary shadow-sm">
               <div className="aspect-video">
                 <iframe
                   className="h-full w-full"
@@ -317,7 +317,7 @@ export function RiskGuidePage({
                 <CardTitle className="text-sm font-semibold">
                   {document.title}
                 </CardTitle>
-                <CardDescription className="text-xs leading-6 text-muted-foreground">
+                <CardDescription className="text-xs leading-6 text-secondary-foreground">
                   {document.description}
                 </CardDescription>
               </CardHeader>

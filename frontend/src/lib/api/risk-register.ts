@@ -64,18 +64,17 @@ export interface PaginatedRiskRegisterResponse {
 }
 
 interface ListRiskRegisterParams {
-   view?: "monitoring-transactions";
-   q?: string;
-   lifecycle?: RiskRegisterLifecycleFilter;
-   status?: RiskStatus;
-   category?: Exclude<RiskCategory, "">;
-   assessment_cycle?: string;
-   created_at?: string;
-   sort_by?: string;
-   sort_order?: "asc" | "desc";
-   page?: number;
-   limit?: number;
- }
+  q?: string;
+  lifecycle?: RiskRegisterLifecycleFilter;
+  status?: RiskStatus;
+  category?: Exclude<RiskCategory, "">;
+  assessment_cycle?: string;
+  created_at?: string;
+  sort_by?: string;
+  sort_order?: "asc" | "desc";
+  page?: number;
+  limit?: number;
+}
 
 export async function listRiskRegister(
   token: string,
@@ -84,7 +83,6 @@ export async function listRiskRegister(
   const searchParams = new URLSearchParams();
 
   if (params?.q) searchParams.set("q", params.q);
-  if (params?.view) searchParams.set("view", params.view);
   if (params?.lifecycle && params.lifecycle !== "active") {
     searchParams.set("lifecycle", params.lifecycle);
   }

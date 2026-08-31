@@ -605,68 +605,6 @@ CREATE TABLE public.impact_criteria (
 ALTER TABLE public.impact_criteria OWNER TO postgres;
 
 --
--- TOC entry 227 (class 1259 OID 25080)
--- Name: kri_reports; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.kri_reports (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    kri_id uuid NOT NULL,
-    period_label text NOT NULL,
-    period_start date NOT NULL,
-    period_end date NOT NULL,
-    due_date date NOT NULL,
-    value numeric(15,2),
-    notes text DEFAULT ''::text,
-    status text DEFAULT 'pending'::text NOT NULL,
-    submitted_by uuid,
-    submitted_at timestamp with time zone,
-    generated_by text DEFAULT 'cron'::text,
-    created_at timestamp with time zone DEFAULT now(),
-    updated_at timestamp with time zone DEFAULT now(),
-    reviewed_by uuid,
-    reviewed_at timestamp with time zone,
-    review_note text DEFAULT ''::text,
-    skip_reason text DEFAULT ''::text,
-    evidence_url text,
-    CONSTRAINT kri_reports_generated_by_check CHECK ((generated_by = ANY (ARRAY['cron'::text, 'manual'::text]))),
-    CONSTRAINT kri_reports_status_check CHECK ((status = ANY (ARRAY['pending'::text, 'submitted'::text, 'accepted'::text, 'revision_requested'::text, 'skipped'::text])))
-);
-
-
-ALTER TABLE public.kri_reports OWNER TO postgres;
-
---
--- TOC entry 228 (class 1259 OID 25095)
--- Name: kris; Type: TABLE; Schema: public; Owner: postgres
---
-
-CREATE TABLE public.kris (
-    id uuid DEFAULT gen_random_uuid() NOT NULL,
-    risk_id uuid NOT NULL,
-    name text NOT NULL,
-    description text DEFAULT ''::text,
-    metric text DEFAULT ''::text,
-    threshold_min numeric(15,2) DEFAULT 0,
-    threshold_max numeric(15,2) DEFAULT 100,
-    current_value numeric(15,2) DEFAULT 0,
-    direction text DEFAULT 'higher_worse'::text,
-    frequency text DEFAULT 'bulanan'::text,
-    organization_id uuid,
-    last_updated timestamp with time zone DEFAULT now(),
-    created_at timestamp with time zone DEFAULT now(),
-    amber_threshold_min numeric(15,2),
-    amber_threshold_max numeric(15,2),
-    is_archived boolean DEFAULT false NOT NULL,
-    archived_at timestamp with time zone,
-    archived_reason text DEFAULT ''::text,
-    CONSTRAINT kris_direction_check CHECK ((direction = ANY (ARRAY['higher_worse'::text, 'lower_worse'::text])))
-);
-
-
-ALTER TABLE public.kris OWNER TO postgres;
-
---
 -- TOC entry 229 (class 1259 OID 25113)
 -- Name: lessons_learned; Type: TABLE; Schema: public; Owner: postgres
 --
@@ -822,7 +760,6 @@ CREATE TABLE public.mitigations (
     resources_required text DEFAULT ''::text NOT NULL,
     contingency_plan text DEFAULT ''::text NOT NULL,
     potential_obstacle text DEFAULT ''::text NOT NULL,
-    cost_benefit_note text DEFAULT ''::text NOT NULL,
     is_breakthrough_activity boolean DEFAULT false NOT NULL,
     is_existing_control boolean DEFAULT false NOT NULL,
     CONSTRAINT mitigations_frequency_check CHECK ((frequency = ANY (ARRAY['insidental'::text, 'rutin'::text]))),
@@ -1758,24 +1695,6 @@ ALTER TABLE ONLY public.impact_criteria
 
 
 --
--- TOC entry 3907 (class 2606 OID 25431)
--- Name: kri_reports kri_reports_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.kri_reports
-    ADD CONSTRAINT kri_reports_pkey PRIMARY KEY (id);
-
-
---
--- TOC entry 3911 (class 2606 OID 25433)
--- Name: kris kris_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.kris
-    ADD CONSTRAINT kris_pkey PRIMARY KEY (id);
-
-
---
 -- TOC entry 3913 (class 2606 OID 25435)
 -- Name: lessons_learned lessons_learned_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
 --
@@ -2350,62 +2269,6 @@ CREATE INDEX idx_formal_reports_type ON public.formal_reports USING btree (repor
 --
 
 CREATE INDEX idx_impact_criteria_category_level ON public.impact_criteria USING btree (category, upr_level);
-
-
---
--- TOC entry 3901 (class 1259 OID 25518)
--- Name: idx_kri_reports_due_date; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_kri_reports_due_date ON public.kri_reports USING btree (due_date);
-
-
---
--- TOC entry 3902 (class 1259 OID 25519)
--- Name: idx_kri_reports_kri; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_kri_reports_kri ON public.kri_reports USING btree (kri_id);
-
-
---
--- TOC entry 3903 (class 1259 OID 25520)
--- Name: idx_kri_reports_status; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_kri_reports_status ON public.kri_reports USING btree (status);
-
-
---
--- TOC entry 3904 (class 1259 OID 25521)
--- Name: idx_kri_reports_submitted_by; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_kri_reports_submitted_by ON public.kri_reports USING btree (submitted_by);
-
-
---
--- TOC entry 3905 (class 1259 OID 25522)
--- Name: idx_kri_reports_unique_period; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE UNIQUE INDEX idx_kri_reports_unique_period ON public.kri_reports USING btree (kri_id, period_start, period_end);
-
-
---
--- TOC entry 3908 (class 1259 OID 25523)
--- Name: idx_kris_is_archived; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_kris_is_archived ON public.kris USING btree (is_archived);
-
-
---
--- TOC entry 3909 (class 1259 OID 25524)
--- Name: idx_kris_risk; Type: INDEX; Schema: public; Owner: postgres
---
-
-CREATE INDEX idx_kris_risk ON public.kris USING btree (risk_id);
 
 
 --
@@ -3263,51 +3126,6 @@ ALTER TABLE ONLY public.formal_reports
 
 ALTER TABLE ONLY public.formal_reports
     ADD CONSTRAINT formal_reports_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id);
-
-
---
--- TOC entry 4119 (class 2606 OID 25726)
--- Name: kri_reports kri_reports_kri_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.kri_reports
-    ADD CONSTRAINT kri_reports_kri_id_fkey FOREIGN KEY (kri_id) REFERENCES public.kris(id) ON DELETE CASCADE;
-
-
---
--- TOC entry 4120 (class 2606 OID 25731)
--- Name: kri_reports kri_reports_reviewed_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.kri_reports
-    ADD CONSTRAINT kri_reports_reviewed_by_fkey FOREIGN KEY (reviewed_by) REFERENCES public.users(id);
-
-
---
--- TOC entry 4121 (class 2606 OID 25736)
--- Name: kri_reports kri_reports_submitted_by_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.kri_reports
-    ADD CONSTRAINT kri_reports_submitted_by_fkey FOREIGN KEY (submitted_by) REFERENCES public.users(id);
-
-
---
--- TOC entry 4122 (class 2606 OID 25741)
--- Name: kris kris_organization_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.kris
-    ADD CONSTRAINT kris_organization_id_fkey FOREIGN KEY (organization_id) REFERENCES public.organizations(id);
-
-
---
--- TOC entry 4123 (class 2606 OID 25746)
--- Name: kris kris_risk_id_fkey; Type: FK CONSTRAINT; Schema: public; Owner: postgres
---
-
-ALTER TABLE ONLY public.kris
-    ADD CONSTRAINT kris_risk_id_fkey FOREIGN KEY (risk_id) REFERENCES public.risks(id) ON DELETE CASCADE;
 
 
 --
