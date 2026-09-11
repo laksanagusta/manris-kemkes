@@ -28,6 +28,7 @@ interface ReportScopePickerProps {
   className?: string;
   disabled?: boolean;
   orientation?: "inline" | "vertical";
+  density?: "default" | "compact";
 }
 
 export function ReportScopePicker({
@@ -49,6 +50,7 @@ export function ReportScopePicker({
   className,
   disabled,
   orientation = "inline",
+  density = "default",
 }: ReportScopePickerProps) {
   const selectedGroup = organizationGroups.find(
     (group) => group.id === organizationGroupId,
@@ -159,6 +161,7 @@ export function ReportScopePicker({
             allOptionLabel={allOrganizationGroupLabel}
             allOptionValue={allOrganizationGroupValue}
             disabled={disabled}
+            density={density}
             className="w-full"
           />
         </div>
@@ -193,6 +196,7 @@ export function ReportScopePicker({
             allOptionLabel={allOrganizationLabel}
             allOptionValue={allOrganizationValue}
             disabled={disabled}
+            density={density}
             className="w-full"
           />
         </div>

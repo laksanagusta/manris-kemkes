@@ -1,6 +1,6 @@
 /**
- * Shared chart tokens. The CSS variables keep chart colors theme-aware while
- * allowing every chart to use the same Origin-inspired palette.
+ * Shared chart tokens. The CSS variables keep every chart on the same
+ * Origin-inspired palette.
  */
 export const CHART_COLORS = {
   primary: "var(--chart-1)",

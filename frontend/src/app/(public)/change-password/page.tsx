@@ -106,10 +106,10 @@ export default function ChangePasswordPage() {
 
       <div className="relative z-10 w-full max-w-md px-4 animate-fade-in">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-primary/10 p-2.5">
+          <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-xl bg-primary/10 p-2.5">
             <Image src="/logo.svg" alt="MANRIS logo" width={44} height={44} className="object-contain" />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">
+          <h1 className="page-title">
             <span className="gradient-text">MANRIS</span>
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">

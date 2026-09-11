@@ -8,6 +8,7 @@ export type StandardCardProps = {
   children: ReactNode;
   action?: ReactNode;
   className?: string;
+  headerClassName?: string;
   contentClassName?: string;
 };
 
@@ -16,6 +17,7 @@ export function StandardCard({
   children,
   action,
   className,
+  headerClassName,
   contentClassName,
 }: StandardCardProps) {
   return (
@@ -25,7 +27,12 @@ export function StandardCard({
         className,
       )}
     >
-      <CardHeader className="flex flex-row items-center justify-between px-4 py-4 !pb-4">
+      <CardHeader
+        className={cn(
+          "flex flex-row items-center justify-between gap-4 px-4 py-4 !pb-4",
+          headerClassName,
+        )}
+      >
         <h2 className="font-sans text-sm font-medium normal-case leading-5 text-foreground">
           {title}
         </h2>

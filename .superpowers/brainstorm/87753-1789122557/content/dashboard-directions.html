@@ -1,0 +1,70 @@
+<style>
+  .direction-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; margin-top:24px; }
+  .direction { border:1px solid #deded9; border-radius:18px; padding:10px; background:#fbfbf8; cursor:pointer; transition:.2s ease; }
+  .direction:hover { transform:translateY(-2px); box-shadow:0 12px 32px rgba(30,30,25,.08); }
+  .direction.selected { outline:3px solid #20201d; outline-offset:2px; }
+  .dash { aspect-ratio:4/3; border:1px solid #e6e5df; border-radius:13px; padding:14px; background:#f7f7f3; color:#272723; overflow:hidden; }
+  .dash-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:11px; }
+  .dash-title { font:700 12px/1.1 ui-sans-serif; }
+  .pill { height:14px; width:48px; border-radius:99px; border:1px solid #deddd7; background:#fff; }
+  .metrics { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; }
+  .metric { background:#fff; border:1px solid #e4e3de; border-radius:8px; padding:7px; }
+  .metric i { display:block; width:65%; height:3px; background:#d6d5cf; border-radius:3px; }
+  .metric b { display:block; font:700 13px/1 ui-sans-serif; margin-top:8px; }
+  .panel { background:#fff; border:1px solid #e4e3de; border-radius:10px; }
+  .chart { position:relative; min-height:118px; overflow:hidden; }
+  .chart:after { content:""; position:absolute; inset:24px 12px 17px; background:linear-gradient(165deg,transparent 42%,rgba(87,119,226,.14) 42.6%,rgba(87,119,226,.14) 55%,transparent 55.6%); border-bottom:1px solid #ecebe6; }
+  .small-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:7px; }
+  .small { min-height:62px; padding:8px; }
+  .rows span { display:block; height:5px; background:#e8e7e2; border-radius:5px; margin:7px 0; }
+  .heat { display:grid; grid-template-columns:repeat(5,8px); gap:2px; }
+  .heat i { width:8px; height:8px; border-radius:2px; background:#d8ded8; }
+  .heat i:nth-child(4n) { background:#efc56a; } .heat i:nth-child(7n) { background:#e37869; }
+  .dir-body { padding:12px 6px 5px; }
+  .dir-body h3 { margin:0 0 5px; font-size:15px; }
+  .dir-body p { margin:0; font-size:12px; line-height:1.45; color:#686861; }
+  .a .chart { margin-top:8px; }
+  .a .small-grid { grid-template-columns:1.2fr .8fr; margin-top:7px; }
+  .b .workspace { display:grid; grid-template-columns:1.7fr .75fr; gap:7px; margin-top:8px; }
+  .b .chart { min-height:130px; }
+  .b .rail { display:flex; flex-direction:column; gap:7px; }
+  .b .rail .panel { flex:1; padding:8px; }
+  .c .focus { display:grid; grid-template-columns:1.45fr .8fr; gap:7px; margin-top:8px; }
+  .c .chart { min-height:154px; }
+  .c .stack { display:flex; flex-direction:column; gap:7px; }
+  .c .stack .panel { padding:8px; flex:1; }
+  @media (max-width: 960px){ .direction-grid{grid-template-columns:1fr;} .dash{aspect-ratio:16/9;} }
+</style>
+
+<h2>Pilih komposisi dashboard Manris</h2>
+<p class="subtitle">Ketiganya memakai bahasa visual airy-minimal dari referensi pertama. Perbedaannya ada pada prioritas membaca: overview, operasi, atau keputusan.</p>
+
+<div class="direction-grid">
+  <div class="direction a" data-choice="a" onclick="toggleSelect(this)">
+    <div class="dash">
+      <div class="dash-head"><span class="dash-title">Ringkasan risiko</span><span class="pill"></span></div>
+      <div class="metrics"><div class="metric"><i></i><b>124</b></div><div class="metric"><i></i><b>18</b></div><div class="metric"><i></i><b>7</b></div><div class="metric"><i></i><b>62</b></div></div>
+      <div class="panel chart"></div>
+      <div class="small-grid"><div class="panel small rows"><span></span><span></span><span></span></div><div class="panel small" style="display:flex;align-items:center;justify-content:center"><div class="heat"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div></div>
+    </div>
+    <div class="dir-body"><h3>A · Narrative Overview</h3><p>KPI tipis → satu tren lebar → detail pendukung. Paling dekat dengan referensi pertama dan paling tenang dibaca.</p></div>
+  </div>
+
+  <div class="direction b" data-choice="b" onclick="toggleSelect(this)">
+    <div class="dash">
+      <div class="dash-head"><span class="dash-title">Ringkasan risiko</span><span class="pill"></span></div>
+      <div class="metrics"><div class="metric"><i></i><b>124</b></div><div class="metric"><i></i><b>18</b></div><div class="metric"><i></i><b>7</b></div><div class="metric"><i></i><b>62</b></div></div>
+      <div class="workspace"><div><div class="panel chart"></div><div class="panel small" style="margin-top:7px;display:flex;align-items:center;justify-content:center"><div class="heat"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div></div><div class="rail"><div class="panel rows"><span></span><span></span><span></span></div><div class="panel rows"><span></span><span></span></div></div></div>
+    </div>
+    <div class="dir-body"><h3>B · Operational Rail</h3><p>Grafik utama di kiri, daftar prioritas di kanan. Lebih cepat untuk tindak lanjut, tetapi terasa lebih padat.</p></div>
+  </div>
+
+  <div class="direction c" data-choice="c" onclick="toggleSelect(this)">
+    <div class="dash">
+      <div class="dash-head"><span class="dash-title">Ringkasan risiko</span><span class="pill"></span></div>
+      <div class="metrics"><div class="metric"><i></i><b>124</b></div><div class="metric"><i></i><b>18</b></div><div class="metric"><i></i><b>7</b></div><div class="metric"><i></i><b>62</b></div></div>
+      <div class="focus"><div class="panel chart"></div><div class="stack"><div class="panel" style="display:flex;align-items:center;justify-content:center"><div class="heat"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div></div><div class="panel rows"><span></span><span></span><span></span></div></div></div>
+    </div>
+    <div class="dir-body"><h3>C · Executive Focus</h3><p>Satu visual dominan dengan dua insight ringkas. Paling kuat untuk pimpinan, namun detail operasional turun ke bawah.</p></div>
+  </div>
+</div>

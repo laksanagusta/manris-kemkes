@@ -62,7 +62,7 @@ export function TaskLanes({ job, onRetryTask }: { job: ProcessingJob; onRetryTas
   const [detailsOpen, setDetailsOpen] = useState(false);
   const completed = job.tasks.filter((task) => task.status === "completed" || task.status === "warning").length;
   return (
-    <section className="rounded-2xl border border-border/80 bg-white p-4 sm:p-5" aria-labelledby="parallel-work-title">
+    <section className="rounded-xl border border-border/80 bg-white p-4 sm:p-5" aria-labelledby="parallel-work-title">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
@@ -104,7 +104,7 @@ export function ActivityTimeline({ job }: { job: ProcessingJob }) {
   }, [job.events.length]);
 
   return (
-    <section className="rounded-2xl border border-border/80 bg-white p-4 sm:p-5" aria-labelledby="activity-title">
+    <section className="rounded-xl border border-border/80 bg-white p-4 sm:p-5" aria-labelledby="activity-title">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <h2 id="activity-title" className="text-sm font-semibold text-foreground">Activity timeline</h2>

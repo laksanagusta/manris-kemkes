@@ -1,7 +1,4 @@
-const numberFormatter = new Intl.NumberFormat("id-ID", {
-  minimumFractionDigits: 0,
-  maximumFractionDigits: 2,
-});
+import { formatRiskScore } from "./risk";
 
 const dateFormatter = new Intl.DateTimeFormat("id-ID", {
   day: "2-digit",
@@ -10,11 +7,7 @@ const dateFormatter = new Intl.DateTimeFormat("id-ID", {
 });
 
 export function formatMonitoringNilai(value?: number | null) {
-  if (value == null || Number.isNaN(value)) {
-    return "-";
-  }
-
-  return numberFormatter.format(value);
+  return formatRiskScore(value);
 }
 
 export function formatMonitoringScoreChange(

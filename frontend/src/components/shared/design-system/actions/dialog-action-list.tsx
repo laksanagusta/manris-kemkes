@@ -23,7 +23,7 @@ export function DialogActionList({
   return (
     <div
       className={cn(
-        "w-52 rounded-xl bg-popover p-1 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30",
+        "w-52 rounded-[12px] bg-popover p-1 border-shadow",
         className,
       )}
     >
@@ -34,7 +34,7 @@ export function DialogActionList({
           disabled={item.disabled}
           onClick={item.onSelect}
           className={cn(
-            "flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm disabled:opacity-50",
+            "flex h-8 w-full items-center gap-2 rounded-lg px-2 py-0 text-left text-sm disabled:opacity-50",
             item.tone === "danger" ? "text-destructive" : "text-foreground",
           )}
         >

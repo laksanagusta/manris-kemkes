@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
-  Calendar,
   Loader2,
   Plus,
   Trash2,
@@ -17,7 +16,7 @@ import {
   AccentButton,
   CollectionPageHeader,
   CollectionEmptyState,
-  ExpandableSearchField,
+  CollectionSearchField,
   CollectionLoadingState,
   CollectionPagination,
   CollectionTableCard,
@@ -40,7 +39,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -81,9 +79,6 @@ function MinutesPageContent() {
   const [loading, setLoading] = useState(true);
 
   const [query, setQuery] = useState(() => searchParams.get("q") ?? "");
-  const [createdAtFilter, setCreatedAtFilter] = useState(
-    () => searchParams.get("created_at") ?? "",
-  );
   const [page, setPage] = useState(() =>
     parsePositiveInt(searchParams.get("page"), 1),
   );
@@ -115,7 +110,6 @@ function MinutesPageContent() {
 
   useEffect(() => {
     const nextQuery = searchParams.get("q") ?? "";
-    const nextCreatedAt = searchParams.get("created_at") ?? "";
     const nextPage = parsePositiveInt(searchParams.get("page"), 1);
     const nextLimit = parsePositiveInt(
       searchParams.get("limit"),
@@ -123,7 +117,6 @@ function MinutesPageContent() {
     );
 
     setQuery((c) => (c === nextQuery ? c : nextQuery));
-    setCreatedAtFilter((c) => (c === nextCreatedAt ? c : nextCreatedAt));
     setPage((c) => (c === nextPage ? c : nextPage));
     setLimit((c) => (c === nextLimit ? c : nextLimit));
   }, [searchParams]);
@@ -136,13 +129,6 @@ function MinutesPageContent() {
       nextParams.set("q", normalizedQuery);
     } else {
       nextParams.delete("q");
-    }
-
-    const normalizedCreatedAt = createdAtFilter.trim();
-    if (normalizedCreatedAt) {
-      nextParams.set("created_at", normalizedCreatedAt);
-    } else {
-      nextParams.delete("created_at");
     }
 
     if (page === 1) {
@@ -169,7 +155,7 @@ function MinutesPageContent() {
     startTransition(() => {
       router.replace(nextUrl, { scroll: false });
     });
-  }, [query, createdAtFilter, page, limit, pathname, router, searchParams, startTransition]);
+  }, [query, page, limit, pathname, router, searchParams, startTransition]);
 
   useEffect(() => {
     if (!token) return;
@@ -177,7 +163,7 @@ function MinutesPageContent() {
     const offset = (page - 1) * limit;
 
     setLoading(true);
-    listMeetingMinutes({ limit, offset, createdAt: createdAtFilter.trim() || undefined }, token)
+    listMeetingMinutes({ limit, offset }, token)
       .then((result) => {
         const sorted = [...(result.items || [])].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
         setItems(sorted);
@@ -188,15 +174,11 @@ function MinutesPageContent() {
         toast.error("Daftar notulen belum berhasil dimuat.");
       })
       .finally(() => setLoading(false));
-  }, [token, page, limit, createdAtFilter]);
+  }, [token, page, limit]);
 
   useEffect(() => {
     setPage(1);
   }, [query]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [createdAtFilter]);
 
   const handleDelete = async () => {
     if (!token || !minuteToDelete) return;
@@ -226,39 +208,19 @@ function MinutesPageContent() {
 
       <CollectionToolbar
         leading={
-          <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
-            <ExpandableSearchField
-              value={query}
-              onChange={setQuery}
-              placeholder="Cari judul, ringkasan, peserta..."
-              ariaLabel="Cari notulen"
-            />
-            <div className="relative w-full sm:w-40">
-              <Calendar className="pointer-events-none absolute left-3 top-1/2 z-10 size-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                type="date"
-                value={createdAtFilter}
-                onChange={(event) => setCreatedAtFilter(event.target.value)}
-                aria-label="Filter tanggal dibuat"
-                className="h-10 bg-card pl-9 text-sm ring-1 ring-inset ring-border/40"
-              />
-            </div>
-          </div>
-        }
-        actions={
-          <AccentButton
-            icon={<Plus className="size-3.5" />}
-            onClick={() => router.push("/minutes/new")}
-          >
-            Buat dari Transkrip
-          </AccentButton>
+          <CollectionSearchField
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Cari judul, ringkasan, peserta..."
+            aria-label="Cari notulen"
+          />
         }
       />
 
       <CollectionTableCard>
         {loading ? (
           <CollectionLoadingState message="Memuat daftar notulen..." />
-        ) : total === 0 && !query.trim() && !createdAtFilter.trim() ? (
+        ) : total === 0 && !query.trim() ? (
           <>
             <CollectionEmptyState
               title="Belum ada notulen tersimpan"

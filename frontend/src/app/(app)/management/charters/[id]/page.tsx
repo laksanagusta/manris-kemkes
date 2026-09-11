@@ -1,524 +1,1413 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import {
-  CheckCircle2,
-  CircleDot,
-  ClipboardPenLine,
-  Loader2,
+  Archive,
+  Check,
+  GitBranch,
+  History,
+  Pencil,
+  RotateCcw,
   Save,
+  Trash2,
 } from "@/components/ui/icons";
 
-import { useAuth } from "@/contexts/auth-context";
-import { listAllOrganizations } from "@/lib/api/organizations";
+import { RemoteUserPicker } from "@/components/risk/remote-user-picker";
+import { FormHeader, FormPage } from "@/components/shared/form-shell";
 import {
-  createRiskCharter,
+  ActionButton,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  CollectionDialogCancel,
+  CollectionErrorState,
+  CollectionLoadingState,
+  CollectionStatusBadge,
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DropdownActionMenu,
+  DocumentListSection,
+  DocumentFormSection,
+  Input,
+  Label,
+  LoadingActionButton,
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  Textarea,
+  VersionTimeline,
+} from "@/components/shared/design-system";
+import { useAuth } from "@/contexts/auth-context";
+import {
+  archiveRiskCharter,
+  createRiskCharterRevision,
+  deleteRiskCharterDraft,
+  finalizeRiskCharter,
   getRiskCharter,
+  listRiskCharterVersions,
+  restoreRiskCharter,
   updateRiskCharter,
 } from "@/lib/api/risk-charters";
-import type { OrganizationListItem } from "@/lib/api/organizations";
-import type { RiskCharter, RiskCharterUPRLevel } from "@/types/risk-charter";
-import { currentAssessmentCycle } from "@/lib/risk-cycle-options";
-import { FormHeader, FormPage } from "@/components/shared/form-shell";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
+import { listUsers } from "@/lib/api/users";
+import type { UserPickerOption } from "@/lib/risk-register-user-picker";
+import type {
+  RiskCharter,
+  RiskCharterLegalBasis,
+  RiskCharterStakeholder,
+  RiskCharterUPRMember,
+  RiskCharterUPRRole,
+} from "@/types/risk-charter";
 
-const uprLevelLabel: Record<RiskCharterUPRLevel, string> = {
-  eksekutif: "Eksekutif",
-  upr_t1: "UPR T1",
-  upr_t2: "UPR T2",
+const statusPresentation = {
+  draft: { label: "Draf", tone: "neutral" },
+  active: { label: "Aktif", tone: "success" },
+  superseded: { label: "Digantikan", tone: "neutral" },
+  archived: { label: "Diarsipkan", tone: "neutral" },
+} as const;
+
+const roleLabel: Record<RiskCharterUPRRole, string> = {
+  chair: "Ketua",
+  secretary: "Sekretaris",
+  member: "Anggota",
+  supervisor: "Pengawas",
 };
-
-const charterStatusLabel: Record<string, string> = {
-  draft: "Draft",
-  in_review: "Diperiksa",
-  active: "Aktif",
-  archived: "Diarsipkan",
-};
-
-function getCharterStatusBadgeClass(status?: string) {
-  switch (status) {
-    case "active":
-      return "border-emerald-200 bg-emerald-50 text-emerald-700";
-    case "in_review":
-      return "border-amber-200 bg-amber-50 text-amber-700";
-    case "archived":
-      return "border-border bg-muted text-muted-foreground";
-    default:
-      return "border-border bg-muted/40 text-muted-foreground";
-  }
-}
 
 const formSchema = z.object({
-  organizationId: z.string().min(1, "Organisasi wajib dipilih"),
-  uprLevel: z.enum(["eksekutif", "upr_t1", "upr_t2"]),
-  period: z.string().min(1, "Periode wajib diisi"),
-  scope: z.string().default(""),
-  legalBasis: z.string().default(""),
-  internalContext: z.string().default(""),
-  externalContext: z.string().default(""),
-  stakeholderSummary: z.string().default(""),
+  title: z
+    .string()
+    .trim()
+    .min(1, "Judul Piagam wajib diisi")
+    .max(120, "Judul Piagam maksimal 120 karakter"),
+  scope: z.string(),
+  legalBases: z.array(
+    z.object({ id: z.string(), reference: z.string(), provision: z.string() }),
+  ),
+  internalContext: z.string(),
+  externalContext: z.string(),
+  stakeholders: z.array(
+    z.object({ id: z.string(), name: z.string(), relationship: z.string() }),
+  ),
+  uprStructure: z.array(
+    z.object({
+      id: z.string(),
+      role: z.enum(["chair", "secretary", "member", "supervisor"]),
+      name: z.string(),
+      position: z.string(),
+      userId: z.string().optional(),
+    }),
+  ),
 });
 
-type FormValues = z.output<typeof formSchema>;
-type FormInput = z.input<typeof formSchema>;
-type SectionId =
-  | "identitas"
-  | "scope"
-  | "legal"
-  | "internal"
-  | "external"
-  | "stakeholder";
+type FormValues = z.infer<typeof formSchema>;
 
-function normalizeFormValues(
-  charter?: RiskCharter | null,
-  defaults?: {
-    organizationId?: string;
-    uprLevel?: RiskCharterUPRLevel;
-    period?: string;
-  },
-): FormValues {
+type ListEditorState =
+  | {
+      kind: "legal";
+      index: number | null;
+      values: RiskCharterLegalBasis;
+    }
+  | {
+      kind: "stakeholder";
+      index: number | null;
+      values: RiskCharterStakeholder;
+    }
+  | {
+      kind: "upr";
+      index: number | null;
+      values: RiskCharterUPRMember;
+    };
+
+function normalizeFormValues(charter: RiskCharter): FormValues {
   return {
-    organizationId: charter?.organizationId ?? defaults?.organizationId ?? "",
-    uprLevel: charter?.uprLevel ?? defaults?.uprLevel ?? "upr_t1",
-    period: charter?.period ?? defaults?.period ?? currentAssessmentCycle(),
-    scope: charter?.scope ?? "",
-    legalBasis: charter?.legalBasis ?? "",
-    internalContext: charter?.internalContext ?? "",
-    externalContext: charter?.externalContext ?? "",
-    stakeholderSummary: charter?.stakeholderSummary ?? "",
+    title: charter.title ?? "",
+    scope: charter.scope ?? "",
+    legalBases: (charter.legalBases ?? []).map((item, index) => ({
+      id: item.id || `legal-${index + 1}`,
+      reference: item.reference ?? "",
+      provision: item.provision ?? "",
+    })),
+    internalContext: charter.internalContext ?? "",
+    externalContext: charter.externalContext ?? "",
+    stakeholders: (charter.stakeholders ?? []).map((item, index) => ({
+      id: item.id || `stakeholder-${index + 1}`,
+      name: item.name ?? "",
+      relationship: item.relationship ?? "",
+    })),
+    uprStructure: (charter.uprStructure ?? []).map((item, index) => {
+      const legacyItem = item as RiskCharterUPRMember & { title?: string };
+      return {
+        id: item.id || `upr-${index + 1}`,
+        role: roleLabel[item.role] ? item.role : "member",
+        name: item.name ?? "",
+        position: item.position ?? legacyItem.title ?? "",
+        userId: item.userId || undefined,
+      };
+    }),
   };
+}
+
+function createRowId(prefix: string) {
+  return `${prefix}-${crypto.randomUUID()}`;
+}
+
+function FieldMessage({ children }: { children?: ReactNode }) {
+  return children ? (
+    <p className="text-xs leading-5 text-destructive" role="alert">
+      {children}
+    </p>
+  ) : null;
+}
+
+function ReadOnlyValue({ children }: { children: ReactNode }) {
+  return (
+    <p className="min-h-10 whitespace-pre-wrap py-2 text-sm leading-6 text-foreground">
+      {children || <span className="text-muted-foreground">Belum diisi</span>}
+    </p>
+  );
 }
 
 export default function RiskCharterDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { token, user } = useAuth();
-  const isCreateMode = id === "new";
-
-  const [loading, setLoading] = useState(!isCreateMode);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [organizations, setOrganizations] = useState<OrganizationListItem[]>(
-    [],
-  );
+  const [working, setWorking] = useState(false);
   const [charter, setCharter] = useState<RiskCharter | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [versions, setVersions] = useState<RiskCharter[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [finalizeOpen, setFinalizeOpen] = useState(false);
+  const [revisionOpen, setRevisionOpen] = useState(false);
+  const [revisionReason, setRevisionReason] = useState("");
+  const [archiveOpen, setArchiveOpen] = useState(false);
+  const [restoreOpen, setRestoreOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [leaveOpen, setLeaveOpen] = useState(false);
+  const [pendingPath, setPendingPath] = useState<string | null>(null);
+  const [listEditor, setListEditor] = useState<ListEditorState | null>(null);
+  const [listEditorError, setListEditorError] = useState<string | null>(null);
 
-  const form = useForm<FormInput, unknown, FormValues>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: normalizeFormValues(null),
+    defaultValues: {
+      title: "",
+      scope: "",
+      legalBases: [],
+      internalContext: "",
+      externalContext: "",
+      stakeholders: [],
+      uprStructure: [],
+    },
     mode: "onBlur",
   });
 
-  const { formState } = form;
-  const isDirty = formState.isDirty;
+  const { errors, isDirty } = form.formState;
+  const isEditable = charter?.status === "draft";
+  const watched = form.watch();
+
+  const loadData = useCallback(async () => {
+    if (!token) return;
+    try {
+      setLoading(true);
+      setLoadError(null);
+      const loadedCharter = await getRiskCharter(token, id);
+      setCharter(loadedCharter);
+      form.reset(normalizeFormValues(loadedCharter));
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Gagal memuat Piagam.";
+      setLoadError(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  }, [form, id, token]);
 
   useEffect(() => {
-    if (!token) return;
+    void loadData();
+  }, [loadData]);
 
-    const activeToken = token;
-    let active = true;
-
-    async function load() {
-      try {
-        setLoading(!isCreateMode);
-        const [orgs, currentCharter] = await Promise.all([
-          listAllOrganizations(activeToken),
-          isCreateMode
-            ? Promise.resolve(null)
-            : getRiskCharter(activeToken, id),
-        ]);
-
-        if (!active) return;
-        setOrganizations(orgs);
-        setCharter(currentCharter);
-        form.reset(
-          normalizeFormValues(currentCharter, {
-            organizationId:
-              currentCharter?.organizationId ?? user?.organizationId ?? "",
-            uprLevel:
-              currentCharter?.uprLevel ??
-              (orgs.find(
-                (organization) => organization.id === user?.organizationId,
-              )?.uprLevel as RiskCharterUPRLevel | undefined) ??
-              "upr_t1",
-            period: currentCharter?.period ?? currentAssessmentCycle(),
-          }),
-        );
-      } catch (err) {
-        if (!active) return;
-        const message =
-          err instanceof Error ? err.message : "Gagal memuat piagam.";
-        toast.error(message);
-        router.push("/management/charters");
-      } finally {
-        if (active) setLoading(false);
-      }
-    }
-
-    load();
-    return () => {
-      active = false;
-    };
-  }, [form, id, isCreateMode, router, token, user?.organizationId]);
-
-  const watched = form.watch();
-  const currentStatus = charter?.status ?? "draft";
-  const currentOrganization = useMemo(
-    () =>
-      organizations.find(
-        (organization) => organization.id === watched.organizationId,
-      ) ?? null,
-    [organizations, watched.organizationId],
-  );
-
-  // Unsaved changes warning
   useEffect(() => {
     if (!isDirty) return;
-    function handleBeforeUnload(event: BeforeUnloadEvent) {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault();
-    }
+    };
     window.addEventListener("beforeunload", handleBeforeUnload);
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [isDirty]);
 
-  const sections = useMemo(() => {
-    const items: Array<{
-      id: SectionId;
-      title: string;
-      required: boolean;
-      done: boolean;
-    }> = [
-      {
-        id: "identitas",
-        title: "Identitas Piagam",
-        required: true,
-        done: Boolean(
-          watched.organizationId && watched.period && watched.uprLevel,
-        ),
-      },
-      {
-        id: "scope",
-        title: "Ruang Lingkup",
-        required: false,
-        done: Boolean(watched.scope?.trim()),
-      },
-      {
-        id: "legal",
-        title: "Dasar Hukum",
-        required: false,
-        done: Boolean(watched.legalBasis?.trim()),
-      },
-      {
-        id: "internal",
-        title: "Konteks Internal",
-        required: false,
-        done: Boolean(watched.internalContext?.trim()),
-      },
-      {
-        id: "external",
-        title: "Konteks Eksternal",
-        required: false,
-        done: Boolean(watched.externalContext?.trim()),
-      },
-      {
-        id: "stakeholder",
-        title: "Ringkasan Stakeholder",
-        required: false,
-        done: Boolean(watched.stakeholderSummary?.trim()),
-      },
-    ];
+  const saveDraft = useCallback(
+    async (values?: FormValues) => {
+      if (!token || !charter || !isEditable) return false;
+      const nextValues = values ?? (await form.trigger() ? form.getValues() : null);
+      if (!nextValues) return false;
+      try {
+        setSaving(true);
+        const updated = await updateRiskCharter(token, charter.id, nextValues);
+        setCharter(updated);
+        form.reset(normalizeFormValues(updated));
+        toast.success("Draf Piagam tersimpan.");
+        return true;
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Draf belum berhasil disimpan.",
+        );
+        return false;
+      } finally {
+        setSaving(false);
+      }
+    },
+    [charter, form, isEditable, token],
+  );
 
-    return items;
+  useEffect(() => {
+    if (!isEditable) return;
+    const handleSaveShortcut = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
+        event.preventDefault();
+        void form.handleSubmit((values) => saveDraft(values))();
+      }
+    };
+    window.addEventListener("keydown", handleSaveShortcut);
+    return () => window.removeEventListener("keydown", handleSaveShortcut);
+  }, [form, isEditable, saveDraft]);
+
+  const finalizationIssues = useMemo(() => {
+    const issues: string[] = [];
+    if (!watched.title.trim()) issues.push("Judul Piagam");
+    if (!watched.scope.trim()) issues.push("Ruang lingkup");
+    if (
+      watched.legalBases.length === 0 ||
+      watched.legalBases.some((item) => !item.reference.trim())
+    ) {
+      issues.push("Minimal satu dasar hukum dengan referensi");
+    }
+    if (!watched.internalContext.trim()) issues.push("Konteks internal");
+    if (!watched.externalContext.trim()) issues.push("Konteks eksternal");
+    if (
+      watched.stakeholders.length === 0 ||
+      watched.stakeholders.some(
+        (item) => !item.name.trim() || !item.relationship.trim(),
+      )
+    ) {
+      issues.push("Minimal satu stakeholder eksternal beserta hubungannya");
+    }
+    const completeMembers = watched.uprStructure.filter(
+      (item) => item.name.trim() && item.position.trim(),
+    );
+    const count = (role: RiskCharterUPRRole) =>
+      completeMembers.filter((item) => item.role === role).length;
+    if (
+      count("chair") !== 1 ||
+      count("secretary") !== 1 ||
+      count("member") < 1 ||
+      count("supervisor") !== 1
+    ) {
+      issues.push("Ketua, sekretaris, minimal satu anggota, dan pengawas UPR");
+    }
+    return issues;
   }, [watched]);
 
-  async function onSubmit(values: FormValues) {
-    if (!token) return;
+  const navigate = useCallback(
+    (path: string) => {
+      if (!isDirty) {
+        router.push(path);
+        return;
+      }
+      setPendingPath(path);
+      setLeaveOpen(true);
+    },
+    [isDirty, router],
+  );
 
-    const activeToken = token;
-
+  const loadVersions = useCallback(async () => {
+    if (!token || !charter) return;
     try {
-      setSaving(true);
-      const payload = { ...values };
-
-      const response = isCreateMode
-        ? await createRiskCharter(activeToken, payload)
-        : await updateRiskCharter(activeToken, id, payload);
-
-      toast.success(
-        isCreateMode
-          ? "Piagam berhasil dibuat."
-          : "Piagam berhasil diperbarui.",
+      setHistoryLoading(true);
+      setVersions(await listRiskCharterVersions(token, charter.id));
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Riwayat versi gagal dimuat.",
       );
-      router.replace(`/management/charters/${response.id}`);
-    } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Gagal menyimpan piagam.";
-      toast.error(message);
     } finally {
-      setSaving(false);
+      setHistoryLoading(false);
     }
-  }
+  }, [charter, token]);
+
+  const openHistory = useCallback(() => {
+    setHistoryOpen(true);
+    void loadVersions();
+  }, [loadVersions]);
+
+  const runWorkflow = useCallback(
+    async (action: () => Promise<RiskCharter>, successMessage: string) => {
+      try {
+        setWorking(true);
+        const updated = await action();
+        setCharter(updated);
+        form.reset(normalizeFormValues(updated));
+        toast.success(successMessage);
+        return updated;
+      } catch (error) {
+        toast.error(
+          error instanceof Error ? error.message : "Tindakan belum berhasil.",
+        );
+        return null;
+      } finally {
+        setWorking(false);
+      }
+    },
+    [form],
+  );
 
   if (loading) {
     return (
       <FormPage className="max-w-5xl">
-        <Card>
-          <CardContent className="flex min-h-[320px] items-center justify-center gap-3 text-sm text-muted-foreground">
-            <Loader2 className="size-5 animate-spin" />
-            Memuat detail piagam...
-          </CardContent>
-        </Card>
+        <CollectionLoadingState message="Memuat detail Piagam..." />
       </FormPage>
     );
   }
 
+  if (loadError || !charter) {
+    return (
+      <FormPage className="max-w-5xl">
+        <FormHeader
+          title="Detail Piagam"
+          subtitle="Piagam belum dapat ditampilkan."
+          showTitle
+          backActionPlacement="local"
+          onBack={() => router.push("/management/charters")}
+          backLabel="Kembali ke Piagam"
+        />
+        <CollectionErrorState
+          title="Gagal memuat Piagam"
+          message={loadError ?? "Data Piagam tidak ditemukan."}
+          onReload={() => void loadData()}
+        />
+      </FormPage>
+    );
+  }
+
+  const status = statusPresentation[charter.status];
+  const canDelete =
+    charter.status === "draft" &&
+    (charter.createdBy === user?.id ||
+      user?.role === "superadmin" ||
+      user?.role === "super_admin");
+
+  function replaceLegalBases(items: RiskCharterLegalBasis[]) {
+    form.setValue("legalBases", items, { shouldDirty: true });
+  }
+
+  function replaceStakeholders(items: RiskCharterStakeholder[]) {
+    form.setValue("stakeholders", items, { shouldDirty: true });
+  }
+
+  function replaceUPRStructure(items: RiskCharterUPRMember[]) {
+    form.setValue("uprStructure", items, { shouldDirty: true });
+  }
+
+  function openLegalEditor(index?: number) {
+    const values =
+      index === undefined
+        ? { id: createRowId("legal"), reference: "", provision: "" }
+        : watched.legalBases[index];
+    if (!values) return;
+    setListEditor({
+      kind: "legal",
+      index: index ?? null,
+      values: { ...values },
+    });
+    setListEditorError(null);
+  }
+
+  function openStakeholderEditor(index?: number) {
+    const values =
+      index === undefined
+        ? { id: createRowId("stakeholder"), name: "", relationship: "" }
+        : watched.stakeholders[index];
+    if (!values) return;
+    setListEditor({
+      kind: "stakeholder",
+      index: index ?? null,
+      values: { ...values },
+    });
+    setListEditorError(null);
+  }
+
+  function openUPREditor(index?: number) {
+    const values =
+      index === undefined
+        ? { id: createRowId("upr"), role: "member" as const, name: "", position: "" }
+        : watched.uprStructure[index];
+    if (!values) return;
+    setListEditor({
+      kind: "upr",
+      index: index ?? null,
+      values: { ...values },
+    });
+    setListEditorError(null);
+  }
+
+  function closeListEditor(open: boolean) {
+    if (open) return;
+    setListEditor(null);
+    setListEditorError(null);
+  }
+
+  function saveListEditor() {
+    if (!listEditor) return;
+
+    if (listEditor.kind === "legal") {
+      const reference = listEditor.values.reference.trim();
+      if (!reference) {
+        setListEditorError("Referensi wajib diisi.");
+        return;
+      }
+      const next = {
+        ...listEditor.values,
+        reference,
+        provision: listEditor.values.provision.trim(),
+      };
+      const items = [...watched.legalBases];
+      if (listEditor.index === null) items.push(next);
+      else items[listEditor.index] = next;
+      replaceLegalBases(items);
+    }
+
+    if (listEditor.kind === "stakeholder") {
+      const name = listEditor.values.name.trim();
+      const relationship = listEditor.values.relationship.trim();
+      if (!name || !relationship) {
+        setListEditorError("Nama pihak dan hubungan wajib diisi.");
+        return;
+      }
+      const next = { ...listEditor.values, name, relationship };
+      const items = [...watched.stakeholders];
+      if (listEditor.index === null) items.push(next);
+      else items[listEditor.index] = next;
+      replaceStakeholders(items);
+    }
+
+    if (listEditor.kind === "upr") {
+      if (!listEditor.values.userId) {
+        setListEditorError(
+          "Pilih pengguna organisasi agar nama dan jabatan terisi otomatis.",
+        );
+        return;
+      }
+      const name = listEditor.values.name.trim();
+      const position = listEditor.values.position.trim();
+      if (!name || !position) {
+        setListEditorError("Jabatan pengguna belum tersedia.");
+        return;
+      }
+      const next = { ...listEditor.values, name, position };
+      const items = [...watched.uprStructure];
+      if (listEditor.index === null) items.push(next);
+      else items[listEditor.index] = next;
+      replaceUPRStructure(items);
+    }
+
+    setListEditor(null);
+    setListEditorError(null);
+  }
+
+  const loadUserOptions = async ({
+    q,
+    page,
+    limit,
+  }: {
+    q: string;
+    page: number;
+    limit: number;
+  }) => {
+    if (!token) return { options: [], total: 0, page, limit };
+    const result = await listUsers(token, {
+      q,
+      page,
+      limit,
+      status: "active",
+      organizationId: charter.organizationId,
+    });
+    return {
+      ...result,
+      options: result.data.map(
+        (item): UserPickerOption => ({
+          id: item.id,
+          name: item.name,
+          role: item.role,
+          email: item.email,
+          nip: item.nip,
+          jabatan: item.jabatan,
+          pangkat: item.pangkat,
+          orgName: item.orgName,
+          subtitle: [item.jabatan, item.nip].filter(Boolean).join(" · "),
+        }),
+      ),
+    };
+  };
+
   return (
-    <FormPage className="max-w-5xl">
-      <FormHeader
-        title={isCreateMode ? "Buat Piagam" : "Detail Piagam"}
-        onBack={() => router.push("/management/charters")}
-        backLabel="Kembali ke Piagam"
-        badges={
-          <>
-            <Badge className="gap-2 -primary/15 bg-primary/[0.06] px-2.5 py-0.5 text-primary">
-              <ClipboardPenLine className="size-3.5" />
-              Risk Governance
-            </Badge>
-            <Badge
- variant="outline"
- className={cn(
- "gap-2 px-2.5 py-0.5 text-[11px]",
- getCharterStatusBadgeClass(currentStatus),
- )}
-            >
-              {charterStatusLabel[currentStatus] ?? currentStatus}
-            </Badge>
+    <FormPage className="max-w-5xl space-y-0">
+      <div className="px-6 pb-6 lg:px-8">
+        <FormHeader
+          title="Detail Piagam"
+          subtitle="Tinjau mandat dan ruang lingkup piagam manajemen risiko."
+          showTitle
+          backActionPlacement="local"
+          onBack={() => navigate("/management/charters")}
+          backLabel="Kembali ke Piagam"
+          badges={
+            <>
+            <CollectionStatusBadge tone={status.tone}>
+              {status.label}
+            </CollectionStatusBadge>
           </>
-        }
-        actions={
-          <Button
-            onClick={form.handleSubmit(onSubmit)}
-            disabled={saving}
-            className="gap-2"
-          >
-            {saving ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <Save className="size-4" />
-            )}
-            {isCreateMode ? "Simpan Piagam" : "Perbarui Piagam"}
-          </Button>
-        }
-      />
-
-      <form onSubmit={form.handleSubmit(onSubmit)}>
-        <Card>
-          <CardContent className="space-y-0 p-0">
-            {sections.map((section, index) => (
-              <section
-                key={section.id}
-                id={section.id}
-                className="scroll-mt-24"
-              >
-                {index > 0 && <Separator className="bg-border/50" />}
-                <div
-                  className={cn(
-                    "flex items-center gap-2",
-                    index === 0 ? "px-6 pt-6 pb-4" : "px-6 pt-5 pb-4",
-                  )}
+          }
+          actionsPlacement="header"
+          actions={
+            <div className="flex items-center gap-2">
+              <DropdownActionMenu
+                label="Tindakan Piagam"
+                items={[
+                  {
+                    id: "history",
+                    label: "Riwayat versi",
+                    icon: <History className="size-3.5" aria-hidden="true" />,
+                    onSelect: openHistory,
+                  },
+                  ...(charter.status === "active" && charter.isCurrent
+                    ? [
+                        {
+                          id: "revision",
+                          label: "Buat revisi",
+                          icon: <GitBranch className="size-3.5" aria-hidden="true" />,
+                          onSelect: () => setRevisionOpen(true),
+                        },
+                        {
+                          id: "archive",
+                          label: "Arsipkan",
+                          icon: <Archive className="size-3.5" aria-hidden="true" />,
+                          onSelect: () => setArchiveOpen(true),
+                        },
+                      ]
+                    : []),
+                  ...(charter.status === "archived"
+                    ? [
+                        {
+                          id: "restore",
+                          label: "Pulihkan",
+                          icon: <RotateCcw className="size-3.5" aria-hidden="true" />,
+                          onSelect: () => setRestoreOpen(true),
+                        },
+                      ]
+                    : []),
+                  ...(canDelete
+                    ? [
+                        {
+                          id: "delete",
+                          label: "Hapus draf",
+                          tone: "danger" as const,
+                          icon: <Trash2 className="size-3.5" aria-hidden="true" />,
+                          onSelect: () => setDeleteOpen(true),
+                        },
+                      ]
+                    : []),
+                ]}
+              />
+              {isEditable ? (
+                <LoadingActionButton
+                  type="button"
+                  variant="secondary"
+                  size="primary"
+                  loading={saving}
+                  loadingLabel="Menyimpan..."
+                  disabled={!isDirty}
+                  onClick={form.handleSubmit((values) => saveDraft(values))}
                 >
-                  <h3 className="text-sm font-semibold text-foreground md:text-base">
-                    {section.title}
-                  </h3>
-                  {section.required ? (
-                    <span className="text-[11px] font-medium uppercase tracking-[0.12em] text-primary/80">
-                      Wajib
-                    </span>
-                  ) : (
-                    <span className="text-[11px] text-muted-foreground">
-                      opsional
-                    </span>
-                  )}
-                  <div
-                    className={cn(
-                      "ml-auto flex size-6 shrink-0 items-center justify-center rounded-full",
-                      section.done
-                        ? "bg-success/10 text-success"
-                        : "bg-muted/40 text-muted-foreground",
-                    )}
-                  >
-                    {section.done ? (
-                      <CheckCircle2 className="size-3.5" />
-                    ) : (
-                      <CircleDot className="size-3.5" />
-                    )}
-                  </div>
-                </div>
+                  <Save className="size-4" />
+                  Simpan draf
+                </LoadingActionButton>
+              ) : null}
+              {charter.status === "draft" ? (
+                <ActionButton
+                  type="button"
+                  variant="primary"
+                  size="primary"
+                  icon={<Check className="size-4" />}
+                  onClick={() => {
+                    if (isDirty) {
+                      toast.info("Simpan perubahan sebelum finalisasi.");
+                      return;
+                    }
+                    setFinalizeOpen(true);
+                  }}
+                >
+                  Finalisasi
+                </ActionButton>
+              ) : null}
+            </div>
+          }
+        />
+      </div>
 
-                <div className="px-6 pb-6">
-                  {section.id === "identitas" ? (
-                    <div className="space-y-4">
-                      <p className="text-xs leading-5 text-muted-foreground">
-                        Identitas piagam diturunkan otomatis dari konteks akun
-                        dan organisasi aktif. Ubah konteks organisasi melalui
-                        pengaturan akun bila perlu.
-                      </p>
-                      <div className="grid gap-4 md:grid-cols-3">
-                        <div className="rounded-2xl border border-border/60 bg-muted/20 p-4">
-                          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                            Organisasi
-                          </p>
-                          <p className="mt-2 text-sm font-medium text-foreground">
-                            {currentOrganization?.name ??
-                              user?.orgName ??
-                              "Belum tersedia"}
-                          </p>
-                          {!watched.organizationId ? (
-                            <p className="mt-2 text-xs text-destructive">
-                              Organisasi aktif belum tersedia pada akun ini.
-                            </p>
-                          ) : null}
-                          {formState.errors.organizationId ? (
-                            <p className="mt-2 text-xs text-destructive">
-                              {formState.errors.organizationId.message}
-                            </p>
-                          ) : null}
-                        </div>
-                        <div className="rounded-2xl border border-border/60 bg-muted/20 p-4">
-                          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                            Level UPR
-                          </p>
-                          <p className="mt-2 text-sm font-medium text-foreground">
-                            {uprLevelLabel[watched.uprLevel] ??
-                              watched.uprLevel}
-                          </p>
-                          {formState.errors.uprLevel ? (
-                            <p className="mt-2 text-xs text-destructive">
-                              {formState.errors.uprLevel.message}
-                            </p>
-                          ) : null}
-                        </div>
-                        <div className="rounded-2xl border border-border/60 bg-muted/20 p-4">
-                          <p className="text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground">
-                            Periode
-                          </p>
-                          <p className="mt-2 text-sm font-medium text-foreground">
-                            {watched.period || currentAssessmentCycle()}
-                          </p>
-                          {formState.errors.period ? (
-                            <p className="mt-2 text-xs text-destructive">
-                              {formState.errors.period.message}
-                            </p>
-                          ) : null}
-                        </div>
-                      </div>
-                    </div>
-                  ) : null}
+      <form onSubmit={form.handleSubmit((values) => saveDraft(values))}>
+        <div className="space-y-3 pb-8 lg:pb-10">
+        <section className="px-6 lg:px-8">
+          <div className="flex flex-col gap-3">
+            <Label htmlFor="charter-title">
+              Judul Piagam
+            </Label>
+            {isEditable ? (
+              <Textarea
+                id="charter-title"
+                {...form.register("title")}
+                maxLength={120}
+                rows={1}
+                placeholder="Judul Piagam"
+                aria-invalid={Boolean(errors.title)}
+                className="min-h-0 resize-none overflow-hidden rounded-none border-0 bg-transparent px-0 py-1 text-2xl font-semibold leading-tight tracking-tight shadow-none placeholder:text-muted-foreground/60 hover:border-0 focus:border-0 focus-visible:border-0 focus-visible:ring-0 lg:text-3xl"
+              />
+            ) : (
+              <h1 className="break-words whitespace-pre-wrap text-2xl font-semibold leading-tight tracking-tight text-foreground lg:text-3xl">
+                {watched.title}
+              </h1>
+            )}
+            <FieldMessage>{errors.title?.message}</FieldMessage>
+          </div>
+        </section>
 
-                  {section.id === "scope" ? (
-                    <div className="space-y-2">
-                      <p className="text-xs leading-5 text-muted-foreground">
-                        Cakupan proses, unit, dan area kerja yang termasuk dalam
-                        piagam. Juga batasan yang tidak termasuk.
-                      </p>
-                      <Textarea
-                        value={watched.scope}
-                        onChange={(event) =>
-                          form.setValue("scope", event.target.value)
-                        }
-                        placeholder="Jelaskan cakupan piagam, proses, unit, dan area kerja yang termasuk dalam charter ini."
-                        className="min-h-[160px]"
-                      />
-                    </div>
-                  ) : null}
+        <DocumentFormSection
+          showDivider={false}
+          stacked
+          title="Ruang Lingkup"
+          titleId="charter-scope-label"
+          className="!mt-6 gap-3 py-0 lg:py-0"
+        >
+            {isEditable ? (
+              <Textarea
+                id="charter-scope"
+                aria-labelledby="charter-scope-label"
+                {...form.register("scope")}
+                placeholder="Tuliskan ruang lingkup penerapan manajemen risiko."
+                className="min-h-32 resize-none leading-6"
+              />
+            ) : (
+              <ReadOnlyValue>{watched.scope}</ReadOnlyValue>
+            )}
+        </DocumentFormSection>
 
-                  {section.id === "legal" ? (
-                    <div className="space-y-2">
-                      <p className="text-xs leading-5 text-muted-foreground">
-                        Regulasi, keputusan, pedoman, atau mandat yang menjadi
-                        landasan piagam. Cantumkan nomor dan tahun peraturan.
-                      </p>
-                      <Textarea
-                        value={watched.legalBasis}
-                        onChange={(event) =>
-                          form.setValue("legalBasis", event.target.value)
-                        }
-                        placeholder="Cantumkan regulasi, keputusan, pedoman, atau mandat yang menjadi dasar piagam."
-                        className="min-h-[160px]"
-                      />
-                    </div>
-                  ) : null}
+          <DocumentListSection
+            title="Dasar Hukum"
+            addLabel="Tambah dasar hukum"
+            onAdd={isEditable ? () => openLegalEditor() : undefined}
+            emptyMessage="Belum ada dasar hukum."
+            className="mx-6 !mt-6 lg:mx-8"
+            items={watched.legalBases.map((item, index) => ({
+              id: item.id,
+              title: item.reference || "Referensi belum diisi",
+              meta: item.provision || "Ketentuan relevan belum diisi",
+              action: isEditable ? (
+                <DropdownActionMenu
+                  label={`Tindakan dasar hukum ${index + 1}`}
+                  className="border-0 bg-transparent text-muted-foreground shadow-none hover:bg-transparent hover:text-muted-foreground"
+                  items={[
+                    {
+                      id: "edit",
+                      label: "Edit",
+                      icon: <Pencil className="size-3.5" aria-hidden="true" />,
+                      onSelect: () => openLegalEditor(index),
+                    },
+                    {
+                      id: "delete",
+                      label: "Hapus",
+                      tone: "danger",
+                      icon: <Trash2 className="size-3.5" aria-hidden="true" />,
+                      onSelect: () =>
+                        replaceLegalBases(
+                          watched.legalBases.filter(
+                            (candidate) => candidate.id !== item.id,
+                          ),
+                        ),
+                    },
+                  ]}
+                />
+              ) : null,
+            }))}
+          />
 
-                  {section.id === "internal" ? (
-                    <div className="space-y-2">
-                      <p className="text-xs leading-5 text-muted-foreground">
-                        Kondisi internal: struktur organisasi, kapasitas sumber
-                        daya, budaya risiko, dan isu operasional utama.
-                      </p>
-                      <Textarea
-                        value={watched.internalContext}
-                        onChange={(event) =>
-                          form.setValue("internalContext", event.target.value)
-                        }
-                        placeholder="Tuliskan kondisi internal, struktur organisasi, kapasitas, dan isu operasional utama yang memengaruhi charter."
-                        className="min-h-[180px]"
-                      />
-                    </div>
-                  ) : null}
+        <DocumentFormSection
+          showDivider={false}
+          stacked
+          title="Konteks Internal"
+          titleId="charter-internal-context-label"
+          className="!mt-6 gap-3 py-0 lg:py-0"
+        >
+            {isEditable ? (
+              <Textarea
+                id="charter-internal-context"
+                aria-labelledby="charter-internal-context-label"
+                {...form.register("internalContext")}
+                placeholder="Tuliskan kondisi internal yang memengaruhi pengelolaan risiko."
+                className="min-h-32 resize-none leading-6"
+              />
+            ) : (
+              <ReadOnlyValue>{watched.internalContext}</ReadOnlyValue>
+            )}
+        </DocumentFormSection>
 
-                  {section.id === "external" ? (
-                    <div className="space-y-2">
-                      <p className="text-xs leading-5 text-muted-foreground">
-                        Faktor regulasi, politik, sosial, lintas instansi, dan
-                        kondisi lingkungan eksternal yang memengaruhi
-                        pengelolaan risiko.
-                      </p>
-                      <Textarea
-                        value={watched.externalContext}
-                        onChange={(event) =>
-                          form.setValue("externalContext", event.target.value)
-                        }
-                        placeholder="Tuliskan faktor regulasi, politik, sosial, lintas instansi, dan kondisi eksternal lain yang relevan."
-                        className="min-h-[180px]"
-                      />
-                    </div>
-                  ) : null}
+        <DocumentFormSection
+          showDivider={false}
+          stacked
+          title="Konteks Eksternal"
+          titleId="charter-external-context-label"
+          className="!mt-6 gap-3 py-0 lg:py-0"
+        >
+            {isEditable ? (
+              <Textarea
+                id="charter-external-context"
+                aria-labelledby="charter-external-context-label"
+                {...form.register("externalContext")}
+                placeholder="Tuliskan kondisi eksternal yang memengaruhi pengelolaan risiko."
+                className="min-h-32 resize-none leading-6"
+              />
+            ) : (
+              <ReadOnlyValue>{watched.externalContext}</ReadOnlyValue>
+            )}
+        </DocumentFormSection>
 
-                  {section.id === "stakeholder" ? (
-                    <div className="space-y-2">
-                      <p className="text-xs leading-5 text-muted-foreground">
-                        Pihak utama yang terpengaruh atau memengaruhi charter:
-                        ekspektasi, peran, dan keterkaitannya dengan pengelolaan
-                        risiko.
-                      </p>
-                      <Textarea
-                        value={watched.stakeholderSummary}
-                        onChange={(event) =>
-                          form.setValue(
-                            "stakeholderSummary",
-                            event.target.value,
-                          )
-                        }
-                        placeholder="Ringkas stakeholder utama, ekspektasi mereka, dan keterkaitannya dengan charter MR."
-                        className="min-h-[180px]"
-                      />
-                    </div>
-                  ) : null}
-                </div>
-              </section>
-            ))}
-          </CardContent>
-        </Card>
+          <DocumentListSection
+            title="Stakeholder Eksternal"
+            addLabel="Tambah stakeholder"
+            onAdd={isEditable ? () => openStakeholderEditor() : undefined}
+            emptyMessage="Belum ada stakeholder eksternal."
+            className="mx-6 !mt-6 lg:mx-8"
+            items={watched.stakeholders.map((item, index) => ({
+              id: item.id,
+              title: item.name || "Nama pihak belum diisi",
+              meta: item.relationship || "Hubungan belum diisi",
+              action: isEditable ? (
+                <DropdownActionMenu
+                  label={`Tindakan stakeholder ${index + 1}`}
+                  className="border-0 bg-transparent text-muted-foreground shadow-none hover:bg-transparent hover:text-muted-foreground"
+                  items={[
+                    {
+                      id: "edit",
+                      label: "Edit",
+                      icon: <Pencil className="size-3.5" aria-hidden="true" />,
+                      onSelect: () => openStakeholderEditor(index),
+                    },
+                    {
+                      id: "delete",
+                      label: "Hapus",
+                      tone: "danger",
+                      icon: <Trash2 className="size-3.5" aria-hidden="true" />,
+                      onSelect: () =>
+                        replaceStakeholders(
+                          watched.stakeholders.filter(
+                            (candidate) => candidate.id !== item.id,
+                          ),
+                        ),
+                    },
+                  ]}
+                />
+              ) : null,
+            }))}
+          />
+
+          <DocumentListSection
+            title="Struktur UPR"
+            addLabel="Tambah personel"
+            onAdd={isEditable ? () => openUPREditor() : undefined}
+            emptyMessage="Belum ada personel UPR."
+            className="mx-6 !mt-6 lg:mx-8"
+            items={watched.uprStructure.map((member, index) => ({
+              id: member.id,
+              title: member.name || "Personel belum diisi",
+              meta:
+                [roleLabel[member.role], member.position].filter(Boolean).join(" · ") ||
+                "Peran dan jabatan belum diisi",
+              action: isEditable ? (
+                <DropdownActionMenu
+                  label={`Tindakan personel ${index + 1}`}
+                  className="border-0 bg-transparent text-muted-foreground shadow-none hover:bg-transparent hover:text-muted-foreground"
+                  items={[
+                    {
+                      id: "edit",
+                      label: "Edit",
+                      icon: <Pencil className="size-3.5" aria-hidden="true" />,
+                      onSelect: () => openUPREditor(index),
+                    },
+                    {
+                      id: "delete",
+                      label: "Hapus",
+                      tone: "danger",
+                      icon: <Trash2 className="size-3.5" aria-hidden="true" />,
+                      onSelect: () =>
+                        replaceUPRStructure(
+                          watched.uprStructure.filter(
+                            (candidate) => candidate.id !== member.id,
+                          ),
+                        ),
+                    },
+                  ]}
+                />
+              ) : null,
+            }))}
+          />
+        </div>
       </form>
+
+      <Dialog open={Boolean(listEditor)} onOpenChange={closeListEditor}>
+        <DialogContent className="max-w-2xl no-scrollbar" showCloseButton={false}>
+          <div className="flex min-h-0 flex-col gap-5">
+            <DialogHeader>
+              <DialogTitle>
+                {listEditor?.kind === "legal"
+                  ? listEditor.index === null
+                    ? "Tambah dasar hukum"
+                    : "Edit dasar hukum"
+                  : listEditor?.kind === "stakeholder"
+                    ? listEditor.index === null
+                      ? "Tambah stakeholder eksternal"
+                      : "Edit stakeholder eksternal"
+                    : listEditor?.kind === "upr"
+                      ? listEditor.index === null
+                        ? "Tambah personel UPR"
+                        : "Edit personel UPR"
+                      : "Tambah item"}
+              </DialogTitle>
+              <DialogDescription>
+                Lengkapi data ini untuk menampilkannya sebagai item di daftar Piagam.
+              </DialogDescription>
+            </DialogHeader>
+
+            {listEditor?.kind === "legal" ? (
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <Label htmlFor="legal-reference-modal">Referensi</Label>
+                  <Input
+                    id="legal-reference-modal"
+                    autoFocus
+                    value={listEditor.values.reference}
+                    placeholder="Contoh: KMK Nomor HK.01.07/..."
+                    onChange={(event) =>
+                      setListEditor((current) =>
+                        current?.kind === "legal"
+                          ? {
+                              ...current,
+                              values: {
+                                ...current.values,
+                                reference: event.target.value,
+                              },
+                            }
+                          : current,
+                      )
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="legal-provision-modal">Ketentuan relevan</Label>
+                  <Input
+                    id="legal-provision-modal"
+                    value={listEditor.values.provision}
+                    placeholder="Pasal atau pokok ketentuan"
+                    onChange={(event) =>
+                      setListEditor((current) =>
+                        current?.kind === "legal"
+                          ? {
+                              ...current,
+                              values: {
+                                ...current.values,
+                                provision: event.target.value,
+                              },
+                            }
+                          : current,
+                      )
+                    }
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            {listEditor?.kind === "stakeholder" ? (
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <Label htmlFor="stakeholder-name-modal">Nama pihak</Label>
+                  <Input
+                    id="stakeholder-name-modal"
+                    autoFocus
+                    value={listEditor.values.name}
+                    placeholder="Nama instansi atau pihak"
+                    onChange={(event) =>
+                      setListEditor((current) =>
+                        current?.kind === "stakeholder"
+                          ? {
+                              ...current,
+                              values: {
+                                ...current.values,
+                                name: event.target.value,
+                              },
+                            }
+                          : current,
+                      )
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="stakeholder-relationship-modal">Hubungan</Label>
+                  <Textarea
+                    id="stakeholder-relationship-modal"
+                    value={listEditor.values.relationship}
+                    placeholder="Kepentingan, ekspektasi, atau peran"
+                    className="min-h-24 resize-none"
+                    onChange={(event) =>
+                      setListEditor((current) =>
+                        current?.kind === "stakeholder"
+                          ? {
+                              ...current,
+                              values: {
+                                ...current.values,
+                                relationship: event.target.value,
+                              },
+                            }
+                          : current,
+                      )
+                    }
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            {listEditor?.kind === "upr" ? (
+              <div className="space-y-4">
+                <div className="space-y-1">
+                  <Label htmlFor="upr-role-modal">Peran</Label>
+                  <Select
+                    value={listEditor.values.role}
+                    onValueChange={(value) =>
+                      setListEditor((current) =>
+                        current?.kind === "upr"
+                          ? {
+                              ...current,
+                              values: {
+                                ...current.values,
+                                role: value as RiskCharterUPRRole,
+                              },
+                            }
+                          : current,
+                      )
+                    }
+                  >
+                    <SelectTrigger id="upr-role-modal" className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {Object.entries(roleLabel).map(([value, label]) => (
+                        <SelectItem key={value} value={value}>
+                          {label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label>Pilih pengguna organisasi</Label>
+                  <RemoteUserPicker
+                    title="Pilih personel UPR"
+                    description="Pilih pengguna dari organisasi yang sama; nama dan jabatan terisi otomatis."
+                    placeholder="Cari pengguna"
+                    searchPlaceholder="Cari nama, NIP, atau jabatan"
+                    emptyMessage="Pengguna tidak ditemukan."
+                    value={
+                      listEditor.values.userId
+                        ? {
+                            id: listEditor.values.userId,
+                            name: listEditor.values.name,
+                            jabatan: listEditor.values.position,
+                          }
+                        : null
+                    }
+                    loadOptions={loadUserOptions}
+                    onSelect={(option) =>
+                      setListEditor((current) =>
+                        current?.kind === "upr"
+                          ? {
+                              ...current,
+                              values: {
+                                ...current.values,
+                                userId: option.id,
+                                name: option.name,
+                                position: option.jabatan ?? "",
+                              },
+                            }
+                          : current,
+                      )
+                    }
+                  />
+                </div>
+              </div>
+            ) : null}
+
+            {listEditorError ? (
+              <FieldMessage>{listEditorError}</FieldMessage>
+            ) : null}
+
+            <DialogFooter>
+              <CollectionDialogCancel
+                type="button"
+                variant="outline"
+                size="md"
+                onClick={() => closeListEditor(false)}
+              >
+                Batal
+              </CollectionDialogCancel>
+              <LoadingActionButton
+                type="button"
+                variant="primary"
+                size="primary"
+                onClick={saveListEditor}
+              >
+                Simpan
+              </LoadingActionButton>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
+        <SheetContent className="sm:max-w-md" showCloseButton={false}>
+          <SheetHeader className="-mx-5 -mt-5 border-b border-border/70">
+            <SheetTitle>Riwayat versi</SheetTitle>
+            <SheetDescription>
+              Setiap versi tersimpan sebagai snapshot yang hanya dapat dibaca.
+            </SheetDescription>
+          </SheetHeader>
+          <div className="min-h-0 flex-1 overflow-y-auto">
+            {historyLoading ? (
+              <CollectionLoadingState message="Memuat riwayat versi..." />
+            ) : versions.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Belum ada riwayat versi.</p>
+            ) : (
+              <VersionTimeline
+                activeId={charter.id}
+                onSelect={(versionId) => {
+                  setHistoryOpen(false);
+                  navigate(`/management/charters/${versionId}`);
+                }}
+                items={versions.map((version) => ({
+                  id: version.id,
+                  title: `Versi ${version.versionNumber}`,
+                  status: version.id === charter.id ? "Dibuka" : undefined,
+                  description:
+                    version.revisionReason ||
+                    (version.versionNumber === 1 ? "Versi awal" : "Tanpa catatan revisi"),
+                  meta: (
+                    <CollectionStatusBadge tone={statusPresentation[version.status].tone}>
+                      {statusPresentation[version.status].label}
+                    </CollectionStatusBadge>
+                  ),
+                }))}
+              />
+            )}
+          </div>
+          <SheetFooter className="-mx-5 -mb-5 border-t border-border/70 px-5 py-4">
+            <CollectionDialogCancel
+              type="button"
+              variant="outline"
+              size="md"
+              className="w-full border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
+              onClick={() => setHistoryOpen(false)}
+            >
+              Batal
+            </CollectionDialogCancel>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
+      <AlertDialog open={finalizeOpen} onOpenChange={setFinalizeOpen}>
+        <AlertDialogContent className="max-w-2xl no-scrollbar">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Finalisasi Piagam?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Setelah difinalisasi, Piagam menjadi aktif dan terkunci. Perubahan
+              berikutnya harus dibuat melalui revisi.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {finalizationIssues.length > 0 ? (
+            <div className="rounded-lg bg-warning/10 p-4 text-sm text-foreground">
+              <p className="font-medium">Lengkapi bagian berikut terlebih dahulu:</p>
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
+                {finalizationIssues.map((issue) => (
+                  <li key={issue}>{issue}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          <AlertDialogFooter className="gap-2 sm:justify-end">
+            <AlertDialogCancel
+              variant="outline"
+              size="md"
+              className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
+            >
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="primary"
+              size="primary"
+              disabled={working || finalizationIssues.length > 0}
+              onClick={() => {
+                void runWorkflow(
+                  () => finalizeRiskCharter(token!, charter.id),
+                  "Piagam telah difinalisasi dan aktif.",
+                );
+              }}
+            >
+              Finalisasi
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <Dialog open={revisionOpen} onOpenChange={setRevisionOpen}>
+        <DialogContent className="max-w-2xl no-scrollbar" showCloseButton={false}>
+          <div className="flex min-h-0 flex-col gap-5">
+            <DialogHeader>
+              <DialogTitle className="text-base">Buat revisi Piagam</DialogTitle>
+              <DialogDescription>
+                Sistem akan membuat draf versi baru. Versi aktif tetap berlaku
+                sampai revisi difinalisasi.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-1">
+              <Label htmlFor="revision-reason">Alasan revisi</Label>
+              <Textarea
+                id="revision-reason"
+                value={revisionReason}
+                onChange={(event) => setRevisionReason(event.target.value)}
+                placeholder="Jelaskan perubahan yang mendasari revisi ini."
+                className="min-h-28 resize-none"
+              />
+              <p className="text-xs text-muted-foreground">Minimal 10 karakter.</p>
+            </div>
+            <DialogFooter>
+              <CollectionDialogCancel
+                type="button"
+                variant="outline"
+                size="md"
+                className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
+                onClick={() => setRevisionOpen(false)}
+              >
+                Batal
+              </CollectionDialogCancel>
+              <LoadingActionButton
+                type="button"
+                variant="primary"
+                size="primary"
+                loading={working}
+                loadingLabel="Membuat revisi..."
+                disabled={revisionReason.trim().length < 10}
+                onClick={async () => {
+                  if (!token) return;
+                  try {
+                    setWorking(true);
+                    const response = await createRiskCharterRevision(
+                      token,
+                      charter.id,
+                      revisionReason,
+                    );
+                    setRevisionOpen(false);
+                    toast.success(
+                      response.existing
+                        ? "Draf revisi yang ada dibuka."
+                        : "Draf revisi berhasil dibuat.",
+                    );
+                    router.push(`/management/charters/${response.data.id}`);
+                  } catch (error) {
+                    toast.error(
+                      error instanceof Error
+                        ? error.message
+                        : "Revisi belum berhasil dibuat.",
+                    );
+                  } finally {
+                    setWorking(false);
+                  }
+                }}
+              >
+                Buat revisi
+              </LoadingActionButton>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={archiveOpen} onOpenChange={setArchiveOpen}>
+        <AlertDialogContent className="max-w-2xl no-scrollbar">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Arsipkan Piagam?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Piagam tidak lagi menjadi versi aktif, tetapi tetap tersimpan dan
+              dapat dipulihkan selama belum ada Piagam pengganti.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:justify-end">
+            <AlertDialogCancel
+              variant="outline"
+              size="md"
+              className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
+            >
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="primary"
+              size="primary"
+              onClick={() =>
+                void runWorkflow(
+                  () => archiveRiskCharter(token!, charter.id),
+                  "Piagam diarsipkan.",
+                )
+              }
+            >
+              Arsipkan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={restoreOpen} onOpenChange={setRestoreOpen}>
+        <AlertDialogContent className="max-w-2xl no-scrollbar">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Pulihkan Piagam?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Piagam akan kembali menjadi versi aktif jika belum ada Piagam
+              current untuk organisasi, level UPR, dan tahun yang sama.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:justify-end">
+            <AlertDialogCancel
+              variant="outline"
+              size="md"
+              className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
+            >
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="primary"
+              size="primary"
+              onClick={() =>
+                void runWorkflow(
+                  () => restoreRiskCharter(token!, charter.id),
+                  "Piagam dipulihkan dan aktif kembali.",
+                )
+              }
+            >
+              Pulihkan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent className="max-w-2xl no-scrollbar">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus draf secara permanen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Tindakan ini tidak dapat dibatalkan. Seluruh isi draf Piagam akan
+              dihapus permanen.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:justify-end">
+            <AlertDialogCancel
+              variant="outline"
+              size="md"
+              className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
+            >
+              Batal
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              size="primary"
+              onClick={async () => {
+                if (!token) return;
+                try {
+                  setWorking(true);
+                  await deleteRiskCharterDraft(token, charter.id);
+                  toast.success("Draf Piagam dihapus permanen.");
+                  router.replace("/management/charters");
+                } catch (error) {
+                  toast.error(
+                    error instanceof Error ? error.message : "Draf belum berhasil dihapus.",
+                  );
+                } finally {
+                  setWorking(false);
+                }
+              }}
+            >
+              Hapus permanen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={leaveOpen} onOpenChange={setLeaveOpen}>
+        <AlertDialogContent className="max-w-2xl no-scrollbar">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tinggalkan perubahan?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Perubahan yang belum disimpan akan hilang.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="gap-2 sm:justify-end">
+            <AlertDialogCancel
+              variant="outline"
+              size="md"
+              className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
+            >
+              Tetap di halaman
+            </AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              size="primary"
+              onClick={() => {
+                if (pendingPath) router.push(pendingPath);
+              }}
+            >
+              Tinggalkan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </FormPage>
   );
 }

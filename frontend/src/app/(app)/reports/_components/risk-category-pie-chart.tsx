@@ -67,19 +67,19 @@ export function RiskCategoryPieChart({
         <OverviewPanelState
           state="loading"
           message="Memuat distribusi kategori..."
-          className="min-h-48"
+          className="h-full flex-1"
         />
       ) : error ? (
         <OverviewPanelState
           state="error"
           message="Distribusi kategori tidak dapat dimuat."
-          className="min-h-48"
+          className="h-full flex-1"
         />
       ) : chartData.length === 0 ? (
         <OverviewPanelState
           state="empty"
           message="Belum ada data kategori risiko."
-          className="min-h-48"
+          className="h-full flex-1"
         />
       ) : (
         <div className="flex h-full flex-col items-center gap-4">

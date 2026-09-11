@@ -411,7 +411,7 @@ export default function UsersManagementPage() {
                   setSearch(event.target.value);
                   setPage(1);
                 }}
-                className="h-10 border-input bg-card pl-8 text-xs"
+                className="h-9 border-input bg-card pl-8 text-xs"
               />
             </div>
             <Select
@@ -421,7 +421,7 @@ export default function UsersManagementPage() {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="h-10 w-full bg-card text-xs sm:w-40">
+              <SelectTrigger className="h-9 w-full bg-card text-xs sm:w-40">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -438,7 +438,7 @@ export default function UsersManagementPage() {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="h-10 w-full bg-card text-xs sm:w-36">
+              <SelectTrigger className="h-9 w-full bg-card text-xs sm:w-36">
                 <SelectValue placeholder="Role" />
               </SelectTrigger>
               <SelectContent>
@@ -452,7 +452,7 @@ export default function UsersManagementPage() {
           </div>
         }
         actions={
-          <Button asChild className="w-full sm:w-auto">
+          <Button asChild size="md" className="w-full sm:w-auto">
             <Link href="/admin/users/new">
               <Plus data-icon="inline-start" />
               Tambah pengguna

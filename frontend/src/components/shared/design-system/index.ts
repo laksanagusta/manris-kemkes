@@ -1,6 +1,9 @@
 export { AccentButton } from "./actions/accent-button";
 export { ActionButton } from "./actions/action-button";
 export { ActionIconButton } from "./actions/action-icon-button";
+export { DestructiveButton } from "./actions/destructive-button";
+export { DirtyActionBar } from "./actions/dirty-action-bar";
+export { FormBackAction } from "./actions/form-back-action";
 export {
   DialogActionList,
   type DialogActionItem,
@@ -21,9 +24,14 @@ export { CollectionFilterTrigger } from "./collections/collection-filter-trigger
 export { CollectionLoadingState } from "./collections/collection-loading-state";
 export { CollectionNotice } from "./collections/collection-notice";
 export { CollectionPagination } from "./collections/collection-pagination";
+export { shouldShowCollectionPagination } from "./collections/collection-pagination-visibility";
 export { CollectionSearchField } from "./collections/collection-search-field";
 export { CollectionStatusBadge } from "./collections/collection-status-badge";
 export { CollectionTableCard } from "./collections/collection-table-card";
+export {
+  CollectionTableSurface,
+  type CollectionTableSurfaceProps,
+} from "./collections/collection-table-surface";
 export { CollectionTableHead } from "./collections/collection-table-head";
 export { CollectionTableHeader } from "./collections/collection-table-header";
 export { CollectionTableHeaderRow } from "./collections/collection-table-header-row";
@@ -44,13 +52,33 @@ export {
 export { AccordionFormSection } from "./layout/accordion-form-section";
 export { CollapsibleCard } from "./layout/collapsible-card";
 export { DashboardKpiCard } from "./layout/dashboard-kpi-card";
+export {
+  DocumentForm,
+  DocumentFormSection,
+} from "./layout/document-form";
+export {
+  DocumentListSection,
+  type DocumentListItem,
+  type DocumentListSectionProps,
+} from "./layout/document-list";
 export { FormContainer } from "./layout/form-container";
 export { InlineCard } from "./layout/inline-card";
+export {
+  LabeledList,
+  LabeledListItem,
+  type LabeledListItemProps,
+  type LabeledListProps,
+} from "./layout/labeled-list";
 export { MetricGrid } from "./layout/metric-grid";
 export { KpiCard, type KpiCardTone } from "@/components/ui/kpi-card";
 export { PageHeader } from "./layout/page-header";
+export {
+  PageHeaderActionsPortal,
+  PAGE_HEADER_ACTION_SLOT_ID,
+} from "./layout/page-header-actions-portal";
 export { PageStack } from "./layout/page-stack";
 export { CollectionPageHeader } from "./layout/collection-page-header";
+export { PAGE_BACK_ACTION_SLOT_ID } from "./layout/page-back-action-portal";
 export { StandardCard, type StandardCardProps } from "./layout/standard-card";
 export {
   Card,
@@ -62,6 +90,52 @@ export {
   CardTitle,
 } from "@/components/ui/card";
 export { Badge } from "@/components/ui/badge";
+export { Input } from "@/components/ui/input";
+export { Label } from "@/components/ui/label";
+export { Textarea } from "@/components/ui/textarea";
+export {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+export {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+export {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+export {
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+export {
+  PopoverSelectField,
+  type PopoverSelectFieldProps,
+  type PopoverSelectOption,
+} from "./fields/popover-select-field";
 export {
   Tooltip,
   TooltipContent,
@@ -85,10 +159,17 @@ export {
   type MitigationProgressFormProps,
 } from "./domain/mitigation-progress-form";
 export { MitigationProgressFormShell } from "./domain/mitigation-progress-form-shell";
+export {
+  ResourceLinkList,
+  ResourceLinkRow,
+  type ResourceLinkListProps,
+  type ResourceLinkRowProps,
+} from "./domain/resource-link-row";
 export { OverviewCategoryCard, type OverviewCategorySegment } from "./domain/overview-category-card";
 export { OverviewPanelState } from "./domain/overview-panel-state";
 export { OverviewTopRisksCard } from "./domain/overview-top-risks-card";
 export { OverviewTrendCard } from "./domain/overview-trend-card";
+export { RiskHeatmapGrid } from "./domain/risk-heatmap-grid";
 export {
   RiskAssessmentSummaryStrip,
   type RiskAssessmentSummaryMetric,

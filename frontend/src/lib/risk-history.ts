@@ -1,4 +1,9 @@
-import { calculateRiskMetrics, getRiskLevelLabel, resolveRiskScoreSemantics } from "./risk.js";
+import {
+  calculateRiskMetrics,
+  getRiskLevelLabel,
+  resolveRiskScoreSemantics,
+  roundRiskScore,
+} from "./risk.js";
 import type { Risk, RiskVersionTimelineItem } from "../types/risk";
 
 export type RiskRegisterHistoryItem = {
@@ -202,7 +207,7 @@ export function buildApprovedRiskHistoryItem(risk: ApprovedRiskHistoryLike) {
      inherentScore: risk.inherentScore ?? calculateRiskMetrics(risk.probability ?? 1, risk.impact ?? 1).inherentScore,
    });
   const currentScore = currentSemantics.effective.score;
-  const targetScore = risk.targetScore ?? 0;
+  const targetScore = roundRiskScore(risk.targetScore) ?? 0;
 
   let previousLevel = "Rendah";
   if (targetScore >= 20) previousLevel = "Sangat Tinggi";

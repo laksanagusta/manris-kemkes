@@ -1,13 +1,20 @@
 "use client";
 
-import { ChevronLeft, Filter, MoreHorizontal, Plus, Save, Send, Trash2, WandSparkles } from "@/components/ui/icons";
+import {
+  ChevronLeft,
+  Filter,
+  MoreHorizontal,
+  Plus,
+  Save,
+  Send,
+} from "@/components/ui/icons";
 
-import { AccentButton, LoadingActionButton } from "@/components/shared/design-system";
+import { AccentButton, DestructiveButton, LoadingActionButton } from "@/components/shared/design-system";
 import { Button } from "@/components/ui/button";
 
 export function ButtonVariantsExample() {
   return (
-    <div className="space-y-4 rounded-2xl bg-card p-6 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+    <div className="space-y-4 rounded-xl bg-card p-6 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
       <div className="flex flex-wrap items-center gap-3">
         <AccentButton icon={<Plus className="size-3.5" strokeWidth={2.5} />}>
           Primary
@@ -26,10 +33,7 @@ export function ButtonVariantsExample() {
         <Button variant="ghost" size="md" className="shadow-none">
           Ghost
         </Button>
-        <Button variant="destructive" size="sm" className="shadow-none">
-          <Trash2 className="size-3.5" />
-          Destructive
-        </Button>
+        <DestructiveButton>Hapus</DestructiveButton>
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <AccentButton icon={<Send className="size-3.5" />}>
@@ -49,11 +53,19 @@ export function ButtonVariantsExample() {
         </Button>
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <LoadingActionButton variant="outline" size="xs">
-          <WandSparkles className="size-3" />
+        <LoadingActionButton
+          variant="outline"
+          size="xs"
+          className="h-7 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+        >
           AI Button
         </LoadingActionButton>
-        <LoadingActionButton variant="outline" size="xs" loading>
+        <LoadingActionButton
+          variant="outline"
+          size="xs"
+          loading
+          className="h-7 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+        >
           Memproses...
         </LoadingActionButton>
       </div>

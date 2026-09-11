@@ -1,17 +1,17 @@
 "use client";
 
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { useState } from "react";
+
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+  Input,
+  PopoverSelectField,
+  Textarea,
+} from "@/components/shared/design-system";
+import { Label } from "@/components/ui/label";
 
 export function FieldsExample() {
+  const [status, setStatus] = useState("aktif");
+
   return (
     <div className="grid gap-4 rounded-xl bg-card p-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 md:grid-cols-3">
       <div className="space-y-2">
@@ -29,19 +29,20 @@ export function FieldsExample() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="design-system-field-select">Select</Label>
-        <Select defaultValue="aktif">
-          <SelectTrigger id="design-system-field-select">
-            <SelectValue placeholder="Pilih status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="aktif">Aktif</SelectItem>
-            <SelectItem value="draft">Draft</SelectItem>
-          </SelectContent>
-        </Select>
+        <Label htmlFor="design-system-field-select">Popover select</Label>
+        <PopoverSelectField
+          id="design-system-field-select"
+          value={status}
+          onValueChange={setStatus}
+          options={[
+            { value: "aktif", label: "Aktif" },
+            { value: "draft", label: "Draft" },
+          ]}
+          placeholder="Pilih status"
+        />
         <p className="text-xs text-muted-foreground">
-          Tinggi, radius, dan border mengikuti Input; trigger popover tetap
-          netral tanpa efek pressed dan chevron berputar 180° dalam 150ms
+          Shared option field dengan tinggi, radius, border, dan motion chevron
+          yang sama seperti form Risiko dan filter periode
         </p>
       </div>
 
@@ -54,6 +55,18 @@ export function FieldsExample() {
         />
         <p className="text-xs text-muted-foreground">
           Surface solid dan state interaksi yang sama
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="design-system-field-disabled">Disabled</Label>
+        <Input
+          id="design-system-field-disabled"
+          defaultValue="Read-only value"
+          disabled
+        />
+        <p className="text-xs text-muted-foreground">
+          Surface disabled ringan · #f8f8f8 · opacity 100%
         </p>
       </div>
     </div>

@@ -6,6 +6,7 @@ const dashboardInsightsLib = await import(
 );
 
 const {
+  buildCurrentRiskHeatmapMatrix,
   buildCriticalRiskRateTrendData,
   buildExecutiveTrendData,
   buildInherentResidualTrendData,
@@ -137,6 +138,53 @@ test("overview exposure score uses the effective risk versions for each cycle", 
   assert.equal(
     dashboardOverviewLib.calculateRiskExposureScore(risks, "2026-H2"),
     1,
+  );
+});
+
+test("buildCurrentRiskHeatmapMatrix selects effective versions and places counts", () => {
+  const result = buildCurrentRiskHeatmapMatrix(
+    [
+      makeDashboardRisk({
+        id: "risk-a-q2",
+        versionGroupId: "risk-a",
+        assessmentCycle: "2026-Q2",
+        probability: 2,
+        impact: 3,
+      }),
+      makeDashboardRisk({
+        id: "risk-a-q3",
+        versionGroupId: "risk-a",
+        assessmentCycle: "2026-Q3",
+        probability: 4,
+        impact: 5,
+      }),
+      makeDashboardRisk({
+        id: "risk-b-q3",
+        versionGroupId: "risk-b",
+        assessmentCycle: "2026-Q3",
+        probability: 4,
+        impact: 5,
+      }),
+    ],
+    "2026-Q3",
+  );
+
+  assert.equal(result[3][4], 2);
+  assert.equal(result.flat().reduce((sum, count) => sum + count, 0), 2);
+});
+
+test("buildCurrentRiskHeatmapMatrix ignores invalid coordinates", () => {
+  const result = buildCurrentRiskHeatmapMatrix(
+    [
+      makeDashboardRisk({ probability: 0, impact: 3 }),
+      makeDashboardRisk({ probability: 4, impact: 6 }),
+    ],
+    "2026-H1",
+  );
+
+  assert.deepEqual(
+    result,
+    Array.from({ length: 5 }, () => Array(5).fill(0)),
   );
 });
 
@@ -692,6 +740,33 @@ test("buildLatestOrganizationProgressData keeps only the newest work paper per o
       progressPercent: 50,
     },
   ]);
+});
+
+test("buildLatestOrganizationProgressData sorts organizations by latest period", () => {
+  const result = buildLatestOrganizationProgressData([
+    makeWorkingPaper({
+      id: "wp-old-period",
+      org_id: "org-old",
+      assessment_cycle: "2025-Q4",
+      created_at: "2025-11-05T00:00:00.000Z",
+      risks: [{ risk: { org_name: "Direktorat Lama", status: "final" } }],
+    }),
+    makeWorkingPaper({
+      id: "wp-new-period",
+      org_id: "org-new",
+      assessment_cycle: "2026-Q2",
+      created_at: "2026-05-05T00:00:00.000Z",
+      risks: [
+        { risk: { org_name: "Direktorat Baru", status: "final" } },
+        { risk: { org_name: "Direktorat Baru", status: "assessment_draft" } },
+      ],
+    }),
+  ]);
+
+  assert.deepEqual(
+    result.map((item) => item.period),
+    ["2026-Q2", "2025-Q4"],
+  );
 });
 
 test("buildLatestOrganizationProgressData keeps zero-progress newest work papers visible", () => {

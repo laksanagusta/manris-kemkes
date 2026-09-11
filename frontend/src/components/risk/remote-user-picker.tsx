@@ -9,7 +9,7 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
-import { Check, ChevronDown, Loader2, Search } from "@/components/ui/icons";
+import { Check, ChevronDown, Loader2, Search, UserRound } from "@/components/ui/icons";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -45,6 +45,7 @@ interface RemoteUserPickerProps {
     limit: number;
   }) => Promise<RemoteUserPickerResult>;
   className?: string;
+  iconOnly?: boolean;
 }
 
 function getUserInitials(name: string): string {
@@ -67,6 +68,7 @@ export function RemoteUserPicker({
   onSelect,
   loadOptions,
   className,
+  iconOnly = false,
 }: RemoteUserPickerProps) {
   const panelId = useId();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -246,26 +248,32 @@ export function RemoteUserPicker({
     <Popover open={open} onOpenChange={handleOpenChange}>
       <div
         ref={containerRef}
-        className={cn("relative w-full", className)}
+        className={cn("relative", !iconOnly && "w-full", className)}
       >
         <PopoverTrigger asChild>
           <button
             type="button"
             disabled={disabled}
+            aria-label={iconOnly ? `${title}: ${value?.name ?? placeholder}` : undefined}
+            title={iconOnly ? `${title}: ${value?.name ?? placeholder}` : undefined}
             className={cn(
-              "group/remote-user-picker flex h-10 w-full items-center justify-between gap-1.5 rounded-lg border border-input bg-card py-2 pr-3 pl-3 text-sm whitespace-nowrap transition-[background-color,box-shadow] active:translate-y-0 active:scale-100 outline-none select-none focus:border-input focus-visible:border-input focus:ring-0 focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:bg-input/30 dark:hover:bg-sidebar-accent dark:focus:border-input dark:focus-visible:border-input dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+              "group/remote-user-picker flex h-10 w-full items-center justify-between gap-1.5 rounded-lg border border-input bg-card py-2 pr-3 pl-3 text-sm whitespace-nowrap transition-[background-color,border-color] active:translate-y-0 active:scale-100 outline-none select-none hover:border-foreground/15 disabled:hover:border-input focus:border-input focus-visible:border-input focus:ring-0 focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
               !value && "text-muted-foreground",
+        iconOnly && "size-8 justify-center border-0 bg-transparent p-0 hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-ring",
             )}
           >
-            <span className="truncate">{value?.name ?? placeholder}</span>
-            <ChevronDown className="pointer-events-none size-4 text-muted-foreground transition-transform duration-150 ease-(--ease-out) group-data-[state=open]/remote-user-picker:rotate-180 motion-reduce:transition-none" />
+            {iconOnly ? <UserRound className="size-4" /> : <>
+              <span className="truncate">{value?.name ?? placeholder}</span>
+              <ChevronDown className="pointer-events-none size-4 text-muted-foreground transition-transform duration-150 ease-(--ease-out) group-data-[state=open]/remote-user-picker:rotate-180 motion-reduce:transition-none" />
+            </>}
           </button>
         </PopoverTrigger>
 
         <PopoverContent
-          className="p-0"
-          style={{ width: "var(--radix-popover-trigger-width)" }}
+          variant="dropdown"
+          style={{ width: iconOnly ? "min(320px, calc(100vw - 2rem))" : "var(--radix-popover-trigger-width)" }}
           align="start"
+          sideOffset={8}
           onOpenAutoFocus={(e) => {
             e.preventDefault();
             inputRef.current?.focus();
@@ -290,7 +298,7 @@ export function RemoteUserPicker({
             </div>
             <p className="sr-only">{description}</p>
 
-            <ScrollArea className="max-h-[300px] overflow-y-auto p-1">
+            <ScrollArea className="max-h-[300px] overflow-y-auto">
               <div id={panelId} className="flex flex-col" role="listbox" aria-label={title}>
                 {isLoading && options.length === 0 ? (
                   <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
@@ -323,7 +331,7 @@ export function RemoteUserPicker({
                       role="option"
                       aria-selected={isSelected}
                       className={cn(
-                        "relative flex w-full cursor-pointer items-center gap-2 rounded-md py-1.5 pr-8 pl-2 text-sm outline-hidden select-none",
+                        "relative flex h-8 w-full cursor-pointer items-center gap-2 rounded-lg pr-10 pl-2 text-sm outline-hidden select-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-foreground",
                         (isSelected || isActive) ? "bg-accent text-accent-foreground" : "",
                       )}
                       onMouseEnter={() => setActiveIndex(optionIndex)}
@@ -335,7 +343,7 @@ export function RemoteUserPicker({
                         </AvatarFallback>
                       </Avatar>
                       <div className="flex flex-col items-start truncate">
-                        <span className="truncate font-medium">{option.name}</span>
+                          <span className="truncate font-medium">{option.name}</span>
                         {option.subtitle ? (
                           <span className="truncate text-xs text-muted-foreground">
                             {option.subtitle}
@@ -343,8 +351,8 @@ export function RemoteUserPicker({
                         ) : null}
                       </div>
                       {isSelected ? (
-                        <span className="absolute right-2 flex h-3.5 w-3.5 items-center justify-center">
-                          <Check className="h-4 w-4" />
+                        <span className="absolute right-3 flex size-4 items-center justify-center">
+                          <Check className="size-4" />
                         </span>
                       ) : null}
                     </button>
@@ -355,7 +363,7 @@ export function RemoteUserPicker({
                     type="button"
                     onClick={() => setPage((current) => current + 1)}
                     disabled={isLoading || isLoadingMore}
-                    className="relative flex w-full cursor-pointer items-center justify-center gap-2 rounded-md py-1.5 text-sm text-muted-foreground outline-hidden select-none hover:bg-accent hover:text-accent-foreground"
+                    className="relative flex h-8 w-full cursor-pointer items-center justify-center gap-2 rounded-lg px-2 text-sm text-muted-foreground outline-hidden select-none hover:bg-accent hover:text-accent-foreground focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-foreground"
                   >
                     {isLoadingMore ? (
                       <>

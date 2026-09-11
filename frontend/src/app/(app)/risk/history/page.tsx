@@ -60,7 +60,7 @@ export default function RiskHistoryPage() {
         icon={<History className="size-6" />}
         title="Risk Versioning (History)"
         actions={
-          <Button className="gap-2">
+          <Button size="md" className="gap-2">
             <GitBranch className="size-4" />
             Create Snapshot Baru
           </Button>
@@ -118,16 +118,16 @@ export default function RiskHistoryPage() {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
+                      <TableCell colSpan={6} className="bg-state-surface text-center h-24 text-state-foreground">
                         Memuat data history...
                       </TableCell>
                     </TableRow>
                   ) : historyData.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-24">
-                        <div className="flex flex-col gap-1 text-left">
-                          <p className="text-sm font-medium text-muted-foreground">Belum ada history untuk snapshot ini</p>
-                          <p className="text-xs text-muted-foreground/70">Snapshot ini tidak memiliki rekam jejak yang tercatat</p>
+                      <TableCell colSpan={6} className="bg-state-surface h-24">
+                        <div className="flex flex-col gap-1 text-left text-state-foreground">
+                          <p className="text-sm font-medium text-state-foreground">Belum ada history untuk snapshot ini</p>
+                          <p className="text-xs text-state-foreground">Snapshot ini tidak memiliki rekam jejak yang tercatat</p>
                         </div>
                       </TableCell>
                     </TableRow>

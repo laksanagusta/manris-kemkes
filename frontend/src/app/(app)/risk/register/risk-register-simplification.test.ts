@@ -11,7 +11,7 @@ test("risk register keeps navigation compact and removes KPI cards", () => {
   assert.doesNotMatch(registerSource, /import \{ KpiCard \}/);
   assert.doesNotMatch(registerSource, /riskSummaryCards/);
   assert.doesNotMatch(registerSource, /Total Risiko/);
-  assert.match(registerSource, /Daftar Risiko/);
+  assert.match(registerSource, /<CollectionPageHeader title="Risiko" \/>/);
   assert.match(registerSource, /\{registerTotal\}/);
   assert.match(registerSource, /Pemantauan/);
 });
@@ -34,8 +34,20 @@ test("risk register table exposes accessible sorting and monitoring progress", (
 test("risk register data rows stay compact", () => {
   assert.match(
     registerSource,
-    /className="group h-10 border-0 hover:bg-muted\/50"/,
+    /className="h-10 border-0 hover:bg-transparent hover:\[&>td\]:bg-muted\/50 \[&>td\]:transition-\[background-color\]"/,
   );
+});
+
+test("risk register gives the sticky action cell the same row hover surface", () => {
+  assert.match(
+    registerSource,
+    /hover:bg-transparent hover:\[&>td\]:bg-muted\/50/,
+  );
+  assert.match(
+    registerSource,
+    /className="sticky right-0 bg-card px-3 py-2"/,
+  );
+  assert.doesNotMatch(registerSource, /group-hover:bg-muted\/50/);
 });
 
 test("risk register header stays compact", () => {
@@ -85,7 +97,7 @@ test("risk register header uses the shared compact neutral surface", () => {
 test("risk register body rows do not use separator borders", () => {
   assert.match(
     registerSource,
-    /className="group h-10 border-0 hover:bg-muted\/50"/,
+    /className="h-10 border-0 hover:bg-transparent hover:\[&>td\]:bg-muted\/50 \[&>td\]:transition-\[background-color\]"/,
   );
   assert.match(
     registerSource,
@@ -93,7 +105,7 @@ test("risk register body rows do not use separator borders", () => {
   );
   assert.match(
     registerSource,
-    /className="sticky right-0 bg-card px-3 py-2 transition-colors group-hover:bg-muted\/50"/,
+    /className="sticky right-0 bg-card px-3 py-2"/,
   );
   assert.doesNotMatch(
     registerSource,

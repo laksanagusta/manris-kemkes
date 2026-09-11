@@ -2,10 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { Plus, Trash2, GripVertical } from "@/components/ui/icons";
+import { Input } from "@/components/shared/design-system";
 import { cn } from "@/lib/utils";
 
 export interface EditableItem {
@@ -107,8 +107,8 @@ export function EditableItemsTable({
   return (
     <div className="space-y-2">
       {items.length === 0 ? (
-        <div className="text-center py-8 border border-dashed rounded-lg">
-          <p className="text-xs text-muted-foreground">{emptyMessage}</p>
+        <div className="rounded-lg bg-state-surface py-8 text-center text-state-foreground">
+          <p className="text-xs text-state-foreground">{emptyMessage}</p>
         </div>
       ) : (
         <div className="border border-border/50 rounded-lg overflow-hidden">
@@ -139,7 +139,7 @@ export function EditableItemsTable({
                       value={item.text}
                       onChange={(e) => updateItem(item.id, e.target.value)}
                       placeholder={placeholder}
-                      className="text-xs bg-background border-input h-10"
+                      className="text-xs bg-background h-10"
                       disabled={disabled}
                     />
                   </TableCell>

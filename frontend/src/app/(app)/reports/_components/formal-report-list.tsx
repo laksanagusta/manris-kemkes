@@ -31,9 +31,9 @@ const reportStatusStyles: Record<FormalReport["status"], string> = {
   draft: "border-border/60 bg-muted/40 text-muted-foreground",
   generated: "border-primary/20 bg-primary/5 text-primary",
   submitted:
-    "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
+    "border-amber-500/20 bg-amber-500/10 text-amber-700",
   approved:
-    "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+    "border-emerald-500/20 bg-emerald-500/10 text-emerald-700",
 };
 
 function formatDateTime(value?: string | null) {
@@ -115,7 +115,7 @@ export function FormalReportList({
               <TableRow>
                 <TableCell
                   colSpan={6}
-                  className="py-10 text-center text-sm text-muted-foreground"
+                  className="bg-state-surface py-10 text-center text-sm text-state-foreground"
                 >
                   Belum ada laporan Monitoring & Evaluasi yang digenerate.
                 </TableCell>

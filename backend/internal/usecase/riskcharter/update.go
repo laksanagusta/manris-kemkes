@@ -19,16 +19,15 @@ func NewUpdateRiskCharterUseCase(repo repository.RiskCharterRepository) *UpdateR
 }
 
 type UpdateRiskCharterInput struct {
-	ID                 uuid.UUID `json:"-"`
-	OrganizationID     uuid.UUID `json:"organizationId"`
-	UPRLevel           string    `json:"uprLevel"`
-	Period             string    `json:"period"`
-	Scope              string    `json:"scope"`
-	LegalBasis         string    `json:"legalBasis"`
-	InternalContext    string    `json:"internalContext"`
-	ExternalContext    string    `json:"externalContext"`
-	StakeholderSummary string    `json:"stakeholderSummary"`
-	Status             string    `json:"status"`
+	ID              uuid.UUID                       `json:"-"`
+	Title           string                          `json:"title"`
+	Scope           string                          `json:"scope"`
+	LegalBases      []entity.RiskCharterLegalBasis  `json:"legalBases"`
+	InternalContext string                          `json:"internalContext"`
+	ExternalContext string                          `json:"externalContext"`
+	Stakeholders    []entity.RiskCharterStakeholder `json:"stakeholders"`
+	UPRStructure    []entity.RiskCharterUPRMember   `json:"uprStructure"`
+	AccessScope     *entity.AccessScope             `json:"-"`
 }
 
 func (uc *UpdateRiskCharterUseCase) Execute(ctx context.Context, input UpdateRiskCharterInput) (*entity.RiskCharter, error) {
@@ -36,35 +35,56 @@ func (uc *UpdateRiskCharterUseCase) Execute(ctx context.Context, input UpdateRis
 	if err != nil {
 		return nil, errors.ErrNotFound
 	}
-
-	updated := *existing
-	updated.OrganizationID = input.OrganizationID
-	updated.UPRLevel = strings.TrimSpace(input.UPRLevel)
-	updated.Period = strings.TrimSpace(input.Period)
-	updated.Scope = strings.TrimSpace(input.Scope)
-	updated.LegalBasis = strings.TrimSpace(input.LegalBasis)
-	updated.InternalContext = strings.TrimSpace(input.InternalContext)
-	updated.ExternalContext = strings.TrimSpace(input.ExternalContext)
-	updated.StakeholderSummary = strings.TrimSpace(input.StakeholderSummary)
-	if strings.TrimSpace(input.Status) != "" {
-		updated.Status = strings.TrimSpace(input.Status)
+	if !canAccessRiskCharter(input.AccessScope, existing.OrganizationID) {
+		return nil, errors.ErrForbidden
+	}
+	if existing.Status != entity.RiskCharterStatusDraft {
+		return nil, errors.Wrap(errors.ErrInvalidInput, "piagam final hanya dapat dibaca; buat revisi untuk mengubahnya")
 	}
 
+	updated := *existing
+	updated.Title = strings.TrimSpace(input.Title)
+	updated.Scope = strings.TrimSpace(input.Scope)
+	updated.LegalBases = input.LegalBases
+	updated.InternalContext = strings.TrimSpace(input.InternalContext)
+	updated.ExternalContext = strings.TrimSpace(input.ExternalContext)
+	updated.Stakeholders = input.Stakeholders
+	updated.UPRStructure = input.UPRStructure
+	updated.LegalBasis = joinLegalBases(input.LegalBases)
+	updated.StakeholderSummary = joinStakeholders(input.Stakeholders)
 	if err := updated.Validate(); err != nil {
 		return nil, errors.Wrap(errors.ErrInvalidInput, err.Error())
 	}
-
-	exists, err := uc.repo.ExistsByOrgPeriodLevel(ctx, updated.OrganizationID, updated.Period, updated.UPRLevel, &updated.ID)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to validate charter uniqueness")
+	if err := uc.repo.UpdateDraft(ctx, &updated); err != nil {
+		return nil, errors.Wrap(err, "failed to update risk charter draft")
 	}
-	if exists {
-		return nil, errors.ErrRiskCharterExists
-	}
-
-	if err := uc.repo.Update(ctx, &updated); err != nil {
-		return nil, errors.Wrap(err, "failed to update risk charter")
-	}
-
 	return &updated, nil
+}
+
+func joinLegalBases(items []entity.RiskCharterLegalBasis) string {
+	parts := make([]string, 0, len(items))
+	for _, item := range items {
+		part := strings.TrimSpace(item.Reference)
+		if provision := strings.TrimSpace(item.Provision); provision != "" {
+			part += " — " + provision
+		}
+		if part != "" {
+			parts = append(parts, part)
+		}
+	}
+	return strings.Join(parts, "\n")
+}
+
+func joinStakeholders(items []entity.RiskCharterStakeholder) string {
+	parts := make([]string, 0, len(items))
+	for _, item := range items {
+		name := strings.TrimSpace(item.Name)
+		relationship := strings.TrimSpace(item.Relationship)
+		if name != "" && relationship != "" {
+			parts = append(parts, name+" — "+relationship)
+		} else if name != "" {
+			parts = append(parts, name)
+		}
+	}
+	return strings.Join(parts, "\n")
 }

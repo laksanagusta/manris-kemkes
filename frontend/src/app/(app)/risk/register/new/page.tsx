@@ -8,10 +8,15 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { archiveRisk, restoreRisk } from "@/lib/api/risk-register";
+import {
+  listRiskMonitorings,
+  startMonitoring,
+} from "@/lib/api/risk-monitoring";
 import { listUsers, type UserListItem } from "@/lib/api/users";
 import { listAllOrganizations } from "@/lib/api/organizations";
 import { filterToAccessibleOrgs } from "@/lib/organization";
 import { useAuth } from "@/contexts/auth-context";
+import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { ROPicker, type ROSelectionSummary } from "@/components/risk/ro-picker";
 import { useForm, Controller, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,9 +26,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
@@ -35,7 +38,6 @@ import {
 import {
   AlertDialog,
   AlertDialogAction,
-  AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
@@ -43,11 +45,6 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   Tooltip,
   TooltipContent,
@@ -57,13 +54,11 @@ import {
 
 import { cn } from "@/lib/utils";
 import {
-  Check,
-  ChevronDown,
-  ArrowLeft,
+  ArrowRight,
   Loader2,
+  RefreshCcw,
   Save,
   Send,
-  WandSparkles,
   Trash2,
 } from "@/components/ui/icons";
 
@@ -90,8 +85,12 @@ import {
   AccentButton,
   CollectionDialogCancel,
   CollectionPageHeader,
+  FormBackAction,
+  Input,
+  PopoverSelectField,
   RiskScoreHeatmapModal,
   RiskScorePickerTrigger,
+  Textarea,
 } from "@/components/shared/design-system";
 import {
   MitigationTable,
@@ -134,7 +133,8 @@ import {
 } from "@/components/shared/ai-suggestion-modal";
 import {
   currentAssessmentCycle,
-  getSelectableAssessmentCycles,
+  currentMonitoringCycle,
+  getSelectableMonitoringCycles,
 } from "@/lib/risk-cycle-options";
 import { buildRiskRegisterPayload } from "@/lib/risk-register-payload";
 
@@ -174,7 +174,7 @@ const CATEGORY_ORDER: string[] = [
   "lingkungan",
 ];
 const RISK_FORM_CARD_CLASS =
-  "scroll-mt-28 overflow-hidden rounded-2xl bg-card gap-0 p-0 transition-colors";
+  "scroll-mt-28 overflow-hidden rounded-xl bg-card gap-0 p-0 transition-colors";
 type CategoryKey = "manusia" | "metode" | "mesin" | "material" | "lingkungan";
 
 type SectionId =
@@ -189,114 +189,15 @@ type RiskSuggestion = {
   description: string;
   category?: RiskCategory | "" | null;
 };
-type PopoverSelectOption = {
-  value: string;
-  label: string;
-};
-
-interface PopoverSelectFieldProps {
-  value?: string;
-  onValueChange: (value: string) => void;
-  options: PopoverSelectOption[];
-  placeholder: string;
-  disabled?: boolean;
-  invalid?: boolean;
-  triggerClassName?: string;
-  contentClassName?: string;
-  emptyMessage?: string;
-}
-
-function PopoverSelectField({
-  value,
-  onValueChange,
-  options,
-  placeholder,
-  disabled = false,
-  invalid = false,
-  triggerClassName,
-  contentClassName,
-  emptyMessage = "Tidak ada opsi.",
-}: PopoverSelectFieldProps) {
-  const [open, setOpen] = useState(false);
-  const selected = options.find((option) => option.value === value);
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          type="button"
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          aria-invalid={invalid || undefined}
-          disabled={disabled}
-          className={cn(
-            "group/risk-select h-10 w-full justify-between gap-2 rounded-lg border-input bg-card px-3 text-sm font-normal shadow-none transition-[background-color,box-shadow] active:translate-y-0 active:scale-100 aria-expanded:bg-card aria-expanded:text-foreground focus:border-input focus-visible:border-input focus:ring-0 focus-visible:ring-0 dark:focus:border-input dark:focus-visible:border-input",
-            !selected && "text-muted-foreground",
-            triggerClassName,
-          )}
-        >
-          <span className="min-w-0 flex-1 truncate text-left">
-            {selected?.label ?? placeholder}
-          </span>
-          <ChevronDown className="pointer-events-none size-4 shrink-0 opacity-60 transition-transform duration-150 ease-(--ease-out) group-data-[state=open]/risk-select:rotate-180 motion-reduce:transition-none" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent
-        align="start"
-        className={cn(
-          "w-[var(--radix-popover-trigger-width)] p-1",
-          contentClassName,
-        )}
-      >
-        <div className="max-h-60 overflow-y-auto p-1">
-          {options.length === 0 ? (
-            <div className="px-2 py-2 text-sm text-muted-foreground">
-              {emptyMessage}
-            </div>
-          ) : (
-            options.map((option) => {
-              const selectedOption = option.value === value;
-
-              return (
-                <button
-                  key={option.value}
-                  type="button"
-                  className={cn(
-                    "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground",
-                    selectedOption && "bg-accent text-accent-foreground",
-                  )}
-                  onClick={() => {
-                    onValueChange(option.value);
-                    setOpen(false);
-                  }}
-                >
-                  <Check
-                    className={cn(
-                      "size-4 shrink-0",
-                      selectedOption ? "opacity-100" : "opacity-0",
-                    )}
-                  />
-                  <span className="min-w-0 flex-1 truncate">
-                    {option.label}
-                  </span>
-                </button>
-              );
-            })
-          )}
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
 type RiskApiMitigation = MitigationItem & {
   ownerUserId?: string;
 };
 
 type RiskApiResponse = {
   id: string;
+  versionGroupId?: string;
   status?: string;
+  isCurrent?: boolean;
   archivedAt?: string | null;
   archivedReason?: string;
   draftId?: string | null;
@@ -397,6 +298,56 @@ function isRiskCategory(value: unknown): value is RiskCategory {
   );
 }
 
+type RiskStatusTone =
+  | "neutral"
+  | "progress"
+  | "success"
+  | "warning"
+  | "danger"
+  | "info";
+
+function getRiskStatusLabel(status?: string | null) {
+  switch ((status ?? "").trim().toLowerCase()) {
+    case "draft":
+      return "Draft";
+    case "assessment_draft":
+      return "Draft pemantauan";
+    case "assessment_in_review":
+    case "pending_review":
+      return "Dalam review";
+    case "approved":
+    case "final":
+      return "Disetujui";
+    case "rejected":
+      return "Ditolak";
+    case "archived":
+      return "Diarsipkan";
+    default: {
+      const normalized = (status ?? "").trim().replaceAll("_", " ");
+      return normalized
+        ? normalized.charAt(0).toUpperCase() + normalized.slice(1)
+        : "Draft";
+    }
+  }
+}
+
+function getRiskStatusTone(status?: string | null): RiskStatusTone {
+  switch ((status ?? "").trim().toLowerCase()) {
+    case "final":
+    case "approved":
+      return "success";
+    case "assessment_in_review":
+    case "pending_review":
+      return "warning";
+    case "rejected":
+      return "danger";
+    case "assessment_draft":
+      return "progress";
+    default:
+      return "neutral";
+  }
+}
+
 type RiskSaveResponse = {
   id: string;
   code?: string;
@@ -430,12 +381,8 @@ function RiskVersionHistoryList({
 }) {
   return (
     <div className="relative pl-6">
-      <div
-        aria-hidden="true"
-        className="absolute bottom-2 left-2 top-2 w-px bg-border/70"
-      />
       <div className="space-y-5">
-        {versions.map((version) => (
+        {versions.map((version, index) => (
           <Link
             key={version.id}
             href={`/risk/register/new?id=${version.id}`}
@@ -443,13 +390,19 @@ function RiskVersionHistoryList({
             onClick={() => onVersionSelect(version.id)}
             className="group relative block rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           >
+            {index < versions.length - 1 && (
+              <span
+                aria-hidden="true"
+                className="absolute -bottom-[30px] -left-[16px] top-[10px] z-0 w-px bg-border/70"
+              />
+            )}
             <span
               aria-hidden="true"
               className={cn(
-                "absolute -left-6 top-0.5 z-10 size-4 rounded-full border-2 bg-card",
+                "absolute -left-[22px] top-1 z-10 size-3 rounded-full border-2",
                 version.isCurrent
                   ? "border-emerald-600 bg-emerald-600"
-                  : "border-muted-foreground/50",
+                  : "border-muted-foreground bg-muted-foreground",
               )}
             />
             <div className="min-w-0">
@@ -492,6 +445,16 @@ function RiskVersionHistoryList({
   );
 }
 
+// Match the loading-label transition in globals.css. Network work runs concurrently.
+function waitForAiButtonTransition() {
+  return new Promise<void>((resolve) => {
+    window.setTimeout(
+      resolve,
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 540,
+    );
+  });
+}
+
 function AiFieldButton({
   loading,
   disabled,
@@ -510,14 +473,19 @@ function AiFieldButton({
       size="xs"
       onClick={onClick}
       disabled={disabled || loading}
-      className="h-7 gap-2 border-border/60 bg-muted/40 px-2.5 text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+      aria-busy={loading}
+      aria-label={loading ? "Memproses..." : label}
+      data-loading={loading}
+      className="risk-ai-button h-7 px-2.5 text-xs text-muted-foreground hover:text-foreground"
     >
-      {loading ? (
-        <Loader2 className="size-3 animate-spin" />
-      ) : (
-        <WandSparkles className="size-3" />
-      )}
-      {loading ? "Memproses..." : label}
+      <span aria-hidden="true" className="grid overflow-hidden leading-5">
+        <span className="risk-ai-idle-label col-start-1 row-start-1">
+          {label}
+        </span>
+        <span className="risk-ai-loading-label col-start-1 row-start-1">
+          Memproses...
+        </span>
+      </span>
     </Button>
   );
 }
@@ -764,6 +732,7 @@ export default function RiskInputPage() {
   const [riskId, setRiskId] = useState<string | null>(null);
   const [loadingVersionId, setLoadingVersionId] = useState<string | null>(null);
   const [riskStatus, setRiskStatus] = useState<string>("draft");
+  const [riskIsCurrent, setRiskIsCurrent] = useState(false);
   const [riskArchivedAt, setRiskArchivedAt] = useState<string | null>(null);
   const [riskArchivedReason, setRiskArchivedReason] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -784,22 +753,21 @@ export default function RiskInputPage() {
   const [assessmentCycleDisplay, setAssessmentCycleDisplay] = useState(
     currentAssessmentCycle(),
   );
-  const assessmentCycleOptions = useMemo(() => {
-    const options = getSelectableAssessmentCycles(currentAssessmentCycle());
-    if (
-      assessmentCycleDisplay &&
-      !options.some((option) => option.value === assessmentCycleDisplay)
-    ) {
-      return [
-        { value: assessmentCycleDisplay, label: assessmentCycleDisplay },
-        ...options,
-      ];
-    }
-    return options;
-  }, [assessmentCycleDisplay]);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
+  const [showMonitoringDialog, setShowMonitoringDialog] = useState(false);
+  const [selectedMonitoringCycle, setSelectedMonitoringCycle] = useState(
+    currentMonitoringCycle(),
+  );
+  const [isStartingMonitoring, setIsStartingMonitoring] = useState(false);
+  const [ongoingMonitoring, setOngoingMonitoring] = useState<{
+    id: string;
+    assessmentCycle: string;
+  } | null>(null);
+  const [monitoringLookupStatus, setMonitoringLookupStatus] = useState<
+    "idle" | "loading" | "ready" | "error"
+  >("idle");
   const [archiveReasonInput, setArchiveReasonInput] = useState("");
   const [archiveNoteInput, setArchiveNoteInput] = useState("");
   const [showSubmitReviewConfirm, setShowSubmitReviewConfirm] = useState(false);
@@ -877,6 +845,11 @@ export default function RiskInputPage() {
   const controlEffectiveness = watch("controlEffectiveness") ?? "";
   const treatmentOption = watch("treatmentOption") ?? "";
   const nextReviewDate = watch("nextReviewDate") ?? "";
+  const riskCode = watch("riskCode") ?? "";
+  const monitoringCycleOptions = useMemo(
+    () => getSelectableMonitoringCycles(currentMonitoringCycle()),
+    [],
+  );
   const selectedApprovalLine = approvalLine.filter((member) => member.id);
   const isApprovalLineReady =
     selectedApprovalLine.length > 0 &&
@@ -1036,6 +1009,8 @@ export default function RiskInputPage() {
     async (id: string) => {
       try {
         setIsSubmitting(true);
+        setOngoingMonitoring(null);
+        setMonitoringLookupStatus("loading");
         const risk = await api.get<RiskApiResponse>(
           `/risks/${id}`,
           token ?? undefined,
@@ -1043,11 +1018,47 @@ export default function RiskInputPage() {
 
         setRiskId(risk.id);
         setRiskStatus(risk.status || "draft");
+        setRiskIsCurrent(risk.isCurrent ?? false);
         setRiskArchivedAt(risk.archivedAt || null);
         setRiskArchivedReason(risk.archivedReason || "");
         setOngoingAssessmentId(
           risk.hasOngoing && risk.draftId ? risk.draftId : null,
         );
+
+        if (risk.status === "final" && risk.isCurrent && !risk.archivedAt) {
+          try {
+            const monitoringResult = await listRiskMonitorings(token ?? "", {
+              q: risk.code || undefined,
+              lifecycle: "all",
+              status: "draft",
+              limit: 100,
+            });
+            const existingMonitoring = monitoringResult.data.find(
+              (monitoring) =>
+                monitoring.status === "draft" &&
+                (monitoring.sourceRiskId === risk.id ||
+                  (risk.versionGroupId &&
+                    monitoring.sourceRisk?.versionGroupId ===
+                      risk.versionGroupId)),
+            );
+
+            setOngoingMonitoring(
+              existingMonitoring
+                ? {
+                    id: existingMonitoring.id,
+                    assessmentCycle: existingMonitoring.assessmentCycle,
+                  }
+                : null,
+            );
+            setMonitoringLookupStatus("ready");
+          } catch (monitoringError) {
+            console.error("Failed to check ongoing monitoring:", monitoringError);
+            setOngoingMonitoring(null);
+            setMonitoringLookupStatus("error");
+          }
+        } else {
+          setMonitoringLookupStatus("ready");
+        }
 
         const loadedCauses: CauseImpactItem[] = Array.isArray(risk.cause)
           ? risk.cause
@@ -1231,9 +1242,12 @@ export default function RiskInputPage() {
         if (error instanceof ApiError && error.status === 404) {
           setRiskId(null);
           setRiskStatus("draft");
+          setRiskIsCurrent(false);
           setRiskArchivedAt(null);
           setRiskArchivedReason("");
           setOngoingAssessmentId(null);
+          setOngoingMonitoring(null);
+          setMonitoringLookupStatus("idle");
           setReviewerId("");
           setReviewerOption(null);
           setApprovalLine([]);
@@ -1598,15 +1612,26 @@ export default function RiskInputPage() {
     },
   ];
 
-  const completedSectionCount = sectionStatuses.filter(
-    (section) => section.done,
-  ).length;
   const missingSections = sectionStatuses.filter((section) => !section.done);
   const lockedControlClass =
-    "disabled:pointer-events-none disabled:cursor-not-allowed disabled:!bg-muted disabled:!text-muted-foreground disabled:!opacity-100 dark:disabled:bg-input/80 dark:disabled:text-muted-foreground";
+    "disabled:pointer-events-none disabled:cursor-not-allowed disabled:!bg-disabled-surface disabled:!text-disabled-foreground disabled:!opacity-100";
   const isRiskLocked =
     riskStatus === "final" ||
     !!riskArchivedAt;
+  const canManageMonitoring =
+    Boolean(riskId) &&
+    riskIsCurrent &&
+    riskStatus === "final" &&
+    !riskArchivedAt &&
+    !isReadOnlyForOrg(user, currentOrganizationId || "");
+  const canContinueMonitoring =
+    canManageMonitoring &&
+    monitoringLookupStatus === "ready" &&
+    Boolean(ongoingMonitoring);
+  const canStartMonitoring =
+    canManageMonitoring &&
+    monitoringLookupStatus === "ready" &&
+    !ongoingMonitoring;
 
   const scrollToSection = (sectionId: SectionId) => {
     if (typeof document === "undefined") return;
@@ -1618,7 +1643,13 @@ export default function RiskInputPage() {
         const elementRect = element.getBoundingClientRect().top;
         const elementPosition = elementRect - bodyRect;
         const offsetPosition = elementPosition - offset;
-        window.scrollTo({ top: offsetPosition, behavior: "smooth" });
+        const prefersReducedMotion = window.matchMedia(
+          "(prefers-reduced-motion: reduce)",
+        ).matches;
+        window.scrollTo({
+          top: offsetPosition,
+          behavior: prefersReducedMotion ? "auto" : "smooth",
+        });
       }
     }, 100);
   };
@@ -1919,7 +1950,11 @@ export default function RiskInputPage() {
       }
     } catch (err: unknown) {
       console.error("Failed to save", err);
-      toast.error("Gagal menyimpan risiko. Periksa koneksi dan coba lagi.");
+      const errorMessage =
+        err instanceof ApiError
+          ? err.message
+          : "Gagal menyimpan risiko. Periksa koneksi dan coba lagi.";
+      toast.error(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -2086,7 +2121,7 @@ export default function RiskInputPage() {
     if (aiFeaturesDisabled || isRiskLocked) return;
     setGeneratingRisk(true);
     setRiskSuggestions([]);
-    setShowRiskSuggestions(true);
+    const transition = waitForAiButtonTransition();
     try {
       const res = await api.post<{ suggestions: RiskSuggestion[] }>(
         "/ai/risk-suggestions",
@@ -2094,8 +2129,11 @@ export default function RiskInputPage() {
         token || undefined,
       );
       setRiskSuggestions(res.suggestions || []);
+      await transition;
+      setShowRiskSuggestions(true);
     } catch (err) {
       console.error(err);
+      toast.error("Saran risiko belum berhasil dimuat. Coba lagi.");
       setShowRiskSuggestions(false);
     } finally {
       setGeneratingRisk(false);
@@ -2109,7 +2147,7 @@ export default function RiskInputPage() {
       return;
     }
     setGeneratingCause(true);
-    setCauseModalOpen(true);
+    const transition = waitForAiButtonTransition();
     try {
       const res = await api.post<CausesResponse>(
         "/ai/causes",
@@ -2130,8 +2168,11 @@ export default function RiskInputPage() {
           });
       });
       setCauseSuggestions(newItems);
+      await transition;
+      setCauseModalOpen(true);
     } catch (err) {
       console.error(err);
+      toast.error("Saran penyebab belum berhasil dimuat. Coba lagi.");
       setCauseModalOpen(false);
     } finally {
       setGeneratingCause(false);
@@ -2145,7 +2186,7 @@ export default function RiskInputPage() {
       return;
     }
     setGeneratingImpact(true);
-    setImpactModalOpen(true);
+    const transition = waitForAiButtonTransition();
     try {
       const res = await api.post<ImpactsResponse>(
         "/ai/impacts",
@@ -2171,8 +2212,11 @@ export default function RiskInputPage() {
       } else {
         setImpactSuggestions([]);
       }
+      await transition;
+      setImpactModalOpen(true);
     } catch (err) {
       console.error(err);
+      toast.error("Saran dampak belum berhasil dimuat. Coba lagi.");
       setImpactModalOpen(false);
     } finally {
       setGeneratingImpact(false);
@@ -2226,6 +2270,57 @@ export default function RiskInputPage() {
     }
   };
 
+  const handleOpenMonitoringDialog = () => {
+    if (!token || !riskId) {
+      toast.error("Sesi login tidak ditemukan.");
+      return;
+    }
+
+    if (!canStartMonitoring) {
+      toast.info(
+        ongoingMonitoring
+          ? "Pemantauan untuk risiko ini sedang berjalan. Lanjutkan transaksi yang ada."
+          : "Pemantauan hanya dapat dimulai dari risiko final yang aktif.",
+      );
+      return;
+    }
+
+    setSelectedMonitoringCycle(currentMonitoringCycle());
+    setShowMonitoringDialog(true);
+  };
+
+  const handleStartMonitoring = async () => {
+    if (!token || !riskId) {
+      toast.error("Sesi login tidak ditemukan.");
+      return;
+    }
+
+    setIsStartingMonitoring(true);
+    try {
+      const result = await startMonitoring(
+        token,
+        riskId,
+        selectedMonitoringCycle,
+      );
+      toast.success(
+        result.existingDraft
+          ? `Melanjutkan transaksi pemantauan ${selectedMonitoringCycle}.`
+          : `Transaksi pemantauan ${selectedMonitoringCycle} berhasil dibuat.`,
+      );
+      router.push(
+        result.redirectUrl || `/risk/monitoring/${result.monitoring.id}`,
+      );
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Transaksi pemantauan belum berhasil dibuat.",
+      );
+    } finally {
+      setIsStartingMonitoring(false);
+    }
+  };
+
   const visibleRiskVersions = riskVersions.slice(0, SIDE_PANEL_PREVIEW_LIMIT);
   const loadingVersion = riskVersions.find(
     (version) => version.id === loadingVersionId,
@@ -2233,7 +2328,74 @@ export default function RiskInputPage() {
 
   return (
     <TooltipProvider>
-      <FormPage className="risk-form-filter-controls max-w-none space-y-6">
+      <FormPage className="risk-form-filter-controls max-w-[1280px] space-y-6 [&>header+*]:!mt-12">
+        <CollectionPageHeader
+          backActionPlacement="local"
+          backAction={<FormBackAction href="/risk/register" label="Kembali" />}
+          showTitle
+          actionsPlacement="title"
+          title={riskId ? "Edit Risiko" : "Tambah Risiko"}
+          subtitle="Identifikasi konteks, penyebab, dampak, dan penanganan risiko."
+          actions={
+            <>
+              {canContinueMonitoring && ongoingMonitoring ? (
+                <ActionButton asChild variant="secondary">
+                  <Link
+                    href={`/risk/monitoring/${ongoingMonitoring.id}`}
+                    title={`Lanjutkan pemantauan ${ongoingMonitoring.assessmentCycle}`}
+                  >
+                    <ArrowRight className="size-3.5" strokeWidth={2} />
+                    Lanjutkan Pemantauan
+                  </Link>
+                </ActionButton>
+              ) : canStartMonitoring ? (
+                <ActionButton
+                  variant="secondary"
+                  icon={<RefreshCcw className="size-3.5" strokeWidth={2} />}
+                  onClick={handleOpenMonitoringDialog}
+                  disabled={isSubmitting || isStartingMonitoring}
+                >
+                  Mulai Pemantauan
+                </ActionButton>
+              ) : canManageMonitoring && monitoringLookupStatus === "loading" ? (
+                <ActionButton variant="secondary" loading disabled>
+                  Memeriksa pemantauan…
+                </ActionButton>
+              ) : null}
+              {riskStatus === "draft" || !riskId ? (
+                <>
+                  <ActionButton
+                    variant="outline"
+                    loading={
+                      isSubmitting && submitTarget.current === "draft"
+                    }
+                    icon={<Save className="size-3.5" />}
+                    onClick={() => handleSaveDraftHeaderRef.current()}
+                    disabled={isSubmitting}
+                  >
+                    Simpan draft
+                  </ActionButton>
+                  <AccentButton
+                    icon={
+                      isSubmitting && submitTarget.current === "review" ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <Send className="size-3.5" />
+                      )
+                    }
+                    onClick={() =>
+                      openSubmitReviewConfirmHeaderRef.current()
+                    }
+                    disabled={isSubmitting}
+                  >
+                    {submitActionLabel}
+                  </AccentButton>
+                </>
+              ) : null}
+            </>
+          }
+        />
+
         {loadingVersionId && (
           <div
             className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-150"
@@ -2250,54 +2412,6 @@ export default function RiskInputPage() {
           </div>
         )}
 
-        <div className="mx-auto w-full max-w-[1400px] min-w-0">
-          <CollectionPageHeader
-            backAction={
-              <ActionButton
-                asChild
-                variant="secondary"
-                size="sm"
-                className="border-0 text-sm font-normal"
-              >
-                <Link href="/risk/register">
-                  <ArrowLeft className="size-3.5" />
-                  Kembali
-                </Link>
-              </ActionButton>
-            }
-            actionsPlacement="title"
-            title={riskId ? "Edit Risiko" : "Tambah Risiko"}
-            actions={
-              riskStatus === "draft" || !riskId ? (
-                <>
-                  <ActionButton
-                    variant="outline"
-                    loading={isSubmitting && submitTarget.current === "draft"}
-                    icon={<Save className="size-3.5" />}
-                    onClick={() => handleSaveDraftHeaderRef.current()}
-                    disabled={isSubmitting}
-                  >
-                    Simpan draft
-                  </ActionButton>
-                  <AccentButton
-                    icon={
-                      isSubmitting && submitTarget.current === "review" ? (
-                        <Loader2 className="size-3.5 animate-spin" />
-                      ) : (
-                        <Send className="size-3.5" />
-                      )
-                    }
-                    onClick={() => openSubmitReviewConfirmHeaderRef.current()}
-                    disabled={isSubmitting}
-                  >
-                    {submitActionLabel}
-                  </AccentButton>
-                </>
-              ) : undefined
-            }
-          />
-        </div>
-
         {riskArchivedAt && (
           <Card className="bg-amber-50/80">
             <CardContent className="space-y-1 p-4 text-sm text-amber-900">
@@ -2312,20 +2426,23 @@ export default function RiskInputPage() {
           </Card>
         )}
 
-        <div className="mx-auto grid w-full max-w-[1400px] min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
+        <div className="grid w-full min-w-0 gap-10 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
           <div className="min-w-0">
             <form
               onSubmit={(e) => e.preventDefault()}
               className="min-w-0 w-full [&_[data-slot=label]]:font-medium"
             >
               <div className="space-y-6">
-                <Card id="identifikasi" className={RISK_FORM_CARD_CLASS}>
+                <Card
+                  id="identifikasi"
+                  className={RISK_FORM_CARD_CLASS}
+                >
                   <CardHeader className="px-5 py-4">
                     <div className="flex flex-1 flex-col gap-0.5 pr-4">
-                      <p className="text-sm font-medium tracking-tight text-foreground transition-colors">
+                      <p className="text-base font-medium tracking-tight text-foreground transition-colors">
                         Identifikasi Risiko
                       </p>
-                      <p className="text-xs text-secondary-foreground leading-relaxed">
+                      <p className="text-sm leading-relaxed text-muted-foreground">
                         {sectionStatuses[0].description}
                       </p>
                     </div>
@@ -2492,37 +2609,6 @@ export default function RiskInputPage() {
                       </div>
                     )}
 
-                    <div className="grid gap-5 md:grid-cols-2">
-                      <div className="flex flex-col gap-2">
-                        <Label className="text-sm font-medium text-foreground">
-                          Kode Risiko
-                        </Label>
-                        <Controller
-                          name="riskCode"
-                          control={control}
-                          render={({ field }) => (
-                            <Input
-                              {...field}
-                              placeholder="Terisi otomatis setelah draft disimpan"
-                              disabled
-                              className={cn("text-sm", lockedControlClass)}
-                            />
-                          )}
-                        />
-                      </div>
-                      <div className="flex flex-col gap-2">
-                      <Label className="text-sm font-medium text-foreground">Periode</Label>
-                        <PopoverSelectField
-                          value={assessmentCycleDisplay}
-                          onValueChange={setAssessmentCycleDisplay}
-                          options={assessmentCycleOptions}
-                          placeholder="Pilih periode kuartal"
-                          disabled={isRiskLocked}
-                          triggerClassName={lockedControlClass}
-                        />
-                      </div>
-                    </div>
-
                     <div className="flex flex-col gap-2">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <Label className="text-sm font-medium text-foreground">
@@ -2637,13 +2723,16 @@ export default function RiskInputPage() {
                   </CardContent>
                 </Card>
 
-                <Card id="analisis" className={RISK_FORM_CARD_CLASS}>
+                <Card
+                  id="analisis"
+                  className={RISK_FORM_CARD_CLASS}
+                >
                   <CardHeader className="px-5 py-4">
                     <div className="flex flex-1 flex-col gap-0.5 pr-4">
-                      <p className="text-sm font-medium tracking-tight text-foreground transition-colors">
+                      <p className="text-base font-medium tracking-tight text-foreground transition-colors">
                         Analisis Risiko
                       </p>
-                      <p className="text-xs text-secondary-foreground leading-relaxed">
+                      <p className="text-sm leading-relaxed text-muted-foreground">
                         {sectionStatuses[1].description}
                       </p>
                     </div>
@@ -2723,13 +2812,16 @@ export default function RiskInputPage() {
                   </CardContent>
                 </Card>
 
-                <Card id="evaluasi" className={RISK_FORM_CARD_CLASS}>
+                <Card
+                  id="evaluasi"
+                  className={RISK_FORM_CARD_CLASS}
+                >
                   <CardHeader className="px-5 py-4">
                     <div className="flex flex-1 flex-col gap-0.5 pr-4">
-                      <p className="text-sm font-medium tracking-tight text-foreground transition-colors">
+                      <p className="text-base font-medium tracking-tight text-foreground transition-colors">
                         Evaluasi Risiko
                       </p>
-                      <p className="text-xs text-secondary-foreground leading-relaxed">
+                      <p className="text-sm leading-relaxed text-muted-foreground">
                         {sectionStatuses[2].description}
                       </p>
                     </div>
@@ -2737,7 +2829,7 @@ export default function RiskInputPage() {
                   <CardContent className="space-y-5 px-5 pb-6 pt-2">
                     <div className="grid gap-5 text-sm font-normal text-muted-foreground md:grid-cols-2">
                       <div className="flex flex-col gap-2">
-                      <Label className="text-sm font-medium text-muted-foreground">
+                        <Label className="text-sm font-medium text-foreground">
                           Prioritas Risiko
                         </Label>
                         <div className="flex min-h-9 flex-wrap items-center gap-x-2 gap-y-1 font-normal text-muted-foreground">
@@ -2745,7 +2837,7 @@ export default function RiskInputPage() {
                         </div>
                       </div>
                       <div className="flex flex-col gap-2">
-                      <Label className="text-sm font-medium text-muted-foreground">
+                        <Label className="text-sm font-medium text-foreground">
                           Selera Risiko
                         </Label>
                         <div className="flex min-h-9 flex-wrap items-center gap-x-2 gap-y-1 font-normal text-muted-foreground">
@@ -2787,13 +2879,16 @@ export default function RiskInputPage() {
                   </CardContent>
                 </Card>
 
-                <Card id="penanganan" className={RISK_FORM_CARD_CLASS}>
+                <Card
+                  id="penanganan"
+                  className={RISK_FORM_CARD_CLASS}
+                >
                   <CardHeader className="px-5 py-4">
                     <div className="flex flex-1 flex-col gap-0.5 pr-4">
-                      <p className="text-sm font-medium tracking-tight text-foreground transition-colors">
+                      <p className="text-base font-medium tracking-tight text-foreground transition-colors">
                         Rencana Penanganan
                       </p>
-                      <p className="text-xs text-secondary-foreground leading-relaxed">
+                      <p className="text-sm leading-relaxed text-muted-foreground">
                         {sectionStatuses[3].description}
                       </p>
                     </div>
@@ -2901,13 +2996,16 @@ export default function RiskInputPage() {
                   </CardContent>
                 </Card>
 
-                <Card id="target" className={RISK_FORM_CARD_CLASS}>
+                <Card
+                  id="target"
+                  className={RISK_FORM_CARD_CLASS}
+                >
                   <CardHeader className="px-5 py-4">
                     <div className="flex flex-1 flex-col gap-0.5 pr-4">
-                      <p className="text-sm font-medium tracking-tight text-foreground transition-colors">
+                      <p className="text-base font-medium tracking-tight text-foreground transition-colors">
                         Target Penurunan
                       </p>
-                      <p className="text-xs text-secondary-foreground leading-relaxed">
+                      <p className="text-sm leading-relaxed text-muted-foreground">
                         {sectionStatuses[4].description}
                       </p>
                     </div>
@@ -2939,13 +3037,16 @@ export default function RiskInputPage() {
                 </Card>
 
                 {riskApprovalCapabilityBehavior.showsApprovalLineEditor && (
-                  <Card id="approval-line" className={RISK_FORM_CARD_CLASS}>
+                  <Card
+                    id="approval-line"
+                    className={RISK_FORM_CARD_CLASS}
+                  >
                     <CardHeader className="px-5 py-4">
                       <div className="flex flex-1 flex-col gap-0.5 pr-4">
-                        <p className="text-sm font-medium tracking-tight text-foreground transition-colors">
+                        <p className="text-base font-medium tracking-tight text-foreground transition-colors">
                           Alur Persetujuan
                         </p>
-                        <p className="text-xs text-secondary-foreground leading-relaxed">
+                        <p className="text-sm leading-relaxed text-muted-foreground">
                           Susun reviewer dan rantai persetujuan pimpinan
                         </p>
                       </div>
@@ -3016,16 +3117,53 @@ export default function RiskInputPage() {
 
           <aside className="min-w-0 self-start">
             <div className="space-y-6 xl:sticky xl:top-20">
-              <Card className="gap-0 overflow-hidden rounded-2xl bg-card p-0 transition-colors duration-300">
-                <CardContent className="px-5 py-5">
+              <Card className="gap-0 overflow-hidden rounded-xl bg-card p-0 transition-colors duration-300">
+                <CardContent className="px-5 py-5 text-sm">
                   <div className="space-y-4">
-                    <section aria-labelledby="risk-side-progress">
+                    <section aria-labelledby="risk-side-properties">
+                      <h2
+                        id="risk-side-properties"
+                        className="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground/70"
+                      >
+                        Properti
+                      </h2>
+                      <dl className="mt-3 space-y-3">
+                        <div className="flex items-start justify-between gap-4">
+                          <dt className="text-muted-foreground">Status</dt>
+                          <dd className="shrink-0 text-right">
+                            <Badge
+                              size="compact"
+                              tone={getRiskStatusTone(riskStatus)}
+                            >
+                              {getRiskStatusLabel(riskStatus)}
+                            </Badge>
+                          </dd>
+                        </div>
+                        <div className="flex items-start justify-between gap-4">
+                          <dt className="text-muted-foreground">Kode risiko</dt>
+                          <dd className="max-w-[60%] truncate text-right font-mono text-foreground">
+                            {riskCode || "Belum dibuat"}
+                          </dd>
+                        </div>
+                        <div className="flex items-start justify-between gap-4">
+                          <dt className="text-muted-foreground">Periode asesmen</dt>
+                          <dd className="shrink-0 text-right font-mono text-foreground">
+                            {assessmentCycleDisplay || "-"}
+                          </dd>
+                        </div>
+                      </dl>
+                    </section>
+
+                    <section
+                      aria-labelledby="risk-side-treatment"
+                      className="border-t border-dashed border-border/70 pt-5"
+                    >
                       <div className="flex items-center justify-between gap-3">
                         <h2
-                          id="risk-side-progress"
+                          id="risk-side-treatment"
                           className="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground/70"
                         >
-                          Progres
+                          Penanganan
                         </h2>
                       </div>
                       <div className="mt-3">
@@ -3039,7 +3177,7 @@ export default function RiskInputPage() {
                             }
                           />
                         ) : (
-                          <div className="rounded-xl border border-dashed border-border/50 bg-muted/10 px-3 py-4 text-center text-xs text-muted-foreground">
+                          <div className="rounded-xl bg-state-surface px-3 py-4 text-center text-xs text-state-foreground">
                             Simpan draft untuk melihat progres penanganan.
                           </div>
                         )}
@@ -3063,7 +3201,7 @@ export default function RiskInputPage() {
                             token={token || ""}
                           />
                         ) : (
-                          <div className="rounded-xl border border-dashed border-border/50 bg-muted/10 px-3 py-4 text-center text-xs text-muted-foreground">
+                          <div className="rounded-xl bg-state-surface px-3 py-4 text-center text-xs text-state-foreground">
                             Simpan draft untuk mencatat log komunikasi.
                           </div>
                         )}
@@ -3090,7 +3228,7 @@ export default function RiskInputPage() {
 
                       <div className="mt-4">
                         {loadingVersions ? (
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-2 rounded-lg bg-state-surface px-3 py-2 text-xs text-state-foreground">
                             <Loader2 className="size-3.5 animate-spin" />
                             Memuat riwayat versi...
                           </div>
@@ -3100,7 +3238,7 @@ export default function RiskInputPage() {
                             onVersionSelect={handleVersionSelect}
                           />
                         ) : (
-                          <p className="text-xs text-muted-foreground">
+                          <p className="rounded-lg bg-state-surface px-3 py-2 text-xs text-state-foreground">
                             {riskId
                               ? "Belum ada riwayat versi."
                               : "Simpan draft untuk membentuk riwayat versi."}
@@ -3146,21 +3284,108 @@ export default function RiskInputPage() {
             showCloseButton={false}
           >
             <div className="flex min-h-0 flex-col gap-5">
-              <DialogHeader className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both">
+              <DialogHeader>
                 <DialogTitle className="text-base">Riwayat Versi</DialogTitle>
               </DialogHeader>
-              <div className="max-h-[calc(100dvh-14rem)] overflow-y-auto pr-1 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[40ms]">
+              <div className="max-h-[calc(100dvh-14rem)] overflow-y-auto pr-1">
                 <RiskVersionHistoryList
                   versions={riskVersions}
                   onVersionSelect={handleVersionSelect}
                 />
               </div>
-              <DialogFooter className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[80ms]">
+              <DialogFooter>
                 <CollectionDialogCancel
                   onClick={() => setShowVersionHistoryDialog(false)}
                 >
                   Tutup
                 </CollectionDialogCancel>
+              </DialogFooter>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog
+          open={showMonitoringDialog}
+          onOpenChange={(open) => {
+            if (!isStartingMonitoring) {
+              setShowMonitoringDialog(open);
+            }
+          }}
+        >
+          <DialogContent
+            className="max-w-lg no-scrollbar"
+            showCloseButton={false}
+          >
+            <div className="flex min-h-0 flex-col gap-5">
+              <DialogHeader>
+                <DialogTitle>Konfirmasi Pemantauan</DialogTitle>
+                <DialogDescription>
+                  Pilih periode untuk memulai pemantauan risiko ini.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-5">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                      Kode
+                    </p>
+                    <p className="font-mono text-xs text-foreground">
+                      {riskCode || riskId || "-"}
+                    </p>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                      Skor
+                    </p>
+                    <p className="text-sm text-foreground">
+                      {Math.round(nilai)}
+                    </p>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
+                    Risiko
+                  </p>
+                  <p className="text-sm text-foreground">
+                    {title || "Tanpa judul"}
+                  </p>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <Label className="text-sm font-medium" htmlFor="new-monitoring-cycle">
+                    Periode Pemantauan
+                  </Label>
+                  <PopoverSelectField
+                    id="new-monitoring-cycle"
+                    value={selectedMonitoringCycle}
+                    onValueChange={setSelectedMonitoringCycle}
+                    options={monitoringCycleOptions}
+                    placeholder="Pilih periode pemantauan"
+                    disabled={isStartingMonitoring}
+                    triggerClassName="w-full"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <CollectionDialogCancel
+                  onClick={() => setShowMonitoringDialog(false)}
+                  disabled={isStartingMonitoring}
+                >
+                  Batal
+                </CollectionDialogCancel>
+                <AccentButton
+                  type="button"
+                  icon={
+                    isStartingMonitoring ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <RefreshCcw className="size-3.5" strokeWidth={2} />
+                    )
+                  }
+                  onClick={handleStartMonitoring}
+                  disabled={isStartingMonitoring}
+                >
+                  Mulai Pemantauan
+                </AccentButton>
               </DialogFooter>
             </div>
           </DialogContent>
@@ -3205,10 +3430,10 @@ export default function RiskInputPage() {
             showCloseButton={false}
           >
             <div className="flex min-h-0 flex-col gap-5">
-              <DialogHeader className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both">
+              <DialogHeader>
                 <DialogTitle>Arsipkan Risiko?</DialogTitle>
               </DialogHeader>
-              <div className="space-y-5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[40ms]">
+              <div className="space-y-5">
                 <div className="space-y-1">
                   <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
                     Risiko
@@ -3247,7 +3472,7 @@ export default function RiskInputPage() {
                   />
                 </div>
               </div>
-              <DialogFooter className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[80ms]">
+              <DialogFooter>
                 <CollectionDialogCancel
                   onClick={() => setShowArchiveDialog(false)}
                 >
@@ -3268,23 +3493,28 @@ export default function RiskInputPage() {
           open={showRestoreDialog}
           onOpenChange={setShowRestoreDialog}
         >
-          <AlertDialogContent>
+          <AlertDialogContent className="max-w-md">
             <AlertDialogHeader>
               <AlertDialogTitle>Pulihkan Risiko?</AlertDialogTitle>
               <AlertDialogDescription>
                 Risiko akan kembali tampil di daftar aktif dengan status
-                terakhirnya.
+                terakhir.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel disabled={isSubmitting}>
+              <CollectionDialogCancel
+                onClick={() => setShowRestoreDialog(false)}
+                disabled={isSubmitting}
+              >
                 Batal
-              </AlertDialogCancel>
+              </CollectionDialogCancel>
               <AlertDialogAction
+                variant="primary"
+                size="primary"
                 onClick={handleRestoreCurrentRisk}
                 disabled={isSubmitting}
               >
-                Pulihkan
+                Pulihkan risiko
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
@@ -3294,7 +3524,7 @@ export default function RiskInputPage() {
           open={showSubmitReviewConfirm}
           onOpenChange={setShowSubmitReviewConfirm}
         >
-          <AlertDialogContent>
+          <AlertDialogContent className="max-w-lg">
             <AlertDialogHeader>
               <AlertDialogTitle>
                 {riskApprovalCapabilityBehavior.usesDirectApprovalCopy
@@ -3303,46 +3533,20 @@ export default function RiskInputPage() {
               </AlertDialogTitle>
               <AlertDialogDescription>
                 {riskApprovalCapabilityBehavior.usesDirectApprovalCopy
-                  ? "Risiko akan disimpan dan langsung disetujui tanpa melalui reviewer atau alur persetujuan. Pastikan seluruh bagian sudah final sebelum melanjutkan."
-                  : "Risiko akan disimpan lalu dikirim ke reviewer dan alur persetujuan yang sudah dipilih. Pastikan seluruh bagian sudah final sebelum melanjutkan."}
+                  ? "Risiko yang sudah difinalisasi tidak dapat diubah kembali sampai periode monitoring selanjutnya."
+                  : "Risiko akan disimpan lalu dikirim ke reviewer melalui alur persetujuan yang dipilih. Tinjau seluruh bagian sebelum melanjutkan."}
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <div className="space-y-2 text-sm">
-              {riskApprovalCapabilityBehavior.showsApprovalLineEditor && (
-                <>
-                  <div>
-                    <span className="font-medium text-foreground">
-                      Reviewer:{" "}
-                    </span>
-                    <span className="text-muted-foreground">
-                      {reviewerOption?.name || "-"}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="font-medium text-foreground">
-                      Alur persetujuan:{" "}
-                    </span>
-                    <span className="text-muted-foreground">
-                      {selectedApprovalLine.length} orang
-                    </span>
-                  </div>
-                </>
-              )}
-              <div>
-                <span className="font-medium text-foreground">
-                  Bagian lengkap:{" "}
-                </span>
-                <span className="text-muted-foreground">
-                  {sectionStatuses.length - missingSections.length}/
-                  {sectionStatuses.length}
-                </span>
-              </div>
-            </div>
             <AlertDialogFooter>
-              <AlertDialogCancel disabled={isSubmitting}>
+              <CollectionDialogCancel
+                onClick={() => setShowSubmitReviewConfirm(false)}
+                disabled={isSubmitting}
+              >
                 Batal
-              </AlertDialogCancel>
+              </CollectionDialogCancel>
               <AlertDialogAction
+                variant="primary"
+                size="primary"
                 onClick={handleConfirmSubmitReview}
                 disabled={isSubmitting}
               >
@@ -3355,17 +3559,16 @@ export default function RiskInputPage() {
         </AlertDialog>
 
         <RiskScoreHeatmapModal
-          key={scorePickerMode ?? "closed"}
           open={scorePickerMode !== null}
           onOpenChange={(open) => {
             if (!open) setScorePickerMode(null);
           }}
           title={
             scorePickerMode === "target"
-              ? "Pilih Skor Target"
-              : "Pilih Skor Risiko"
+              ? "Pilih skor target"
+              : "Pilih skor risiko"
           }
-          description="Pilih satu sel untuk melihat kombinasi probabilitas, dampak, skor, dan level risikonya."
+          description="Pilih kombinasi probabilitas dan dampak untuk melihat skor serta level risikonya."
           probability={
             scorePickerMode === "target" ? targetProbability : probability
           }
@@ -3439,9 +3642,9 @@ export default function RiskInputPage() {
           open={impactModalOpen}
           onOpenChange={setImpactModalOpen}
           title="Saran Dampak Risiko"
-          description="Pilih dampak yang relevan dari saran AI di bawah ini untuk ditambahkan ke daftar dampak."
           suggestions={impactSuggestions}
           isLoading={generatingImpact}
+          variant="structured-list"
           onApply={(selectedItems) => {
             const newItems = selectedItems.map((item, idx) => ({
               id: `impact-applied-${Date.now()}-${idx}`,

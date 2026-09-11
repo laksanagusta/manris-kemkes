@@ -1,7 +1,9 @@
 import type { ReactNode } from "react";
-import { ArrowLeft } from "@/components/ui/icons";
 
-import { ActionButton, CollectionPageHeader } from "@/components/shared/design-system";
+import {
+  CollectionPageHeader,
+  FormBackAction,
+} from "@/components/shared/design-system";
 import {
   Card,
   CardContent,
@@ -18,8 +20,12 @@ type FormPageProps = {
 
 type FormHeaderProps = {
   title: string;
+  subtitle?: ReactNode;
+  showTitle?: boolean;
   badges?: ReactNode;
   actions?: ReactNode;
+  actionsPlacement?: "header" | "title" | "top";
+  backActionPlacement?: "local" | "top";
   onBack?: () => void;
   backLabel?: string;
 };
@@ -48,8 +54,12 @@ export function FormPage({ children, className }: FormPageProps) {
 
 export function FormHeader({
   title,
+  subtitle,
+  showTitle = false,
   badges,
   actions,
+  actionsPlacement = "top",
+  backActionPlacement = "top",
   onBack,
   backLabel = "Kembali",
 }: FormHeaderProps) {
@@ -57,24 +67,23 @@ export function FormHeader({
     <CollectionPageHeader
       backAction={
         onBack ? (
-          <ActionButton
-            type="button"
-            variant="secondary"
-            size="sm"
-            icon={<ArrowLeft className="size-3.5" />}
+          <FormBackAction
+            label={backLabel}
             onClick={onBack}
-          >
-            {backLabel}
-          </ActionButton>
+          />
         ) : undefined
       }
+      backActionPlacement={backActionPlacement}
       eyebrow={
         badges ? (
           <div className="flex flex-wrap items-center gap-2">{badges}</div>
         ) : undefined
       }
       title={title}
+      subtitle={subtitle}
+      showTitle={showTitle}
       actions={actions}
+      actionsPlacement={actionsPlacement}
       className="pb-6"
     />
   );
@@ -91,7 +100,7 @@ export function FormSection({
   return (
     <Card
       className={cn(
-        "rounded-2xl bg-card transition-colors duration-200",
+        "rounded-xl bg-card transition-colors duration-200",
         className,
       )}
     >

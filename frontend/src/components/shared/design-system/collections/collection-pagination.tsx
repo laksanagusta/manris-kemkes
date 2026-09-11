@@ -14,6 +14,7 @@ import {
 import { cn } from "@/lib/utils";
 
 import { paginationItems } from "./collection-pagination-items";
+import { shouldShowCollectionPagination } from "./collection-pagination-visibility";
 
 export function CollectionPagination({
   itemLabel,
@@ -34,6 +35,8 @@ export function CollectionPagination({
   onPageChange: (page: number) => void;
   onPageSizeChange: (pageSize: number) => void;
 }) {
+  if (!shouldShowCollectionPagination(total)) return null;
+
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
@@ -90,7 +93,7 @@ export function CollectionPagination({
             onValueChange={(value) => onPageSizeChange(Number(value))}
           >
             <SelectTrigger
-              className="h-10 w-[72px] rounded-lg border-input bg-white px-3 text-sm shadow-none"
+              className="h-9 w-[72px] rounded-lg border-input bg-white px-3 text-sm shadow-none"
               aria-label="Items per page"
             >
               <SelectValue />

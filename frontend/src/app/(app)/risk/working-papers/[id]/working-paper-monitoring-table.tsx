@@ -27,6 +27,7 @@ import {
   WORKING_PAPER_MONITORING_COLUMNS,
   buildWorkingPaperMonitoringRowFromLink,
 } from "@/lib/working-paper-monitoring-table";
+import { formatRiskScore } from "@/lib/risk";
 import type { WorkingPaperRiskLink } from "@/types/working-paper";
 
 type MonitoringRow = ReturnType<typeof buildWorkingPaperMonitoringRowFromLink>;
@@ -141,8 +142,10 @@ export function WorkingPaperMonitoringTable({
               <TableCell className="px-3 py-2">
                 <div className="flex items-center gap-1.5 whitespace-nowrap">
                   <span className="font-mono text-sm font-medium tabular-nums text-foreground">
-                    {row.sourceScore}
-                    {row.observedScore == null ? "" : ` -> ${row.observedScore}`}
+                    {formatRiskScore(row.sourceScore)}
+                    {row.observedScore == null
+                      ? ""
+                      : ` -> ${formatRiskScore(row.observedScore)}`}
                   </span>
                 {row.observedScore != null ? (
                     <span className="truncate text-xs font-medium text-muted-foreground">

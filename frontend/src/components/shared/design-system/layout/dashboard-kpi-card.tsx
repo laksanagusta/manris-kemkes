@@ -3,33 +3,43 @@
 export function DashboardKpiCard({
   title,
   value,
+  detail,
   loading = false,
   error = false,
 }: {
   title: string;
   value: string;
+  detail?: string;
   loading?: boolean;
   error?: boolean;
 }) {
   return (
     <div
       aria-busy={loading}
-      className="surface-hairline flex min-h-28 flex-col overflow-hidden rounded-xl bg-card"
+      className="surface-hairline flex min-h-[100px] flex-col overflow-hidden rounded-xl bg-card px-5 py-5"
     >
-      <div className="mb-1 flex items-center px-4 pb-1 pt-3">
-        <h2 className="font-sans text-xs font-medium capitalize leading-4 text-muted-foreground">
+      <div className="flex items-center">
+        <h2 className="font-sans text-[13px] leading-4 font-medium tracking-normal text-muted-foreground text-pretty">
           {title}
         </h2>
       </div>
-      <div className="flex items-baseline gap-3 px-4 pb-2 pt-0">
+      <div className="mt-3 flex items-baseline gap-1">
         {loading ? (
-          <div className="h-7 w-28 rounded-lg bg-muted/50 motion-safe:animate-pulse" />
+          <span
+            aria-hidden="true"
+            className="block h-7 w-28 rounded-lg bg-muted/50 motion-safe:animate-pulse"
+          />
         ) : (
-          <span className="text-2xl font-sans font-semibold leading-7 tracking-tight text-foreground tabular-nums">
+          <span className="text-[28px] font-sans font-semibold leading-none tracking-tight text-foreground tabular-nums">
             {error ? "—" : value}
           </span>
         )}
       </div>
+      {detail ? (
+        <p className="mt-2 text-xs leading-4 text-muted-foreground">
+          {detail}
+        </p>
+      ) : null}
     </div>
   );
 }

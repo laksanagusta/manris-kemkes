@@ -1,0 +1,1 @@
+-- Legacy UPR rows are normalized in-place and cannot be losslessly restored.

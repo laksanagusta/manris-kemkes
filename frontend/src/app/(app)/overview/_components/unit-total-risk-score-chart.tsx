@@ -4,7 +4,6 @@ import { useMemo } from "react";
 import {
   LineChart as RechartsLineChart,
   Line,
-  CartesianGrid,
   XAxis,
   YAxis,
 } from "recharts";
@@ -19,6 +18,7 @@ import {
 import { CHART_COLORS } from "@/lib/chart-colors";
 import { buildSemesterScoreTargetTrendData } from "@/lib/dashboard-insights";
 import { shiftAssessmentCycle } from "@/lib/risk-cycle-options";
+import { formatRiskScore } from "@/lib/risk";
 import type { Risk } from "@/types/risk";
 
 interface UnitTotalRiskScoreChartProps {
@@ -70,8 +70,10 @@ export function UnitTotalRiskScoreChart({
 
   return (
     <StandardCard
-      title="Tren Skor Risiko per Kuartal"
-      contentClassName="p-4 pt-2"
+      title="Tren Eksposur Risiko"
+      className="rounded-2xl"
+      headerClassName="px-5 pb-3 pt-5"
+      contentClassName="px-5 pb-5 pt-0"
     >
       {loading ? (
         <OverviewPanelState
@@ -97,7 +99,7 @@ export function UnitTotalRiskScoreChart({
           <div
             role="list"
             aria-label="Legenda tren skor"
-            className="mb-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground"
+            className="mb-3 flex flex-wrap items-center justify-end gap-x-5 gap-y-2 text-xs text-muted-foreground"
           >
             <span role="listitem" className="inline-flex items-center gap-2">
               <span aria-hidden="true" className="h-0.5 w-6 rounded bg-chart-1" />
@@ -111,7 +113,7 @@ export function UnitTotalRiskScoreChart({
           <div
             role="img"
             aria-label={`Grafik skor aktual dan target dari ${chartData[0]?.period} sampai ${chartData.at(-1)?.period}`}
-            className="h-72 w-full sm:h-80"
+            className="h-72 w-full sm:h-80 lg:h-[22rem]"
           >
             <ChartContainer config={chartConfig} className="h-full w-full">
               <RechartsLineChart
@@ -119,11 +121,6 @@ export function UnitTotalRiskScoreChart({
                 data={chartData}
                 margin={{ top: 8, right: 8, left: 0, bottom: 4 }}
               >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="var(--chart-grid)"
-                    vertical={false}
-                />
                 <XAxis
                   dataKey="period"
                   axisLine={false}
@@ -131,6 +128,7 @@ export function UnitTotalRiskScoreChart({
                   tick={{ fontSize: 10 }}
                 />
                 <YAxis
+                  allowDecimals={false}
                   orientation="right"
                   axisLine={false}
                   tickLine={false}
@@ -142,10 +140,24 @@ export function UnitTotalRiskScoreChart({
                   content={
                     <ChartTooltipContent
                       indicator="line"
-                      formatter={(value, name) => [
-                        value ?? "—",
-                        name === "actualScore" ? "Skor Aktual" : "Skor Target",
-                      ]}
+                      formatter={(value, name) => {
+                        const label =
+                          name === "actualScore" ? "Skor Aktual" : "Skor Target";
+                        return [
+                          <span
+                            key="value"
+                            className="font-mono font-medium text-foreground tabular-nums"
+                          >
+                            {formatRiskScore(
+                              typeof value === "number" ? value : null,
+                              "—",
+                            )}
+                          </span>,
+                          <span key="label" className="text-muted-foreground">
+                            {label}
+                          </span>,
+                        ];
+                      }}
                       labelFormatter={(label) => `Kuartal ${label}`}
                     />
                   }
@@ -155,8 +167,8 @@ export function UnitTotalRiskScoreChart({
                   dataKey="actualScore"
                   stroke="var(--color-actualScore)"
                   strokeWidth={2}
-                  dot={{ r: 4, fill: "var(--color-actualScore)" }}
-                  activeDot={{ r: 6 }}
+                  dot={false}
+                  activeDot={false}
                 />
                 <Line
                   type="monotone"
@@ -164,7 +176,8 @@ export function UnitTotalRiskScoreChart({
                   stroke="var(--color-targetScore)"
                   strokeWidth={2}
                   strokeDasharray="4 3"
-                  dot={{ r: 3, fill: "var(--color-targetScore)" }}
+                  dot={false}
+                  activeDot={false}
                   connectNulls={false}
                 />
               </RechartsLineChart>
@@ -173,7 +186,7 @@ export function UnitTotalRiskScoreChart({
           <ul className="sr-only">
             {chartData.map((item) => (
               <li key={item.period}>
-                {item.period}: skor aktual {item.actualScore}, skor target {item.targetScore ?? "belum tersedia"}
+                {item.period}: skor aktual {formatRiskScore(item.actualScore)}, skor target {formatRiskScore(item.targetScore, "belum tersedia")}
               </li>
             ))}
           </ul>

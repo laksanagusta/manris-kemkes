@@ -99,13 +99,13 @@ export function CommunicationLogDialog({
         showCloseButton={false}
       >
         <div className="flex min-h-0 flex-col gap-5">
-          <DialogHeader className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both">
+          <DialogHeader>
             <DialogTitle className="text-base">
               Tambah Log Komunikasi
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[40ms]">
+          <div className="space-y-5">
             <div className="flex flex-col gap-2">
               <Label className="text-sm font-medium" htmlFor="log-date">
                 Tanggal<span className="text-destructive ml-0.5">*</span>
@@ -173,7 +173,7 @@ export function CommunicationLogDialog({
             </div>
           </div>
 
-          <DialogFooter className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[80ms]">
+          <DialogFooter>
             <CollectionDialogCancel type="button" onClick={handleClose}>
               Batal
             </CollectionDialogCancel>

@@ -1,4 +1,5 @@
 import type { WorkingPaperRiskData, WorkingPaperRiskLink } from "@/types/working-paper";
+import { roundRiskScore } from "./risk.js";
 
 export const WORKING_PAPER_MONITORING_COLUMNS = [
   { key: "code", label: "Kode" },
@@ -40,7 +41,7 @@ function normalizeScore(value?: number | null) {
   if (value == null || Number.isNaN(value)) {
     return 0;
   }
-  return Math.round(value);
+  return roundRiskScore(value) ?? 0;
 }
 
 function baselineScore(risk: WorkingPaperRiskData) {

@@ -387,7 +387,7 @@ function PlanningHierarchyRows({
                         "inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-border bg-card text-muted-foreground shadow-sm transition-colors",
                         isExpandable
                           ? "hover:bg-sidebar-accent"
-                          : "cursor-default bg-zinc-50 text-zinc-300",
+                          : "cursor-default bg-zinc-50 text-disabled-foreground",
                       )}
                       aria-label={
                         isExpandable
@@ -409,7 +409,7 @@ function PlanningHierarchyRows({
                     </button>
                     <div className="min-w-0 space-y-0.5 py-0">
                       <div className="flex min-w-0 flex-wrap items-center gap-2">
-                        <span className="min-w-0 text-[13px] font-semibold leading-5 text-zinc-900">
+                        <span className="min-w-0 text-[13px] font-semibold leading-5 text-foreground">
                           {node.title}
                         </span>
                       </div>
@@ -417,18 +417,18 @@ function PlanningHierarchyRows({
                   </div>
                 </div>
               </TableCell>
-              <TableCell className="align-middle text-[12px] leading-5 text-zinc-600">
+              <TableCell className="align-middle text-[12px] leading-5 text-secondary-foreground">
                 <div className="flex h-full items-center">
                   <Badge className={cn("w-fit", hierarchyBadgeClass[node.level])}>
                     {hierarchyLevelLabel[node.level]}
                   </Badge>
                 </div>
               </TableCell>
-              <TableCell className="text-[12px] leading-5 text-zinc-600">
+              <TableCell className="text-[12px] leading-5 text-secondary-foreground">
                 {node.periods[0] ?? "-"}
                 {node.periods.length > 1 ? ` +${node.periods.length - 1}` : ""}
               </TableCell>
-              <TableCell className="text-[12px] font-semibold leading-5 text-zinc-900">
+              <TableCell className="text-[12px] font-semibold leading-5 text-foreground">
                 {node.count}
               </TableCell>
             </TableRow>
@@ -459,7 +459,7 @@ function PlanningHierarchyRows({
                           </span>
                           <div className="min-w-0 space-y-0.5">
                             <div className="flex min-w-0 flex-wrap items-center gap-2">
-                              <span className="min-w-0 text-[13px] font-medium leading-5 text-zinc-900">
+                              <span className="min-w-0 text-[13px] font-medium leading-5 text-foreground">
                                 {item.processBusiness || item.target || "RO belum diberi judul"}
                               </span>
                             </div>
@@ -467,17 +467,17 @@ function PlanningHierarchyRows({
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="align-middle text-[12px] leading-5 text-zinc-600">
+                    <TableCell className="align-middle text-[12px] leading-5 text-secondary-foreground">
                       <div className="flex h-full items-center">
                         <Badge className="bg-muted text-muted-foreground">
                           RO
                         </Badge>
                       </div>
                     </TableCell>
-                    <TableCell className="text-[12px] leading-5 text-zinc-600">
+                    <TableCell className="text-[12px] leading-5 text-secondary-foreground">
                       {item.period || "-"}
                     </TableCell>
-                    <TableCell className="text-[12px] font-semibold leading-5 text-zinc-900">
+                    <TableCell className="text-[12px] font-semibold leading-5 text-foreground">
                       1
                     </TableCell>
                   </TableRow>
@@ -620,7 +620,7 @@ export function PlanningManagementPage() {
         />
 
         <Select value={periodFilter} onValueChange={setPeriodFilter}>
-          <SelectTrigger className="w-full min-w-[180px] md:w-44">
+          <SelectTrigger className="h-9 w-full min-w-[180px] md:w-44">
             <SelectValue placeholder="Semua periode" />
           </SelectTrigger>
           <SelectContent>
@@ -634,7 +634,7 @@ export function PlanningManagementPage() {
         </Select>
 
         <Select value={organizationFilter} onValueChange={setOrganizationFilter}>
-          <SelectTrigger className="w-full min-w-[180px] md:w-44">
+          <SelectTrigger className="h-9 w-full min-w-[180px] md:w-44">
             <SelectValue placeholder="Semua satker" />
           </SelectTrigger>
           <SelectContent>

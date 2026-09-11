@@ -7,13 +7,13 @@ import {
   listAllOrganizations,
   type OrganizationListItem,
 } from "@/lib/api/organizations";
-import { listWorkingPapers } from "@/lib/api/working-papers";
+import { listRiskMonitorings } from "@/lib/api/risk-monitoring";
 import { useAuth } from "@/contexts/auth-context";
 import { filterToAccessibleOrgs } from "@/lib/organization";
 import {
   buildMonitoringOrganizationSummaries,
   buildMonitoringQueryString,
-  buildMonitoringRosterRows,
+  buildMonitoringTransactionRows,
   filterMonitoringRows,
   getMonitoringStatusLabel,
   parseMonitoringQueryState,
@@ -29,7 +29,6 @@ import {
   getLinearStatusBadgeTone,
 } from "@/lib/linear-status-badge";
 import { formatMonitoringNilai } from "@/lib/risk-register-monitoring";
-import { cn } from "@/lib/utils";
 import {
   ActionButton,
   CollapsibleCard,
@@ -65,7 +64,6 @@ import {
 } from "@/components/ui/select";
 import {
   ArrowRight,
-  Building2,
   RefreshCcw,
 } from "@/components/ui/icons";
 import {
@@ -74,28 +72,26 @@ import {
   TableCell,
   TableRow,
 } from "@/components/ui/table";
-import type { WorkingPaper } from "@/types/working-paper";
 
-const WORKING_PAPER_PAGE_SIZE = 100;
+const MONITORING_PAGE_SIZE = 100;
 
 const STATUS_OPTIONS: Array<{
   value: MonitoringStatusFilter;
   label: string;
 }> = [
   { value: "all", label: "Semua status" },
-  { value: "not_started", label: "Belum Dimulai" },
   { value: "in_progress", label: "Berlangsung" },
   { value: "finalized", label: "Final" },
 ];
 
-async function listAllWorkingPapersForCycle(token: string, cycle: string) {
-  const firstPage = await listWorkingPapers(token, {
+async function listAllRiskMonitoringsForCycle(token: string, cycle: string) {
+  const firstPage = await listRiskMonitorings(token, {
     assessment_cycle: cycle,
     page: 1,
-    limit: WORKING_PAPER_PAGE_SIZE,
+    limit: MONITORING_PAGE_SIZE,
   });
   const firstData = firstPage.data ?? [];
-  const pageSize = firstPage.limit || WORKING_PAPER_PAGE_SIZE;
+  const pageSize = firstPage.limit || MONITORING_PAGE_SIZE;
   const totalPages = Math.max(
     1,
     Math.ceil((firstPage.total ?? firstData.length) / pageSize),
@@ -105,7 +101,7 @@ async function listAllWorkingPapersForCycle(token: string, cycle: string) {
 
   const remainingPages = await Promise.all(
     Array.from({ length: totalPages - 1 }, (_, index) =>
-      listWorkingPapers(token, {
+      listRiskMonitorings(token, {
         assessment_cycle: cycle,
         page: index + 2,
         limit: pageSize,
@@ -133,11 +129,9 @@ function formatFinalizedAt(value: string | null) {
 }
 
 function getActionHref(row: MonitoringOverviewRow) {
-  return row.status === "not_started"
-    ? `/risk/register/${row.sourceRiskId}`
-    : row.monitoringId
-      ? `/risk/monitoring/${row.monitoringId}`
-      : `/risk/register/${row.sourceRiskId}`;
+  return row.monitoringId
+    ? `/risk/monitoring/${row.monitoringId}`
+    : `/risk/register/${row.sourceRiskId}`;
 }
 
 function ScoreComparison({ row }: { row: MonitoringOverviewRow }) {
@@ -188,10 +182,9 @@ function OrganizationSummaryTable({
       <Table className="min-w-[680px] table-fixed">
         <colgroup>
           <col className="w-[42%]" />
-          <col className="w-[14%]" />
-          <col className="w-[14%]" />
-          <col className="w-[14%]" />
-          <col className="w-[16%]" />
+          <col className="w-[18%]" />
+          <col className="w-[20%]" />
+          <col className="w-[20%]" />
         </colgroup>
         <CollectionTableHeader density="compact">
           <CollectionTableHeaderRow>
@@ -200,9 +193,6 @@ function OrganizationSummaryTable({
             </CollectionTableHead>
             <CollectionTableHead className="px-3 text-right">
               Total
-            </CollectionTableHead>
-            <CollectionTableHead className="px-3 text-right">
-              Belum Dimulai
             </CollectionTableHead>
             <CollectionTableHead className="px-3 text-right">
               Berlangsung
@@ -216,45 +206,26 @@ function OrganizationSummaryTable({
           {summaries.map((summary) => (
             <TableRow key={summary.id} className="h-12">
               <TableCell className="py-2 pl-4 pr-3">
-                <div
-                  className="flex items-center gap-2"
-                  style={{ paddingLeft: `${summary.depth * 18}px` }}
-                >
-                  {summary.hasChildren ? (
-                    <Building2
-                      aria-hidden="true"
-                      className="size-3.5 shrink-0 text-muted-foreground"
-                    />
-                  ) : (
-                    <span aria-hidden="true" className="size-3.5 shrink-0" />
-                  )}
+                <div className="flex items-center gap-2">
                   <span
-                    className={cn(
-                      "truncate text-sm",
-                      summary.isAggregate
-                        ? "font-semibold text-foreground"
-                        : "font-medium text-foreground",
-                    )}
+                    className="truncate text-sm font-medium text-foreground"
                     title={summary.name}
                   >
                     {summary.name}
                   </span>
                   {summary.total === 0 ? (
-                    <Badge size="micro" tone="neutral">
+                    <Badge
+                      size="compact"
+                      tone="neutral"
+                      className="!bg-[#0000000a] !text-[#8f8e8e]"
+                    >
                       Belum Ada Data
                     </Badge>
-                  ) : summary.isAggregate ? (
-                    <span className="text-[11px] text-muted-foreground">
-                      agregat
-                    </span>
                   ) : null}
                 </div>
               </TableCell>
               <TableCell className="px-3 py-2 text-right font-mono text-sm tabular-nums text-foreground">
                 {summary.total}
-              </TableCell>
-              <TableCell className="px-3 py-2 text-right font-mono text-sm tabular-nums text-muted-foreground">
-                {summary.notStarted}
               </TableCell>
               <TableCell className="px-3 py-2 text-right font-mono text-sm tabular-nums text-muted-foreground">
                 {summary.inProgress}
@@ -289,7 +260,11 @@ function MonitoringOrganizationSummaryCollapsible({
           </CollapsibleCard.Title>
         </CollapsibleCard.Header>
         <CollapsibleCard.Actions>
-          <Badge size="micro" tone="neutral">
+          <Badge
+            size="compact"
+            tone="neutral"
+            className="bg-muted text-muted-foreground"
+          >
             {cycle}
           </Badge>
         </CollapsibleCard.Actions>
@@ -344,7 +319,6 @@ export function MonitoringReadOnlyWorkspace() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
-  const [workingPapers, setWorkingPapers] = useState<WorkingPaper[]>([]);
 
   const accessibleOrganizations = useMemo(() => {
     if (user?.isGlobal) return organizations;
@@ -372,9 +346,9 @@ export function MonitoringReadOnlyWorkspace() {
       setError(null);
 
       try {
-        const [organizationData, workingPapers] = await Promise.all([
+        const [organizationData, monitorings] = await Promise.all([
           listAllOrganizations(token),
-          listAllWorkingPapersForCycle(token, cycle),
+          listAllRiskMonitoringsForCycle(token, cycle),
         ]);
         const scopedOrganizations = user?.isGlobal
           ? organizationData
@@ -382,28 +356,23 @@ export function MonitoringReadOnlyWorkspace() {
               organizationData,
               user?.accessibleOrgIds ?? [],
             );
-        const scopedWorkingPapers = user?.isGlobal
-          ? workingPapers
-          : workingPapers.filter(
-              (workingPaper) =>
-                user?.accessibleOrgIds.includes(workingPaper.org_id),
-            );
-        const tableWorkingPapers = user?.isGlobal
-          ? scopedWorkingPapers
-          : scopedWorkingPapers.filter(
-              (workingPaper) =>
-                workingPaper.org_id === user?.organizationId,
-            );
+        const scopedMonitorings = user?.isGlobal
+          ? monitorings
+          : monitorings.filter((monitoring) => {
+              const organizationId =
+                monitoring.sourceRisk?.organizationId ??
+                monitoring.resultRisk?.organizationId;
+              return Boolean(
+                organizationId &&
+                  user?.accessibleOrgIds.includes(organizationId),
+              );
+            });
 
         setOrganizations(scopedOrganizations);
-        setWorkingPapers(scopedWorkingPapers);
-        setRows(
-          buildMonitoringRosterRows(tableWorkingPapers, scopedOrganizations),
-        );
+        setRows(buildMonitoringTransactionRows(scopedMonitorings, scopedOrganizations));
       } catch (loadError) {
         console.error(loadError);
         setRows([]);
-        setWorkingPapers([]);
         setOrganizations([]);
         setError(
           loadError instanceof Error
@@ -415,7 +384,7 @@ export function MonitoringReadOnlyWorkspace() {
         setRefreshing(false);
       }
     },
-    [cycle, token, user?.accessibleOrgIds, user?.isGlobal, user?.organizationId],
+    [cycle, token, user?.accessibleOrgIds, user?.isGlobal],
   );
 
   useEffect(() => {
@@ -484,18 +453,14 @@ export function MonitoringReadOnlyWorkspace() {
       ),
     [organizationId, rows, search, status, tableOrganizations],
   );
-  const supportingRows = useMemo(
-    () => buildMonitoringRosterRows(workingPapers, accessibleOrganizations),
-    [accessibleOrganizations, workingPapers],
-  );
   const summaries = useMemo(
     () =>
       buildMonitoringOrganizationSummaries(
-        supportingRows,
+        rows,
         accessibleOrganizations,
         organizationId,
       ),
-    [accessibleOrganizations, organizationId, supportingRows],
+    [accessibleOrganizations, organizationId, rows],
   );
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / limit));
@@ -504,9 +469,7 @@ export function MonitoringReadOnlyWorkspace() {
     (currentPage - 1) * limit,
     currentPage * limit,
   );
-  const finalizedCount = scopedRows.filter(
-    (row) => row.status === "finalized",
-  ).length;
+  const finalizedCount = scopedRows.filter((row) => row.status === "finalized").length;
   const progressPercent = scopedRows.length
     ? Math.round((finalizedCount / scopedRows.length) * 100)
     : 0;
@@ -534,25 +497,17 @@ export function MonitoringReadOnlyWorkspace() {
 
   return (
     <div className="flex flex-col gap-6">
-      <section className="space-y-4" aria-label="Ringkasan pemantauan">
-        <MetricGrid className="md:grid-cols-3 xl:grid-cols-3">
-          <KpiCard
-            label="Belum Dimulai"
-            value={error ? "—" : scopedRows.filter((row) => row.status === "not_started").length}
-            tone="white"
-            description="Risiko dalam snapshot tanpa pemantauan."
-          />
+      <section className="space-y-6" aria-label="Ringkasan pemantauan">
+        <MetricGrid className="md:grid-cols-2 xl:grid-cols-2">
           <KpiCard
             label="Berlangsung"
             value={error ? "—" : scopedRows.filter((row) => row.status === "in_progress").length}
             tone="white"
-            description="Draft pemantauan yang masih dikerjakan owner."
           />
           <KpiCard
             label="Final"
             value={error ? "—" : finalizedCount}
             tone="white"
-            description="Pemantauan terkunci dan siap menjadi dasar tahap berikutnya."
           />
         </MetricGrid>
 
@@ -564,7 +519,7 @@ export function MonitoringReadOnlyWorkspace() {
                   {finalizedCount} dari {scopedRows.length} risiko sudah Final
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Berdasarkan snapshot Kertas Kerja {cycle}.
+                  Berdasarkan transaksi pemantauan {cycle}.
                 </p>
               </div>
               <span className="font-mono text-lg font-semibold tabular-nums text-foreground">
@@ -580,7 +535,7 @@ export function MonitoringReadOnlyWorkspace() {
         </StandardCard>
       </section>
 
-      <section className="space-y-4" aria-label="Daftar status pemantauan">
+      <section className="space-y-6" aria-label="Daftar status pemantauan">
         <CollectionToolbar
           className="w-full"
           leading={
@@ -605,7 +560,7 @@ export function MonitoringReadOnlyWorkspace() {
                   }}
                 >
                   <SelectTrigger
-                    className="w-full rounded-lg border border-input bg-card text-sm sm:w-36"
+                    className="h-9 w-full rounded-lg border border-input bg-card text-sm sm:w-36"
                     aria-label="Pilih siklus pemantauan"
                   >
                     <SelectValue placeholder="Siklus" />
@@ -630,7 +585,7 @@ export function MonitoringReadOnlyWorkspace() {
                           Filter Pemantauan
                         </h3>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          Saring berdasarkan status snapshot.
+                          Saring berdasarkan status transaksi.
                         </p>
                       </div>
                       <div className="space-y-2">
@@ -642,7 +597,7 @@ export function MonitoringReadOnlyWorkspace() {
                             setPage(1);
                           }}
                         >
-                          <SelectTrigger id="monitoring-status-filter" className="h-10 rounded-lg border border-input bg-card text-sm">
+                          <SelectTrigger id="monitoring-status-filter" className="h-9 rounded-lg border border-input bg-card text-sm">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -675,6 +630,7 @@ export function MonitoringReadOnlyWorkspace() {
               loading={refreshing}
               icon={<RefreshCcw className="size-3.5" strokeWidth={2.25} />}
               size="icon-xs"
+              className="size-9"
               onClick={() => void loadData(false)}
             />
           }
@@ -716,8 +672,8 @@ export function MonitoringReadOnlyWorkspace() {
                   <TableRow>
                     <TableCell colSpan={5} className="p-0">
                       <CollectionEmptyState
-                        title="Belum ada risiko dalam snapshot ini"
-                        description="Belum ada risiko yang dipickup ke Kertas Kerja untuk filter yang dipilih."
+                        title="Belum ada transaksi pemantauan"
+                        description="Belum ada transaksi pemantauan untuk siklus atau filter yang dipilih."
                       />
                     </TableCell>
                   </TableRow>
@@ -756,7 +712,7 @@ export function MonitoringReadOnlyWorkspace() {
                               {row.title}
                             </Link>
                             <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
-                              {row.workingPaperCode} · {row.assessmentCycle}
+                              Siklus {row.assessmentCycle}
                             </p>
                           </div>
                         </TableCell>

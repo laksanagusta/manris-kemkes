@@ -39,8 +39,10 @@ function getTaskStatusLabel(status: MitigationTaskStatus) {
       return "Terlambat";
     case "skipped":
       return "Dilewati";
+    case "not_reported":
+      return "Tidak dilaporkan";
     default:
-      return "Pending";
+      return "Belum dilaporkan";
   }
 }
 
@@ -52,6 +54,8 @@ function getTaskStatusTone(status: MitigationTaskStatus) {
       return "danger" as const;
     case "skipped":
       return "neutral" as const;
+    case "not_reported":
+      return "danger" as const;
     default:
       return "warning" as const;
   }
@@ -157,7 +161,7 @@ export function MitigationStatusTable({
 
   if (loading) {
     return (
-      <p className="py-2 text-xs leading-5 text-muted-foreground">
+      <p className="rounded-lg bg-state-surface px-3 py-2 text-sm leading-6 text-state-foreground">
         Memuat laporan mitigasi...
       </p>
     );
@@ -184,20 +188,20 @@ export function MitigationStatusTable({
 
   if (tasks.length === 0) {
     return (
-      <div className="rounded-xl border border-dashed border-border/60 bg-muted/10 p-3">
-        <p className="text-xs font-medium leading-5 text-foreground">
+      <div className="rounded-xl bg-state-surface p-3 text-state-foreground">
+        <p className="text-sm font-medium leading-6 text-state-foreground">
           Belum ada tugas mitigasi pada periode ini
         </p>
-        <p className="mt-1 text-xs leading-5 text-muted-foreground">
-          Finalisasi tetap dapat dilakukan, tetapi progres mitigasi belum
-          memiliki laporan.
+        <p className="mt-1 text-sm leading-6 text-state-foreground/80">
+          Finalisasi dapat dilakukan tanpa laporan mitigasi.
         </p>
       </div>
     );
   }
 
   const doneCount = tasks.filter((t) => t.status === "done").length;
-  const pendingCount = tasks.filter(
+  const pendingCount = tasks.filter((task) => task.status !== "done").length;
+  const reportableCount = tasks.filter(
     (task) => task.status === "pending" || task.status === "overdue",
   ).length;
   const progressPct = Math.round((doneCount / tasks.length) * 100);
@@ -205,7 +209,7 @@ export function MitigationStatusTable({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-xs text-muted-foreground">Status pelaporan</p>
+        <p className="text-sm text-muted-foreground">Status pelaporan</p>
         <Badge
           size="micro"
           tone={pendingCount === 0 ? "success" : "warning"}
@@ -220,20 +224,20 @@ export function MitigationStatusTable({
       />
       <dl className="space-y-0.5">
         <div className="flex items-center justify-between gap-3 py-1.5">
-          <dt className="text-xs text-muted-foreground">Total mitigasi</dt>
-          <dd className="font-mono text-xs font-semibold tabular-nums text-foreground">
+          <dt className="text-sm text-muted-foreground">Total mitigasi</dt>
+          <dd className="font-mono text-sm font-semibold tabular-nums text-foreground">
             {tasks.length}
           </dd>
         </div>
         <div className="flex items-center justify-between gap-3 py-1.5">
-          <dt className="text-xs text-muted-foreground">Sudah dilaporkan</dt>
-          <dd className="font-mono text-xs font-semibold tabular-nums text-foreground">
+          <dt className="text-sm text-muted-foreground">Sudah dilaporkan</dt>
+          <dd className="font-mono text-sm font-semibold tabular-nums text-foreground">
             {doneCount}
           </dd>
         </div>
         <div className="flex items-center justify-between gap-3 py-1.5">
-          <dt className="text-xs text-muted-foreground">Pending</dt>
-          <dd className="font-mono text-xs font-semibold tabular-nums text-foreground">
+          <dt className="text-sm text-muted-foreground">Belum dilaporkan</dt>
+          <dd className="font-mono text-sm font-semibold tabular-nums text-foreground">
             {pendingCount}
           </dd>
         </div>
@@ -245,9 +249,13 @@ export function MitigationStatusTable({
             onClick={() => setIsExpanded((expanded) => !expanded)}
             aria-expanded={isExpanded}
             aria-controls="monitoring-mitigation-list"
-            className="inline-flex min-h-9 items-center gap-1 text-xs font-medium text-primary underline-offset-2 transition-colors hover:text-primary/80 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+            className="inline-flex min-h-9 items-center gap-1 text-sm font-medium text-primary underline-offset-2 transition-colors hover:text-primary/80 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
           >
-            {isExpanded ? "Sembunyikan daftar" : "Perbarui progres"}
+            {isExpanded
+              ? "Sembunyikan daftar"
+              : reportableCount > 0
+                ? "Perbarui progres"
+                : "Lihat status mitigasi"}
             <ChevronDown
               aria-hidden="true"
               className={`size-3.5 transition-transform duration-200 ease-out motion-reduce:transition-none ${isExpanded ? "rotate-180" : ""}`}
@@ -258,11 +266,11 @@ export function MitigationStatusTable({
               id="monitoring-mitigation-list"
               role="list"
               aria-label="Daftar mitigasi"
-              className="border-t border-border/40 pt-2"
+              className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-2 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-reduce:animate-none"
             >
               {tasks.map((task) => {
                 const canReport =
-                  task.status !== "done" && task.status !== "skipped";
+                  task.status === "pending" || task.status === "overdue";
 
                 return (
                   <div
@@ -271,11 +279,11 @@ export function MitigationStatusTable({
                     className="flex items-start gap-2 border-b border-border/30 py-2.5 last:border-b-0"
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="line-clamp-2 text-xs font-medium leading-5 text-foreground">
+                      <p className="line-clamp-2 text-sm font-medium leading-6 text-foreground">
                         {task.mitigationAction || "Mitigasi tanpa nama"}
                       </p>
                       <div className="mt-1 flex items-center gap-2">
-                        <span className="truncate text-[11px] text-muted-foreground">
+                        <span className="truncate text-xs text-muted-foreground">
                           {task.periodLabel}
                         </span>
                         <Badge
@@ -291,7 +299,7 @@ export function MitigationStatusTable({
                         type="button"
                         size="sm"
                         variant="outline"
-                        className="h-7 shrink-0 gap-1 px-2 text-[11px]"
+                        className="h-7 shrink-0 gap-1 px-2 text-xs"
                         icon={<Send className="size-3" />}
                         onClick={() => handleOpenReport(task)}
                       >

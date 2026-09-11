@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 import { Agentation } from "agentation";
-import { Inter, JetBrains_Mono } from "next/font/google";
+import { Inter, JetBrains_Mono, Poppins } from "next/font/google";
 import { AuthProvider } from "@/contexts/auth-context";
 import { Toaster } from "@/components/ui/sonner";
 import { SuppressRadixWarnings } from "@/components/suppress-radix-warnings";
@@ -20,11 +20,20 @@ const jetbrainsMono = JetBrains_Mono({
   display: "swap",
 });
 
+const poppins = Poppins({
+  subsets: ["latin"],
+  weight: ["600"],
+  variable: "--font-poppins",
+  display: "swap",
+});
+
 const fontVariables = {
   "--font-sans":
     "var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   "--font-display":
     "var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+  "--font-logo":
+    "var(--font-poppins), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
   "--font-mono":
     "var(--font-jetbrains-mono), ui-monospace, 'SFMono-Regular', 'SF Mono', Consolas, 'Liberation Mono', monospace",
 } as CSSProperties;
@@ -47,7 +56,7 @@ export default function RootLayout({
     <html
       lang="id"
       style={fontVariables}
-      className={`${inter.variable} ${jetbrainsMono.variable}`}
+      className={`${inter.variable} ${jetbrainsMono.variable} ${poppins.variable}`}
     >
       <body className="bg-background antialiased">
         <AuthProvider>

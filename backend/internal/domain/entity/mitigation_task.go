@@ -6,11 +6,19 @@ import (
 	"github.com/google/uuid"
 )
 
+const (
+	MitigationTaskStatusPending     = "pending"
+	MitigationTaskStatusDone        = "done"
+	MitigationTaskStatusOverdue     = "overdue"
+	MitigationTaskStatusSkipped     = "skipped"
+	MitigationTaskStatusNotReported = "not_reported"
+)
+
 // MitigationTask represents a single progress report task auto-generated for a mitigation plan
 type MitigationTask struct {
-	ID           uuid.UUID  `json:"id"`
-	MitigationID uuid.UUID  `json:"mitigationId"`
-	RiskID       uuid.UUID  `json:"riskId"`
+	ID           uuid.UUID `json:"id"`
+	MitigationID uuid.UUID `json:"mitigationId"`
+	RiskID       uuid.UUID `json:"riskId"`
 
 	// Monitoring link (nullable — only set when task is part of a monitoring cycle)
 	MonitoringID *uuid.UUID `json:"monitoringId,omitempty"`
@@ -22,7 +30,7 @@ type MitigationTask struct {
 	DueDate     string `json:"dueDate"`
 
 	// Progress (filled by PIC)
-	Status      string `json:"status"` // pending, done, overdue, skipped
+	Status      string `json:"status"` // pending, done, overdue, skipped, not_reported
 	EvidenceURL string `json:"evidenceUrl"`
 	Notes       string `json:"notes"`
 

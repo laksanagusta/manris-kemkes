@@ -42,7 +42,7 @@ func main() {
 	cleanRiskHandler := httpHandler.NewRiskHandler(
 		container.RiskCreateUC, container.RiskCreateBatchUC, container.RiskSpreadsheetUC, container.RiskGetUC, container.RiskExportPDFUC, container.RiskArchiveUC, container.RiskRestoreUC, container.RiskUpdateUC, container.RiskDeleteUC, container.RiskListUC, container.RiskListRegisterUC, container.RiskListMonitoringUC, container.RiskListCycleSnapshotUC, container.RiskListVersionsUC, container.RiskReviewQueueUC, container.RiskCompareCyclesUC, container.RiskCompareCycleDetailsUC, container.RiskReviewSummaryUC,
 		container.RiskDashboardSummaryUC, container.RiskActionPressureUC, container.RiskExecutiveAlertsUC, container.RiskHeatmapDataUC, container.RiskHeatmapMultiUC, container.RiskTopRisksUC, container.RiskDashboardCategoriesUC, container.RiskListApprovedUC,
-		container.RiskHeatmapVelocityUC, container.RiskOverdueTimelineUC, container.RiskUnitResponseUC, container.RiskMonitoringSpreadsheetUC, container.RiskCreateMonitoringBatchUC, container.RiskMonitoringStartUC, container.RiskMonitoringGetUC, container.RiskMonitoringUpdateUC, container.RiskMonitoringFinalizeUC, container.MMRepository,
+		container.RiskHeatmapVelocityUC, container.RiskOverdueTimelineUC, container.RiskUnitResponseUC, container.RiskMonitoringStartUC, container.RiskMonitoringGetUC, container.RiskMonitoringUpdateUC, container.RiskMonitoringFinalizeUC, container.MMRepository,
 	)
 	cleanUserHandler := httpHandler.NewUserHandler(
 		container.UserCreateUC, container.UserGetUC, container.UserUpdateUC, container.UserDeleteUC, container.UserListUC, container.UserListFilterUC, container.UserApproveRegistrationUC, container.UserRejectRegistrationUC,
@@ -87,6 +87,7 @@ func main() {
 		container.RiskCharterGetUC,
 		container.RiskCharterUpdateUC,
 		container.RiskCharterListUC,
+		container.RiskCharterWorkflowUC,
 	)
 	cleanTMPMRHandler := httpHandler.NewTMPMRHandler(
 		container.TMPMRCreateUC,
@@ -239,6 +240,12 @@ func main() {
 	protected.Post("/risk-charters", cleanRiskCharterHandler.Create)
 	protected.Get("/risk-charters/:id", cleanRiskCharterHandler.Get)
 	protected.Put("/risk-charters/:id", cleanRiskCharterHandler.Update)
+	protected.Post("/risk-charters/:id/finalize", cleanRiskCharterHandler.Finalize)
+	protected.Post("/risk-charters/:id/revisions", cleanRiskCharterHandler.CreateRevision)
+	protected.Get("/risk-charters/:id/versions", cleanRiskCharterHandler.ListVersions)
+	protected.Post("/risk-charters/:id/archive", cleanRiskCharterHandler.Archive)
+	protected.Post("/risk-charters/:id/restore", cleanRiskCharterHandler.Restore)
+	protected.Delete("/risk-charters/:id", cleanRiskCharterHandler.DeleteDraft)
 
 	// TMPMR (Clean Architecture)
 	protected.Get("/tmpmr", cleanTMPMRHandler.List)
@@ -301,9 +308,6 @@ func main() {
 	protected.Get("/risks/batch/template", cleanRiskHandler.DownloadBulkRiskTemplate)
 	protected.Post("/risks/batch/preview", cleanRiskHandler.PreviewRiskBatchUpload)
 	protected.Post("/risks/batch", cleanRiskHandler.CreateRiskBatch)
-	protected.Get("/risks/batch/monitoring/template", cleanRiskHandler.DownloadMonitoringTemplate)
-	protected.Post("/risks/batch/monitoring/preview", cleanRiskHandler.PreviewMonitoringBatchUpload)
-	protected.Post("/risks/batch/monitoring", cleanRiskHandler.CreateMonitoringBatch)
 	protected.Get("/risks/trend", cleanRiskHandler.ListApprovedRisks)
 	protected.Get("/risks/:id", cleanRiskHandler.GetRisk)
 	protected.Get("/risks/:id/export-pdf", cleanRiskHandler.ExportRiskPDF)

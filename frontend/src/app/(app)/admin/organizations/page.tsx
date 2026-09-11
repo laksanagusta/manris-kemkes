@@ -366,12 +366,13 @@ export default function OrganizationsManagementPage() {
                   setSearch(event.target.value);
                   setPage(1);
                 }}
-                className="h-10 bg-card pl-8 text-xs"
+                className="h-9 bg-card pl-8 text-xs"
               />
             </div>
           }
           actions={
             <Button
+              size="md"
               className="w-full gap-2 sm:w-auto"
               onClick={handleCreateClick}
               aria-label="Tambah Organisasi"
@@ -398,16 +399,16 @@ export default function OrganizationsManagementPage() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
+                  <TableCell colSpan={5} className="h-24 bg-state-surface text-center text-state-foreground">
                     <Loader2 className="size-5 animate-spin mx-auto text-muted-foreground" />
                   </TableCell>
                 </TableRow>
               ) : organizations.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24">
+                  <TableCell colSpan={5} className="h-24 bg-state-surface">
                     <div className="flex flex-col gap-1 text-left">
-                      <p className="text-sm font-medium text-muted-foreground">Belum ada data organisasi</p>
-                      <p className="text-xs text-muted-foreground/70">Tambahkan organisasi baru untuk memulai</p>
+                      <p className="text-sm font-medium text-state-foreground">Belum ada data organisasi</p>
+                      <p className="text-xs text-state-foreground/70">Tambahkan organisasi baru untuk memulai</p>
                     </div>
                   </TableCell>
                 </TableRow>

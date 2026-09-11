@@ -67,15 +67,27 @@ test("shared floating primitives and default cards use their shared elevations",
 
   for (const file of [
     "combobox.tsx",
-    "dropdown-menu.tsx",
     "popover.tsx",
-    "select.tsx",
     "sonner.tsx",
     "tooltip.tsx",
   ]) {
     const source = readFileSync(new URL(`./${file}`, import.meta.url), "utf8");
     assert.ok(source.includes(ELEVATION), `${file} must use ${ELEVATION}`);
   }
+
+  const dropdownSource = readFileSync(
+    new URL("./dropdown-menu.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.ok(dropdownSource.includes(CARD_ELEVATION));
+  assert.doesNotMatch(dropdownSource, /smooth-shadow-ring-xs/);
+
+  const selectSource = readFileSync(
+    new URL("./select.tsx", import.meta.url),
+    "utf8",
+  );
+  assert.ok(selectSource.includes(CARD_ELEVATION));
+  assert.doesNotMatch(selectSource, /smooth-shadow-ring-xs/);
 
   for (const file of ["alert-dialog.tsx", "dialog.tsx", "sheet.tsx"]) {
     const source = readFileSync(new URL(`./${file}`, import.meta.url), "utf8");
@@ -119,10 +131,7 @@ test("all neutral component boundaries inherit the Vercel-strength token", () =>
   assert.match(globalsSource, /--border: var\(--surface-border\)/);
   assert.match(globalsSource, /--input: var\(--field-border\)/);
   assert.match(globalsSource, /--sidebar-border: var\(--surface-border\)/);
-  assert.match(
-    globalsSource,
-    /\.dark\s*\{[^}]*--surface-border: rgb\(255 255 255 \/ 12%\)/s,
-  );
+  assert.doesNotMatch(globalsSource, /\bdark\b/);
   assert.match(
     globalsSource,
     /\.border-shadow \{\s*box-shadow: var\(--shadow-custom\);\s*\}/s,
@@ -286,7 +295,7 @@ test("shared field surfaces use the dedicated field border token", () => {
   assert.doesNotMatch(selectSource, /border-border/);
   assert.doesNotMatch(
     selectSource,
-    /(?:focus:border-black|focus-visible:border-black|dark:focus:border-white|dark:focus-visible:border-white)/,
+    /(?:focus:border-black|focus-visible:border-black|\bdark\b)/,
   );
   assert.match(selectSource, /focus:ring-0/);
   assert.match(selectSource, /focus-visible:ring-0/);
@@ -309,6 +318,12 @@ test("select and dropdown options expose a visible keyboard focus indicator", ()
 });
 
 test("risk form geometry overrides preserve the shared active field state", () => {
+  const riskFieldGeometry = globalsSource.slice(
+    globalsSource.indexOf('.risk-form-filter-controls [data-slot="input"]'),
+    globalsSource.indexOf('/* Keep active field states owned by the shared primitives.'),
+  );
+
+  assert.doesNotMatch(riskFieldGeometry, /border-color:\s*var\(--input\)/);
   assert.match(
     globalsSource,
     /\.risk-form-filter-controls \[data-slot="input"\]:focus,[\s\S]*?border-color: var\(--primary\);[\s\S]*?box-shadow: none;/,

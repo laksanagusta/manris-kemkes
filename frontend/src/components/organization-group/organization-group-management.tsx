@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import {
   CollectionPagination,
   CollectionTableHead,
+  CollectionTableSurface,
 } from "@/components/shared/design-system";
 import {
   Dialog,
@@ -302,20 +303,20 @@ export function OrganizationGroupManagement({
 
   return (
     <div className="space-y-6">
-      <div className="overflow-hidden rounded-2xl bg-white smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+      <div className="overflow-hidden rounded-xl bg-white smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
         <div className="flex flex-col gap-4 p-4 shadow-[inset_0_-1px_rgba(24,24,27,0.06)] md:px-6">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div className="min-w-0">
-              <h2 className="text-[15px] font-semibold tracking-tight text-zinc-900 text-balance">
+              <h2 className="text-[15px] font-semibold tracking-tight text-foreground text-balance">
                 Grup Organisasi
               </h2>
-              <p className="mt-1 text-xs text-zinc-500 text-pretty">
+              <p className="mt-1 text-xs text-muted-foreground text-pretty">
                 Kelompokkan unit turunan yang sering dipakai sebagai scope laporan.
               </p>
             </div>
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-end">
               <div className="relative w-full max-w-sm md:w-[260px]">
-                <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-zinc-400" />
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-disabled-foreground" />
                 <Input
                   value={groupSearch}
                   onChange={(event) => {
@@ -323,14 +324,14 @@ export function OrganizationGroupManagement({
                     setPage(1);
                   }}
                   placeholder="Cari grup..."
-                  className="h-10 border-input bg-card pl-9 text-sm shadow-none"
+                  className="h-9 border-input bg-card pl-9 text-sm shadow-none"
                 />
               </div>
               <div className="flex flex-wrap items-center gap-2 md:justify-end">
                 <Badge tone="neutral" size="compact" className="tabular-nums">
                   {totalGroups} grup
                 </Badge>
-                <Button className="h-8 gap-2 text-xs" variant="outline" onClick={openCreateDialog}>
+                <Button size="md" className="gap-2 text-xs" variant="outline" onClick={openCreateDialog}>
                   <Plus className="size-3.5" />
                   Tambah Grup
                 </Button>
@@ -339,23 +340,23 @@ export function OrganizationGroupManagement({
           </div>
         </div>
 
-        <div className="relative w-full overflow-x-auto">
+        <CollectionTableSurface>
           <Table className="min-w-[920px]">
             <TableHeader className="[&_tr]:border-b [&_tr]:border-border/60">
               <TableRow className="border-b border-border transition-colors hover:bg-transparent">
-                <CollectionTableHead density="compact" className="w-[30%] whitespace-nowrap pl-4 pr-2.5 text-left align-middle uppercase tracking-[0.12em] text-zinc-500 md:pl-6">
+                <CollectionTableHead density="compact" className="w-[30%] whitespace-nowrap pl-4 pr-2.5 text-left align-middle uppercase tracking-[0.12em] text-muted-foreground md:pl-6">
                   Nama Grup
                 </CollectionTableHead>
-                <CollectionTableHead density="compact" className="w-[30%] whitespace-nowrap px-2.5 text-left align-middle uppercase tracking-[0.12em] text-zinc-500">
+                <CollectionTableHead density="compact" className="w-[30%] whitespace-nowrap px-2.5 text-left align-middle uppercase tracking-[0.12em] text-muted-foreground">
                   Pemilik
                 </CollectionTableHead>
-                <CollectionTableHead density="compact" className="w-24 whitespace-nowrap px-2.5 text-left align-middle uppercase tracking-[0.12em] text-zinc-500">
+                <CollectionTableHead density="compact" className="w-24 whitespace-nowrap px-2.5 text-left align-middle uppercase tracking-[0.12em] text-muted-foreground">
                   Anggota
                 </CollectionTableHead>
-                <CollectionTableHead density="compact" className="w-32 whitespace-nowrap px-2.5 text-left align-middle uppercase tracking-[0.12em] text-zinc-500">
+                <CollectionTableHead density="compact" className="w-32 whitespace-nowrap px-2.5 text-left align-middle uppercase tracking-[0.12em] text-muted-foreground">
                   Diperbarui
                 </CollectionTableHead>
-                <CollectionTableHead density="compact" className="w-28 whitespace-nowrap px-2.5 text-left align-middle uppercase tracking-[0.12em] text-zinc-500">
+                <CollectionTableHead density="compact" className="w-28 whitespace-nowrap px-2.5 text-left align-middle uppercase tracking-[0.12em] text-muted-foreground">
                   Aksi
                 </CollectionTableHead>
               </TableRow>
@@ -363,13 +364,13 @@ export function OrganizationGroupManagement({
             <TableBody>
               {loading ? (
                 <TableRow className="border-border/80 transition-colors hover:bg-muted/70">
-                  <TableCell colSpan={5} className="py-12 text-left text-xs text-zinc-500">
-                    <Loader2 className="size-5 animate-spin text-zinc-400" />
+                  <TableCell colSpan={5} className="py-12 text-left text-xs text-muted-foreground">
+                    <Loader2 className="size-5 animate-spin text-disabled-foreground" />
                   </TableCell>
                 </TableRow>
               ) : paginatedGroups.length === 0 ? (
                 <TableRow className="border-border/80 transition-colors hover:bg-muted/70">
-                  <TableCell colSpan={5} className="py-8 text-left text-xs text-zinc-500">
+                  <TableCell colSpan={5} className="py-8 text-left text-xs text-muted-foreground">
                     Tidak ada grup organisasi yang ditemukan.
                   </TableCell>
                 </TableRow>
@@ -381,17 +382,17 @@ export function OrganizationGroupManagement({
                   >
                     <TableCell className="pl-4 pr-2 align-middle md:pl-6">
                       <div className="max-w-[250px]">
-                        <p className="block truncate text-sm font-semibold leading-relaxed text-zinc-900">
+                        <p className="block truncate text-sm font-semibold leading-relaxed text-foreground">
                           {group.name}
                         </p>
                         {group.description ? (
-                          <p className="mt-1 line-clamp-2 text-xs leading-5 text-zinc-500">
+                          <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
                             {group.description}
                           </p>
                         ) : null}
                       </div>
                     </TableCell>
-                    <TableCell className="px-2.5 align-middle text-zinc-600">
+                    <TableCell className="px-2.5 align-middle text-secondary-foreground">
                       <div className="max-w-[280px] truncate text-sm">
                         {group.ownerOrganizationName}
                       </div>
@@ -402,7 +403,7 @@ export function OrganizationGroupManagement({
                         {group.memberCount}
                       </Badge>
                     </TableCell>
-                    <TableCell className="px-2.5 align-middle text-xs text-zinc-600">
+                    <TableCell className="px-2.5 align-middle text-xs text-secondary-foreground">
                       {formatDateTime(group.updatedAt)}
                     </TableCell>
                     <TableCell className="px-2.5 align-middle">
@@ -437,7 +438,7 @@ export function OrganizationGroupManagement({
               )}
             </TableBody>
           </Table>
-        </div>
+        </CollectionTableSurface>
 
         <CollectionPagination
           itemLabel="grup"

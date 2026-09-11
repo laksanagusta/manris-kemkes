@@ -142,3 +142,18 @@ test("highest display label stays KMK-compatible", () => {
 
   assert.equal(getRiskLevelDisplayLabel("sangat_tinggi"), "Sangat Tinggi");
 });
+
+test("risk score display rounds values to whole numbers", () => {
+  const { formatRiskScore, roundRiskScore } = riskLib as {
+    formatRiskScore: (
+      value: number | null | undefined,
+      fallback?: string,
+    ) => string;
+    roundRiskScore: (value: number | null | undefined) => number | null;
+  };
+
+  assert.equal(roundRiskScore(9.49), 9);
+  assert.equal(roundRiskScore(9.5), 10);
+  assert.equal(formatRiskScore(9.75), "10");
+  assert.equal(formatRiskScore(null, "—"), "—");
+});

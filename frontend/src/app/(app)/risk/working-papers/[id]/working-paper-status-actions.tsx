@@ -12,35 +12,29 @@ import {
 import {
   Download,
   MoreHorizontal,
-  ShieldAlert,
   SkipForward,
   Trash2,
   XCircle,
 } from "@/components/ui/icons";
 
 export function WorkingPaperStatusActions({
-  canStartSigning,
   canSkipTTE,
   canCancel,
   canDelete,
-  onStartSigning,
   onSkipTTE,
   onCancel,
   onDelete,
   onExport,
 }: {
-  canStartSigning: boolean;
   canSkipTTE: boolean;
   canCancel: boolean;
   canDelete: boolean;
-  onStartSigning: () => void;
   onSkipTTE: () => void;
   onCancel: () => void;
   onDelete: () => void;
   onExport: () => void;
 }) {
-  const hasWorkflowActions =
-    canStartSigning || canSkipTTE || canCancel || canDelete;
+  const hasWorkflowActions = canSkipTTE || canCancel || canDelete;
   const hasActions = hasWorkflowActions || Boolean(onExport);
 
   if (!hasActions) {
@@ -50,22 +44,17 @@ export function WorkingPaperStatusActions({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <ActionButton variant="outline" size="md">
+        <ActionButton
+          variant="outline"
+          size="icon-xs"
+          aria-label="Tindakan"
+          title="Tindakan"
+        >
           <MoreHorizontal className="size-4" />
-          Tindakan
         </ActionButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>Pilih tindakan</DropdownMenuLabel>
-        {canStartSigning ? (
-          <DropdownMenuItem className="gap-2" onClick={onStartSigning}>
-            <ShieldAlert className="size-3.5" />
-            Mulai proses TTE
-          </DropdownMenuItem>
-        ) : null}
-        {canStartSigning && (canSkipTTE || canCancel || canDelete) ? (
-          <DropdownMenuSeparator />
-        ) : null}
         {canSkipTTE ? (
           <DropdownMenuItem className="gap-2" onClick={onSkipTTE}>
             <SkipForward className="size-3.5" />

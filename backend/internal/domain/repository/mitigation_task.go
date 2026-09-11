@@ -46,7 +46,9 @@ type MitigationTaskRepository interface {
 	// ListByMonitoring returns all tasks linked to a specific monitoring
 	ListByMonitoring(ctx context.Context, monitoringID uuid.UUID, orgIDs []uuid.UUID) ([]*entity.MitigationTask, error)
 
-	// CountByMonitoringAndStatus counts tasks linked to a monitoring by status
+	// CountByMonitoringAndStatus counts tasks linked to a monitoring. Pending is
+	// the number of tasks that are not reported, including overdue or incomplete
+	// tasks, so finalization warnings cannot treat an empty report as complete.
 	CountByMonitoringAndStatus(ctx context.Context, monitoringID uuid.UUID, orgIDs []uuid.UUID) (*MonitoringTaskCounts, error)
 }
 

@@ -22,6 +22,7 @@ interface OrganizationGroupPickerProps {
   allowAllOption?: boolean;
   allOptionLabel?: string;
   allOptionValue?: string;
+  density?: "default" | "compact";
 }
 
 function useDebouncedValue<T>(value: T, delay: number) {
@@ -50,6 +51,7 @@ export function OrganizationGroupPicker({
   allowAllOption = false,
   allOptionLabel = "Semua grup",
   allOptionValue = "all",
+  density = "default",
 }: OrganizationGroupPickerProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [open, setOpen] = useState(false);
@@ -84,6 +86,7 @@ export function OrganizationGroupPicker({
   }, [allOptionValue, debouncedSearch, options]);
 
   const selectedGroup = options.find((group) => group.id === value);
+  const controlHeight = density === "compact" ? "h-9" : "h-10";
 
   useEffect(() => {
     if (!open) return;
@@ -110,7 +113,8 @@ export function OrganizationGroupPicker({
           aria-expanded={open}
           disabled={disabled}
           className={cn(
-            "h-10 w-full min-w-0 justify-between overflow-hidden border-input bg-background/80 px-3 text-xs font-normal shadow-none",
+            controlHeight,
+            "w-full min-w-0 justify-between overflow-hidden border-input bg-background/80 px-3 text-xs font-normal shadow-none",
             className,
           )}
         >
@@ -134,7 +138,10 @@ export function OrganizationGroupPicker({
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder={searchPlaceholder}
-            className="h-10 rounded-none border-0 bg-transparent px-0 py-2 text-xs shadow-none"
+            className={cn(
+              controlHeight,
+              "rounded-none border-0 bg-transparent px-0 py-2 text-xs shadow-none",
+            )}
           />
         </div>
         <ScrollArea className="h-56">

@@ -16,7 +16,7 @@ const iconExamples = [
 
 export function IconographyExample() {
   return (
-    <div className="space-y-4 rounded-2xl bg-card p-6 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+    <div className="space-y-4 rounded-xl bg-card p-6 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         {iconExamples.map(({ label, icon: Icon }) => (
           <div

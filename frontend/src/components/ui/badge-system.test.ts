@@ -10,11 +10,12 @@ test("shared badges use the shadcn base geometry and dense sizes", () => {
   assert.match(badge, /micro: "h-5 rounded-4xl px-1\.5 text-\[11px\]"/);
 });
 
-test("badge tones use shadcn light and dark custom color pairs", () => {
-  assert.match(badge, /neutral: "bg-zinc-50 text-zinc-700 dark:bg-zinc-950 dark:text-zinc-300"/);
-  assert.match(badge, /progress: "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"/);
-  assert.match(badge, /success: "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"/);
-  assert.match(badge, /warning: "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300"/);
-  assert.match(badge, /danger: "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300"/);
-  assert.match(badge, /info: "bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300"/);
+test("badge tones use the fixed light color pairs", () => {
+  assert.match(badge, /neutral: "bg-zinc-50 text-secondary-foreground"/);
+  assert.match(badge, /progress: "bg-blue-50 text-blue-700"/);
+  assert.match(badge, /success: "bg-green-50 text-green-700"/);
+  assert.match(badge, /warning: "bg-amber-50 text-amber-700"/);
+  assert.match(badge, /danger: "bg-red-50 text-red-700"/);
+  assert.match(badge, /info: "bg-sky-50 text-sky-700"/);
+  assert.doesNotMatch(badge, /\bdark\b/);
 });

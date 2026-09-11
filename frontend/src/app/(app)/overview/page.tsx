@@ -2,20 +2,23 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
-import { MultiPhaseHeatmapCompareCard } from "../compliance/_components/multi-phase-heatmap-compare";
 import { UnitTotalRiskScoreChart } from "./_components/unit-total-risk-score-chart";
 import { TopRisksPanel } from "./_components/top-risks-panel";
+import { CurrentRiskHeatmap } from "./_components/current-risk-heatmap";
 import {
-  CollectionPageHeader,
   DashboardKpiCard,
+  MetricGrid,
+  PageStack,
 } from "@/components/shared/design-system";
-import { MetricGrid, PageStack } from "@/components/shared/design-system";
 import type {
   Risk,
   TopRiskItem,
 } from "@/types/risk";
 import { api } from "@/lib/api";
-import { calculateRiskExposureScore } from "@/lib/dashboard-insights";
+import {
+  buildCurrentRiskHeatmapMatrix,
+  calculateRiskExposureScore,
+} from "@/lib/dashboard-insights";
 import { currentAssessmentCycle, shiftAssessmentCycle } from "@/lib/risk-cycle-options";
 
 type DashboardSummary = {
@@ -120,6 +123,10 @@ export default function DashboardPage() {
   const totalRisks = summary?.totalRisks;
   const highExtreme = summary?.highExtreme;
   const overdueMitigations = summary?.overdueMitigations;
+  const currentHeatmapMatrix = useMemo(
+    () => buildCurrentRiskHeatmapMatrix(trendRisks, currentCycle),
+    [trendRisks, currentCycle],
+  );
   const retryDashboard = () => {
     setSummary(null);
     setSummaryLoading(true);
@@ -162,18 +169,19 @@ export default function DashboardPage() {
   ];
 
   return (
-    <PageStack>
-      <CollectionPageHeader title="Dashboard" />
+    <PageStack className="space-y-5 lg:space-y-6">
+      <section
+        data-dashboard-section="kpis"
+        aria-label="Ringkasan metrik risiko"
+      >
+        <MetricGrid className="gap-3">
+          {kpiCards.map((kpi) => (
+            <DashboardKpiCard key={kpi.title} {...kpi} />
+          ))}
+        </MetricGrid>
+      </section>
 
-      <MetricGrid>
-        {kpiCards.map((kpi) => (
-          <DashboardKpiCard key={kpi.title} {...kpi} />
-        ))}
-      </MetricGrid>
-
-      <MultiPhaseHeatmapCompareCard />
-
-      <div className="grid gap-4 lg:grid-cols-2">
+      <section data-dashboard-section="trend" aria-label="Tren risiko">
         <UnitTotalRiskScoreChart
           risks={trendRisks}
           currentCycle={currentCycle}
@@ -181,14 +189,26 @@ export default function DashboardPage() {
           error={trendError}
           onRetry={retryDashboard}
         />
+      </section>
+
+      <section
+        data-dashboard-section="priorities"
+        aria-label="Prioritas dan distribusi risiko"
+        className="grid gap-4 pb-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.65fr)]"
+      >
         <TopRisksPanel
           risks={topRisks}
           loading={topRisksLoading}
           error={topRisksError}
           onRetry={retryDashboard}
-          className="lg:col-span-1"
         />
-      </div>
+        <CurrentRiskHeatmap
+          matrix={currentHeatmapMatrix}
+          loading={trendLoading}
+          error={trendError}
+          onRetry={retryDashboard}
+        />
+      </section>
     </PageStack>
   );
 }

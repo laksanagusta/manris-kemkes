@@ -265,8 +265,8 @@ func (h *MitigationTaskHandler) ValidateFinalize(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{
 		"data": fiber.Map{
-			// Pending mitigation tasks are operational follow-up, not a gate for
-			// finalizing the monitoring transaction.
+			// Any task without a valid report is finalized as a terminal
+			// "not_reported" outcome, not a gate for the monitoring transaction.
 			"canFinalize":   true,
 			"totalTasks":    counts.Total,
 			"reportedTasks": counts.Done,

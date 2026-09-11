@@ -9,7 +9,7 @@ import {
 
 export function BadgeSystemExample() {
   return (
-    <div className="space-y-5 rounded-2xl bg-card p-6 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+    <div className="space-y-5 rounded-xl bg-card p-6 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
       <div>
         <p className="mb-3 text-xs font-medium text-foreground">Tone Palette</p>
         <div className="flex flex-wrap gap-2">
@@ -37,6 +37,28 @@ export function BadgeSystemExample() {
             </Badge>
           ))}
         </div>
+      </div>
+      <div>
+        <p className="mb-3 text-xs font-medium text-foreground">Context Badge</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge
+            size="compact"
+            tone="neutral"
+            className="!bg-[#0000000a] !text-[#8f8e8e]"
+          >
+            2026-H1
+          </Badge>
+          <Badge
+            size="compact"
+            tone="neutral"
+            className="!bg-[#0000000a] !text-[#8f8e8e]"
+          >
+            Tidak dilaporkan
+          </Badge>
+        </div>
+        <p className="mt-2 font-mono text-[11px] text-muted-foreground">
+          size compact · tone neutral · bg-[#0000000a] text-[#8f8e8e]
+        </p>
       </div>
       <div>
         <p className="mb-3 text-xs font-medium text-foreground">Risk Level</p>

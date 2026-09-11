@@ -4,7 +4,7 @@
 
 **Goal:** Rebuild the MANRIS overview page as the approved airy Narrative Overview while preserving existing dashboard data, states, navigation, and accessibility.
 
-**Architecture:** Keep request orchestration in the overview route and keep backend contracts unchanged. Add one tested analytics helper for the current 5×5 matrix, one shared presentational heatmap primitive, and compose the existing KPI, trend, priority-risk, and multi-phase panels into the approved reading order. Mirror the same primitives and hierarchy in the design-system catalogue and document the pattern in `DESIGN.md`.
+**Architecture:** Keep request orchestration in the overview route and keep backend contracts unchanged. Add one tested analytics helper for the current 5×5 matrix, one shared presentational heatmap primitive, and compose the existing KPI, trend, and priority/current-heatmap panels into the approved reading order. Open the multi-phase comparison from the current heatmap's expand control. Mirror the same primitives and hierarchy in the design-system catalogue and document the pattern in `DESIGN.md`.
 
 **Tech Stack:** Next.js 16 App Router, React 19, TypeScript, Tailwind CSS v4, Recharts, Node test runner.
 
@@ -377,12 +377,6 @@ In `frontend/src/app/(app)/overview/page.tsx`:
 
 ```tsx
 <PageStack className="space-y-5 lg:space-y-6">
-  <CollectionPageHeader
-    title="Dashboard"
-    subtitle={`Ringkasan portofolio risiko · ${currentCycle}`}
-    showTitle
-  />
-
   <section data-dashboard-section="kpis" aria-label="Ringkasan metrik risiko">
     <MetricGrid className="gap-3">
       {kpiCards.map((kpi) => (
@@ -524,6 +518,7 @@ Append this top-level YAML block to `DESIGN.md`:
 dashboard-narrative-overview:
   scope: "overview content only; global sidebar and topbar stay unchanged"
   audience: "leadership and operational risk teams"
+  header: "none"
   order: "kpis > trend > priorities-current-heatmap > multi-phase"
   surface: "off-white page, white panels, one-pixel neutral boundary, minimal shadow"
   radius: "12px to 16px"

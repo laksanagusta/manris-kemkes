@@ -18,6 +18,7 @@ const pages = {
 
 const designSystemPage = readSource("../app/(app)/design-system/page.tsx");
 const designSystemDocument = readSource("../../../DESIGN.md");
+const designSystemBarrel = readSource("../components/shared/design-system/index.ts");
 const globals = readSource("../app/globals.css");
 const buttonPrimitive = readSource("../components/ui/button.tsx");
 const selectPrimitive = readSource("../components/ui/select.tsx");
@@ -30,8 +31,14 @@ const sheetPrimitive = readSource("../components/ui/sheet.tsx");
 const collectionDialogCancel = readSource(
   "../components/shared/design-system/collections/collection-dialog-cancel.tsx",
 );
+const destructiveButton = readSource(
+  "../components/shared/design-system/actions/destructive-button.tsx",
+);
 const appSidebar = readSource("../components/app-sidebar.tsx");
 const appNavigation = readSource("../lib/app-navigation.ts");
+const mainMenuSource =
+  appNavigation.match(/export const mainMenuItems[\s\S]*?export const adminMenuGroup/)?.[0] ??
+  "";
 const sidebarPrimitive = readSource("../components/ui/sidebar.tsx");
 const sidebarNavItem = readSource("../components/ui/sidebar-nav-item.tsx");
 const sidebarMotionExample = readSource(
@@ -50,6 +57,9 @@ const expandableSearchField = readSource(
 );
 const mitigationPanel = readSource(
   "../app/(app)/compliance/_components/mitigation-monitoring-panel.tsx",
+);
+const monitoringWorkspace = readSource(
+  "../app/(app)/compliance/_components/monitoring-read-only-workspace.tsx",
 );
 const dialogExample = readSource(
   "../components/shared/design-system/examples/dialog-example.tsx",
@@ -71,6 +81,12 @@ const workingPaperCreate = readSource(
 );
 const workingPaperDetail = readSource(
   "../app/(app)/risk/working-papers/[id]/page.tsx",
+);
+const workingPaperProgress = readSource(
+  "../app/(app)/risk/working-papers/_components/working-paper-progress-collapsible.tsx",
+);
+const collectionTableSurface = readSource(
+  "../components/shared/design-system/collections/collection-table-surface.tsx",
 );
 const workingPaperStatusActions = readSource(
   "../app/(app)/risk/working-papers/[id]/working-paper-status-actions.tsx",
@@ -102,6 +118,9 @@ const aiSuggestionModal = readSource(
 );
 const riskScoreHeatmapPicker = readSource(
   "../components/shared/design-system/domain/risk-score-heatmap-picker.tsx",
+);
+const popoverSelectField = readSource(
+  "../components/shared/design-system/fields/popover-select-field.tsx",
 );
 
 test("all audited routes use the shared PageStack layout primitive", () => {
@@ -141,6 +160,12 @@ test("collection routes use the shared CollectionToolbar", () => {
   }
 });
 
+test("monitoring read-only toolbar matches collection control height", () => {
+  assert.match(monitoringWorkspace, /<CollectionSearchField[\s\S]*?h-9/);
+  assert.match(monitoringWorkspace, /className="h-9 w-full rounded-lg/);
+  assert.match(monitoringWorkspace, /size="icon-xs"[\s\S]*?className="size-9"/);
+});
+
 test("mitigation monitoring uses the shared expandable search and compact status badge", () => {
   assert.match(expandableSearchField, /absolute right-2 size-4/);
   assert.match(mitigationPanel, /<ExpandableSearchField[\s>]/);
@@ -154,6 +179,10 @@ test("mitigation monitoring uses the shared expandable search and compact status
   assert.doesNotMatch(
     mitigationPanel,
     /<span className="text-sm text-success">Selesai<\/span>/,
+  );
+  assert.match(
+    mitigationPanel,
+    /item\.tier !== "upcoming"[\s\S]*?tier\.label/,
   );
   assert.match(
     mitigationPanel,
@@ -179,8 +208,11 @@ test("mitigation detail-to-report handoff follows the dialog exit lifecycle", ()
   assert.match(mitigationPanel, /className="max-w-2xl no-scrollbar"/);
   assert.match(mitigationPanel, /showCloseButton=\{false\}/);
   assert.doesNotMatch(mitigationPanel, /DialogDescription/);
-  assert.match(mitigationPanel, /className="space-y-6 motion-safe:animate-in/);
-  assert.match(mitigationPanel, /className="space-y-4"/);
+  assert.match(mitigationPanel, /className="space-y-6"/);
+  assert.match(
+    mitigationPanel,
+    /return \(\s*<div className="space-y-6">\s*<MetricGrid>/,
+  );
   assert.match(mitigationPanel, /className="grid gap-x-6 gap-y-5 md:grid-cols-2"/);
   assert.match(mitigationPanel, /Tindakan Penanganan/);
   assert.match(mitigationPanel, /CalendarDays/);
@@ -200,12 +232,8 @@ test("mitigation detail-to-report handoff follows the dialog exit lifecycle", ()
     mitigationPanel,
     /className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300\/30"/,
   );
-  assert.match(
-    mitigationPanel,
-    /DialogHeader className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-\(--ease-out\) motion-safe:fill-mode-both"/,
-  );
-  assert.match(mitigationPanel, /motion-safe:delay-\[40ms\]/);
-  assert.match(mitigationPanel, /motion-safe:delay-\[80ms\]/);
+  assert.doesNotMatch(mitigationPanel, /motion-safe:animate-in/);
+  assert.doesNotMatch(mitigationPanel, /motion-safe:delay-\[(?:40|80)ms\]/);
 });
 
 test("working papers consumes the shared create dialog instead of a local duplicate", () => {
@@ -225,6 +253,12 @@ test("working paper create dialog follows the shared mitigation modal shell", ()
     /<DialogContent className="max-w-2xl no-scrollbar" showCloseButton=\{false\}>/,
   );
   assert.match(workingPaperCreateDialog, /<DialogTitle className="text-base">/);
+  assert.match(
+    workingPaperCreateDialog,
+    /<DialogTitle className="text-base">Pilih Periode<\/DialogTitle>/,
+  );
+  assert.match(workingPaperCreateDialog, /<div className="flex flex-col gap-2">/);
+  assert.doesNotMatch(workingPaperCreateDialog, /<div className="space-y-2">/);
   assert.match(workingPaperCreateDialog, /<Label htmlFor="working-paper-period"/);
   assert.match(workingPaperCreateDialog, /<Popover open=/);
   assert.match(workingPaperCreateDialog, /<PopoverContent/);
@@ -233,8 +267,8 @@ test("working paper create dialog follows the shared mitigation modal shell", ()
   assert.doesNotMatch(workingPaperCreateDialog, /SelectItem|SelectContent/);
   assert.match(workingPaperCreateDialog, /<CollectionDialogCancel/);
   assert.match(workingPaperCreateDialog, /<AccentButton type="submit"/);
-  assert.match(workingPaperCreateDialog, /motion-safe:delay-\[40ms\]/);
-  assert.match(workingPaperCreateDialog, /motion-safe:delay-\[80ms\]/);
+  assert.doesNotMatch(workingPaperCreateDialog, /motion-safe:animate-in/);
+  assert.doesNotMatch(workingPaperCreateDialog, /motion-safe:delay-\[(?:40|80)ms\]/);
 });
 
 test("working paper creation follows the canonical form header and roster alignment", () => {
@@ -320,6 +354,22 @@ test("working paper detail keeps the ledger wide and context in the right rail",
   );
 });
 
+test("working paper progress uses the embedded collection table surface", () => {
+  assert.match(workingPaperProgress, /<CollectionTableSurface[\s\S]*<Table/);
+  assert.match(workingPaperProgress, /<CollapsibleCard\.Body>/);
+  assert.doesNotMatch(workingPaperProgress, /<CollapsibleCard\.Body className=/);
+  assert.match(
+    workingPaperProgress,
+    /border-border\/80 transition-colors hover:bg-muted\/70/,
+  );
+  assert.doesNotMatch(
+    workingPaperProgress,
+    /rounded-lg border border-border\/60/,
+  );
+  assert.match(collectionTableSurface, /overflow-x-auto/);
+  assert.match(collectionTableSurface, /viewportClassName/);
+});
+
 test("working paper monitoring ledger uses semantic status badges", () => {
   assert.match(
     workingPaperMonitoringTable,
@@ -389,7 +439,8 @@ test("sidebar navigation uses reusable, reduced-motion-safe icon micro-interacti
     sidebarNavItem,
     /isActive\s*\?\s*"!text-sidebar-accent-foreground"\s*:\s*"!text-sidebar-muted-foreground"/,
   );
-  assert.match(sidebarPrimitive, /text-sm font-normal text-sidebar-muted-foreground/);
+  assert.match(sidebarPrimitive, /text-sm font-medium text-sidebar-muted-foreground/);
+  assert.match(globals, /--sidebar-muted-foreground:\s*var\(--muted-foreground\);/);
   assert.match(sidebarPrimitive, /overflow-hidden rounded-md p-2 text-left/);
   assert.match(sidebarNavItem, /rounded-md bg-sidebar-accent/);
   assert.match(sidebarNavItem, /\[&>svg\]:\[stroke-width:1\.8\]/);
@@ -401,6 +452,21 @@ test("sidebar navigation uses reusable, reduced-motion-safe icon micro-interacti
   assert.match(sidebarMotionExample, /Search/);
 });
 
+test("sidebar frame uses the same subtle divider as the topbar", () => {
+  assert.match(
+    sidebarPrimitive,
+    /group-data-\[side=left\]:border-r group-data-\[side=left\]:border-border\/60/,
+  );
+  assert.match(
+    sidebarPrimitive,
+    /group-data-\[side=right\]:border-l group-data-\[side=right\]:border-border\/60/,
+  );
+  assert.match(
+    readSource("../components/app-topbar.tsx"),
+    /border-e border-border\/60/,
+  );
+});
+
 test("sidebar hierarchy prioritizes operations and consolidates administration", () => {
   assert.match(appSidebar, /title: "OPERASIONAL"/);
   assert.match(appSidebar, /title: "LAPORAN"[\s\S]*label: "Laporan"/);
@@ -408,7 +474,7 @@ test("sidebar hierarchy prioritizes operations and consolidates administration",
   assert.match(appNavigation, /title: "TATA KELOLA RISIKO"/);
   assert.match(
     appNavigation,
-    /label: "Daftar Risiko"[\s\S]*label: "Penanganan"[\s\S]*label: "Pemantauan"[\s\S]*label: "Kertas Kerja"[\s\S]*label: "Persetujuan & TTE"[\s\S]*label: "Evaluasi"/,
+    /label: "Risiko"[\s\S]*icon: "ClipboardList"[\s\S]*label: "Penanganan"[\s\S]*label: "Pemantauan"[\s\S]*label: "Kertas Kerja"[\s\S]*label: "Persetujuan & TTE"[\s\S]*label: "Laporan"/,
   );
   assert.match(
     appNavigation,
@@ -417,8 +483,10 @@ test("sidebar hierarchy prioritizes operations and consolidates administration",
   assert.match(appSidebar, /MonitorDot/);
   assert.match(
     appNavigation,
-    /label: "Piagam Manris"[\s\S]*label: "Struktur Kinerja"[\s\S]*label: "Eskalasi Risiko"/,
+    /label: "Piagam Manris"[\s\S]*label: "Eskalasi Risiko"/,
   );
+  assert.doesNotMatch(mainMenuSource, /label: "Struktur Kinerja"/);
+  assert.doesNotMatch(mainMenuSource, /label: "Evaluasi"/);
   assert.match(appNavigation, /title: "ADMINISTRASI"/);
   assert.match(
     appNavigation,
@@ -489,6 +557,15 @@ test("primary button variants stay flat without elevation", () => {
     assert.match(match[1], /shadow-none/);
     assert.doesNotMatch(match[1], /shadow-(?!none)/);
   }
+});
+
+test("destructive button is an explicit shared composition without an icon API", () => {
+  assert.match(destructiveButton, /Omit<[\s\S]*"icon" \| "variant"/);
+  assert.match(destructiveButton, /bg-destructive text-white/);
+  assert.match(destructiveButton, /hover:bg-destructive\/90/);
+  assert.match(destructiveButton, /size = "md"/);
+  assert.match(designSystemPage, /DestructiveButton/);
+  assert.match(dialogExample, /<DestructiveButton[\s\S]*>\s*Hapus\s*<\/DestructiveButton>/);
 });
 
 test("neutral hover surfaces share the sidebar menu color", () => {
@@ -574,6 +651,10 @@ test("structured AI suggestions show a stable mono selection count", () => {
 });
 
 test("risk score selection uses the shared accessible heatmap picker", () => {
+  const riskAssessmentForm = readSource(
+    "../app/(app)/risk/assessment/[id]/page.tsx",
+  );
+
   assert.match(riskRegisterForm, /<RiskScoreHeatmapModal/);
   assert.match(riskRegisterForm, /<RiskScorePickerTrigger/);
   assert.doesNotMatch(riskRegisterForm, /Klik heatmap untuk memilih kombinasi/);
@@ -585,7 +666,14 @@ test("risk score selection uses the shared accessible heatmap picker", () => {
   assert.match(riskScoreHeatmapPicker, /aria-pressed=\{isSelected\}/);
   assert.match(riskScoreHeatmapPicker, /ArrowRight/);
   assert.match(riskScoreHeatmapPicker, /Terapkan Skor/);
-  assert.match(riskScoreHeatmapPicker, /z-10 border-2 border-foreground/);
+  assert.match(
+    riskScoreHeatmapPicker,
+    /onOpenAutoFocus=\{\(\) => setDraft\(\{ probability, impact \}\)\}/,
+  );
+  assert.doesNotMatch(riskRegisterForm, /<RiskScoreHeatmapModal\s+key=/);
+  assert.doesNotMatch(riskAssessmentForm, /<RiskScoreHeatmapModal\s+key=/);
+  assert.match(riskScoreHeatmapPicker, /isSelected \? "z-10 border-2"/);
+  assert.doesNotMatch(riskScoreHeatmapPicker, /z-10 border-2 border-foreground/);
   assert.doesNotMatch(
     riskScoreHeatmapPicker,
     /border-foreground ring-2 ring-foreground\/70 ring-offset-2 ring-offset-card/,
@@ -617,7 +705,8 @@ test("risk score selection uses the shared accessible heatmap picker", () => {
   );
   assert.match(riskScoreHeatmapPicker, /sm:min-h-14/);
   assert.doesNotMatch(riskScoreHeatmapPicker, /sm:min-h-16/);
-  assert.match(riskScoreHeatmapPicker, /font-mono text-2xl font-semibold leading-none tabular-nums/);
+  assert.match(riskScoreHeatmapPicker, /font-mono text-2xl font-semibold leading-none/);
+  assert.match(riskScoreHeatmapPicker, /inline-flex items-baseline tabular-nums/);
   assert.doesNotMatch(riskScoreHeatmapPicker, /bg-muted\/\[0\.18\]/);
   assert.equal(
     (riskScoreHeatmapPicker.match(/rounded-xl border border-border\/60 bg-card px-3 py-2\.5/g) ?? [])
@@ -639,11 +728,12 @@ test("sidebar footer fades into the help and account chrome", () => {
   );
 });
 
-test("sidebar typography uses normal weight throughout", () => {
-  assert.match(sidebarPrimitive, /text-xs font-normal uppercase tracking-\[0\.6px\]/);
-  assert.match(sidebarPrimitive, /data-active:font-normal/);
+test("sidebar navigation uses medium weight while supporting chrome stays normal", () => {
+  assert.match(sidebarPrimitive, /text-xs font-medium uppercase tracking-\[0\.6px\]/);
+  assert.match(sidebarPrimitive, /text-sm font-medium text-sidebar-muted-foreground/);
+  assert.match(sidebarPrimitive, /data-active:font-medium/);
   assert.match(sidebarPrimitive, /text-xs font-normal text-sidebar-foreground/);
-  assert.doesNotMatch(sidebarPrimitive, /font-(?:bold|semibold|medium)/);
+  assert.doesNotMatch(sidebarPrimitive, /data-active:font-normal/);
   assert.doesNotMatch(appSidebar, /font-(?:bold|semibold|medium)/);
 });
 
@@ -682,44 +772,90 @@ test("mitigation examples are built from shared dialog and form components", () 
   );
   assert.match(mitigationDialog, /DialogTitle className="text-base"/);
   assert.doesNotMatch(mitigationDialog, /DialogDescription/);
-  assert.match(mitigationDialog, /motion-safe:animate-in/);
-  assert.match(mitigationDialog, /motion-safe:fade-in-0/);
-  assert.match(mitigationDialog, /motion-safe:slide-in-from-bottom-1/);
-  assert.match(mitigationDialog, /motion-safe:duration-200/);
-  assert.match(mitigationDialog, /motion-safe:ease-\(--ease-out\)/);
-  assert.match(mitigationDialog, /motion-safe:fill-mode-both/);
-  assert.match(mitigationDialog, /motion-safe:delay-\[40ms\]/);
-  assert.match(mitigationDialog, /motion-safe:delay-\[80ms\]/);
+  assert.doesNotMatch(mitigationDialog, /motion-safe:animate-in/);
+  assert.doesNotMatch(mitigationDialog, /motion-safe:delay-\[(?:40|80)ms\]/);
   assert.doesNotMatch(mitigationDialog, /transition-all/);
-  assert.doesNotMatch(
-    mitigationForm,
-    /Link Bukti \/ Evidence[\s\S]*?<Input[\s\S]*required/,
-  );
-  assert.match(mitigationForm, /<Textarea[\s\S]*required[\s\S]*aria-required="true"/);
+  assert.match(mitigationDialog, /onEscapeKeyDown=\{\(event\) => \{/);
+  assert.match(mitigationDialog, /event\.preventDefault\(\)/);
+  assert.match(mitigationDialog, /cancelEvidenceEditor\(\)/);
+  assert.match(mitigationForm, /Tambahkan Link/);
+  assert.match(mitigationForm, /event\.stopPropagation\(\)/);
   assert.match(
     mitigationForm,
-    /Catatan Pelaksanaan[\s\S]*Link Bukti \/ Evidence[\s\S]*opsional/,
+    /<Kbd aria-label="Escape">Esc<\/Kbd>[\s\S]*?Batal/,
   );
-  assert.equal((mitigationForm.match(/role="alert"/g) ?? []).length, 2);
-  assert.equal(
-    (mitigationForm.match(/motion-safe:animate-in[\s\S]*?motion-safe:ease-\(--ease-out\)/g) ?? []).length,
-    2,
+  assert.doesNotMatch(
+    mitigationForm,
+    /Link Bukti[\s\S]*?<Input[\s\S]*required/,
   );
-  assert.match(mitigationForm, /motion-safe:fade-in-0/);
-  assert.match(mitigationForm, /motion-safe:slide-in-from-top-1/);
-  assert.match(mitigationForm, /motion-safe:duration-150/);
+  assert.match(mitigationForm, /<Textarea[\s\S]*required[\s\S]*aria-required="true"/);
+  assert.match(mitigationForm, /Catatan Pelaksanaan/);
+  assert.match(mitigationForm, /aria-label="Link Bukti"/);
+  assert.equal((mitigationForm.match(/role="alert"/g) ?? []).length, 3);
+  assert.doesNotMatch(mitigationForm, /motion-safe:animate-in/);
+  assert.doesNotMatch(mitigationForm, /motion-safe:duration-150/);
   assert.match(mitigationForm, /<Label className="text-sm"/);
   assert.match(mitigationForm, /className="flex flex-col gap-2"/);
 });
 
+test("risk and monitoring field triggers reuse the subtle existing-border hover", () => {
+  for (const source of [popoverSelectField, roPicker, remoteUserPicker]) {
+    assert.match(source, /hover:border-foreground\/15/);
+    assert.match(source, /transition-\[background-color,border-color\]/);
+    assert.doesNotMatch(source, /hover:ring-/);
+  }
+  assert.match(riskScoreHeatmapPicker, /hover:border-foreground\/15/);
+  assert.match(riskScoreHeatmapPicker, /transition-\[background-color,border-color\]/);
+  assert.doesNotMatch(riskScoreHeatmapPicker, /hover:ring-/);
+  assert.match(
+    readSource("../app/(app)/risk/assessment/[id]/page.tsx"),
+    /<RiskScorePickerTrigger[\s\S]*id="risk-score-picker"/,
+  );
+});
+
+test("risk form text fields consume the shared design-system exports", () => {
+  const riskAssessmentForm = readSource(
+    "../app/(app)/risk/assessment/[id]/page.tsx",
+  );
+  const editableList = readSource("../components/shared/editable-list.tsx");
+  const mitigationTable = readSource("../components/shared/mitigation-table.tsx");
+  const riskSubstanceFields = readSource(
+    "../components/risk/risk-substance-fields.tsx",
+  );
+
+  assert.match(designSystemBarrel, /export \{ Input \} from "@\/components\/ui\/input"/);
+  assert.match(
+    designSystemBarrel,
+    /export \{ Textarea \} from "@\/components\/ui\/textarea"/,
+  );
+  assert.match(
+    riskRegisterForm,
+    /Input,[\s\S]*RiskScoreHeatmapModal,[\s\S]*Textarea,[\s\S]*from "@\/components\/shared\/design-system"/,
+  );
+  assert.match(
+    riskAssessmentForm,
+    /Textarea,[\s\S]*from "@\/components\/shared\/design-system"/,
+  );
+
+  for (const source of [
+    editableItemsTable,
+    editableList,
+    mitigationTable,
+    riskSubstanceFields,
+  ]) {
+    assert.match(source, /from "@\/components\/shared\/design-system"/);
+    assert.doesNotMatch(source, /from "@\/components\/ui\/(input|textarea)"/);
+  }
+});
+
 test("risk form custom popover triggers keep neutral focus borders and animate chevrons", () => {
   for (const [name, source, group] of [
-    ["risk register popover select", riskRegisterForm, "risk-select"],
+    ["risk register popover select", popoverSelectField, "popover-select"],
     ["RO picker", roPicker, "ro-picker"],
     ["remote user picker", remoteUserPicker, "remote-user-picker"],
   ] as const) {
-    assert.match(source, /focus:border-border/);
-    assert.match(source, /focus-visible:border-border/);
+    assert.match(source, /focus:border-(?:border|input)/);
+    assert.match(source, /focus-visible:border-(?:border|input)/);
     assert.match(source, /focus:ring-0/);
     assert.match(source, /active:translate-y-0/);
     assert.match(source, /active:scale-100/);
@@ -732,6 +868,30 @@ test("risk form custom popover triggers keep neutral focus borders and animate c
     assert.doesNotMatch(source, /focus-visible:ring-2/);
     assert.ok(source, `${name} source must be present`);
   }
-  assert.match(riskRegisterForm, /aria-expanded:bg-card/);
+  assert.match(riskRegisterForm, /<PopoverSelectField/);
+  assert.match(
+    designSystemBarrel,
+    /export \{[\s\S]*PopoverSelectField[\s\S]*from "\.\/fields\/popover-select-field"/,
+  );
+  assert.match(popoverSelectField, /aria-expanded:bg-card/);
   assert.match(roPicker, /aria-expanded:bg-card/);
+});
+
+test("clean-list AI suggestions use a reduced-motion-safe hover grow reveal", () => {
+  assert.match(
+    aiSuggestionModal,
+    /grid-rows-\[0fr\][\s\S]*motion-safe:transition-\[grid-template-rows,opacity\][\s\S]*motion-safe:duration-200[\s\S]*motion-safe:ease-\(--ease-out\)/,
+  );
+  assert.match(aiSuggestionModal, /group-hover:grid-rows-\[1fr\]/);
+  assert.match(aiSuggestionModal, /group-focus-within:grid-rows-\[1fr\]/);
+  assert.match(aiSuggestionModal, /motion-reduce:grid-rows-\[1fr\]/);
+  assert.match(aiSuggestionModal, /motion-reduce:opacity-100/);
+});
+
+test("clean-list AI suggestions start with every detail collapsed", () => {
+  assert.match(aiSuggestionModal, /const dialogContentRef = useRef<HTMLDivElement>\(null\)/);
+  assert.match(
+    aiSuggestionModal,
+    /onOpenAutoFocus=\{\(event\) => \{[\s\S]*?if \(!isCleanList\) return;[\s\S]*?event\.preventDefault\(\);[\s\S]*?dialogContentRef\.current\?\.focus\(\);/,
+  );
 });

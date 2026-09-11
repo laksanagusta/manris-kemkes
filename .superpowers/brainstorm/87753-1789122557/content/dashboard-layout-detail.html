@@ -1,0 +1,28 @@
+<style>
+  .sheet{max-width:1120px;margin:22px auto;background:#f7f7f4;border:1px solid #e3e2dc;border-radius:24px;padding:28px;color:#242420;box-shadow:0 18px 60px rgba(30,30,25,.08)}
+  .head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:22px}.eyebrow{font-size:12px;color:#7b7b74}.title{font:700 25px/1.15 ui-sans-serif;margin-top:5px}.filter{background:#fff;border:1px solid #dfded8;border-radius:999px;padding:8px 13px;font-size:12px}
+  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.kpi{background:#fff;border:1px solid #e2e1db;border-radius:13px;padding:14px}.kpi small{display:block;color:#77776f;font-size:11px}.kpi strong{display:block;font-size:25px;margin-top:13px}.kpi em{display:block;font:normal 10px/1.3 ui-sans-serif;color:#98988f;margin-top:7px}
+  .trend{margin-top:16px;background:#fff;border:1px solid #e2e1db;border-radius:17px;padding:18px}.panel-head{display:flex;align-items:center;justify-content:space-between}.panel-head b{font-size:14px}.legend{display:flex;gap:14px;color:#77776f;font-size:10px}.line{height:230px;position:relative;margin-top:12px;background:repeating-linear-gradient(to bottom,transparent 0,transparent 56px,#efeee9 57px)}.line svg{position:absolute;inset:0;width:100%;height:100%}
+  .below{display:grid;grid-template-columns:1.2fr .8fr;gap:16px;margin-top:16px}.card{background:#fff;border:1px solid #e2e1db;border-radius:17px;padding:18px;min-height:210px}.risk{display:grid;grid-template-columns:52px 1fr 45px;gap:10px;padding:11px 0;border-bottom:1px solid #efeee9;font-size:11px}.risk:last-child{border-bottom:0}.code{color:#77776f}.score{text-align:right;font-weight:700}.heat-area{display:flex;gap:16px;margin-top:18px;align-items:flex-start}.heat{display:grid;grid-template-columns:repeat(5,26px);gap:4px}.heat i{width:26px;height:26px;border-radius:5px;background:#b9ddc4}.heat i:nth-child(4n){background:#f2d37e}.heat i:nth-child(7n){background:#ed9c85}.heat i:nth-child(11n){background:#df6e62}.heat-copy{font-size:11px;color:#77776f;line-height:1.6}.note{margin-top:18px;padding:14px 16px;border-radius:12px;background:#eeeee9;color:#5e5e57;font-size:12px;line-height:1.5}
+  @media(max-width:800px){.kpis{grid-template-columns:repeat(2,1fr)}.below{grid-template-columns:1fr}.sheet{padding:18px}.line{height:170px}}
+</style>
+<h2>Desain terpilih · Narrative Overview</h2>
+<p class="subtitle">Urutan membaca: kondisi saat ini → arah perubahan → prioritas tindakan → distribusi risiko.</p>
+<div class="sheet">
+  <div class="head"><div><div class="eyebrow">OVERVIEW · 2026-Q3</div><div class="title">Dashboard Risiko</div></div><div class="filter">Kuartal berjalan⌄</div></div>
+  <div class="kpis">
+    <div class="kpi"><small>Total risiko</small><strong>124</strong><em>Seluruh risiko aktif</em></div>
+    <div class="kpi"><small>Tinggi & sangat tinggi</small><strong>18</strong><em>14,5% dari portofolio</em></div>
+    <div class="kpi"><small>Penanganan overdue</small><strong>7</strong><em>Perlu tindak lanjut</em></div>
+    <div class="kpi"><small>Risk exposure</small><strong>62</strong><em>Turun 6 poin</em></div>
+  </div>
+  <div class="trend">
+    <div class="panel-head"><b>Tren eksposur risiko</b><div class="legend"><span>— Aktual</span><span>┈ Target</span><span>4 kuartal</span></div></div>
+    <div class="line"><svg viewBox="0 0 1000 220" preserveAspectRatio="none"><path d="M8 172 C95 147,130 167,205 135 S335 155,420 106 S525 128,615 74 S725 104,805 54 S920 82,992 39" fill="none" stroke="#7896df" stroke-width="3"/><path d="M8 125 C155 118,260 105,405 95 S690 75,992 63" fill="none" stroke="#c7c8c3" stroke-width="2" stroke-dasharray="7 7"/></svg></div>
+  </div>
+  <div class="below">
+    <div class="card"><div class="panel-head"><b>Risiko yang perlu perhatian</b><span class="eyebrow">Lihat semua →</span></div><div class="risk"><span class="code">R-021</span><span>Gangguan layanan surveilans nasional</span><span class="score">23</span></div><div class="risk"><span class="code">R-014</span><span>Keterlambatan respons kejadian luar biasa</span><span class="score">21</span></div><div class="risk"><span class="code">R-008</span><span>Kesenjangan kapasitas laboratorium regional</span><span class="score">19</span></div></div>
+    <div class="card"><div class="panel-head"><b>Peta risiko saat ini</b><span class="eyebrow">Aktual</span></div><div class="heat-area"><div class="heat"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="heat-copy">18 risiko prioritas<br>7 bergeser turun<br>3 risiko baru</div></div></div>
+  </div>
+  <div class="note"><b>Multi-fase tetap tersedia:</b> perbandingan Skor Awal, Q1–Q4, dan Target ditempatkan setelah blok utama sebagai analisis lanjutan, sehingga dashboard awal tetap lapang.</div>
+</div>

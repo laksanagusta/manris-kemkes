@@ -3,7 +3,6 @@
 import {
   Bar,
   BarChart,
-  CartesianGrid,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -45,14 +44,13 @@ export function OrganizationLatestProgressChart({
       </CardHeader>
       <CardContent>
         {!hasData ? (
-          <div className="flex h-56 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
+          <div className="flex h-56 items-center justify-center rounded-lg bg-state-surface px-6 text-center text-sm text-state-foreground">
             Belum ada data progress organisasi untuk ditampilkan.
           </div>
         ) : (
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={data} layout="vertical" margin={{ top: 4, right: 16, left: 24, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.5 0 0 / 8%)" horizontal={false} />
                 <XAxis
                   type="number"
                   domain={[0, 100]}

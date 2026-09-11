@@ -29,7 +29,7 @@ Color remains semantic. Neutral content is monochrome, blue identifies the princ
 
 ### Header and context
 
-Use a compact dashboard header with the title and current assessment-cycle context. A lightweight period control may sit at the opposite edge when an existing selection behavior is available; the redesign must not invent a non-functional filter.
+Do not render the route-level `AppHeader` or a local dashboard header. The page begins directly with the KPI strip because the compact global topbar already provides route context. Do not add a non-functional period control.
 
 ### KPI strip
 
@@ -40,7 +40,7 @@ Present four concise metrics in one row on wide screens:
 - Penanganan Overdue;
 - Risk Exposure.
 
-Each metric contains a label, primary value, and a short contextual line only when that context is derived from available data. Loading skeletons follow the final text geometry. Unknown or errored values render as an em dash and retain an accessible state description.
+Each metric contains only a label and primary value; dashboard card helper subtitles are intentionally omitted. Loading skeletons follow the final text geometry. Unknown or errored values render as an em dash and retain an accessible state description.
 
 ### Primary trend
 
@@ -57,7 +57,7 @@ The current-risk heatmap must reuse the same scoring and severity semantics as t
 
 ### Multi-phase analysis
 
-Retain the full comparison of initial, quarterly, and target heatmaps after the primary narrative. Treat it as an advanced analysis section with a clear heading and explanatory context. All existing phases, legends, loading behavior, and accessibility labels remain available.
+Retain the full comparison of initial, quarterly, and target heatmaps inside a modal opened from the small bottom-center expand control on the current-risk heatmap card. All existing phases, legends, loading behavior, and accessibility labels remain available without extending the main page.
 
 ## Component Boundaries
 

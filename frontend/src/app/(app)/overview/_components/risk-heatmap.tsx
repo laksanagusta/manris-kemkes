@@ -71,7 +71,7 @@ export function RiskHeatmap({
         )}
         data-testid="heatmap-grid"
       >
-        <CardContent className={cn("flex items-center justify-center text-sm text-muted-foreground", compact ? "h-44" : "h-64")}>
+        <CardContent className={cn("flex items-center justify-center rounded-lg bg-state-surface text-sm text-state-foreground", compact ? "h-44" : "h-64")}>
           Memuat heatmap...
         </CardContent>
       </Card>
@@ -89,7 +89,7 @@ export function RiskHeatmap({
       >
         <CardContent
           className={cn(
-            "flex items-center justify-center rounded-lg border border-dashed border-surface-border bg-muted/20 px-6 text-center text-sm text-muted-foreground",
+            "flex items-center justify-center rounded-lg bg-state-surface px-6 text-center text-sm text-state-foreground",
             compact ? "h-44" : "h-64",
           )}
         >

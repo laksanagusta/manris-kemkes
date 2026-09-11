@@ -17,10 +17,18 @@ func NewGetRiskCharterUseCase(repo repository.RiskCharterRepository) *GetRiskCha
 	return &GetRiskCharterUseCase{repo: repo}
 }
 
-func (uc *GetRiskCharterUseCase) Execute(ctx context.Context, id uuid.UUID) (*entity.RiskCharter, error) {
-	charter, err := uc.repo.GetByID(ctx, id)
+type GetRiskCharterInput struct {
+	ID    uuid.UUID
+	Scope *entity.AccessScope
+}
+
+func (uc *GetRiskCharterUseCase) Execute(ctx context.Context, input GetRiskCharterInput) (*entity.RiskCharter, error) {
+	charter, err := uc.repo.GetByID(ctx, input.ID)
 	if err != nil {
 		return nil, errors.ErrNotFound
+	}
+	if !canAccessRiskCharter(input.Scope, charter.OrganizationID) {
+		return nil, errors.ErrForbidden
 	}
 	return charter, nil
 }

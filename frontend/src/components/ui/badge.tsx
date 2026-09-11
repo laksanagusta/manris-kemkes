@@ -5,7 +5,7 @@ import { Slot } from "radix-ui"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "group/badge inline-flex h-5 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-4xl border border-transparent px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-[color,background-color,border-color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&>svg]:pointer-events-none [&>svg]:size-3!",
+  "group/badge inline-flex h-5 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-4xl border border-transparent px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-[color,background-color,border-color,box-shadow] focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 aria-invalid:border-destructive aria-invalid:ring-destructive/20 [&>svg]:pointer-events-none [&>svg]:size-3!",
   {
     variants: {
       variant: {
@@ -13,20 +13,19 @@ const badgeVariants = cva(
         secondary:
           "bg-secondary text-secondary-foreground [a]:hover:bg-secondary/80",
         destructive:
-          "bg-destructive/10 text-destructive focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:focus-visible:ring-destructive/40 [a]:hover:bg-destructive/20",
+          "bg-destructive/10 text-destructive focus-visible:ring-destructive/20 [a]:hover:bg-destructive/20",
         outline:
           "border-border text-foreground [a]:hover:bg-muted [a]:hover:text-muted-foreground",
-        ghost:
-          "hover:bg-muted hover:text-muted-foreground dark:hover:bg-muted/50",
+        ghost: "hover:bg-muted hover:text-muted-foreground",
         link: "text-primary underline-offset-4 hover:underline",
       },
       tone: {
-        neutral: "bg-zinc-50 text-zinc-700 dark:bg-zinc-950 dark:text-zinc-300",
-        progress: "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300",
-        success: "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300",
-        warning: "bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300",
-        danger: "bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300",
-        info: "bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300",
+        neutral: "bg-zinc-50 text-secondary-foreground",
+        progress: "bg-blue-50 text-blue-700",
+        success: "bg-green-50 text-green-700",
+        warning: "bg-amber-50 text-amber-700",
+        danger: "bg-red-50 text-red-700",
+        info: "bg-sky-50 text-sky-700",
       },
       size: {
         default: "",

@@ -1,5 +1,10 @@
 import type { DashboardRiskCategoryItem } from "../types/risk";
-import { dashboardCategoryLabels, getBobot, resolveRiskScoreSemantics } from "./risk.js";
+import {
+  dashboardCategoryLabels,
+  getBobot,
+  resolveRiskScoreSemantics,
+  roundRiskScore,
+} from "./risk.js";
 import { RISK_CHART_COLORS } from "./chart-colors.js";
 
 type Severity = "Sangat Rendah" | "Rendah" | "Sedang" | "Tinggi" | "Sangat Tinggi";
@@ -181,7 +186,7 @@ function effectiveScoreSemantics(risk: RiskLike) {
   const inherentScore =
     risk.monitoringObservedNilai !== null &&
     risk.monitoringObservedNilai !== undefined
-      ? Math.round(risk.monitoringObservedNilai)
+      ? roundRiskScore(risk.monitoringObservedNilai) ?? 0
       : risk.inherentScore ?? 0;
 
   return resolveRiskScoreSemantics({
@@ -239,6 +244,35 @@ export function calculateRiskExposureScore(
 
     return sum + weightFor(levelFromScore(score));
   }, 0);
+}
+
+export function buildCurrentRiskHeatmapMatrix(
+  risks: RiskLike[],
+  targetCycle: string,
+): number[][] {
+  const matrix = Array.from({ length: 5 }, () => Array<number>(5).fill(0));
+
+  for (const risk of selectEffectiveRiskVersions(risks, targetCycle)) {
+    const probability = risk.monitoringObservedProbability ?? risk.probability;
+    const impact = risk.monitoringObservedImpact ?? risk.impact;
+
+    if (
+      probability === undefined ||
+      impact === undefined ||
+      !Number.isInteger(probability) ||
+      !Number.isInteger(impact) ||
+      probability < 1 ||
+      probability > 5 ||
+      impact < 1 ||
+      impact > 5
+    ) {
+      continue;
+    }
+
+    matrix[probability - 1][impact - 1] += 1;
+  }
+
+  return matrix;
 }
 
 function isOverdue(dateText?: string | null, now = new Date()) {
@@ -547,6 +581,7 @@ export function buildLatestOrganizationProgressData(
     }))
     .sort(
       (left, right) =>
+        quarterSortValue(right.period) - quarterSortValue(left.period) ||
         right.progressPercent - left.progressPercent ||
         right.totalCount - left.totalCount ||
         left.orgName.localeCompare(right.orgName),
@@ -638,11 +673,13 @@ function readActualScore(risk: RiskLike) {
 }
 
 function readTargetScore(risk: RiskLike) {
-  if (typeof risk.targetScore === "number" && risk.targetScore > 0) {
-    return risk.targetScore;
+  const targetScore = roundRiskScore(risk.targetScore);
+  if (targetScore !== null && targetScore > 0) {
+    return targetScore;
   }
-  if (typeof risk.targetNilai === "number" && risk.targetNilai > 0) {
-    return Math.round(risk.targetNilai);
+  const targetNilai = roundRiskScore(risk.targetNilai);
+  if (targetNilai !== null && targetNilai > 0) {
+    return targetNilai;
   }
   return null;
 }

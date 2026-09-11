@@ -82,13 +82,13 @@ export default function ControlsPage() {
               placeholder="Cari kontrol..."
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              className="h-10 bg-card pl-8 text-xs"
+              className="h-9 bg-card pl-8 text-xs"
             />
           </div>
         }
         actions={
           (!user?.isGlobal && !user?.organizationId) ? null : (
-            <Button asChild className="w-full gap-2 sm:w-auto">
+            <Button asChild size="md" className="w-full gap-2 sm:w-auto">
               <Link href="/compliance/controls/new">
                 <Plus className="size-4" />
                 Tambah Kontrol
@@ -101,9 +101,9 @@ export default function ControlsPage() {
       {/* Control Cards */}
       <div className="space-y-3">
         {loading ? (
-           <div className="py-10 text-center text-sm text-muted-foreground">Memuat data control library...</div>
+           <div className="rounded-lg bg-state-surface px-4 py-10 text-center text-sm text-state-foreground">Memuat data control library...</div>
         ) : filteredControls.length === 0 ? (
-           <div className="py-10 text-center text-sm text-muted-foreground">Tidak ada control library yang ditemukan.</div>
+           <div className="rounded-lg bg-state-surface px-4 py-10 text-center text-sm text-state-foreground">Tidak ada control library yang ditemukan.</div>
         ) : filteredControls.map((control) => {
           const isExpanded = expandedId === control.id;
           const lastTest = control.tests?.[0];

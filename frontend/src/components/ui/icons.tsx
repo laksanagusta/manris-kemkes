@@ -4,12 +4,14 @@ import * as React from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   ActivityIcon,
+  Tag01Icon,
   Alert02Icon,
   AlertCircleIcon,
   AlignLeftIcon,
   ArchiveIcon,
   ArrowDownIcon as ArrowDownDefinition,
   ArrowDownRightIcon,
+  ArrowExpandDiagonal01Icon,
   ArrowLeftIcon,
   ArrowRightIcon as ArrowRightDefinition,
   ArrowUpDownIcon,
@@ -36,16 +38,17 @@ import {
   CircleCheckIcon as CircleCheckDefinition,
   CircleDotIcon,
   CircleIcon,
-  CircleMinusIcon,
-  ClipboardCheckIcon,
-  ClipboardListIcon,
-  ClipboardPasteIcon,
-  ClipboardPenLineIcon,
-  Clock03Icon,
-  ClockIcon,
-  CloudUploadIcon,
-  CopyIcon,
-  CreditCardIcon as CreditCardDefinition,
+	CircleMinusIcon,
+	ClipboardCheckIcon,
+	ClipboardListIcon,
+	ClipboardPasteIcon,
+	ClipboardPenLineIcon,
+	Clock03Icon,
+	ClockIcon,
+	CloudUploadIcon,
+	CopyIcon,
+	CornerDownLeftIcon,
+	CreditCardIcon as CreditCardDefinition,
   ChartDownIcon,
   ChartUpIcon,
   DashboardSquare01Icon,
@@ -157,6 +160,7 @@ export const Archive = createIcon(ArchiveIcon, "Archive");
 export const ArrowDown = createIcon(ArrowDownDefinition, "ArrowDown");
 export const ArrowDownIcon = createIcon(ArrowDownDefinition, "ArrowDownIcon");
 export const ArrowDownRight = createIcon(ArrowDownRightIcon, "ArrowDownRight");
+export const ArrowExpand = createIcon(ArrowExpandDiagonal01Icon, "ArrowExpand");
 export const ArrowLeft = createIcon(ArrowLeftIcon, "ArrowLeft");
 export const ArrowRight = createIcon(ArrowRightDefinition, "ArrowRight");
 export const ArrowRightIcon = createIcon(ArrowRightDefinition, "ArrowRightIcon");
@@ -196,6 +200,7 @@ export const ClipboardPenLine = createIcon(ClipboardPenLineIcon, "ClipboardPenLi
 export const Clock = createIcon(ClockIcon, "Clock");
 export const Clock3 = createIcon(Clock03Icon, "Clock3");
 export const Copy = createIcon(CopyIcon, "Copy");
+export const CornerDownLeft = createIcon(CornerDownLeftIcon, "CornerDownLeft");
 export const CreditCardIcon = createIcon(CreditCardDefinition, "CreditCardIcon");
 export const DollarSign = createIcon(DollarSignIcon, "DollarSign");
 export const Download = createIcon(DownloadIcon, "Download");
@@ -281,6 +286,7 @@ export const User = createIcon(UserDefinition, "User");
 export const UserIcon = createIcon(UserDefinition, "UserIcon");
 export const UserPlusIcon = createIcon(UserAdd01Icon, "UserPlusIcon");
 export const UserRound = createIcon(UserCircleIcon, "UserRound");
+export const Tag = createIcon(Tag01Icon, "Tag");
 export const Users = createIcon(UserGroupIcon, "Users");
 export const UsersIcon = createIcon(UserGroupIcon, "UsersIcon");
 export const WandSparkles = createIcon(MagicWandIcon, "WandSparkles");

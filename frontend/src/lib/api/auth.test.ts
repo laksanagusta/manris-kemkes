@@ -20,13 +20,12 @@ register(
     ].join("\n")),
 );
 
-const authApi = (await import(new URL("./auth", import.meta.url).href)) as typeof import("./auth");
+const authApi = (await import(new URL("./auth.ts", import.meta.url).href)) as typeof import("./auth.ts");
 
 test("registerUser sends confirmPassword with the registration payload", async () => {
   await authApi.registerUser({
     name: "Siti Rahma",
     email: "siti@kemenkes.go.id",
-    phoneNumber: "081234567890",
     password: "TempPass123!",
     confirmPassword: "TempPass123!",
     organizationId: "org-1",
@@ -40,7 +39,6 @@ test("registerUser sends confirmPassword with the registration payload", async (
   assert.deepEqual(calls[0]?.body, {
     name: "Siti Rahma",
     email: "siti@kemenkes.go.id",
-    phoneNumber: "081234567890",
     password: "TempPass123!",
     confirmPassword: "TempPass123!",
     organizationId: "org-1",

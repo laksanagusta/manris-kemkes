@@ -19,47 +19,60 @@ func NewCreateRiskCharterUseCase(repo repository.RiskCharterRepository) *CreateR
 }
 
 type CreateRiskCharterInput struct {
-	OrganizationID     uuid.UUID  `json:"organizationId"`
-	UPRLevel           string     `json:"uprLevel"`
-	Period             string     `json:"period"`
-	Scope              string     `json:"scope"`
-	LegalBasis         string     `json:"legalBasis"`
-	InternalContext    string     `json:"internalContext"`
-	ExternalContext    string     `json:"externalContext"`
-	StakeholderSummary string     `json:"stakeholderSummary"`
-	Status             string     `json:"status"`
-	CreatedBy          *uuid.UUID `json:"-"`
+	Title          string              `json:"title"`
+	OrganizationID uuid.UUID           `json:"organizationId"`
+	UPRLevel       string              `json:"uprLevel"`
+	Period         string              `json:"period"`
+	CreatedBy      uuid.UUID           `json:"-"`
+	Scope          *entity.AccessScope `json:"-"`
 }
 
-func (uc *CreateRiskCharterUseCase) Execute(ctx context.Context, input CreateRiskCharterInput) (*entity.RiskCharter, error) {
-	charter := &entity.RiskCharter{
-		OrganizationID:     input.OrganizationID,
-		UPRLevel:           strings.TrimSpace(input.UPRLevel),
-		Period:             strings.TrimSpace(input.Period),
-		Scope:              strings.TrimSpace(input.Scope),
-		LegalBasis:         strings.TrimSpace(input.LegalBasis),
-		InternalContext:    strings.TrimSpace(input.InternalContext),
-		ExternalContext:    strings.TrimSpace(input.ExternalContext),
-		StakeholderSummary: strings.TrimSpace(input.StakeholderSummary),
-		Status:             "active",
-		CreatedBy:          input.CreatedBy,
-	}
+type CreateRiskCharterOutput struct {
+	Charter  *entity.RiskCharter `json:"data"`
+	Existing bool                `json:"existing"`
+}
 
+func (uc *CreateRiskCharterUseCase) Execute(ctx context.Context, input CreateRiskCharterInput) (*CreateRiskCharterOutput, error) {
+	if !canAccessRiskCharter(input.Scope, input.OrganizationID) {
+		return nil, errors.ErrForbidden
+	}
+	title := strings.TrimSpace(input.Title)
+	period := strings.TrimSpace(input.Period)
+	uprLevel := strings.TrimSpace(input.UPRLevel)
+	groupID := uuid.New()
+	createdBy := input.CreatedBy
+	charter := &entity.RiskCharter{
+		Title:          title,
+		OrganizationID: input.OrganizationID,
+		UPRLevel:       uprLevel,
+		Period:         period,
+		Status:         entity.RiskCharterStatusDraft,
+		VersionGroupID: groupID,
+		VersionNumber:  1,
+		IsCurrent:      true,
+		CreatedBy:      &createdBy,
+		LegalBases:     []entity.RiskCharterLegalBasis{},
+		Stakeholders:   []entity.RiskCharterStakeholder{},
+		UPRStructure:   []entity.RiskCharterUPRMember{},
+	}
 	if err := charter.Validate(); err != nil {
 		return nil, errors.Wrap(errors.ErrInvalidInput, err.Error())
 	}
 
-	exists, err := uc.repo.ExistsByOrgPeriodLevel(ctx, charter.OrganizationID, charter.Period, charter.UPRLevel, nil)
+	existing, err := uc.repo.FindExistingByOrgPeriodLevel(ctx, input.OrganizationID, period, uprLevel)
 	if err != nil {
-		return nil, errors.Wrap(err, "failed to validate charter uniqueness")
+		return nil, errors.Wrap(err, "failed to find current risk charter")
 	}
-	if exists {
-		return nil, errors.ErrRiskCharterExists
+	if existing != nil {
+		return &CreateRiskCharterOutput{Charter: existing, Existing: true}, nil
 	}
 
 	if err := uc.repo.Create(ctx, charter); err != nil {
-		return nil, errors.Wrap(err, "failed to create risk charter")
+		concurrent, findErr := uc.repo.FindExistingByOrgPeriodLevel(ctx, input.OrganizationID, period, uprLevel)
+		if findErr == nil && concurrent != nil {
+			return &CreateRiskCharterOutput{Charter: concurrent, Existing: true}, nil
+		}
+		return nil, errors.Wrap(err, "failed to create risk charter draft")
 	}
-
-	return charter, nil
+	return &CreateRiskCharterOutput{Charter: charter}, nil
 }

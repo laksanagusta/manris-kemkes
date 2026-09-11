@@ -13,7 +13,8 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
       <table
         data-slot="table"
         className={cn(
-          "w-full caption-bottom text-sm font-normal [&_th]:font-normal [&_th_*]:font-normal [&_td]:font-normal [&_td_*]:font-normal",
+          "w-full caption-bottom text-sm font-normal [&_th]:font-medium [&_th_*]:font-medium [&_td]:font-normal [&_td_*]:font-normal",
+          "[&_th]:text-xs [&_th_*]:text-xs",
           "text-muted-foreground [&_th]:text-muted-foreground [&_td]:text-muted-foreground",
           className,
         )}
@@ -77,7 +78,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "h-[40.5px] px-6 py-3 text-left align-middle text-xs font-normal uppercase tracking-[0.05em] text-muted-foreground [&:has([role=checkbox])]:pr-0",
+        "h-[40.5px] px-6 py-3 text-left align-middle text-xs font-medium uppercase tracking-[0.05em] text-muted-foreground [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props}

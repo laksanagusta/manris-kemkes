@@ -1,4 +1,3 @@
-import { Progress } from "@/components/ui/progress";
 import { TrendingUp, TrendingDown, Minus } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/shared/design-system";
@@ -14,7 +13,6 @@ export interface SimpulanCardProps {
   nilaiCurrent: number;
   nilaiBaru: number;
   currentInherentScore?: number;
-  targetScore?: number;
   probability?: number;
   impact?: number;
 }
@@ -23,7 +21,6 @@ export function SimpulanCard({
   nilaiCurrent,
   nilaiBaru,
   currentInherentScore,
-  targetScore = 0,
   probability = 1,
   impact = 1,
 }: SimpulanCardProps) {
@@ -32,7 +29,7 @@ export function SimpulanCard({
   if (isInvalid) {
     return (
       <div className="rounded-xl border border-dashed border-border/60 bg-muted/10 px-3 py-4">
-        <p className="text-xs leading-5 text-muted-foreground">
+        <p className="text-sm leading-6 text-muted-foreground">
           Pilih probabilitas dan dampak terlebih dahulu untuk melihat simpulan
           tingkat risiko dan efektifitas mitigasi.
         </p>
@@ -57,25 +54,6 @@ export function SimpulanCard({
       ? "text-success"
       : "text-risk-extreme";
 
-  const normalizedTargetScore = Math.round(targetScore);
-  let progress = 0;
-
-  if (normalizedTargetScore > 0) {
-    if (newScore <= normalizedTargetScore) {
-      progress = 100;
-    } else if (
-      currentScore > normalizedTargetScore &&
-      newScore < currentScore
-    ) {
-      const rawProgress =
-        ((currentScore - newScore) / (currentScore - normalizedTargetScore)) *
-        100;
-      progress = Math.min(100, Math.max(0, Math.round(rawProgress)));
-    } else {
-      progress = 0;
-    }
-  }
-
   const efektifitasLabel = getSimpulanEfektifitas(currentScore, newScore);
   const riskLevelTone =
     levelBaru === "sangat_rendah" || levelBaru === "rendah"
@@ -89,9 +67,9 @@ export function SimpulanCard({
       <section aria-label="Hasil Pemantauan">
         <dl>
           <div className="flex items-center justify-between gap-3 py-2">
-            <dt className="text-xs text-muted-foreground">Skor risiko</dt>
+            <dt className="text-sm text-muted-foreground">Skor risiko</dt>
             <dd className="flex items-center gap-2 text-right">
-              <span className="font-mono text-xs font-semibold tabular-nums text-foreground">
+              <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
                 {newScore}
               </span>
               <Badge
@@ -103,19 +81,19 @@ export function SimpulanCard({
             </dd>
           </div>
           <div className="flex items-center justify-between gap-3 py-2">
-            <dt className="text-xs text-muted-foreground">Bobot</dt>
-            <dd className="font-mono text-xs font-semibold tabular-nums text-foreground">
+            <dt className="text-sm text-muted-foreground">Bobot</dt>
+            <dd className="font-mono text-sm font-semibold tabular-nums text-foreground">
               {bobot.toFixed(2)}
             </dd>
           </div>
           <div className="flex items-center justify-between gap-3 py-2">
-            <dt className="text-xs text-muted-foreground">Prioritas</dt>
-            <dd className="text-xs font-semibold tabular-nums text-foreground">
+            <dt className="text-sm text-muted-foreground">Prioritas</dt>
+            <dd className="text-sm font-semibold tabular-nums text-foreground">
               {scoreClassification.priority}
             </dd>
           </div>
           <div className="flex items-center justify-between gap-3 py-2">
-            <dt className="text-xs text-muted-foreground">Selera risiko</dt>
+            <dt className="text-sm text-muted-foreground">Selera risiko</dt>
             <dd>
               <Badge
                 tone={
@@ -147,7 +125,7 @@ export function SimpulanCard({
           </h3>
           <span
             className={cn(
-              "flex items-center gap-1 text-xs font-medium",
+              "flex items-center gap-1 text-sm font-medium",
               trendColorClass,
             )}
           >
@@ -157,34 +135,10 @@ export function SimpulanCard({
           </span>
         </div>
         <div className="mt-3 flex items-center justify-between gap-3">
-          <span className="font-mono text-xs font-semibold tabular-nums text-foreground">
+          <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
             {currentScore} &rarr; {newScore}
           </span>
         </div>
-        {targetScore > 0 && (
-          <div
-            role="group"
-            aria-label="Progres target"
-            className="mt-4"
-          >
-            <div className="text-right">
-              <span className="text-xs font-medium tabular-nums text-foreground">
-                {newScore} / {normalizedTargetScore}
-              </span>
-            </div>
-            <div className="mt-3 flex items-center gap-3">
-              <Progress value={progress} className="h-2 flex-1" />
-              <span className="w-8 text-right text-xs font-medium tabular-nums text-muted-foreground">
-                {progress}%
-              </span>
-            </div>
-            <p className="mt-1.5 text-right text-xs text-muted-foreground">
-              {newScore <= normalizedTargetScore
-                ? "Target tercapai"
-                : `${Math.max(0, newScore - normalizedTargetScore)} di atas target`}
-            </p>
-          </div>
-        )}
       </section>
 
       <section
@@ -199,10 +153,10 @@ export function SimpulanCard({
         </h3>
         <dl className="mt-3">
           <div className="flex items-start justify-between gap-3 py-2">
-            <dt className="text-xs text-muted-foreground">Tingkat risiko</dt>
+            <dt className="text-sm text-muted-foreground">Tingkat risiko</dt>
             <dd
               className={cn(
-                "whitespace-nowrap text-right text-xs font-medium",
+                "whitespace-nowrap text-right text-sm font-medium",
                 isStable
                   ? "text-muted-foreground"
                   : isDecrease
@@ -218,7 +172,7 @@ export function SimpulanCard({
             </dd>
           </div>
           <div className="flex items-center justify-between gap-3 py-2">
-            <dt className="text-xs text-muted-foreground">Efektivitas</dt>
+            <dt className="text-sm text-muted-foreground">Efektivitas</dt>
             <dd>
               <Badge
                 tone={efektifitasLabel === "Efektif" ? "success" : "danger"}

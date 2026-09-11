@@ -53,7 +53,7 @@ function WorkingPaperPeriodPicker({
           aria-expanded={open}
           aria-controls="working-paper-period-options"
           aria-required="true"
-          className="group/risk-select h-10 w-full justify-between gap-2 rounded-lg border-input bg-card px-3 text-sm font-normal shadow-none transition-[background-color,box-shadow] active:translate-y-0 active:scale-100 aria-expanded:bg-card aria-expanded:text-foreground focus:border-input focus-visible:border-input focus:ring-0 focus-visible:ring-0 dark:focus:border-input dark:focus-visible:border-input"
+          className="group/risk-select h-10 w-full justify-between gap-2 rounded-lg border-input bg-card px-3 text-sm font-normal shadow-none transition-[background-color,box-shadow] active:translate-y-0 active:scale-100 aria-expanded:bg-card aria-expanded:text-foreground focus:border-input focus-visible:border-input focus:ring-0 focus-visible:ring-0"
         >
           <span
             className={cn(
@@ -156,14 +156,14 @@ export function WorkingPaperCreateDialog({
             router.push(`/risk/working-papers/new?cycle=${selectedPeriod}`);
           }}
         >
-          <DialogHeader className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both">
-            <DialogTitle className="text-base">Pilih Periode Kuartal</DialogTitle>
+          <DialogHeader>
+            <DialogTitle className="text-base">Pilih Periode</DialogTitle>
             <DialogDescription className="max-w-[38ch]">
               Tentukan kuartal untuk kertas kerja yang akan dibuat.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-2 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[40ms]">
+          <div className="flex flex-col gap-2">
             <Label htmlFor="working-paper-period" className="text-sm">
               Periode Kuartal
               <span className="ml-0.5 text-destructive" aria-hidden="true">
@@ -177,7 +177,7 @@ export function WorkingPaperCreateDialog({
             />
           </div>
 
-          <DialogFooter className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[80ms] sm:flex-row">
+          <DialogFooter className="sm:flex-row">
             <CollectionDialogCancel
               type="button"
               onClick={() => onOpenChange(false)}

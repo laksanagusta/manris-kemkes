@@ -40,6 +40,7 @@ import {
 
 import type { MitigationTask } from "@/types/risk";
 import {
+  parseEvidenceUrls,
   validateMitigationReportForm,
 } from "@/lib/validation/reporting";
 import { isWithinMitigationSubmissionWindow } from "@/lib/mitigation-reporting";
@@ -87,6 +88,11 @@ const STATUS_CONFIG: Record<
     label: "Dilewati",
     color: "bg-muted text-muted-foreground border-border",
     icon: <Clock className="size-3" />,
+  },
+  not_reported: {
+    label: "Tidak dilaporkan",
+    color: "bg-red-500/10 text-red-600 border-red-500/20",
+    icon: <AlertTriangle className="size-3" />,
   },
 };
 
@@ -231,8 +237,9 @@ export function MitigationProgressTab({
     const statusOrder: Record<string, number> = {
       overdue: 0,
       pending: 1,
-      done: 2,
-      skipped: 3,
+    done: 2,
+    skipped: 3,
+    not_reported: 4,
     };
 
     return [...tasks].sort((a, b) => {
@@ -255,6 +262,7 @@ export function MitigationProgressTab({
     done: tasks.filter((t) => t.status === "done").length,
     pending: tasks.filter((t) => t.status === "pending").length,
     overdue: tasks.filter((t) => t.status === "overdue").length,
+    notReported: tasks.filter((t) => t.status === "not_reported").length,
   };
 
   const formatDate = (value?: string | null) => {
@@ -283,7 +291,7 @@ export function MitigationProgressTab({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-6 text-sm text-muted-foreground">
+      <div className="flex items-center justify-center rounded-lg bg-state-surface py-6 text-sm text-state-foreground">
         <Loader2 className="size-4 animate-spin" />
         <span className="ml-2">Memuat task mitigasi...</span>
       </div>
@@ -303,7 +311,7 @@ export function MitigationProgressTab({
             className="flex items-center justify-between gap-4 py-1.5"
             role="listitem"
           >
-            <span className="text-xs text-muted-foreground">Total</span>
+            <span className="text-sm text-muted-foreground">Total</span>
             <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
               {stats.total}
             </span>
@@ -335,6 +343,19 @@ export function MitigationProgressTab({
               {stats.overdue}
             </span>
           </div>
+          {stats.notReported > 0 ? (
+            <div
+              className="flex items-center justify-between gap-4 py-1.5"
+              role="listitem"
+            >
+              <span className="text-xs text-muted-foreground">
+                Tidak dilaporkan
+              </span>
+              <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
+                {stats.notReported}
+              </span>
+            </div>
+          ) : null}
         </div>
       )}
 
@@ -350,10 +371,10 @@ export function MitigationProgressTab({
           </p>
         </div>
         {tasks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-border/60 bg-muted/10 p-8 text-center">
-            <Activity className="mb-3 size-8 text-muted-foreground/50" />
-            <p className="text-sm font-medium">Belum Ada Task Penanganan</p>
-            <p className="mt-1 max-w-sm text-xs text-muted-foreground">
+          <div className="flex flex-col items-center justify-center rounded-lg bg-state-surface p-8 text-center text-state-foreground">
+            <Activity className="mb-3 size-8 text-state-foreground/50" />
+            <p className="text-sm font-medium text-state-foreground">Belum Ada Task Penanganan</p>
+            <p className="mt-1 max-w-sm text-xs text-state-foreground/80">
               Task akan muncul otomatis saat risiko difinalisasi dan setiap
               mitigasi hanya memiliki satu laporan.
             </p>
@@ -432,7 +453,9 @@ export function MitigationProgressTab({
                             <span>
                               {task.status === "done"
                                 ? "Selesai"
-                                : "Belum dilaporkan"}
+                                : task.status === "not_reported"
+                                  ? "Tidak dilaporkan"
+                                  : "Belum dilaporkan"}
                             </span>
                             {task.reportedByName &&
                               task.status === "done" && (
@@ -510,14 +533,14 @@ export function MitigationProgressTab({
       {/* Detail Dialog */}
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
         <DialogContent className="max-w-2xl no-scrollbar" showCloseButton={false}>
-          <DialogHeader className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both">
+          <DialogHeader>
             <DialogTitle className="text-base">
               Detail Laporan Penanganan
             </DialogTitle>
           </DialogHeader>
 
           {detailTask && (
-            <div className="space-y-6 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[40ms]">
+            <div className="space-y-6">
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="flex flex-col gap-2">
                   <p className="text-sm text-muted-foreground">Status</p>
@@ -577,16 +600,22 @@ export function MitigationProgressTab({
                 </div>
                 <div className="flex flex-col gap-2">
                   <p className="text-sm text-muted-foreground">Evidence</p>
-                  {detailTask.evidenceUrl ? (
-                    <a
-                      href={detailTask.evidenceUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
-                      onClick={(event) => event.stopPropagation()}
-                    >
-                      Buka bukti <ExternalLink className="size-3.5" />
-                    </a>
+                  {parseEvidenceUrls(detailTask.evidenceUrl).length > 0 ? (
+                    <div className="flex flex-col items-start gap-1">
+                      {parseEvidenceUrls(detailTask.evidenceUrl).map((url) => (
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex max-w-full items-center gap-1 truncate text-sm font-medium text-primary hover:underline"
+                          onClick={(event) => event.stopPropagation()}
+                          key={url}
+                          title={url}
+                        >
+                          Buka bukti <ExternalLink className="size-3.5 shrink-0" />
+                        </a>
+                      ))}
+                    </div>
                   ) : (
                     <p className="text-sm font-medium">-</p>
                   )}
@@ -601,7 +630,7 @@ export function MitigationProgressTab({
             </div>
           )}
 
-          <DialogFooter className="gap-2 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[80ms] sm:justify-between">
+          <DialogFooter className="gap-2 sm:justify-between">
             <CollectionDialogCancel onClick={() => setShowDetailDialog(false)}>
               Tutup
             </CollectionDialogCancel>

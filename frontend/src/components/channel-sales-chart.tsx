@@ -1,7 +1,7 @@
 "use client";
 
 import { useId } from "react";
-import { CartesianGrid, Line, LineChart, XAxis } from "recharts";
+import { Line, LineChart, XAxis } from "recharts";
 import { formatDate } from "@/components/formater";
 import {
 	CardContent,
@@ -134,7 +134,6 @@ export function ChannelSalesChart() {
 							top: 8,
 						}}
 					>
-						<CartesianGrid className="stroke-border" vertical={false} />
 						<XAxis
 							axisLine={false}
 							dataKey="date"
@@ -162,6 +161,7 @@ export function ChannelSalesChart() {
 						<Line
 							dataKey="online"
 							dot={false}
+							activeDot={false}
 							filter={`url(#${idLineGlow})`}
 							stroke="var(--color-online)"
 							strokeWidth={2}
@@ -170,6 +170,7 @@ export function ChannelSalesChart() {
 						<Line
 							dataKey="retail"
 							dot={false}
+							activeDot={false}
 							filter={`url(#${idLineGlow})`}
 							stroke="var(--color-retail)"
 							strokeWidth={2}

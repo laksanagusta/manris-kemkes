@@ -32,6 +32,8 @@ import {
   CollectionPageHeader,
   CollectionSearchField,
   CollectionToolbar,
+  DestructiveButton,
+  PopoverSelectField,
   PageStack,
 } from "@/components/shared/design-system";
 import { Input } from "@/components/ui/input";
@@ -43,13 +45,6 @@ import {
   TableCell,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   currentMonitoringCycle,
   getSelectableMonitoringCycles,
@@ -104,6 +99,9 @@ import {
   CollectionTableHeader,
   CollectionTableHeaderRow,
   MonitoringTransactionProgress,
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
 } from "@/components/shared/design-system";
 import {
   Plus,
@@ -245,7 +243,7 @@ function RiskRegisterFiltersSidebar({
       >
         <div className="space-y-4">
           <div>
-            <h4 className="text-sm font-medium">Filter Daftar Risiko</h4>
+            <h4 className="text-sm font-medium">Filter Risiko</h4>
             <p className="mt-1 text-xs text-muted-foreground">
               Atur filter untuk daftar risiko.
             </p>
@@ -280,81 +278,73 @@ function RiskRegisterFiltersSidebar({
               <Label className="text-sm font-medium text-foreground">
                 Lifecycle
               </Label>
-              <Select
+              <PopoverSelectField
                 value={lifecycleFilter}
                 onValueChange={(value) =>
                   onLifecycleFilterChange(value as RiskRegisterLifecycleFilter)
                 }
-              >
-                <SelectTrigger className="h-10 rounded-lg border border-input bg-card text-sm">
-                  <SelectValue placeholder="Lifecycle" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="active">Aktif</SelectItem>
-                  <SelectItem value="archived">Arsip</SelectItem>
-                  <SelectItem value="all">Semua</SelectItem>
-                </SelectContent>
-              </Select>
+                options={[
+                  { value: "active", label: "Aktif" },
+                  { value: "archived", label: "Arsip" },
+                  { value: "all", label: "Semua" },
+                ]}
+                placeholder="Lifecycle"
+                ariaLabel="Filter lifecycle risiko"
+                triggerClassName="h-9 rounded-lg border border-input bg-card text-sm"
+              />
             </div>
 
             <div className="flex flex-col gap-2">
               <Label className="text-sm font-medium text-foreground">
                 Status
               </Label>
-              <Select
+              <PopoverSelectField
                 value={statusFilter}
                 onValueChange={(value) =>
                   onStatusFilterChange(value as RiskRegisterStatusFilter)
                 }
-              >
-                <SelectTrigger className="h-10 rounded-lg border border-input bg-card text-sm">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Status</SelectItem>
-                  <SelectItem value="draft">
-                    Draf Risiko
-                  </SelectItem>
-                  <SelectItem value="final">Final</SelectItem>
-                </SelectContent>
-              </Select>
+                options={[
+                  { value: "all", label: "Semua Status" },
+                  { value: "draft", label: "Draf Risiko" },
+                  { value: "final", label: "Final" },
+                ]}
+                placeholder="Status"
+                ariaLabel="Filter status risiko"
+                triggerClassName="h-9 rounded-lg border border-input bg-card text-sm"
+              />
             </div>
 
             <div className="flex flex-col gap-2">
               <Label className="text-sm font-medium text-foreground">
                 Kategori
               </Label>
-              <Select
+              <PopoverSelectField
                 value={categoryFilter}
                 onValueChange={(value) =>
                   onCategoryFilterChange(value as RiskRegisterCategoryFilter)
                 }
-              >
-                <SelectTrigger className="h-10 rounded-lg border border-input bg-card text-sm">
-                  <SelectValue placeholder="Kategori" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Kategori</SelectItem>
-                  <SelectItem value="kebijakan">
-                    {riskCategoryLabels.kebijakan}
-                  </SelectItem>
-                  <SelectItem value="reputasi">
-                    {riskCategoryLabels.reputasi}
-                  </SelectItem>
-                  <SelectItem value="fraud_korupsi">
-                    {riskCategoryLabels.fraud_korupsi}
-                  </SelectItem>
-                  <SelectItem value="legal">
-                    {riskCategoryLabels.legal}
-                  </SelectItem>
-                  <SelectItem value="kepatuhan">
-                    {riskCategoryLabels.kepatuhan}
-                  </SelectItem>
-                  <SelectItem value="operasional">
-                    {riskCategoryLabels.operasional}
-                  </SelectItem>
-                </SelectContent>
-              </Select>
+                options={[
+                  { value: "all", label: "Semua Kategori" },
+                  { value: "kebijakan", label: riskCategoryLabels.kebijakan },
+                  { value: "reputasi", label: riskCategoryLabels.reputasi },
+                  {
+                    value: "fraud_korupsi",
+                    label: riskCategoryLabels.fraud_korupsi,
+                  },
+                  { value: "legal", label: riskCategoryLabels.legal },
+                  {
+                    value: "kepatuhan",
+                    label: riskCategoryLabels.kepatuhan,
+                  },
+                  {
+                    value: "operasional",
+                    label: riskCategoryLabels.operasional,
+                  },
+                ]}
+                placeholder="Kategori"
+                ariaLabel="Filter kategori risiko"
+                triggerClassName="h-9 rounded-lg border border-input bg-card text-sm"
+              />
             </div>
           </div>
 
@@ -927,8 +917,8 @@ export default function RiskRegisterPage() {
       : "none";
   return (
     <PageStack>
-      <CollectionPageHeader title="Daftar Risiko" />
-      <div className="space-y-4">
+      <CollectionPageHeader title="Risiko" />
+      <div className="space-y-6">
         <CollectionToolbar
             className="w-full"
             leading={
@@ -967,7 +957,7 @@ export default function RiskRegisterPage() {
                 <AccentButton asChild>
                   <Link href="/risk/register/new">
                     <Plus className="size-3.5" strokeWidth={2.5} />
-                    Tambah Risiko
+                    Risiko Baru
                   </Link>
                 </AccentButton>
               </>
@@ -1020,7 +1010,7 @@ export default function RiskRegisterPage() {
                     </button>
                   </CollectionTableHead>
                   <CollectionTableHead className="px-3">
-                    Status Risiko
+                    Status
                   </CollectionTableHead>
                   <CollectionTableHead className="min-w-[176px] px-3">
                     Pemantauan
@@ -1070,20 +1060,26 @@ export default function RiskRegisterPage() {
                     return (
                       <TableRow
                         key={risk.id}
-                        className="group h-10 border-0 hover:bg-muted/50"
+                        className="h-10 border-0 hover:bg-transparent hover:[&>td]:bg-muted/50 [&>td]:transition-[background-color]"
                       >
                         <TableCell className="px-3 py-2">
                           <div className="flex min-w-0 flex-col items-start gap-0.5">
                             <span className="font-mono text-xs text-muted-foreground">
                               {risk.code || "-"}
                             </span>
-                            <Link
-                              href={`/risk/register/${risk.id}`}
-                              className="min-w-0 max-w-full truncate text-sm font-normal leading-relaxed text-foreground hover:text-primary"
-                              title={risk.title || "-"}
-                            >
-                              {risk.title || "-"}
-                            </Link>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Link
+                                  href={`/risk/register/${risk.id}`}
+                                  className="min-w-0 max-w-full truncate text-sm font-normal leading-relaxed text-foreground hover:text-primary"
+                                >
+                                  {risk.title || "-"}
+                                </Link>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" align="start">
+                                {risk.title || "-"}
+                              </TooltipContent>
+                            </Tooltip>
                           </div>
                         </TableCell>
                         <TableCell className="whitespace-nowrap px-3 py-2 text-muted-foreground">
@@ -1093,7 +1089,9 @@ export default function RiskRegisterPage() {
                         </TableCell>
                         <TableCell className="px-3 py-2">
                           <span className="text-sm font-normal tabular-nums text-muted-foreground">
-                            {risk.nilai ?? risk.inherentScore ?? "-"}
+                            {formatMonitoringNilai(
+                              risk.nilai ?? risk.inherentScore,
+                            )}
                           </span>
                         </TableCell>
                         <TableCell className="px-3 py-2">
@@ -1117,7 +1115,7 @@ export default function RiskRegisterPage() {
                             countLabel=""
                           />
                         </TableCell>
-                        <TableCell className="sticky right-0 bg-card px-3 py-2 transition-colors group-hover:bg-muted/50">
+                        <TableCell className="sticky right-0 bg-card px-3 py-2">
                           <div className="flex justify-center">
                             <RiskRowActions
                               risk={risk}
@@ -1173,10 +1171,10 @@ export default function RiskRegisterPage() {
 
       <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
         <AlertDialogContent className="max-w-lg no-scrollbar">
-          <AlertDialogHeader className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both">
+          <AlertDialogHeader>
             <AlertDialogTitle>Konfirmasi Pemantauan</AlertDialogTitle>
           </AlertDialogHeader>
-          <div className="space-y-5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[40ms]">
+          <div className="space-y-5">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1">
                 <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
@@ -1212,27 +1210,17 @@ export default function RiskRegisterPage() {
               <Label className="text-sm" htmlFor="monitoring-cycle">
                 Periode Pemantauan
               </Label>
-              <Select
+              <PopoverSelectField
+                id="monitoring-cycle"
                 value={selectedAssessmentCycle}
                 onValueChange={setSelectedAssessmentCycle}
-              >
-                <SelectTrigger id="monitoring-cycle" className="h-10">
-                  <SelectValue placeholder="Pilih kuartal" />
-                </SelectTrigger>
-                <SelectContent>
-                  {selectableMonitoringCycles.map((cycleOption) => (
-                    <SelectItem
-                      key={cycleOption.value}
-                      value={cycleOption.value}
-                    >
-                      {cycleOption.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                options={selectableMonitoringCycles}
+                placeholder="Pilih kuartal"
+                ariaLabel="Pilih periode pemantauan"
+              />
             </div>
           </div>
-          <AlertDialogFooter className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[80ms]">
+          <AlertDialogFooter>
             <AlertDialogCancel
               variant="outline"
               size="md"
@@ -1263,10 +1251,10 @@ export default function RiskRegisterPage() {
       >
         <DialogContent className="max-w-lg no-scrollbar" showCloseButton={false}>
           <div className="flex min-h-0 flex-col gap-5">
-            <DialogHeader className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both">
+            <DialogHeader>
               <DialogTitle>Arsipkan Risiko?</DialogTitle>
             </DialogHeader>
-            <div className="space-y-5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[40ms]">
+            <div className="space-y-5">
               <div className="space-y-1">
                 <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
                   Risiko
@@ -1281,6 +1269,9 @@ export default function RiskRegisterPage() {
               <div className="flex flex-col gap-2">
                 <Label className="text-sm" htmlFor="archive-reason">
                   Alasan utama arsip
+                  <span aria-hidden="true" className="ml-0.5 text-destructive">
+                    *
+                  </span>
                 </Label>
                 <Input
                   id="archive-reason"
@@ -1288,11 +1279,12 @@ export default function RiskRegisterPage() {
                   onChange={(event) => setArchiveReason(event.target.value)}
                   placeholder="Masukkan alasan pengarsipan"
                   className="text-base sm:text-sm"
+                  required
                 />
               </div>
               <div className="flex flex-col gap-2">
                 <Label className="text-sm" htmlFor="archive-note">
-                  Catatan tambahan (opsional)
+                  Catatan tambahan
                 </Label>
                 <Textarea
                   id="archive-note"
@@ -1303,7 +1295,7 @@ export default function RiskRegisterPage() {
                 />
               </div>
             </div>
-            <DialogFooter className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[80ms]">
+            <DialogFooter>
               <CollectionDialogCancel onClick={() => setRiskToArchive(null)}>
                 Batal
               </CollectionDialogCancel>
@@ -1329,7 +1321,7 @@ export default function RiskRegisterPage() {
               Draft yang dihapus tidak bisa dikembalikan.
             </DialogDescription>
           </DialogHeader>
-          <div className="rounded-2xl bg-muted px-3 py-2 text-sm ring-1 ring-inset ring-border">
+          <div className="space-y-0.5 py-1 text-sm">
             <p className="font-medium">
               {riskToDeleteDraft?.title || "Tanpa judul"}
             </p>
@@ -1343,10 +1335,11 @@ export default function RiskRegisterPage() {
             >
               Batal
             </CollectionDialogCancel>
-            <Button variant="destructive" onClick={handleDeleteDraft}>
-              <Trash2 className="size-3.5" />
-              Hapus Draft
-            </Button>
+            <DestructiveButton
+              onClick={handleDeleteDraft}
+            >
+              Hapus
+            </DestructiveButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -1363,7 +1356,7 @@ export default function RiskRegisterPage() {
               terakhirnya.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="rounded-2xl ring-1 ring-inset ring-border bg-muted px-3 py-2 text-sm">
+          <div className="rounded-xl ring-1 ring-inset ring-border bg-muted px-3 py-2 text-sm">
             <p className="font-medium">
               {riskToRestore?.title || "Tanpa judul"}
             </p>

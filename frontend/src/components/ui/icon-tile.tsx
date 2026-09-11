@@ -8,7 +8,7 @@ const iconTileVariants = cva(
   {
     variants: {
       size: {
-        default: "size-11 rounded-2xl",
+        default: "size-11 rounded-xl",
         app: "size-14 rounded-3xl",
       },
     },

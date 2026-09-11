@@ -66,7 +66,7 @@ export function FormalReportCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="surface-hairline rounded-2xl bg-muted/20 px-4 py-3">
+        <div className="surface-hairline rounded-xl bg-muted/20 px-4 py-3">
           <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
             Latest generated
           </p>

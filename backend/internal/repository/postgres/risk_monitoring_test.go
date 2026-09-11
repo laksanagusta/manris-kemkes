@@ -53,10 +53,6 @@ func TestRiskMonitoringRepositoryCreatesAndLoadsDraft(t *testing.T) {
 	if err := monitoringRepo.Create(ctx, monitoring); err != nil {
 		t.Fatalf("Create monitoring: %v", err)
 	}
-	t.Cleanup(func() {
-		_, _ = pool.Exec(context.Background(), `DELETE FROM risk_monitorings WHERE id = $1`, monitoring.ID)
-	})
-
 	got, err := monitoringRepo.GetByID(ctx, monitoring.ID, []uuid.UUID{orgID})
 	if err != nil {
 		t.Fatalf("GetByID: %v", err)
@@ -102,6 +98,10 @@ func TestRiskMonitoringRepositoryFinalizesAndLinksResultRisk(t *testing.T) {
 		RiskSource:      "internal",
 		Controllability: "C",
 		TreatmentOption: "mitigasi",
+		Mitigations: []entity.Mitigation{{
+			Action: "Laporkan pelaksanaan mitigasi",
+			Owner:  "PIC monitoring",
+		}},
 	}
 	if err := riskRepo.Create(ctx, source); err != nil {
 		t.Fatalf("Create source risk: %v", err)
@@ -117,6 +117,18 @@ func TestRiskMonitoringRepositoryFinalizesAndLinksResultRisk(t *testing.T) {
 	if err := monitoringRepo.Create(ctx, monitoring); err != nil {
 		t.Fatalf("Create monitoring: %v", err)
 	}
+	var mitigationID uuid.UUID
+	if err := pool.QueryRow(ctx, `SELECT id FROM mitigations WHERE risk_id = $1 LIMIT 1`, source.ID).Scan(&mitigationID); err != nil {
+		t.Fatalf("load source mitigation: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO mitigation_tasks (
+			mitigation_id, risk_id, monitoring_id, period_label, period_start, period_end, due_date, status, generated_by
+		) VALUES ($1, $2, $3, '2026-H1', '2026-01-01', '2026-06-30', '2026-06-30', 'pending', 'manual')
+	`, mitigationID, source.ID, monitoring.ID); err != nil {
+		t.Fatalf("create monitoring mitigation task: %v", err)
+	}
+
 	t.Cleanup(func() {
 		_, _ = pool.Exec(context.Background(), `DELETE FROM risk_monitorings WHERE id = $1`, monitoring.ID)
 	})
@@ -159,6 +171,13 @@ func TestRiskMonitoringRepositoryFinalizesAndLinksResultRisk(t *testing.T) {
 	}
 	if stored.EffectiveFrom == nil {
 		t.Fatal("expected result risk effective_from")
+	}
+	var taskStatus string
+	if err := pool.QueryRow(ctx, `SELECT status FROM mitigation_tasks WHERE monitoring_id = $1`, monitoring.ID).Scan(&taskStatus); err != nil {
+		t.Fatalf("load finalized mitigation task: %v", err)
+	}
+	if taskStatus != entity.MitigationTaskStatusNotReported {
+		t.Fatalf("expected empty mitigation report to be terminal not_reported, got %q", taskStatus)
 	}
 }
 

@@ -15,10 +15,10 @@ export default function RiskDetailRedirect() {
   }, [id, router]);
 
   return (
-    <PageStack className="flex min-h-[400px] items-center justify-center">
+    <PageStack className="flex min-h-[400px] items-center justify-center rounded-xl bg-state-surface text-state-foreground">
       <div className="flex flex-col items-center gap-2">
         <div className="size-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-        <p className="text-sm text-muted-foreground">Memuat detail risiko...</p>
+        <p className="text-sm text-state-foreground">Memuat detail risiko...</p>
       </div>
     </PageStack>
   );

@@ -881,7 +881,7 @@ const dashboardRiskSnapshotCTE = `WITH risk_snapshots AS (
 	       COALESCE(m.observed_impact, snapshot.impact) AS effective_impact,
 	       COALESCE(m.observed_weight, snapshot.weight) AS effective_weight,
 	       COALESCE(m.observed_nilai, snapshot.nilai) AS effective_nilai,
-	       COALESCE(m.observed_nilai, snapshot.nilai) AS effective_inherent_score
+	       ROUND(COALESCE(m.observed_nilai, snapshot.nilai, 0))::int AS effective_inherent_score
 	FROM risk_snapshots snapshot
 	LEFT JOIN LATERAL (
 		SELECT rm.observed_probability, rm.observed_impact, rm.observed_weight, rm.observed_nilai
@@ -950,13 +950,13 @@ func (r *riskRepository) DashboardSummary(ctx context.Context, cycle string, org
 	}
 	if len(orgIDs) > 0 {
 		err := r.pool.QueryRow(ctx,
-			"SELECT COUNT(*) FROM mitigation_tasks t JOIN risks r ON r.id = t.risk_id AND r.status = 'final' AND r.archived_at IS NULL WHERE t.due_date < CURRENT_DATE AND t.status IN ('pending','overdue') AND r.organization_id = ANY($1)",
+			"SELECT COUNT(*) FROM mitigation_tasks t JOIN risks r ON r.id = t.risk_id AND r.status = 'final' AND r.archived_at IS NULL WHERE t.due_date < CURRENT_DATE AND (t.status IN ('pending','overdue') OR (t.status = 'done' AND (t.reported_at IS NULL OR NULLIF(BTRIM(COALESCE(t.notes, '')), '') IS NULL))) AND r.organization_id = ANY($1)",
 			orgIDs).Scan(&s.OverdueMitig)
 		if err != nil {
 			return nil, fmt.Errorf("count overdue: %w", err)
 		}
 	} else {
-		err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM mitigation_tasks t JOIN risks r ON r.id = t.risk_id AND r.status = 'final' AND r.archived_at IS NULL WHERE t.due_date < CURRENT_DATE AND t.status IN ('pending','overdue')").Scan(&s.OverdueMitig)
+		err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM mitigation_tasks t JOIN risks r ON r.id = t.risk_id AND r.status = 'final' AND r.archived_at IS NULL WHERE t.due_date < CURRENT_DATE AND (t.status IN ('pending','overdue') OR (t.status = 'done' AND (t.reported_at IS NULL OR NULLIF(BTRIM(COALESCE(t.notes, '')), '') IS NULL)))").Scan(&s.OverdueMitig)
 		if err != nil {
 			return nil, fmt.Errorf("count overdue: %w", err)
 		}
@@ -2083,20 +2083,39 @@ func (r *riskRepository) GetOverdueMitigationTimeline(ctx context.Context, orgID
 		COUNT(*) FILTER (
 			WHERE mt.status = 'done'
 				AND mt.reported_at IS NOT NULL
+				AND NULLIF(BTRIM(COALESCE(mt.notes, '')), '') IS NOT NULL
 				AND mt.reported_at::date <= mt.due_date
 		) AS on_time_count,
 		COUNT(*) FILTER (
-			WHERE mt.status != 'done'
+			WHERE (
+				mt.status IN ('pending', 'overdue')
+				OR (mt.status = 'done' AND (
+					mt.reported_at IS NULL
+					OR NULLIF(BTRIM(COALESCE(mt.notes, '')), '') IS NULL
+				))
+			)
 				AND mt.due_date < CURRENT_DATE
 				AND CURRENT_DATE - mt.due_date <= 7
 		) AS overdue_7_count,
 		COUNT(*) FILTER (
-			WHERE mt.status != 'done'
+			WHERE (
+				mt.status IN ('pending', 'overdue')
+				OR (mt.status = 'done' AND (
+					mt.reported_at IS NULL
+					OR NULLIF(BTRIM(COALESCE(mt.notes, '')), '') IS NULL
+				))
+			)
 				AND mt.due_date < CURRENT_DATE
 				AND CURRENT_DATE - mt.due_date BETWEEN 8 AND 30
 		) AS overdue_30_count,
 		COUNT(*) FILTER (
-			WHERE mt.status != 'done'
+			WHERE (
+				mt.status IN ('pending', 'overdue')
+				OR (mt.status = 'done' AND (
+					mt.reported_at IS NULL
+					OR NULLIF(BTRIM(COALESCE(mt.notes, '')), '') IS NULL
+				))
+			)
 				AND mt.due_date < CURRENT_DATE
 				AND CURRENT_DATE - mt.due_date > 30
 		) AS overdue_30_plus_count,
@@ -2159,7 +2178,9 @@ func (r *riskRepository) GetUnitResponseTime(ctx context.Context, orgIDs []uuid.
 			COUNT(*) AS task_count
 		FROM mitigation_tasks mt
 		JOIN risks r ON r.id = mt.risk_id
-		WHERE mt.status = 'done' AND mt.reported_at IS NOT NULL%s
+		WHERE mt.status = 'done'
+		  AND mt.reported_at IS NOT NULL
+		  AND NULLIF(BTRIM(COALESCE(mt.notes, '')), '') IS NOT NULL%s
 		GROUP BY r.organization_id
 	)
 	SELECT

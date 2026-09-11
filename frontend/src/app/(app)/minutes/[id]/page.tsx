@@ -1,18 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AIFeaturesDisabledState } from "@/components/shared/ai-features-disabled-state";
-import { ActionButton } from "@/components/shared/design-system";
+import {
+  ActionButton,
+  CollectionDialogCancel,
+  DestructiveButton,
+  FormBackAction,
+} from "@/components/shared/design-system";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
+import { ApiError } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { deleteMeetingMinute, getMeetingMinute } from "@/lib/meeting-minutes";
 import { exportMeetingMinuteDocument } from "@/lib/meeting-minute-export";
 import type { MeetingMinuteWithRisks } from "@/types/meeting-minute";
-import { FormHeader, FormPage, FormSection } from "@/components/shared/form-shell";
+import { FormHeader, FormPage } from "@/components/shared/form-shell";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -22,23 +28,64 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Loader2, CalendarDays, Users, CheckCircle2, Link2, AlertCircle, Clock, Trash2, Download, ArrowLeft } from "@/components/ui/icons";
+  AlertCircle,
+  CalendarDays,
+  ChevronRight,
+  Circle,
+  Clock,
+  Download,
+  FileText,
+  Loader2,
+  Trash2,
+  UserRound,
+  Users,
+} from "@/components/ui/icons";
 import Link from "next/link";
 import { toast } from "sonner";
+
+function BriefingSection({
+  title,
+  children,
+  className,
+}: {
+  title: string;
+  children: ReactNode;
+  className?: string;
+}) {
+  return (
+    <section className={`border-t border-border/70 px-6 py-6 md:px-8 ${className ?? ""}`}>
+      <h3 className="text-base font-medium tracking-tight text-foreground">{title}</h3>
+      <div className="mt-3">{children}</div>
+    </section>
+  );
+}
+
+function BriefingProperty({
+  icon,
+  label,
+  children,
+}: {
+  icon: ReactNode;
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="grid min-w-0 grid-cols-[1.25rem_minmax(7rem,9rem)_minmax(0,1fr)] items-start gap-x-2 text-sm">
+      <span className="mt-0.5 text-muted-foreground" aria-hidden="true">
+        {icon}
+      </span>
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="min-w-0 font-medium text-foreground">{children}</dd>
+    </div>
+  );
+}
 
 export default function MeetingMinuteDetailPage() {
   if (isAIFeaturesDisabled()) {
     return (
       <AIFeaturesDisabledState
-        title="Detail Briefing Dinonaktifkan"
-        description="Akses ke detail briefing meeting intelligence sedang dimatikan melalui environment frontend."
+        title="Detail Notulen Dinonaktifkan"
+        description="Akses ke detail notulen meeting intelligence sedang dimatikan melalui environment frontend."
         backHref="/overview"
       />
     );
@@ -53,30 +100,77 @@ function MeetingMinuteDetailContent() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [minutes, setMinutes] = useState<MeetingMinuteWithRisks | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!token || !id) return;
 
+    let active = true;
+
     setLoading(true);
+    setLoadError(false);
+    setMinutes(null);
     getMeetingMinute(id, token)
       .then(data => {
+        if (!active) return;
         setMinutes(data);
-        setLoading(false);
       })
       .catch(err => {
         console.error(err);
-        setLoading(false);
+        if (!active) return;
+        const status = err instanceof ApiError ? err.status : undefined;
+        setLoadError(status !== 403 && status !== 404);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
       });
-  }, [id, token]);
+
+    return () => {
+      active = false;
+    };
+  }, [id, token, reloadKey]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+        className="flex min-h-[400px] items-center justify-center rounded-xl bg-state-surface text-state-foreground"
+      >
         <div className="flex flex-col items-center gap-2">
-          <Loader2 className="size-6 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Memuat detail briefing...</p>
+          <Loader2 aria-hidden="true" className="size-6 motion-safe:animate-spin text-primary" />
+          <p className="text-sm text-state-foreground">Memuat detail notulen...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div
+        role="alert"
+        className="flex min-h-[400px] items-center justify-center rounded-xl bg-state-surface px-6 text-state-foreground"
+      >
+        <div className="max-w-md text-center">
+          <AlertCircle aria-hidden="true" className="mx-auto mb-4 size-10 text-destructive" />
+          <h2 className="text-xl font-semibold">Notulen belum dapat dimuat</h2>
+          <p className="mb-4 mt-2 text-sm text-state-foreground">
+            Periksa koneksi Anda, lalu coba lagi.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-3">
+            <ActionButton type="button" onClick={() => setReloadKey((current) => current + 1)}>
+              Coba lagi
+            </ActionButton>
+            <FormBackAction
+              label="Kembali ke daftar notulen"
+              onClick={() => router.push("/minutes")}
+            />
+          </div>
         </div>
       </div>
     );
@@ -84,45 +178,49 @@ function MeetingMinuteDetailContent() {
 
   if (!minutes) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div
+        role="alert"
+        className="flex min-h-[400px] items-center justify-center rounded-xl bg-state-surface text-state-foreground"
+      >
         <div className="text-center">
-          <AlertCircle className="size-10 text-destructive mx-auto mb-4" />
-          <h2 className="text-xl font-bold">Briefing Tidak Ditemukan</h2>
-          <p className="text-sm text-muted-foreground mt-2 mb-4">Briefing tidak ditemukan atau Anda tidak memiliki akses.</p>
-          <ActionButton
-            type="button"
-            variant="secondary"
-            size="sm"
-            icon={<ArrowLeft className="size-3.5" aria-hidden="true" />}
+          <AlertCircle aria-hidden="true" className="mx-auto mb-4 size-10 text-destructive" />
+          <h2 className="text-xl font-semibold">Notulen Tidak Ditemukan</h2>
+          <p className="mb-4 mt-2 text-sm text-state-foreground">
+            Notulen tidak ditemukan atau Anda tidak memiliki akses.
+          </p>
+          <FormBackAction
+            label="Kembali ke daftar notulen"
             onClick={() => router.push("/minutes")}
-          >
-            Kembali ke Daftar Briefing
-          </ActionButton>
+          />
         </div>
       </div>
     );
   }
 
   const priorityConfig = {
-    High: { label: "Tinggi", variant: "destructive" as const },
-    Medium: { label: "Sedang", variant: "default" as const },
-    Low: { label: "Rendah", variant: "secondary" as const },
+    High: { label: "Tinggi", tone: "danger" as const },
+    Medium: { label: "Sedang", tone: "warning" as const },
+    Low: { label: "Rendah", tone: "neutral" as const },
   };
 
   const handleDelete = async () => {
     if (!token || !minutes) return;
 
     setIsDeleting(true);
+    setDeleteError(null);
     try {
       await deleteMeetingMinute(minutes.id, token);
-      toast.success("Briefing berhasil dihapus.");
+      toast.success("Notulen berhasil dihapus.");
+      setShowDeleteConfirm(false);
       router.push("/minutes");
     } catch (error) {
       console.error(error);
-      toast.error(error instanceof Error ? error.message : "Gagal menghapus briefing.");
+      const message = error instanceof Error ? error.message : "Notulen belum berhasil dihapus.";
+      const actionableMessage = `${message} Coba lagi.`;
+      setDeleteError(actionableMessage);
+      toast.error(actionableMessage);
     } finally {
       setIsDeleting(false);
-      setShowDeleteConfirm(false);
     }
   };
 
@@ -130,310 +228,263 @@ function MeetingMinuteDetailContent() {
     if (!minutes) return;
 
     exportMeetingMinuteDocument(minutes);
-    toast.success("Briefing berhasil diekspor.");
+    toast.success("Notulen berhasil diekspor.");
   };
 
+  const actionItemsByDeadline = minutes.actionItems.reduce<
+    Record<string, MeetingMinuteWithRisks["actionItems"]>
+  >((groups, item) => {
+    const deadline = item.deadline
+      ? new Date(item.deadline).toLocaleDateString("id-ID", {
+          weekday: "short",
+          year: "numeric",
+          month: "long",
+          day: "numeric",
+        })
+      : "Tanpa tenggat";
+
+    groups[deadline] = [...(groups[deadline] ?? []), item];
+    return groups;
+  }, {});
+
   return (
-    <FormPage>
+    <FormPage className="space-y-0">
       <FormHeader
         title={minutes.title}
-        badges={
-          <>
-            <Badge variant="outline" className="font-mono text-[10px]">
-              {minutes.id.substring(0, 8)}
-            </Badge>
-            <Badge variant="outline" className="gap-1 text-[10px]">
-              <CalendarDays className="size-3" />
-              {new Date(minutes.date).toLocaleDateString("id-ID", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </Badge>
-          </>
-        }
         actions={
           <>
-            <Button variant="outline" className="gap-2" onClick={handleExport}>
-              <Download className="size-4" /> Export Briefing
-            </Button>
+            <ActionButton icon={<Download aria-hidden="true" className="size-4" />} onClick={handleExport}>
+              Ekspor Notulen
+            </ActionButton>
             {!isReadOnlyForOrg(user, minutes.organizationId || "") ? (
-              <>
-                <Button
-                  variant="outline"
-                  className="gap-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
-                  onClick={() => setShowDeleteConfirm(true)}
-                >
-                  <Trash2 className="size-4" /> Hapus Briefing
-                </Button>
-              </>
+              <ActionButton
+                icon={<Trash2 aria-hidden="true" className="size-4" />}
+                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
+                onClick={() => {
+                  setDeleteError(null);
+                  setShowDeleteConfirm(true);
+                }}
+              >
+                Hapus Notulen
+              </ActionButton>
             ) : null}
           </>
         }
         onBack={() => router.back()}
       />
 
-      <div className="grid gap-8 lg:gap-12 md:grid-cols-3 items-start">
-        <div className="md:col-span-2 space-y-8 lg:space-y-10">
-          <FormSection
-            title="Informasi Rapat"
-            description="Peserta, agenda, dan ringkasan briefing."
-          >
-            <div className="space-y-8">
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Users className="size-4.5 text-muted-foreground" />
-                  <h3 className="text-sm font-semibold text-foreground">Peserta</h3>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {minutes.participants.map((participant, idx) => (
-                    <Badge key={idx} variant="secondary" className="px-2.5 py-1 text-xs font-medium bg-secondary/60 hover:bg-sidebar-accent transition-colors">
-                      {participant}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
+      <Card className="gap-0 overflow-hidden p-0">
+        <header className="px-6 py-6 md:px-8 md:py-7">
+          <h2 className="text-xl font-medium tracking-tight text-foreground md:text-2xl">
+            {minutes.title}
+          </h2>
+          <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs leading-5 text-muted-foreground">
+            <UserRound className="size-4" aria-hidden="true" />
+            <span>Dibuat oleh {minutes.createdByName}</span>
+            <span aria-hidden="true">·</span>
+            <span>
+              {new Date(minutes.createdAt).toLocaleDateString("id-ID", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+          </p>
 
-              {minutes.agenda.length > 0 && (
-                <div className="space-y-3">
-                  <h3 className="text-sm font-semibold text-foreground">Agenda</h3>
-                  <ul className="grid gap-2">
-                    {minutes.agenda.map((item, idx) => (
-                      <li key={idx} className="flex items-start gap-3">
-                        <div className="mt-1.5 size-1.5 rounded-full bg-primary/40 shrink-0" />
-                        <span className="text-sm leading-relaxed text-muted-foreground">{item}</span>
+          <dl className="mt-6 grid gap-x-12 gap-y-4 lg:grid-cols-2">
+            <BriefingProperty icon={<CalendarDays className="size-4" />} label="Tanggal rapat">
+              {new Date(minutes.date).toLocaleDateString("id-ID", {
+                year: "numeric",
+                month: "long",
+                day: "numeric",
+              })}
+            </BriefingProperty>
+            <BriefingProperty icon={<Clock className="size-4" />} label="Check-in berikutnya">
+              {minutes.nextCheckIn
+                ? new Date(minutes.nextCheckIn).toLocaleDateString("id-ID", {
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })
+                : "Belum dijadwalkan"}
+            </BriefingProperty>
+            <BriefingProperty icon={<Users className="size-4" />} label="Peserta">
+              {minutes.participants.length > 0 ? (
+                <div className="space-y-1">
+                  <p>{minutes.participants.length} peserta</p>
+                  <ul className="space-y-0.5 text-sm font-normal leading-5 text-muted-foreground">
+                    {minutes.participants.map((participant, index) => (
+                      <li key={`${participant}-${index}`} className="break-words">
+                        {participant}
                       </li>
                     ))}
                   </ul>
                 </div>
+              ) : (
+                "Belum tercatat"
               )}
+            </BriefingProperty>
+            <BriefingProperty icon={<FileText className="size-4" />} label="ID notulen">
+              <span className="font-mono text-xs">{minutes.id.substring(0, 8)}</span>
+            </BriefingProperty>
+          </dl>
+        </header>
 
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-foreground">Ringkasan</h3>
-                <p className="text-sm leading-relaxed text-muted-foreground">{minutes.summary}</p>
-              </div>
+        <BriefingSection title="Ringkasan">
+          <p className="max-w-[75ch] text-sm leading-6 text-muted-foreground">
+            {minutes.summary || "Belum ada ringkasan yang tercatat."}
+          </p>
+        </BriefingSection>
 
-              {minutes.nextCheckIn && (
-                <div className="flex items-center gap-2.5 rounded-xl bg-muted/20 p-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
-                  <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                    <Clock className="size-4 text-primary" />
+        <BriefingSection title="Agenda">
+          {minutes.agenda.length > 0 ? (
+            <ol className="space-y-2 ps-5 text-sm leading-6 text-muted-foreground marker:font-mono marker:text-xs">
+              {minutes.agenda.map((item, index) => (
+                <li key={`${item}-${index}`} className="ps-1">{item}</li>
+              ))}
+            </ol>
+          ) : (
+            <p className="text-sm text-muted-foreground">Belum ada agenda yang tercatat.</p>
+          )}
+        </BriefingSection>
+
+        {minutes.keyPoints.length > 0 ? (
+          <BriefingSection title="Poin kunci">
+            <ul className="space-y-2">
+              {minutes.keyPoints.map((point, index) => (
+                <li key={`${point}-${index}`} className="flex items-start gap-3 text-sm leading-6 text-muted-foreground">
+                  <span className="mt-2 size-2 shrink-0 rounded-full bg-muted-foreground/60" aria-hidden="true" />
+                  <span>{point}</span>
+                </li>
+              ))}
+            </ul>
+          </BriefingSection>
+        ) : null}
+
+        {minutes.actionItems.length > 0 ? (
+          <BriefingSection title="Tindak lanjut">
+            <div className="space-y-4">
+              {Object.entries(actionItemsByDeadline).map(([deadline, items]) => (
+                <div key={deadline}>
+                  <div className="rounded-md bg-muted/60 px-3 py-2 text-xs font-medium text-secondary-foreground">
+                    {deadline}
                   </div>
-                  <div className="flex flex-col gap-0.5">
-                    <span className="text-xs font-medium text-muted-foreground">Next check-in</span>
-                    <span className="text-sm font-semibold text-foreground">
-                      {new Date(minutes.nextCheckIn).toLocaleDateString("id-ID", {
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric",
-                      })}
-                    </span>
-                  </div>
+                  <ul className="divide-y divide-border/70">
+                    {items.map((action, index) => (
+                      <li
+                        key={`${action.task}-${index}`}
+                        className="grid gap-3 px-2 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+                      >
+                        <div className="flex min-w-0 items-start gap-3">
+                          <Circle className="mt-1 size-4 shrink-0 text-muted-foreground/60" aria-hidden="true" />
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium leading-5 text-foreground">{action.task}</p>
+                            <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
+                              {[
+                                action.pic ? `PIC: ${action.pic}` : null,
+                                action.ownerUnit,
+                                action.notes,
+                              ].filter(Boolean).join(" · ") || "Detail tindak lanjut belum dilengkapi."}
+                            </p>
+                          </div>
+                        </div>
+                        <Badge tone={priorityConfig[action.priority].tone} size="compact" className="ms-7 sm:ms-0">
+                          {priorityConfig[action.priority].label}
+                        </Badge>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-              )}
+              ))}
             </div>
-          </FormSection>
+          </BriefingSection>
+        ) : null}
 
-          {minutes.keyPoints.length > 0 && (
-            <FormSection title="Poin-Poin Kunci">
-              <ul className="grid gap-4">
-                {minutes.keyPoints.map((point, idx) => (
-                  <li key={idx} className="flex items-start gap-4">
-                    <div className="flex size-6 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                      <div className="size-2 rounded-full bg-primary" />
-                    </div>
-                    <span className="text-sm leading-relaxed text-muted-foreground mt-0.5">{point}</span>
-                  </li>
-                ))}
-              </ul>
-            </FormSection>
-          )}
+        {minutes.openIssues.length > 0 ? (
+          <BriefingSection title="Isu terbuka">
+            <ul className="space-y-2">
+              {minutes.openIssues.map((issue, index) => (
+                <li key={`${issue}-${index}`} className="flex items-start gap-3 text-sm leading-6 text-muted-foreground">
+                  <span className="mt-2 size-2 shrink-0 rounded-full bg-muted-foreground/45" aria-hidden="true" />
+                  <span>{issue}</span>
+                </li>
+              ))}
+            </ul>
+          </BriefingSection>
+        ) : null}
 
-          {minutes.decisions.length > 0 && (
-            <FormSection
-              title="Keputusan"
-              action={
-                <div className="flex size-8 items-center justify-center rounded-full bg-success/10">
-                  <CheckCircle2 className="size-4.5 text-success" />
-                </div>
-              }
-            >
-              <ul className="grid gap-4">
-                {minutes.decisions.map((decision, idx) => (
-                  <li key={idx} className="flex items-start gap-4 rounded-xl bg-card p-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 transition-all">
-                    <CheckCircle2 className="size-5 text-success mt-0.5 shrink-0" />
-                    <span className="text-sm font-medium leading-relaxed text-foreground">{decision}</span>
-                  </li>
-                ))}
-              </ul>
-            </FormSection>
-          )}
+        {minutes.decisions.length > 0 ? (
+          <BriefingSection title="Keputusan">
+            <ul className="space-y-2">
+              {minutes.decisions.map((decision, index) => (
+                <li key={`${decision}-${index}`} className="flex items-start gap-3 text-sm leading-6 text-muted-foreground">
+                  <span className="mt-2 size-2 shrink-0 rounded-full bg-foreground/60" aria-hidden="true" />
+                  <span>{decision}</span>
+                </li>
+              ))}
+            </ul>
+          </BriefingSection>
+        ) : null}
 
-          {minutes.actionItems.length > 0 && (
-            <FormSection title="Tindak Lanjut">
-              <div className="overflow-hidden rounded-2xl border border-border/50">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-border/50 hover:bg-transparent">
-                        <TableHead className="min-w-[260px] text-sm">Tindak Lanjut</TableHead>
-                        <TableHead className="min-w-[140px] text-sm">PIC</TableHead>
-                        <TableHead className="min-w-[120px] text-sm">Deadline</TableHead>
-                        <TableHead className="w-[110px] text-sm">Prioritas</TableHead>
-                        <TableHead className="min-w-[220px] text-sm">Catatan</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {minutes.actionItems.map((action, idx) => (
-                        <TableRow key={`${action.task}-${idx}`} className="border-border/50 hover:bg-muted/20">
-                          <TableCell className="align-top">
-                            <div className="max-w-[320px]">
-                              <p className="truncate text-sm font-semibold leading-snug text-foreground" title={action.task}>
-                                {action.task}
-                              </p>
-                              {action.ownerUnit ? (
-                                <p className="mt-1 truncate text-xs text-muted-foreground" title={action.ownerUnit}>
-                                  {action.ownerUnit}
-                                </p>
-                              ) : null}
-                            </div>
-                          </TableCell>
-                          <TableCell className="max-w-[180px] align-top text-sm text-foreground">
-                            <span className="block truncate" title={action.pic}>
-                              {action.pic}
-                            </span>
-                          </TableCell>
-                          <TableCell className="align-top text-sm text-foreground whitespace-nowrap">
-                            {new Date(action.deadline).toLocaleDateString("id-ID")}
-                          </TableCell>
-                          <TableCell className="align-top">
-                            <Badge
-                              variant={priorityConfig[action.priority].variant}
-                              className="px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider"
-                            >
-                              {priorityConfig[action.priority].label}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="max-w-[260px] align-top text-sm text-muted-foreground">
-                            {action.notes ? (
-                              <span className="block truncate" title={action.notes}>
-                                {action.notes}
-                              </span>
-                            ) : (
-                              <span className="text-sm text-muted-foreground">&mdash;</span>
-                            )}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            </FormSection>
-          )}
-
-          {minutes.openIssues.length > 0 && (
-            <FormSection title="Isu Terbuka">
-              <ul className="grid gap-3">
-                {minutes.openIssues.map((issue, idx) => (
-                  <li key={idx} className="flex items-start gap-4 rounded-lg bg-amber-500/5 p-3.5 border border-amber-500/10">
-                    <AlertCircle className="size-5 text-amber-500 mt-0.5 shrink-0" />
-                    <span className="text-sm leading-relaxed text-amber-950 dark:text-amber-200/90">{issue}</span>
-                  </li>
-                ))}
-              </ul>
-            </FormSection>
-          )}
-        </div>
-
-        <div className="space-y-8 lg:space-y-10">
-          <FormSection
-            title="Risiko Terkait"
-            action={<Link2 className="size-4.5 text-muted-foreground" />}
-          >
-            {(minutes.linkedRisks?.length ?? 0) > 0 ? (
-              <div className="grid gap-3">
-                {minutes.linkedRisks.map((risk) => (
-                  <Link
-                    key={risk.id}
-                    href={`/risk/register/${risk.riskId}`}
-                    className="group flex flex-col gap-1.5 rounded-xl bg-card p-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 transition-all hover:bg-primary/[0.02]"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <span className="font-mono text-[10px] font-semibold tracking-wider text-muted-foreground uppercase">
-                        {risk.riskCode || risk.riskId.substring(0, 8)}
-                      </span>
-                              <Badge variant="outline" className="shrink-0 px-2 py-0 text-[9px] uppercase tracking-wider font-bold">Lihat</Badge>
-                    </div>
-                    <p className="text-sm font-medium leading-snug text-foreground group-hover:text-primary transition-colors line-clamp-2">
-                      {risk.riskTitle || "Risiko"}
-                    </p>
-                  </Link>
-                ))}
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-border/60 bg-muted/20 py-8 px-4 text-center">
-                <Link2 className="size-6 text-muted-foreground/50" />
-                <p className="text-xs font-medium text-muted-foreground">
-                  Tidak ada risiko yang terkait.
-                </p>
-              </div>
-            )}
-          </FormSection>
-
-          <FormSection title="Metadata">
-            <div className="grid gap-5 rounded-xl bg-muted/20 p-5 border border-border/30">
-              <div className="flex flex-col gap-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Dibuat Oleh</span>
-                <span className="text-sm font-medium text-foreground">{minutes.createdByName}</span>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Dibuat Pada</span>
-                <span className="text-sm font-medium text-foreground">
-                  {new Date(minutes.createdAt).toLocaleDateString("id-ID", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </span>
-              </div>
-              <div className="flex flex-col gap-1.5">
-                <span className="text-[10px] font-bold uppercase tracking-[0.1em] text-muted-foreground">Terakhir Diperbarui</span>
-                <span className="text-sm font-medium text-foreground">
-                  {new Date(minutes.updatedAt).toLocaleDateString("id-ID", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </span>
-              </div>
+        <BriefingSection title="Risiko terkait" className="pb-7">
+          {(minutes.linkedRisks?.length ?? 0) > 0 ? (
+            <div className="divide-y divide-border/70">
+              {minutes.linkedRisks.map((risk) => (
+                <Link
+                  key={risk.id}
+                  href={`/risk/register/${risk.riskId}`}
+                  className="group flex min-h-11 items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+                >
+                  <span className="shrink-0 font-mono text-xs text-muted-foreground">
+                    {risk.riskCode || risk.riskId.substring(0, 8)}
+                  </span>
+                  <span className="min-w-0 flex-1 text-foreground">{risk.riskTitle || "Risiko"}</span>
+                  <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5 motion-reduce:transition-none" aria-hidden="true" />
+                </Link>
+              ))}
             </div>
-          </FormSection>
-        </div>
-      </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">Tidak ada risiko yang terkait.</p>
+          )}
+        </BriefingSection>
+      </Card>
 
-      <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-        <DialogContent>
+      <Dialog
+        open={showDeleteConfirm}
+        onOpenChange={(open) => {
+          setShowDeleteConfirm(open);
+          if (!open) setDeleteError(null);
+        }}
+      >
+        <DialogContent showCloseButton={false}>
           <DialogHeader>
-            <DialogTitle>Hapus Briefing?</DialogTitle>
+            <DialogTitle>Hapus Notulen?</DialogTitle>
             <DialogDescription>
-              Briefing ini akan dihapus permanen beserta relasinya dengan risiko terkait.
+              Notulen ini akan dihapus permanen beserta relasinya dengan risiko terkait.
             </DialogDescription>
           </DialogHeader>
-          <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm">
+          <div className="space-y-0.5 py-1 text-sm">
             <p className="font-medium">{minutes.title}</p>
-            <p className="text-xs text-muted-foreground">{minutes.id}</p>
+            <p className="font-mono text-xs text-muted-foreground">{minutes.id}</p>
           </div>
+          {deleteError ? (
+            <p
+              role="alert"
+              className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            >
+              {deleteError}
+            </p>
+          ) : null}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowDeleteConfirm(false)} disabled={isDeleting}>
+            <CollectionDialogCancel onClick={() => setShowDeleteConfirm(false)} disabled={isDeleting}>
               Batal
-            </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
-              {isDeleting ? <Loader2 className="size-4 animate-spin" /> : <Trash2 className="size-4" />} Hapus
-            </Button>
+            </CollectionDialogCancel>
+            <DestructiveButton onClick={handleDelete} disabled={isDeleting}>
+              {isDeleting ? <Loader2 aria-hidden="true" className="size-4 motion-safe:animate-spin" /> : null}
+              {isDeleting ? "Menghapus..." : "Hapus"}
+            </DestructiveButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,18 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, Eye, EyeOff } from "@/components/ui/icons";
+import { Eye, EyeOff } from "@/components/ui/icons";
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -74,21 +67,15 @@ export default function LoginScreen() {
       />
 
       <div className="relative z-10 w-full max-w-md px-4 motion-safe:animate-fade-in">
-        <Card className="bg-card">
-          <CardHeader className="items-center justify-items-center gap-3 pb-4 text-center">
-            <Image
-              src="/logo.svg"
-              alt="MANRIS logo"
-              width={48}
-              height={48}
-              priority
-              className="size-12 object-contain"
-            />
-            <CardTitle className="text-base font-semibold tracking-tight text-balance">
-              Masuk ke Manris
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="text-center">
+        <div className="space-y-6">
+          <div className="text-center">
+            <h1 className="text-[20px] leading-5 font-medium tracking-tight text-balance">
+              Masuk ke{" "}
+              <span className="font-logo text-[20px] leading-5 font-semibold lowercase tracking-[-0.4px] text-foreground">
+                Manris
+              </span>
+            </h1>
+          </div>
             <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               {error && (
                 <div
@@ -159,7 +146,7 @@ export default function LoginScreen() {
                 type="submit"
                 variant="primary"
                 size="primary"
-                className="w-full"
+                className="!h-10 w-full rounded-full"
                 disabled={isLoading}
                 aria-busy={isLoading}
                 aria-label={isLoading ? "Memproses login" : undefined}
@@ -170,20 +157,19 @@ export default function LoginScreen() {
                     aria-hidden="true"
                   />
                 ) : (
-                  <span className="inline-flex items-center justify-center gap-[6px]">
-                    <span>Masuk</span>
-                    <ArrowRight data-icon="inline-end" className="translate-y-px" />
-                  </span>
+                  <span>Masuk</span>
                 )}
               </Button>
-              <div className="flex justify-center">
+              <div className="flex items-center justify-center">
                 <Link
                   href="/panduan-risiko"
                   className="text-xs font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
                 >
                   Panduan
                 </Link>
-                <span className="mx-2 text-muted-foreground/40">•</span>
+                <span className="mx-2 inline-flex items-center leading-none text-muted-foreground/40">
+                  •
+                </span>
                 <Link
                   href="/register"
                   className="text-xs font-medium text-muted-foreground underline-offset-4 transition-colors hover:text-foreground hover:underline"
@@ -192,8 +178,7 @@ export default function LoginScreen() {
                 </Link>
               </div>
             </form>
-          </CardContent>
-        </Card>
+        </div>
 
         <div className="mt-6 text-center">
           <p className="text-xs text-pretty text-muted-foreground/60">

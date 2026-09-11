@@ -79,7 +79,7 @@ export function SpatialIndex({
   const indexedPages = job.pages.filter((page) => page.status !== "queued").length;
 
   return (
-    <section className="overflow-hidden rounded-2xl border border-border/80 bg-[#f7f8f5]" aria-labelledby="spatial-index-title">
+    <section className="overflow-hidden rounded-xl border border-border/80 bg-[#f7f8f5]" aria-labelledby="spatial-index-title">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 bg-white/75 px-4 py-3 backdrop-blur-sm">
         <div className="flex min-w-0 items-center gap-3">
           <div className="size-2 rounded-full bg-primary/70" />
@@ -117,7 +117,7 @@ export function SpatialIndex({
                     initial={reduceMotion ? false : { opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ type: "spring", duration: 0.38, bounce: 0 }}
-                    className="rounded-2xl border bg-white/60 p-3 sm:p-4"
+                    className="rounded-xl border bg-white/60 p-3 sm:p-4"
                     style={{ borderColor: `${group.accent}55` }}
                   >
                     <div className="mb-3 flex flex-wrap items-start justify-between gap-3">

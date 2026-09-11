@@ -39,6 +39,7 @@ import {
 import { cn } from "@/lib/utils";
 import {
   CollectionPageHeader,
+  shouldShowCollectionPagination,
   CollectionToolbar,
   KpiCard,
   MetricGrid,
@@ -57,15 +58,15 @@ const statusLabel: Record<TMPMRStatus, string> = {
 const statusStyles: Record<TMPMRStatus, string> = {
   draft: "border-border/60 bg-muted/40 text-muted-foreground",
   submitted: "border-primary/20 bg-primary/5 text-primary",
-  reviewed: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-  approved: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  reviewed: "border-amber-500/20 bg-amber-500/10 text-amber-700",
+  approved: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700",
 };
 
 const maturityStyles = [
   { match: "Awal", className: "border-border/60 bg-muted/40 text-muted-foreground" },
-  { match: "Berkembang", className: "border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-300" },
-  { match: "Terdefinisi", className: "border-indigo-500/20 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300" },
-  { match: "Terkelola", className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" },
+  { match: "Berkembang", className: "border-sky-500/20 bg-sky-500/10 text-sky-700" },
+  { match: "Terdefinisi", className: "border-indigo-500/20 bg-indigo-500/10 text-indigo-700" },
+  { match: "Terkelola", className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700" },
   { match: "Optimum", className: "border-primary/20 bg-primary/5 text-primary" },
 ];
 
@@ -221,12 +222,12 @@ export default function TMPMRListPage() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Cari organisasi, skor, maturity level, atau periode"
-                className="h-10 pl-9"
+                className="h-9 pl-9"
               />
             </div>
 
             <Select value={periodFilter} onValueChange={setPeriodFilter}>
-              <SelectTrigger id="tmpmr-period" className="w-full sm:w-44">
+              <SelectTrigger id="tmpmr-period" className="h-9 w-full sm:w-44">
                 <SelectValue placeholder="Semua periode" />
               </SelectTrigger>
               <SelectContent>
@@ -243,7 +244,7 @@ export default function TMPMRListPage() {
               value={statusFilter}
               onValueChange={(value) => setStatusFilter(value as TMPMRStatus | "all")}
             >
-              <SelectTrigger id="tmpmr-status" className="w-full sm:w-40">
+              <SelectTrigger id="tmpmr-status" className="h-9 w-full sm:w-40">
                 <SelectValue placeholder="Semua status" />
               </SelectTrigger>
               <SelectContent>
@@ -280,11 +281,11 @@ export default function TMPMRListPage() {
         }
         actions={
           <>
-            <Button variant="outline" size="sm" className="gap-2" onClick={loadData}>
+            <Button variant="outline" size="md" className="gap-2" onClick={loadData}>
               <RefreshCw className="size-4" />
               Muat Ulang
             </Button>
-            <Button asChild className="gap-2">
+            <Button asChild size="md" className="gap-2">
               <Link href="/management/tmpmr/new">
                 <Plus className="size-4" />
                 Buat Assessment
@@ -298,12 +299,12 @@ export default function TMPMRListPage() {
         <CardContent className="space-y-5">
 
           {loading ? (
-            <div className="flex min-h-56 items-center justify-center gap-3 text-sm text-muted-foreground">
+            <div className="flex min-h-56 items-center justify-center gap-3 rounded-xl bg-state-surface text-sm text-state-foreground">
               <Loader2 className="size-5 animate-spin" />
               Memuat daftar TMPMR...
             </div>
           ) : error ? (
-            <div className="rounded-xl border border-dashed border-border/60 bg-muted/20 px-4 py-8 text-center text-sm text-muted-foreground">
+            <div className="rounded-xl bg-state-surface px-4 py-8 text-center text-sm text-state-foreground">
               {error}
             </div>
           ) : (
@@ -323,7 +324,7 @@ export default function TMPMRListPage() {
                 <TableBody>
                   {paginatedItems.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="py-10 text-center text-sm text-muted-foreground">
+                      <TableCell colSpan={7} className="bg-state-surface py-10 text-center text-sm text-state-foreground">
                         Belum ada assessment yang cocok dengan filter ini.
                       </TableCell>
                     </TableRow>
@@ -368,34 +369,36 @@ export default function TMPMRListPage() {
                 </TableBody>
               </Table>
 
-              <div className="flex items-center justify-between gap-3 border-t border-border/40 pt-4 text-sm">
-                <p className="text-muted-foreground">
-                  Menampilkan {filteredItems.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}
-                  {" "}
-                  hingga {Math.min(page * PAGE_SIZE, filteredItems.length)} dari {filteredItems.length}
-                </p>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((current) => Math.max(1, current - 1))}
-                    disabled={page === 1}
-                  >
-                    Sebelumnya
-                  </Button>
-                  <Badge variant="outline" className="h-8 px-3">
-                    {page} / {totalPages}
-                  </Badge>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
-                    disabled={page >= totalPages}
-                  >
-                    Berikutnya
-                  </Button>
+              {shouldShowCollectionPagination(filteredItems.length) ? (
+                <div className="flex items-center justify-between gap-3 border-t border-border/40 pt-4 text-sm">
+                  <p className="text-muted-foreground">
+                    Menampilkan {filteredItems.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}
+                    {" "}
+                    hingga {Math.min(page * PAGE_SIZE, filteredItems.length)} dari {filteredItems.length}
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage((current) => Math.max(1, current - 1))}
+                      disabled={page === 1}
+                    >
+                      Sebelumnya
+                    </Button>
+                    <Badge variant="outline" className="h-8 px-3">
+                      {page} / {totalPages}
+                    </Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                      disabled={page >= totalPages}
+                    >
+                      Berikutnya
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              ) : null}
             </div>
           )}
         </CardContent>

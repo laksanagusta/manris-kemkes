@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/shared/de
 export function CardPatternsExample() {
   return (
     <div className="grid gap-4 md:grid-cols-2">
-      <Card className="gap-0 overflow-hidden rounded-2xl bg-card p-0">
+      <Card className="gap-0 overflow-hidden rounded-xl bg-card p-0">
         <CardHeader className="px-4 py-6 !pb-6">
           <CardTitle className="text-sm font-medium normal-case text-foreground">
             Standard Card
@@ -18,7 +18,7 @@ export function CardPatternsExample() {
         </CardContent>
       </Card>
 
-      <Card className="gap-0 overflow-hidden rounded-2xl bg-card/80 p-0 backdrop-blur-lg transition-colors duration-300">
+      <Card className="gap-0 overflow-hidden rounded-xl bg-card/80 p-0 backdrop-blur-lg transition-colors duration-300">
         <CardHeader className="px-4 py-6 !pb-6">
           <CardTitle className="text-sm font-medium normal-case text-foreground">
             Frosted Glass Card
@@ -31,7 +31,7 @@ export function CardPatternsExample() {
         </CardContent>
       </Card>
 
-      <Card className="relative gap-0 overflow-hidden rounded-2xl bg-card p-0">
+      <Card className="relative gap-0 overflow-hidden rounded-xl bg-card p-0">
         <CardHeader className="px-4 py-6 !pb-6">
           <CardTitle className="text-sm font-medium normal-case text-foreground">
             Table Card
@@ -44,7 +44,7 @@ export function CardPatternsExample() {
         </CardContent>
       </Card>
 
-      <Card className="rounded-2xl bg-card">
+      <Card className="rounded-xl bg-card">
         <CardContent className="flex flex-col gap-3 p-4 md:flex-row md:items-center md:justify-between">
           <div>
             <p className="text-sm font-medium normal-case text-foreground">

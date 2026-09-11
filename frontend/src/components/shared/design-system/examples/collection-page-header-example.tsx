@@ -1,30 +1,20 @@
-import Link from "next/link";
-import { ArrowLeft, Plus, ShieldCheck, Upload } from "@/components/ui/icons";
+import { Plus, ShieldCheck, Upload } from "@/components/ui/icons";
 
 import {
   AccentButton,
   ActionButton,
   CollectionPageHeader,
+  FormBackAction,
 } from "@/components/shared/design-system";
 
 export function CollectionPageHeaderExample() {
   return (
     <CollectionPageHeader
-      backAction={
-        <ActionButton
-          asChild
-          variant="secondary"
-          size="sm"
-          className="border-0 text-sm font-normal"
-        >
-          <Link href="/risk/register">
-            <ArrowLeft className="size-3.5" />
-            Kembali
-          </Link>
-        </ActionButton>
-      }
+      backActionPlacement="local"
+      backAction={<FormBackAction href="/risk/register" label="Kembali" />}
       icon={<ShieldCheck className="size-7" strokeWidth={1.8} />}
       title="Daftar Risiko"
+      subtitle="Kelola identifikasi, status, dan siklus pemantauan risiko."
       showTitle
       actions={
         <>

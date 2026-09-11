@@ -108,10 +108,26 @@ export function calculateNilai(probability: number, impact: number, weight: numb
   return Math.round(probability * impact * weight * 100) / 100;
 }
 
+export function roundRiskScore(value: number | null | undefined): number | null {
+  if (value == null || !Number.isFinite(value)) {
+    return null;
+  }
+
+  return Math.round(value);
+}
+
+export function formatRiskScore(
+  value: number | null | undefined,
+  fallback = "-",
+): string {
+  const rounded = roundRiskScore(value);
+  return rounded === null ? fallback : String(rounded);
+}
+
 // Get risk level based on nilai (new Indonesian levels)
 // Sangat Rendah: < 5, Rendah: 5-9, Sedang: 10-14, Tinggi: 15-19, Sangat Tinggi: >= 20
 export function getRiskLevelFromNilai(nilai: number): RiskLevel {
-  const rounded = Math.round(nilai);
+  const rounded = roundRiskScore(nilai) ?? 0;
   if (rounded >= 20) return "sangat_tinggi";
   if (rounded >= 15) return "tinggi";
   if (rounded >= 10) return "sedang";
@@ -152,7 +168,7 @@ export interface RiskAssessmentClassification {
 export function resolveRiskAssessmentClassification(
   nilai: number,
 ): RiskAssessmentClassification {
-  const score = Math.round(nilai);
+  const score = roundRiskScore(nilai) ?? 0;
   const level = getRiskLevelFromNilai(nilai);
 
   return {
@@ -240,7 +256,7 @@ export function getScoreBtnColorClasses(score: number): string {
 export function calculateRiskMetrics(probability: number, impact: number) {
   const weight = getBobot(probability, impact);
   const nilai = calculateNilai(probability, impact, weight);
-  const inherentScore = Math.round(nilai);
+  const inherentScore = roundRiskScore(nilai) ?? 0;
   const level = getRiskLevelFromNilai(nilai);
   const priority = getRiskPriority(level);
 
@@ -289,7 +305,7 @@ function buildRiskScoreSnapshot(bundle: RiskScoreBundleInput): RiskScoreSnapshot
     : calculateNilai(bundle.probability, bundle.impact, bundle.weight);
   // Nilai is the single source of truth. Keep score in the input type only so
   // older callers can migrate without changing this calculation.
-  const score = Math.round(nilai);
+  const score = roundRiskScore(nilai) ?? 0;
   const level = getRiskLevelFromNilai(nilai);
 
   return {

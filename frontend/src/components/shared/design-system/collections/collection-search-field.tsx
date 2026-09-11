@@ -19,7 +19,7 @@ export function CollectionSearchField({
       <Search className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
       <SearchInput
         className={cn(
-          "border border-input bg-card pl-10 text-sm",
+          "h-9 border border-input bg-card pl-10 text-sm",
           className,
         )}
         {...props}

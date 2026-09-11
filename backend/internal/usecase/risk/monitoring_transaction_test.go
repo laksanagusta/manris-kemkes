@@ -284,6 +284,9 @@ func TestStartMonitoringUseCase_RejectsCycleBeforeRiskEffectiveCycle(t *testing.
 	if !errors.Is(err, domainerrors.ErrInvalidInput) {
 		t.Fatalf("expected effective-cycle guard, got %v", err)
 	}
+	if got, want := err.Error(), "Periode pemantauan tidak boleh lebih awal dari periode efektif risiko. Pilih periode yang sama atau lebih baru."; got != want {
+		t.Fatalf("expected actionable effective-cycle message %q, got %q", want, got)
+	}
 }
 
 func TestUpdateMonitoringUseCase_DetectsProfileRevision(t *testing.T) {
@@ -526,4 +529,47 @@ func TestFinalizeMonitoringUseCase_BuildsRiskVersionForScoreOnlyMonitoring(t *te
 	if result.VersionNumber != 5 || result.Probability != 2 || result.Impact != 3 {
 		t.Fatalf("expected next version with observed score, got version=%d score=%d/%d", result.VersionNumber, result.Probability, result.Impact)
 	}
+}
+
+func TestFilterUnreportedMitigationsRemovesTerminalTasksFromNextSnapshot(t *testing.T) {
+	firstID := uuid.New()
+	secondID := uuid.New()
+	dueDate := "2026-09-30"
+	source := []entity.Mitigation{
+		{ID: firstID, Action: "Kirim laporan", Owner: "PIC A", DueDate: &dueDate},
+		{ID: secondID, Action: "Validasi data", Owner: "PIC B", DueDate: &dueDate},
+	}
+	tasks := []*entity.MitigationTask{
+		{MitigationID: firstID, Status: entity.MitigationTaskStatusNotReported},
+		{MitigationID: secondID, Status: entity.MitigationTaskStatusDone, ReportedAt: timePtrForTest(time.Now()), Notes: "Validasi sudah dilakukan."},
+	}
+
+	filtered := filterUnreportedMitigations(source, source, tasks)
+	if len(filtered) != 1 || filtered[0].ID != secondID {
+		t.Fatalf("expected only reported mitigation in next snapshot, got %#v", filtered)
+	}
+}
+
+func TestFilterUnreportedMitigationsMatchesProfileRevisionByStableFields(t *testing.T) {
+	firstID := uuid.New()
+	dueDate := "2026-09-30"
+	source := []entity.Mitigation{{
+		ID: firstID, Action: "Kirim laporan", Owner: "PIC A", DueDate: &dueDate,
+	}}
+	profileRevision := []entity.Mitigation{{
+		Action: "Kirim laporan", Owner: "PIC A", DueDate: &dueDate,
+	}}
+	tasks := []*entity.MitigationTask{{
+		MitigationID: firstID,
+		Status:       entity.MitigationTaskStatusPending,
+	}}
+
+	filtered := filterUnreportedMitigations(profileRevision, source, tasks)
+	if len(filtered) != 0 {
+		t.Fatalf("expected unreported mitigation to be excluded from profile revision, got %#v", filtered)
+	}
+}
+
+func timePtrForTest(value time.Time) *time.Time {
+	return &value
 }

@@ -2,6 +2,7 @@ package postgres_test
 
 import (
 	"context"
+	"math"
 	"testing"
 
 	"github.com/google/uuid"
@@ -73,6 +74,10 @@ func TestDashboardUsesLatestRiskVersionAvailableAsOfRequestedCycle(t *testing.T)
 	}
 	if len(topRisks) != 1 || topRisks[0].ID != risk.ID {
 		t.Fatalf("top risks = %#v, want risk %s", topRisks, risk.ID)
+	}
+	wantScore := int(math.Round(risk.Nilai))
+	if topRisks[0].InherentScore != wantScore {
+		t.Fatalf("top risk inherent score = %d, want rounded score %d", topRisks[0].InherentScore, wantScore)
 	}
 
 	categories, err := repo.DashboardCategoryCounts(ctx, "2026-H2", []uuid.UUID{orgID})

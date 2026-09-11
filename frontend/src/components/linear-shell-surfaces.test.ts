@@ -10,29 +10,38 @@ const designSystemPage = readFileSync(
   "utf8",
 );
 
-test("uses Linear-style light and dark shell surfaces", () => {
-  assert.match(styles, /--background: #ffffff;/);
-  assert.match(styles, /--main-content: #fcfcfd;/);
-  assert.match(styles, /--table-header-foreground: #a1a1a1;/);
-  assert.match(styles, /--sidebar: #f7f7f8;/);
-  assert.match(styles, /--sidebar-border: rgb\(0 0 0 \/ 8%\);/);
-  assert.match(styles, /\.dark\s*\{[^}]*--background: #111113;/s);
-  assert.match(styles, /\.dark\s*\{[^}]*--main-content: #111113;/s);
-  assert.match(styles, /\.dark\s*\{[^}]*--sidebar: #171719;/s);
+test("uses the fixed light shell surfaces", () => {
+  assert.match(styles, /--background: #fcfcfc;/);
+  assert.match(styles, /--main-content: #fcfcfc;/);
+  assert.match(styles, /--table-header-foreground: var\(--muted-foreground\);/);
+  assert.match(styles, /--sidebar: #fcfcfc;/);
+  assert.match(styles, /--sidebar-border: var\(--surface-border\);/);
+  assert.doesNotMatch(styles, /\bdark\b/);
 });
 
-test("neutral component boundaries inherit the table-gray global token", () => {
-  assert.match(styles, /:root\s*\{[^}]*--border: rgb\(228 228 231 \/ 80%\);/s);
-  assert.match(styles, /:root\s*\{[^}]*--input: rgb\(228 228 231 \/ 80%\);/s);
-  assert.match(styles, /\.dark\s*\{[^}]*--border: rgb\(63 63 70 \/ 80%\);/s);
-  assert.match(styles, /\.dark\s*\{[^}]*--input: rgb\(63 63 70 \/ 80%\);/s);
+test("neutral component boundaries inherit the light surface tokens", () => {
+  assert.match(styles, /:root\s*\{[^}]*--border: var\(--surface-border\);/s);
+  assert.match(styles, /:root\s*\{[^}]*--input: var\(--field-border\);/s);
 });
 
 test("accent surfaces use design-system zinc grays", () => {
-  assert.match(styles, /:root\s*\{[^}]*--accent: #f1f1f2;/s);
-  assert.match(styles, /:root\s*\{[^}]*--sidebar-accent: #ececee;/s);
-  assert.match(styles, /\.dark\s*\{[^}]*--accent: #27272a;/s);
-  assert.match(styles, /\.dark\s*\{[^}]*--sidebar-accent: #27272a;/s);
+  assert.match(styles, /:root\s*\{[^}]*--accent: var\(--sidebar-accent\);/s);
+  assert.match(styles, /:root\s*\{[^}]*--sidebar-accent: #f0f0f0;/s);
+});
+
+test("reserves the scrollbar gutter for fixed shell chrome when overlays open", () => {
+  assert.match(
+    styles,
+    /html\s*\{[\s\S]*scrollbar-gutter:\s*stable;/,
+  );
+});
+
+test("keeps fixed shell chrome inside the pre-lock viewport", () => {
+  assert.match(
+    styles,
+    /body\[data-scroll-locked\][\s\S]*data-slot="app-topbar"[\s\S]*width:\s*calc\(100%\s*-\s*var\(--removed-body-scroll-bar-size,\s*0px\)\)\s*!important;/,
+  );
+  assert.match(styles, /data-component="monitoring-baseline-floating"/);
 });
 
 test("shell consumes semantic surfaces without local color overrides", () => {
@@ -58,7 +67,7 @@ test("authenticated pages share the design-system main-content wrapper", () => {
     shell,
     /<div className="mx-auto w-full max-w-\[1400px\] min-w-0 pb-8">\s*\{children\}\s*<\/div>/,
   );
-  assert.match(designSystemPage, /<div className="space-y-12">/);
+  assert.match(designSystemPage, /<PageStack>/);
   assert.doesNotMatch(
     designSystemPage,
     /mx-auto max-w-\[1200px\][^\"]*py-8/,

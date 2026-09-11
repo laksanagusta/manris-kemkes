@@ -12,7 +12,7 @@ import {
 } from "@/lib/risk";
 import type { RiskLevel } from "@/types/risk";
 import { cn } from "@/lib/utils";
-import { Check, ChevronRight } from "@/components/ui/icons";
+import { ChevronRight } from "@/components/ui/icons";
 import {
   Dialog,
   DialogContent,
@@ -113,7 +113,7 @@ export function RiskScorePickerTrigger({
       disabled={disabled}
       aria-describedby={ariaDescribedBy}
       aria-label={`Pilih ${title.toLowerCase()} dari heatmap. Probabilitas ${probability}, dampak ${impact}, skor ${metrics.inherentScore}.`}
-      className="group flex min-h-11 w-fit max-w-full self-start items-center justify-between gap-3 rounded-xl border border-border/60 bg-card px-3 py-2.5 text-left transition-colors hover:border-border hover:bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-60"
+      className="group flex min-h-11 w-fit max-w-full self-start items-center justify-between gap-3 rounded-xl border border-border/60 bg-card px-3 py-2.5 text-left transition-[background-color,border-color] hover:border-foreground/15 hover:bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:hover:border-border/60 disabled:cursor-not-allowed disabled:opacity-60"
     >
       <div className="flex shrink-0 items-center gap-2">
         <span className="text-3xl font-mono font-medium leading-none tracking-tight text-foreground tabular-nums">
@@ -194,6 +194,7 @@ export function RiskScoreHeatmapModal({
       <DialogContent
         className="gap-0 overflow-hidden sm:max-w-3xl"
         showCloseButton={false}
+        onOpenAutoFocus={() => setDraft({ probability, impact })}
       >
         <DialogHeader className="gap-0">
           <DialogTitle className="text-base">{title}</DialogTitle>
@@ -346,7 +347,6 @@ export function RiskScoreHeatmapModal({
               onClick={handleApply}
               className="flex-1 sm:flex-none"
             >
-              <Check className="size-3.5" />
               Terapkan Skor
             </AccentButton>
           </div>
