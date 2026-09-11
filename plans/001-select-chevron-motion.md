@@ -25,7 +25,7 @@ Current shared trigger at
   data-slot="select-trigger"
   data-size={size}
   className={cn(
-    "flex w-full items-center justify-between gap-1.5 rounded-lg border border-border bg-card py-2 pr-3 pl-3 text-sm whitespace-nowrap transition-[background-color,border-color,box-shadow] outline-none select-none focus:border-black focus-visible:border-black focus:ring-0 focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground data-[size=default]:h-9 data-[size=sm]:h-8 data-[size=sm]:rounded-lg *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:bg-input/30 dark:hover:bg-input/50 dark:focus:border-white dark:focus-visible:border-white dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+    "flex w-full items-center justify-between gap-1.5 rounded-lg border border-border bg-card py-2 pr-3 pl-3 text-sm whitespace-nowrap transition-[background-color,border-color,box-shadow] outline-none select-none focus:border-black focus-visible:border-black focus:ring-0 focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground data-[size=default]:h-9 data-[size=sm]:h-8 data-[size=sm]:rounded-lg *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
     className
   )}
   {...props}
@@ -53,7 +53,7 @@ named group to the trigger so its child icon can react to the Radix `data-state`
 
 ```tsx
 className={cn(
-  "group/select-trigger flex w-full items-center justify-between gap-1.5 rounded-lg border border-border bg-card py-2 pr-3 pl-3 text-sm whitespace-nowrap transition-[background-color,box-shadow] outline-none select-none focus:ring-0 focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground data-[size=default]:h-9 data-[size=sm]:h-8 data-[size=sm]:rounded-lg *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 dark:bg-input/30 dark:hover:bg-input/50 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+  "group/select-trigger flex w-full items-center justify-between gap-1.5 rounded-lg border border-border bg-card py-2 pr-3 pl-3 text-sm whitespace-nowrap transition-[background-color,box-shadow] outline-none select-none focus:ring-0 focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground data-[size=default]:h-9 data-[size=sm]:h-8 data-[size=sm]:rounded-lg *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
   className
 )}
 ```
@@ -87,8 +87,7 @@ validation remains visibly red.
 1. In `frontend/src/components/ui/select.tsx`, add
    `group/select-trigger` to the `SelectPrimitive.Trigger` class list.
 2. In the same file, remove `focus:border-black`,
-   `focus-visible:border-black`, `dark:focus:border-white`, and
-   `dark:focus-visible:border-white` from `SelectTrigger`. Keep the focus ring
+   `focus-visible:border-black` from `SelectTrigger`. Keep the focus ring
    suppression and semantic invalid-state classes. Change
    `transition-[background-color,border-color,box-shadow]` to
    `transition-[background-color,box-shadow]`.

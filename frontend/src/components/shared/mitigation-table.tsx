@@ -5,17 +5,17 @@ import { ChevronDown, ChevronUp, Plus, Trash2 } from "@/components/ui/icons";
 
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableRow,
-} from "@/components/ui/table";
-import { Input } from "@/components/ui/input";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { RemoteUserPicker } from "@/components/risk/remote-user-picker";
+import { Input, Textarea } from "@/components/shared/design-system";
 import { CollectionTableHead } from "@/components/shared/design-system/collections/collection-table-head";
 import { CollectionTableHeader } from "@/components/shared/design-system/collections/collection-table-header";
 import { CollectionTableHeaderRow } from "@/components/shared/design-system/collections/collection-table-header-row";
@@ -37,10 +37,10 @@ export interface MitigationItem {
   expectedOutput?: string;
   quantitativeTarget?: string;
   supportingUnit?: string;
-	resourcesRequired?: string;
-	contingencyPlan?: string;
-	potentialObstacle?: string;
-	isBreakthroughActivity?: boolean;
+  resourcesRequired?: string;
+  contingencyPlan?: string;
+  potentialObstacle?: string;
+  isBreakthroughActivity?: boolean;
   isExistingControl?: boolean;
 }
 
@@ -71,10 +71,10 @@ const emptyMitigation = (): MitigationItem => ({
   expectedOutput: "",
   quantitativeTarget: "",
   supportingUnit: "",
-	resourcesRequired: "",
-	contingencyPlan: "",
-	potentialObstacle: "",
-	isBreakthroughActivity: false,
+  resourcesRequired: "",
+  contingencyPlan: "",
+  potentialObstacle: "",
+  isBreakthroughActivity: false,
   isExistingControl: false,
 });
 
@@ -170,15 +170,9 @@ export function MitigationTable({
                 <CollectionTableHead className="px-3">
                   Rencana Penanganan
                 </CollectionTableHead>
-                <CollectionTableHead className="px-3">
-                  PIC
-                </CollectionTableHead>
-                <CollectionTableHead className="px-3">
-                  Tipe
-                </CollectionTableHead>
-                <CollectionTableHead className="px-3">
-                  Detail
-                </CollectionTableHead>
+                <CollectionTableHead className="px-3">PIC</CollectionTableHead>
+                <CollectionTableHead className="px-3">Tipe</CollectionTableHead>
+                <CollectionTableHead className="px-3">Detail</CollectionTableHead>
                 <CollectionTableHead className="sticky right-0 z-10 w-[84px] bg-table-header px-3 text-center">
                   Aksi
                 </CollectionTableHead>
@@ -201,11 +195,11 @@ export function MitigationTable({
                         <div className="space-y-1">
                           <Input
                             value={item.action || ""}
-                            onChange={(e) =>
-                              updateItem(index, "action", e.target.value)
+                            onChange={(event) =>
+                              updateItem(index, "action", event.target.value)
                             }
                             placeholder="Uraian rencana penanganan..."
-                            className="h-10 bg-card text-xs border-input"
+                            className="h-10 border-input bg-card text-xs"
                             disabled={disabled}
                           />
                           {actionErrors?.[index] ? (
@@ -216,31 +210,29 @@ export function MitigationTable({
                         </div>
                       </TableCell>
                       <TableCell className="px-3 py-2 align-top">
-                        <div className="space-y-1">
-                          {loadPicOptions ? (
-                            <RemoteUserPicker
-                              title="Pilih PIC"
-                              description="Cari dan pilih PIC untuk rencana penanganan ini"
-                              placeholder="Pilih PIC"
-                              searchPlaceholder="Cari nama PIC..."
-                              emptyMessage="Tidak ada user ditemukan."
-                              disabled={disabled}
-                              value={picValues[index]}
-                              onSelect={(option) => handlePicSelect(index, option)}
-                              loadOptions={loadPicOptions}
-                            />
-                          ) : (
-                            <Input
-                              value={item.owner || ""}
-                              onChange={(e) =>
-                                updateItem(index, "owner", e.target.value)
-                              }
-                              placeholder="Nama PIC"
-                              className="h-10 bg-card text-xs border-input"
-                              disabled={disabled}
-                            />
-                          )}
-                        </div>
+                        {loadPicOptions ? (
+                          <RemoteUserPicker
+                            title="Pilih PIC"
+                            description="Cari dan pilih PIC untuk rencana penanganan ini"
+                            placeholder="Pilih PIC"
+                            searchPlaceholder="Cari nama PIC..."
+                            emptyMessage="Tidak ada user ditemukan."
+                            disabled={disabled}
+                            value={picValues[index]}
+                            onSelect={(option) => handlePicSelect(index, option)}
+                            loadOptions={loadPicOptions}
+                          />
+                        ) : (
+                          <Input
+                            value={item.owner || ""}
+                            onChange={(event) =>
+                              updateItem(index, "owner", event.target.value)
+                            }
+                            placeholder="Nama PIC"
+                            className="h-10 border-input bg-card text-xs"
+                            disabled={disabled}
+                          />
+                        )}
                       </TableCell>
                       <TableCell className="px-3 py-2 align-top">
                         <Select
@@ -254,7 +246,7 @@ export function MitigationTable({
                           }
                           disabled={disabled}
                         >
-                          <SelectTrigger className="h-10 bg-card text-xs border-input">
+                          <SelectTrigger className="h-10 border-input bg-card text-xs">
                             <SelectValue placeholder="Pilih tipe mitigasi" />
                           </SelectTrigger>
                           <SelectContent>
@@ -273,8 +265,8 @@ export function MitigationTable({
                           size="sm"
                           className="h-8 gap-1.5 px-2 text-xs text-muted-foreground hover:text-foreground"
                           onClick={() =>
-                            setExpandedRows((prev) => ({
-                              ...prev,
+                            setExpandedRows((previous) => ({
+                              ...previous,
                               [index]: !expanded,
                             }))
                           }
@@ -290,11 +282,13 @@ export function MitigationTable({
                       </TableCell>
                       <TableCell className="sticky right-0 bg-card px-3 py-2 align-top transition-colors group-hover:bg-muted/50">
                         <Button
+                          type="button"
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 text-destructive/50 hover:bg-destructive/10 hover:text-destructive"
                           onClick={() => removeItem(index)}
                           disabled={disabled}
+                          aria-label={`Hapus rencana mitigasi ${index + 1}`}
                         >
                           <Trash2 className="size-3.5" />
                         </Button>
@@ -307,7 +301,8 @@ export function MitigationTable({
                           <div className="border-t border-border/50 px-4 py-4">
                             {disabled ? (
                               <p className="mb-3 text-xs text-muted-foreground">
-                                Rincian ini hanya baca di halaman tinjauan. Untuk mengubah isi, buka mode edit risiko.
+                                Rincian ini hanya baca di halaman tinjauan. Untuk
+                                mengubah isi, buka mode edit risiko.
                               </p>
                             ) : null}
 
@@ -318,15 +313,15 @@ export function MitigationTable({
                                 </Label>
                                 <Input
                                   value={item.activityStage || ""}
-                                  onChange={(e) =>
+                                  onChange={(event) =>
                                     updateItem(
                                       index,
                                       "activityStage",
-                                      e.target.value,
+                                      event.target.value,
                                     )
                                   }
                                   placeholder="Contoh: persiapan, pelaksanaan, monitoring"
-                                  className="h-10 bg-card text-xs border-input"
+                                  className="h-10 border-input bg-card text-xs"
                                   disabled={disabled}
                                 />
                               </div>
@@ -336,15 +331,15 @@ export function MitigationTable({
                                 </Label>
                                 <Input
                                   value={item.supportingUnit || ""}
-                                  onChange={(e) =>
+                                  onChange={(event) =>
                                     updateItem(
                                       index,
                                       "supportingUnit",
-                                      e.target.value,
+                                      event.target.value,
                                     )
                                   }
                                   placeholder="Contoh: Subdit Surveilans, Biro Umum"
-                                  className="h-10 bg-card text-xs border-input"
+                                  className="h-10 border-input bg-card text-xs"
                                   disabled={disabled}
                                 />
                               </div>
@@ -355,15 +350,15 @@ export function MitigationTable({
                                 </Label>
                                 <Textarea
                                   value={item.expectedOutput || ""}
-                                  onChange={(e) =>
+                                  onChange={(event) =>
                                     updateItem(
                                       index,
                                       "expectedOutput",
-                                      e.target.value,
+                                      event.target.value,
                                     )
                                   }
                                   placeholder="Tuliskan output yang ingin dicapai..."
-                                  className="min-h-20 bg-card text-sm border-input"
+                                  className="min-h-20 border-input bg-card text-sm"
                                   disabled={disabled}
                                 />
                               </div>
@@ -373,15 +368,15 @@ export function MitigationTable({
                                 </Label>
                                 <Textarea
                                   value={item.quantitativeTarget || ""}
-                                  onChange={(e) =>
+                                  onChange={(event) =>
                                     updateItem(
                                       index,
                                       "quantitativeTarget",
-                                      e.target.value,
+                                      event.target.value,
                                     )
                                   }
                                   placeholder="Contoh: 100% unit terdokumentasi, SLA < 5 hari..."
-                                  className="min-h-20 bg-card text-sm border-input"
+                                  className="min-h-20 border-input bg-card text-sm"
                                   disabled={disabled}
                                 />
                               </div>
@@ -392,15 +387,15 @@ export function MitigationTable({
                                 </Label>
                                 <Textarea
                                   value={item.resourcesRequired || ""}
-                                  onChange={(e) =>
+                                  onChange={(event) =>
                                     updateItem(
                                       index,
                                       "resourcesRequired",
-                                      e.target.value,
+                                      event.target.value,
                                     )
                                   }
                                   placeholder="SDM, anggaran, sistem, atau alat bantu yang diperlukan"
-                                  className="min-h-20 bg-card text-sm border-input"
+                                  className="min-h-20 border-input bg-card text-sm"
                                   disabled={disabled}
                                 />
                               </div>
@@ -410,15 +405,15 @@ export function MitigationTable({
                                 </Label>
                                 <Textarea
                                   value={item.contingencyPlan || ""}
-                                  onChange={(e) =>
+                                  onChange={(event) =>
                                     updateItem(
                                       index,
                                       "contingencyPlan",
-                                      e.target.value,
+                                      event.target.value,
                                     )
                                   }
                                   placeholder="Langkah cadangan jika rencana utama tidak berjalan"
-                                  className="min-h-20 bg-card text-sm border-input"
+                                  className="min-h-20 border-input bg-card text-sm"
                                   disabled={disabled}
                                 />
                               </div>
@@ -429,19 +424,18 @@ export function MitigationTable({
                                 </Label>
                                 <Textarea
                                   value={item.potentialObstacle || ""}
-                                  onChange={(e) =>
+                                  onChange={(event) =>
                                     updateItem(
                                       index,
                                       "potentialObstacle",
-                                      e.target.value,
+                                      event.target.value,
                                     )
                                   }
                                   placeholder="Risiko implementasi, penolakan, keterbatasan kapasitas"
-                                  className="min-h-20 bg-card text-sm border-input"
+                                  className="min-h-20 border-input bg-card text-sm"
                                   disabled={disabled}
                                 />
                               </div>
-
                             </div>
 
                             <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -483,7 +477,8 @@ export function MitigationTable({
                                     Existing control
                                   </Label>
                                   <p className="text-xs text-muted-foreground">
-                                    Centang jika baris ini adalah kontrol yang sudah ada, bukan mitigasi baru.
+                                    Centang jika baris ini adalah kontrol yang
+                                    sudah ada, bukan mitigasi baru.
                                   </p>
                                 </div>
                               </div>

@@ -228,7 +228,7 @@ export default function RiskCascadingPage() {
 
   if (loading && items.length === 0) {
     return (
-      <div className="py-8 text-center text-sm text-muted-foreground">
+      <div className="rounded-lg bg-state-surface px-4 py-8 text-center text-sm text-state-foreground">
         Memuat eskalasi risiko...
       </div>
     );
@@ -244,7 +244,7 @@ export default function RiskCascadingPage() {
         ))}
       </MetricGrid>
 
-      <div className="space-y-5">
+      <div className="space-y-6">
           <CollectionToolbar
             className="w-full"
             leading={
@@ -313,7 +313,7 @@ export default function RiskCascadingPage() {
                   <TableRow>
                     <TableCell
                       colSpan={7}
-                      className="py-10 text-center text-sm text-muted-foreground"
+                      className="bg-state-surface py-10 text-center text-sm text-state-foreground"
                     >
                       Belum ada eskalasi yang cocok.
                     </TableCell>

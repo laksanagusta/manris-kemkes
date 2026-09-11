@@ -156,7 +156,7 @@ function WorkingPaperFiltersSidebar({
                   onStatusFilterChange(value as WorkingPaperStatusFilter)
                 }
               >
-                <SelectTrigger className="h-10 rounded-lg border border-input bg-card text-sm">
+                <SelectTrigger className="h-9 rounded-lg border border-input bg-card text-sm">
                   <SelectValue placeholder="Semua status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -637,11 +637,6 @@ export default function WorkingPapersPage() {
         />
       ) : null}
 
-      <WorkingPaperProgressCollapsible
-        workingPapers={papers}
-        loading={loading}
-      />
-
       <CollectionToolbar
         className="w-full"
         leading={
@@ -822,6 +817,10 @@ export default function WorkingPapersPage() {
             }}
           />
         </CollectionTableCard>
+      <WorkingPaperProgressCollapsible
+        workingPapers={papers}
+        loading={loading}
+      />
       <WorkingPaperCreateDialog
         open={createModalOpen}
         onOpenChange={setCreateModalOpen}

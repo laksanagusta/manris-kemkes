@@ -1,7 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import {
   Download,
@@ -13,7 +12,6 @@ import {
   RefreshCw,
   Save,
   Send,
-  ArrowLeft,
 } from "@/components/ui/icons";
 import { toast } from "sonner";
 
@@ -29,7 +27,6 @@ import { listAllOrganizations, type OrganizationListItem } from "@/lib/api/organ
 import { listUsers, type UserListItem } from "@/lib/api/users";
 import { evaluationStatusLabel, isEvaluationEditable } from "@/lib/evaluations";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AlertDialog,
@@ -52,8 +49,13 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { FormHeader } from "@/components/shared/form-shell";
-import { ActionButton, PageStack } from "@/components/shared/design-system";
+import { FormPage } from "@/components/shared/form-shell";
+import {
+  ActionButton,
+  AccentButton,
+  CollectionPageHeader,
+  FormBackAction,
+} from "@/components/shared/design-system";
 import { OrderedUserSelectionTable } from "@/components/risk/ordered-user-selection-table";
 import { RemoteUserPicker } from "@/components/risk/remote-user-picker";
 import { cn } from "@/lib/utils";
@@ -241,9 +243,12 @@ function formatStatus(status: EvaluationStatus) {
   return evaluationStatusLabel[status];
 }
 
-const statusStyles: Record<EvaluationStatus, string> = {
-  draft: "border-border/60 bg-muted/40 text-muted-foreground",
-  final: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+const evaluationCardClass =
+  "scroll-mt-28 overflow-hidden rounded-xl bg-card gap-0 p-0 transition-colors duration-200";
+
+const statusTones: Record<EvaluationStatus, "neutral" | "success"> = {
+  draft: "neutral",
+  final: "success",
 };
 
 function getAnswerLabel(value: EvaluationItem["answer"]) {
@@ -252,10 +257,13 @@ function getAnswerLabel(value: EvaluationItem["answer"]) {
   return "Belum diisi";
 }
 
-function getAnswerTone(value: EvaluationItem["answer"]) {
-  if (value === "yes") return "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300";
-  if (value === "no") return "border-rose-500/20 bg-rose-500/10 text-rose-700 dark:text-rose-300";
-  return "border-border/60 bg-muted/40 text-muted-foreground";
+function getAnswerTone(value: EvaluationItem["answer"]):
+  | "neutral"
+  | "success"
+  | "danger" {
+  if (value === "yes") return "success";
+  if (value === "no") return "danger";
+  return "neutral";
 }
 
 function updateSectionField(
@@ -347,31 +355,38 @@ export default function EvaluationDetailPage() {
     totalItems > 0 ? Math.round((answeredItems / totalItems) * 100) : 0;
   const unresolvedItems = totalItems - answeredItems;
 
-  const patchEvaluation = (patch: Partial<Evaluation>) => {
+  const patchEvaluation = useCallback((patch: Partial<Evaluation>) => {
     setEvaluation((current) => (current ? { ...current, ...patch } : current));
-  };
+  }, []);
+
+  const evaluationRef = useRef<Evaluation | null>(null);
+  evaluationRef.current = evaluation;
+  const loadedEvaluationId = evaluation?.id;
 
   useEffect(() => {
-    if (!evaluation) {
+    if (!loadedEvaluationId) {
       return;
     }
 
-    setTeamMemberRows(parseTeamMemberRows(evaluation.teamMembers));
-  }, [evaluation?.id]);
-
-  useEffect(() => {
-    if (!evaluation) {
+    const currentEvaluation = evaluationRef.current;
+    if (!currentEvaluation) {
       return;
     }
 
-    if (!evaluation.unitEselonI.trim()) {
+    setTeamMemberRows(parseTeamMemberRows(currentEvaluation.teamMembers));
+  }, [loadedEvaluationId]);
+
+  const unitEselonI = evaluation?.unitEselonI ?? "";
+
+  useEffect(() => {
+    if (!unitEselonI.trim()) {
       setUnitEselonISelection("");
       return;
     }
 
-    const current = organizations.find((org) => org.name === evaluation.unitEselonI);
+    const current = organizations.find((org) => org.name === unitEselonI);
     setUnitEselonISelection(current?.id ?? "");
-  }, [evaluation?.id, evaluation?.unitEselonI, organizations]);
+  }, [organizations, unitEselonI]);
 
   useEffect(() => {
     if (!evaluation || organizations.length === 0) {
@@ -405,7 +420,7 @@ export default function EvaluationDetailPage() {
     if (Object.keys(nextPatch).length > 0) {
       patchEvaluation(nextPatch);
     }
-  }, [evaluation, organizationById, organizations.length]);
+  }, [evaluation, organizationById, organizations.length, patchEvaluation]);
 
   const handleSave = async () => {
     if (!token || !evaluation) {
@@ -587,7 +602,7 @@ export default function EvaluationDetailPage() {
 
   if (loading) {
     return (
-      <div className="font-display flex min-h-[50vh] items-center justify-center text-sm text-muted-foreground">
+      <div className="font-display flex min-h-[50vh] items-center justify-center rounded-xl bg-state-surface text-sm text-state-foreground">
         <Loader2 className="mr-2 size-4 animate-spin" />
         Memuat evaluasi...
       </div>
@@ -596,20 +611,15 @@ export default function EvaluationDetailPage() {
 
   if (!evaluation) {
     return (
-      <Card className="font-display bg-card">
-        <CardContent className="space-y-3 px-6 py-10 text-center">
+      <div className="font-display rounded-xl bg-state-surface px-6 py-10 text-center text-state-foreground">
+        <div className="space-y-3">
           <p className="text-sm font-medium">Evaluasi tidak ditemukan</p>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-state-foreground">
             Periksa kembali tautan atau buka daftar evaluasi untuk memilih data yang benar.
           </p>
-          <ActionButton asChild variant="secondary" size="sm">
-            <Link href="/evaluations">
-              <ArrowLeft className="size-3.5" aria-hidden="true" />
-              Kembali ke daftar
-            </Link>
-          </ActionButton>
-        </CardContent>
-      </Card>
+          <FormBackAction href="/evaluations" label="Kembali ke daftar" />
+        </div>
+      </div>
     );
   }
 
@@ -617,44 +627,40 @@ export default function EvaluationDetailPage() {
     organizationNameById.get(evaluation.organizationId) ?? evaluation.organizationId;
 
   return (
-    <PageStack className="font-display space-y-8">
-      <FormHeader
-        title={`Form evaluasi ${evaluation.period}`}
-        badges={
-          <>
-            <Badge
- variant="outline"
- className={cn(
- "h-5 px-1.5 text-[10px] font-medium",
- statusStyles[evaluation.status],
- )}
-            >
+    <FormPage className="evaluation-form max-w-[1400px] space-y-6 [&>header+*]:!mt-12">
+      <CollectionPageHeader
+        backActionPlacement="local"
+        backAction={<FormBackAction href="/evaluations" label="Kembali" />}
+        showTitle
+        actionsPlacement="title"
+        eyebrow={
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge tone={statusTones[evaluation.status]} size="compact">
               {formatStatus(evaluation.status)}
             </Badge>
             <Badge
-              variant="outline"
-              className="h-5 max-w-[220px] truncate bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">
+              tone="neutral"
+              size="compact"
+              className="max-w-[240px] truncate"
+            >
               {orgName}
             </Badge>
-          </>
+          </div>
         }
-        backLabel="Kembali ke daftar evaluasi"
-        onBack={() => {
-          window.history.length > 1 ? window.history.back() : (window.location.href = "/evaluations");
-        }}
+        title={`Evaluasi ${evaluation.period}`}
+        subtitle="Lengkapi identitas, temuan, dan kesimpulan evaluasi pemantauan."
         actions={
           <>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
+                <ActionButton
                   type="button"
-                  variant="outline"
                   size="icon-xs"
                   className="text-muted-foreground"
                   aria-label="Aksi evaluasi"
                 >
                   <MoreHorizontal className="size-3.5" />
-                </Button>
+                </ActionButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48">
                 <DropdownMenuItem
@@ -676,48 +682,42 @@ export default function EvaluationDetailPage() {
             </DropdownMenu>
             {editable ? (
               <>
-                <Button
+                <ActionButton
                   type="button"
                   variant="outline"
-                  className="gap-2"
+                  loading={savingAction === "save"}
+                  icon={<Save className="size-3.5" />}
                   onClick={() => void handleSave()}
                   disabled={savingAction === "save" || savingAction === "finalize"}
                 >
-                  {savingAction === "save" ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <Save className="size-4" />
-                  )}
                   Simpan
-                </Button>
-                <Button
+                </ActionButton>
+                <AccentButton
                   type="button"
-                  className="gap-2"
+                  icon={
+                    savingAction === "finalize" ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <Send className="size-3.5" />
+                    )
+                  }
                   onClick={() => setShowFinalizeConfirm(true)}
                   disabled={savingAction === "finalize"}
                 >
-                  {savingAction === "finalize" ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <Send className="size-4" />
-                  )}
                   Finalisasi
-                </Button>
+                </AccentButton>
               </>
             ) : (
-              <Button
+              <ActionButton
                 type="button"
-                className="gap-2"
+                variant="secondary"
+                loading={savingAction === "reopen"}
+                icon={<RefreshCw className="size-3.5" />}
                 onClick={() => void handleReopen()}
                 disabled={savingAction === "reopen"}
               >
-                {savingAction === "reopen" ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="size-4" />
-                )}
                 Buka Kembali
-              </Button>
+              </ActionButton>
             )}
           </>
         }
@@ -733,10 +733,17 @@ export default function EvaluationDetailPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={savingAction === "finalize"}>
+            <AlertDialogCancel
+              variant="outline"
+              size="md"
+              className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
+              disabled={savingAction === "finalize"}
+            >
               Batal
             </AlertDialogCancel>
             <AlertDialogAction
+              variant="primary"
+              size="primary"
               onClick={() => {
                 setShowFinalizeConfirm(false);
                 void handleFinalize();
@@ -749,31 +756,33 @@ export default function EvaluationDetailPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.45fr)_minmax(280px,0.55fr)]">
+      <div className="grid w-full min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
         <div className="space-y-6">
-          <Card className="bg-card">
-            <CardHeader className="border-b border-border/40 pb-3">
+          <Card id="identitas-evaluasi" className={evaluationCardClass}>
+            <CardHeader className="px-5 py-4">
               <div className="flex items-center justify-between gap-3">
                 <div className="space-y-1">
-                  <CardTitle className="text-sm font-semibold">Identitas Evaluasi</CardTitle>
-                  <p className="text-xs leading-5 text-secondary-foreground">
-                    Field utama ditarik dari organisasi dan dipilih dari daftar user.
+                  <CardTitle className="text-base font-medium tracking-tight text-foreground">
+                    Identitas Evaluasi
+                  </CardTitle>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    Lengkapi metadata laporan, unit kerja, dan susunan tim evaluasi.
                   </p>
                 </div>
                 {!editable ? (
-                  <Badge variant="outline" className="gap-1.5 -amber-500/20 bg-amber-500/10 text-[10px] text-amber-700 dark:text-amber-300">
+                  <Badge tone="warning" size="micro" className="gap-1.5">
                     <Lock className="size-3.5" />
                     Terkunci
                   </Badge>
                 ) : (
-                  <Badge variant="outline" className="gap-1.5 -primary/20 bg-primary/[0.06] text-[10px] text-primary">
+                  <Badge tone="neutral" size="micro" className="gap-1.5">
                     <PencilLine className="size-3.5" />
                     Draft
                   </Badge>
                 )}
               </div>
             </CardHeader>
-            <CardContent className="grid gap-4 pt-4 md:grid-cols-2">
+            <CardContent className="grid gap-5 px-5 pb-6 pt-2 [&_[data-slot=label]]:font-normal">
               <div className="space-y-2">
                 <Label>No. Laporan</Label>
                 <Input
@@ -933,7 +942,7 @@ export default function EvaluationDetailPage() {
                 </div>
                 <OrderedUserSelectionTable
                   rows={teamMemberRows}
-                  loadOptions={(params, _row) => loadOrganizationUsers(params)}
+                  loadOptions={loadOrganizationUsers}
                   onSelectRow={handleTeamMemberSelect}
                   onAddRow={handleTeamMemberAdd}
                   onRemoveRow={handleTeamMemberRemove}
@@ -953,20 +962,20 @@ export default function EvaluationDetailPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-card">
-            <CardHeader className="border-b border-border/40 pb-3">
+          <Card id="hasil-evaluasi" className={evaluationCardClass}>
+            <CardHeader className="px-5 py-4">
               <div className="space-y-1">
-                <CardTitle className="text-sm font-semibold">
+                <CardTitle className="text-base font-medium tracking-tight text-foreground">
                   Hasil Pemantauan dan Evaluasi
                 </CardTitle>
-                <p className="text-xs leading-5 text-secondary-foreground">
+                <p className="text-sm leading-relaxed text-muted-foreground">
                   Isi jawaban, uraian kondisi, dan keterangan untuk setiap poin evaluasi.
                 </p>
               </div>
             </CardHeader>
-            <CardContent className="space-y-0 pt-4">
+            <CardContent className="space-y-6 px-5 pb-6 pt-2">
               {evaluationSections.length === 0 ? (
-                <div className="rounded-xl border border-dashed border-border bg-muted/70 px-4 py-8 text-sm text-muted-foreground">
+                <div className="rounded-xl bg-state-surface px-4 py-8 text-sm text-state-foreground">
                   Belum ada section evaluasi yang tersedia.
                 </div>
               ) : null}
@@ -981,62 +990,61 @@ export default function EvaluationDetailPage() {
                   <section
                     key={section.id}
                     className={cn(
-                      "space-y-4",
+                      "space-y-5",
                       sectionIndex !== 0 && "border-t border-border/60 pt-6",
                     )}
                   >
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0 space-y-1">
-                        <h3 className="text-sm font-semibold text-zinc-900">
+                        <h3 className="text-base font-medium tracking-tight text-foreground">
                           {section.title}
                         </h3>
                         {section.description ? (
-                          <p className="text-xs leading-5 text-zinc-500">
+                          <p className="text-sm leading-relaxed text-muted-foreground">
                             {section.description}
                           </p>
                         ) : null}
                       </div>
                       <Badge
-                        variant="outline"
-                        className="h-5 whitespace-nowrap bg-muted px-1.5 text-[10px] font-medium text-muted-foreground">
+                        tone="neutral"
+                        size="compact"
+                        className="whitespace-nowrap"
+                      >
                         {sectionItems.length} poin
                       </Badge>
                     </div>
 
-                    <div className="space-y-3">
+                    <div className="space-y-5">
                       {sectionItems.map((item, itemIndex) => (
                         <div
                           key={item.id}
-                          className="rounded-xl bg-muted/60 p-4 ring-1 ring-inset ring-border/70"
+                          className="space-y-4 border-t border-border/60 pt-5 first:border-t-0 first:pt-0"
                         >
-                          <div className="flex flex-col gap-3">
+                          <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_220px] md:items-start">
                             <div className="min-w-0 space-y-2">
                               <div className="flex flex-wrap items-center gap-2">
-                                <span className="font-mono text-[11px] tracking-[0.14em] text-zinc-500">
+                                <span className="font-mono text-xs tracking-[0.12em] text-muted-foreground">
                                   {item.itemNo}
                                 </span>
                                 <Badge
- variant="outline"
- className={cn(
- "h-5 px-1.5 text-[10px] font-medium",
- getAnswerTone(item.answer),
- )}
+                                  tone={getAnswerTone(item.answer)}
+                                  size="micro"
                                 >
                                   {getAnswerLabel(item.answer)}
                                 </Badge>
                               </div>
-                              <p className="text-sm leading-6 text-zinc-900">
+                              <p className="text-sm leading-6 text-foreground text-pretty">
                                 {item.label}
                               </p>
                               {item.description ? (
-                                <p className="max-w-3xl text-xs leading-5 text-zinc-500">
+                                <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
                                   {item.description}
                                 </p>
                               ) : null}
                             </div>
-                            <div className="w-full max-w-[220px]">
-                              <Label className="text-xs font-medium text-zinc-600">
-                                Ya/Tidak
+                            <div className="w-full space-y-2">
+                              <Label className="text-sm font-normal text-foreground">
+                                Jawaban
                               </Label>
                               <Select
                                 value={item.answer}
@@ -1064,7 +1072,7 @@ export default function EvaluationDetailPage() {
                                 }}
                                 disabled={!editable}
                               >
-                                <SelectTrigger className="h-10 border-input bg-card text-sm shadow-none">
+                                <SelectTrigger className="h-10">
                                   <SelectValue placeholder="Ya/Tidak" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -1076,13 +1084,11 @@ export default function EvaluationDetailPage() {
                             </div>
                           </div>
 
-                          <div className="mt-4 grid gap-4 md:grid-cols-2">
+                          <div className="grid gap-5 md:grid-cols-2">
                             <div className="space-y-2">
-                              <div className="flex items-center justify-between gap-3">
-                                <Label className="text-xs font-medium text-zinc-600">
-                                  Uraian kondisi
-                                </Label>
-                              </div>
+                              <Label className="text-sm font-normal text-foreground">
+                                Uraian kondisi
+                              </Label>
                               <Textarea
                                 value={item.condition}
                                 onChange={(event) => {
@@ -1106,12 +1112,12 @@ export default function EvaluationDetailPage() {
                                   );
                                 }}
                                 disabled={!editable}
-                                className="min-h-28 bg-white"
+                                className="min-h-28"
                                 placeholder="Uraikan kondisi aktual yang ditemukan"
                               />
                             </div>
                             <div className="space-y-2">
-                              <Label className="text-xs font-medium text-zinc-600">
+                              <Label className="text-sm font-normal text-foreground">
                                 Keterangan
                               </Label>
                               <Textarea
@@ -1137,7 +1143,7 @@ export default function EvaluationDetailPage() {
                                   );
                                 }}
                                 disabled={!editable}
-                                className="min-h-28 bg-white"
+                                className="min-h-28"
                                 placeholder="Tuliskan keterangan singkat yang relevan"
                               />
                             </div>
@@ -1148,10 +1154,10 @@ export default function EvaluationDetailPage() {
 
                     <div className="space-y-2">
                       <div className="flex items-center justify-between gap-3">
-                        <Label className="text-xs font-medium text-zinc-600">
+                        <Label className="text-sm font-normal text-foreground">
                           Kesimpulan section
                         </Label>
-                        <span className="text-[11px] text-zinc-500">
+                        <span className="text-xs text-muted-foreground">
                           {answeredSectionItems}/{sectionItems.length} poin terisi
                         </span>
                       </div>
@@ -1170,7 +1176,7 @@ export default function EvaluationDetailPage() {
                           );
                         }}
                         disabled={!editable}
-                        className="min-h-28 bg-white"
+                        className="min-h-28"
                         placeholder="Simpulkan section ini secara singkat"
                       />
                     </div>
@@ -1178,134 +1184,134 @@ export default function EvaluationDetailPage() {
                 );
               })}
 
-              <div className="mt-6 border-t border-border/60 pt-6">
-                <div className="space-y-4">
-                  <div className="space-y-1">
-                    <h3 className="text-sm font-semibold text-zinc-900">
-                      Permasalahan dan saran
-                    </h3>
-                    <p className="text-xs leading-5 text-zinc-500">
-                      Ringkas hambatan utama dan langkah perbaikannya, tanpa mengulang isi tiap poin.
-                    </p>
-                  </div>
+            </CardContent>
+          </Card>
 
-                  <div className="space-y-2">
-                    <Label className="text-xs font-medium text-zinc-600">
-                      Permasalahan
-                    </Label>
-                    <Textarea
-                      value={evaluation.problems}
-                      onChange={(event) => patchEvaluation({ problems: event.target.value })}
-                      disabled={!editable}
-                      className="min-h-28 bg-white"
-                      placeholder="Tuliskan hambatan utama yang perlu ditindaklanjuti"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label className="text-xs font-medium text-zinc-600">
-                      Saran perbaikan
-                    </Label>
-                    <Textarea
-                      value={evaluation.recommendations}
-                      onChange={(event) =>
-                        patchEvaluation({ recommendations: event.target.value })
-                      }
-                      disabled={!editable}
-                      className="min-h-28 bg-white"
-                      placeholder="Tuliskan rekomendasi yang paling relevan dan praktis"
-                    />
-                  </div>
-                </div>
+          <Card id="permasalahan-saran" className={evaluationCardClass}>
+            <CardHeader className="px-5 py-4">
+              <div className="space-y-1">
+                <CardTitle className="text-base font-medium tracking-tight text-foreground">
+                  Permasalahan dan saran
+                </CardTitle>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  Ringkas hambatan utama dan langkah perbaikannya, tanpa mengulang isi tiap poin.
+                </p>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-5 px-5 pb-6 pt-2 [&_[data-slot=label]]:font-normal">
+              <div className="space-y-2">
+                <Label className="text-sm font-normal text-foreground">
+                  Permasalahan
+                </Label>
+                <Textarea
+                  value={evaluation.problems}
+                  onChange={(event) => patchEvaluation({ problems: event.target.value })}
+                  disabled={!editable}
+                  className="min-h-28"
+                  placeholder="Tuliskan hambatan utama yang perlu ditindaklanjuti"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-normal text-foreground">
+                  Saran perbaikan
+                </Label>
+                <Textarea
+                  value={evaluation.recommendations}
+                  onChange={(event) =>
+                    patchEvaluation({ recommendations: event.target.value })
+                  }
+                  disabled={!editable}
+                  className="min-h-28"
+                  placeholder="Tuliskan rekomendasi yang paling relevan dan praktis"
+                />
               </div>
             </CardContent>
           </Card>
         </div>
 
-        <div className="space-y-6">
-          <Card className="bg-card">
-            <CardHeader className="border-b border-border/40 pb-3">
+        <aside className="min-w-0 self-start">
+          <div className="space-y-6 xl:sticky xl:top-20">
+            <Card className={evaluationCardClass}>
+              <CardHeader className="px-5 py-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="space-y-1">
-                  <CardTitle className="text-sm font-semibold">Status kerja</CardTitle>
-                  <p className="text-xs leading-5 text-secondary-foreground">
+                  <CardTitle className="text-base font-medium tracking-tight text-foreground">
+                    Status kerja
+                  </CardTitle>
+                  <p className="text-sm leading-relaxed text-muted-foreground">
                     Pantau kelengkapan isian sebelum evaluasi difinalisasi.
                   </p>
                 </div>
-                <Badge
- variant="outline"
- className={cn(
- "h-5 px-1.5 text-[10px] font-medium",
- statusStyles[evaluation.status],
- )}
-                >
+                <Badge tone={statusTones[evaluation.status]} size="micro">
                   {formatStatus(evaluation.status)}
                 </Badge>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-4">
-              <div className="space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-zinc-500">Kelengkapan poin</span>
-                  <span className="font-medium text-zinc-900">
-                    {answeredItems} / {totalItems}
-                  </span>
+              </CardHeader>
+              <CardContent className="space-y-5 px-5 pb-5 pt-2">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Kelengkapan poin</span>
+                    <span className="font-medium text-foreground">
+                      {answeredItems} / {totalItems}
+                    </span>
+                  </div>
+                  <Progress value={completionPct} className="h-1.5" />
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    {unresolvedItems === 0
+                      ? "Semua poin evaluasi sudah diisi."
+                      : `${unresolvedItems} poin masih kosong. Fokuskan dulu pada yang belum diisi.`}
+                  </p>
                 </div>
-                <Progress value={completionPct} className="h-1.5" />
-                <p className="text-xs leading-5 text-zinc-500">
-                  {unresolvedItems === 0
-                    ? "Semua poin section 8 sudah diisi."
-                    : `${unresolvedItems} poin masih kosong. Fokuskan dulu pada yang belum diisi.`}
-                </p>
-              </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between rounded-lg bg-zinc-50/70 px-3 py-2">
-                  <span className="text-xs text-zinc-500">Organisasi</span>
-                  <span className="max-w-[180px] truncate text-right text-sm font-medium text-zinc-900">
-                    {orgName}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between rounded-lg bg-zinc-50/70 px-3 py-2">
-                  <span className="text-xs text-zinc-500">Kode</span>
-                  <span className="text-sm font-medium text-zinc-900">
-                    {evaluation.code}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between rounded-lg bg-zinc-50/70 px-3 py-2">
-                  <span className="text-xs text-zinc-500">Periode</span>
-                  <span className="text-sm font-medium text-zinc-900">
-                    {evaluation.period}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between rounded-lg bg-zinc-50/70 px-3 py-2">
-                  <span className="text-xs text-zinc-500">Template</span>
-                  <span className="max-w-[180px] truncate text-right text-sm font-medium text-zinc-900">
-                    {evaluation.templateName || evaluation.templateId}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between rounded-lg bg-zinc-50/70 px-3 py-2">
-                  <span className="text-xs text-zinc-500">Diperbarui</span>
-                  <span className="text-sm font-medium text-zinc-900">
-                    {formatDateTime(evaluation.updatedAt)}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between rounded-lg bg-zinc-50/70 px-3 py-2">
-                  <span className="text-xs text-zinc-500">Finalisasi</span>
-                  <span className="text-sm font-medium text-zinc-900">
-                    {formatDateTime(evaluation.finalizedAt)}
-                  </span>
-                </div>
-              </div>
+                <dl className="divide-y divide-border/60 border-y border-border/60">
+                  <div className="flex items-start justify-between gap-4 py-2.5">
+                    <dt className="text-sm text-muted-foreground">Organisasi</dt>
+                    <dd className="max-w-[190px] truncate text-right text-sm font-medium text-foreground">
+                      {orgName}
+                    </dd>
+                  </div>
+                  <div className="flex items-start justify-between gap-4 py-2.5">
+                    <dt className="text-sm text-muted-foreground">Kode</dt>
+                    <dd className="font-mono text-xs tabular-nums text-foreground">
+                      {evaluation.code}
+                    </dd>
+                  </div>
+                  <div className="flex items-start justify-between gap-4 py-2.5">
+                    <dt className="text-sm text-muted-foreground">Periode</dt>
+                    <dd className="font-mono text-xs tabular-nums text-foreground">
+                      {evaluation.period}
+                    </dd>
+                  </div>
+                  <div className="flex items-start justify-between gap-4 py-2.5">
+                    <dt className="text-sm text-muted-foreground">Template</dt>
+                    <dd className="max-w-[190px] truncate text-right text-sm font-medium text-foreground">
+                      {evaluation.templateName || evaluation.templateId}
+                    </dd>
+                  </div>
+                  <div className="flex items-start justify-between gap-4 py-2.5">
+                    <dt className="text-sm text-muted-foreground">Diperbarui</dt>
+                    <dd className="text-right text-sm font-medium text-foreground">
+                      {formatDateTime(evaluation.updatedAt)}
+                    </dd>
+                  </div>
+                  <div className="flex items-start justify-between gap-4 py-2.5">
+                    <dt className="text-sm text-muted-foreground">Finalisasi</dt>
+                    <dd className="text-right text-sm font-medium text-foreground">
+                      {formatDateTime(evaluation.finalizedAt)}
+                    </dd>
+                  </div>
+                </dl>
 
-              <div className="rounded-xl border border-border bg-muted/70 px-3 py-3 text-xs leading-5 text-muted-foreground">
-                Sebelum finalisasi, pastikan kesimpulan section dan permasalahan
-                sudah disesuaikan dengan isi poin. Setelah final, data terkunci
-                dan PDF diambil dari evaluasi tersimpan.
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+                <div className="rounded-xl bg-muted/50 px-3 py-3 text-sm leading-relaxed text-muted-foreground">
+                  Sebelum finalisasi, pastikan kesimpulan section dan permasalahan
+                  sudah sesuai dengan isi poin. Setelah final, data terkunci dan
+                  PDF diambil dari evaluasi tersimpan.
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </aside>
       </div>
-    </PageStack>
+    </FormPage>
   );
 }

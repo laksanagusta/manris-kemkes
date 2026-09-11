@@ -330,7 +330,7 @@ export function DocumentProcessingWorkspace({
   }
 
   return (
-    <PageStack className="space-y-5">
+    <PageStack>
       <CollectionPageHeader
         title={currentJob ? currentJob.name : "Document Intelligence"}
         actions={
@@ -379,7 +379,7 @@ export function DocumentProcessingWorkspace({
               {isTerminal(currentJob.status) ? <CompletedResults job={currentJob} onSelectFinding={handleSelectFinding} onOpenSource={openSource} onReviewFinding={handleSelectFinding} onUseRiskDraft={onUseRiskDraft} onExport={exportResult} onDownloadReport={downloadReport} onStartNew={startNewProcess} /> : null}
             </>
           )}
-          <section className="rounded-2xl border border-border/80 bg-white p-4 sm:p-5">
+          <section className="rounded-xl border border-border/80 bg-white p-4 sm:p-5">
             <HistoryPanel jobs={jobs} activeJobId={activeJobId} onNewProcess={startNewProcess} onOpen={openJob} onRename={handleRename} onDelete={handleDelete} />
           </section>
         </main>
@@ -393,7 +393,7 @@ export function DocumentProcessingWorkspace({
 function JobHeader({ job, status }: { job: ProcessingJob; status?: ReturnType<typeof statusMeta> }) {
   const completedTasks = job.tasks.filter((task) => task.status === "completed" || task.status === "warning").length;
   const stage = processStage(job);
-  return <section className="rounded-2xl border border-border/80 bg-white p-4 sm:p-5" aria-labelledby="process-header-title"><div className="flex flex-wrap items-start justify-between gap-4"><div><div className="flex flex-wrap items-center gap-2"><h2 id="process-header-title" className="text-base font-semibold text-foreground">{status?.label ?? "Processing"}</h2><Badge variant="outline" className="text-[10px]">{stage}</Badge><Badge variant="outline" className="tabular-nums text-[10px]">{job.progress}% overall</Badge></div><p className="mt-1 text-xs leading-5 text-muted-foreground">Started {relativeStart(job.startedAt)} · {job.documents.length} documents · {completedTasks}/{job.tasks.length} tasks resolved</p></div><div className="text-right"><div className="font-display text-[10px] uppercase tracking-[0.12em] text-muted-foreground">Estimated</div><div className="mt-1 text-xs font-medium text-foreground">± 1–2 minutes</div><div className="mt-0.5 text-[10px] text-muted-foreground">berdasarkan ukuran document set</div></div></div><div className="mt-4 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out motion-reduce:transition-none" style={{ width: `${job.progress}%` }} /></div></section>;
+  return <section className="rounded-xl border border-border/80 bg-white p-4 sm:p-5" aria-labelledby="process-header-title"><div className="flex flex-wrap items-start justify-between gap-4"><div><div className="flex flex-wrap items-center gap-2"><h2 id="process-header-title" className="text-base font-semibold text-foreground">{status?.label ?? "Processing"}</h2><Badge variant="outline" className="text-[10px]">{stage}</Badge><Badge variant="outline" className="tabular-nums text-[10px]">{job.progress}% overall</Badge></div><p className="mt-1 text-xs leading-5 text-muted-foreground">Started {relativeStart(job.startedAt)} · {job.documents.length} documents · {completedTasks}/{job.tasks.length} tasks resolved</p></div><div className="text-right"><div className="font-display text-[10px] uppercase tracking-[0.12em] text-muted-foreground">Estimated</div><div className="mt-1 text-xs font-medium text-foreground">± 1–2 minutes</div><div className="mt-0.5 text-[10px] text-muted-foreground">berdasarkan ukuran document set</div></div></div><div className="mt-4 h-2 overflow-hidden rounded-full bg-muted"><div className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out motion-reduce:transition-none" style={{ width: `${job.progress}%` }} /></div></section>;
 }
 
 function processStage(job: ProcessingJob) {

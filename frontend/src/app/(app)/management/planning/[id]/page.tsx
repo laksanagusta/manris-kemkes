@@ -2,9 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowLeft, Building2, Layers3, ShieldCheck } from "@/components/ui/icons";
+import { Building2, Layers3, ShieldCheck } from "@/components/ui/icons";
 
 import { useAuth } from "@/contexts/auth-context";
 import {
@@ -20,8 +19,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
-  ActionButton,
   CollectionPageHeader,
+  FormBackAction,
   KpiCard,
   MetricGrid,
   PageStack,
@@ -119,12 +118,10 @@ export default function PlanningDetailPage() {
           <p className="text-sm text-muted-foreground">
             Struktur dengan ID tersebut belum ditemukan di cache kompatibilitas.
           </p>
-          <ActionButton asChild variant="secondary" size="sm">
-            <Link href="/management/planning">
-              <ArrowLeft className="size-3.5" />
-              Kembali ke Struktur Kinerja &amp; RO
-            </Link>
-          </ActionButton>
+          <FormBackAction
+            href="/management/planning"
+            label="Kembali ke Struktur Kinerja & RO"
+          />
         </CardContent>
       </Card>
     );
@@ -133,6 +130,8 @@ export default function PlanningDetailPage() {
   return (
     <PageStack>
       <CollectionPageHeader
+        backActionPlacement="top"
+        actionsPlacement="top"
         eyebrow={
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/80">
             Risk Governance
@@ -140,12 +139,7 @@ export default function PlanningDetailPage() {
         }
         title="Detail Struktur Kinerja"
         backAction={
-          <ActionButton asChild variant="secondary" size="sm">
-            <Link href="/management/planning">
-              <ArrowLeft className="size-3.5" />
-              Kembali
-            </Link>
-          </ActionButton>
+          <FormBackAction href="/management/planning" label="Kembali" />
         }
         actions={
           <Badge

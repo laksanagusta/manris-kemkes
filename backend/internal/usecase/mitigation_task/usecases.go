@@ -206,6 +206,29 @@ func NewSubmitProgressUseCase(taskRepo repository.MitigationTaskRepository, risk
 	return &SubmitProgressUseCase{taskRepo: taskRepo, riskRepo: riskRepo}
 }
 
+func normalizeEvidenceURLs(raw string, required bool) (string, error) {
+	values := strings.Split(strings.ReplaceAll(raw, "\r\n", "\n"), "\n")
+	normalized := make([]string, 0, len(values))
+	for _, value := range values {
+		evidenceURL := strings.TrimSpace(value)
+		if evidenceURL == "" {
+			continue
+		}
+
+		parsedURL, err := url.ParseRequestURI(evidenceURL)
+		if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
+			return "", domainerrors.ErrInvalidEvidenceURL
+		}
+		normalized = append(normalized, evidenceURL)
+	}
+
+	if required && len(normalized) == 0 {
+		return "", domainerrors.ErrInvalidEvidenceURL
+	}
+
+	return strings.Join(normalized, "\n"), nil
+}
+
 type SubmitProgressInput struct {
 	TaskID      uuid.UUID `json:"taskId"`
 	EvidenceURL string    `json:"evidenceUrl"`
@@ -215,13 +238,9 @@ type SubmitProgressInput struct {
 }
 
 func (uc *SubmitProgressUseCase) Execute(ctx context.Context, input SubmitProgressInput) (*entity.MitigationTask, error) {
-	evidenceURL := strings.TrimSpace(input.EvidenceURL)
-	if evidenceURL == "" {
-		return nil, domainerrors.ErrInvalidEvidenceURL
-	}
-	parsedURL, err := url.ParseRequestURI(evidenceURL)
-	if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
-		return nil, domainerrors.ErrInvalidEvidenceURL
+	evidenceURLs, err := normalizeEvidenceURLs(input.EvidenceURL, true)
+	if err != nil {
+		return nil, err
 	}
 
 	notes := strings.TrimSpace(input.Notes)
@@ -237,13 +256,16 @@ func (uc *SubmitProgressUseCase) Execute(ctx context.Context, input SubmitProgre
 	if _, err := uc.riskRepo.GetByID(ctx, task.RiskID, input.OrgIDs); err != nil {
 		return nil, domainerrors.ErrForbidden
 	}
+	if task.Status == entity.MitigationTaskStatusNotReported {
+		return nil, domainerrors.ErrMitigationNotReported
+	}
 
 	if _, err := time.Parse("2006-01-02", task.DueDate); err != nil {
 		return nil, fmt.Errorf("tanggal jatuh tempo tidak valid: %w", err)
 	}
 
 	now := time.Now().In(timeutil.JakartaLocation())
-	task.EvidenceURL = evidenceURL
+	task.EvidenceURL = evidenceURLs
 	task.Notes = notes
 	task.ReportedBy = &input.ReportedBy
 	task.ReportedAt = &now
@@ -279,17 +301,19 @@ func NewSubmitMonitoringReportUseCase(taskRepo repository.MitigationTaskReposito
 	return &SubmitMonitoringReportUseCase{taskRepo: taskRepo, riskRepo: riskRepo}
 }
 
+func hasValidMonitoringReportNotes(notes string) bool {
+	length := len(strings.TrimSpace(notes))
+	return length >= 10 && length <= 1000
+}
+
 func (uc *SubmitMonitoringReportUseCase) Execute(ctx context.Context, input SubmitMonitoringReportInput) (*entity.MitigationTask, error) {
 	if input.Status != "" && input.Status != "pending" && input.Status != "done" {
 		return nil, fmt.Errorf("status tidak valid: harus pending atau done")
 	}
 
-	evidenceURL := strings.TrimSpace(input.EvidenceURL)
-	if evidenceURL != "" {
-		parsedURL, err := url.ParseRequestURI(evidenceURL)
-		if err != nil || (parsedURL.Scheme != "http" && parsedURL.Scheme != "https") {
-			return nil, domainerrors.ErrInvalidEvidenceURL
-		}
+	evidenceURLs, err := normalizeEvidenceURLs(input.EvidenceURL, false)
+	if err != nil {
+		return nil, err
 	}
 
 	task, err := uc.taskRepo.GetByID(ctx, input.TaskID, input.OrgIDs)
@@ -300,14 +324,25 @@ func (uc *SubmitMonitoringReportUseCase) Execute(ctx context.Context, input Subm
 	if _, err := uc.riskRepo.GetByID(ctx, task.RiskID, input.OrgIDs); err != nil {
 		return nil, domainerrors.ErrForbidden
 	}
+	if task.Status == entity.MitigationTaskStatusNotReported {
+		return nil, domainerrors.ErrMitigationNotReported
+	}
+
+	effectiveNotes := strings.TrimSpace(task.Notes)
+	if input.Notes != "" {
+		effectiveNotes = strings.TrimSpace(input.Notes)
+	}
+	if input.Status == "done" && !hasValidMonitoringReportNotes(effectiveNotes) {
+		return nil, domainerrors.ErrInvalidNotes
+	}
 
 	now := time.Now().In(timeutil.JakartaLocation())
 
 	if input.Status != "" {
 		task.Status = input.Status
 	}
-	if evidenceURL != "" {
-		task.EvidenceURL = evidenceURL
+	if evidenceURLs != "" {
+		task.EvidenceURL = evidenceURLs
 	}
 	if input.Notes != "" {
 		task.Notes = input.Notes
@@ -318,8 +353,19 @@ func (uc *SubmitMonitoringReportUseCase) Execute(ctx context.Context, input Subm
 	if input.ReportObstacle != "" {
 		task.ReportObstacle = input.ReportObstacle
 	}
-	task.ReportedBy = &input.ReportedBy
-	task.ReportedAt = &now
+	if task.Status == "done" && !hasValidMonitoringReportNotes(task.Notes) {
+		// A legacy or partial payload must not leave an empty report marked as
+		// complete. Finalization will count it as not reported.
+		task.Status = "pending"
+	}
+	if task.Status == "done" {
+		task.ReportedBy = &input.ReportedBy
+		task.ReportedAt = &now
+	} else {
+		// An incomplete or pending report must remain visibly unreported.
+		task.ReportedBy = nil
+		task.ReportedAt = nil
+	}
 
 	if err := uc.taskRepo.Update(ctx, task); err != nil {
 		return nil, fmt.Errorf("gagal memperbarui tugas: %w", err)

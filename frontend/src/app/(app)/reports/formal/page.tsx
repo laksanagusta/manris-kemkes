@@ -28,7 +28,7 @@ export default function FormalReportsPage() {
               Masuk ke daftar evaluasi untuk melihat draft, final, dan PDF yang
               sudah diekspor.
             </p>
-            <Button asChild className="gap-2">
+            <Button asChild size="md" className="gap-2">
               <Link href="/evaluations">
                 Ke Evaluasi
                 <ArrowRight className="size-4" />
@@ -49,7 +49,7 @@ export default function FormalReportsPage() {
               Langsung buat draft evaluasi untuk organisasi dan periode yang
               dipilih, lalu isi section dan finalisasi dari detail evaluasi.
             </p>
-            <Button asChild variant="outline" className="gap-2">
+            <Button asChild variant="outline" size="md" className="gap-2">
               <Link href="/evaluations/new">
                 Buat Evaluasi
                 <ArrowRight className="size-4" />

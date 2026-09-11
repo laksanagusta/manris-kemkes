@@ -85,41 +85,39 @@ type Container struct {
 	AIRepository  domainrepo.AIRepository
 
 	// Risk UseCases
-	RiskCreateUC                *riskuc.CreateRiskUseCase
-	RiskCreateBatchUC           *riskuc.CreateRiskBatchUseCase
-	RiskSpreadsheetUC           *riskuc.BulkRiskSpreadsheetUseCase
-	RiskGetUC                   *riskuc.GetRiskUseCase
-	RiskExportPDFUC             *riskuc.ExportRiskPDFUseCase
-	RiskArchiveUC               *riskuc.ArchiveRiskUseCase
-	RiskRestoreUC               *riskuc.RestoreRiskUseCase
-	RiskUpdateUC                *riskuc.UpdateRiskUseCase
-	RiskDeleteUC                *riskuc.DeleteRiskUseCase
-	RiskListUC                  *riskuc.ListRisksUseCase
-	RiskListRegisterUC          *riskuc.ListRiskRegisterUseCase
-	RiskListMonitoringUC        *riskuc.ListRiskMonitoringsUseCase
-	RiskListVersionsUC          *riskuc.ListRiskVersionsUseCase
-	RiskReviewQueueUC           *riskuc.ListRiskReviewQueueUseCase
-	RiskCompareCyclesUC         *riskuc.CompareRiskCyclesUseCase
-	RiskCompareCycleDetailsUC   *riskuc.CompareRiskCycleDetailsUseCase
-	RiskReviewSummaryUC         *riskuc.RiskReviewSummaryUseCase
-	RiskDashboardSummaryUC      *riskuc.DashboardSummaryUseCase
-	RiskActionPressureUC        *riskuc.DashboardActionPressureUseCase
-	RiskExecutiveAlertsUC       *riskuc.ExecutiveAlertsUseCase
-	RiskHeatmapDataUC           *riskuc.HeatmapDataUseCase
-	RiskHeatmapMultiUC          *riskuc.HeatmapMultiUseCase
-	RiskTopRisksUC              *riskuc.TopRisksUseCase
-	RiskDashboardCategoriesUC   *riskuc.DashboardRiskCategoriesUseCase
-	RiskListApprovedUC          *riskuc.ListApprovedRisksUseCase
-	RiskHeatmapVelocityUC       *riskuc.HeatmapVelocityUseCase
-	RiskOverdueTimelineUC       *riskuc.OverdueMitigationTimelineUseCase
-	RiskUnitResponseUC          *riskuc.UnitResponseTimeUseCase
-	RiskListCycleSnapshotUC     *riskuc.ListRiskCycleSnapshotUseCase
-	RiskMonitoringSpreadsheetUC *riskuc.BulkMonitoringSpreadsheetUseCase
-	RiskCreateMonitoringBatchUC *riskuc.CreateMonitoringBatchUseCase
-	RiskMonitoringStartUC       *riskuc.StartMonitoringUseCase
-	RiskMonitoringGetUC         *riskuc.GetMonitoringUseCase
-	RiskMonitoringUpdateUC      *riskuc.UpdateMonitoringUseCase
-	RiskMonitoringFinalizeUC    *riskuc.FinalizeMonitoringUseCase
+	RiskCreateUC              *riskuc.CreateRiskUseCase
+	RiskCreateBatchUC         *riskuc.CreateRiskBatchUseCase
+	RiskSpreadsheetUC         *riskuc.BulkRiskSpreadsheetUseCase
+	RiskGetUC                 *riskuc.GetRiskUseCase
+	RiskExportPDFUC           *riskuc.ExportRiskPDFUseCase
+	RiskArchiveUC             *riskuc.ArchiveRiskUseCase
+	RiskRestoreUC             *riskuc.RestoreRiskUseCase
+	RiskUpdateUC              *riskuc.UpdateRiskUseCase
+	RiskDeleteUC              *riskuc.DeleteRiskUseCase
+	RiskListUC                *riskuc.ListRisksUseCase
+	RiskListRegisterUC        *riskuc.ListRiskRegisterUseCase
+	RiskListMonitoringUC      *riskuc.ListRiskMonitoringsUseCase
+	RiskListVersionsUC        *riskuc.ListRiskVersionsUseCase
+	RiskReviewQueueUC         *riskuc.ListRiskReviewQueueUseCase
+	RiskCompareCyclesUC       *riskuc.CompareRiskCyclesUseCase
+	RiskCompareCycleDetailsUC *riskuc.CompareRiskCycleDetailsUseCase
+	RiskReviewSummaryUC       *riskuc.RiskReviewSummaryUseCase
+	RiskDashboardSummaryUC    *riskuc.DashboardSummaryUseCase
+	RiskActionPressureUC      *riskuc.DashboardActionPressureUseCase
+	RiskExecutiveAlertsUC     *riskuc.ExecutiveAlertsUseCase
+	RiskHeatmapDataUC         *riskuc.HeatmapDataUseCase
+	RiskHeatmapMultiUC        *riskuc.HeatmapMultiUseCase
+	RiskTopRisksUC            *riskuc.TopRisksUseCase
+	RiskDashboardCategoriesUC *riskuc.DashboardRiskCategoriesUseCase
+	RiskListApprovedUC        *riskuc.ListApprovedRisksUseCase
+	RiskHeatmapVelocityUC     *riskuc.HeatmapVelocityUseCase
+	RiskOverdueTimelineUC     *riskuc.OverdueMitigationTimelineUseCase
+	RiskUnitResponseUC        *riskuc.UnitResponseTimeUseCase
+	RiskListCycleSnapshotUC   *riskuc.ListRiskCycleSnapshotUseCase
+	RiskMonitoringStartUC     *riskuc.StartMonitoringUseCase
+	RiskMonitoringGetUC       *riskuc.GetMonitoringUseCase
+	RiskMonitoringUpdateUC    *riskuc.UpdateMonitoringUseCase
+	RiskMonitoringFinalizeUC  *riskuc.FinalizeMonitoringUseCase
 
 	// Risk Cascade UseCases
 	RiskCascadeCreateMandatoryUC *riskcascadeuc.CreateMandatoryUseCase
@@ -189,10 +187,11 @@ type Container struct {
 	OrgGroupResolveUC *organizationgroupuc.ResolveUseCase
 
 	// Risk Charter UseCases
-	RiskCharterCreateUC *riskcharteruc.CreateRiskCharterUseCase
-	RiskCharterGetUC    *riskcharteruc.GetRiskCharterUseCase
-	RiskCharterUpdateUC *riskcharteruc.UpdateRiskCharterUseCase
-	RiskCharterListUC   *riskcharteruc.ListRiskChartersUseCase
+	RiskCharterCreateUC   *riskcharteruc.CreateRiskCharterUseCase
+	RiskCharterGetUC      *riskcharteruc.GetRiskCharterUseCase
+	RiskCharterUpdateUC   *riskcharteruc.UpdateRiskCharterUseCase
+	RiskCharterListUC     *riskcharteruc.ListRiskChartersUseCase
+	RiskCharterWorkflowUC *riskcharteruc.WorkflowUseCase
 
 	// TMPMR UseCases
 	TMPMRCreateUC  *tmpmruc.CreateUseCase
@@ -369,13 +368,11 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.RiskOverdueTimelineUC = riskuc.NewOverdueMitigationTimelineUseCase(c.RiskRepository)
 	c.RiskUnitResponseUC = riskuc.NewUnitResponseTimeUseCase(c.RiskRepository)
 	c.RiskListCycleSnapshotUC = riskuc.NewListRiskCycleSnapshotUseCase(c.RiskRepository, c.OrgHierarchySvc)
-	c.RiskMonitoringSpreadsheetUC = riskuc.NewBulkMonitoringSpreadsheetUseCase(c.OrgRepository, c.UserRepository, c.RiskRepository)
 	periodRepo, ok := c.RiskRepository.(riskuc.MonitoringPeriodRepository)
 	if !ok {
 		return nil, fmt.Errorf("risk repository does not implement monitoring period policy")
 	}
 	c.RiskMonitoringStartUC = riskuc.NewStartMonitoringUseCase(c.RiskRepository, c.RiskMonitoringRepository, c.RiskRepository, c.MitigationTaskRepository, periodRepo)
-	c.RiskCreateMonitoringBatchUC = riskuc.NewCreateMonitoringBatchUseCase(c.RiskRepository, c.RiskMonitoringStartUC)
 	c.RiskMonitoringGetUC = riskuc.NewGetMonitoringUseCase(c.RiskMonitoringRepository)
 	c.RiskMonitoringUpdateUC = riskuc.NewUpdateMonitoringUseCase(c.RiskRepository, c.RiskMonitoringRepository)
 	c.RiskMonitoringFinalizeUC = riskuc.NewFinalizeMonitoringUseCase(c.RiskRepository, c.RiskMonitoringRepository, c.MitigationTaskRepository, c.RiskRepository)
@@ -481,6 +478,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.RiskCharterGetUC = riskcharteruc.NewGetRiskCharterUseCase(c.RiskCharterRepository)
 	c.RiskCharterUpdateUC = riskcharteruc.NewUpdateRiskCharterUseCase(c.RiskCharterRepository)
 	c.RiskCharterListUC = riskcharteruc.NewListRiskChartersUseCase(c.RiskCharterRepository)
+	c.RiskCharterWorkflowUC = riskcharteruc.NewWorkflowUseCase(c.RiskCharterRepository)
 
 	c.TMPMRCreateUC = tmpmruc.NewCreateUseCase(c.TMPMRRepository)
 	c.TMPMRGetUC = tmpmruc.NewGetUseCase(c.TMPMRRepository)

@@ -3,7 +3,6 @@
 import {
   Bar,
   BarChart,
-  CartesianGrid,
   XAxis,
   YAxis,
 } from "recharts";
@@ -52,7 +51,7 @@ export function RiskCategoryDistributionCard({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex h-48 items-center justify-center text-sm text-muted-foreground">
+          <div className="flex h-48 items-center justify-center rounded-lg bg-state-surface text-sm text-state-foreground">
             Memuat data kategori...
           </div>
         </CardContent>
@@ -77,11 +76,11 @@ export function RiskCategoryDistributionCard({
       </CardHeader>
       <CardContent>
         {error ? (
-          <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-surface-border bg-muted/20 px-6 text-center text-sm text-muted-foreground">
+          <div className="flex h-48 items-center justify-center rounded-lg bg-state-surface px-6 text-center text-sm text-state-foreground">
             Data kategori risiko tidak tersedia saat ini.
           </div>
         ) : data.length === 0 ? (
-          <div className="flex h-48 items-center justify-center rounded-lg border border-dashed border-surface-border bg-muted/20 px-6 text-center text-sm text-muted-foreground">
+          <div className="flex h-48 items-center justify-center rounded-lg bg-state-surface px-6 text-center text-sm text-state-foreground">
             Belum ada data kategori risiko.
           </div>
         ) : (
@@ -93,11 +92,6 @@ export function RiskCategoryDistributionCard({
                 layout="vertical"
                 margin={{ top: 4, right: 16, left: 8, bottom: 4 }}
               >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="var(--chart-grid)"
-                  horizontal={false}
-                />
                 <XAxis
                   type="number"
                   allowDecimals={false}

@@ -13,10 +13,10 @@ type AppError struct {
 }
 
 func (e *AppError) Error() string {
-	if e.Err != nil {
-		return fmt.Sprintf("%s: %v", e.Message, e.Err)
+	if e.Code != "" || e.Err == nil {
+		return e.Message
 	}
-	return e.Message
+	return fmt.Sprintf("%s: %v", e.Message, e.Err)
 }
 
 func (e *AppError) Unwrap() error {
@@ -94,6 +94,7 @@ var (
 	ErrInvalidImpact                = newValidationError("INVALID_IMPACT", "dampak harus antara 1-5")
 	ErrInvalidRiskCategory          = newValidationError("INVALID_RISK_CATEGORY", "kategori risiko tidak valid")
 	ErrInvalidMitigationType        = newValidationError("INVALID_MITIGATION_TYPE", "tipe mitigasi tidak valid")
+	ErrMitigationNotReported        = newStatusError("MITIGATION_NOT_REPORTED", "mitigasi tidak dilaporkan dan tidak dapat ditindaklanjuti")
 	ErrInvalidOwner                 = newValidationError("INVALID_OWNER", "pemilik tidak boleh kosong")
 	ErrInvalidFileType              = newValidationError("INVALID_FILE_TYPE", "hanya file PDF yang didukung")
 	ErrFileTooLarge                 = newValidationError("FILE_TOO_LARGE", "file melebihi ukuran maksimum yang diizinkan")
@@ -138,6 +139,7 @@ var (
 	ErrMonitoringAlreadyFinalized     = newStatusError("MONITORING_ALREADY_FINALIZED", "pemantauan untuk siklus ini sudah difinalisasi")
 	ErrPreviousMonitoringNotCompleted = newStatusError("PREVIOUS_MONITORING_NOT_COMPLETED", "pemantauan periode sebelumnya harus difinalisasi terlebih dahulu")
 	ErrMonitoringConclusionRequired   = newValidationError("MONITORING_CONCLUSION_REQUIRED", "simpulan pemantauan wajib diisi")
+	ErrMonitoringBeforeRiskEffective  = newValidationError("MONITORING_BEFORE_RISK_EFFECTIVE", "Periode pemantauan tidak boleh lebih awal dari periode efektif risiko. Pilih periode yang sama atau lebih baru.")
 
 	// ── Working Paper ──
 	ErrWorkingPaperLocked = newValidationError("WORKING_PAPER_LOCKED", "versi risiko dikunci oleh kertas kerja yang sedang ditandatangani atau sudah selesai")

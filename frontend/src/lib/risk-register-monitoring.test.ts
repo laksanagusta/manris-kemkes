@@ -23,12 +23,12 @@ test("formatMonitoringNilai returns dash for nullish values", () => {
 
 test("formatMonitoringNilai formats monitoring values", () => {
   assert.equal(formatMonitoringNilai(12), "12");
-  assert.equal(formatMonitoringNilai(9.75), "9,75");
+  assert.equal(formatMonitoringNilai(9.75), "10");
 });
 
 test("formatMonitoringScoreChange combines source and observed values", () => {
   assert.equal(formatMonitoringScoreChange(12, 15), "12 -> 15");
-  assert.equal(formatMonitoringScoreChange(9.5, undefined), "9,5");
+  assert.equal(formatMonitoringScoreChange(9.5, undefined), "10");
   assert.equal(formatMonitoringScoreChange(undefined, undefined), "-");
 });
 

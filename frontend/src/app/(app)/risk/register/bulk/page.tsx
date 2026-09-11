@@ -1,47 +1,28 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import { useMemo, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Download, FileSpreadsheet, Loader2, Upload } from "@/components/ui/icons";
 
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
-import { FormHeader } from "@/components/shared/form-shell";
+import { FormHeader, FormPage } from "@/components/shared/form-shell";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
-  TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
-import { PageStack } from "@/components/shared/design-system";
-import { ROPicker } from "@/components/risk/ro-picker";
-import type {
-  MonitoringPreviewItem,
-  MonitoringBatchResultItem,
-} from "@/types/risk-monitoring";
 import {
-  previewMonitoringUpload,
-  submitMonitoringBatch,
-} from "@/lib/api/risk-monitoring";
-import {
-  currentMonitoringCycle,
-  shiftMonitoringCycle,
-} from "@/lib/risk-cycle-options";
+  AccentButton,
+  ActionButton,
+  CollectionEmptyState,
+  CollectionTableHead,
+  CollectionTableHeader,
+} from "@/components/shared/design-system";
 
 const API_BASE =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
@@ -103,59 +84,24 @@ type BatchResponse = {
   items: RiskBatchResultItem[];
 };
 
-function statusBadgeClass(preview: BulkRiskPreview) {
-  if (preview.errors.length > 0)
-    return "border-destructive/30 bg-destructive/10 text-destructive";
-  if (preview.warnings.length > 0)
-    return "border-risk-high/30 bg-risk-high/10 text-risk-high";
-  return "border-success/30 bg-success/10 text-success";
-}
-
-function getCycleOptions(): string[] {
-  const current = currentMonitoringCycle();
-  return [
-    shiftMonitoringCycle(current, -1),
-    current,
-    shiftMonitoringCycle(current, 1),
-  ];
-}
-
-function getPlanningPeriodOptions(): string[] {
-  const year = new Date().getFullYear();
-  return [String(year - 1), String(year), String(year + 1)];
+function getPreviewStatus(preview: BulkRiskPreview) {
+  if (preview.errors.length > 0) {
+    return { label: "Invalid", tone: "danger" as const };
+  }
+  if (preview.warnings.length > 0) {
+    return { label: "Warning", tone: "warning" as const };
+  }
+  return { label: "Valid", tone: "success" as const };
 }
 
 export default function BulkRiskRegisterPage() {
   const router = useRouter();
-  const { token, user } = useAuth();
-  const [bulkMode, setBulkMode] = useState<"baru" | "pemantauan">("baru");
-  const [selectedCycle, setSelectedCycle] = useState<string>("");
-  const [planningPeriod, setPlanningPeriod] = useState<string>(
-    String(new Date().getFullYear()),
-  );
+  const { token } = useAuth();
   const [sourceName, setSourceName] = useState("");
   const [previews, setPreviews] = useState<BulkRiskPreview[]>([]);
   const [isParsing, setIsParsing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [resultItems, setResultItems] = useState<RiskBatchResultItem[]>([]);
-  const [selectedOrgId, setSelectedOrgId] = useState<string>("");
-  const [selectedRoId, setSelectedRoId] = useState<string>("");
-  const [monitoringPreviews, setMonitoringPreviews] = useState<
-    MonitoringPreviewItem[]
-  >([]);
-  const [monitoringResults, setMonitoringResults] = useState<
-    MonitoringBatchResultItem[]
-  >([]);
-
-  const isGlobalUser = Boolean(user?.isGlobal);
-  const isUnitRole = user?.role === "unit";
-  const effectiveOrgId = isGlobalUser
-    ? selectedOrgId
-    : (user?.organizationId ?? "");
-
-  useEffect(() => {
-    setSelectedRoId("");
-  }, [effectiveOrgId, planningPeriod]);
 
   const validRows = useMemo(
     () =>
@@ -165,30 +111,12 @@ export default function BulkRiskRegisterPage() {
     [previews],
   );
 
-  const monitoringValidRows = useMemo(
-    () => monitoringPreviews.filter((p) => p.payload && p.errors.length === 0),
-    [monitoringPreviews],
-  );
-
   const createdCount = resultItems.filter(
     (item) => item.status === "created",
   ).length;
   const failedCount = resultItems.filter(
     (item) => item.status === "failed",
   ).length;
-
-  const monitoringCreatedCount = monitoringResults.filter(
-    (item) => item.status === "created",
-  ).length;
-  const monitoringFailedCount = monitoringResults.filter(
-    (item) => item.status === "failed",
-  ).length;
-
-  const getMonitoringRealizationP = (preview: MonitoringPreviewItem) =>
-    preview.realizationP ?? preview.realisasiP ?? "-";
-
-  const getMonitoringRealizationD = (preview: MonitoringPreviewItem) =>
-    preview.realizationD ?? preview.realisasiD ?? "-";
 
   const handleUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -197,60 +125,27 @@ export default function BulkRiskRegisterPage() {
       toast.error("Sesi login tidak ditemukan.");
       return;
     }
-    if (isGlobalUser && !selectedOrgId) {
-      toast.error("Pilih unit kerja terlebih dahulu.");
-      return;
-    }
-    if (bulkMode === "pemantauan" && !selectedCycle) {
-      toast.error("Pilih siklus pemantauan terlebih dahulu.");
-      return;
-    }
-
     setIsParsing(true);
     try {
-      if (bulkMode === "pemantauan") {
-        const response = await previewMonitoringUpload(
-          file,
-          token,
-          effectiveOrgId,
-          selectedCycle,
+      const form = new FormData();
+      form.append("file", file);
+      const response = await api.postForm<PreviewResponse>(
+        "/risks/batch/preview",
+        form,
+        token,
+      );
+      setPreviews(response.items);
+      setResultItems([]);
+      setSourceName(file.name);
+
+      if (response.items.length === 0) {
+        toast.error(
+          "Template berhasil dibaca, tetapi belum ada baris data untuk diimport.",
         );
-        setMonitoringPreviews(response.items);
-        setMonitoringResults([]);
-        setSourceName(file.name);
-
-        if (response.items.length === 0) {
-          toast.error(
-            "Template berhasil dibaca, tetapi belum ada baris data untuk diimport.",
-          );
-        } else {
-          toast.success(
-            `${response.items.length} baris berhasil diparse untuk direview.`,
-          );
-        }
       } else {
-        const form = new FormData();
-        form.append("file", file);
-        const queryParams = new URLSearchParams();
-        if (!isUnitRole && selectedOrgId) {
-          queryParams.append("organization_id", selectedOrgId);
-        }
-        const query = queryParams.toString();
-        const path = `/risks/batch/preview${query ? `?${query}` : ""}`;
-        const response = await api.postForm<PreviewResponse>(path, form, token);
-        setPreviews(response.items);
-        setResultItems([]);
-        setSourceName(file.name);
-
-        if (response.items.length === 0) {
-          toast.error(
-            "Template berhasil dibaca, tetapi belum ada baris data untuk diimport.",
-          );
-        } else {
-          toast.success(
-            `${response.items.length} baris berhasil diparse untuk direview.`,
-          );
-        }
+        toast.success(
+          `${response.items.length} baris berhasil diparse untuk direview.`,
+        );
       }
     } catch (error) {
       console.error(error);
@@ -270,29 +165,6 @@ export default function BulkRiskRegisterPage() {
     }
 
     try {
-      if (bulkMode === "pemantauan") {
-        if (!selectedCycle) {
-          toast.error("Pilih siklus pemantauan terlebih dahulu.");
-          return;
-        }
-        const monitoringUrl = `${API_BASE}/risks/batch/monitoring/template?organization_id=${effectiveOrgId}&cycle=${selectedCycle}`;
-        const response = await fetch(monitoringUrl, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!response.ok) {
-          throw new Error("Gagal mengunduh template pemantauan.");
-        }
-
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `monitoring-template-${selectedCycle}.xlsx`;
-        link.click();
-        window.URL.revokeObjectURL(url);
-        return;
-      }
-
       const response = await fetch(`${API_BASE}/risks/batch/template`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -320,59 +192,25 @@ export default function BulkRiskRegisterPage() {
       toast.error("Sesi login tidak ditemukan.");
       return;
     }
-    const currentValidRows =
-      bulkMode === "baru" ? validRows : monitoringValidRows;
-    if (currentValidRows.length === 0) {
+    if (validRows.length === 0) {
       toast.error("Belum ada baris valid untuk disubmit.");
-      return;
-    }
-    if (!isUnitRole && !selectedOrgId) {
-      toast.error("Pilih unit kerja terlebih dahulu.");
-      return;
-    }
-    if (bulkMode === "pemantauan" && !selectedCycle) {
-      toast.error("Pilih siklus pemantauan terlebih dahulu.");
       return;
     }
 
     setIsSubmitting(true);
     try {
-      if (bulkMode === "pemantauan") {
-        const validItems = monitoringPreviews
-          .filter((p) => p.payload && p.errors.length === 0)
-          .map((p) => p.payload!);
-        const response = await submitMonitoringBatch(
-          validItems,
-          token,
-          effectiveOrgId,
-          selectedCycle,
-        );
-        setMonitoringResults(response.items);
-        toast.success(
-          `${response.items.filter((item) => item.status === "created").length} risiko pemantauan berhasil disimpan.`,
-        );
-      } else {
-        const items = validRows.flatMap((row) =>
-          row.payload
-            ? [
-                {
-                  ...row.payload,
-                  organizationId: effectiveOrgId || row.payload.organizationId,
-                  ...(selectedRoId ? { roId: selectedRoId } : {}),
-                },
-              ]
-            : [],
-        );
-        const response = await api.post<BatchResponse>(
-          "/risks/batch",
-          { items },
-          token,
-        );
-        setResultItems(response.items);
-        toast.success(
-          `${response.items.filter((item) => item.status === "created").length} risiko berhasil dibuat.`,
-        );
-      }
+      const items = validRows.flatMap((row) =>
+        row.payload ? [{ ...row.payload }] : [],
+      );
+      const response = await api.post<BatchResponse>(
+        "/risks/batch",
+        { items },
+        token,
+      );
+      setResultItems(response.items);
+      toast.success(
+        `${response.items.filter((item) => item.status === "created").length} risiko berhasil dibuat.`,
+      );
     } catch (error) {
       console.error(error);
       toast.error(
@@ -384,574 +222,210 @@ export default function BulkRiskRegisterPage() {
   };
 
   return (
-    <PageStack className="pb-10">
+    <FormPage className="max-w-7xl pb-10">
       <FormHeader
         title="Import Risiko"
-        badges={
-          <div className="flex flex-wrap gap-2">
-            <Badge
-              variant="outline"
-              className="border-primary/20 bg-primary/[0.04] text-primary"
-            >
-              Backend parsed
-            </Badge>
-            <Badge variant="outline">
-              {bulkMode === "baru"
-                ? `${validRows.length} valid / ${previews.length} baris`
-                : `${monitoringValidRows.length} valid / ${monitoringPreviews.length} baris`}
-            </Badge>
-          </div>
-        }
         onBack={() => router.push("/risk/register")}
-        backLabel="Kembali ke register risiko"
+        backLabel="Kembali"
         actions={
           <>
-            <Button
+            <ActionButton
+              type="button"
               variant="outline"
-              className="gap-2 text-xs"
+              size="md"
+              icon={<Download className="size-3.5" />}
               onClick={handleDownloadTemplate}
             >
-              <Download className="size-3.5" />
               Download template
-            </Button>
-            <Button
-              className="gap-2 text-xs"
-              onClick={handleSubmit}
-              disabled={
-                isSubmitting ||
-                (bulkMode === "baru"
-                  ? validRows.length === 0
-                  : monitoringValidRows.length === 0)
+            </ActionButton>
+            <AccentButton
+              type="button"
+              icon={
+                isSubmitting ? (
+                  <Loader2 className="size-3.5 animate-spin" />
+                ) : (
+                  <Upload className="size-3.5" />
+                )
               }
+              onClick={handleSubmit}
+              disabled={isSubmitting || validRows.length === 0}
             >
-              {isSubmitting ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : (
-                <Upload className="size-3.5" />
-              )}
               {isSubmitting ? "Menyimpan..." : "Submit Risiko"}
-            </Button>
+            </AccentButton>
           </>
         }
       />
 
-      <Tabs
-        value={bulkMode}
-        onValueChange={(v) => setBulkMode(v as "baru" | "pemantauan")}
-        data-testid="bulk-mode-tabs"
-      >
-        <TabsList className="mb-4">
-          <TabsTrigger value="baru" data-testid="tab-risiko-baru">
-            Risiko Baru
-          </TabsTrigger>
-          <TabsTrigger value="pemantauan" data-testid="tab-pemantauan">
-            Pemantauan
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="baru">
-          <Card className="rounded-[12px] bg-card">
-            <CardHeader className="border-b border-border/50">
-              <CardTitle className="text-base font-semibold text-foreground">
-                Sumber Data
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-5 px-6 py-6">
-              <label className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-[24px] border border-dashed border-border/70 bg-muted/[0.18] px-6 py-10 text-center transition-colors hover:border-primary/40 hover:bg-muted/[0.28]">
-                <div className="flex size-12 items-center justify-center rounded-2xl bg-background text-primary">
-                  {isParsing ? (
-                    <Loader2 className="size-5 animate-spin" />
-                  ) : (
-                    <FileSpreadsheet className="size-5" />
-                  )}
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-foreground">
-                    Upload file Excel template
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Frontend hanya mengirim file. Semua parsing dan validasi
-                    dilakukan di backend.
-                  </p>
-                </div>
-                <input
-                  type="file"
-                  accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
-                  className="hidden"
-                  onChange={handleUpload}
-                  disabled={isParsing}
-                />
-              </label>
-
-              {sourceName ? (
-                <div className="rounded-2xl border border-border/60 bg-background px-4 py-3 text-sm text-muted-foreground">
-                  Sumber aktif:{" "}
-                  <span className="font-medium text-foreground">
-                    {sourceName}
-                  </span>
-                </div>
-              ) : null}
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-[12px] bg-card mt-10">
-            <CardContent className="space-y-4 px-6 py-6">
-              {isGlobalUser && (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">
-                    Unit Kerja
-                  </label>
-                  <Select
-                    value={selectedOrgId}
-                    onValueChange={setSelectedOrgId}
-                  >
-                    <SelectTrigger className="w-full md:w-64">
-                      <SelectValue placeholder="Pilih unit kerja" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(user?.accessibleOrgIds ?? []).map((orgId) => (
-                        <SelectItem key={orgId} value={orgId}>
-                          {orgId}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {!isGlobalUser ? (
-                <div className="rounded-xl border border-border/50 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-                  Unit kerja mengikuti akun Anda dan tidak bisa diubah pada
-                  alur operasional ini.
-                </div>
-              ) : null}
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">
-                  Periode Planning
-                </label>
-                <Select
-                  value={planningPeriod}
-                  onValueChange={setPlanningPeriod}
-                >
-                  <SelectTrigger className="w-full md:w-64">
-                    <SelectValue placeholder="Pilih periode planning" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {getPlanningPeriodOptions().map((period) => (
-                      <SelectItem key={period} value={period}>
-                        {period}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+      <div className="space-y-6">
+        <Card className="rounded-xl">
+          <CardHeader>
+            <CardTitle className="text-base font-semibold text-foreground">
+              Sumber Data
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <label className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/70 bg-muted/[0.18] px-6 py-10 text-center transition-[background-color,border-color] duration-150 hover:border-primary/40 hover:bg-muted/[0.28]">
+              <div className="flex size-11 items-center justify-center rounded-xl bg-background text-primary">
+                {isParsing ? (
+                  <Loader2 className="size-5 animate-spin" />
+                ) : (
+                  <FileSpreadsheet className="size-5" />
+                )}
               </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">
-                  RO Target
-                </label>
-                <ROPicker
-                  organizationId={effectiveOrgId || undefined}
-                  value={selectedRoId}
-                  onChange={(roId) => setSelectedRoId(roId)}
-                />
+              <div className="space-y-1">
+                <p className="text-sm font-medium text-foreground">
+                  Upload file Excel template
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Frontend hanya mengirim file. Semua parsing dan validasi
+                  dilakukan di backend.
+                </p>
               </div>
+              <input
+                type="file"
+                accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
+                className="hidden"
+                onChange={handleUpload}
+                disabled={isParsing}
+              />
+            </label>
 
-              {previews.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-border/60 bg-background px-5 py-10 text-center text-sm text-muted-foreground">
-                  Belum ada data. Upload template untuk mulai review.
-                </div>
-              ) : (
+            {sourceName ? (
+              <div className="rounded-lg border border-border/60 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+                Sumber aktif:{" "}
+                <span className="font-medium text-foreground">
+                  {sourceName}
+                </span>
+              </div>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <Card className="rounded-xl">
+          <CardHeader>
+            <CardTitle className="text-base font-semibold text-foreground">
+              Review hasil parsing
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {previews.length === 0 ? (
+              <CollectionEmptyState
+                title="Belum ada data."
+                description="Upload template untuk mulai review."
+              />
+            ) : (
+              <div className="overflow-hidden rounded-xl border border-border/60">
                 <Table>
-                  <TableHeader>
+                  <CollectionTableHeader density="compact">
                     <TableRow>
-                      <TableHead className="whitespace-nowrap">Baris</TableHead>
-                      <TableHead className="whitespace-nowrap">
+                      <CollectionTableHead density="compact">
+                        Baris
+                      </CollectionTableHead>
+                      <CollectionTableHead density="compact">
                         Risiko
-                      </TableHead>
-                      <TableHead className="whitespace-nowrap">
+                      </CollectionTableHead>
+                      <CollectionTableHead density="compact">
                         Status
-                      </TableHead>
-                      <TableHead className="whitespace-nowrap">
+                      </CollectionTableHead>
+                      <CollectionTableHead density="compact">
                         Catatan
-                      </TableHead>
+                      </CollectionTableHead>
                     </TableRow>
-                  </TableHeader>
+                  </CollectionTableHeader>
                   <TableBody>
-                    {previews.map((preview) => (
-                      <TableRow key={preview.clientKey}>
-                        <TableCell>{preview.rowNumber}</TableCell>
-                        <TableCell className="max-w-[320px] whitespace-normal">
-                          <p className="font-medium text-foreground">
-                            {preview.raw["RISIKO"] ||
-                              preview.raw["Risiko"] ||
-                              "-"}
-                          </p>
-                          {effectiveOrgId && (
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              {effectiveOrgId}
+                    {previews.map((preview) => {
+                      const status = getPreviewStatus(preview);
+                      return (
+                        <TableRow key={preview.clientKey}>
+                          <TableCell>{preview.rowNumber}</TableCell>
+                          <TableCell className="max-w-[320px] whitespace-normal">
+                            <p className="font-medium text-foreground">
+                              {preview.raw["RISIKO"] ||
+                                preview.raw["Risiko"] ||
+                                "-"}
                             </p>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "font-normal",
-                              statusBadgeClass(preview),
-                            )}
-                          >
-                            {preview.errors.length > 0
-                              ? "Invalid"
-                              : preview.warnings.length > 0
-                                ? "Warning"
-                                : "Valid"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="max-w-[520px] whitespace-normal text-xs text-muted-foreground">
-                          {preview.errors.length > 0
-                            ? preview.errors.join(" ")
-                            : preview.warnings.length > 0
-                              ? preview.warnings.join(" ")
-                              : "Siap dibuat."}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="pemantauan">
-          <Card className="rounded-[12px] bg-card">
-            <CardHeader className="border-b border-border/50">
-              <CardTitle className="text-base font-semibold text-foreground">
-                Sumber Data
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-5 px-6 py-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">
-                  Periode Pemantauan
-                </label>
-                <Select
-                  value={selectedCycle}
-                  onValueChange={setSelectedCycle}
-                  data-testid="cycle-selector"
-                >
-                  <SelectTrigger className="w-full md:w-64">
-                    <SelectValue placeholder="Pilih siklus pemantauan" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {getCycleOptions().map((cycle) => (
-                      <SelectItem key={cycle} value={cycle}>
-                        {cycle}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <label className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-[24px] border border-dashed border-border/70 bg-muted/[0.18] px-6 py-10 text-center transition-colors hover:border-primary/40 hover:bg-muted/[0.28]">
-                <div className="flex size-12 items-center justify-center rounded-2xl bg-background text-primary">
-                  {isParsing ? (
-                    <Loader2 className="size-5 animate-spin" />
-                  ) : (
-                    <FileSpreadsheet className="size-5" />
-                  )}
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-foreground">
-                    Upload file Excel template
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Frontend hanya mengirim file. Semua parsing dan validasi
-                    dilakukan di backend.
-                  </p>
-                </div>
-                <input
-                  type="file"
-                  accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
-                  className="hidden"
-                  onChange={handleUpload}
-                  disabled={isParsing}
-                />
-              </label>
-
-              {sourceName ? (
-                <div className="rounded-2xl border border-border/60 bg-background px-4 py-3 text-sm text-muted-foreground">
-                  Sumber aktif:{" "}
-                  <span className="font-medium text-foreground">
-                    {sourceName}
-                  </span>
-                </div>
-              ) : null}
-            </CardContent>
-          </Card>
-
-          <Card className="rounded-[12px] bg-card mt-10">
-            <CardContent className="space-y-4 px-6 py-6">
-              {!isUnitRole && (
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">
-                    Unit Kerja
-                  </label>
-                  <Select
-                    value={selectedOrgId}
-                    onValueChange={setSelectedOrgId}
-                  >
-                    <SelectTrigger className="w-full md:w-64">
-                      <SelectValue placeholder="Pilih unit kerja" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {(user?.accessibleOrgIds ?? []).map((orgId) => (
-                        <SelectItem key={orgId} value={orgId}>
-                          {orgId}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
-
-              {monitoringPreviews.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-border/60 bg-background px-5 py-10 text-center text-sm text-muted-foreground">
-                  Belum ada data. Upload template untuk mulai review.
-                </div>
-              ) : (
-                <div className="overflow-hidden rounded-2xl border border-border/50">
-                  <Table>
-                    <TableHeader className="bg-table-header">
-                      <TableRow>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
-                          Baris
-                        </TableHead>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
-                          Kode Risiko
-                        </TableHead>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
-                          Uraian Risiko
-                        </TableHead>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
-                          Target P
-                        </TableHead>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
-                          Target D
-                        </TableHead>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
-                          Target Nilai
-                        </TableHead>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
-                          Target Tingkat
-                        </TableHead>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
-                          Realisasi P
-                        </TableHead>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
-                          Realisasi D
-                        </TableHead>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
-                          Bobot
-                        </TableHead>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
-                          Skor Inherent
-                        </TableHead>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
-                          Tingkat
-                        </TableHead>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
-                          Simpulan
-                        </TableHead>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
-                          Efektivitas
-                        </TableHead>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
-                          Status
-                        </TableHead>
-                        <TableHead className="whitespace-nowrap px-3 py-3 text-sm font-semibold text-muted-foreground">
-                          Catatan
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {monitoringPreviews.map((preview) => (
-                        <TableRow key={preview.clientKey} className="hover:bg-muted/20">
-                          <TableCell className="px-3 py-4 font-medium tabular-nums">
-                            {preview.rowNumber}
                           </TableCell>
-                          <TableCell className="px-3 py-4 font-medium">
-                            {preview.code}
+                          <TableCell>
+                            <Badge tone={status.tone} size="compact">
+                              {status.label}
+                            </Badge>
                           </TableCell>
-                          <TableCell className="max-w-[220px] px-3 py-4 whitespace-normal leading-6">
-                            {preview.title}
-                          </TableCell>
-                          <TableCell className="px-3 py-4 tabular-nums">
-                            {preview.targetP}
-                          </TableCell>
-                          <TableCell className="px-3 py-4 tabular-nums">
-                            {preview.targetD}
-                          </TableCell>
-                          <TableCell className="px-3 py-4 tabular-nums">
-                            {preview.targetNilai}
-                          </TableCell>
-                          <TableCell className="px-3 py-4">
-                            {preview.targetTingkat}
-                          </TableCell>
-                          <TableCell className="px-3 py-4 tabular-nums">
-                            {getMonitoringRealizationP(preview)}
-                          </TableCell>
-                          <TableCell className="px-3 py-4 tabular-nums">
-                            {getMonitoringRealizationD(preview)}
-                          </TableCell>
-                          <TableCell className="px-3 py-4 tabular-nums">
-                            {preview.computedBobot ?? "-"}
-                          </TableCell>
-                          <TableCell className="px-3 py-4 tabular-nums">
-                            {preview.inherentScore ?? preview.targetNilai ?? "-"}
-                          </TableCell>
-                          <TableCell className="px-3 py-4">
-                            {preview.computedTingkat ?? "-"}
-                          </TableCell>
-                          <TableCell className="px-3 py-4">
-                            {preview.simpulan ?? "-"}
-                          </TableCell>
-                          <TableCell className="px-3 py-4">
-                            {preview.efektivitas ?? "-"}
-                          </TableCell>
-                          <TableCell className="px-3 py-4">
-                            {preview.errors.length > 0 ? (
-                              <Badge
-                                tone="danger"
-                                size="compact"
-                              >
-                                Invalid
-                              </Badge>
-                            ) : preview.warnings.length > 0 ? (
-                              <Badge
-                                tone="warning"
-                                size="compact"
-                              >
-                                Warning
-                              </Badge>
-                            ) : (
-                              <Badge
-                                tone="success"
-                                size="compact"
-                              >
-                                Valid
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell className="max-w-[220px] px-3 py-4 whitespace-normal text-xs leading-6 text-muted-foreground">
+                          <TableCell className="max-w-[520px] whitespace-normal text-xs text-muted-foreground">
                             {preview.errors.length > 0
                               ? preview.errors.join(" ")
                               : preview.warnings.length > 0
                                 ? preview.warnings.join(" ")
-                                : "Siap dikirim."}
+                                : "Siap dibuat."}
                           </TableCell>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
 
-      {bulkMode === "baru" && resultItems.length > 0 ? (
-        <Card className="overflow-hidden rounded-[24px] bg-card">
-          <CardContent className="space-y-4 px-6 py-6">
-            <div className="flex flex-wrap gap-2">
-              <Badge
-                variant="outline"
-                className="border-success/30 bg-success/10 text-success"
-              >
-                {createdCount} created
-              </Badge>
-              <Badge
-                variant="outline"
-                className="border-destructive/30 bg-destructive/10 text-destructive"
-              >
-                {failedCount} failed
-              </Badge>
+      {resultItems.length > 0 ? (
+        <Card className="rounded-xl">
+          <CardHeader>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="space-y-1">
+                <CardTitle className="text-base font-semibold text-foreground">
+                  Hasil import risiko
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Ringkasan status setiap baris yang dikirim.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <Badge tone="success" size="compact">
+                  {createdCount} dibuat
+                </Badge>
+                <Badge tone="danger" size="compact">
+                  {failedCount} gagal
+                </Badge>
+              </div>
             </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="whitespace-nowrap">
-                    Client Key
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap">Status</TableHead>
-                  <TableHead className="whitespace-nowrap">Code</TableHead>
-                  <TableHead className="whitespace-nowrap">Pesan</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {resultItems.map((item) => (
-                  <TableRow key={item.clientKey}>
-                    <TableCell>{item.clientKey}</TableCell>
-                    <TableCell>{item.status}</TableCell>
-                    <TableCell>{item.code || "-"}</TableCell>
-                    <TableCell className="max-w-[480px] whitespace-normal text-xs text-muted-foreground">
-                      {item.error || item.message}
-                    </TableCell>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-0">
+            <div className="overflow-hidden rounded-xl border border-border/60">
+              <Table>
+                <CollectionTableHeader density="compact">
+                  <TableRow>
+                    <CollectionTableHead density="compact">Client Key</CollectionTableHead>
+                    <CollectionTableHead density="compact">Status</CollectionTableHead>
+                    <CollectionTableHead density="compact">Code</CollectionTableHead>
+                    <CollectionTableHead density="compact">Pesan</CollectionTableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </CollectionTableHeader>
+                <TableBody>
+                  {resultItems.map((item) => (
+                    <TableRow key={item.clientKey}>
+                      <TableCell>{item.clientKey}</TableCell>
+                      <TableCell>
+                        <Badge
+                          tone={item.status === "created" ? "success" : "danger"}
+                          size="compact"
+                        >
+                          {item.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{item.code || "-"}</TableCell>
+                      <TableCell className="max-w-[480px] whitespace-normal text-xs text-muted-foreground">
+                        {item.error || item.message}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       ) : null}
 
-      {bulkMode === "pemantauan" && monitoringResults.length > 0 && (
-        <Card className="overflow-hidden rounded-[24px] bg-card">
-          <CardContent className="space-y-4 px-6 py-6">
-            <div className="flex flex-wrap gap-2">
-              <Badge
-                variant="outline"
-                className="border-success/30 bg-success/10 text-success"
-              >
-                {monitoringCreatedCount} dibuat
-              </Badge>
-              <Badge
-                variant="outline"
-                className="border-destructive/30 bg-destructive/10 text-destructive"
-              >
-                {monitoringFailedCount} gagal
-              </Badge>
-            </div>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="whitespace-nowrap">
-                    Client Key
-                  </TableHead>
-                  <TableHead className="whitespace-nowrap">Status</TableHead>
-                  <TableHead className="whitespace-nowrap">Code</TableHead>
-                  <TableHead className="whitespace-nowrap">Pesan</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {monitoringResults.map((item) => (
-                  <TableRow key={item.clientKey}>
-                    <TableCell>{item.clientKey}</TableCell>
-                    <TableCell>{item.status}</TableCell>
-                    <TableCell>{item.code || "-"}</TableCell>
-                    <TableCell className="max-w-[400px] whitespace-normal text-xs text-muted-foreground">
-                      {item.error || item.message}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      )}
-    </PageStack>
+    </FormPage>
   );
 }

@@ -18,13 +18,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { PopoverSelectField } from "@/components/shared/design-system";
 import { SearchInput } from "@/components/ui/search-input";
 import { cn } from "@/lib/utils";
 
@@ -177,7 +171,7 @@ export function ROPicker({
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
-          className="group/ro-picker h-10 w-full justify-between overflow-hidden rounded-lg border-input bg-card px-2.5 text-sm font-normal shadow-none transition-[background-color,box-shadow] active:translate-y-0 active:scale-100 aria-expanded:bg-card aria-expanded:text-foreground focus:border-input focus-visible:border-input focus:ring-0 focus-visible:ring-0 dark:focus:border-input dark:focus-visible:border-input"
+          className="group/ro-picker h-10 w-full justify-between overflow-hidden rounded-lg border-input bg-card px-2.5 text-sm font-normal shadow-none transition-[background-color,border-color] active:translate-y-0 active:scale-100 aria-expanded:bg-card aria-expanded:text-foreground hover:border-foreground/15 disabled:hover:border-input focus:border-input focus-visible:border-input focus:ring-0 focus-visible:ring-0"
         >
           {selected ? (
             <span className="min-w-0 flex-1 truncate text-left">
@@ -192,29 +186,30 @@ export function ROPicker({
           <ChevronsUpDown className="pointer-events-none ml-2 size-4 shrink-0 opacity-50 transition-transform duration-150 ease-(--ease-out) group-data-[state=open]/ro-picker:rotate-180 motion-reduce:transition-none" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+      <PopoverContent
+        variant="dropdown"
+        className="w-[var(--radix-popover-trigger-width)]"
+        align="start"
+        sideOffset={8}
+      >
         <div className="space-y-2 border-b px-3 py-3">
           <div className="space-y-1">
             <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-muted-foreground">
               Perjanjian Kinerja
             </p>
-            <Select
+            <PopoverSelectField
               value={selectedPlanningId}
               onValueChange={setSelectedPlanningId}
-              disabled={disabled || loadingPlanning || planningOptions.length === 0}
-            >
-              <SelectTrigger className="h-10">
-                <SelectValue placeholder="Pilih perjanjian kinerja" />
-              </SelectTrigger>
-              <SelectContent>
-                {planningOptions.map((option) => (
-                  <SelectItem key={option.id} value={option.id}>
-                    {option.title}
-                    {option.period ? ` · ${option.period}` : ""}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              options={planningOptions.map((option) => ({
+                value: option.id,
+                label: `${option.title}${option.period ? ` · ${option.period}` : ""}`,
+              }))}
+              placeholder="Pilih perjanjian kinerja"
+              disabled={
+                disabled || loadingPlanning || planningOptions.length === 0
+              }
+              ariaLabel="Pilih perjanjian kinerja"
+            />
           </div>
         </div>
 
@@ -230,7 +225,7 @@ export function ROPicker({
           />
         </div>
 
-        <div className="max-h-60 overflow-y-auto p-1">
+        <div className="max-h-60 overflow-y-auto">
           {loadingPlanning || loadingOptions ? (
             <div className="flex items-center justify-center py-6 text-sm text-muted-foreground">
               <Loader2 className="mr-2 size-4 animate-spin" />
@@ -246,7 +241,7 @@ export function ROPicker({
                 key={item.roId}
                 disabled={disabled}
                 className={cn(
-                  "relative flex w-full cursor-pointer select-none items-start rounded-sm px-2 py-2 text-left text-sm outline-none hover:bg-accent hover:text-accent-foreground",
+                  "relative flex min-h-8 w-full cursor-pointer select-none items-start gap-2 rounded-lg px-2 py-1 text-left text-sm outline-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-foreground hover:bg-accent hover:text-accent-foreground",
                   value === item.roId && "bg-accent text-accent-foreground",
                 )}
                 onClick={() => {
@@ -256,7 +251,7 @@ export function ROPicker({
               >
                 <Check
                   className={cn(
-                    "mr-2 size-4",
+                    "size-4 shrink-0",
                     value === item.roId ? "opacity-100" : "opacity-0",
                   )}
                 />

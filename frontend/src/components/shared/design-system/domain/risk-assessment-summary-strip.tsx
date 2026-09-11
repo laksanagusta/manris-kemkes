@@ -5,7 +5,7 @@ import { AlertTriangle, CheckCircle2, Info } from "@/components/ui/icons";
 
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { getRiskLevelLabel, levelToColor } from "@/lib/risk";
+import { formatRiskScore, getRiskLevelLabel, levelToColor } from "@/lib/risk";
 import type { RiskLevel } from "@/types/risk";
 
 type StatusTone = "neutral" | "success" | "warning";
@@ -122,7 +122,7 @@ export function RiskAssessmentSummaryStrip({
           : null}
         <SummaryMetricTile
           label={scoreLabel}
-          value={<span className="tabular-nums">{score}</span>}
+          value={<span className="tabular-nums">{formatRiskScore(score)}</span>}
         />
         <SummaryMetricTile
           label="Level"

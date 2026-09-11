@@ -46,7 +46,12 @@ export interface RiskMitigation {
   isExistingControl?: boolean;
 }
 
-export type MitigationTaskStatus = "pending" | "done" | "overdue" | "skipped";
+export type MitigationTaskStatus =
+  | "pending"
+  | "done"
+  | "overdue"
+  | "skipped"
+  | "not_reported";
 
 export interface MitigationTask {
   id: string;
@@ -309,6 +314,7 @@ export interface Risk {
   status: RiskStatus;
   versionGroupId?: string;
   versionNumber?: number;
+  organizationId?: string;
   previousRiskId?: string | null;
   isCurrent?: boolean;
   assessmentCycle?: string;

@@ -12,12 +12,15 @@ export function OverviewTrendCard({
   legend?: ReactNode;
 }) {
   return (
-    <StandardCard title={title} contentClassName="px-4 pb-4 pt-0">
-      <div className="rounded-2xl border border-border/60 bg-gradient-to-b from-muted/35 to-muted/10 p-4">
-        {chart}
-      </div>
+    <StandardCard
+      title={title}
+      className="rounded-2xl"
+      headerClassName="px-5 pb-3 pt-5"
+      contentClassName="px-5 pb-5 pt-0"
+    >
+      {chart}
       {legend ? (
-        <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+        <div className="mt-3 flex flex-wrap items-center justify-end gap-x-5 gap-y-2 text-xs text-muted-foreground">
           {legend}
         </div>
       ) : null}

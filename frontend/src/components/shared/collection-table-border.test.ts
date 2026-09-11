@@ -13,6 +13,13 @@ const tablePrimitive = readFileSync(
   new URL("../ui/table.tsx", import.meta.url),
   "utf8",
 );
+const collectionTableHead = readFileSync(
+  new URL(
+    "./design-system/collections/collection-table-head.tsx",
+    import.meta.url,
+  ),
+  "utf8",
+);
 const cardPatternsExample = readFileSync(
   new URL("./design-system/examples/card-patterns-example.tsx", import.meta.url),
   "utf8",
@@ -31,10 +38,14 @@ test("shared table primitive uses the reference ledger geometry", () => {
     tablePrimitive,
     /h-\[40\.5px\][\s\S]*px-6[\s\S]*uppercase[\s\S]*tracking-\[0\.05em\]/,
   );
-  assert.match(tablePrimitive, /\[&_th\]:font-normal/);
+  assert.match(tablePrimitive, /\[&_th\]:font-medium/);
   assert.match(tablePrimitive, /\[&_td\]:font-normal/);
-  assert.match(tablePrimitive, /\[&_th_\*\]:font-normal/);
+  assert.match(tablePrimitive, /\[&_th_\*\]:font-medium/);
   assert.match(tablePrimitive, /\[&_td_\*\]:font-normal/);
+  assert.match(tablePrimitive, /\[&_th\]:text-xs/);
+  assert.match(tablePrimitive, /\[&_th_\*\]:text-xs/);
+  assert.match(collectionTableHead, /text-xs font-medium/);
+  assert.doesNotMatch(collectionTableHead, /text-\[11px\]/);
   assert.match(tablePrimitive, /text-muted-foreground/);
   assert.match(tablePrimitive, /\[&_th\]:text-muted-foreground/);
   assert.match(tablePrimitive, /\[&_td\]:text-muted-foreground/);

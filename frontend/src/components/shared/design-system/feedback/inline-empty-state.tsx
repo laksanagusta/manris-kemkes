@@ -10,7 +10,7 @@ export function InlineEmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex min-h-[36px] items-center justify-center gap-2 rounded-md border border-dashed border-border/40 bg-muted/10 px-3 text-center text-xs text-muted-foreground">
+    <div className="flex min-h-[36px] items-center justify-center gap-2 rounded-md bg-state-surface px-3 text-center text-xs text-state-foreground">
       {icon}
       <span>{message}</span>
       {action}

@@ -9,6 +9,7 @@ export function ColorPaletteExample() {
           key={token.name}
           name={token.name}
           value={token.value}
+          previewColor={token.previewColor}
         />
       ))}
     </div>

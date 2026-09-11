@@ -78,14 +78,14 @@ test("risk register primary controls follow shared geometry", () => {
   );
   assert.match(
     source,
-    /className="flex min-h-\[96px\] flex-col rounded-2xl p-4"/,
+    /className="flex min-h-\[96px\] flex-col rounded-xl p-4"/,
   );
 });
 
 test("risk register modal content follows shared geometry", () => {
   assert.match(
     source,
-    /className="rounded-2xl border bg-muted\/30 px-3 py-2 text-sm"/,
+    /className="rounded-xl border bg-muted\/30 px-3 py-2 text-sm"/,
   );
   assert.match(
     source,
@@ -104,7 +104,7 @@ test("risk register retains explicit dense table exceptions", () => {
 test("risk register table surfaces use shared cards", () => {
   assert.doesNotMatch(
     source,
-    /<div className="overflow-hidden rounded-2xl bg-(?:card|white)/,
+    /<div className="overflow-hidden rounded-xl bg-(?:card|white)/,
   );
   assert.equal(
     source.match(

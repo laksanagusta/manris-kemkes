@@ -8,22 +8,22 @@ export function ReportPanel({
   actions,
   children,
   className,
+  headerClassName,
   contentClassName,
 }: {
   title: ReactNode;
   actions?: ReactNode;
   children: ReactNode;
   className?: string;
+  headerClassName?: string;
   contentClassName?: string;
 }) {
   return (
     <StandardCard
       title={title}
       action={actions}
-      className={cn(
-        "h-full",
-        className,
-      )}
+      className={cn(className)}
+      headerClassName={headerClassName}
       contentClassName={cn("space-y-3", contentClassName)}
     >
       {children}

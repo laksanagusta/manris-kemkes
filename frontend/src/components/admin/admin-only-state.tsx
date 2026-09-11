@@ -1,7 +1,6 @@
-import Link from "next/link";
-import { ArrowLeft, ShieldX } from "@/components/ui/icons";
+import { ShieldX } from "@/components/ui/icons";
 
-import { ActionButton } from "@/components/shared/design-system";
+import { FormBackAction } from "@/components/shared/design-system";
 import {
   Card,
   CardContent,
@@ -34,12 +33,7 @@ export function AdminOnlyState({
           </div>
         </CardHeader>
         <CardContent>
-          <ActionButton asChild variant="secondary" size="sm">
-            <Link href="/overview">
-              <ArrowLeft className="size-3.5" aria-hidden="true" />
-              Kembali ke dashboard
-            </Link>
-          </ActionButton>
+          <FormBackAction href="/overview" label="Kembali ke dashboard" />
         </CardContent>
       </Card>
     </div>

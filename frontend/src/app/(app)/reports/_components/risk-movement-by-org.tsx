@@ -6,7 +6,6 @@ import {
   Bar,
   XAxis,
   YAxis,
-  CartesianGrid,
 } from "recharts";
 import {
   ChartContainer,
@@ -61,7 +60,7 @@ export function RiskMovementByOrg({
             value={currentSort}
             onValueChange={(value) => onSortChange?.(value as MovementByOrgSortKey)}
           >
-            <SelectTrigger className="h-10 w-[120px] text-xs">
+            <SelectTrigger className="h-9 w-[120px] text-xs">
               <SelectValue placeholder="Urutkan" />
             </SelectTrigger>
             <SelectContent>
@@ -75,17 +74,21 @@ export function RiskMovementByOrg({
         ) : null
       }
       className="h-full"
-      contentClassName="flex flex-col gap-4"
+      headerClassName="items-start"
+      contentClassName="flex min-h-0 flex-1 flex-col"
     >
-      <div data-testid="risk-movement-by-org">
+      <div
+        data-testid="risk-movement-by-org"
+        className="flex min-h-0 flex-1 flex-col"
+      >
         {!hasData ? (
-          <div className="flex h-[300px] items-center justify-center rounded-lg border border-dashed border-surface-border bg-muted/20 px-6 text-center text-sm text-muted-foreground">
+          <div className="flex h-full flex-1 items-center justify-center rounded-lg bg-state-surface px-6 text-center text-sm text-state-foreground">
             Belum ada data perbandingan risiko antar-cycle.
           </div>
         ) : (
           <>
-            <div className="max-h-[480px] overflow-y-auto pr-2 custom-scrollbar">
-              <div style={{ height: containerHeight }}>
+            <div className="min-h-0 flex-1 overflow-y-auto pr-2 custom-scrollbar">
+              <div style={{ height: containerHeight, minHeight: "100%" }}>
                 <ChartContainer config={chartConfig} className="h-full w-full">
                   <BarChart
                     accessibilityLayer
@@ -94,11 +97,6 @@ export function RiskMovementByOrg({
                     margin={{ top: 4, right: 24, left: 0, bottom: 0 }}
                     barCategoryGap="20%"
                   >
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="var(--chart-grid)"
-                      horizontal={false}
-                    />
                     <XAxis
                       type="number"
                       allowDecimals={false}
@@ -148,7 +146,7 @@ export function RiskMovementByOrg({
                 </ChartContainer>
               </div>
             </div>
-            <div className="mt-4 flex items-center justify-center gap-5 border-t border-border/40 pt-4">
+            <div className="mt-4 flex shrink-0 items-center justify-center gap-5 border-t border-border/40 pt-4">
               <div className="flex items-center gap-1.5">
                   <div
                     className="size-2.5 rounded-[3px]"

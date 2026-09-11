@@ -6,9 +6,20 @@ const source = readFileSync(
   new URL("./app-header.tsx", import.meta.url),
   "utf8",
 );
+const appNavigationSource = readFileSync(
+  new URL("../lib/app-navigation.ts", import.meta.url),
+  "utf8",
+);
 const collectionHeaderSource = readFileSync(
   new URL(
     "./shared/design-system/layout/collection-page-header.tsx",
+    import.meta.url,
+  ),
+  "utf8",
+);
+const formBackActionSource = readFileSync(
+  new URL(
+    "./shared/design-system/actions/form-back-action.tsx",
     import.meta.url,
   ),
   "utf8",
@@ -39,10 +50,15 @@ test("uses the compact 56px global topbar geometry", () => {
   assert.doesNotMatch(appTopbarSource, /src="\/logo\.svg"/);
   assert.match(
     appTopbarSource,
-    /border-e border-border\/60 px-2[\s\S]*text-base font-bold/,
+    /border-e border-border\/60 px-2[\s\S]*font-logo[\s\S]*text-\[20px\][\s\S]*font-semibold/,
   );
-  assert.match(appTopbarSource, /accessibleOrgIds/);
-  assert.match(appTopbarSource, /<DropdownMenu modal=\{false\}>/);
+  assert.match(
+    appTopbarSource,
+    /font-logo[\s\S]*lowercase tracking-\[-0\.4px\][\s\S]*>Manris<\/span>/,
+  );
+  assert.doesNotMatch(appTopbarSource, /accessibleOrgIds/);
+  assert.doesNotMatch(appTopbarSource, /Pilih organisasi/);
+  assert.doesNotMatch(appTopbarSource, /<DropdownMenu/);
 });
 
 test("keeps the application canvas painted through viewport overscroll", () => {
@@ -56,61 +72,116 @@ test("keeps the application canvas painted through viewport overscroll", () => {
 test("uses inset shell header geometry", () => {
   assert.match(
     source,
-    /<CollectionPageHeader[\s\S]*className="mx-auto mb-6 w-full max-w-\[1400px\]"/,
+    /className=\{cn\([\s\S]*"mx-auto w-full"[\s\S]*"max-w-\[1400px\]"[\s\S]*<CollectionPageHeader[\s\S]*className="mb-12 w-full"/,
   );
   assert.doesNotMatch(source, /sticky top-0/);
   assert.doesNotMatch(source, /border-b/);
 });
 
+test("aligns meeting briefing create and detail headers to the form shell", () => {
+  assert.match(source, /const isMeetingBriefingCreate = pathname === "\/minutes\/new";/);
+  assert.match(source, /const isMeetingBriefingDetail = \/\^\\\/minutes\\\/\[\^\/\]\+\$\//);
+  assert.match(
+    source,
+    /isMeetingBriefingCreate \|\| isMeetingBriefingDetail[\s\S]*\? "max-w-5xl"/,
+  );
+});
+
 test("derives the page title from the current route", () => {
-  assert.match(source, /const pageTitle = breadcrumbMap\[pathname\] \?\? "Manajemen Risiko";/);
+  assert.match(source, /const \{ title, subtitle \} = getAppPageMeta\(pathname\);/);
+  assert.match(appNavigationSource, /export const appPageMeta/);
+  assert.match(appNavigationSource, /"\/overview": \{[\s\S]*subtitle:/);
 });
 
-test("hides the global fallback title on monitoring detail routes", () => {
-  assert.match(source, /pathname\.startsWith\("\/risk\/monitoring\/"\)/);
-  assert.match(source, /pathname\.startsWith\("\/risk\/assessment\/"\)/);
-});
-
-test("hides the global header on working paper creation", () => {
-  assert.match(source, /pathname\.startsWith\("\/risk\/working-papers\/"\)/);
-});
-
-test("hides the global header on the dashboard", () => {
-  assert.match(source, /pathname === "\/overview"/);
+test("renders the shared title and subtitle header with route exceptions", () => {
+  assert.match(source, /<CollectionPageHeader[\s\S]*showTitle/);
+  assert.match(source, /subtitle=\{subtitle\}/);
+  assert.match(
+    source,
+    /pathname === "\/overview" \|\| pathname === "\/risk\/register\/new"/,
+  );
+  assert.match(source, /const isCharterDetail =/);
+  assert.match(source, /if \(isCharterDetail\) \{\s*return null;/);
+  assert.match(
+    source,
+    /if \(pathname === "\/overview" \|\| pathname === "\/risk\/register\/new"\) \{\s*return null;/,
+  );
 });
 
 test("uses the shared compact page header", () => {
   assert.match(
     source,
-    /import \{ CollectionPageHeader \} from "@\/components\/shared\/design-system";/,
+    /CollectionPageHeader,[\s\S]*PAGE_BACK_ACTION_SLOT_ID,[\s\S]*from "@\/components\/shared\/design-system"/,
   );
   assert.match(
     source,
-    /<CollectionPageHeader[\s\S]*title=\{pageTitle\}/,
+    /<CollectionPageHeader[\s\S]*title=\{title\}/,
   );
 });
 
 test("keeps the optional actions slot", () => {
   assert.match(source, /const actions = useHeaderActions\(\);/);
-  assert.match(source, /actions=\{actions\}/);
+  assert.match(source, /\{actions\}/);
+  assert.match(source, /id=\{PAGE_HEADER_ACTION_SLOT_ID\}/);
 });
 
-test("keeps the canonical header title compact and subtitle-free", () => {
+test("keeps the canonical header title at the shared page-title scale", () => {
   assert.match(
     collectionHeaderSource,
-    /className="text-2xl leading-8 font-semibold/,
+    /<h1 className="page-title">/,
   );
-  assert.doesNotMatch(collectionHeaderSource, /description/);
+  assert.match(
+    collectionHeaderSource,
+    /className="mt-1 text-sm leading-6 text-muted-foreground text-pretty"/,
+  );
+  assert.match(collectionHeaderSource, /subtitle\?: ReactNode/);
 });
 
-test("uses the topbar as the only authenticated page title", () => {
+test("centers title-row actions against the title and subtitle block", () => {
+  assert.match(
+    collectionHeaderSource,
+    /actionsInTitleRow[\s\S]*sm:flex-row sm:items-center sm:justify-between/,
+  );
+  assert.match(source, /actionsPlacement="title"/);
+  assert.match(source, /id=\{PAGE_HEADER_ACTION_SLOT_ID\}/);
+});
+
+test("allows form and detail actions to use the global title-row slot", () => {
+  assert.match(collectionHeaderSource, /actionsPlacement\?: "header" \| "title" \| "top"/);
+  assert.match(collectionHeaderSource, /actionsInTopSlot/);
+  assert.match(collectionHeaderSource, /<PageHeaderActionsPortal>\{actions\}<\/PageHeaderActionsPortal>/);
+});
+
+test("uses one aligned, transparent back action across forms and details", () => {
+  assert.match(formBackActionSource, /variant="ghost"/);
+  assert.match(formBackActionSource, /size="sm"/);
+  assert.match(formBackActionSource, /!px-0 text-\[12px\]/);
+  assert.match(formBackActionSource, /ChevronLeft/);
+  assert.match(formBackActionSource, /hover:bg-transparent/);
+  assert.match(formBackActionSource, /group-hover\/back:text-foreground/);
+});
+
+test("defines page-title as 28px medium", () => {
+  const globalsSource = readFileSync(
+    new URL("../app/globals.css", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(
+    globalsSource,
+    /\.page-title \{[\s\S]*font-size: 1\.75rem;[\s\S]*font-weight: 500;/,
+  );
+});
+
+test("uses the topbar as a compact context alongside the visible page header", () => {
   assert.match(
     appTopbarSource,
     /<h1 className="truncate text-center text-sm font-medium text-foreground">/,
   );
+  assert.match(source, /showTitle/);
   assert.match(collectionHeaderSource, /showTitle = false/);
   assert.match(
     collectionHeaderSource,
-    /const hasHeaderContent = hasLeftContent \|\| Boolean\(actions\);/,
+    /const hasHeaderContent = hasLeftContent \|\| Boolean\(actions && !actionsInTopSlot\);/,
   );
 });

@@ -37,7 +37,7 @@ function PlaceholderTab() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="rounded-lg border border-dashed border-border/60 bg-muted/20 px-4 py-8 text-sm text-muted-foreground">
+        <div className="rounded-lg bg-state-surface px-4 py-8 text-sm text-state-foreground">
           Struktur halaman sudah disiapkan. Saat fitur{" "}
           <span className="font-medium text-foreground">Grup Pengguna</span>{" "}
           masuk, tab ini akan dipakai tanpa ubah navigasi utama.

@@ -1,62 +1,60 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { breadcrumbMap } from "@/lib/app-navigation";
+import { getAppPageMeta } from "@/lib/app-navigation";
 import { useHeaderActions } from "@/lib/header-actions-context";
-import { CollectionPageHeader } from "@/components/shared/design-system";
+import { cn } from "@/lib/utils";
+import {
+  CollectionPageHeader,
+  PAGE_HEADER_ACTION_SLOT_ID,
+  PAGE_BACK_ACTION_SLOT_ID,
+} from "@/components/shared/design-system";
 
 export function AppHeader() {
   const pathname = usePathname();
   const actions = useHeaderActions();
-  const pageTitle = breadcrumbMap[pathname] ?? "Manajemen Risiko";
+  const { title, subtitle } = getAppPageMeta(pathname);
+  const isCharterDetail = /^\/management\/charters\/[^/]+$/.test(pathname);
+  const isMeetingBriefingCreate = pathname === "/minutes/new";
+  const isMeetingBriefingDetail = /^\/minutes\/[^/]+$/.test(pathname);
 
-  if (
-    pathname.startsWith("/risk/monitoring/") ||
-    pathname.startsWith("/risk/assessment/") ||
-    pathname === "/risk/register" ||
-    pathname.startsWith("/risk/register/") ||
-    pathname === "/risk/working-papers" ||
-    pathname.startsWith("/risk/working-papers/") ||
-    pathname === "/evaluations" ||
-    pathname.startsWith("/evaluations/") ||
-    pathname === "/inbox" ||
-    pathname === "/minutes" ||
-    pathname.startsWith("/minutes/") ||
-    pathname === "/management/charters" ||
-    pathname.startsWith("/management/charters/") ||
-    pathname === "/reports" ||
-    pathname.startsWith("/reports/") ||
-    pathname === "/risk/cascading" ||
-    pathname === "/risk/history" ||
-    pathname === "/overview" ||
-    pathname === "/intelligence/document" ||
-    pathname.startsWith("/intelligence/minutes") ||
-		pathname === "/intelligence/transcript" ||
-		pathname === "/intelligence/predictive" ||
-    pathname === "/management/planning" ||
-    pathname.startsWith("/management/planning/") ||
-    pathname === "/management/tmpmr" ||
-    pathname.startsWith("/management/tmpmr/") ||
-    pathname === "/compliance/controls" ||
-    pathname.startsWith("/compliance/controls/") ||
-    pathname === "/compliance/monitoring" ||
-    pathname === "/compliance/penanganan" ||
-    pathname === "/admin/users" ||
-    pathname.startsWith("/admin/users/") ||
-    pathname === "/admin/organizations" ||
-    pathname === "/admin/settings" ||
-    pathname === "/settings/groups" ||
-    pathname === "/account" ||
-    pathname === "/panduan/risiko"
-  ) {
+  if (pathname === "/overview" || pathname === "/risk/register/new") {
+    return null;
+  }
+
+  if (isCharterDetail) {
     return null;
   }
 
   return (
-    <CollectionPageHeader
-      title={pageTitle}
-      actions={actions}
-      className="mx-auto mb-6 w-full max-w-[1400px]"
-    />
+    <div
+      className={cn(
+        "mx-auto w-full",
+        isMeetingBriefingCreate || isMeetingBriefingDetail
+          ? "max-w-5xl"
+          : "max-w-[1400px]",
+      )}
+    >
+      <div
+        id={PAGE_BACK_ACTION_SLOT_ID}
+        className="mb-3 flex items-center empty:hidden"
+      />
+      <CollectionPageHeader
+        title={title}
+        subtitle={subtitle}
+        showTitle
+        actionsPlacement="title"
+        actions={
+          <>
+            {actions}
+            <div
+              id={PAGE_HEADER_ACTION_SLOT_ID}
+              className="contents"
+            />
+          </>
+        }
+        className="mb-12 w-full"
+      />
+    </div>
   );
 }

@@ -20,6 +20,7 @@ const STATUS_TO_TONE: Record<string, BadgeTone> = {
   done: "success",
   overdue: "danger",
   skipped: "neutral",
+  not_reported: "danger",
 };
 
 export function getLinearStatusBadgeTone(status?: string | null): BadgeTone {

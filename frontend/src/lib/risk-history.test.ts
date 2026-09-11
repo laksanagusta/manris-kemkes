@@ -72,7 +72,7 @@ test("buildApprovedRiskHistoryItem uses current effective score and target basel
     weight: 1,
     nilai: 16,
     inherentScore: 16,
-    targetScore: 6,
+    targetScore: 6.4,
     riskPriority: 1,
     riskAppetite: "dalam_batas",
     treatmentOption: "mitigasi",

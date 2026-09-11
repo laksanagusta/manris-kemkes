@@ -22,7 +22,7 @@ export function OverviewPanelState({
         role="status"
         aria-live="polite"
         className={cn(
-          "flex min-h-48 items-center justify-center rounded-lg bg-muted/25 px-6 text-center text-sm text-muted-foreground",
+          "flex min-h-48 items-center justify-center rounded-lg bg-state-surface px-6 text-center text-sm text-state-foreground",
           className,
         )}
       >
@@ -36,12 +36,12 @@ export function OverviewPanelState({
       <div
         role="alert"
         className={cn(
-          "flex min-h-48 flex-col items-center justify-center gap-3 rounded-lg border border-destructive/20 bg-destructive/5 px-6 text-center text-sm text-destructive",
+          "flex min-h-48 flex-col items-center justify-center gap-3 rounded-lg bg-state-surface px-6 text-center text-sm text-state-foreground",
           className,
         )}
       >
         <span className="inline-flex max-w-sm items-center gap-2">
-          <AlertCircle aria-hidden="true" className="size-4 shrink-0" />
+          <AlertCircle aria-hidden="true" className="size-4 shrink-0 text-destructive" />
           {message}
         </span>
         {onRetry ? (
@@ -62,7 +62,7 @@ export function OverviewPanelState({
   return (
     <div
       className={cn(
-        "flex min-h-48 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground",
+        "flex min-h-48 items-center justify-center rounded-lg bg-state-surface px-6 text-center text-sm text-state-foreground",
         className,
       )}
     >

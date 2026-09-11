@@ -1,11 +1,7 @@
 import type { OrganizationListItem } from "./api/organizations";
-import type {
-  WorkingPaper,
-  WorkingPaperRiskLink,
-} from "../types/working-paper";
+import type { RiskMonitoringDetail } from "../types/risk-monitoring";
 
 export type MonitoringRosterStatus =
-  | "not_started"
   | "in_progress"
   | "finalized";
 
@@ -18,8 +14,6 @@ export type MonitoringOverviewRow = {
   title: string;
   organizationId: string;
   organizationName: string;
-  workingPaperId: string;
-  workingPaperCode: string;
   assessmentCycle: string;
   sourceRiskId: string;
   monitoringId: string | null;
@@ -34,12 +28,7 @@ export type MonitoringOverviewRow = {
 export type MonitoringOrganizationSummary = {
   id: string;
   name: string;
-  parentId: string | null;
-  depth: number;
-  hasChildren: boolean;
-  isAggregate: boolean;
   total: number;
-  notStarted: number;
   inProgress: number;
   finalized: number;
 };
@@ -54,13 +43,11 @@ export type MonitoringQueryState = {
 };
 
 const STATUS_ORDER: Record<MonitoringRosterStatus, number> = {
-  not_started: 0,
-  in_progress: 1,
-  finalized: 2,
+  in_progress: 0,
+  finalized: 1,
 };
 
 const STATUS_LABELS: Record<MonitoringRosterStatus, string> = {
-  not_started: "Belum Dimulai",
   in_progress: "Berlangsung",
   finalized: "Final",
 };
@@ -88,22 +75,6 @@ function firstPositive(...values: Array<number | null | undefined>) {
   return null;
 }
 
-function resolveMonitoringStatus(
-  link: WorkingPaperRiskLink,
-): MonitoringRosterStatus {
-  const rawStatus = link.risk.monitoring?.status?.trim().toLowerCase();
-
-  if (rawStatus === "final" || rawStatus === "finalized") {
-    return "finalized";
-  }
-
-  if (rawStatus === "draft" || link.monitoring_id || link.risk.monitoring?.id) {
-    return "in_progress";
-  }
-
-  return "not_started";
-}
-
 export function getMonitoringStatusLabel(status: MonitoringRosterStatus) {
   return STATUS_LABELS[status];
 }
@@ -117,57 +88,49 @@ export function getMonitoringRiskLevelLabel(level?: string | null) {
   return normalized ? RISK_LEVEL_LABELS[normalized] ?? level ?? "-" : "-";
 }
 
-export function buildMonitoringRosterRows(
-  workingPapers: WorkingPaper[],
+export function buildMonitoringTransactionRows(
+  monitorings: RiskMonitoringDetail[],
   organizations: OrganizationListItem[],
 ): MonitoringOverviewRow[] {
   const organizationNames = new Map(
     organizations.map((organization) => [organization.id, organization.name]),
   );
 
-  return workingPapers
-    .filter((workingPaper) => workingPaper.status !== "cancelled")
-    .flatMap((workingPaper) =>
-      (workingPaper.risks ?? []).map((link) => {
-        const monitoring = link.risk.monitoring;
-        const organizationName =
-          link.risk.org_name ||
-          organizationNames.get(workingPaper.org_id) ||
-          "Organisasi tidak diketahui";
-        const sourceScore = firstPositive(
-          link.risk.inherentScore,
-          link.risk.nilai,
-        );
-        const observedScore = monitoring
-          ? firstPositive(monitoring.observedNilai)
-          : null;
+  return monitorings.map((monitoring) => {
+    const sourceRisk = monitoring.sourceRisk;
+    const resultRisk = monitoring.resultRisk;
+    const organizationId =
+      sourceRisk?.organizationId ?? resultRisk?.organizationId ?? "";
+    const organizationName =
+      sourceRisk?.orgName ||
+      resultRisk?.orgName ||
+      organizationNames.get(organizationId) ||
+      "Organisasi tidak diketahui";
 
-        return {
-          id: `${workingPaper.id}:${link.id}`,
-          versionGroupId: link.version_group_id ?? link.risk_id,
-          code: link.risk.code || "-",
-          title: link.risk.title || "-",
-          organizationId: workingPaper.org_id,
-          organizationName,
-          workingPaperId: workingPaper.id,
-          workingPaperCode: workingPaper.code,
-          assessmentCycle:
-            workingPaper.assessment_cycle || monitoring?.assessmentCycle || "-",
-          sourceRiskId: link.source_risk_id ?? link.risk_id,
-          monitoringId: link.monitoring_id ?? monitoring?.id ?? null,
-          status: resolveMonitoringStatus(link),
-          sourceScore,
-          sourceLevel: getMonitoringRiskLevelLabel(
-            link.risk.tingkat_risiko_display || link.risk.tingkat_risiko,
-          ),
-          observedScore,
-          observedLevel: getMonitoringRiskLevelLabel(
-            monitoring?.observedLevel || link.risk.monitoring_tingkat_risiko_display,
-          ),
-          finalizedAt: monitoring?.finalizedAt ?? null,
-        } satisfies MonitoringOverviewRow;
-      }),
-    );
+    return {
+      id: monitoring.id,
+      versionGroupId:
+        monitoring.versionGroupId || sourceRisk?.versionGroupId || "",
+      code: sourceRisk?.code || resultRisk?.code || "-",
+      title: sourceRisk?.title || monitoring.draftTitle || resultRisk?.title || "-",
+      organizationId,
+      organizationName,
+      assessmentCycle: monitoring.assessmentCycle || "-",
+      sourceRiskId: monitoring.sourceRiskId,
+      monitoringId: monitoring.id,
+      status:
+        monitoring.status === "final" ? "finalized" : "in_progress",
+      sourceScore: firstPositive(
+        monitoring.sourceNilai,
+        sourceRisk?.inherentScore,
+        sourceRisk?.nilai,
+      ),
+      sourceLevel: getMonitoringRiskLevelLabel(monitoring.sourceLevel),
+      observedScore: firstPositive(monitoring.observedNilai),
+      observedLevel: getMonitoringRiskLevelLabel(monitoring.observedLevel),
+      finalizedAt: monitoring.finalizedAt ?? null,
+    } satisfies MonitoringOverviewRow;
+  });
 }
 
 export function getOrganizationScopeIds(
@@ -194,57 +157,28 @@ export function getOrganizationScopeIds(
   return scope;
 }
 
-function getOrganizationDepth(
-  organizationId: string,
-  organizationsById: Map<string, OrganizationListItem>,
-) {
-  let depth = 0;
-  let current = organizationsById.get(organizationId);
-  const visited = new Set<string>();
-
-  while (current?.parentId && !visited.has(current.id)) {
-    visited.add(current.id);
-    depth += 1;
-    current = organizationsById.get(current.parentId);
-  }
-
-  return depth;
-}
-
 export function buildMonitoringOrganizationSummaries(
   rows: MonitoringOverviewRow[],
   organizations: OrganizationListItem[],
   selectedOrganizationId: string,
 ): MonitoringOrganizationSummary[] {
   const scopeIds = getOrganizationScopeIds(organizations, selectedOrganizationId);
-  const organizationsById = new Map(
-    organizations.map((organization) => [organization.id, organization]),
-  );
   return organizations
     .filter((organization) => scopeIds.has(organization.id))
     .map((organization) => {
-      const descendantIds = getOrganizationScopeIds(organizations, organization.id);
-      const summaryRows = rows.filter((row) => descendantIds.has(row.organizationId));
+      const summaryRows = rows.filter(
+        (row) => row.organizationId === organization.id,
+      );
 
       return {
         id: organization.id,
         name: organization.name,
-        parentId: organization.parentId ?? null,
-        depth: getOrganizationDepth(organization.id, organizationsById),
-        hasChildren: organizations.some(
-          (candidate) => candidate.parentId === organization.id,
-        ),
-        isAggregate: organizations.some(
-          (candidate) => candidate.parentId === organization.id,
-        ),
         total: summaryRows.length,
-        notStarted: summaryRows.filter((row) => row.status === "not_started").length,
         inProgress: summaryRows.filter((row) => row.status === "in_progress").length,
         finalized: summaryRows.filter((row) => row.status === "finalized").length,
       };
     })
     .sort((left, right) => {
-      if (left.depth !== right.depth) return left.depth - right.depth;
       return left.name.localeCompare(right.name, "id");
     });
 }
@@ -296,7 +230,7 @@ export function parseMonitoringQueryState(
 ): MonitoringQueryState {
   const rawStatus = searchParams.get("status");
   const status: MonitoringStatusFilter =
-    rawStatus === "not_started" || rawStatus === "in_progress" || rawStatus === "finalized"
+    rawStatus === "in_progress" || rawStatus === "finalized"
       ? rawStatus
       : "all";
 

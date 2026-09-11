@@ -2,7 +2,6 @@
 
 import {
   Area,
-  CartesianGrid,
   ComposedChart,
   Line,
   XAxis,
@@ -45,10 +44,13 @@ export function CriticalRiskRateTrend({
       <StandardCard
         title="Tingkat Risiko Kritis"
         className="h-full"
-        contentClassName="flex flex-col gap-4"
+        contentClassName="flex min-h-0 flex-1 flex-col"
       >
-        <div data-testid="critical-risk-rate-trend">
-          <div className="flex h-56 items-center justify-center text-sm text-muted-foreground">
+        <div
+          data-testid="critical-risk-rate-trend"
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          <div className="flex h-full flex-1 items-center justify-center rounded-lg bg-state-surface text-sm text-state-foreground">
             Memuat...
           </div>
         </div>
@@ -67,16 +69,19 @@ export function CriticalRiskRateTrend({
         ) : null
       }
       className="h-full"
-      contentClassName="flex flex-col gap-4"
+      contentClassName="flex min-h-0 flex-1 flex-col"
     >
-      <div data-testid="critical-risk-rate-trend">
+      <div
+        data-testid="critical-risk-rate-trend"
+        className="flex min-h-0 flex-1 flex-col"
+      >
         {!hasData ? (
-          <div className="flex h-56 items-center justify-center rounded-lg border border-dashed border-surface-border bg-muted/20 px-6 text-center text-sm text-muted-foreground">
+          <div className="flex h-full flex-1 items-center justify-center rounded-lg bg-state-surface px-6 text-center text-sm text-state-foreground">
             Belum ada data kuartal untuk menampilkan tren risiko kritis.
           </div>
         ) : (
           <>
-            <div className="h-56">
+            <div className="min-h-56 flex-1">
               <ChartContainer config={chartConfig} className="h-full w-full">
                 <ComposedChart
                   accessibilityLayer
@@ -103,11 +108,6 @@ export function CriticalRiskRateTrend({
                       />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="var(--chart-grid)"
-                    vertical={false}
-                  />
                   <XAxis
                     dataKey="period"
                     tick={{ fontSize: 10 }}
@@ -150,18 +150,13 @@ export function CriticalRiskRateTrend({
                     dataKey="highExtremeRate"
                     stroke="var(--color-highExtremeRate)"
                     strokeWidth={2.5}
-                    dot={{
-                      r: 4,
-                      fill: "var(--color-highExtremeRate)",
-                      strokeWidth: 2,
-                      stroke: "var(--card)",
-                    }}
-                    activeDot={{ r: 6 }}
+                    dot={false}
+                    activeDot={false}
                   />
                 </ComposedChart>
               </ChartContainer>
             </div>
-            <div className="mt-3 flex items-center justify-center gap-4 border-t border-border/40 pt-3">
+            <div className="mt-3 flex shrink-0 items-center justify-center gap-4 border-t border-border/40 pt-3">
               <div className="flex items-center gap-1.5">
                 <div
                   className="h-0.5 w-4 rounded-full"

@@ -21,7 +21,7 @@ export function SidebarMotionExample() {
   const [activeHref, setActiveHref] = useState<string>(items[0].href);
 
   return (
-    <div className="space-y-4 rounded-2xl bg-card p-6 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+    <div className="space-y-4 rounded-xl bg-card p-6 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
       <SidebarProvider className="min-h-0 w-full">
         <div className="w-full max-w-xs rounded-xl border border-sidebar-border bg-sidebar p-2">
           <LayoutGroup id="design-system-sidebar-motion">

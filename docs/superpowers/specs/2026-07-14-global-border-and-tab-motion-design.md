@@ -11,7 +11,7 @@ Semantic borders such as destructive, warning, success, risk-level, and focus-ri
 
 ## Border System
 
-The shared `border` and `input` color tokens are the source of truth for neutral component boundaries. In light mode they use the table shell's zinc-gray family and opacity; dark mode uses a legible zinc-gray counterpart. Components already consuming `border-border` or `border-input` inherit the update without local overrides.
+The shared `border` and `input` color tokens are the source of truth for neutral component boundaries. They use the table shell's fixed light zinc-gray family and opacity. Components already consuming `border-border` or `border-input` inherit the update without local overrides.
 
 Do not mechanically replace semantic border utilities. Explicit neutral gray borders that duplicate the shared token should be migrated only when they are touched in scope and doing so does not erase a meaningful state.
 
@@ -40,4 +40,4 @@ The shared Tabs component owns the behavior so every consumer receives consisten
 
 - Add focused tests for direction selection and reduced-motion styling where practical.
 - Run the relevant frontend tests and lint/build checks.
-- Manually verify the `/design-system` Tabs and neutral-bordered component previews in light and dark modes if a browser session is available.
+- Manually verify the `/design-system` Tabs and neutral-bordered component previews in the fixed light visual system if a browser session is available.

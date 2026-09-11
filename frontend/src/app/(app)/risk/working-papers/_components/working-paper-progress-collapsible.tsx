@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Progress } from "@/components/ui/progress";
 import {
   Table,
@@ -11,9 +11,11 @@ import {
 import {
   CollapsibleCard,
   CollectionLoadingState,
+  CollectionTableSurface,
   CollectionTableHead,
   CollectionTableHeader,
   CollectionTableHeaderRow,
+  PopoverSelectField,
 } from "@/components/shared/design-system";
 import { buildLatestOrganizationProgressData } from "@/lib/dashboard-insights";
 import type { LatestOrganizationProgressDatum } from "@/lib/dashboard-insights";
@@ -24,38 +26,111 @@ type WorkingPaperProgressCollapsibleProps = {
   loading: boolean;
 };
 
+function normalizeProgressPeriod(value?: string) {
+  const match = value?.trim().match(/^(\d{4})-(Q[1-4]|H[12])$/i);
+  if (!match) return null;
+
+  const period = match[2].toUpperCase();
+  const quarter = period === "H1" ? "Q2" : period === "H2" ? "Q4" : period;
+  return `${match[1]}-${quarter}`;
+}
+
+function resolveProgressPeriod(
+  workingPaper: Pick<WorkingPaper, "assessment_cycle" | "created_at">,
+) {
+  const assessmentPeriod = normalizeProgressPeriod(
+    workingPaper.assessment_cycle,
+  );
+  if (assessmentPeriod) return assessmentPeriod;
+
+  const createdAt = new Date(workingPaper.created_at ?? "");
+  if (Number.isNaN(createdAt.getTime())) return null;
+
+  return `${createdAt.getFullYear()}-Q${Math.floor(createdAt.getMonth() / 3) + 1}`;
+}
+
+function periodSortValue(period: string) {
+  const [year, quarter] = period.split("-");
+  return Number(year) * 4 + Number(quarter.slice(1));
+}
+
 export function WorkingPaperProgressCollapsible({
   workingPapers,
   loading,
 }: WorkingPaperProgressCollapsibleProps) {
+  const [periodFilter, setPeriodFilter] = useState("all");
+  const periodOptions = useMemo(() => {
+    const periods = new Set(
+      workingPapers
+        .map(resolveProgressPeriod)
+        .filter((period): period is string => Boolean(period)),
+    );
+
+    return [...periods].sort(
+      (left, right) => periodSortValue(right) - periodSortValue(left),
+    ).map((period) => ({ value: period, label: period }));
+  }, [workingPapers]);
+
+  const activePeriodFilter =
+    periodFilter === "all" ||
+    periodOptions.some((option) => option.value === periodFilter)
+      ? periodFilter
+      : "all";
+  const filteredWorkingPapers = useMemo(
+    () =>
+      activePeriodFilter === "all"
+        ? workingPapers
+        : workingPapers.filter(
+            (workingPaper) =>
+              resolveProgressPeriod(workingPaper) === activePeriodFilter,
+          ),
+    [activePeriodFilter, workingPapers],
+  );
   const progressData = useMemo(
-    () => buildLatestOrganizationProgressData(workingPapers),
-    [workingPapers],
+    () => buildLatestOrganizationProgressData(filteredWorkingPapers),
+    [filteredWorkingPapers],
   );
 
   return (
     <CollapsibleCard.Root defaultOpen={false}>
-      <CollapsibleCard.Trigger>
-        <CollapsibleCard.Header>
-          <CollapsibleCard.Icon />
-          <CollapsibleCard.Text>
-            <CollapsibleCard.Title>
-              Progress Kertas Kerja
-            </CollapsibleCard.Title>
-            <CollapsibleCard.Description>
-              Persentase risiko final pada kertas kerja yang sedang ditampilkan.
-            </CollapsibleCard.Description>
-          </CollapsibleCard.Text>
-        </CollapsibleCard.Header>
-      </CollapsibleCard.Trigger>
+      <div className="flex min-w-0 items-center">
+        <CollapsibleCard.Trigger className="min-w-0 flex-1 justify-start hover:bg-card">
+          <CollapsibleCard.Header className="min-w-0 flex-1">
+            <CollapsibleCard.Icon />
+            <CollapsibleCard.Text>
+              <CollapsibleCard.Title>
+                Progress Kertas Kerja
+              </CollapsibleCard.Title>
+              <CollapsibleCard.Description>
+                Persentase risiko final pada kertas kerja yang sedang ditampilkan.
+              </CollapsibleCard.Description>
+            </CollapsibleCard.Text>
+          </CollapsibleCard.Header>
+        </CollapsibleCard.Trigger>
+        <CollapsibleCard.Actions className="pr-4">
+          <PopoverSelectField
+            value={activePeriodFilter}
+            onValueChange={setPeriodFilter}
+            options={[
+              { value: "all", label: "Semua periode" },
+              ...periodOptions,
+            ]}
+            placeholder="Semua periode"
+            ariaLabel="Filter periode progress kertas kerja"
+            triggerClassName="h-8 w-[140px] px-2 text-xs sm:w-[160px]"
+          />
+        </CollapsibleCard.Actions>
+      </div>
 
       <CollapsibleCard.Content>
-        <CollapsibleCard.Body className="p-4">
+        <CollapsibleCard.Body>
           {loading ? (
             <CollectionLoadingState message="Memuat progress kertas kerja..." />
           ) : progressData.length === 0 ? (
-            <div className="flex min-h-40 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/20 px-6 text-center text-sm text-muted-foreground">
-              Belum ada progress risiko pada hasil saat ini.
+            <div className="flex min-h-40 items-center justify-center rounded-lg bg-state-surface px-6 text-center text-sm text-state-foreground">
+              {activePeriodFilter === "all"
+                ? "Belum ada progress risiko pada hasil saat ini."
+                : `Belum ada progress risiko untuk periode ${activePeriodFilter}.`}
             </div>
           ) : (
             <LatestProgressTable data={progressData} />
@@ -72,7 +147,7 @@ function LatestProgressTable({
   data: LatestOrganizationProgressDatum[];
 }) {
   return (
-    <div className="max-h-[300px] overflow-y-auto rounded-lg border border-border/60">
+    <CollectionTableSurface viewportClassName="max-h-[300px] overflow-y-auto">
       <Table className="min-w-[640px] table-fixed">
         <colgroup>
           <col className="w-[30%]" />
@@ -96,7 +171,7 @@ function LatestProgressTable({
           {data.map((row) => (
             <TableRow
               key={`${row.orgName}-${row.period}`}
-              className="h-12"
+              className="h-12 border-border/80 transition-colors hover:bg-muted/70"
             >
               <TableCell
                 className="truncate py-2 pl-4 pr-3 text-sm font-medium"
@@ -126,6 +201,6 @@ function LatestProgressTable({
           ))}
         </TableBody>
       </Table>
-    </div>
+    </CollectionTableSurface>
   );
 }

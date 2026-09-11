@@ -403,10 +403,10 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
           showCloseButton={false}
         >
           <div className="flex min-h-0 flex-col gap-5">
-            <DialogHeader className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both">
+            <DialogHeader>
               <DialogTitle className="text-base">Semua Log</DialogTitle>
             </DialogHeader>
-            <div className="max-h-[calc(100dvh-14rem)] overflow-y-auto pr-1 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[40ms]">
+            <div className="max-h-[calc(100dvh-14rem)] overflow-y-auto pr-1">
               <div className="space-y-1">
                 {timelineItems.map((item) => (
                   <ActivityFeedRow
@@ -420,7 +420,7 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
                 ))}
               </div>
             </div>
-            <DialogFooter className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[80ms]">
+            <DialogFooter>
               <CollectionDialogCancel
                 onClick={() => setShowAllLogsDialog(false)}
               >
@@ -442,14 +442,14 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
           showCloseButton={false}
         >
           <div className="flex min-h-0 flex-col gap-5">
-            <DialogHeader className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both">
+            <DialogHeader>
               <DialogTitle className="text-base">
                 Detail Aktivitas Log
               </DialogTitle>
             </DialogHeader>
 
             {selectedItem && (
-              <div className="space-y-5 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[40ms]">
+              <div className="space-y-5">
                 <div className="grid gap-5 sm:grid-cols-2">
                   <div className="flex flex-col gap-2">
                     <Label htmlFor="log-detail-date">Tanggal</Label>
@@ -560,7 +560,7 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
               </div>
             )}
 
-            <DialogFooter className="gap-2 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[80ms]">
+            <DialogFooter className="gap-2">
               <CollectionDialogCancel onClick={() => setSelectedItem(null)}>
                 Tutup
               </CollectionDialogCancel>

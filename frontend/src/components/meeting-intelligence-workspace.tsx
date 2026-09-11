@@ -11,16 +11,20 @@ import { AIFeaturesDisabledState } from "@/components/shared/ai-features-disable
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
+import { FormHeader, FormPage } from "@/components/shared/form-shell";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -30,14 +34,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   createMeetingIntelligencePrefillToken,
   MEETING_INTELLIGENCE_PREFILL_PARAM,
@@ -51,26 +47,25 @@ import {
 } from "@/lib/meeting-minutes-utils";
 import { exportMeetingMinuteDocument } from "@/lib/meeting-minute-export";
 import {
-  CollectionPageHeader,
-  PageStack,
+  AccentButton,
+  ActionButton,
+  CollectionDialogCancel,
+  CollectionSearchField,
+  LabeledList,
+  LabeledListItem,
 } from "@/components/shared/design-system";
 import {
   AlertTriangle,
-  CalendarDays,
   Check,
   CheckCircle2,
-  ClipboardPaste,
-  Clock3,
+  ChevronDown,
   Download,
   GitBranch,
   Link2,
   Loader2,
   RefreshCw,
   Save,
-  Search,
-  ShieldAlert,
   Sparkles,
-  Users,
   X,
 } from "@/components/ui/icons";
 import { createMeetingMinute } from "@/lib/meeting-minutes";
@@ -218,9 +213,6 @@ const modeConfig: Record<
     summary: string;
     actionLabel: string;
     runningLabel: string;
-    icon: typeof CalendarDays;
-    accent: string;
-    chip: string;
   }
 > = {
   minutes: {
@@ -228,25 +220,19 @@ const modeConfig: Record<
     summary: "Susun ringkasan formal rapat dan tindak lanjut tanpa membuka analisis risiko.",
     actionLabel: "Susun Briefing",
     runningLabel: "Menyusun briefing...",
-    icon: CalendarDays,
-    accent: "border-primary/30 bg-primary/[0.06] text-primary",
-    chip: "bg-primary/10 text-primary border-primary/20",
   },
   risk: {
     title: "Tinjau Risiko",
     summary: "Nilai apakah rapat memunculkan risiko baru atau perubahan pada risiko yang sudah ada.",
     actionLabel: "Tinjau Risiko",
     runningLabel: "Meninjau perubahan risiko...",
-    icon: ShieldAlert,
-    accent: "border-amber-500/30 bg-amber-500/[0.06] text-amber-700",
-    chip: "bg-amber-500/10 text-amber-700 border-amber-500/20",
   },
 };
 
-const priorityVariant: Record<MinutesPriority, string> = {
-  High: "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
-  Medium: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
-  Low: "bg-risk-low/15 text-risk-low border-risk-low/20",
+const priorityTone: Record<MinutesPriority, "danger" | "warning" | "success"> = {
+  High: "danger",
+  Medium: "warning",
+  Low: "success",
 };
 
 const suggestionTypeConfig: Record<
@@ -435,6 +421,7 @@ function MeetingIntelligenceWorkspaceContent({
   const [allRisks, setAllRisks] = useState<RiskSummary[]>([]);
   const [isLoadingRisks, setIsLoadingRisks] = useState(false);
   const [riskSearchQuery, setRiskSearchQuery] = useState("");
+  const [riskPickerOpen, setRiskPickerOpen] = useState(false);
 
   useEffect(() => {
     setMode(initialMode);
@@ -451,21 +438,6 @@ function MeetingIntelligenceWorkspaceContent({
       lowConfidence: suggestions.filter((suggestion) => isLowConfidenceSuggestion(suggestion)).length,
     };
   }, [suggestions]);
-
-  const minutesSummary = useMemo(() => {
-    if (!generatedMinutes) return null;
-
-    const missingPic = generatedMinutes.actionItems.filter((item) => needsConfirmation(item, "pic")).length;
-    const missingDeadline = generatedMinutes.actionItems.filter((item) => needsConfirmation(item, "deadline")).length;
-    const highPriority = generatedMinutes.actionItems.filter((item) => normalizePriority(item.priority) === "High").length;
-
-    return {
-      total: generatedMinutes.actionItems.length,
-      missingPic,
-      missingDeadline,
-      highPriority,
-    };
-  }, [generatedMinutes]);
 
   const handleRun = async () => {
     if (!transcript.trim()) {
@@ -654,7 +626,7 @@ function MeetingIntelligenceWorkspaceContent({
     }
   };
 
-  const handleSearchRisks = async (query: string) => {
+  const handleSearchRisks = (query: string) => {
     setRiskSearchQuery(query);
 
     setAvailableRisks(filterMeetingRiskOptions(allRisks, query));
@@ -746,48 +718,44 @@ function MeetingIntelligenceWorkspaceContent({
   };
 
   return (
-    <PageStack>
-      <CollectionPageHeader
-        eyebrow={
-          <Badge variant="outline" className="text-[10px] uppercase tracking-[0.18em]">
-            Briefing
-          </Badge>
-        }
-        title="Tinjau rapat, lalu susun briefing atau tinjauan risiko."
-      />
+    <FormPage>
+      {initialMode === "risk" ? (
+        <FormHeader
+          title="Analisis Transkrip"
+          subtitle="Susun briefing atau tinjauan risiko dari transkrip rapat."
+        />
+      ) : null}
 
       <section className="space-y-6">
-          <Card className="overflow-hidden bg-card/90">
-            <CardHeader className="border-b border-border/50 bg-muted/[0.18] pb-4">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                <div className="space-y-1.5">
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <ClipboardPaste className="size-4 text-primary" />
-                    Transkrip
-                  </CardTitle>
-                  <p className="text-sm leading-6 text-secondary-foreground">
-                    Pilih satu keluaran dulu. Anda bisa memakai transkrip yang sama lagi nanti.
-                  </p>
-                </div>
+          <Card className="gap-4 p-4">
+            <div>
+              <div className="flex flex-col gap-[2px]">
+                <p className="text-[15px] font-medium leading-[23px] text-foreground">Transkrip rapat</p>
+                <p className="text-[13px] font-normal leading-[22px] text-muted-foreground">
+                  Pilih keluaran, lalu masukkan transkrip atau catatan rapat untuk dianalisis.
+                </p>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-5 p-5">
-              <div className="grid gap-3 md:grid-cols-2">
+            </div>
+            <CardContent className="space-y-6 p-0">
+              <fieldset className="flex flex-col gap-2">
+                <legend className="text-sm font-medium text-foreground">Jenis keluaran</legend>
+                <div className="grid gap-3 md:grid-cols-2">
                 {(Object.keys(modeConfig) as WorkspaceMode[]).map((option) => {
                   const config = modeConfig[option];
-                  const Icon = config.icon;
                   const isSelected = mode === option;
 
                   return (
                     <button
                       key={option}
                       type="button"
+                      aria-pressed={isSelected}
+                      disabled={isWorking}
                       onClick={() => setMode(option)}
                       className={cn(
-                        "group rounded-2xl border px-4 py-4 text-left transition-all duration-200",
+                        "rounded-lg border p-4 text-left transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none",
                         isSelected
-                          ? config.accent
-                          : "border-border/60 bg-background hover:border-border hover:bg-muted/[0.16]"
+                          ? "border-foreground/30 bg-muted text-foreground"
+                          : "border-input bg-card hover:bg-muted/50"
                       )}
                     >
                       <div className="flex items-start justify-between gap-3">
@@ -795,43 +763,32 @@ function MeetingIntelligenceWorkspaceContent({
                           <p className="text-sm font-semibold text-foreground">{config.title}</p>
                           <p className="mt-1 text-xs leading-5 text-muted-foreground">{config.summary}</p>
                         </div>
-                        <div
-                          className={cn(
-                            "flex size-10 shrink-0 items-center justify-center rounded-full border",
-                            isSelected ? "border-current/20 bg-background/80" : "border-border/60 bg-muted/[0.18]"
-                          )}
-                        >
-                          <Icon className={cn("size-4", isSelected ? "text-current" : "text-muted-foreground")} />
-                        </div>
                       </div>
                     </button>
                   );
                 })}
-              </div>
-
-                <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <label className="text-sm font-medium text-foreground">Transkrip rapat</label>
                 </div>
+              </fieldset>
+
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="meeting-transcript">Transkrip rapat</Label>
                 <Textarea
+                  id="meeting-transcript"
                   value={transcript}
                   onChange={(event) => setTranscript(event.target.value)}
                   placeholder="Paste transkrip atau catatan rapat di sini. Sertakan keputusan, isu utama, dan tindak lanjut bila sudah ada."
-                  className="min-h-[220px] resize-none border-input bg-muted/[0.14] text-sm leading-6"
+                  className="min-h-[240px] resize-y text-sm leading-6"
                 />
               </div>
 
-              <div className="flex flex-col gap-3 border-t border-border/50 pt-4 md:flex-row md:items-center md:justify-between">
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
+              <div className="flex flex-wrap justify-end gap-2">
+                  <ActionButton
                     onClick={() => setTranscript("")}
                     disabled={isWorking || transcript.length === 0}
-                    className="text-xs"
                   >
                     Kosongkan
-                  </Button>
-                  <Button onClick={handleRun} disabled={isWorking} className="gap-2">
+                  </ActionButton>
+                  <AccentButton onClick={handleRun} disabled={isWorking || !transcript.trim()} className="gap-2">
                     {isWorking ? (
                       <>
                         <RefreshCw className="size-4 animate-spin" />
@@ -843,309 +800,206 @@ function MeetingIntelligenceWorkspaceContent({
                         {selectedMode.actionLabel}
                       </>
                     )}
-                  </Button>
-                </div>
+                  </AccentButton>
               </div>
             </CardContent>
           </Card>
 
           {mode === "minutes" ? (
             generatedMinutes ? (
-              <Card className="bg-card/90">
-                <div className="border-b border-border/50 p-6">
-                  <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Badge className={cn("w-fit text-[10px] uppercase tracking-[0.18em]", modeConfig.minutes.chip)}>
-                          Draf Briefing
-                        </Badge>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="gap-1 text-xs"
-                          onClick={handleExportMinutes}
-                        >
-                          <Download className="size-3.5" />
-                          Export Briefing
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="gap-1 text-xs"
-                          onClick={handleOpenSaveDialog}
-                          disabled={savedMinutesId !== null}
-                        >
-                          <Save className="size-3.5" />
-                          {savedMinutesId ? "Tersimpan" : "Simpan Briefing"}
-                        </Button>
-                      </div>
-                      <div>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          Tinjau briefing ini sebelum dibagikan ke peserta rapat.
-                        </p>
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-                      <Badge tone="neutral" size="compact" className="text-[11px]">
-                        <CalendarDays className="size-3.5" />
-                        {generatedMinutes.date}
-                      </Badge>
-                      <Badge tone="neutral" size="compact" className="text-[11px]">
-                        <Clock3 className="size-3.5" />
-                        Draf siap ditinjau
-                      </Badge>
-                    </div>
+              <div className="space-y-10">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <Badge
+                    size="compact"
+                    tone="neutral"
+                    className="!bg-[#0000000a] !text-[#8f8e8e]"
+                  >
+                    Draf Briefing
+                  </Badge>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1 text-xs"
+                      onClick={handleExportMinutes}
+                    >
+                      <Download className="size-3.5" />
+                      Export Briefing
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="gap-1 text-xs"
+                      onClick={handleOpenSaveDialog}
+                      disabled={savedMinutesId !== null}
+                    >
+                      <Save className="size-3.5" />
+                      {savedMinutesId ? "Tersimpan" : "Simpan Briefing"}
+                    </Button>
                   </div>
                 </div>
-                <CardContent className="space-y-6 p-5">
-                  <section className="border border-border/50 bg-muted/[0.12] px-4 py-4">
-                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                      <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                          Ringkasan operasional
-                        </p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          Snapshot tindak lanjut yang paling penting untuk dibaca cepat.
-                        </p>
-                      </div>
-                      <div className="flex flex-wrap gap-2 text-[11px] text-muted-foreground">
-                        <Badge tone="neutral" size="compact" className="text-[11px]">
-                          <span className="font-medium text-foreground">{minutesSummary?.total ?? 0}</span>
-                          Tindak lanjut
-                        </Badge>
-                        <Badge tone="neutral" size="compact" className="text-[11px]">
-                          <span className="font-medium text-foreground">{minutesSummary?.missingPic ?? 0}</span>
-                          Perlu PIC
-                        </Badge>
-                        <Badge tone="neutral" size="compact" className="text-[11px]">
-                          <span className="font-medium text-foreground">{minutesSummary?.missingDeadline ?? 0}</span>
-                          Perlu deadline
-                        </Badge>
-                        <Badge tone="neutral" size="compact" className="text-[11px]">
-                          <span className="font-medium text-foreground">{minutesSummary?.highPriority ?? 0}</span>
-                          Prioritas tinggi
-                        </Badge>
-                      </div>
-                    </div>
-                  </section>
 
-                  <section className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                        Peserta rapat
-                      </p>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {generatedMinutes.participants.length > 0 ? (
-                          generatedMinutes.participants.map((participant) => (
-                            <Badge key={participant} variant="outline" className="bg-background px-2.5 py-1 text-xs">
-                              <Users className="mr-1 size-3" />
-                              {participant}
-                            </Badge>
-                          ))
-                        ) : (
-                          <p className="text-sm text-muted-foreground">Belum ada peserta yang teridentifikasi.</p>
-                        )}
-                      </div>
-                    </div>
+                <LabeledList label="Peserta rapat">
+                  {generatedMinutes.participants.length > 0 ? (
+                    generatedMinutes.participants.map((participant, index) => (
+                      <LabeledListItem
+                        key={`${participant}-${index}`}
+                        title={participant}
+                      />
+                    ))
+                  ) : (
+                    <LabeledListItem
+                      title={
+                        <span className="font-normal text-muted-foreground">
+                          Belum ada peserta yang teridentifikasi.
+                        </span>
+                      }
+                    />
+                  )}
+                </LabeledList>
 
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                        Agenda
-                      </p>
-                      <div className="mt-3 space-y-2">
-                        {generatedMinutes.agenda.length > 0 ? (
-                          generatedMinutes.agenda.map((item, index) => (
-                            <div key={`${item}-${index}`} className="border border-border/60 bg-background px-3 py-2 text-sm">
-                              {item}
+                <LabeledList label="Agenda">
+                  {generatedMinutes.agenda.length > 0 ? (
+                    generatedMinutes.agenda.map((item, index) => (
+                      <LabeledListItem key={`${item}-${index}`} title={item} />
+                    ))
+                  ) : (
+                    <LabeledListItem
+                      title={
+                        <span className="font-normal text-muted-foreground">
+                          Agenda belum terdeteksi dari transkrip ini.
+                        </span>
+                      }
+                    />
+                  )}
+                </LabeledList>
+
+                <LabeledList label="Ringkasan">
+                  <LabeledListItem
+                    title={
+                      <span className="font-normal leading-6">
+                        {generatedMinutes.summary ||
+                          "AI belum memberikan ringkasan. Gunakan transkrip yang lebih lengkap lalu coba lagi."}
+                      </span>
+                    }
+                  />
+                </LabeledList>
+
+                <LabeledList label="Key Points">
+                  {generatedMinutes.keyPoints.length > 0 ? (
+                    generatedMinutes.keyPoints.map((point, index) => (
+                      <LabeledListItem
+                        key={`${point}-${index}`}
+                        title={<span className="font-normal leading-6">{point}</span>}
+                      />
+                    ))
+                  ) : (
+                    <LabeledListItem
+                      title={
+                        <span className="font-normal text-muted-foreground">
+                          Belum ada poin pembahasan penting yang terdeteksi.
+                        </span>
+                      }
+                    />
+                  )}
+                </LabeledList>
+
+                <LabeledList label="Tindak Lanjut">
+                  {generatedMinutes.actionItems.length > 0 ? (
+                    generatedMinutes.actionItems.map((item, index) => {
+                      const itemPriority = normalizePriority(item.priority);
+                      const missingPic = needsConfirmation(item, "pic");
+                      const missingDeadline = needsConfirmation(item, "deadline");
+                      const supportingDetails = [
+                        item.ownerUnit ? `Unit: ${item.ownerUnit}` : null,
+                        item.notes || item.relatedDecision || null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ");
+
+                      return (
+                        <LabeledListItem
+                          key={`${item.task}-${index}`}
+                          className="flex-col items-stretch sm:flex-row sm:items-center"
+                          title={item.task}
+                          description={supportingDetails || undefined}
+                          trailing={
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                              {item.pic ? (
+                                <span>PIC: {item.pic}</span>
+                              ) : missingPic ? (
+                                <Badge tone="warning" size="compact">
+                                  Perlu PIC
+                                </Badge>
+                              ) : null}
+                              {item.deadline ? (
+                                <span>{item.deadline}</span>
+                              ) : missingDeadline ? (
+                                <Badge tone="warning" size="compact">
+                                  Perlu deadline
+                                </Badge>
+                              ) : null}
+                              <Badge tone={priorityTone[itemPriority]} size="compact">
+                                {itemPriority}
+                              </Badge>
                             </div>
-                          ))
-                        ) : (
-                          <p className="text-sm text-muted-foreground">Agenda belum terdeteksi dari transkrip ini.</p>
-                        )}
-                      </div>
-                    </div>
-                  </section>
+                          }
+                        />
+                      );
+                    })
+                  ) : (
+                    <LabeledListItem
+                      title={
+                        <span className="font-normal text-muted-foreground">
+                          Belum ada tindak lanjut yang terdeteksi.
+                        </span>
+                      }
+                    />
+                  )}
+                </LabeledList>
 
-                  <section>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                      Ringkasan
-                    </p>
-                    <p className="mt-3 text-sm leading-6 text-foreground">
-                      {generatedMinutes.summary || "AI belum memberikan ringkasan. Gunakan transkrip yang lebih lengkap lalu coba lagi."}
-                    </p>
-                  </section>
+                <LabeledList label="Isu Terbuka">
+                  {generatedMinutes.openIssues.length > 0 ? (
+                    generatedMinutes.openIssues.map((issue, index) => (
+                      <LabeledListItem
+                        key={`${issue}-${index}`}
+                        title={<span className="font-normal leading-6">{issue}</span>}
+                      />
+                    ))
+                  ) : (
+                    <LabeledListItem
+                      title={
+                        <span className="font-normal text-muted-foreground">
+                          Belum ada isu terbuka yang terdeteksi.
+                        </span>
+                      }
+                    />
+                  )}
+                </LabeledList>
 
-                  <section className="space-y-3">
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                        Key Points
-                      </p>
-                      <div className="mt-3 space-y-2">
-                        {generatedMinutes.keyPoints.length > 0 ? (
-                          generatedMinutes.keyPoints.map((point, index) => (
-                            <div key={`${point}-${index}`} className="flex gap-3 border border-border/60 bg-background px-4 py-3">
-                              <Check className="mt-0.5 size-4 shrink-0 text-primary" />
-                              <p className="text-sm leading-6 text-foreground">{point}</p>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-sm text-muted-foreground">Belum ada poin pembahasan penting yang terdeteksi.</p>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
-                      <div>
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                          Tindak Lanjut
-                        </p>
-                        <p className="mt-1 text-sm text-muted-foreground">
-                          Fokus utama briefing ini adalah memastikan hasil rapat bisa langsung ditindaklanjuti.
-                        </p>
-                      </div>
-                      {generatedMinutes.nextCheckIn ? (
-                        <Badge variant="outline" className="w-fit bg-background px-3 py-1 text-xs">
-                          Review berikutnya: {generatedMinutes.nextCheckIn}
-                        </Badge>
-                      ) : null}
-                    </div>
-                    <div className="space-y-3">
-                      {generatedMinutes.actionItems.length > 0 ? (
-                        <div className="overflow-hidden rounded-2xl border border-border/50">
-                          <div className="overflow-x-auto">
-                            <Table>
-                              <TableHeader>
-                                <TableRow className="border-border/50 hover:bg-transparent">
-                                  <TableHead className="text-sm max-w-[280px]">Tindak lanjut</TableHead>
-                                  <TableHead className="text-sm max-w-[140px]">PIC</TableHead>
-                                  <TableHead className="text-sm max-w-[120px]">Deadline</TableHead>
-                                  <TableHead className="text-sm w-[100px]">Prioritas</TableHead>
-                                  <TableHead className="text-sm max-w-[200px]">Catatan</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {generatedMinutes.actionItems.map((item, index) => {
-                                  const itemPriority = normalizePriority(item.priority);
-                                  const missingPic = needsConfirmation(item, "pic");
-                                  const missingDeadline = needsConfirmation(item, "deadline");
-
-                                  return (
-                                    <TableRow key={`${item.task}-${index}`} className="border-border/50 hover:bg-muted/20">
-                                      <TableCell className="max-w-[280px] align-top">
-                                        <p className="truncate text-sm font-medium leading-snug text-foreground" title={item.task}>
-                                          {item.task}
-                                        </p>
-                                        {item.ownerUnit && (
-                                          <p className="mt-1 truncate text-xs text-muted-foreground" title={item.ownerUnit}>
-                                            Unit: {item.ownerUnit}
-                                          </p>
-                                        )}
-                                      </TableCell>
-                                      <TableCell className="max-w-[140px] align-top text-xs">
-                                        {item.pic ? (
-                                          <span className="block truncate" title={item.pic}>
-                                            {item.pic}
-                                          </span>
-                                        ) : (
-                                          <span className="text-muted-foreground">
-                                            {missingPic ? (
-                                              <Badge variant="outline" className="bg-amber-500/5 text-[9px] text-amber-700">
-                                                Perlu PIC
-                                              </Badge>
-                                            ) : (
-                                              "-"
-                                            )}
-                                          </span>
-                                        )}
-                                      </TableCell>
-                                      <TableCell className="max-w-[120px] align-top text-xs">
-                                        {item.deadline ? (
-                                          <span className="block truncate" title={item.deadline}>
-                                            {item.deadline}
-                                          </span>
-                                        ) : (
-                                          <span className="text-muted-foreground">
-                                            {missingDeadline ? (
-                                              <Badge variant="outline" className="bg-amber-500/5 text-[9px] text-amber-700">
-                                                Perlu deadline
-                                              </Badge>
-                                            ) : (
-                                              "-"
-                                            )}
-                                          </span>
-                                        )}
-                                      </TableCell>
-                                      <TableCell className="w-[100px] align-top text-center">
-                                        <Badge className={cn("w-fit text-[9px]", priorityVariant[itemPriority])}>
-                                          {itemPriority}
-                                        </Badge>
-                                      </TableCell>
-                                      <TableCell className="max-w-[200px] align-top text-xs text-muted-foreground">
-                                        <span className="block truncate" title={item.notes || item.relatedDecision}>
-                                          {item.notes || item.relatedDecision || "-"}
-                                        </span>
-                                      </TableCell>
-                                    </TableRow>
-                                  );
-                                })}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-sm text-muted-foreground">Belum ada tindak lanjut yang terdeteksi.</p>
-                      )}
-                    </div>
-                  </section>
-
-                  <section>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                      Isu Terbuka
-                    </p>
-                    <div className="mt-3 space-y-2">
-                      {generatedMinutes.openIssues.length > 0 ? (
-                        generatedMinutes.openIssues.map((issue, index) => (
-                          <div key={`${issue}-${index}`} className="flex gap-3 border border-border/60 bg-background px-4 py-3">
-                            <GitBranch className="mt-0.5 size-4 shrink-0 text-amber-600" />
-                            <p className="text-sm leading-6 text-foreground">{issue}</p>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-sm text-muted-foreground">Belum ada isu terbuka yang terdeteksi.</p>
-                      )}
-                    </div>
-                  </section>
-
-                  <section>
-                    <div>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                        Keputusan
-                      </p>
-                      <div className="mt-3 space-y-2">
-                        {generatedMinutes.decisions.length > 0 ? (
-                          generatedMinutes.decisions.map((decision, index) => (
-                            <div
-                              key={`${decision}-${index}`}
-                              className="flex gap-3 border-l border-primary/30 bg-primary/[0.04] px-4 py-3"
-                            >
-                              <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-primary" />
-                              <p className="text-sm leading-6 text-foreground">{decision}</p>
-                            </div>
-                          ))
-                        ) : (
-                          <p className="text-sm text-muted-foreground">Belum ada keputusan yang terstruktur.</p>
-                        )}
-                      </div>
-                    </div>
-                  </section>
-                </CardContent>
-              </Card>
+                <LabeledList label="Keputusan">
+                  {generatedMinutes.decisions.length > 0 ? (
+                    generatedMinutes.decisions.map((decision, index) => (
+                      <LabeledListItem
+                        key={`${decision}-${index}`}
+                        title={<span className="font-normal leading-6">{decision}</span>}
+                      />
+                    ))
+                  ) : (
+                    <LabeledListItem
+                      title={
+                        <span className="font-normal text-muted-foreground">
+                          Belum ada keputusan yang terstruktur.
+                        </span>
+                      }
+                    />
+                  )}
+                </LabeledList>
+              </div>
             ) : (
-              <Card className="bg-muted/[0.12]">
-                <CardContent className="flex flex-col items-start gap-3 p-6">
-                  <div>
-                    <p className="text-base font-medium text-foreground">Briefing akan muncul di sini setelah Anda menjalankan mode ini.</p>
-                  </div>
+              <Card className="min-h-[60px] flex-row items-center rounded-[10px]">
+                <CardContent role="status" className="w-full p-0 text-sm font-normal leading-5 text-muted-foreground">
+                  Briefing akan muncul di sini setelah Anda menjalankan mode ini.
                 </CardContent>
               </Card>
             )
@@ -1359,10 +1213,10 @@ function MeetingIntelligenceWorkspaceContent({
                   }
                 }}
               >
-                <DialogContent className="overflow-hidden sm:max-w-5xl">
+                <DialogContent className="max-w-5xl no-scrollbar" showCloseButton={false}>
                   {reviewSuggestion ? (
                     <>
-                      <DialogHeader className="shrink-0 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both">
+                      <DialogHeader className="shrink-0">
                         <div className="space-y-3">
                           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
                             <span className="font-medium text-foreground">Tinjau perubahan</span>
@@ -1373,7 +1227,7 @@ function MeetingIntelligenceWorkspaceContent({
                           </div>
 
                           <div className="space-y-1.5">
-                            <DialogTitle className="text-lg leading-tight">
+                            <DialogTitle className="text-base leading-5">
                               {reviewSuggestion.targetRiskTitle || "Tinjau perubahan risiko"}
                             </DialogTitle>
                             <p className="text-sm leading-6 text-muted-foreground">
@@ -1424,7 +1278,7 @@ function MeetingIntelligenceWorkspaceContent({
                         </div>
                       </DialogHeader>
 
-                      <div className="min-h-0 flex-1 overflow-y-auto motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[40ms]">
+                      <div className="min-h-0 flex-1 overflow-y-auto">
                         <div className="space-y-5">
                           {targetRiskDetails ? (
                             <div className="flex items-start gap-2 border border-border/60 bg-muted/[0.08] px-4 py-3 text-sm leading-6 text-muted-foreground">
@@ -1543,7 +1397,7 @@ function MeetingIntelligenceWorkspaceContent({
                         </div>
                       </div>
 
-                      <DialogFooter className="shrink-0 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[80ms] sm:flex-row sm:items-center sm:justify-between">
+                      <DialogFooter className="shrink-0 sm:flex-row sm:items-center sm:justify-between">
                         <div className="space-y-1">
                           <p className="text-sm font-medium text-foreground">
                             {selectedChangeIds.length} perubahan siap diterapkan
@@ -1555,9 +1409,8 @@ function MeetingIntelligenceWorkspaceContent({
                           </p>
                         </div>
                         <div className="flex gap-2">
-                          <Button
+                          <CollectionDialogCancel
                             type="button"
-                            variant="outline"
                             onClick={() => {
                               setReviewSuggestion(null);
                               setTargetRiskDetails(null);
@@ -1565,9 +1418,10 @@ function MeetingIntelligenceWorkspaceContent({
                             }}
                           >
                             Tutup
-                          </Button>
-                          <Button
+                          </CollectionDialogCancel>
+                          <AccentButton
                             type="button"
+                            icon={isApplyingSuggestion ? <Loader2 className="size-3.5 animate-spin" /> : null}
                             onClick={handleApplySuggestion}
                             disabled={
                               !reviewSuggestion ||
@@ -1582,7 +1436,7 @@ function MeetingIntelligenceWorkspaceContent({
                               : reviewTargetIsLocked
                                 ? "Buat draf versi baru"
                                 : "Terapkan pembaruan ke draf"}
-                          </Button>
+                          </AccentButton>
                         </div>
                       </DialogFooter>
                     </>
@@ -1591,27 +1445,31 @@ function MeetingIntelligenceWorkspaceContent({
               </Dialog>
             </>
           ) : (
-            <Card className="bg-muted/[0.12]">
-              <CardContent className="flex flex-col items-start gap-3 p-6">
-                <div>
-                  <p className="text-base font-medium text-foreground">Saran akan muncul di sini setelah analisis dijalankan.</p>
-                </div>
+            <Card className="min-h-[60px] flex-row items-center rounded-[10px]">
+              <CardContent role="status" className="w-full p-0 text-sm font-normal leading-5 text-muted-foreground">
+                Saran akan muncul di sini setelah analisis dijalankan.
               </CardContent>
             </Card>
           )}
       </section>
 
       {/* Save Dialog - moved to root level to avoid nested Dialog interaction issues */}
-      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-        <DialogContent className="overflow-hidden sm:max-w-2xl">
-          <DialogHeader className="shrink-0 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both">
-            <DialogTitle className="text-lg">Simpan Briefing</DialogTitle>
-            <DialogDescription className="mt-1">
-              Simpan briefing ini dan hubungkan dengan risiko terkait.
-            </DialogDescription>
+      <Dialog
+        open={showSaveDialog}
+        onOpenChange={(open) => {
+          setShowSaveDialog(open);
+          if (!open) {
+            setRiskPickerOpen(false);
+            handleSearchRisks("");
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl no-scrollbar" showCloseButton={false}>
+          <DialogHeader className="shrink-0">
+            <DialogTitle className="text-base leading-5">Simpan Briefing</DialogTitle>
           </DialogHeader>
           
-          <div className="min-h-0 flex-1 overflow-y-auto motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[40ms]">
+          <div className="min-h-0 flex-1 overflow-y-auto">
             <div className="space-y-5">
               <div className="space-y-3">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -1642,157 +1500,136 @@ function MeetingIntelligenceWorkspaceContent({
               </div>
 
               <div className="space-y-3">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                  <div>
-                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-                      Hubungkan Risiko
-                    </p>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      Cari dan pilih risiko yang relevan dengan briefing ini.
-                    </p>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {selectedRiskIds.length} risiko dipilih
-                  </p>
-                </div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                  Hubungkan Risiko
+                </p>
 
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="Cari risiko berdasarkan kode atau judul..."
-                    value={riskSearchQuery}
-                    onChange={(e) => handleSearchRisks(e.target.value)}
-                    className="pl-9"
-                  />
-                  {isLoadingRisks && (
-                    <Loader2 className="absolute right-3 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
-                  )}
-                </div>
-
-                {availableRisks.length > 0 && (
-                  <div className="max-h-[200px] overflow-y-auto rounded-lg border border-border/60 bg-muted/[0.16]">
-                    {availableRisks.map((risk) => {
-                      const isSelected = selectedRiskIds.includes(risk.id);
-                      return (
-                        <button
-                          key={risk.id}
-                          type="button"
-                          onClick={() => handleToggleRisk(risk.id)}
+                <Popover
+                  open={riskPickerOpen}
+                  onOpenChange={(open) => {
+                    setRiskPickerOpen(open);
+                    if (!open) handleSearchRisks("");
+                  }}
+                >
+                  <PopoverTrigger asChild>
+                    <ActionButton
+                      type="button"
+                      role="combobox"
+                      aria-expanded={riskPickerOpen}
+                      aria-label="Pilih risiko yang akan dihubungkan"
+                      className="h-10 w-full justify-between px-3 font-normal"
+                    >
+                      <span>Pilih risiko</span>
+                      <span className="flex items-center gap-2 text-muted-foreground">
+                        {selectedRiskIds.length > 0 ? (
+                          <span className="text-xs">
+                            {selectedRiskIds.length} dipilih
+                          </span>
+                        ) : null}
+                        <ChevronDown
                           className={cn(
-                            "flex w-full items-center justify-between gap-3 px-3 py-2 text-left text-sm transition-colors hover:bg-muted/[0.36]",
-                            isSelected && "bg-primary/[0.12]"
+                            "size-4 transition-transform duration-150 motion-reduce:transition-none",
+                            riskPickerOpen && "rotate-180",
                           )}
-                        >
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate font-medium text-foreground">
-                              {risk.code} • {risk.title}
-                            </p>
-                            {risk.status && (
-                              <p className="mt-0.5 text-xs text-muted-foreground capitalize">
-                                {risk.status}
-                              </p>
-                            )}
-                          </div>
-                          {isSelected && (
-                            <Check className="size-4 shrink-0 text-primary" />
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                )}
-
-                {selectedRiskIds.length > 0 && (
-                  <div className="space-y-2">
-                    <p className="text-xs text-muted-foreground">Risiko terpilih:</p>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedRiskIds.map((riskId) => {
-                        const risk = allRisks.find((r) => r.id === riskId) || availableRisks.find((r) => r.id === riskId);
-                        return (
-                          <Badge
-                            key={riskId}
-                            variant="outline"
-                            className="max-w-[240px] gap-1 -primary/30 bg-primary/5">
-                            <span className="truncate">
-                              {risk ? `${risk.code} • ${risk.title}` : riskId}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => handleToggleRisk(riskId)}
-                              className="ml-0.5 rounded-full p-0.5 hover:bg-primary/20"
-                            >
-                              <X className="size-3" />
-                            </button>
-                          </Badge>
-                        );
-                      })}
+                        />
+                      </span>
+                    </ActionButton>
+                  </PopoverTrigger>
+                  <PopoverContent
+                    align="start"
+                    className="w-[var(--radix-popover-trigger-width)] gap-0 overflow-hidden p-0"
+                  >
+                    <div className="relative border-b border-border/60 p-2">
+                      <CollectionSearchField
+                        autoFocus
+                        placeholder="Cari kode atau judul risiko..."
+                        value={riskSearchQuery}
+                        onChange={(event) => handleSearchRisks(event.target.value)}
+                        containerClassName="sm:w-full"
+                        className="h-9 pr-9"
+                      />
+                      {isLoadingRisks ? (
+                        <Loader2 className="absolute right-5 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
+                      ) : null}
                     </div>
-                  </div>
-                )}
+                    <div
+                      role="listbox"
+                      aria-label="Daftar risiko"
+                      aria-multiselectable="true"
+                      className="max-h-60 overflow-y-auto p-1"
+                    >
+                      {isLoadingRisks ? (
+                        <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+                          Memuat risiko...
+                        </p>
+                      ) : availableRisks.length > 0 ? (
+                        availableRisks.map((risk) => {
+                          const isSelected = selectedRiskIds.includes(risk.id);
 
-                {suggestions.length > 0 && (
-                  <div className="space-y-2 border-t border-border/60 pt-3">
-                    <p className="text-xs text-muted-foreground">
-                      Saran risiko dari analisis transkrip:
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      {suggestions
-                        .filter((s) => s.targetType === "existing" && s.targetRiskId)
-                        .map((s) => {
-                          const riskId = s.targetRiskId!;
-                          const isSelected = selectedRiskIds.includes(riskId);
                           return (
-                            <Badge
- key={riskId}
- variant={isSelected ? "default" : "outline"}
- className={cn(
- "cursor-pointer",
- isSelected && "bg-primary/10 -primary/30"
- )}
-                              onClick={() => handleToggleRisk(riskId)}
+                            <button
+                              key={risk.id}
+                              type="button"
+                              role="option"
+                              aria-selected={isSelected}
+                              onClick={() => handleToggleRisk(risk.id)}
+                              className={cn(
+                                "flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground",
+                                isSelected && "bg-accent text-accent-foreground",
+                              )}
                             >
-                              {s.targetRiskCode} • {s.targetRiskTitle}
-                              {isSelected ? (
-                                <Check className="ml-1 size-3" />
-                              ) : null}
-                            </Badge>
+                              <Check
+                                className={cn(
+                                  "size-4 shrink-0",
+                                  isSelected ? "opacity-100" : "opacity-0",
+                                )}
+                              />
+                              <span className="min-w-0 flex-1">
+                                <span className="block truncate font-medium text-foreground">
+                                  {risk.code} • {risk.title}
+                                </span>
+                                {risk.status ? (
+                                  <span className="mt-0.5 block text-xs capitalize text-muted-foreground">
+                                    {risk.status}
+                                  </span>
+                                ) : null}
+                              </span>
+                            </button>
                           );
-                        })}
+                        })
+                      ) : (
+                        <p className="px-3 py-6 text-center text-sm text-muted-foreground">
+                          Risiko tidak ditemukan.
+                        </p>
+                      )}
                     </div>
-                  </div>
-                )}
+                  </PopoverContent>
+                </Popover>
               </div>
             </div>
           </div>
 
-          <DialogFooter className="shrink-0 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[80ms]">
-            <Button
+          <DialogFooter className="shrink-0">
+            <CollectionDialogCancel
               type="button"
-              variant="outline"
               onClick={() => setShowSaveDialog(false)}
             >
               Batal
-            </Button>
-            <Button
+            </CollectionDialogCancel>
+            <AccentButton
               type="button"
+              icon={isSavingMinutes ? <Loader2 className="size-3.5 animate-spin" /> : null}
               onClick={() => {
                 console.log("[SaveButton] Clicked!");
                 handleSaveMinutes();
               }}
               disabled={isSavingMinutes}
             >
-              {isSavingMinutes ? (
-                <>
-                  <Loader2 className="mr-2 size-4 animate-spin" />
-                  Menyimpan...
-                </>
-              ) : (
-                "Simpan Briefing"
-              )}
-            </Button>
+              {isSavingMinutes ? "Menyimpan..." : "Simpan Briefing"}
+            </AccentButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </PageStack>
+    </FormPage>
   );
 }

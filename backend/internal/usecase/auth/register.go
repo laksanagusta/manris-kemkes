@@ -119,8 +119,5 @@ func validateRegisterInput(input RegisterInput) error {
 	if input.NIP == "" {
 		return errors.ErrNIPRequired
 	}
-	if input.PhoneNumber == "" {
-		return errors.ErrPhoneRequired
-	}
 	return nil
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Check, Sparkles, Plus, Loader2 } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
 import {
@@ -64,6 +64,7 @@ export function AiSuggestionModal({
   variant = "default",
 }: AiSuggestionModalProps) {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const dialogContentRef = useRef<HTMLDivElement>(null);
   const isCleanList = variant === "clean-list";
   const isStructuredList = variant === "structured-list";
   const isCompactHeader = isCleanList || isStructuredList;
@@ -183,7 +184,7 @@ export function AiSuggestionModal({
             </p>
             {isCleanList ? (
               hasDetails ? (
-                <div className="grid grid-rows-[0fr] opacity-0 transition-[grid-template-rows,opacity] duration-200 ease-(--ease-out) group-hover:grid-rows-[1fr] group-hover:opacity-100 group-focus-within:grid-rows-[1fr] group-focus-within:opacity-100 motion-reduce:grid-rows-[1fr] motion-reduce:opacity-100">
+                <div className="grid grid-rows-[0fr] opacity-0 motion-safe:transition-[grid-template-rows,opacity] motion-safe:duration-200 motion-safe:ease-(--ease-out) group-hover:grid-rows-[1fr] group-hover:opacity-100 group-focus-within:grid-rows-[1fr] group-focus-within:opacity-100 motion-reduce:grid-rows-[1fr] motion-reduce:opacity-100">
                   <div className="min-h-0 overflow-hidden">{detailContent}</div>
                 </div>
               ) : null
@@ -215,6 +216,13 @@ export function AiSuggestionModal({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
+        ref={dialogContentRef}
+        onOpenAutoFocus={(event) => {
+          if (!isCleanList) return;
+
+          event.preventDefault();
+          dialogContentRef.current?.focus();
+        }}
         className={cn(
           "overflow-hidden no-scrollbar sm:max-w-2xl",
           isCleanList && "sm:max-w-xl",
@@ -230,7 +238,7 @@ export function AiSuggestionModal({
         }
         showCloseButton={!isCompactHeader}
       >
-        <DialogHeader className="shrink-0 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both">
+        <DialogHeader className="shrink-0">
           {isCompactHeader ? (
             <DialogTitle className="text-base">{title}</DialogTitle>
           ) : (
@@ -252,7 +260,7 @@ export function AiSuggestionModal({
 
         <div
           className={cn(
-            "flex min-h-0 flex-1 flex-col overflow-hidden motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[40ms]",
+            "flex min-h-0 flex-1 flex-col overflow-hidden",
             !isCleanList && !isStructuredList && "min-h-[300px]",
             isStructuredList && "pt-5",
           )}
@@ -288,7 +296,7 @@ export function AiSuggestionModal({
         </div>
 
         {isCleanList ? (
-          <DialogFooter className="shrink-0 items-center motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[80ms] sm:justify-end">
+          <DialogFooter className="shrink-0 items-center sm:justify-end">
             <CollectionDialogCancel
               type="button"
               onClick={() => onOpenChange(false)}
@@ -297,7 +305,7 @@ export function AiSuggestionModal({
             </CollectionDialogCancel>
           </DialogFooter>
         ) : isStructuredList ? (
-          <DialogFooter className="!mt-0 shrink-0 items-center motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[80ms] sm:justify-between">
+          <DialogFooter className="!mt-0 shrink-0 items-center sm:justify-between">
             <span
               aria-live="polite"
               className="whitespace-nowrap font-mono text-xs tabular-nums text-muted-foreground"
@@ -324,7 +332,7 @@ export function AiSuggestionModal({
             </div>
           </DialogFooter>
         ) : (
-          <DialogFooter className="shrink-0 items-center motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[80ms] sm:justify-between">
+          <DialogFooter className="shrink-0 items-center sm:justify-between">
             <div className="text-xs font-medium text-muted-foreground hidden sm:block">
               {selectionMode === "single"
                 ? selectedIds.size > 0

@@ -99,7 +99,7 @@ function DropZone({
       }}
       onDrop={onDrop}
       className={cn(
-        "group relative flex min-h-[390px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-2xl border border-dashed p-8 text-center outline-none transition-[background-color,border-color,transform,box-shadow] duration-300 ease-out focus-visible:ring-2 focus-visible:ring-ring/40 motion-reduce:transition-none",
+        "group relative flex min-h-[390px] cursor-pointer flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed p-8 text-center outline-none transition-[background-color,border-color,transform,box-shadow] duration-300 ease-out focus-visible:ring-2 focus-visible:ring-ring/40 motion-reduce:transition-none",
         dragActive
           ? "scale-[1.012] border-primary/45 bg-primary/[0.07] shadow-[0_12px_34px_rgba(0,0,0,0.06)]"
           : "border-border/80 bg-white/50 hover:border-primary/25 hover:bg-white",
@@ -116,7 +116,7 @@ function DropZone({
           event.currentTarget.value = "";
         }}
       />
-      <div className="relative mb-6 flex size-16 items-center justify-center rounded-2xl bg-primary/[0.06] text-primary ring-1 ring-inset ring-primary/10 transition-[scale,background-color] duration-300 ease-out group-hover:scale-[1.04] group-hover:bg-primary/[0.1] motion-reduce:transition-none">
+      <div className="relative mb-6 flex size-16 items-center justify-center rounded-xl bg-primary/[0.06] text-primary ring-1 ring-inset ring-primary/10 transition-[scale,background-color] duration-300 ease-out group-hover:scale-[1.04] group-hover:bg-primary/[0.1] motion-reduce:transition-none">
         <UploadCloud className="size-7" strokeWidth={1.7} />
       </div>
       <div className="max-w-md space-y-2">
@@ -183,7 +183,7 @@ export function UploadPanel({
   }
 
   return (
-    <section className="space-y-4 rounded-2xl border border-border/80 bg-white p-5 sm:p-6" aria-labelledby="selected-files-title">
+    <section className="space-y-4 rounded-xl border border-border/80 bg-white p-5 sm:p-6" aria-labelledby="selected-files-title">
       <input
         data-document-picker
         type="file"

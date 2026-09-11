@@ -48,6 +48,7 @@ interface OrganizationPickerProps {
   allowAllOption?: boolean;
   allOptionLabel?: string;
   allOptionValue?: string;
+  density?: "default" | "compact";
 }
 
 function useDebouncedValue<T>(value: T, delay: number) {
@@ -83,6 +84,7 @@ export function OrganizationPicker({
   allowAllOption = false,
   allOptionLabel = "Semua unit",
   allOptionValue = "all",
+  density = "default",
 }: OrganizationPickerProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
   const comboboxAnchor = useComboboxAnchor();
@@ -117,6 +119,8 @@ export function OrganizationPicker({
     selectedValues ?? [],
   );
   const optionNameById = new Map(options.map((option) => [option.id, option.name]));
+  const controlHeight =
+    density === "compact" ? "h-9 min-h-9" : "h-10 min-h-10";
 
   useEffect(() => {
     if (!open) return;
@@ -147,6 +151,7 @@ export function OrganizationPicker({
         <ComboboxChips
           ref={comboboxAnchor}
           className={cn(
+            controlHeight,
             "w-full min-w-0 border-input bg-background/80 text-xs shadow-none",
             className,
           )}
@@ -206,7 +211,8 @@ export function OrganizationPicker({
           aria-required={ariaRequired}
           disabled={disabled}
           className={cn(
-            "h-10 w-full min-w-0 justify-between overflow-hidden border-input bg-background/80 px-3 text-xs font-normal shadow-none",
+            controlHeight,
+            "w-full min-w-0 justify-between overflow-hidden border-input bg-background/80 px-3 text-xs font-normal shadow-none",
             className,
           )}
         >
@@ -228,7 +234,10 @@ export function OrganizationPicker({
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder={searchPlaceholder}
-            className="h-10 rounded-none border-0 bg-transparent px-0 py-2 text-xs shadow-none"
+            className={cn(
+              controlHeight,
+              "rounded-none border-0 bg-transparent px-0 py-2 text-xs shadow-none",
+            )}
           />
         </div>
         <ScrollArea className="h-44">

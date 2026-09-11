@@ -5,7 +5,9 @@ import { useState } from "react";
 import { MitigationProgressForm } from "@/components/shared/design-system";
 
 export function MitigationProgressFormExample() {
-  const [evidenceUrl, setEvidenceUrl] = useState("https://drive.google.com/...");
+  const [evidenceUrl, setEvidenceUrl] = useState(
+    "https://drive.google.com/example",
+  );
   const [notes, setNotes] = useState("Dokumentasi aksi sudah diunggah.");
 
   return (

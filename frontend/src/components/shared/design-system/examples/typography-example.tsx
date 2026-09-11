@@ -5,11 +5,14 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export function TypographyExample() {
   return (
-    <Card className="overflow-hidden rounded-2xl bg-card">
+    <Card className="overflow-hidden rounded-xl bg-card">
       <CardContent className="space-y-5 p-6">
         <div className="space-y-1.5">
           <p className="font-mono text-[11px] text-muted-foreground">
             --font-sans: Inter
+          </p>
+          <p className="font-mono text-[11px] text-muted-foreground">
+            --font-logo: Poppins 600
           </p>
           <p className="font-mono text-[11px] text-muted-foreground">
             --font-mono: JetBrains Mono
@@ -25,10 +28,12 @@ export function TypographyExample() {
                 height={20}
                 className="size-5 object-contain"
               />
-              <p className="text-base font-semibold text-foreground">Manris</p>
+              <p className="font-logo text-[20px] leading-5 font-semibold lowercase tracking-[-0.4px] text-foreground">
+                Manris
+              </p>
             </div>
             <p className="font-mono text-[11px] text-muted-foreground">
-              Brand mark + wordmark · 4×4 dot grid · 20px mark · text-base font-semibold
+              Brand mark + wordmark · 4×4 dot grid · Poppins 20px semibold · lowercase · -0.4px tracking
             </p>
           </div>
           <div>
@@ -36,7 +41,7 @@ export function TypographyExample() {
               Display / H1
             </p>
             <p className="font-mono text-[11px] text-muted-foreground">
-              page-title · 24px · semibold
+              page-title · 28px · medium
             </p>
           </div>
           <div>
@@ -48,11 +53,11 @@ export function TypographyExample() {
             </p>
           </div>
           <div>
-            <p className="text-sm font-medium tracking-tight text-foreground">
+            <p className="text-base font-medium tracking-tight text-foreground">
               Form section title
             </p>
             <p className="font-mono text-[11px] text-muted-foreground">
-              text-sm font-medium tracking-tight
+              text-base font-medium tracking-tight
             </p>
           </div>
           <div>

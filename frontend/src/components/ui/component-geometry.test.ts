@@ -6,6 +6,11 @@ function source(name: string) {
   return readFileSync(new URL(`./${name}`, import.meta.url), "utf8");
 }
 
+const globalStyles = readFileSync(
+  new URL("../../app/globals.css", import.meta.url),
+  "utf8",
+);
+
 const contracts: Array<[string, string[]]> = [
   [
     "button.tsx",
@@ -22,11 +27,27 @@ const contracts: Array<[string, string[]]> = [
       "size-11 rounded-md",
     ],
   ],
-  ["input.tsx", ["h-10", "rounded-lg", "px-3", "bg-card", "border-input"]],
-  ["search-input.tsx", ["h-10", "rounded-lg", "px-3", "border-input"]],
-  ["input-group.tsx", ["h-10", "rounded-lg", "border-input"]],
-  ["select.tsx", ["data-[size=default]:h-10", "data-[size=sm]:h-10", "border-input"]],
-  ["combobox.tsx", ["min-h-10", "*:data-[slot=input-group]:h-10"]],
+  ["input.tsx", ["h-10", "rounded-lg", "px-3", "bg-card", "border-input", "hover:border-foreground/15"]],
+  ["textarea.tsx", ["min-h-16", "rounded-lg", "px-3", "bg-card", "hover:border-foreground/15"]],
+  ["search-input.tsx", ["h-10", "rounded-lg", "px-3", "border-input", "hover:border-foreground/15"]],
+  ["input-group.tsx", ["h-10", "rounded-lg", "border-input", "hover:border-foreground/15"]],
+  [
+    "select.tsx",
+    [
+      "data-[size=default]:h-10",
+      "data-[size=sm]:h-10",
+      "border-input",
+      "hover:border-foreground/15",
+      "rounded-[12px]",
+      "p-1",
+      "h-8",
+      "rounded-lg",
+      "pr-10",
+      "right-3",
+      "border-shadow",
+    ],
+  ],
+  ["combobox.tsx", ["min-h-10", "*:data-[slot=input-group]:h-10", "hover:border-foreground/15"]],
   [
     "card.tsx",
     [
@@ -34,12 +55,12 @@ const contracts: Array<[string, string[]]> = [
       "p-4",
       "border-shadow",
       'size?: "default" | "sm" | "lg"',
-      "data-[size=lg]:rounded-2xl",
+      "data-[size=lg]:rounded-xl",
       "data-[size=lg]:p-6",
     ],
   ],
-  ["list-group.tsx", ["rounded-2xl", "overflow-hidden"]],
-  ["icon-tile.tsx", ["size-11", "rounded-2xl", "size-14", "rounded-3xl"]],
+  ["list-group.tsx", ["rounded-xl", "overflow-hidden"]],
+  ["icon-tile.tsx", ["size-11", "rounded-xl", "size-14", "rounded-3xl"]],
   ["tabs.tsx", ["rounded-lg", "p-1"]],
   ["dialog.tsx", ["rounded-xl", "max-h-[calc(100dvh-2rem)]", "overflow-y-auto", "no-scrollbar", "max-w-2xl", "bg-card", "p-5", "-mx-5", "-mb-5", "border-t border-border/70", "smooth-shadow-ring-xl shadow-black smooth-ring-neutral-300/30"]],
   ["alert-dialog.tsx", ["rounded-xl", "max-h-[calc(100dvh-2rem)]", "overflow-y-auto", "no-scrollbar", "max-w-lg", "bg-card", "p-5", "-mx-5", "-mb-5", "border-t border-border/70", "smooth-shadow-ring-xl shadow-black smooth-ring-neutral-300/30"]],
@@ -48,9 +69,32 @@ const contracts: Array<[string, string[]]> = [
     ["bg-card", "no-scrollbar", "duration-200 ease-(--ease-out)", "data-[side=bottom]:rounded-t-3xl", "data-[side=bottom]:p-5"],
   ],
   ["badge.tsx", ["h-8", "rounded-full", "compact: \"h-6 rounded-full", "micro: \"h-5 rounded-full", "px-3"]],
-  ["sonner.tsx", ["rounded-2xl", "px-4", "py-3"]],
-  ["popover.tsx", ["rounded-xl", "smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"]],
-  ["dropdown-menu.tsx", ["rounded-2xl", "smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"]],
+  ["sonner.tsx", ["rounded-xl", "px-4", "py-3"]],
+  [
+    "popover.tsx",
+    [
+      "rounded-xl",
+      "smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30",
+      'variant?: "default" | "dropdown"',
+      "rounded-[12px]",
+      "border-shadow",
+    ],
+  ],
+  [
+    "dropdown-menu.tsx",
+    [
+      "rounded-[12px]",
+      "rounded-lg",
+      "p-1",
+      "h-8",
+      "px-2",
+      "pr-10",
+      "right-3",
+      "border-shadow",
+      "sideOffset = 8",
+      "collisionPadding = 12",
+    ],
+  ],
 ];
 
 for (const [file, classes] of contracts) {
@@ -65,3 +109,7 @@ for (const [file, classes] of contracts) {
     }
   });
 }
+
+test("uses a 10px shared xl radius", () => {
+  assert.match(globalStyles, /--radius-xl: 0\.625rem;/);
+});

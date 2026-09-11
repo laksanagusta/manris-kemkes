@@ -1,6 +1,6 @@
 "use client";
 
-import { Textarea } from "@/components/ui/textarea";
+import { Textarea } from "@/components/shared/design-system";
 
 interface EditableListProps {
   id?: string;
@@ -27,7 +27,7 @@ export function EditableList({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       disabled={disabled}
-      className="min-h-[80px] text-xs bg-muted/20 border-input resize-none leading-relaxed"
+      className="min-h-[80px] text-xs bg-muted/20 resize-none leading-relaxed"
     />
   );
 }

@@ -178,6 +178,7 @@ function EvaluationFiltersSidebar({
                 allOrganizationGroupLabel="Semua group"
                 allOrganizationGroupValue="all"
                 orientation="vertical"
+                density="compact"
               />
             </div>
 
@@ -186,7 +187,7 @@ function EvaluationFiltersSidebar({
                 Periode
               </Label>
               <Select value={periodFilter} onValueChange={onPeriodFilterChange}>
-                <SelectTrigger className="h-10 rounded-lg border border-input bg-card text-sm">
+                <SelectTrigger className="h-9 rounded-lg border border-input bg-card text-sm">
                   <SelectValue placeholder="Periode" />
                 </SelectTrigger>
                 <SelectContent>
@@ -207,7 +208,7 @@ function EvaluationFiltersSidebar({
                 value={status}
                 onValueChange={(value) => onStatusChange(value as EvaluationStatus | "all")}
               >
-                <SelectTrigger className="h-10 rounded-lg border border-input bg-card text-sm">
+                <SelectTrigger className="h-9 rounded-lg border border-input bg-card text-sm">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>

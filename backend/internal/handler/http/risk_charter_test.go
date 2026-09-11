@@ -45,7 +45,7 @@ func (s *handlerRiskCharterRepo) GetByID(_ context.Context, id uuid.UUID) (*enti
 	return nil, fiber.ErrNotFound
 }
 
-func (s *handlerRiskCharterRepo) Update(_ context.Context, charter *entity.RiskCharter) error {
+func (s *handlerRiskCharterRepo) UpdateDraft(_ context.Context, charter *entity.RiskCharter) error {
 	if s.items == nil {
 		s.items = map[uuid.UUID]*entity.RiskCharter{}
 	}
@@ -62,16 +62,37 @@ func (s *handlerRiskCharterRepo) List(_ context.Context, _ domainrepo.RiskCharte
 	return items, len(items), nil
 }
 
-func (s *handlerRiskCharterRepo) ExistsByOrgPeriodLevel(_ context.Context, _ uuid.UUID, _ string, _ string, excludeID *uuid.UUID) (bool, error) {
-	for id, item := range s.items {
-		if excludeID != nil && id == *excludeID {
-			continue
-		}
-		if item != nil {
-			return true, nil
-		}
-	}
-	return false, nil
+func (s *handlerRiskCharterRepo) FindExistingByOrgPeriodLevel(_ context.Context, _ uuid.UUID, _ string, _ string) (*entity.RiskCharter, error) {
+	return nil, nil
+}
+
+func (s *handlerRiskCharterRepo) Finalize(_ context.Context, charter *entity.RiskCharter) error {
+	charter.Status = entity.RiskCharterStatusActive
+	return nil
+}
+
+func (s *handlerRiskCharterRepo) CreateRevision(_ context.Context, _ *entity.RiskCharter, revision *entity.RiskCharter) error {
+	return s.Create(context.Background(), revision)
+}
+
+func (s *handlerRiskCharterRepo) ListVersions(_ context.Context, _ uuid.UUID) ([]*entity.RiskCharter, error) {
+	items, _, err := s.List(context.Background(), domainrepo.RiskCharterListFilter{})
+	return items, err
+}
+
+func (s *handlerRiskCharterRepo) Archive(_ context.Context, id uuid.UUID) error {
+	s.items[id].Status = entity.RiskCharterStatusArchived
+	return nil
+}
+
+func (s *handlerRiskCharterRepo) Restore(_ context.Context, charter *entity.RiskCharter) error {
+	charter.Status = entity.RiskCharterStatusActive
+	return nil
+}
+
+func (s *handlerRiskCharterRepo) DeleteDraft(_ context.Context, id uuid.UUID) error {
+	delete(s.items, id)
+	return nil
 }
 
 func TestRiskCharterHandlerCreate(t *testing.T) {
@@ -81,19 +102,29 @@ func TestRiskCharterHandlerCreate(t *testing.T) {
 		riskcharteruc.NewGetRiskCharterUseCase(repo),
 		riskcharteruc.NewUpdateRiskCharterUseCase(repo),
 		riskcharteruc.NewListRiskChartersUseCase(repo),
+		riskcharteruc.NewWorkflowUseCase(repo),
 	)
 
+	orgID := uuid.MustParse("11111111-1111-1111-1111-111111111111")
+	userID := uuid.MustParse("22222222-2222-2222-2222-222222222222")
 	body, err := json.Marshal(map[string]any{
-		"organizationId": "11111111-1111-1111-1111-111111111111",
+		"title":          "Piagam Tahunan",
+		"organizationId": orgID.String(),
 		"uprLevel":       "upr_t1",
-		"period":         "2026-H1",
-		"status":         "draft",
+		"period":         "2026",
 	})
 	if err != nil {
 		t.Fatalf("marshal request body: %v", err)
 	}
 
 	app := fiber.New()
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals("userId", userID)
+		c.Locals("accessScope", &entity.AccessScope{
+			UserID: userID, OrganizationID: &orgID, AccessibleOrgIDs: []uuid.UUID{orgID}, Role: entity.RoleUnit,
+		})
+		return c.Next()
+	})
 	app.Post("/risk-charters", handler.Create)
 
 	req := httptest.NewRequest(fiber.MethodPost, "/risk-charters", bytes.NewReader(body))
@@ -111,7 +142,7 @@ func TestRiskCharterHandlerCreate(t *testing.T) {
 	if repo.created == nil {
 		t.Fatal("expected charter to be created")
 	}
-	if repo.created.Status != "active" {
-		t.Fatalf("expected created status active, got %q", repo.created.Status)
+	if repo.created.Status != entity.RiskCharterStatusDraft {
+		t.Fatalf("expected created status draft, got %q", repo.created.Status)
 	}
 }

@@ -50,7 +50,6 @@ export default function RegisterScreen() {
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [phoneNumber, setPhoneNumber] = useState("");
   const [organizationId, setOrganizationId] = useState("");
   const [nip, setNip] = useState("");
   const [jabatan, setJabatan] = useState("");
@@ -103,7 +102,6 @@ export default function RegisterScreen() {
     if (
       !name ||
       !email ||
-      !phoneNumber ||
       !organizationId ||
       !nip ||
       !password ||
@@ -128,7 +126,6 @@ export default function RegisterScreen() {
       await registerUser({
         name,
         email,
-        phoneNumber,
         password,
         organizationId,
         nip,
@@ -140,7 +137,6 @@ export default function RegisterScreen() {
       );
       setName("");
       setEmail("");
-      setPhoneNumber("");
       setOrganizationId("");
       setNip("");
       setJabatan("");
@@ -182,8 +178,8 @@ export default function RegisterScreen() {
 
       <div className="relative z-10 w-full max-w-3xl animate-fade-in">
         <div className="mb-8 text-center">
-          <h1 className="text-2xl font-medium tracking-tight">
-            <span className="gradient-text">M A N R I S</span>
+          <h1 className="font-logo text-[20px] leading-5 font-semibold lowercase tracking-[-0.4px] text-foreground">
+            manris
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
             Registrasi mandiri untuk pengguna unit kerja
@@ -228,7 +224,7 @@ export default function RegisterScreen() {
               </div>
 
               <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
+                <div className="space-y-2 md:col-span-2">
                   <Label htmlFor="email" className="text-xs font-medium">
                     Email
                   </Label>
@@ -238,19 +234,6 @@ export default function RegisterScreen() {
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     placeholder="nama@kemenkes.go.id"
-                    className="h-10 border-input bg-muted/30"
-                    required
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="phoneNumber" className="text-xs font-medium">
-                    No HP
-                  </Label>
-                  <Input
-                    id="phoneNumber"
-                    value={phoneNumber}
-                    onChange={(event) => setPhoneNumber(event.target.value)}
-                    placeholder="08xxxxxxxxxx"
                     className="h-10 border-input bg-muted/30"
                     required
                   />

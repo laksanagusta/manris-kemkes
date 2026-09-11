@@ -258,7 +258,7 @@ func buildDocumentObjectiveContexts(objectives []*entity.RiskObjective) []docume
 func buildOpenMitigationTaskContexts(tasks []*entity.MitigationTask) []documentMitigationTaskContext {
 	result := make([]documentMitigationTaskContext, 0, len(tasks))
 	for _, task := range tasks {
-		if task == nil || strings.EqualFold(task.Status, "done") {
+		if task == nil || strings.EqualFold(task.Status, "done") || strings.EqualFold(task.Status, "not_reported") {
 			continue
 		}
 		result = append(result, documentMitigationTaskContext{

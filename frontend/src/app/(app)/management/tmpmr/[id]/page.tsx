@@ -102,15 +102,15 @@ const statusLabel: Record<TMPMRStatus, string> = {
 const statusStyles: Record<TMPMRStatus, string> = {
   draft: "border-border/60 bg-muted/40 text-muted-foreground",
   submitted: "border-primary/20 bg-primary/5 text-primary",
-  reviewed: "border-amber-500/20 bg-amber-500/10 text-amber-700 dark:text-amber-300",
-  approved: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300",
+  reviewed: "border-amber-500/20 bg-amber-500/10 text-amber-700",
+  approved: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700",
 };
 
 const maturityStyles = [
   { match: "Awal", className: "border-border/60 bg-muted/40 text-muted-foreground" },
-  { match: "Berkembang", className: "border-sky-500/20 bg-sky-500/10 text-sky-700 dark:text-sky-300" },
-  { match: "Terdefinisi", className: "border-indigo-500/20 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300" },
-  { match: "Terkelola", className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" },
+  { match: "Berkembang", className: "border-sky-500/20 bg-sky-500/10 text-sky-700" },
+  { match: "Terdefinisi", className: "border-indigo-500/20 bg-indigo-500/10 text-indigo-700" },
+  { match: "Terkelola", className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700" },
   { match: "Optimum", className: "border-primary/20 bg-primary/5 text-primary" },
 ];
 
@@ -405,7 +405,7 @@ export default function TMPMRDetailPage() {
         {status ? statusLabel[status] : "Draft"}
       </Badge>
       {isApproved ? (
-        <Badge variant="outline" className="gap-1.5 -emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+        <Badge variant="outline" className="gap-1.5 -emerald-500/20 bg-emerald-500/10 text-emerald-700">
           <CheckCircle2 className="size-3.5" />
           Read-only
         </Badge>
@@ -678,7 +678,7 @@ export default function TMPMRDetailPage() {
                     {status ? statusLabel[status] : "Draft"}
                   </Badge>
                   {isApproved ? (
-                    <Badge variant="outline" className="-emerald-500/20 bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+                    <Badge variant="outline" className="-emerald-500/20 bg-emerald-500/10 text-emerald-700">
                       Selesai
                     </Badge>
                   ) : null}

@@ -14,13 +14,13 @@ export function ReportEmptyState({
   return (
     <div
       className={cn(
-        "flex min-h-40 items-center justify-center rounded-lg border border-dashed border-surface-border bg-muted/20 px-6 py-8 text-center",
+        "flex min-h-40 items-center justify-center rounded-lg bg-state-surface px-6 py-8 text-center text-state-foreground",
         className,
       )}
     >
       <div className="max-w-sm space-y-2">
-        {title ? <p className="text-sm font-medium text-foreground">{title}</p> : null}
-        <p className="text-sm text-muted-foreground">{description}</p>
+        {title ? <p className="text-sm font-medium text-state-foreground">{title}</p> : null}
+        <p className="text-sm text-state-foreground">{description}</p>
       </div>
     </div>
   );

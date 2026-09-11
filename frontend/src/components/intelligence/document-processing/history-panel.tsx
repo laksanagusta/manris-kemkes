@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { ProcessingJob, ProcessingStatus } from "@/types/document-processing";
 import { formatDuration } from "./upload-utils";
@@ -107,7 +108,7 @@ export function HistoryPanel({
               >
                 {editingJobId === job.id ? (
                   <div className="space-y-2">
-                    <input
+                    <Input
                       autoFocus
                       value={editingName}
                       onChange={(event) => setEditingName(event.target.value)}
@@ -115,7 +116,7 @@ export function HistoryPanel({
                         if (event.key === "Enter") saveRename(job);
                         if (event.key === "Escape") setEditingJobId(null);
                       }}
-                      className="h-10 w-full rounded-md border border-input bg-background px-2 text-xs outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+                      className="rounded-md bg-background px-2 text-xs"
                       aria-label="Nama proses"
                     />
                     <div className="flex gap-1.5">

@@ -54,7 +54,7 @@ export function Inspector({
   const page = job?.pages.find((item) => item.id === `${selectedFinding?.source.documentId}-page-${selectedFinding?.source.pageNumber}`);
 
   return (
-    <aside className="min-w-0 overflow-hidden rounded-2xl border border-border/80 bg-white" aria-label="Document inspector">
+    <aside className="min-w-0 overflow-hidden rounded-xl border border-border/80 bg-white" aria-label="Document inspector">
       <div className="flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3">
         <div className="flex min-w-0 items-center gap-2">
           <PanelLeftIcon className="size-3.5 text-muted-foreground" />

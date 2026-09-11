@@ -25,7 +25,7 @@ for (const [name, source] of [
   test(`${name} uses the expected form shell`, () => {
     assert.match(
       source,
-      /<FormPage[\s\S]{0,180}risk-form-filter-controls max-w-none/,
+      /<FormPage[\s\S]{0,180}risk-form-filter-controls (?:max-w-none|max-w-\[1400px\])/,
     );
     if (name === "registration") {
       assert.match(source, /<CollectionPageHeader/);
@@ -33,7 +33,7 @@ for (const [name, source] of [
       assert.match(source, /actionsPlacement="title"/);
       assert.doesNotMatch(source, /<FormHeader/);
       assert.match(source, /Simpan draft/);
-      assert.match(source, /Finalisasi risiko/);
+      assert.match(source, /Finalisasi/);
       assert.doesNotMatch(source, /Accordion/);
       for (const sectionId of [
         "identifikasi",
@@ -76,7 +76,7 @@ test("registration behavior entry points remain intact", () => {
   assert.match(registrationSource, /<CollectionPageHeader/);
   assert.match(
     registrationSource,
-    /<div className="mx-auto w-full max-w-\[1400px\] min-w-0">\s*<CollectionPageHeader/,
+    /<FormPage className="risk-form-filter-controls max-w-\[1400px\] space-y-6">\s*<CollectionPageHeader/,
   );
   assert.match(
     registrationSource,
@@ -92,10 +92,48 @@ test("registration behavior entry points remain intact", () => {
   );
 });
 
+test("registration uses the correct finalized-risk monitoring shortcut state", () => {
+  assert.match(registrationSource, /const canStartMonitoring =/);
+  assert.match(registrationSource, /const canContinueMonitoring =/);
+  assert.match(registrationSource, /listRiskMonitorings\(/);
+  assert.match(registrationSource, /ongoingMonitoring/);
+  assert.match(registrationSource, /Lanjutkan Pemantauan/);
+  assert.match(registrationSource, /variant="secondary"/);
+  assert.match(registrationSource, /Mulai Pemantauan/);
+  assert.match(registrationSource, /startMonitoring\(/);
+  assert.match(registrationSource, /getSelectableMonitoringCycles/);
+  assert.match(
+    registrationSource,
+    /result\.redirectUrl \|\| `\/risk\/monitoring\/\$\{result\.monitoring\.id\}`/,
+  );
+});
+
 test("assessment behavior entry points remain intact", () => {
   assert.match(assessmentSource, /handleSaveDraft/);
   assert.match(assessmentSource, /openSubmitReviewConfirm/);
   assert.match(assessmentSource, /router\.push\(backTarget\)/);
+});
+
+test("monitoring workspace does not render a separate finalized success banner", () => {
+  assert.doesNotMatch(assessmentSource, /showFinalizeSuccess/);
+  assert.doesNotMatch(assessmentSource, /Pemantauan \{monitoringCycle\} berhasil difinalisasi/);
+  assert.doesNotMatch(assessmentSource, /Snapshot resmi sudah dibuat dan transaksi ini tidak dapat diedit lagi/);
+});
+
+test("monitoring status uses the shared collection state component", () => {
+  assert.match(assessmentSource, /CollectionStatusBadge/);
+  assert.match(
+    assessmentSource,
+    /<CollectionStatusBadge[\s\S]*?assessmentStatusLabel\[draftRisk\.status\]/,
+  );
+});
+
+test("monitoring finalization uses the neutral state warning and concise CTA", () => {
+  assert.match(
+    assessmentSource,
+    /flex items-start gap-2 rounded-lg bg-state-surface px-3 py-3 text-sm text-state-foreground/,
+  );
+  assert.match(assessmentSource, /isMonitoringRoute \? "Finalisasi" : "Lanjutkan"/);
 });
 
 test("monitoring mitigation status lives in the compact right panel", () => {
@@ -112,10 +150,31 @@ test("monitoring mitigation status lives in the compact right panel", () => {
   assert.doesNotMatch(mitigationStatusSource, /<Table/);
   assert.match(mitigationStatusSource, /Total mitigasi/);
   assert.match(mitigationStatusSource, /Sudah dilaporkan/);
-  assert.match(mitigationStatusSource, /Pending/);
+  assert.match(mitigationStatusSource, /Belum dilaporkan/);
   assert.match(mitigationStatusSource, /aria-expanded=\{isExpanded\}/);
+  assert.match(mitigationStatusSource, /motion-safe:animate-in/);
+  assert.match(mitigationStatusSource, /motion-safe:slide-in-from-top-2/);
+  assert.doesNotMatch(mitigationStatusSource, /motion-safe:slide-in-from-right-2/);
+  assert.match(mitigationStatusSource, /motion-safe:duration-200/);
+  assert.match(mitigationStatusSource, /motion-safe:ease-\(--ease-out\)/);
+  assert.match(mitigationStatusSource, /motion-reduce:animate-none/);
   assert.match(mitigationStatusSource, /MitigationProgressDialog/);
   assert.match(mitigationStatusSource, /updateTaskReport/);
   assert.doesNotMatch(mitigationStatusSource, /from "next\/link"/);
   assert.doesNotMatch(mitigationStatusSource, /compliance\/monitoring/);
+});
+
+test("monitoring header and right panel use the shared detail geometry", () => {
+  assert.match(
+    assessmentSource,
+    /<div className="mx-auto w-full max-w-\[1400px\] min-w-0">\s*<CollectionPageHeader/,
+  );
+  assert.doesNotMatch(
+    assessmentSource,
+    /<CollectionPageHeader[\s\S]*actionsPlacement="title"/,
+  );
+  assert.match(
+    assessmentSource,
+    /<CardContent className="px-5 py-5 text-sm">/,
+  );
 });

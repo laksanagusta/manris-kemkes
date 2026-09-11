@@ -147,7 +147,7 @@ func (uc *StartMonitoringUseCase) Execute(ctx context.Context, input StartMonito
 			return nil, errors.ErrCycleFormat
 		}
 		if cmp < 0 {
-			return nil, errors.Wrap(errors.ErrInvalidInput, "monitoring cycle cannot precede the risk's effective cycle")
+			return nil, errors.ErrMonitoringBeforeRiskEffective
 		}
 	}
 
@@ -394,11 +394,33 @@ func (uc *FinalizeMonitoringUseCase) Execute(ctx context.Context, input Finalize
 		return nil, errors.ErrInvalidImpact
 	}
 
+	var monitoringTasks []*entity.MitigationTask
+	if uc.taskRepo != nil {
+		monitoringTasks, err = uc.taskRepo.ListByMonitoring(ctx, monitoring.ID, input.OrgIDs)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to load monitoring mitigation tasks")
+		}
+	}
+
+	// A missing report is a terminal outcome for this period. Remove that
+	// mitigation from the resulting risk snapshot so EnsureTasksForRiskVersion
+	// cannot create a new actionable task for it in the next period. The source
+	// risk and its task history remain unchanged for audit purposes.
+	resultSource := *sourceRisk
+	resultSource.Mitigations = filterUnreportedMitigations(sourceRisk.Mitigations, sourceRisk.Mitigations, monitoringTasks)
+	resultMonitoring := monitoring
+	if monitoring.Mode == entity.RiskMonitoringModeWithProfileRevision && monitoring.DraftPayload != nil {
+		resultMonitoring = cloneMonitoringForFinalization(monitoring)
+		payload := resultMonitoring.DraftPayloadSnapshot()
+		payload.Mitigations = filterUnreportedMitigations(payload.Mitigations, sourceRisk.Mitigations, monitoringTasks)
+		resultMonitoring.SetDraftPayload(payload)
+	}
+
 	// Every finalized monitoring creates an immutable risk snapshot. A
 	// score-only monitoring still changes the official residual assessment;
 	// keeping it as a log-only transaction makes the UI and the ledger disagree
 	// about which score is authoritative.
-	resultRisk, err := buildRiskVersionFromMonitoring(sourceRisk, monitoring, input.FinalizedBy)
+	resultRisk, err := buildRiskVersionFromMonitoring(&resultSource, resultMonitoring, input.FinalizedBy)
 	if err != nil {
 		return nil, err
 	}
@@ -427,6 +449,75 @@ func (uc *FinalizeMonitoringUseCase) Execute(ctx context.Context, input Finalize
 		Monitoring: finalizedMonitoring,
 		Message:    "monitoring transaction finalized",
 	}, nil
+}
+
+func cloneMonitoringForFinalization(source *entity.RiskMonitoring) *entity.RiskMonitoring {
+	clone := *source
+	if source.DraftPayload != nil {
+		clone.SetDraftPayload(source.DraftPayload.Clone())
+	}
+	return &clone
+}
+
+func filterUnreportedMitigations(
+	candidate []entity.Mitigation,
+	source []entity.Mitigation,
+	tasks []*entity.MitigationTask,
+) []entity.Mitigation {
+	if len(candidate) == 0 || len(tasks) == 0 {
+		return candidate
+	}
+
+	unreportedIDs := make(map[uuid.UUID]struct{})
+	unreportedFingerprints := make(map[string]struct{})
+	for _, task := range tasks {
+		if task == nil || monitoringTaskHasReport(task) {
+			continue
+		}
+		if task.MitigationID != uuid.Nil {
+			unreportedIDs[task.MitigationID] = struct{}{}
+		}
+		for _, mitigation := range source {
+			if mitigation.ID == task.MitigationID {
+				unreportedFingerprints[mitigationFingerprint(mitigation)] = struct{}{}
+				break
+			}
+		}
+	}
+
+	if len(unreportedIDs) == 0 && len(unreportedFingerprints) == 0 {
+		return candidate
+	}
+	filtered := make([]entity.Mitigation, 0, len(candidate))
+	for _, mitigation := range candidate {
+		if mitigation.ID != uuid.Nil {
+			if _, excluded := unreportedIDs[mitigation.ID]; excluded {
+				continue
+			}
+		} else if _, excluded := unreportedFingerprints[mitigationFingerprint(mitigation)]; excluded {
+			continue
+		}
+		filtered = append(filtered, mitigation)
+	}
+	return filtered
+}
+
+func monitoringTaskHasReport(task *entity.MitigationTask) bool {
+	return task.Status == entity.MitigationTaskStatusDone &&
+		task.ReportedAt != nil &&
+		strings.TrimSpace(task.Notes) != ""
+}
+
+func mitigationFingerprint(mitigation entity.Mitigation) string {
+	dueDate := ""
+	if mitigation.DueDate != nil {
+		dueDate = strings.TrimSpace(*mitigation.DueDate)
+	}
+	return strings.Join([]string{
+		strings.TrimSpace(mitigation.Action),
+		strings.TrimSpace(mitigation.Owner),
+		dueDate,
+	}, "\x00")
 }
 
 func buildRiskVersionFromMonitoring(source *entity.Risk, monitoring *entity.RiskMonitoring, finalizedBy uuid.UUID) (*entity.Risk, error) {

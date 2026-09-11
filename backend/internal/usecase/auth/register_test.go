@@ -111,7 +111,6 @@ func TestRegisterUseCaseCreatesPendingUnitUser(t *testing.T) {
 		NIP:             "199001012020122001",
 		Jabatan:         "Analis",
 		Pangkat:         "III/c",
-		PhoneNumber:     "081234567890",
 	})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
@@ -131,8 +130,8 @@ func TestRegisterUseCaseCreatesPendingUnitUser(t *testing.T) {
 	if userRepo.created.MustChangePassword {
 		t.Fatal("expected mustChangePassword to be false")
 	}
-	if userRepo.created.PhoneNumber != "081234567890" {
-		t.Fatalf("expected phone number to be persisted, got %q", userRepo.created.PhoneNumber)
+	if userRepo.created.PhoneNumber != "" {
+		t.Fatalf("expected phone number to remain empty, got %q", userRepo.created.PhoneNumber)
 	}
 }
 

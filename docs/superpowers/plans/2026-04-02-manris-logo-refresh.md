@@ -135,7 +135,7 @@ Open: `/overview`
 
 Expected: the mark remains identifiable around `24px`, stays centered inside the sidebar badge, and does not clip when the sidebar collapses to icon-only mode.
 
-- [ ] **Step 4: Check dark mode contrast using the existing theme control or by temporarily adding `class="dark"` to the root `<html>` element in browser devtools**
+- [ ] **Step 4: Check contrast in the fixed light visual system**
 
 Expected: the teal shield and light pulse remain readable on dark surfaces, especially in the sidebar and login logo containers.
 

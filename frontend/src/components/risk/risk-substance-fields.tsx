@@ -9,10 +9,12 @@ import {
   type MitigationItem,
 } from "@/components/shared/mitigation-table";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
+import {
+  Input,
+  PopoverSelectField,
+  Textarea,
+} from "@/components/shared/design-system";
 import { cn } from "@/lib/utils";
 import {
   treatmentOptionLabels,
@@ -237,55 +239,40 @@ export function RiskSubstanceFields({
           <Label htmlFor="risk-substance-category" className="text-sm font-medium">
             Kategori Risiko
           </Label>
-          <Select
+          <PopoverSelectField
+            id="risk-substance-category"
             value={value.category}
             onValueChange={(nextValue) =>
               updateRiskSubstanceField(value, onChange, "category", nextValue)
             }
+            options={riskCategoryOptions}
+            placeholder="Pilih kategori"
             disabled={disabled}
-          >
-            <SelectTrigger id="risk-substance-category" className="h-10 text-sm">
-              <SelectValue placeholder="Pilih kategori" />
-            </SelectTrigger>
-            <SelectContent>
-              {riskCategoryOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          />
         </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="risk-substance-source" className="text-sm font-medium">
             Sumber Risiko
           </Label>
-          <Select
+          <PopoverSelectField
+            id="risk-substance-source"
             value={value.riskSource}
             onValueChange={(nextValue) =>
               updateRiskSubstanceField(value, onChange, "riskSource", nextValue)
             }
+            options={riskSourceOptions}
+            placeholder="Pilih sumber"
             disabled={disabled}
-          >
-            <SelectTrigger id="risk-substance-source" className="h-10 text-sm">
-              <SelectValue placeholder="Pilih sumber" />
-            </SelectTrigger>
-            <SelectContent>
-              {riskSourceOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          />
         </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="risk-substance-controllability" className="text-sm font-medium">
             Kontrollabilitas
           </Label>
-          <Select
+          <PopoverSelectField
+            id="risk-substance-controllability"
             value={value.controllability}
             onValueChange={(nextValue) =>
               updateRiskSubstanceField(
@@ -295,26 +282,18 @@ export function RiskSubstanceFields({
                 nextValue,
               )
             }
+            options={controllabilityOptions}
+            placeholder="Pilih status"
             disabled={disabled}
-          >
-            <SelectTrigger id="risk-substance-controllability" className="h-10 text-sm">
-              <SelectValue placeholder="Pilih status" />
-            </SelectTrigger>
-            <SelectContent>
-              {controllabilityOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          />
         </div>
 
         <div className="space-y-1.5">
           <Label htmlFor="risk-substance-control-effectiveness" className="text-sm font-medium">
             Efektivitas Kontrol
           </Label>
-          <Select
+          <PopoverSelectField
+            id="risk-substance-control-effectiveness"
             value={value.controlEffectiveness}
             onValueChange={(nextValue) =>
               updateRiskSubstanceField(
@@ -324,26 +303,18 @@ export function RiskSubstanceFields({
                 nextValue,
               )
             }
+            options={controlEffectivenessOptions}
+            placeholder="Belum dinilai"
             disabled={disabled}
-          >
-            <SelectTrigger id="risk-substance-control-effectiveness" className="h-10 text-sm">
-              <SelectValue placeholder="Belum dinilai" />
-            </SelectTrigger>
-            <SelectContent>
-              {controlEffectivenessOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          />
         </div>
 
         <div className="space-y-1.5 md:col-span-2">
           <Label htmlFor="risk-substance-treatment" className="text-sm font-medium">
             Pilihan Penanganan
           </Label>
-          <Select
+          <PopoverSelectField
+            id="risk-substance-treatment"
             value={value.treatmentOption}
             onValueChange={(nextValue) =>
               updateRiskSubstanceField(
@@ -353,19 +324,10 @@ export function RiskSubstanceFields({
                 nextValue,
               )
             }
+            options={treatmentOptionOptions}
+            placeholder="Pilih penanganan"
             disabled={disabled}
-          >
-            <SelectTrigger id="risk-substance-treatment" className="h-10 text-sm">
-              <SelectValue placeholder="Pilih penanganan" />
-            </SelectTrigger>
-            <SelectContent>
-              {treatmentOptionOptions.map((option) => (
-                <SelectItem key={option.value} value={option.value}>
-                  {option.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+          />
         </div>
       </div>
 

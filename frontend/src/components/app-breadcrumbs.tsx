@@ -26,7 +26,7 @@ const segmentLabels: Record<string, string> = {
   monitoring: "Pemantauan",
   new: "Baru",
   overview: "Dashboard",
-  register: "Daftar Risiko",
+  register: "Risiko",
   reports: "Laporan",
   risk: "Risiko",
   settings: "Pengaturan",

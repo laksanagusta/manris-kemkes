@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { CollectionDialogCancel } from "@/components/shared/design-system";
+import { CollectionDialogCancel, DestructiveButton } from "@/components/shared/design-system";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -22,7 +22,7 @@ export function DialogExample() {
               Hapus Draft Risiko?
             </DialogTitle>
           </DialogHeader>
-          <div className="rounded-2xl bg-muted px-3 py-2 text-sm ring-1 ring-inset ring-border">
+          <div className="space-y-0.5 py-1 text-sm">
             <p className="font-medium">Contoh Item</p>
             <p className="text-xs text-muted-foreground">RISK-001</p>
           </div>
@@ -30,13 +30,11 @@ export function DialogExample() {
             <CollectionDialogCancel onClick={() => setDialogOpen(false)}>
               Batal
             </CollectionDialogCancel>
-            <Button
-              variant="primary"
-              size="primary"
+            <DestructiveButton
               onClick={() => setDialogOpen(false)}
             >
-              Hapus Draft
-            </Button>
+              Hapus
+            </DestructiveButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -51,7 +49,7 @@ export function DialogExample() {
               Konfirmasi Pemantauan
             </AlertDialogTitle>
           </AlertDialogHeader>
-          <div className="space-y-2 rounded-2xl bg-accent p-3 ring-1 ring-inset ring-border">
+          <div className="space-y-2 rounded-xl bg-accent p-3 ring-1 ring-inset ring-border">
             <div className="text-sm">
               <span className="font-medium text-foreground">Kode: </span>
               <span className="font-mono text-xs text-muted-foreground">RISK-001</span>

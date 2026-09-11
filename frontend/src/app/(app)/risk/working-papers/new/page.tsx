@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { useForm, useFieldArray, SubmitHandler } from "react-hook-form";
@@ -28,9 +27,9 @@ import type { UserPickerOption } from "@/lib/risk-register-user-picker";
 
 import { FormPage, FormSection } from "@/components/shared/form-shell";
 import {
-  ActionButton,
   AccentButton,
   CollectionEmptyState,
+  FormBackAction,
   CollectionLoadingState,
   CollectionPageHeader,
   CollectionSearchField,
@@ -58,7 +57,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Loader2, Save } from "@/components/ui/icons";
+import { Loader2, Save } from "@/components/ui/icons";
 
 const formSchema = z.object({
   assessment_cycle: z.string().optional(),
@@ -332,24 +331,19 @@ export default function CreateWorkingPaperPage() {
   };
 
   const backAction = (
-    <ActionButton
-      asChild
-      variant="secondary"
-      size="sm"
-    >
-      <Link href="/risk/working-papers">
-        <ArrowLeft className="size-3.5" />
-        Kembali ke daftar kertas kerja
-      </Link>
-    </ActionButton>
+    <FormBackAction
+      href="/risk/working-papers"
+      label="Kembali ke daftar kertas kerja"
+    />
   );
 
   if (!organizationId) {
     return (
       <FormPage className="max-w-7xl space-y-6 pb-0">
-        <CollectionPageHeader
-          backAction={backAction}
-          title="Buat Kertas Kerja Baru"
+      <CollectionPageHeader
+        backAction={backAction}
+        backActionPlacement="top"
+        title="Buat Kertas Kerja Baru"
         />
         <CollectionEmptyState
           title="Unit kerja belum dipilih"
@@ -367,7 +361,8 @@ export default function CreateWorkingPaperPage() {
     <FormPage className="max-w-7xl space-y-6 pb-0">
       <CollectionPageHeader
         backAction={backAction}
-        actionsPlacement="title"
+        backActionPlacement="top"
+        actionsPlacement="top"
         title="Buat Kertas Kerja Baru"
         eyebrow={
           <Badge tone="info" size="micro" className="font-mono tracking-tight">

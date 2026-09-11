@@ -61,13 +61,14 @@ function CollapsibleCardIcon({
   return (
     <span
       className={cn(
-        "inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground ring-1 ring-inset ring-border/80",
+        "inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground",
         className,
       )}
       {...props}
     >
       <ChevronDown
         aria-hidden="true"
+        strokeWidth={2}
         className="size-4 transition-transform duration-200 ease-out group-data-[state=open]:rotate-180 motion-reduce:transition-none"
       />
     </span>

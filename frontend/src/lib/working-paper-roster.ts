@@ -25,11 +25,11 @@ export const ROSTER_STATUS_LABELS: Record<WorkingPaperRosterStatus, string> = {
 
 export const ROSTER_STATUS_BADGE_CLASSES: Record<WorkingPaperRosterStatus, string> = {
   not_started:
-    "bg-slate-50 text-slate-700 dark:bg-slate-950 dark:text-slate-300",
+    "bg-slate-50 text-secondary-foreground",
   in_progress:
-    "bg-yellow-50 text-yellow-700 dark:bg-yellow-950 dark:text-yellow-300",
+    "bg-yellow-50 text-yellow-700",
   finalized:
-    "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300",
+    "bg-green-50 text-green-700",
 };
 
 export function buildInitialRosterDecisions(

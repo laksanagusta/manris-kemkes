@@ -1,3 +1,5 @@
+import { roundRiskScore } from "./risk.js";
+
 type AssessmentScoreComparisonInput = {
   currentInherentScore?: number | null;
   currentNilai?: number | null;
@@ -5,7 +7,7 @@ type AssessmentScoreComparisonInput = {
 };
 
 function hasNumber(value: number | null | undefined): value is number {
-  return value !== null && value !== undefined && !Number.isNaN(value);
+  return value !== null && value !== undefined && Number.isFinite(value);
 }
 
 export function resolveAssessmentScoreComparison({
@@ -14,9 +16,9 @@ export function resolveAssessmentScoreComparison({
   newNilai,
 }: AssessmentScoreComparisonInput) {
   const currentScore = hasNumber(currentInherentScore)
-    ? currentInherentScore
-    : Math.round(currentNilai ?? 0);
-  const newScore = Math.round(newNilai);
+    ? roundRiskScore(currentInherentScore) ?? 0
+    : roundRiskScore(currentNilai) ?? 0;
+  const newScore = roundRiskScore(newNilai) ?? 0;
   const delta = newScore - currentScore;
   const deltaPercent =
     currentScore > 0 ? Math.round((delta / currentScore) * 100) : 0;

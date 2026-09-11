@@ -596,7 +596,7 @@ export default function InboxPage() {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="h-10 w-full bg-muted/50 text-sm sm:w-40">
+              <SelectTrigger className="h-9 w-full bg-muted/50 text-sm sm:w-40">
                 <SelectValue placeholder="Jenis Permintaan" />
               </SelectTrigger>
               <SelectContent>

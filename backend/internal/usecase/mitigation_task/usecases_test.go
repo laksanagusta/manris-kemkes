@@ -350,4 +350,145 @@ func TestSubmitProgressUseCase_ExecuteAllowsEarlySubmission(t *testing.T) {
 	}
 }
 
+func TestSubmitProgressUseCase_ExecuteAcceptsMultipleEvidenceURLs(t *testing.T) {
+	taskID := uuid.New()
+	riskID := uuid.New()
+	taskRepo := &fakeSubmitMitigationTaskRepo{
+		task: &entity.MitigationTask{
+			ID:        taskID,
+			RiskID:    riskID,
+			Status:    "pending",
+			DueDate:   "2999-01-02",
+			PeriodEnd: "2999-01-01",
+		},
+	}
+	riskRepo := &fakeSubmitRiskRepo{risk: &entity.Risk{ID: riskID}}
+
+	uc := NewSubmitProgressUseCase(taskRepo, riskRepo)
+	got, err := uc.Execute(context.Background(), SubmitProgressInput{
+		TaskID:      taskID,
+		EvidenceURL: " https://example.com/evidence\nhttps://example.com/report ",
+		Notes:       "Catatan valid untuk progress",
+		ReportedBy:  uuid.New(),
+	})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if got == nil || got.EvidenceURL != "https://example.com/evidence\nhttps://example.com/report" {
+		t.Fatalf("expected normalized multiple evidence URLs, got %#v", got)
+	}
+}
+
+func TestSubmitMonitoringReportUseCase_RejectsDoneWithoutNotes(t *testing.T) {
+	taskID := uuid.New()
+	riskID := uuid.New()
+	taskRepo := &fakeSubmitMitigationTaskRepo{
+		task: &entity.MitigationTask{
+			ID:     taskID,
+			RiskID: riskID,
+			Status: "pending",
+		},
+	}
+	riskRepo := &fakeSubmitRiskRepo{risk: &entity.Risk{ID: riskID}}
+	uc := NewSubmitMonitoringReportUseCase(taskRepo, riskRepo)
+
+	_, err := uc.Execute(context.Background(), SubmitMonitoringReportInput{
+		TaskID:     taskID,
+		Status:     "done",
+		ReportedBy: uuid.New(),
+	})
+	if !errors.Is(err, domainerrors.ErrInvalidNotes) {
+		t.Fatalf("expected invalid notes error, got %v", err)
+	}
+	if taskRepo.updated != nil {
+		t.Fatal("expected invalid report not to be persisted")
+	}
+}
+
+func TestSubmitMonitoringReportUseCase_AcceptsDoneWithNotes(t *testing.T) {
+	taskID := uuid.New()
+	riskID := uuid.New()
+	taskRepo := &fakeSubmitMitigationTaskRepo{
+		task: &entity.MitigationTask{
+			ID:     taskID,
+			RiskID: riskID,
+			Status: "pending",
+		},
+	}
+	riskRepo := &fakeSubmitRiskRepo{risk: &entity.Risk{ID: riskID}}
+	uc := NewSubmitMonitoringReportUseCase(taskRepo, riskRepo)
+
+	got, err := uc.Execute(context.Background(), SubmitMonitoringReportInput{
+		TaskID:     taskID,
+		Status:     "done",
+		Notes:      "Pelaksanaan mitigasi sudah dilakukan.",
+		ReportedBy: uuid.New(),
+	})
+	if err != nil {
+		t.Fatalf("expected valid report to be accepted, got %v", err)
+	}
+	if got.Status != "done" || got.ReportedAt == nil {
+		t.Fatalf("expected task to be reported, got status=%q reportedAt=%v", got.Status, got.ReportedAt)
+	}
+}
+
+func TestSubmitMonitoringReportUseCase_ResetsEmptyDoneReportToUnreported(t *testing.T) {
+	taskID := uuid.New()
+	riskID := uuid.New()
+	reportedBy := uuid.New()
+	reportedAt := time.Now()
+	taskRepo := &fakeSubmitMitigationTaskRepo{
+		task: &entity.MitigationTask{
+			ID:         taskID,
+			RiskID:     riskID,
+			Status:     "done",
+			ReportedBy: &reportedBy,
+			ReportedAt: &reportedAt,
+		},
+	}
+	riskRepo := &fakeSubmitRiskRepo{risk: &entity.Risk{ID: riskID}}
+	uc := NewSubmitMonitoringReportUseCase(taskRepo, riskRepo)
+
+	got, err := uc.Execute(context.Background(), SubmitMonitoringReportInput{
+		TaskID:     taskID,
+		ReportedBy: uuid.New(),
+	})
+	if err != nil {
+		t.Fatalf("expected empty report to be normalized, got %v", err)
+	}
+	if got.Status != "pending" {
+		t.Fatalf("expected empty report to remain unreported, got %q", got.Status)
+	}
+	if got.ReportedBy != nil || got.ReportedAt != nil {
+		t.Fatal("expected unreported task to have no reporter metadata")
+	}
+}
+
+func TestSubmitMonitoringReportUseCase_RejectsNotReportedTask(t *testing.T) {
+	taskID := uuid.New()
+	riskID := uuid.New()
+	taskRepo := &fakeSubmitMitigationTaskRepo{
+		task: &entity.MitigationTask{
+			ID:     taskID,
+			RiskID: riskID,
+			Status: entity.MitigationTaskStatusNotReported,
+		},
+	}
+	riskRepo := &fakeSubmitRiskRepo{risk: &entity.Risk{ID: riskID}}
+	uc := NewSubmitMonitoringReportUseCase(taskRepo, riskRepo)
+
+	_, err := uc.Execute(context.Background(), SubmitMonitoringReportInput{
+		TaskID:     taskID,
+		Status:     "done",
+		Notes:      "Laporan yang seharusnya tidak diterima.",
+		ReportedBy: uuid.New(),
+	})
+	if !errors.Is(err, domainerrors.ErrMitigationNotReported) {
+		t.Fatalf("expected terminal not reported error, got %v", err)
+	}
+	if taskRepo.updated != nil {
+		t.Fatal("expected terminal task not to be updated")
+	}
+}
+
 func ptrString(value string) *string { return &value }

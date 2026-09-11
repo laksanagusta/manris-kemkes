@@ -125,6 +125,7 @@ function PredictivePageContent() {
         title="AI Predictive Scoring"
         actions={
           <Button
+            size="md"
             onClick={handleRunPrediction}
             className="gap-2"
             disabled={isRunning}
@@ -211,10 +212,10 @@ function PredictivePageContent() {
           <TableBody>
             {predictions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-24">
-                  <div className="flex flex-col gap-1 text-left">
-                    <p className="text-sm font-medium text-muted-foreground">Data prediksi kosong</p>
-                    <p className="text-xs text-muted-foreground/70">Klik tombol "Run Prediction" untuk memulai analisis profil risiko</p>
+                <TableCell colSpan={8} className="bg-state-surface h-24">
+                  <div className="flex flex-col gap-1 text-left text-state-foreground">
+                    <p className="text-sm font-medium text-state-foreground">Data prediksi kosong</p>
+                    <p className="text-xs text-state-foreground">Klik tombol "Run Prediction" untuk memulai analisis profil risiko</p>
                   </div>
                 </TableCell>
               </TableRow>

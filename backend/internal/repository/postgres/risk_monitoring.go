@@ -453,6 +453,24 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 	`, source.VersionGroupID, monitoring.AssessmentCycle, monitoringID, now); err != nil {
 		return nil, fmt.Errorf("mark monitoring period completed: %w", err)
 	}
+	// Finalization closes every mitigation task that did not contain a valid
+	// report. This runs in the same transaction as the monitoring commit so a
+	// task cannot remain actionable after its monitoring period is final.
+	if _, err := tx.Exec(ctx, `
+		UPDATE mitigation_tasks
+		SET status = 'not_reported',
+			reported_by = NULL,
+			reported_at = NULL,
+			updated_at = now()
+		WHERE monitoring_id = $1
+		  AND (
+			status IS DISTINCT FROM 'done'
+			OR reported_at IS NULL
+			OR NULLIF(BTRIM(COALESCE(notes, '')), '') IS NULL
+		  )
+	`, monitoringID); err != nil {
+		return nil, fmt.Errorf("close unreported mitigation tasks: %w", err)
+	}
 
 	if err := tx.Commit(ctx); err != nil {
 		return nil, fmt.Errorf("commit monitoring finalization: %w", err)

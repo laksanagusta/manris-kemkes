@@ -13,13 +13,6 @@ import {
 } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ReportScopePicker } from "@/components/report/report-scope-picker";
 import {
   Download,
@@ -27,7 +20,6 @@ import {
   FileText,
   Filter,
   Loader2,
-  TrendingUp,
   ArrowUpRight,
   ChevronDown,
 } from "@/components/ui/icons";
@@ -42,7 +34,6 @@ import {
   Bar,
   XAxis,
   YAxis,
-  CartesianGrid,
   Cell,
 } from "recharts";
 
@@ -111,10 +102,12 @@ import {
   KpiCard,
   MetricGrid,
   PageStack,
+  PopoverSelectField,
 } from "@/components/shared/design-system";
 import {
   ReportDrilldownSummary,
   ReportEmptyState,
+  ReportGrid,
   ReportLinkGrid,
   ReportPanel,
 } from "@/components/shared/design-system";
@@ -156,11 +149,20 @@ const riskTrendChartConfig = {
   },
 } satisfies ChartConfig;
 
+const trendWindowOptions = [
+  { value: "2s", label: "2 Kuartal" },
+  { value: "4s", label: "4 Kuartal" },
+  { value: "all", label: "Semua" },
+];
+
 const EMPTY_REPORT_SCOPE: ReportsFilterScope = {
   organizationId: "",
   organizationGroupId: "",
   organizationIds: [],
 };
+
+const REPORT_WIDGET_WRAPPER_CLASS =
+  "flex min-h-0 min-w-0 w-full md:h-[30rem] md:[&>*]:h-full [&>*]:w-full";
 
 const exportOptions = [
   {
@@ -601,7 +603,7 @@ export default function ReportsPage() {
         leading={
           <Popover open={reportFilterOpen} onOpenChange={handleReportFilterOpenChange}>
             <PopoverTrigger asChild>
-              <ActionButton variant="outline" size="md" className="h-10"
+              <ActionButton variant="outline" size="md"
                 disabled={reportOrganizations.length === 0 && reportOrganizationGroups.length === 0}>
                 <Filter className="size-3.5" strokeWidth={2.5} />
                 Filter
@@ -647,6 +649,7 @@ export default function ReportsPage() {
                   organizationPlaceholder="Pilih unit"
                   organizationGroupPlaceholder="Pilih grup"
                   orientation="vertical"
+                  density="compact"
                 />
                 <div className="flex items-center justify-between pt-4">
                   <ActionButton type="button" variant="ghost" size="md" onClick={handleResetReportFilter}>
@@ -670,7 +673,7 @@ export default function ReportsPage() {
           <DropdownMenuTrigger asChild>
             <ActionButton variant="outline" size="md">
               <Download className="size-3.5" strokeWidth={2.5} />
-              Export Data
+              Export
               <ChevronDown className="size-3.5 text-muted-foreground" />
             </ActionButton>
           </DropdownMenuTrigger>
@@ -696,16 +699,19 @@ export default function ReportsPage() {
       />
 
       <section id="risk-analytics" className="flex flex-col gap-4 scroll-mt-24">
-        <div className="grid gap-6 xl:grid-cols-12">
-          <ReportPanel
-            className="xl:col-span-7"
-            title="Laporan Pergerakan Risiko"
-            actions={
-                <Badge variant="outline" className="h-5 px-2 text-[10px]">
-                  {`${previousCycle} ke ${exportCycle}`}
-                </Badge>
-            }
+        <ReportGrid>
+          <div
+            className={cn(REPORT_WIDGET_WRAPPER_CLASS, "md:col-span-2")}
           >
+            <ReportPanel
+              title="Laporan Pergerakan Risiko"
+              contentClassName="flex min-h-0 flex-1 flex-col"
+              actions={
+                  <Badge variant="outline" className="h-5 px-2 text-[10px]">
+                    {`${previousCycle} ke ${exportCycle}`}
+                  </Badge>
+              }
+            >
               {hasMovementData ? (
                 <>
                   <MetricGrid className="pb-4 md:grid-cols-5 xl:grid-cols-5">
@@ -714,17 +720,18 @@ export default function ReportsPage() {
                         key={item.key}
                         type="button"
                         onClick={() => toggleMovementFilter(item.key)}
+                        aria-pressed={selectedMovement === item.key}
                         className="text-left transition-colors"
                       >
                         <KpiCard
                           label={item.label}
                           value={item.value}
                           tone="white"
-                          description={
+                          icon={
                             selectedMovement === item.key ? (
                               <Badge
                                 variant="outline"
-                                className="mt-2 h-5 px-1.5 text-[9px]"
+                                className="h-5 px-1.5 text-[9px]"
                               >
                                 Aktif
                               </Badge>
@@ -734,7 +741,7 @@ export default function ReportsPage() {
                       </button>
                     ))}
                   </MetricGrid>
-                  <div className="h-56">
+                  <div className="min-h-56 flex-1">
                     <ChartContainer
                       config={movementChartConfig}
                       className="h-full w-full"
@@ -744,11 +751,6 @@ export default function ReportsPage() {
                         data={movementData}
                         margin={{ top: 4, right: 12, left: -24, bottom: 0 }}
                       >
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          stroke="var(--chart-grid)"
-                          vertical={false}
-                        />
                         <XAxis
                           dataKey="label"
                           tick={{ fontSize: 10 }}
@@ -782,36 +784,31 @@ export default function ReportsPage() {
                 </>
               ) : (
                 <ReportEmptyState
-                  className="h-56"
+                  className="h-full flex-1"
                   description="Perbandingan kuartal belum tersedia"
                 />
               )}
-          </ReportPanel>
-
-          <div className="xl:col-span-5">
-            <RiskMovementByOrg
-              data={movementByOrgData}
-              currentSort={movementByOrgSort}
-              onSortChange={setMovementByOrgSort}
-            />
+            </ReportPanel>
           </div>
-        </div>
+
+        </ReportGrid>
       </section>
 
       <section id="risk-exposure-trend" className="flex flex-col gap-6 scroll-mt-24">
-        <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-12">
-          <ReportPanel
-            className="xl:col-span-4"
-            title="Paparan Risiko"
-            actions={
-                <Badge variant="outline" className="h-5 px-2 text-[10px]">
-                  {exportCycle}
-                </Badge>
-            }
-          >
+        <ReportGrid>
+          <div className={REPORT_WIDGET_WRAPPER_CLASS}>
+            <ReportPanel
+              title="Paparan Risiko"
+              contentClassName="flex min-h-0 flex-1 flex-col"
+              actions={
+                  <Badge variant="outline" className="h-5 px-2 text-[10px]">
+                    {exportCycle}
+                  </Badge>
+              }
+            >
                   {hasExposureData ? (
                 <>
-                  <div className="h-48">
+                  <div className="min-h-48 flex-1">
                     <ChartContainer
                       config={exposureChartConfig}
                       className="h-full w-full"
@@ -821,11 +818,6 @@ export default function ReportsPage() {
                         data={unitExposureData}
                         margin={{ top: 4, right: 12, left: -24, bottom: 0 }}
                       >
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          stroke="var(--chart-grid)"
-                          vertical={false}
-                        />
                         <XAxis
                           dataKey="orgName"
                           tick={{ fontSize: 10 }}
@@ -890,41 +882,37 @@ export default function ReportsPage() {
                 </>
               ) : (
                 <ReportEmptyState
-                  className="h-48"
+                  className="h-full flex-1"
                   description="Belum ada data risiko untuk menyusun ranking unit prioritas."
                 />
               )}
-          </ReportPanel>
+            </ReportPanel>
+          </div>
 
-          <ReportPanel
-            className="xl:col-span-4"
-            title={
-              <span className="flex items-center gap-2">
-                  <TrendingUp className="size-4" />
-                  Tren Risiko
-              </span>
-            }
-            actions={
-                <Select
+          <div className={REPORT_WIDGET_WRAPPER_CLASS}>
+            <CriticalRiskRateTrend data={criticalRiskRateData} />
+          </div>
+
+          <div className={REPORT_WIDGET_WRAPPER_CLASS}>
+            <ReportPanel
+              contentClassName="flex min-h-0 flex-1 flex-col p-4"
+              headerClassName="items-start"
+              title="Tren Risiko"
+              actions={
+                <PopoverSelectField
                   value={trendWindow}
                   onValueChange={(value) =>
                     setTrendWindow(value as RiskTrendWindow)
                   }
-                >
-                  <SelectTrigger className="h-10 w-28 border-input bg-muted/30 text-[10px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="2s">2 Kuartal</SelectItem>
-                    <SelectItem value="4s">4 Kuartal</SelectItem>
-                    <SelectItem value="all">Semua</SelectItem>
-                  </SelectContent>
-                </Select>
-            }
-          >
+                  options={trendWindowOptions}
+                  placeholder="Pilih periode"
+                  triggerClassName="h-9 w-28 bg-muted/30 text-[10px]"
+                />
+              }
+            >
               {hasTrendData ? (
                 <>
-                  <div className="h-48">
+                  <div className="min-h-48 flex-1">
                     <ChartContainer
                       config={riskTrendChartConfig}
                       className="h-full w-full"
@@ -934,11 +922,6 @@ export default function ReportsPage() {
                         data={trendData}
                         margin={{ top: 4, right: 10, left: -10, bottom: 0 }}
                       >
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          stroke="var(--chart-grid)"
-                          vertical={false}
-                        />
                         <XAxis
                           dataKey="period"
                           tick={{ fontSize: 10 }}
@@ -958,7 +941,7 @@ export default function ReportsPage() {
                             key={key}
                             dataKey={key}
                             stackId="risk"
-                            fill={`var(--color-${key})`}
+                            fill={trendColors[key]}
                             radius={[3, 3, 0, 0]}
                           />
                         ))}
@@ -981,21 +964,23 @@ export default function ReportsPage() {
                 </>
               ) : (
                 <ReportEmptyState
-                  className="h-48"
+                  className="h-full flex-1"
                   description="Belum ada data kuartal untuk menampilkan tren risiko."
                 />
               )}
-          </ReportPanel>
-          <div className="xl:col-span-4">
-            <CriticalRiskRateTrend data={criticalRiskRateData} />
+            </ReportPanel>
           </div>
-        </div>
-
-        <div className="grid gap-6 xl:grid-cols-12">
-          <div className="xl:col-span-8">
+          <div className={REPORT_WIDGET_WRAPPER_CLASS}>
             <SemesterTargetTrend data={semesterTargetTrendData} />
           </div>
-          <div className="xl:col-span-4">
+          <div className={REPORT_WIDGET_WRAPPER_CLASS}>
+            <RiskMovementByOrg
+              data={movementByOrgData}
+              currentSort={movementByOrgSort}
+              onSortChange={setMovementByOrgSort}
+            />
+          </div>
+          <div className={REPORT_WIDGET_WRAPPER_CLASS}>
             <RiskCategoryPieChart
               data={riskCategoryData}
               loading={riskCategoryLoading}
@@ -1003,7 +988,7 @@ export default function ReportsPage() {
               cycle={exportCycle}
             />
           </div>
-        </div>
+        </ReportGrid>
       </section>
 
       {selectedUnit || selectedMovement ? (

@@ -363,7 +363,7 @@ export default function NewUserPage() {
           </div>
         </div>
 
-        <div className="rounded-2xl border border-border/15 bg-muted/20 px-4 py-4">
+        <div className="rounded-xl border border-border/15 bg-muted/20 px-4 py-4">
           <p className="text-xs font-medium text-foreground">Ringkasan peran</p>
           <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
             {roleOptions.map((option) => (

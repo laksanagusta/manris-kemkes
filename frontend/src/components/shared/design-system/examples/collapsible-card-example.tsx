@@ -1,4 +1,5 @@
-import { Badge, CollapsibleCard } from "@/components/shared/design-system";
+import { CollapsibleCard } from "@/components/shared/design-system";
+import { Badge } from "@/components/ui/badge";
 
 export function CollapsibleCardExample() {
   return (
@@ -9,13 +10,17 @@ export function CollapsibleCardExample() {
           <CollapsibleCard.Text>
             <CollapsibleCard.Title>Hasil Pemantauan</CollapsibleCard.Title>
             <CollapsibleCard.Description>
-              Header, status, dan isi disusun eksplisit melalui compound component.
+              Header dan isi disusun eksplisit melalui compound component.
             </CollapsibleCard.Description>
           </CollapsibleCard.Text>
         </CollapsibleCard.Header>
         <CollapsibleCard.Actions>
-          <Badge size="micro" tone="success">
-            Siap dikirim
+          <Badge
+            size="compact"
+            tone="neutral"
+            className="bg-muted text-muted-foreground"
+          >
+            2026-H1
           </Badge>
         </CollapsibleCard.Actions>
       </CollapsibleCard.Trigger>

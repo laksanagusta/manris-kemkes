@@ -1,19 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { StandardCard } from "@/components/shared/design-system";
-import { OverviewPanelState } from "@/components/shared/design-system";
+import {
+  OverviewPanelState,
+  RiskHeatmapGrid,
+  StandardCard,
+} from "@/components/shared/design-system";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
-import {
-  calculateNilai,
-  getBobot,
-  getRiskLevelFromNilai,
-  getRiskLevelLabel,
-} from "@/lib/risk";
-
-import { getHeatmapCellClass, type HeatmapMode } from "@/lib/heatmap-utils";
+import type { HeatmapMode } from "@/lib/heatmap-utils";
 
 type PhaseKey = "initial" | "quarter1" | "quarter2" | "quarter3" | "quarter4" | "target";
 
@@ -62,7 +58,11 @@ const riskLevelLegend = [
   { label: "Sangat Tinggi", className: "heatmap-sangat-tinggi" },
 ] as const;
 
-export function MultiPhaseHeatmapCompareCard() {
+export function MultiPhaseHeatmapCompareCard({
+  surface = "card",
+}: {
+  surface?: "card" | "plain";
+}) {
   const { token } = useAuth();
 
   const currentYear = new Date().getFullYear();
@@ -103,12 +103,8 @@ export function MultiPhaseHeatmapCompareCard() {
     void loadData();
   }, [loadData]);
 
-  return (
-    <StandardCard
-      title="Perbandingan Heatmap Multi-Fase"
-      className="w-full"
-      contentClassName="p-4 pt-2"
-    >
+  const content = (
+    <>
       {loading ? (
         <OverviewPanelState
           state="loading"
@@ -138,50 +134,15 @@ export function MultiPhaseHeatmapCompareCard() {
                     {labelMap[phase]}
                   </p>
                   {gridData ? (
-                    <div className="relative grid grid-cols-5 gap-1">
-                      {[...gridData].reverse().flatMap((row, rowIndex) =>
-                        row.map((count, colIndex) => {
-                          const probability = 5 - rowIndex;
-                          const impact = colIndex + 1;
-                          const level = getRiskLevelLabel(
-                            getRiskLevelFromNilai(
-                              calculateNilai(
-                                probability,
-                                impact,
-                                getBobot(probability, impact),
-                              ),
-                            ),
-                          );
-
-                          return (
-                            <div
-                              key={`${phase}-${rowIndex}-${colIndex}`}
-                              role="img"
-                              aria-label={`Probabilitas ${probability}, dampak ${impact}, level ${level}, ${count} risiko`}
-                              className={cn(
-                                "flex aspect-square items-center justify-center rounded-md border text-xs font-semibold",
-                                getHeatmapCellClass(
-                                  count,
-                                  probability,
-                                  impact,
-                                  heatmapMode,
-                                ),
-                              )}
-                            >
-                              <span aria-hidden="true">
-                                {heatmapMode === "riskLevel" && count === 0
-                                  ? ""
-                                  : count}
-                              </span>
-                            </div>
-                          );
-                        }),
-                      )}
-                    </div>
+                    <RiskHeatmapGrid
+                      matrix={gridData}
+                      label={`Heatmap ${labelMap[phase]}`}
+                      mode={heatmapMode}
+                    />
                   ) : (
                     <div
                       role="status"
-                      className="flex min-h-32 items-center justify-center rounded-md border border-dashed border-border/60 bg-muted/20 px-3 text-center text-xs text-muted-foreground"
+                      className="flex min-h-32 items-center justify-center rounded-md bg-state-surface px-3 text-center text-xs text-state-foreground"
                     >
                       Data fase belum tersedia.
                     </div>
@@ -211,6 +172,20 @@ export function MultiPhaseHeatmapCompareCard() {
           </div>
         </>
       )}
+    </>
+  );
+
+  if (surface === "plain") {
+    return <div className="min-h-0">{content}</div>;
+  }
+
+  return (
+    <StandardCard
+      title="Perbandingan Heatmap Multi-Fase"
+      className="w-full"
+      contentClassName="p-4 pt-2"
+    >
+      {content}
     </StandardCard>
   );
 }

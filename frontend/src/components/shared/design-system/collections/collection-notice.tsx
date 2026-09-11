@@ -14,7 +14,7 @@ export function CollectionNotice({
   return (
     <div
       className={cn(
-        "flex min-h-9 items-center gap-2 rounded-lg border border-border bg-muted/20 px-3 py-2 text-xs text-muted-foreground",
+        "flex min-h-9 items-center gap-2 rounded-lg bg-state-surface px-3 py-2 text-xs text-state-foreground",
         className,
       )}
     >

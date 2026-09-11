@@ -47,7 +47,7 @@ export function CompletedResults({
   ].filter((group) => group.findings.length);
   return (
     <div className="space-y-4">
-      <section className={cn("rounded-2xl border p-5 sm:p-6", cancelled || failed ? "border-border/80 bg-muted/30" : partial ? "border-amber-200/80 bg-amber-50/55" : "border-emerald-200/80 bg-emerald-50/50")} aria-labelledby="completed-title">
+      <section className={cn("rounded-xl border p-5 sm:p-6", cancelled || failed ? "border-border/80 bg-muted/30" : partial ? "border-amber-200/80 bg-amber-50/55" : "border-emerald-200/80 bg-emerald-50/50")} aria-labelledby="completed-title">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="flex items-start gap-3">
             <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl", cancelled || failed ? "bg-muted text-muted-foreground" : partial ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800")}>
@@ -73,7 +73,7 @@ export function CompletedResults({
         </div>
       </section>
 
-      <section className="rounded-2xl border border-border/80 bg-white p-4 sm:p-5" aria-labelledby="findings-title">
+      <section className="rounded-xl border border-border/80 bg-white p-4 sm:p-5" aria-labelledby="findings-title">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div><h2 id="findings-title" className="text-sm font-semibold text-foreground">Findings to review</h2><p className="mt-1 text-xs leading-5 text-muted-foreground">Pilih finding untuk meng-highlight halaman sumber pada spatial index dan membuka inspector.</p></div>
           <Button type="button" variant="outline" size="sm" className="gap-2 active:scale-[0.96]" onClick={onStartNew}><Plus className="size-3.5" />Start new process</Button>

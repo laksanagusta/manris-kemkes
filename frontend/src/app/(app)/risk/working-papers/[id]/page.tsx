@@ -1,7 +1,6 @@
 "use client";
 
 import { use, useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
@@ -21,10 +20,10 @@ import { WorkingPaperSignatureTimeline } from "./working-paper-signature-timelin
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import {
-  ActionButton,
   AccentButton,
   CollectionPageHeader,
   CollectionTableCard,
+  FormBackAction,
   StandardCard,
 } from "@/components/shared/design-system";
 import {
@@ -50,7 +49,6 @@ import {
 import { cn } from "@/lib/utils";
 import {
   AlertCircle,
-  ArrowLeft,
   CalendarDays,
   CheckCircle2,
   CircleDot,
@@ -251,6 +249,8 @@ export default function WorkingPaperDetailPage(props: {
       <FormPage className="space-y-6 pb-0">
         <FormHeader
           title="Memuat detail kertas kerja"
+          onBack={() => router.push("/risk/working-papers")}
+          backLabel="Kertas Kerja"
         />
         <CollectionLoadingState message="Memuat detail kertas kerja..." />
       </FormPage>
@@ -262,6 +262,8 @@ export default function WorkingPaperDetailPage(props: {
       <FormPage className="space-y-6 pb-0">
         <FormHeader
           title="Detail kertas kerja belum tersedia"
+          onBack={() => router.push("/risk/working-papers")}
+          backLabel="Kertas Kerja"
         />
         <CollectionErrorState
           title="Gagal memuat kertas kerja"
@@ -277,6 +279,8 @@ export default function WorkingPaperDetailPage(props: {
       <FormPage className="space-y-6 pb-0">
         <FormHeader
           title="Kertas kerja tidak ditemukan"
+          onBack={() => router.push("/risk/working-papers")}
+          backLabel="Kertas Kerja"
         />
         <CollectionEmptyState
           title="Dokumen tidak ditemukan"
@@ -308,7 +312,7 @@ export default function WorkingPaperDetailPage(props: {
       icon: CircleDot,
     },
     {
-      label: "Siklus asesmen",
+      label: "Periode pemantauan",
       value: data.assessment_cycle || "Belum ditetapkan",
       icon: CalendarDays,
     },
@@ -335,26 +339,18 @@ export default function WorkingPaperDetailPage(props: {
   ];
 
   const backAction = (
-    <ActionButton
-      asChild
-      variant="secondary"
-      size="sm"
-    >
-      <Link href="/risk/working-papers">
-        <ArrowLeft className="size-3.5" />
-        Kembali ke daftar kertas kerja
-      </Link>
-    </ActionButton>
+    <FormBackAction
+      href="/risk/working-papers"
+      label="Kertas Kerja"
+    />
   );
 
   const headerActions = (
     <>
       <WorkingPaperStatusActions
-        canStartSigning={viewModel.canStartSigning}
         canSkipTTE={viewModel.canSkipTTE}
         canCancel={viewModel.canCancel}
         canDelete={viewModel.canDelete}
-        onStartSigning={() => setStartSigningDialogOpen(true)}
         onSkipTTE={() => setSkipDialogOpen(true)}
         onCancel={() => setCancelDialogOpen(true)}
         onDelete={() => setDeleteDialogOpen(true)}
@@ -383,12 +379,14 @@ export default function WorkingPaperDetailPage(props: {
     <FormPage className="max-w-[1400px] space-y-6 pb-0">
       <CollectionPageHeader
         backAction={backAction}
+        backActionPlacement="top"
+        actionsPlacement="top"
         title="Detail Kertas Kerja"
         actions={headerActions}
       />
 
       {viewModel.monitoringBlockers.length > 0 ? (
-        <Card className="rounded-2xl bg-amber-50/80">
+        <Card className="rounded-xl bg-amber-50/80">
           <CardContent className="space-y-1 p-4 text-sm text-amber-900">
             <p className="font-semibold">Finalisasi monitoring terlebih dahulu</p>
             <p>
@@ -441,7 +439,7 @@ export default function WorkingPaperDetailPage(props: {
               ))}
             </div>
           </StandardCard>
-          <StandardCard title="Monitoring Final">
+          <StandardCard title="Progres Pemantauan">
             {totalRiskCount > 0 && (
               <div className="flex flex-col gap-3">
                 <div className="flex items-center justify-between gap-4">
@@ -453,7 +451,7 @@ export default function WorkingPaperDetailPage(props: {
                     )}
                     <span className="text-sm font-medium text-foreground">
                       {finalizedMonitoringCount} dari {totalRiskCount} risiko
-                      memiliki monitoring final
+                      selesai dipantau
                     </span>
                   </div>
                   <span className="text-xs font-medium text-muted-foreground">
@@ -473,7 +471,7 @@ export default function WorkingPaperDetailPage(props: {
               </div>
             )}
           </StandardCard>
-          <StandardCard title="Status Tanda Tangan">
+          <StandardCard title="Histori Tanda Tangan">
             <WorkingPaperSignatureTimeline timeline={viewModel.timeline} />
           </StandardCard>
         </div>

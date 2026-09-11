@@ -32,7 +32,7 @@ export function VersionTimeline({
             type="button"
             onClick={() => onSelect?.(item.id)}
             className={cn(
-              "relative z-10 flex w-full items-center justify-between rounded-2xl p-3 text-left smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 transition-colors duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]",
+              "relative z-10 flex w-full items-center justify-between rounded-xl p-3 text-left smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 transition-colors duration-150 ease-[cubic-bezier(0.23,1,0.32,1)]",
               active
                 ? "bg-accent"
                 : "bg-card hover:bg-muted",

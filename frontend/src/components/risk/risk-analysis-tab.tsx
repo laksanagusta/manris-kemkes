@@ -2,7 +2,6 @@
 
 import { useMemo } from "react";
 import {
-  CartesianGrid,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -24,7 +23,12 @@ import {
 import { Loader2 } from "@/components/ui/icons";
 
 import { cn } from "@/lib/utils";
-import { getRiskLevelFromNilai, getRiskLevelLabel } from "@/lib/risk";
+import {
+  formatRiskScore,
+  getRiskLevelFromNilai,
+  getRiskLevelLabel,
+  roundRiskScore,
+} from "@/lib/risk";
 import type { RiskVersionTimelineItem } from "@/types/risk";
 
 type AnalysisRow = {
@@ -64,11 +68,11 @@ function formatVersionLabel(version: RiskVersionTimelineItem) {
 }
 
 function getVersionInherentScore(version: RiskVersionTimelineItem) {
-  return version.inherentScore ?? 0;
+  return roundRiskScore(version.inherentScore) ?? 0;
 }
 
 function getVersionTargetScore(version: RiskVersionTimelineItem) {
-  return version.targetScore ?? 0;
+  return roundRiskScore(version.targetScore) ?? 0;
 }
 
 function formatDelta(delta: number | null) {
@@ -143,9 +147,9 @@ export function RiskAnalysisTab({
   if (loading) {
     return (
       <Card className="bg-card/80">
-        <CardContent className="flex items-center justify-center py-14">
-          <Loader2 className="size-5 animate-spin text-muted-foreground" />
-          <span className="ml-2 text-sm text-muted-foreground">
+        <CardContent className="flex items-center justify-center rounded-b-xl bg-state-surface py-14 text-state-foreground">
+          <Loader2 className="size-5 animate-spin text-state-foreground" />
+          <span className="ml-2 text-sm text-state-foreground">
             Memuat analisis risiko...
           </span>
         </CardContent>
@@ -155,12 +159,12 @@ export function RiskAnalysisTab({
 
   if (rows.length === 0) {
     return (
-      <Card className="bg-muted/10">
+      <Card className="border-0 bg-state-surface text-state-foreground">
         <CardContent className="flex flex-col items-center justify-center gap-2 py-14 text-center">
-          <p className="text-sm font-medium text-foreground">
+          <p className="text-sm font-medium text-state-foreground">
             Belum ada versi risiko untuk dianalisis.
           </p>
-          <p className="max-w-md text-xs leading-relaxed text-muted-foreground">
+          <p className="max-w-md text-xs leading-relaxed text-state-foreground/80">
             Setelah risiko disimpan sebagai versi, tab ini menampilkan
             perubahan nilai, level, target, dan catatan revisi.
           </p>
@@ -172,29 +176,29 @@ export function RiskAnalysisTab({
   return (
     <div className="space-y-5">
       <div className="grid gap-3 md:grid-cols-4">
-        <div className="surface-hairline rounded-2xl bg-card/80 px-4 py-3">
+        <div className="surface-hairline rounded-xl bg-card/80 px-4 py-3">
           <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
             Nilai risiko terkini
           </p>
           <p className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
-            {latest?.inherentScore ?? 0}
+            {formatRiskScore(latest?.inherentScore, "0")}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
             {latest ? latest.level : "Belum ada data"}
           </p>
         </div>
-        <div className="surface-hairline rounded-2xl bg-card/80 px-4 py-3">
+        <div className="surface-hairline rounded-xl bg-card/80 px-4 py-3">
           <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
             Nilai sebelumnya
           </p>
           <p className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
-            {previous?.inherentScore ?? "—"}
+            {formatRiskScore(previous?.inherentScore, "—")}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
             {previous ? previous.level : "Belum ada pembanding"}
           </p>
         </div>
-        <div className="surface-hairline rounded-2xl bg-card/80 px-4 py-3">
+        <div className="surface-hairline rounded-xl bg-card/80 px-4 py-3">
           <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
             Perubahan
           </p>
@@ -210,12 +214,12 @@ export function RiskAnalysisTab({
             {trendLabel}
           </span>
         </div>
-        <div className="surface-hairline rounded-2xl bg-card/80 px-4 py-3">
+        <div className="surface-hairline rounded-xl bg-card/80 px-4 py-3">
           <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
             Selisih dari target
           </p>
           <p className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
-            {targetGap === null ? "—" : `${targetGap}`}
+            {formatRiskScore(targetGap, "—")}
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
             {latest?.targetScore && latest.targetScore > 0
@@ -250,11 +254,6 @@ export function RiskAnalysisTab({
                   data={rows}
                   margin={{ top: 6, right: 18, left: -18, bottom: 0 }}
                 >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    stroke="oklch(0.5 0 0 / 8%)"
-                    vertical={false}
-                  />
                   <XAxis
                     dataKey="label"
                     tick={{ fontSize: 10 }}
@@ -275,7 +274,10 @@ export function RiskAnalysisTab({
                       fontSize: "11px",
                     }}
                     formatter={(value, name) => [
-                      `${value ?? 0}`,
+                      formatRiskScore(
+                        typeof value === "number" ? value : null,
+                        "0",
+                      ),
                       name === "inherentScore"
                         ? "Nilai risiko"
                         : "Target penanganan",
@@ -287,7 +289,7 @@ export function RiskAnalysisTab({
                     stroke="oklch(0.68 0.17 35)"
                     strokeWidth={2.25}
                     dot={false}
-                    activeDot={{ r: 4 }}
+                    activeDot={false}
                   />
                   <Line
                     type="monotone"
@@ -296,7 +298,7 @@ export function RiskAnalysisTab({
                     strokeWidth={2}
                     strokeDasharray="4 4"
                     dot={false}
-                    activeDot={{ r: 4 }}
+                    activeDot={false}
                   />
                 </LineChart>
               </ResponsiveContainer>
@@ -401,10 +403,10 @@ export function RiskAnalysisTab({
                           </Badge>
                         </TableCell>
                         <TableCell className="p-2 align-middle whitespace-nowrap text-right text-sm font-medium text-foreground">
-                          {row.inherentScore}
+                          {formatRiskScore(row.inherentScore)}
                         </TableCell>
                         <TableCell className="p-2 align-middle whitespace-nowrap text-right text-sm text-muted-foreground">
-                          {row.targetScore > 0 ? row.targetScore : "—"}
+                          {formatRiskScore(row.targetScore > 0 ? row.targetScore : null)}
                         </TableCell>
                         <TableCell className="p-2 align-middle whitespace-nowrap text-right text-sm">
                           <span

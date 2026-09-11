@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
+	"github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
 )
 
@@ -20,8 +21,10 @@ func NewListRiskChartersUseCase(repo repository.RiskCharterRepository) *ListRisk
 type ListRiskChartersInput struct {
 	OrganizationID *uuid.UUID
 	Period         string
+	Query          string
 	Page           int
 	Limit          int
+	Scope          *entity.AccessScope
 }
 
 type ListRiskChartersOutput struct {
@@ -32,6 +35,18 @@ type ListRiskChartersOutput struct {
 }
 
 func (uc *ListRiskChartersUseCase) Execute(ctx context.Context, input ListRiskChartersInput) (*ListRiskChartersOutput, error) {
+	if input.Scope == nil {
+		return nil, errors.ErrForbidden
+	}
+	if input.OrganizationID != nil && !canAccessRiskCharter(input.Scope, *input.OrganizationID) {
+		return nil, errors.ErrForbidden
+	}
+	if input.OrganizationID == nil {
+		input.OrganizationID = input.Scope.OrganizationID
+	}
+	if input.OrganizationID == nil {
+		return nil, errors.ErrForbidden
+	}
 	if input.Page < 1 {
 		input.Page = 1
 	}
@@ -42,6 +57,7 @@ func (uc *ListRiskChartersUseCase) Execute(ctx context.Context, input ListRiskCh
 	items, total, err := uc.repo.List(ctx, repository.RiskCharterListFilter{
 		OrganizationID: input.OrganizationID,
 		Period:         strings.TrimSpace(input.Period),
+		Query:          strings.TrimSpace(input.Query),
 		Page:           input.Page,
 		Limit:          input.Limit,
 	})

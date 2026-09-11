@@ -314,12 +314,23 @@ func (r *mitigationTaskRepository) ListByMonitoring(ctx context.Context, monitor
 }
 
 // CountByMonitoringAndStatus counts tasks linked to a monitoring by status
+// CountByMonitoringAndStatus treats only a completed task with actual report
+// content as reported. Empty and terminal not_reported tasks remain part of
+// the unreported count for historical summaries.
 func (r *mitigationTaskRepository) CountByMonitoringAndStatus(ctx context.Context, monitoringID uuid.UUID, orgIDs []uuid.UUID) (*repository.MonitoringTaskCounts, error) {
 	query := `
 		SELECT
 			COUNT(*) AS total,
-			COUNT(*) FILTER (WHERE status = 'done') AS done,
-			COUNT(*) FILTER (WHERE status = 'pending') AS pending
+			COUNT(*) FILTER (
+				WHERE status = 'done'
+				  AND reported_at IS NOT NULL
+				  AND NULLIF(BTRIM(COALESCE(notes, '')), '') IS NOT NULL
+			) AS done,
+			COUNT(*) FILTER (
+				WHERE status IS DISTINCT FROM 'done'
+				   OR reported_at IS NULL
+				   OR NULLIF(BTRIM(COALESCE(notes, '')), '') IS NULL
+			) AS pending
 		FROM mitigation_tasks
 		WHERE monitoring_id = $1
 	`

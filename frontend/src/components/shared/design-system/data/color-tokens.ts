@@ -1,4 +1,10 @@
-export const designSystemColorTokens = [
+export type DesignSystemColorToken = {
+  name: string;
+  value: string;
+  previewColor?: string;
+};
+
+export const designSystemColorTokens: DesignSystemColorToken[] = [
   { name: "background", value: "var(--background)" },
   { name: "main-content", value: "var(--main-content)" },
   { name: "foreground", value: "var(--foreground)" },
@@ -12,6 +18,10 @@ export const designSystemColorTokens = [
   { name: "secondary-foreground", value: "var(--secondary-foreground)" },
   { name: "muted", value: "var(--muted)" },
   { name: "muted-foreground", value: "var(--muted-foreground)" },
+  { name: "disabled-foreground", value: "var(--disabled-foreground)" },
+  { name: "disabled-surface", value: "var(--disabled-surface)" },
+  { name: "state-surface", value: "var(--state-surface)" },
+  { name: "state-foreground", value: "var(--state-foreground)" },
   { name: "accent", value: "var(--accent)" },
   { name: "accent-foreground", value: "var(--accent-foreground)" },
   { name: "destructive", value: "var(--destructive)" },

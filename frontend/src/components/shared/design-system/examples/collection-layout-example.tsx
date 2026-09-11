@@ -76,7 +76,7 @@ export function CollectionLayoutExample() {
         </div>
         <div className="justify-self-end">
           <Select defaultValue="all">
-            <SelectTrigger>
+            <SelectTrigger className="h-9">
               <SelectValue placeholder="Semua periode" />
             </SelectTrigger>
             <SelectContent>

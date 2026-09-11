@@ -103,7 +103,7 @@ The internal shape must remain abstract. It should not become a literal arrow, b
 ## Constraints
 
 - Must fit the existing teal visual system in `frontend/src/app/globals.css`.
-- Must work in both light and dark mode.
+- Must work with the application's fixed light-only visual system.
 - Must feel institutional and credible, not playful, aggressive, or startup-branded.
 - Must avoid returning to a crowded emblem with multiple metaphors combined into one mark.
 

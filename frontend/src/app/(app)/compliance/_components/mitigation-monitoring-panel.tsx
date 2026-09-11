@@ -9,11 +9,11 @@ import {
   CollectionEmptyState,
   CollectionLoadingState,
   CollectionPagination,
+  CollectionSearchField,
   CollectionTableCard,
   CollectionTableHead,
   CollectionTableHeader,
   CollectionTableHeaderRow,
-  ExpandableSearchField,
   KpiCard,
   MetricGrid,
 } from "@/components/shared/design-system";
@@ -32,6 +32,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
+import { parseEvidenceUrls } from "@/lib/validation/reporting";
 import {
   CalendarClock,
   CalendarDays,
@@ -77,12 +78,14 @@ type MitigationTaskRow = MitigationTask & {
 function getMitigationStatusTone(status: MitigationTaskRow["status"]) {
   if (status === "done") return "success";
   if (status === "overdue") return "danger";
+  if (status === "not_reported") return "danger";
   return "progress";
 }
 
 function getMitigationStatusLabel(status: MitigationTaskRow["status"]) {
   if (status === "done") return "Selesai";
   if (status === "overdue") return "Overdue";
+  if (status === "not_reported") return "Tidak dilaporkan";
   return "Pending";
 }
 
@@ -236,8 +239,10 @@ export function MitigationMonitoringPanel() {
             return 2;
           case "skipped":
             return 3;
-          default:
+          case "not_reported":
             return 4;
+          default:
+            return 5;
         }
       };
 
@@ -378,7 +383,7 @@ export function MitigationMonitoringPanel() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <MetricGrid>
         <KpiCard
           label="Total Penanganan"
@@ -402,13 +407,14 @@ export function MitigationMonitoringPanel() {
         />
       </MetricGrid>
 
-      <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center md:w-auto md:ml-auto">
-          <ExpandableSearchField
-            value={search}
-            onChange={setSearch}
-            placeholder="Cari mitigasi..."
-            ariaLabel="Cari mitigasi"
-          />
+      <div className="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center md:ml-auto">
+        <CollectionSearchField
+          containerClassName="w-full sm:w-80 sm:flex-none"
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Cari mitigasi..."
+          aria-label="Cari mitigasi"
+        />
       </div>
 
       {loading ? (
@@ -467,9 +473,19 @@ export function MitigationMonitoringPanel() {
                           {item.mitigationAction}
                         </span>
                       </button>
-                      <p className="mt-1 line-clamp-1 text-xs text-muted-foreground">
-                        {item.riskCode} · {item.title}
-                      </p>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <p
+                            tabIndex={0}
+                            className="mt-1 line-clamp-1 cursor-help rounded-sm text-xs text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+                          >
+                            {item.riskCode} · {item.title}
+                          </p>
+                        </TooltipTrigger>
+                        <TooltipContent side="top" className="max-w-md text-xs">
+                          {item.riskCode} · {item.title}
+                        </TooltipContent>
+                      </Tooltip>
                     </TableCell>
                     <TableCell className="px-3 py-2 align-middle">
                       <p className="truncate text-sm font-medium text-muted-foreground">
@@ -481,9 +497,11 @@ export function MitigationMonitoringPanel() {
                         <p>
                           {formatDate(item.dueDate)}
                         </p>
-                        <p className="text-xs text-muted-foreground/80">
-                          {tier.label}
-                        </p>
+                        {item.tier !== "upcoming" ? (
+                          <p className="text-xs text-muted-foreground/80">
+                            {tier.label}
+                          </p>
+                        ) : null}
                       </div>
                     </TableCell>
                     <TableCell className="px-3 py-2 align-middle">
@@ -495,7 +513,7 @@ export function MitigationMonitoringPanel() {
                       </Badge>
                     </TableCell>
                     <TableCell className="py-2 pl-3 pr-4 text-right align-middle">
-                      {item.status === "done" ? null : !submissionState.allowed ? (
+                      {item.status === "done" || item.status === "not_reported" ? null : !submissionState.allowed ? (
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -588,12 +606,12 @@ export function MitigationMonitoringPanel() {
             flushPendingReport();
           }}
         >
-          <DialogHeader className="motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both">
+          <DialogHeader>
             <DialogTitle className="text-base">Detail Laporan Penanganan</DialogTitle>
           </DialogHeader>
 
           {detailTask && (
-            <div className="space-y-6 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[40ms]">
+            <div className="space-y-6">
               <div className="space-y-4">
                 <div className="flex flex-col gap-2">
                   <p className="text-sm text-muted-foreground">
@@ -679,31 +697,32 @@ export function MitigationMonitoringPanel() {
               <div className="space-y-5">
                 <div className="flex flex-col gap-2">
                   <p className="text-sm text-muted-foreground">
-                    Link Bukti / Evidence
+                    Link Bukti
                   </p>
-                  <div className="flex min-w-0 items-start gap-2 text-sm font-medium">
-                    {detailTask.evidenceUrl ? (
-                      <a
-                        href={detailTask.evidenceUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex max-w-full min-w-0 items-start gap-2 text-foreground hover:text-primary"
-                        onClick={(event) => event.stopPropagation()}
-                        title={detailTask.evidenceUrl}
-                      >
-                        <Link2
-                          className="size-5 shrink-0 text-muted-foreground"
-                          strokeWidth={1.6}
-                          aria-hidden="true"
-                        />
-                        <span className="min-w-0 break-all">
-                          {detailTask.evidenceUrl}
-                        </span>
-                        <ExternalLink
-                          className="size-3.5 shrink-0 text-muted-foreground"
-                          aria-hidden="true"
-                        />
-                      </a>
+                  <div className="flex min-w-0 flex-col items-start gap-1 text-sm font-medium">
+                    {parseEvidenceUrls(detailTask.evidenceUrl).length > 0 ? (
+                      parseEvidenceUrls(detailTask.evidenceUrl).map((url) => (
+                        <a
+                          href={url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="inline-flex max-w-full min-w-0 items-start gap-2 text-foreground hover:text-primary"
+                          onClick={(event) => event.stopPropagation()}
+                          title={url}
+                          key={url}
+                        >
+                          <Link2
+                            className="size-5 shrink-0 text-muted-foreground"
+                            strokeWidth={1.6}
+                            aria-hidden="true"
+                          />
+                          <span className="min-w-0 break-all">{url}</span>
+                          <ExternalLink
+                            className="size-3.5 shrink-0 text-muted-foreground"
+                            aria-hidden="true"
+                          />
+                        </a>
+                      ))
                     ) : (
                       <>
                         <Link2
@@ -736,7 +755,7 @@ export function MitigationMonitoringPanel() {
             </div>
           )}
 
-          <DialogFooter className="gap-2 sm:justify-between motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-safe:delay-[80ms]">
+          <DialogFooter className="gap-2 sm:justify-between">
             <CollectionDialogCancel
               type="button"
               variant="outline"

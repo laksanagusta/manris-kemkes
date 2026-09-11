@@ -21,42 +21,40 @@ import (
 
 // RiskHandler handles HTTP requests for Risk operations using clean architecture
 type RiskHandler struct {
-	createUC                *riskuc.CreateRiskUseCase
-	createBatchUC           *riskuc.CreateRiskBatchUseCase
-	spreadsheetUC           *riskuc.BulkRiskSpreadsheetUseCase
-	getUC                   *riskuc.GetRiskUseCase
-	exportPDFUC             riskExportPDFUseCase
-	archiveUC               *riskuc.ArchiveRiskUseCase
-	restoreUC               *riskuc.RestoreRiskUseCase
-	updateUC                *riskuc.UpdateRiskUseCase
-	deleteUC                *riskuc.DeleteRiskUseCase
-	listUC                  *riskuc.ListRisksUseCase
-	listRegisterUC          *riskuc.ListRiskRegisterUseCase
-	listMonitoringUC        *riskuc.ListRiskMonitoringsUseCase
-	listCycleSnapshotUC     *riskuc.ListRiskCycleSnapshotUseCase
-	listVersionsUC          *riskuc.ListRiskVersionsUseCase
-	reviewQueueUC           *riskuc.ListRiskReviewQueueUseCase
-	compareCyclesUC         *riskuc.CompareRiskCyclesUseCase
-	compareDetailUC         *riskuc.CompareRiskCycleDetailsUseCase
-	reviewSummaryUC         *riskuc.RiskReviewSummaryUseCase
-	dashboardSummaryUC      *riskuc.DashboardSummaryUseCase
-	actionPressureUC        *riskuc.DashboardActionPressureUseCase
-	executiveAlertsUC       *riskuc.ExecutiveAlertsUseCase
-	heatmapDataUC           *riskuc.HeatmapDataUseCase
-	heatmapMultiUC          *riskuc.HeatmapMultiUseCase
-	dashboardCategoriesUC   *riskuc.DashboardRiskCategoriesUseCase
-	topRisksUC              *riskuc.TopRisksUseCase
-	listApprovedUC          *riskuc.ListApprovedRisksUseCase
-	heatmapVelocityUC       *riskuc.HeatmapVelocityUseCase
-	overdueTimelineUC       *riskuc.OverdueMitigationTimelineUseCase
-	unitResponseTimeUC      *riskuc.UnitResponseTimeUseCase
-	monitoringSpreadsheetUC *riskuc.BulkMonitoringSpreadsheetUseCase
-	createMonitoringBatchUC *riskuc.CreateMonitoringBatchUseCase
-	startMonitoringUC       *riskuc.StartMonitoringUseCase
-	getMonitoringUC         *riskuc.GetMonitoringUseCase
-	updateMonitoringUC      *riskuc.UpdateMonitoringUseCase
-	finalizeMonitoringUC    *riskuc.FinalizeMonitoringUseCase
-	mmRepo                  repository.MeetingMinuteRepository
+	createUC              *riskuc.CreateRiskUseCase
+	createBatchUC         *riskuc.CreateRiskBatchUseCase
+	spreadsheetUC         *riskuc.BulkRiskSpreadsheetUseCase
+	getUC                 *riskuc.GetRiskUseCase
+	exportPDFUC           riskExportPDFUseCase
+	archiveUC             *riskuc.ArchiveRiskUseCase
+	restoreUC             *riskuc.RestoreRiskUseCase
+	updateUC              *riskuc.UpdateRiskUseCase
+	deleteUC              *riskuc.DeleteRiskUseCase
+	listUC                *riskuc.ListRisksUseCase
+	listRegisterUC        *riskuc.ListRiskRegisterUseCase
+	listMonitoringUC      *riskuc.ListRiskMonitoringsUseCase
+	listCycleSnapshotUC   *riskuc.ListRiskCycleSnapshotUseCase
+	listVersionsUC        *riskuc.ListRiskVersionsUseCase
+	reviewQueueUC         *riskuc.ListRiskReviewQueueUseCase
+	compareCyclesUC       *riskuc.CompareRiskCyclesUseCase
+	compareDetailUC       *riskuc.CompareRiskCycleDetailsUseCase
+	reviewSummaryUC       *riskuc.RiskReviewSummaryUseCase
+	dashboardSummaryUC    *riskuc.DashboardSummaryUseCase
+	actionPressureUC      *riskuc.DashboardActionPressureUseCase
+	executiveAlertsUC     *riskuc.ExecutiveAlertsUseCase
+	heatmapDataUC         *riskuc.HeatmapDataUseCase
+	heatmapMultiUC        *riskuc.HeatmapMultiUseCase
+	dashboardCategoriesUC *riskuc.DashboardRiskCategoriesUseCase
+	topRisksUC            *riskuc.TopRisksUseCase
+	listApprovedUC        *riskuc.ListApprovedRisksUseCase
+	heatmapVelocityUC     *riskuc.HeatmapVelocityUseCase
+	overdueTimelineUC     *riskuc.OverdueMitigationTimelineUseCase
+	unitResponseTimeUC    *riskuc.UnitResponseTimeUseCase
+	startMonitoringUC     *riskuc.StartMonitoringUseCase
+	getMonitoringUC       *riskuc.GetMonitoringUseCase
+	updateMonitoringUC    *riskuc.UpdateMonitoringUseCase
+	finalizeMonitoringUC  *riskuc.FinalizeMonitoringUseCase
+	mmRepo                repository.MeetingMinuteRepository
 }
 
 type riskExportPDFUseCase interface {
@@ -93,8 +91,6 @@ func NewRiskHandler(
 	heatmapVelocityUC *riskuc.HeatmapVelocityUseCase,
 	overdueTimelineUC *riskuc.OverdueMitigationTimelineUseCase,
 	unitResponseTimeUC *riskuc.UnitResponseTimeUseCase,
-	monitoringSpreadsheetUC *riskuc.BulkMonitoringSpreadsheetUseCase,
-	createMonitoringBatchUC *riskuc.CreateMonitoringBatchUseCase,
 	startMonitoringUC *riskuc.StartMonitoringUseCase,
 	getMonitoringUC *riskuc.GetMonitoringUseCase,
 	updateMonitoringUC *riskuc.UpdateMonitoringUseCase,
@@ -102,42 +98,40 @@ func NewRiskHandler(
 	mmRepo repository.MeetingMinuteRepository,
 ) *RiskHandler {
 	return &RiskHandler{
-		createUC:                createUC,
-		createBatchUC:           createBatchUC,
-		spreadsheetUC:           spreadsheetUC,
-		getUC:                   getUC,
-		exportPDFUC:             exportPDFUC,
-		archiveUC:               archiveUC,
-		restoreUC:               restoreUC,
-		updateUC:                updateUC,
-		deleteUC:                deleteUC,
-		listUC:                  listUC,
-		listRegisterUC:          listRegisterUC,
-		listMonitoringUC:        listMonitoringUC,
-		listCycleSnapshotUC:     listCycleSnapshotUC,
-		listVersionsUC:          listVersionsUC,
-		reviewQueueUC:           reviewQueueUC,
-		compareCyclesUC:         compareCyclesUC,
-		compareDetailUC:         compareDetailUC,
-		reviewSummaryUC:         reviewSummaryUC,
-		dashboardSummaryUC:      dashboardSummaryUC,
-		actionPressureUC:        actionPressureUC,
-		executiveAlertsUC:       executiveAlertsUC,
-		heatmapDataUC:           heatmapDataUC,
-		heatmapMultiUC:          heatmapMultiUC,
-		topRisksUC:              topRisksUC,
-		dashboardCategoriesUC:   dashboardCategoriesUC,
-		listApprovedUC:          listApprovedUC,
-		heatmapVelocityUC:       heatmapVelocityUC,
-		overdueTimelineUC:       overdueTimelineUC,
-		unitResponseTimeUC:      unitResponseTimeUC,
-		monitoringSpreadsheetUC: monitoringSpreadsheetUC,
-		createMonitoringBatchUC: createMonitoringBatchUC,
-		startMonitoringUC:       startMonitoringUC,
-		getMonitoringUC:         getMonitoringUC,
-		updateMonitoringUC:      updateMonitoringUC,
-		finalizeMonitoringUC:    finalizeMonitoringUC,
-		mmRepo:                  mmRepo,
+		createUC:              createUC,
+		createBatchUC:         createBatchUC,
+		spreadsheetUC:         spreadsheetUC,
+		getUC:                 getUC,
+		exportPDFUC:           exportPDFUC,
+		archiveUC:             archiveUC,
+		restoreUC:             restoreUC,
+		updateUC:              updateUC,
+		deleteUC:              deleteUC,
+		listUC:                listUC,
+		listRegisterUC:        listRegisterUC,
+		listMonitoringUC:      listMonitoringUC,
+		listCycleSnapshotUC:   listCycleSnapshotUC,
+		listVersionsUC:        listVersionsUC,
+		reviewQueueUC:         reviewQueueUC,
+		compareCyclesUC:       compareCyclesUC,
+		compareDetailUC:       compareDetailUC,
+		reviewSummaryUC:       reviewSummaryUC,
+		dashboardSummaryUC:    dashboardSummaryUC,
+		actionPressureUC:      actionPressureUC,
+		executiveAlertsUC:     executiveAlertsUC,
+		heatmapDataUC:         heatmapDataUC,
+		heatmapMultiUC:        heatmapMultiUC,
+		topRisksUC:            topRisksUC,
+		dashboardCategoriesUC: dashboardCategoriesUC,
+		listApprovedUC:        listApprovedUC,
+		heatmapVelocityUC:     heatmapVelocityUC,
+		overdueTimelineUC:     overdueTimelineUC,
+		unitResponseTimeUC:    unitResponseTimeUC,
+		startMonitoringUC:     startMonitoringUC,
+		getMonitoringUC:       getMonitoringUC,
+		updateMonitoringUC:    updateMonitoringUC,
+		finalizeMonitoringUC:  finalizeMonitoringUC,
+		mmRepo:                mmRepo,
 	}
 }
 
@@ -544,11 +538,6 @@ type createRiskBatchRequest struct {
 	Items []riskuc.CreateRiskBatchItemInput `json:"items"`
 }
 
-type createMonitoringBatchRequest struct {
-	Items []riskuc.BulkMonitoringBatchItemInput `json:"items"`
-	Cycle string                                `json:"cycle"`
-}
-
 type createRiskReassessmentRequest struct {
 	Cycle string `json:"cycle"`
 }
@@ -627,144 +616,6 @@ func (h *RiskHandler) CreateRiskBatch(c *fiber.Ctx) error {
 		Items:          req.Items,
 		CreatedBy:      &userID,
 		OrganizationID: orgID,
-	})
-	if err != nil {
-		return handleError(c, err)
-	}
-
-	return c.Status(201).JSON(fiber.Map{"data": result})
-}
-
-// DownloadMonitoringTemplate handles GET /api/risks/batch/monitoring/template
-func (h *RiskHandler) DownloadMonitoringTemplate(c *fiber.Ctx) error {
-	orgIDStr := c.Query("organization_id")
-	if orgIDStr == "" {
-		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "organization_id wajib diisi")
-	}
-	orgID, err := uuid.Parse(orgIDStr)
-	if err != nil {
-		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "organization_id tidak valid")
-	}
-
-	cycle := c.Query("cycle")
-	if cycle == "" {
-		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "cycle wajib diisi")
-	}
-	if !riskuc.IsValidCycleFormat(cycle) {
-		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "format cycle harus YYYY-QN (contoh: 2026-Q1)")
-	}
-
-	content, filename, err := h.monitoringSpreadsheetUC.Template(c.Context(), orgID, cycle)
-	if err != nil {
-		return handleError(c, err)
-	}
-	c.Set("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-	c.Set("Content-Disposition", fmt.Sprintf("attachment; filename=%q", filename))
-	return c.Send(content)
-}
-
-// PreviewMonitoringBatchUpload handles POST /api/risks/batch/monitoring/preview
-func (h *RiskHandler) PreviewMonitoringBatchUpload(c *fiber.Ctx) error {
-	fileHeader, err := c.FormFile("file")
-	if err != nil {
-		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "file wajib diisi")
-	}
-	// Max 5MB file size
-	const maxUploadSize = 5 << 20 // 5MB
-	if fileHeader.Size > maxUploadSize {
-		return sendProblemDetails(c, 413, "Payload Terlalu Besar", "https://api.manris.com/errors/payload-too-large", "ukuran file melebihi batas 5MB")
-	}
-	// Server-side file extension validation
-	ext := strings.ToLower(filepath.Ext(fileHeader.Filename))
-	allowedExts := map[string]bool{".xlsx": true, ".xls": true, ".csv": true}
-	if !allowedExts[ext] {
-		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "file harus berformat .xlsx, .xls, atau .csv")
-	}
-	file, err := fileHeader.Open()
-	if err != nil {
-		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "gagal membuka file yang diunggah")
-	}
-	defer file.Close()
-	content, err := io.ReadAll(file)
-	if err != nil {
-		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "gagal membaca file yang diunggah")
-	}
-
-	orgIDStr := c.Query("organization_id")
-	if orgIDStr == "" {
-		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "organization_id wajib diisi")
-	}
-	orgID, err := uuid.Parse(orgIDStr)
-	if err != nil {
-		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "organization_id tidak valid")
-	}
-
-	cycle := c.Query("cycle")
-	if cycle == "" {
-		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "cycle wajib diisi")
-	}
-	if !riskuc.IsValidCycleFormat(cycle) {
-		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "format cycle harus YYYY-QN (contoh: 2026-Q1)")
-	}
-
-	userID, ok := c.Locals("userId").(uuid.UUID)
-	if !ok {
-		return sendProblemDetails(c, 401, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "ID pengguna tidak ditemukan dalam konteks")
-	}
-
-	result, err := h.monitoringSpreadsheetUC.Preview(c.Context(), riskuc.BulkMonitoringSpreadsheetInput{
-		Filename:       fileHeader.Filename,
-		Content:        content,
-		UploaderID:     userID,
-		OrganizationID: orgID,
-		Cycle:          cycle,
-	})
-	if err != nil {
-		return handleError(c, err)
-	}
-	return c.JSON(fiber.Map{"data": result})
-}
-
-// CreateMonitoringBatch handles POST /api/risks/batch/monitoring
-func (h *RiskHandler) CreateMonitoringBatch(c *fiber.Ctx) error {
-	var req createMonitoringBatchRequest
-	if err := c.BodyParser(&req); err != nil {
-		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", fmt.Sprintf("body permintaan tidak valid: %v", err))
-	}
-	const maxBatchSize = 100
-	if len(req.Items) > maxBatchSize {
-		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", fmt.Sprintf("ukuran batch melebihi batas %d item", maxBatchSize))
-	}
-	cycle := strings.TrimSpace(req.Cycle)
-	if cycle == "" {
-		cycle = strings.TrimSpace(c.Query("cycle"))
-	}
-	if cycle == "" {
-		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "cycle wajib diisi")
-	}
-	if !riskuc.IsValidCycleFormat(cycle) {
-		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "format cycle harus YYYY-QN (contoh: 2026-Q1)")
-	}
-
-	userID, ok := c.Locals("userId").(uuid.UUID)
-	if !ok {
-		return sendProblemDetails(c, 401, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "ID pengguna tidak ditemukan dalam konteks")
-	}
-
-	orgIDStr := c.Query("organization_id")
-	if orgIDStr == "" {
-		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "organization_id wajib diisi")
-	}
-	orgID, err := uuid.Parse(orgIDStr)
-	if err != nil {
-		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "organization_id tidak valid")
-	}
-
-	result, err := h.createMonitoringBatchUC.Execute(c.Context(), riskuc.CreateMonitoringBatchInput{
-		Items:          req.Items,
-		Cycle:          cycle,
-		OrganizationID: orgID,
-		CreatedBy:      &userID,
 	})
 	if err != nil {
 		return handleError(c, err)
