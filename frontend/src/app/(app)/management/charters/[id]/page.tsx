@@ -392,7 +392,7 @@ export default function RiskCharterDetailPage() {
 
   if (loading) {
     return (
-      <FormPage className="max-w-5xl">
+      <FormPage>
         <CollectionLoadingState message="Memuat detail Piagam..." />
       </FormPage>
     );
@@ -400,7 +400,7 @@ export default function RiskCharterDetailPage() {
 
   if (loadError || !charter) {
     return (
-      <FormPage className="max-w-5xl">
+    <FormPage>
         <FormHeader
           title="Detail Piagam"
           subtitle="Piagam belum dapat ditampilkan."
@@ -579,7 +579,7 @@ export default function RiskCharterDetailPage() {
   };
 
   return (
-    <FormPage className="max-w-5xl space-y-0">
+    <FormPage className="space-y-0">
       <div className="px-6 pb-6 lg:px-8">
         <FormHeader
           title="Detail Piagam"

@@ -62,7 +62,7 @@ export default function NewControlPage() {
   };
 
   return (
-    <FormPage className="max-w-5xl">
+    <FormPage>
       <FormHeader
         title="Tambah kontrol"
         badges={

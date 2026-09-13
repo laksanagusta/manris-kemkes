@@ -376,7 +376,7 @@ export default function WorkingPaperDetailPage(props: {
   );
 
   return (
-    <FormPage className="max-w-[1400px] space-y-6 pb-0">
+    <FormPage className="space-y-6 pb-0">
       <CollectionPageHeader
         backAction={backAction}
         backActionPlacement="top"

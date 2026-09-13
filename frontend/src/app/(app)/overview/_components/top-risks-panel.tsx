@@ -65,7 +65,7 @@ export function TopRisksPanel({
           <div
             aria-hidden="true"
             data-testid="risk-list-header"
-            className="grid min-h-10 w-full grid-cols-[1fr_8fr_1fr] items-center gap-x-3 border-b border-border/60 bg-table-header px-5 text-xs font-normal capitalize tracking-[0.02em] text-muted-foreground sm:grid-cols-[5fr_32fr_8fr_5fr]"
+            className="grid min-h-10 w-full grid-cols-[1fr_8fr_1fr] items-center gap-x-3 border-b border-border/60 bg-table-header px-5 text-sm font-normal capitalize tracking-[0.02em] text-muted-foreground sm:grid-cols-[5fr_32fr_8fr_5fr]"
           >
             <span>Kode</span>
             <span>Judul</span>

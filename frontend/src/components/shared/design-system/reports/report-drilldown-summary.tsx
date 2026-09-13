@@ -16,7 +16,7 @@ export function ReportDrilldownSummary({
       <button
         type="button"
         onClick={onReset}
-        className="ml-auto text-[11px] font-medium text-primary hover:underline"
+        className="ml-auto text-[11px] font-semibold text-primary hover:underline"
       >
         Reset filter
       </button>

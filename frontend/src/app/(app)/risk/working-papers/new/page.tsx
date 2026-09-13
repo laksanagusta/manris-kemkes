@@ -339,7 +339,7 @@ export default function CreateWorkingPaperPage() {
 
   if (!organizationId) {
     return (
-      <FormPage className="max-w-7xl space-y-6 pb-0">
+      <FormPage className="space-y-6 pb-0">
       <CollectionPageHeader
         backAction={backAction}
         backActionPlacement="top"
@@ -358,7 +358,7 @@ export default function CreateWorkingPaperPage() {
     : null;
 
   return (
-    <FormPage className="max-w-7xl space-y-6 pb-0">
+    <FormPage className="space-y-6 pb-0">
       <CollectionPageHeader
         backAction={backAction}
         backActionPlacement="top"

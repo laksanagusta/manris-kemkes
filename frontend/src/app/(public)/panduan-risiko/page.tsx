@@ -23,7 +23,7 @@ export default function PublicRiskGuidePage() {
     <div className="min-h-screen bg-background">
       <RiskGuidePage className="pb-6" />
 
-      <section className="mx-auto flex w-full max-w-5xl px-4 pb-10 sm:px-6 sm:pb-14 lg:px-8">
+      <section className="mx-auto flex w-full max-w-7xl px-4 pb-10 sm:px-6 sm:pb-14 lg:px-8">
         <Card className="w-full rounded-3xl bg-card/90">
           <CardHeader className="gap-2 border-b border-border/60 pb-5">
             <CardTitle className="text-xl font-semibold tracking-tight text-foreground sm:text-2xl">

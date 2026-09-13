@@ -239,7 +239,7 @@ export function RiskCharterQuickCreate({
 
   if (presentation === "page") {
     return (
-      <FormPage className="max-w-3xl">
+      <FormPage>
         <FormHeader
           title="Buat Piagam"
           subtitle="Beri judul untuk membuat draf Piagam tahun berjalan."

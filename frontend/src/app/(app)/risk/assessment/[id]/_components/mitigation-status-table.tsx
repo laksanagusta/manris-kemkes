@@ -177,7 +177,7 @@ export function MitigationStatusTable({
           <button
             type="button"
             onClick={loadData}
-            className="text-xs font-medium underline underline-offset-2"
+            className="text-xs font-semibold underline underline-offset-2"
           >
             Coba lagi
           </button>
@@ -249,7 +249,7 @@ export function MitigationStatusTable({
             onClick={() => setIsExpanded((expanded) => !expanded)}
             aria-expanded={isExpanded}
             aria-controls="monitoring-mitigation-list"
-            className="inline-flex min-h-9 items-center gap-1 text-sm font-medium text-primary underline-offset-2 transition-colors hover:text-primary/80 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+            className="inline-flex min-h-9 items-center gap-1 text-sm font-semibold text-primary underline-offset-2 transition-colors hover:text-primary/80 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
           >
             {isExpanded
               ? "Sembunyikan daftar"

@@ -2328,7 +2328,7 @@ export default function RiskInputPage() {
 
   return (
     <TooltipProvider>
-      <FormPage className="risk-form-filter-controls max-w-[1280px] space-y-6 [&>header+*]:!mt-12">
+      <FormPage className="risk-form-filter-controls space-y-6 [&>header+*]:!mt-12">
         <CollectionPageHeader
           backActionPlacement="local"
           backAction={<FormBackAction href="/risk/register" label="Kembali" />}

@@ -222,7 +222,7 @@ export default function BulkRiskRegisterPage() {
   };
 
   return (
-    <FormPage className="max-w-7xl pb-10">
+    <FormPage className="pb-10">
       <FormHeader
         title="Import Risiko"
         onBack={() => router.push("/risk/register")}

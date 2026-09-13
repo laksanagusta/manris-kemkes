@@ -160,7 +160,7 @@ export default function NewUserPage() {
   }
 
   return (
-    <FormPage className="max-w-5xl">
+    <FormPage>
       <FormHeader
         title="Tambah pengguna"
         badges={

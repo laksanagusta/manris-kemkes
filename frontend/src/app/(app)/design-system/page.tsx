@@ -178,7 +178,8 @@ export default function DesignSystemPage() {
         <section className="space-y-4">
           <DesignSystemSectionLabel>Button Variants</DesignSystemSectionLabel>
           <p className="max-w-3xl text-sm text-muted-foreground">
-            Button primary memakai surface solid tanpa shadow. Button secondary
+            Semua label button memakai bobot semibold (600) agar hierarki action
+            konsisten di seluruh varian. Button primary memakai surface solid tanpa shadow. Button secondary
             memakai surface hover sidebar yang sedikit lebih gelap tanpa garis
             tepi; varian outline tetap
             digunakan saat border diperlukan. Depth hanya digunakan pada surface
@@ -247,7 +248,7 @@ export default function DesignSystemPage() {
             pendukung memakai `text-sm leading-relaxed text-muted-foreground`
             (14px); jangan gunakan Accordion untuk shell form risiko. Surface
             Form risiko memakai satu kolom form utama dengan panel konteks
-            di sisi kanan pada desktop. Shell dibatasi `max-w-[1280px]`,
+            di sisi kanan pada desktop. Shell dibatasi `max-w-7xl`,
             memakai jarak 40px (`gap-10`), dan membagi ruang 60% untuk form
             serta 40% untuk panel. Section form tetap terbuka dan
             mengikuti alur dokumen; panel konteks menjadi sticky dan menumpuk di
@@ -360,7 +361,7 @@ export default function DesignSystemPage() {
             sama dengan sisi kiri dan kanan. Contoh katalog mengaktifkan judul
             dan subtitle untuk mendemonstrasikan primitive tersebut.
             Detail Evaluasi mengikuti shell standalone yang sama ketika form
-            memiliki konteks persisten: gunakan `FormPage` `max-w-[1400px]`,
+            memiliki konteks persisten: gunakan `FormPage` `max-w-7xl`,
             `CollectionPageHeader` dengan `backActionPlacement=&quot;local&quot;` dan
             `actionsPlacement=&quot;title&quot;`, lalu grid
             `xl:grid-cols-[minmax(0,1fr)_360px]`. Sidebar status memakai satu
@@ -401,15 +402,15 @@ export default function DesignSystemPage() {
             lowercase `manris` yang sama dan tidak menampilkan field nomor HP.
             Search field memakai lebar content-fit `sm:w-80` pada desktop dan
             hanya melebar penuh pada mobile saat ruang memang terbatas.
-            AppShell menyediakan canvas bersama `max-w-[1400px]` bergaya Vercel
+            AppShell menyediakan canvas bersama `max-w-7xl` bergaya Vercel
             untuk seluruh halaman; inset atasnya mengikuti `p-4 md:p-6` yang
             sama dengan sisi kiri dan kanan agar konten tidak terlalu jauh dari
             topbar; halaman atau form yang membutuhkan measure
             lebih sempit tetap dapat memilih batas internalnya sendiri. Form
-            Risiko yang memakai side panel menetapkan `max-w-[1400px]` pada
+            Risiko yang memakai side panel menetapkan `max-w-7xl` pada
             `FormPage` sebagai satu owner lebar; header, notice, dan grid konten
             menjadi child langsung tanpa wrapper `mx-auto`/`max-w-*` tambahan.
-            Form panjang dengan panel konteks memakai shell `max-w-[1280px]`
+            Form panjang dengan panel konteks memakai shell `max-w-7xl`
             dengan jarak 40px (`gap-10`): form tetap di kolom utama, panel
             360px memakai item grid polos agar outer edge
             kartu pertama pada form dan panel dimulai pada garis atas yang sama.
@@ -479,7 +480,7 @@ export default function DesignSystemPage() {
             <DesignSystemSectionLabel>Meeting Briefing Creation</DesignSystemSectionLabel>
             <p className="max-w-3xl text-sm text-muted-foreground">
               Form buat briefing dan workspace transkrip memakai FormPage
-              max-w-5xl tanpa FormHeader lokal yang menduplikasi AppHeader.
+              max-w-7xl tanpa FormHeader lokal yang menduplikasi AppHeader.
               Card setup transkrip memiliki satu inset 16px tanpa padding content tambahan. Pilihan keluaran memakai
               fieldset berlabel, permukaan netral, pressed state melalui kontras
               border/background tanpa ikon dekoratif, dan focus ring. Label transkrip berada di atas textarea yang bisa
@@ -499,13 +500,14 @@ export default function DesignSystemPage() {
               Toolbar koleksi `/minutes` untuk sementara hanya menampilkan
               `CollectionSearchField`; filter date dan aksi pembuatan di toolbar
               dihilangkan, sementara CTA pembuatan tetap tersedia pada empty state.
-              Pada `/minutes/new`, AppHeader dan form memakai container max-w-5xl
+              Pada `/minutes/new`, AppHeader dan form memakai container max-w-7xl
               yang sama agar judul dan isi form sejajar horizontal.
-              Ringkasan briefing memakai pola list struktural yang sama dengan Isu Terbuka,
-              dan badge hasil memakai
-              context badge netral serta tone compact standar untuk prioritas dan
-              kebutuhan PIC/deadline.
-              Halaman detail briefing memakai shell max-w-5xl yang sama untuk
+              Ringkasan briefing memakai pola editorial yang sama dengan Isu Terbuka
+              dan menggunakan lebar section penuh tanpa batas 75ch. Agenda memakai
+              poin bulat yang sama dengan Poin kunci. Tindak lanjut memakai baris task
+              datar tanpa ikon dekoratif atau badge prioritas; metadata yang tersedia
+              tetap berada di bawah judul task.
+              Halaman detail briefing memakai shell max-w-7xl yang sama untuk
               AppHeader dan isi agar garis kirinya sejajar. Detail dibaca sebagai
               satu document Card `gap-0 p-0`, dengan inset horizontal 24px pada
               layar kecil dan 32px pada desktop serta divider penuh antarbagian.
@@ -515,15 +517,17 @@ export default function DesignSystemPage() {
               metadata terpisah. Ringkasan, agenda, poin kunci, tindak lanjut, isu
               terbuka, keputusan, dan risiko terkait mengalir sebagai section
               editorial di surface yang sama. Tindak lanjut memakai date band
-              netral dan baris task datar; warna semantik hanya dipakai untuk badge
-              prioritas. Identitas peserta harus tetap tersedia sebagai konten yang
+              netral dan baris task datar tanpa ikon atau badge prioritas. Risiko
+              terkait menempatkan kode di atas judul dalam tautan full-width dengan
+              padding horizontal dan vertical yang seimbang. Identitas peserta harus tetap tersedia sebagai konten yang
               bisa dibaca dan diakses keyboard/touch, bukan hanya tooltip.
               Loading memakai status live yang menghormati reduced motion; error
               pemuatan dipisahkan dari not-found/access-denied dan selalu menyediakan
               aksi pemulihan. Terminologi user-facing pada route detail mengikuti
               “Notulen” yang dipakai collection dan navigasi.
               Dialog simpan briefing dan tinjau perubahan memakai shell Dialog
-              canonical tanpa close icon, footer rhythm standar, `CollectionDialogCancel`,
+              canonical tanpa close icon, header dengan `pb-3` untuk bottom breathing room,
+              footer rhythm standar, `CollectionDialogCancel`,
               dan `AccentButton`. Dialog simpan tidak memakai description tambahan,
               search field, atau daftar risiko yang selalu terbuka. Gunakan satu
               trigger `Pilih risiko`; popover selector-nya baru menampilkan
@@ -537,26 +541,28 @@ export default function DesignSystemPage() {
           <section className="space-y-4">
             <DesignSystemSectionLabel>Document Intelligence Workspace</DesignSystemSectionLabel>
             <p className="max-w-3xl text-sm text-muted-foreground">
-              Document Intelligence treats a selected document as the
-              primary object. The production workspace uses a two-area content
-              canvas with setup and history sections, a neutral spatial index,
-              and a closable inspector. The new-process setup follows the risk
-              form grammar with FormSection, stacked labels, 36px controls, and
-              neutral select surfaces; the quarterly cycle generates the process
-              name automatically without a manual name or organization-ID field.
-              Upload begins with one large dashed drop zone and
-              transitions into cards with per-file validation; valid files stay
-              available when another file fails. Processing exposes completed
-              task progress, compact parallel lanes, and a factual activity
-              timeline rather than a single spinner. Page thumbnails remain
-              visible after completion so findings can navigate back to their
-              source. Group accents are pastel and semantic only: Risk register,
-              SOP &amp; controls, Audit &amp; findings, Planning &amp; performance, and
-              Supporting documents. Staged thumbnail entry and regrouping use
-              restrained layout springs with bounce disabled and a reduced-motion
-              fallback. The adapter contract persists job summaries locally and
-              keeps cancellation, partial completion, and task-level retry
-              explicit for the eventual backend processor.
+              Document Intelligence memakai pola upload-first: kanvas terpusat
+              memberi prioritas visual pada drop zone besar bergaris putus-putus,
+              dengan glyph dokumen yang tenang sebagai satu-satunya aksen setup.
+              Drop zone hanya memiliki satu target keyboard; input file yang
+              dipicu secara programatis berada di luar semantik tombol dan urutan
+              Tab. Setelah dipilih, satu baris file ringkas menampilkan identitas,
+              box shadow yang sama dengan card, validasi, aksi hapus, dan aksi
+              utama Mulai analisis. Mode analisis tetap terlihat tepat di atas
+              upload sebagai dua radio card: SOP dan Laporan Mitigasi. Periode
+              diproses otomatis tanpa field. Route menekan AppHeader global,
+              sementara CollectionPageHeader lokal menampilkan title, subtitle,
+              nama proses aktif, dan actions dengan jarak 48px ke konten.
+              Workspace desktop memakai dua area dengan indeks spasial netral dan
+              pemeriksa yang dapat ditutup; di bawah breakpoint xl, pemeriksa
+              dibuka sebagai modal Sheet dengan focus containment. Status progres
+              memakai semantik progressbar dan live announcement yang ringkas.
+              Seluruh label operasional memakai bahasa Indonesia, ukuran metadata
+              minimal 12px, warna status memakai token semantik, dan aksi riwayat
+              tersedia melalui overflow menu yang selalu terlihat. Animasi layout,
+              spring transform, dan smooth auto-scroll dinonaktifkan ketika
+              prefers-reduced-motion aktif. Hasil lokal dibedakan jelas dari
+              kegagalan sinkronisasi server dan menyediakan aksi coba lagi.
             </p>
           </section>
 
@@ -599,7 +605,7 @@ export default function DesignSystemPage() {
               Working Paper Detail
             </DesignSystemSectionLabel>
             <p className="max-w-3xl text-sm text-muted-foreground">
-              Detail Kertas Kerja memakai shell `max-w-[1400px]` dengan layout
+              Detail Kertas Kerja memakai shell `max-w-7xl` dengan layout
               dua kolom yang menjaga tabel monitoring sebagai surface utama
               dengan lebar penuh pada kolom konten. Ringkasan dokumen,
               `Monitoring Final`, dan status tanda
@@ -671,7 +677,7 @@ export default function DesignSystemPage() {
             </DesignSystemSectionLabel>
             <p className="max-w-3xl text-sm text-muted-foreground">
               Workspace pemantauan menempatkan periode dan versi sumber di
-              header CollectionPageHeader dengan shell max-w-[1400px], lalu
+              header CollectionPageHeader dengan shell max-w-7xl, lalu
               menyusun skor observasi melalui trigger heatmap 5×5 yang sama
               dengan form Risiko, lalu progres mitigasi, revisi profil, alasan
               perubahan, dan simpulan dalam satu urutan kerja. Form memakai
@@ -800,8 +806,8 @@ export default function DesignSystemPage() {
             Header KPI memakai inset 16px dan jarak vertikal 12px agar judul
             dan nilai card tetap terkelompok tanpa terasa rapat.
             List Risiko yang Perlu Perhatian memakai ledger terintegrasi tanpa
-            checkbox: header 40px dengan surface `table-header`, lalu kolom
-            Kode, Judul, Kategori, dan Skor. Kode dan judul
+            checkbox: header 40px dengan label 14px (`text-sm`) pada surface
+            `table-header`, lalu kolom Kode, Judul, Kategori, dan Skor. Kode dan judul
             berada di kolom terpisah, skor tetap berupa badge semantik, dan
             divider antarbaris memakai hairline netral tanpa ikon panah. Baris memakai
             `font-normal` untuk kode, kategori, skor, dan judul pada 14px agar seluruh daftar memiliki
@@ -1148,7 +1154,7 @@ export default function DesignSystemPage() {
         <section className="space-y-4">
           <DesignSystemSectionLabel>Form Page Container</DesignSystemSectionLabel>
           <p className="max-w-3xl text-sm text-muted-foreground">
-            Form Piagam Manris memakai FormPage satu kolom selebar maksimum 5xl
+            Form Piagam Manris memakai FormPage satu kolom selebar maksimum 7xl
             tanpa card wrapper. Label Judul Piagam tetap terlihat, sementara
             textarea judul tampil seperti teks dokumen tanpa chrome field,
             membungkus teks panjang, dan tumbuh mengikuti isi;

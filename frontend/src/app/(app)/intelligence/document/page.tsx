@@ -22,7 +22,7 @@ function mapFindingToRisk(finding: Finding) {
   return {
     kind: "risk" as const,
     title: finding.title,
-    description: `${finding.summary}\n\nRecommended action: ${finding.recommendedAction}`,
+    description: `${finding.summary}\n\nTindakan yang disarankan: ${finding.recommendedAction}`,
     source: "internal",
     probability: finding.severity === "high" || finding.severity === "critical" ? 4 : 3,
     impact: finding.severity === "high" || finding.severity === "critical" ? 4 : 3,
@@ -41,7 +41,7 @@ export default function DocumentIntelligencePage() {
     return (
       <AIFeaturesDisabledState
         title="Document Intelligence Dinonaktifkan"
-        description="Analisis dokumen berbasis AI sedang dimatikan melalui environment frontend."
+        description="Analisis dokumen berbasis AI sementara tidak tersedia. Hubungi administrator untuk mengaktifkannya kembali."
       />
     );
   }
@@ -57,7 +57,15 @@ export default function DocumentIntelligencePage() {
     mode: DocumentAnalysisMode,
     period?: string,
   ) {
-    if (!token) return;
+    if (!token) {
+      toast.error("Sesi Anda telah berakhir. Masuk kembali untuk menyinkronkan hasil analisis.", {
+        action: {
+          label: "Masuk kembali",
+          onClick: () => router.push("/login"),
+        },
+      });
+      return;
+    }
     const input: AnalyzeDocumentIntelligenceInput = {
       file,
       mode,
@@ -66,9 +74,15 @@ export default function DocumentIntelligencePage() {
     };
     try {
       await analyzeDocumentIntelligence(token, input);
-      toast.success("Server analysis tersedia untuk document set utama.");
+      toast.success("Hasil analisis berhasil disinkronkan ke server.");
     } catch {
-      toast.message("Workspace selesai dengan mock result; endpoint analysis siap dihubungkan untuk batch backend.");
+      toast.error("Hasil lokal tersimpan, tetapi sinkronisasi ke server gagal.", {
+        description: "Periksa koneksi lalu coba lagi.",
+        action: {
+          label: "Coba lagi",
+          onClick: () => void runLegacyAnalysis(file, mode, period),
+        },
+      });
     }
   }
 

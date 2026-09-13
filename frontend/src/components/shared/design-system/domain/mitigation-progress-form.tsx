@@ -171,7 +171,7 @@ export function MitigationProgressForm({
         <button
           type="button"
           className={cn(
-            "mitigation-evidence-trigger flex items-center gap-2 rounded-md p-2 text-left text-sm font-medium text-sidebar-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring",
+            "mitigation-evidence-trigger flex items-center gap-2 rounded-md p-2 text-left text-sm font-semibold text-sidebar-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring",
             evidenceUrls.length > 0 && "justify-center",
           )}
           onClick={revealEvidenceField}

@@ -3,7 +3,6 @@
 import { usePathname } from "next/navigation";
 import { getAppPageMeta } from "@/lib/app-navigation";
 import { useHeaderActions } from "@/lib/header-actions-context";
-import { cn } from "@/lib/utils";
 import {
   CollectionPageHeader,
   PAGE_HEADER_ACTION_SLOT_ID,
@@ -15,10 +14,12 @@ export function AppHeader() {
   const actions = useHeaderActions();
   const { title, subtitle } = getAppPageMeta(pathname);
   const isCharterDetail = /^\/management\/charters\/[^/]+$/.test(pathname);
-  const isMeetingBriefingCreate = pathname === "/minutes/new";
-  const isMeetingBriefingDetail = /^\/minutes\/[^/]+$/.test(pathname);
 
-  if (pathname === "/overview" || pathname === "/risk/register/new") {
+  if (
+    pathname === "/overview" ||
+    pathname === "/risk/register/new" ||
+    pathname === "/intelligence/document"
+  ) {
     return null;
   }
 
@@ -27,14 +28,7 @@ export function AppHeader() {
   }
 
   return (
-    <div
-      className={cn(
-        "mx-auto w-full",
-        isMeetingBriefingCreate || isMeetingBriefingDetail
-          ? "max-w-5xl"
-          : "max-w-[1400px]",
-      )}
-    >
+    <div className="mx-auto w-full max-w-7xl">
       <div
         id={PAGE_BACK_ACTION_SLOT_ID}
         className="mb-3 flex items-center empty:hidden"

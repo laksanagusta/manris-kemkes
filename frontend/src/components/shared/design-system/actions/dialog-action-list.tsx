@@ -34,7 +34,7 @@ export function DialogActionList({
           disabled={item.disabled}
           onClick={item.onSelect}
           className={cn(
-            "flex h-8 w-full items-center gap-2 rounded-lg px-2 py-0 text-left text-sm disabled:opacity-50",
+            "flex h-8 w-full items-center gap-2 rounded-lg px-2 py-0 text-left text-sm font-semibold disabled:opacity-50",
             item.tone === "danger" ? "text-destructive" : "text-foreground",
           )}
         >

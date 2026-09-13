@@ -203,7 +203,7 @@ export function RiskScoreHeatmapModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pt-3 no-scrollbar sm:flex-none sm:overflow-visible">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain no-scrollbar sm:flex-none sm:overflow-visible">
           <div className="pb-3 sm:pb-4">
             <div className="grid grid-cols-[minmax(76px,1.2fr)_repeat(5,minmax(0,1fr))] gap-1.5 sm:grid-cols-[minmax(144px,1.35fr)_repeat(5,minmax(0,1fr))] sm:gap-2">
               <div aria-hidden="true" />

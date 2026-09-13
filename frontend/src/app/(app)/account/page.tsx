@@ -151,7 +151,7 @@ export default function AccountPage() {
   };
 
   return (
-    <PageStack className="max-w-3xl">
+    <PageStack>
       <CollectionPageHeader
         title="Akun Saya"
         actions={
