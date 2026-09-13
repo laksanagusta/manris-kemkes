@@ -54,21 +54,7 @@ function DocumentThumbnail({ document, compact = false }: { document: UploadedDo
 
 function UploadDocumentMark() {
   return (
-    <>
-      <input
-        ref={inputRef}
-        data-document-picker
-        type="file"
-        accept={ACCEPT_ATTRIBUTE}
-        tabIndex={-1}
-        aria-label="Pilih dokumen untuk dianalisis"
-        className="sr-only"
-        onChange={(event) => {
-          onFiles(Array.from(event.target.files ?? []));
-          event.currentTarget.value = "";
-        }}
-      />
-      <div
+    <div
       className="mb-7 flex h-14 w-11 items-center justify-center rounded-md border border-border bg-card shadow-sm"
       aria-hidden="true"
     >
@@ -120,26 +106,38 @@ function DropZone({
       }}
       onDrop={onDrop}
       className={cn(
-        "group relative flex min-h-[300px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-6 py-12 text-center outline-none transition-[background-color,border-color,transform,box-shadow] duration-200 ease-out focus-visible:ring-2 focus-visible:ring-ring/40 sm:min-h-[340px] sm:px-10 motion-reduce:transition-none",
+        "group relative flex min-h-[300px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-6 py-12 text-center outline-none transition-[background-color,border-color,transform,box-shadow] duration-200 ease-(--ease-out) focus-visible:ring-2 focus-visible:ring-ring/40 sm:min-h-[340px] sm:px-10 motion-reduce:transition-none",
         dragActive
           ? "scale-[1.008] border-primary/60 bg-primary/5"
           : "border-border bg-card hover:border-foreground/25 hover:bg-state-surface",
       )}
-      >
-        <UploadDocumentMark />
-        <h2 className="text-lg font-medium tracking-[-0.015em] text-foreground sm:text-xl">
-          Tarik dan lepas dokumen
-        </h2>
-        <p className="mt-2 text-sm leading-6 text-secondary-foreground">
-          atau klik area ini untuk memilih file dari perangkat
-        </p>
-        <p className="mt-6 text-xs leading-5 text-muted-foreground">
-          PDF, JPG, PNG, DOCX, XLSX, atau CSV
-          <br />
-          Maksimal {formatFileSize(MAX_FILE_SIZE)}
-        </p>
-      </div>
-    </>
+    >
+      <input
+        ref={inputRef}
+        data-document-picker
+        type="file"
+        accept={ACCEPT_ATTRIBUTE}
+        tabIndex={-1}
+        aria-label="Pilih dokumen untuk dianalisis"
+        className="sr-only"
+        onChange={(event) => {
+          onFiles(Array.from(event.target.files ?? []));
+          event.currentTarget.value = "";
+        }}
+      />
+      <UploadDocumentMark />
+      <h2 className="text-sm font-medium tracking-[-0.015em] text-foreground">
+        Tarik dan lepas dokumen
+      </h2>
+      <p className="mt-2 text-sm leading-6 text-secondary-foreground">
+        atau klik area ini untuk memilih file dari perangkat
+      </p>
+      <p className="mt-6 text-xs leading-5 text-muted-foreground">
+        PDF atau XLSX
+        <br />
+        Maksimal {formatFileSize(MAX_FILE_SIZE)}
+      </p>
+    </div>
   );
 }
 
@@ -201,11 +199,10 @@ export function UploadPanel({
           {documents.map((document) => (
             <motion.article
               key={document.id}
-              layout={!reduceMotion}
-              initial={reduceMotion ? false : { opacity: 0, y: 8 }}
-              animate={reduceMotion ? { opacity: 1 } : { opacity: 1, y: 0 }}
-              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, y: -6 }}
-              transition={reduceMotion ? { duration: 0 } : { type: "spring", duration: 0.3, bounce: 0 }}
+              initial={reduceMotion ? { opacity: 0 } : { opacity: 0, transform: "translateY(8px)" }}
+              animate={reduceMotion ? { opacity: 1 } : { opacity: 1, transform: "translateY(0)" }}
+              exit={reduceMotion ? { opacity: 0 } : { opacity: 0, transform: "translateY(-6px)" }}
+              transition={{ duration: reduceMotion ? 0.12 : 0.18, ease: [0.23, 1, 0.32, 1] }}
               className={cn(
                 "rounded-xl bg-card p-4 border-shadow sm:p-5",
                 document.error && "ring-1 ring-destructive/35",
@@ -226,7 +223,7 @@ export function UploadPanel({
                   aria-label={`Hapus ${document.name}`}
                   title={`Hapus ${document.name}`}
                   onClick={() => onRemove(document.id)}
-                  className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-[background-color,color,border-color] hover:border-foreground/20 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 active:scale-[0.96]"
+                  className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border text-muted-foreground transition-[background-color,color,border-color,transform] duration-150 ease-(--ease-out) hover:border-foreground/20 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 active:scale-[0.96] motion-reduce:transform-none motion-reduce:transition-none"
                 >
                   <X className="size-4" />
                 </button>
@@ -253,11 +250,29 @@ export function UploadPanel({
           variant="primary"
           size="primary"
           disabled={!validDocuments.length || processing}
-          className="gap-2 active:scale-[0.96]"
+          className="gap-2"
           onClick={onStart}
+          aria-label={processing ? "Menyiapkan analisis" : "Mulai analisis"}
         >
           <FileSearch className="size-4" />
-          {processing ? "Menyiapkan..." : "Mulai analisis"}
+          <span className="grid" aria-hidden="true">
+            <span
+              className={cn(
+                "col-start-1 row-start-1 transition-opacity duration-[120ms] ease-(--ease-out)",
+                processing ? "opacity-0" : "opacity-100",
+              )}
+            >
+              Mulai analisis
+            </span>
+            <span
+              className={cn(
+                "col-start-1 row-start-1 transition-opacity duration-[120ms] ease-(--ease-out)",
+                processing ? "opacity-100" : "opacity-0",
+              )}
+            >
+              Menyiapkan...
+            </span>
+          </span>
         </Button>
       </div>
     </section>
@@ -267,21 +282,33 @@ export function UploadPanel({
 export { DocumentThumbnail };
 
 function IssueList({ issues }: { issues: FileIssue[] }) {
-  if (!issues.length) return null;
+  const reduceMotion = useReducedMotion();
+
   return (
-    <div className="space-y-2 rounded-xl border border-warning/30 bg-warning/10 p-3" role="alert">
-      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-        <AlertTriangle className="size-4" />
-        {issues.length} file perlu diperbaiki
-      </div>
-      <ul className="space-y-1.5 text-xs leading-5 text-foreground/80">
-        {issues.map((issue) => (
-          <li key={issue.id} className="flex items-start gap-2">
-            <span className="mt-2 size-1 shrink-0 rounded-full bg-warning" />
-            <span><strong className="font-medium">{issue.fileName}:</strong> {issue.message}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
+    <AnimatePresence initial={false}>
+      {issues.length ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: reduceMotion ? 0.12 : 0.15, ease: [0.23, 1, 0.32, 1] }}
+          className="space-y-2 rounded-xl border border-warning/30 bg-warning/10 p-3"
+          role="alert"
+        >
+          <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+            <AlertTriangle className="size-4" />
+            {issues.length} file perlu diperbaiki
+          </div>
+          <ul className="space-y-1.5 text-xs leading-5 text-foreground/80">
+            {issues.map((issue) => (
+              <li key={issue.id} className="flex items-start gap-2">
+                <span className="mt-2 size-1 shrink-0 rounded-full bg-warning" />
+                <span><strong className="font-medium">{issue.fileName}:</strong> {issue.message}</span>
+              </li>
+            ))}
+          </ul>
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
   );
 }

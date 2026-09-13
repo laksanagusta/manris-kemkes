@@ -28,15 +28,10 @@ import {
 } from "@/components/ui/dialog";
 import {
   AlertCircle,
-  CalendarDays,
   ChevronRight,
-  Clock,
   Download,
-  FileText,
   Loader2,
   Trash2,
-  UserRound,
-  Users,
 } from "@/components/ui/icons";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -59,21 +54,20 @@ function BriefingSection({
 }
 
 function BriefingProperty({
-  icon,
   label,
   children,
 }: {
-  icon: ReactNode;
   label: string;
   children: ReactNode;
 }) {
   return (
-    <div className="grid min-w-0 grid-cols-[1.25rem_minmax(7rem,9rem)_minmax(0,1fr)] items-start gap-x-2 text-sm">
-      <span className="mt-0.5 text-muted-foreground" aria-hidden="true">
-        {icon}
-      </span>
-      <dt className="text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 font-medium text-foreground">{children}</dd>
+    <div className="min-w-0">
+      <dt className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">
+        {label}
+      </dt>
+      <dd className="mt-2 min-w-0 text-sm font-medium leading-5 text-foreground">
+        {children}
+      </dd>
     </div>
   );
 }
@@ -83,7 +77,7 @@ export default function MeetingMinuteDetailPage() {
     return (
       <AIFeaturesDisabledState
         title="Detail Notulen Dinonaktifkan"
-        description="Akses ke detail notulen meeting intelligence sedang dimatikan melalui environment frontend."
+        description="Akses ke detail notulen MoM Intelligence sedang dimatikan melalui environment frontend."
         backHref="/overview"
       />
     );
@@ -266,34 +260,33 @@ function MeetingMinuteDetailContent() {
       />
 
       <Card className="gap-0 overflow-hidden p-0">
-        <header className="px-6 py-6 md:px-8 md:py-7">
-          <h2 className="text-xl font-medium tracking-tight text-foreground md:text-2xl">
-            {minutes.title}
-          </h2>
-          <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs leading-5 text-muted-foreground">
-            <UserRound className="size-4" aria-hidden="true" />
-            <span>Dibuat oleh {minutes.createdByName}</span>
-            <span aria-hidden="true">·</span>
-            <span>
-              {new Date(minutes.createdAt).toLocaleDateString("id-ID", {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })}
-            </span>
-          </p>
+        <header className="px-6 py-8 md:px-8">
+          <h2 className="text-lg font-medium tracking-tight text-foreground">Properti</h2>
 
-          <dl className="mt-6 grid gap-x-12 gap-y-4 lg:grid-cols-2">
-            <BriefingProperty icon={<CalendarDays className="size-4" />} label="Tanggal rapat">
+          <dl className="mt-8 grid gap-x-12 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+            <BriefingProperty label="Judul notulen">
+              <span className="break-words">{minutes.title}</span>
+            </BriefingProperty>
+            <BriefingProperty label="Dibuat oleh">
+              <span className="break-words">{minutes.createdByName}</span>
+              <span className="mt-1 block text-sm font-normal leading-5 text-muted-foreground">
+                {new Date(minutes.createdAt).toLocaleDateString("id-ID", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+            </BriefingProperty>
+            <BriefingProperty label="Tanggal rapat">
               {new Date(minutes.date).toLocaleDateString("id-ID", {
                 year: "numeric",
                 month: "long",
                 day: "numeric",
               })}
             </BriefingProperty>
-            <BriefingProperty icon={<Clock className="size-4" />} label="Check-in berikutnya">
+            <BriefingProperty label="Check-in berikutnya">
               {minutes.nextCheckIn
                 ? new Date(minutes.nextCheckIn).toLocaleDateString("id-ID", {
                     year: "numeric",
@@ -302,11 +295,11 @@ function MeetingMinuteDetailContent() {
                   })
                 : "Belum dijadwalkan"}
             </BriefingProperty>
-            <BriefingProperty icon={<Users className="size-4" />} label="Peserta">
+            <BriefingProperty label="Peserta">
               {minutes.participants.length > 0 ? (
-                <div className="space-y-1">
+                <div>
                   <p>{minutes.participants.length} peserta</p>
-                  <ul className="space-y-0.5 text-sm font-normal leading-5 text-muted-foreground">
+                  <ul className="mt-1 space-y-0.5 text-sm font-normal leading-5 text-muted-foreground">
                     {minutes.participants.map((participant, index) => (
                       <li key={`${participant}-${index}`} className="break-words">
                         {participant}
@@ -318,8 +311,8 @@ function MeetingMinuteDetailContent() {
                 "Belum tercatat"
               )}
             </BriefingProperty>
-            <BriefingProperty icon={<FileText className="size-4" />} label="ID notulen">
-              <span className="font-mono text-xs">{minutes.id.substring(0, 8)}</span>
+            <BriefingProperty label="ID notulen">
+              <span className="font-mono">{minutes.id.substring(0, 8)}</span>
             </BriefingProperty>
           </dl>
         </header>

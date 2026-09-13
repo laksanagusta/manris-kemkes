@@ -8,6 +8,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
 import { listWorkingPapers } from "@/lib/api/working-papers";
 import type { WorkingPaper, WorkingPaperStatus } from "@/types/working-paper";
@@ -367,7 +368,7 @@ function WorkingPaperMobileCard({
   createdDate: string;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-background px-4 py-3 transition-colors hover:bg-muted/50">
+    <div className="rounded-lg border border-border bg-card px-4 py-3 transition-colors hover:bg-muted/50">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
@@ -466,6 +467,7 @@ export default function WorkingPapersPage() {
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState("");
+  const [exportingPaperId, setExportingPaperId] = useState<string | null>(null);
 
   const periodOptions: { value: string; label: string }[] = (() => {
     const currentCycle = currentAssessmentCycle();
@@ -482,6 +484,21 @@ export default function WorkingPapersPage() {
     setCreatedAtFilter("");
     setPage(1);
   };
+
+  const handleExport = useCallback(async (workingPaper: WorkingPaper) => {
+    setExportingPaperId(workingPaper.id);
+    try {
+      const { exportWorkingPaper } = await import("@/lib/working-paper-export");
+      await exportWorkingPaper(workingPaper);
+      toast.success("Kertas kerja berhasil diunduh.");
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Gagal mengunduh kertas kerja.",
+      );
+    } finally {
+      setExportingPaperId(null);
+    }
+  }, []);
 
   const fetchWorkingPapers = useCallback(
     async (activeToken: string) => {
@@ -820,6 +837,8 @@ export default function WorkingPapersPage() {
       <WorkingPaperProgressCollapsible
         workingPapers={papers}
         loading={loading}
+        exportingPaperId={exportingPaperId}
+        onExport={(workingPaper) => void handleExport(workingPaper)}
       />
       <WorkingPaperCreateDialog
         open={createModalOpen}

@@ -72,7 +72,7 @@ test("keeps the application canvas painted through viewport overscroll", () => {
 test("uses inset shell header geometry", () => {
   assert.match(
     source,
-    /className="mx-auto w-full max-w-7xl"[\s\S]*<CollectionPageHeader[\s\S]*className="mb-12 w-full"/,
+    /className="mx-auto w-full max-w-7xl"[\s\S]*<CollectionPageHeader[\s\S]*className="mb-6 w-full"/,
   );
   assert.doesNotMatch(source, /sticky top-0/);
   assert.doesNotMatch(source, /border-b/);
@@ -94,13 +94,13 @@ test("renders the shared title and subtitle header with route exceptions", () =>
   assert.match(source, /subtitle=\{subtitle\}/);
   assert.match(
     source,
-    /pathname === "\/overview" \|\| pathname === "\/risk\/register\/new"/,
+    /pathname === "\/overview"\s*\|\|\s*pathname === "\/risk\/register\/new"/,
   );
   assert.match(source, /const isCharterDetail =/);
   assert.match(source, /if \(isCharterDetail\) \{\s*return null;/);
   assert.match(
     source,
-    /if \(pathname === "\/overview" \|\| pathname === "\/risk\/register\/new"\) \{\s*return null;/,
+    /if \(\s*pathname === "\/overview"\s*\|\|\s*pathname === "\/risk\/register\/new"\s*\|\|\s*pathname === "\/intelligence\/document"\s*\) \{\s*return null;/,
   );
 });
 

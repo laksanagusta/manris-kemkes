@@ -14,6 +14,7 @@ export interface AnalyzeDocumentIntelligenceInput {
 export async function analyzeDocumentIntelligence(
   token: string,
   input: AnalyzeDocumentIntelligenceInput,
+  options?: Pick<RequestInit, "signal">,
 ): Promise<DocumentIntelligenceResponse> {
   const form = new FormData();
   form.append("file", input.file);
@@ -29,5 +30,6 @@ export async function analyzeDocumentIntelligence(
     "/ai/document-intelligence/analyze",
     form,
     token,
+    options,
   );
 }

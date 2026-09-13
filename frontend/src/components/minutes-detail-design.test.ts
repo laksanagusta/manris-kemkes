@@ -10,7 +10,10 @@ const source = readFileSync(
 test("uses the shared briefing detail reading pattern", () => {
   assert.match(source, /<FormPage className="space-y-0">/);
   assert.match(source, /<Card className="gap-0 overflow-hidden p-0">/);
-  assert.match(source, /<dl className="mt-6 grid gap-x-12 gap-y-4 lg:grid-cols-2">/);
+  assert.match(
+    source,
+    /<dl className="mt-8 grid gap-x-12 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">/,
+  );
   assert.match(source, /<BriefingSection title="Ringkasan">/);
   assert.match(source, /<BriefingSection title="Tindak lanjut">/);
   assert.match(source, /<BriefingSection title="Risiko terkait"/);
@@ -33,6 +36,20 @@ test("uses shared actions for the header and destructive confirmation", () => {
   assert.match(source, /<ActionButton icon=\{<Download/);
   assert.match(source, /<CollectionDialogCancel/);
   assert.match(source, /<DestructiveButton/);
+});
+
+test("uses the reference-style properties hierarchy without decorative metadata icons", () => {
+  assert.match(
+    source,
+    /<h2 className="text-lg font-medium tracking-tight text-foreground">Properti<\/h2>/,
+  );
+  assert.match(
+    source,
+    /<dt className="text-xs font-medium uppercase tracking-\[0\.08em\] text-muted-foreground">/,
+  );
+  assert.match(source, /<dd className="mt-2 min-w-0 text-sm font-medium leading-5 text-foreground">/);
+  assert.match(source, /<BriefingProperty label="Judul notulen">/);
+  assert.doesNotMatch(source, /<BriefingProperty icon=/);
 });
 
 test("keeps detail states recoverable and participant identity accessible", () => {

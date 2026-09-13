@@ -53,11 +53,17 @@ export function TypographyExample() {
             </p>
           </div>
           <div>
-            <p className="text-base font-medium tracking-tight text-foreground">
+            <p className="text-sm font-medium tracking-tight text-foreground">
               Form section title
             </p>
             <p className="font-mono text-[11px] text-muted-foreground">
-              text-base font-medium tracking-tight
+              text-sm font-medium tracking-tight · 14px
+            </p>
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              Form section subtitle
+            </p>
+            <p className="font-mono text-[11px] text-muted-foreground">
+              text-xs leading-relaxed · 12px
             </p>
           </div>
           <div>

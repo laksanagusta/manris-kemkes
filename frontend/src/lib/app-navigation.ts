@@ -110,11 +110,11 @@ export const breadcrumbMap: Record<string, string> = {
   "/reports/cycle-detail": "Detail Siklus Risiko",
   "/account": "Account",
   "/intelligence": "Inteligensi",
-  "/intelligence/transcript": "Meeting",
-  "/intelligence/minutes": "Meeting",
+  "/intelligence/transcript": "MoM",
+  "/intelligence/minutes": "MoM",
   "/intelligence/minutes/new": "Buat Notulen",
   "/intelligence/document": "Document Intelligence",
-  "/minutes": "Meeting",
+  "/minutes": "MoM",
   "/minutes/new": "Buat Notulen",
 	"/intelligence/predictive": "Predictive Scoring",
 	"/admin": "Administrasi",
@@ -201,7 +201,7 @@ export const appPageMeta: Record<string, AppPageMeta> = {
     subtitle: "Analisis dokumen untuk menemukan risiko dan tindak lanjut.",
   },
   "/intelligence/minutes": {
-    title: "Meeting",
+    title: "MoM",
     subtitle: "Kelola notulen dan hasil tindak lanjut rapat.",
   },
   "/intelligence/minutes/new": {
@@ -213,7 +213,7 @@ export const appPageMeta: Record<string, AppPageMeta> = {
     subtitle: "Gunakan pola historis untuk membaca arah perubahan risiko.",
   },
   "/intelligence/transcript": {
-    title: "Meeting Intelligence",
+    title: "MoM Intelligence",
     subtitle: "Ubah transkrip rapat menjadi risiko dan tindak lanjut terstruktur.",
   },
   "/management/charters": {
@@ -237,7 +237,7 @@ export const appPageMeta: Record<string, AppPageMeta> = {
     subtitle: "Siapkan penilaian kematangan untuk organisasi dan periode yang dipilih.",
   },
   "/minutes": {
-    title: "Meeting",
+    title: "MoM",
     subtitle: "Kelola notulen dan hasil tindak lanjut rapat.",
   },
   "/minutes/new": {

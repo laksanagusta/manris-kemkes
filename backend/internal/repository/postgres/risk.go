@@ -961,6 +961,20 @@ func (r *riskRepository) DashboardSummary(ctx context.Context, cycle string, org
 			return nil, fmt.Errorf("count overdue: %w", err)
 		}
 	}
+	args3 := []interface{}{cycle}
+	q3 := dashboardRiskSnapshotCTE + `SELECT COUNT(*)
+		FROM mitigation_tasks t
+		JOIN dashboard_risks r ON r.id = t.risk_id
+		WHERE (t.status IS DISTINCT FROM 'done'
+		   OR t.reported_at IS NULL
+		   OR NULLIF(BTRIM(COALESCE(t.notes, '')), '') IS NULL)`
+	if len(orgIDs) > 0 {
+		q3 += " AND r.organization_id = ANY($2)"
+		args3 = append(args3, orgIDs)
+	}
+	if err := r.pool.QueryRow(ctx, q3, args3...).Scan(&s.UnreportedMitig); err != nil {
+		return nil, fmt.Errorf("count unreported mitigations: %w", err)
+	}
 	return s, nil
 }
 

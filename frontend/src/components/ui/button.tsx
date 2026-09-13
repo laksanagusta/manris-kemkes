@@ -5,14 +5,14 @@ import { Slot } from "radix-ui"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 cursor-pointer items-center justify-center border border-transparent bg-clip-padding text-[13px] font-semibold whitespace-nowrap shadow-[0_1px_1px_rgba(0,0,0,0.04)] transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5",
+  "group/button inline-flex shrink-0 cursor-pointer items-center justify-center border border-transparent bg-clip-padding text-[13px] font-semibold whitespace-nowrap shadow-[0_1px_1px_rgba(0,0,0,0.04)] transition-[background-color,border-color,color,box-shadow,filter,transform] duration-150 ease-(--ease-out) outline-none select-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 motion-reduce:transform-none motion-reduce:transition-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5",
   {
     variants: {
       variant: {
         default:
           "bg-primary text-primary-foreground hover:bg-primary/90 [a]:hover:bg-primary/90 shadow-none bg-clip-border border-primary/15 active:scale-[0.97]",
         primary:
-          "box-border relative shrink-0 overflow-hidden border-0 bg-primary text-primary-foreground shadow-none transition-[filter] duration-150 hover:brightness-110 active:brightness-90",
+          "box-border relative shrink-0 overflow-hidden border-0 bg-primary text-primary-foreground shadow-none hover:brightness-110 active:brightness-90",
         success:
           "bg-success text-white hover:bg-success/90 focus-visible:border-success/40 focus-visible:ring-success/20 active:scale-[0.97]",
         outline:

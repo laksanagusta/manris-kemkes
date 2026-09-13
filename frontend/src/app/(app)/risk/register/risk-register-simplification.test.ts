@@ -31,6 +31,15 @@ test("risk register table exposes accessible sorting and monitoring progress", (
   assert.match(registerSource, /Mulai Pemantauan/);
 });
 
+test("risk register table uses the approved column proportions", () => {
+  assert.match(
+    registerSource,
+    /<colgroup>\s*<col style=\{\{ width: "55%" \}\} \/>\s*<col style=\{\{ width: "14%" \}\} \/>\s*<col style=\{\{ width: "7%" \}\} \/>\s*<col style=\{\{ width: "8%" \}\} \/>\s*<col style=\{\{ width: "10%" \}\} \/>\s*<col style=\{\{ width: "6%" \}\} \/>\s*<\/colgroup>/,
+  );
+  assert.match(registerSource, /sticky right-0 z-10 w-\[6%\]/);
+  assert.match(registerSource, /sticky right-0 w-\[6%\] bg-card/);
+});
+
 test("risk register data rows stay compact", () => {
   assert.match(
     registerSource,
@@ -45,7 +54,7 @@ test("risk register gives the sticky action cell the same row hover surface", ()
   );
   assert.match(
     registerSource,
-    /className="sticky right-0 bg-card px-3 py-2"/,
+    /className="sticky right-0 w-\[6%\] bg-card px-3 py-2"/,
   );
   assert.doesNotMatch(registerSource, /group-hover:bg-muted\/50/);
 });
@@ -105,7 +114,7 @@ test("risk register body rows do not use separator borders", () => {
   );
   assert.match(
     registerSource,
-    /className="sticky right-0 bg-card px-3 py-2"/,
+    /className="sticky right-0 w-\[6%\] bg-card px-3 py-2"/,
   );
   assert.doesNotMatch(
     registerSource,

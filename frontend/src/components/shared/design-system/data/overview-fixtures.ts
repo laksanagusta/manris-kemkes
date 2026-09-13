@@ -2,14 +2,14 @@ export const designSystemOverviewDashboardKpis: ReadonlyArray<{
   title: string;
   value: string;
 }> = [
-  { title: "Total Risiko", value: "248" },
+  { title: "Total", value: "248" },
   {
-    title: "Risiko Tinggi",
+    title: "Prioritas",
     value: "36",
   },
-  { title: "Overdue", value: "11" },
+  { title: "Mitigasi belum terlapor", value: "11" },
   {
-    title: "Risk Exposure",
+    title: "Eksposur",
     value: "1,284",
   },
 ];

@@ -182,12 +182,15 @@ test("risk form uses concise finalization copy and medium-weight field labels", 
 
 test("risk form section headings use the medium weight", () => {
   const sectionHeadingClass =
-    /<p className="text-base font-medium tracking-tight text-foreground transition-colors">/g;
+    /<p className="text-sm font-medium tracking-tight text-foreground transition-colors">/g;
+  const sectionSubtitleClass =
+    /<p className="text-xs leading-relaxed text-muted-foreground">/g;
 
   assert.equal(riskFormPage.match(sectionHeadingClass)?.length, 6);
+  assert.equal(riskFormPage.match(sectionSubtitleClass)?.length, 6);
   assert.match(
     riskFormPage,
-    /<p className="text-base font-medium tracking-tight text-foreground transition-colors">\s*Identifikasi Risiko\s*<\/p>/,
+    /<p className="text-sm font-medium tracking-tight text-foreground transition-colors">\s*Identifikasi Risiko\s*<\/p>/,
   );
 });
 

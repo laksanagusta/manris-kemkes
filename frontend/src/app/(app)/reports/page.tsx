@@ -62,13 +62,11 @@ import {
 import { exportMovementByOrgXLSX } from "@/lib/risk-movement-by-org-export";
 import {
   buildMovementChartData,
-  buildMovementSnapshotData,
   buildDashboardRiskCategoryData,
   buildUnitExposureData,
   buildSemesterScoreTargetTrendData,
   buildCriticalRiskRateTrendData,
   buildMovementByOrgData,
-  type MovementSnapshotDatum,
   type MovementByOrgSortKey,
 } from "@/lib/dashboard-insights";
 import {
@@ -99,8 +97,6 @@ import {
 import {
   AccentButton,
   ActionButton,
-  KpiCard,
-  MetricGrid,
   PageStack,
   PopoverSelectField,
 } from "@/components/shared/design-system";
@@ -215,7 +211,6 @@ export default function ReportsPage() {
   const reportScopeInitializedForTokenRef = useRef<string | null>(null);
   const [trendRisks, setTrendRisks] = useState<RiskTrendSourceItem[]>([]);
   const [cycleRisks, setCycleRisks] = useState<Risk[]>([]);
-  const [previousCycleRisks, setPreviousCycleRisks] = useState<Risk[]>([]);
   const [comparisons, setComparisons] = useState<RiskCycleComparisonItem[]>([]);
   const [riskCategoryData, setRiskCategoryData] = useState<
     ReturnType<typeof buildDashboardRiskCategoryData>
@@ -226,9 +221,6 @@ export default function ReportsPage() {
   const [exportCycle] = useState(currentGlobalCycle());
   const [isExporting, setIsExporting] = useState<string | null>(null);
   const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
-  const [selectedMovement, setSelectedMovement] = useState<
-    MovementSnapshotDatum["key"] | null
-  >(null);
   const [movementByOrgSort, setMovementByOrgSort] =
     useState<MovementByOrgSortKey>("total");
 
@@ -247,15 +239,6 @@ export default function ReportsPage() {
   const movementData = useMemo(
     () => buildMovementChartData(comparisons),
     [comparisons],
-  );
-  const movementSnapshotData = useMemo(
-    () =>
-      buildMovementSnapshotData({
-        currentRisks: cycleRisks,
-        previousRisks: previousCycleRisks,
-        comparisons,
-      }),
-    [cycleRisks, previousCycleRisks, comparisons],
   );
   const semesterTargetTrendData = useMemo(
     () => buildSemesterScoreTargetTrendData(trendRisks),
@@ -285,13 +268,8 @@ export default function ReportsPage() {
     setSelectedUnit((current) => (current === orgName ? null : orgName));
   };
 
-  const toggleMovementFilter = (key: MovementSnapshotDatum["key"]) => {
-    setSelectedMovement((current) => (current === key ? null : key));
-  };
-
   useEffect(() => {
     setSelectedUnit(null);
-    setSelectedMovement(null);
   }, [exportCycle, reportOrgId, reportGroupId]);
 
   useEffect(() => {
@@ -377,7 +355,6 @@ export default function ReportsPage() {
     if (requiresReportScopeSelection) {
       setTrendRisks([]);
       setCycleRisks([]);
-      setPreviousCycleRisks([]);
       setComparisons([]);
       setRiskCategoryData([]);
       setRiskCategoryError(false);
@@ -398,10 +375,6 @@ export default function ReportsPage() {
         `/risks/cycle-snapshot?cycle=${encodeURIComponent(exportCycle)}${reportScopeQuery}`,
         token,
       ),
-      api.get<Risk[]>(
-        `/risks/cycle-snapshot?cycle=${encodeURIComponent(previousCycle)}${reportScopeQuery}`,
-        token,
-      ),
       api.get<RiskCycleComparisonItem[]>(
         `/risks/compare?from=${previousCycle}&to=${exportCycle}${reportScopeQuery}`,
         token,
@@ -414,7 +387,6 @@ export default function ReportsPage() {
       ([
         riskResult,
         cycleRiskResult,
-        previousCycleRiskResult,
         comparisonResult,
         riskCategoryResult,
       ]) => {
@@ -432,13 +404,6 @@ export default function ReportsPage() {
         } else {
           console.error(cycleRiskResult.reason);
           setCycleRisks([]);
-        }
-
-        if (previousCycleRiskResult.status === "fulfilled") {
-          setPreviousCycleRisks(previousCycleRiskResult.value);
-        } else {
-          console.error(previousCycleRiskResult.reason);
-          setPreviousCycleRisks([]);
         }
 
         if (comparisonResult.status === "fulfilled") {
@@ -713,75 +678,46 @@ export default function ReportsPage() {
               }
             >
               {hasMovementData ? (
-                <>
-                  <MetricGrid className="pb-4 md:grid-cols-5 xl:grid-cols-5">
-                    {movementSnapshotData.map((item) => (
-                      <button
-                        key={item.key}
-                        type="button"
-                        onClick={() => toggleMovementFilter(item.key)}
-                        aria-pressed={selectedMovement === item.key}
-                        className="text-left transition-colors"
-                      >
-                        <KpiCard
-                          label={item.label}
-                          value={item.value}
-                          tone="white"
-                          icon={
-                            selectedMovement === item.key ? (
-                              <Badge
-                                variant="outline"
-                                className="h-5 px-1.5 text-[9px]"
-                              >
-                                Aktif
-                              </Badge>
-                            ) : undefined
-                          }
-                        />
-                      </button>
-                    ))}
-                  </MetricGrid>
-                  <div className="min-h-56 flex-1">
-                    <ChartContainer
-                      config={movementChartConfig}
-                      className="h-full w-full"
+                <div className="min-h-56 flex-1">
+                  <ChartContainer
+                    config={movementChartConfig}
+                    className="h-full w-full"
+                  >
+                    <BarChart
+                      accessibilityLayer
+                      data={movementData}
+                      margin={{ top: 4, right: 12, left: -24, bottom: 0 }}
                     >
-                      <BarChart
-                        accessibilityLayer
-                        data={movementData}
-                        margin={{ top: 4, right: 12, left: -24, bottom: 0 }}
-                      >
-                        <XAxis
-                          dataKey="label"
-                          tick={{ fontSize: 10 }}
-                          axisLine={false}
-                          tickLine={false}
-                        />
-                        <YAxis
-                          allowDecimals={false}
-                          tick={{ fontSize: 10 }}
-                          axisLine={false}
-                          tickLine={false}
-                        />
-                        <ChartTooltip
-                          content={
-                            <ChartTooltipContent
-                              formatter={(value) => [
-                                `${value ?? 0} risiko`,
-                                "Jumlah",
-                              ]}
-                            />
-                          }
-                        />
-                        <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                          {movementData.map((item) => (
-                            <Cell key={item.label} fill={item.fill} />
-                          ))}
-                        </Bar>
-                      </BarChart>
-                    </ChartContainer>
-                  </div>
-                </>
+                      <XAxis
+                        dataKey="label"
+                        tick={{ fontSize: 10 }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        allowDecimals={false}
+                        tick={{ fontSize: 10 }}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      <ChartTooltip
+                        content={
+                          <ChartTooltipContent
+                            formatter={(value) => [
+                              `${value ?? 0} risiko`,
+                              "Jumlah",
+                            ]}
+                          />
+                        }
+                      />
+                      <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                        {movementData.map((item) => (
+                          <Cell key={item.label} fill={item.fill} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ChartContainer>
+                </div>
               ) : (
                 <ReportEmptyState
                   className="h-full flex-1"
@@ -991,18 +927,14 @@ export default function ReportsPage() {
         </ReportGrid>
       </section>
 
-      {selectedUnit || selectedMovement ? (
+      {selectedUnit ? (
         <ReportDrilldownSummary
           onReset={() => {
             setSelectedUnit(null);
-            setSelectedMovement(null);
           }}
         >
           {selectedUnit ? (
             <Badge variant="outline">Unit: {selectedUnit}</Badge>
-          ) : null}
-          {selectedMovement ? (
-            <Badge variant="outline">Movement: {selectedMovement}</Badge>
           ) : null}
         </ReportDrilldownSummary>
       ) : null}

@@ -118,3 +118,56 @@ test("createWorkingPaperWorkbookBuffer adds attachment-style metadata to the fir
   assert.equal(monitoringSchedule?.value, "2026-07-01");
   assert.equal(monitoringSchedule?.numFmt, "@");
 });
+
+test("working paper profile and monitoring sheets use the monitoring source score", async () => {
+  const ExcelJSImport = await import("exceljs");
+  const Workbook = ExcelJSImport.Workbook || ExcelJSImport.default?.Workbook;
+  assert.ok(Workbook, "expected Workbook constructor from exceljs");
+
+  const workingPaper = makeWorkingPaper();
+  workingPaper.risks[0].risk.code = "R-235";
+  workingPaper.risks[0].risk.previous = {
+    probability: 3,
+    impact: 4,
+    bobot: 1,
+    nilai: 12.4,
+    tingkat_risiko: "sedang",
+    prioritas_risiko: 3,
+  };
+  workingPaper.risks[0].risk.monitoring = {
+    id: "monitoring-1",
+    status: "final",
+    assessmentCycle: "2026-H1",
+    sourceProbability: 2,
+    sourceImpact: 4,
+    sourceWeight: 0.875,
+    sourceNilai: 7.2,
+    sourceLevel: "rendah",
+    observedProbability: 1,
+    observedImpact: 4,
+    observedWeight: 0.75,
+    observedNilai: 4.6,
+    observedLevel: "sangat_rendah",
+    mitigationCompletionPercent: 100,
+    mitigationProgressSummary: "Selesai",
+    startedAt: "2026-06-01T08:00:00.000Z",
+    updatedAt: "2026-06-30T08:00:00.000Z",
+    finalizedAt: "2026-06-30T08:00:00.000Z",
+  };
+  workingPaper.risks[0].risk.target_nilai = 9.6;
+
+  const buffer = await createWorkingPaperWorkbookBuffer(workingPaper);
+  const workbook = new Workbook();
+  await workbook.xlsx.load(buffer);
+
+  assert.equal(workbook.getWorksheet("Profil Risiko")?.getCell("I16").value, 7);
+  assert.equal(workbook.getWorksheet("Profil Risiko")?.getCell("J16").value, "Rendah");
+  assert.equal(workbook.getWorksheet("Profil Risiko")?.getCell("R16").value, 10);
+  assert.equal(workbook.getWorksheet("KK Penilaian Risiko")?.getCell("O17").value, 7);
+  assert.equal(workbook.getWorksheet("KK Penilaian Risiko")?.getCell("P17").value, "Rendah");
+  assert.equal(workbook.getWorksheet("KK Penilaian Risiko")?.getCell("Y17").value, 10);
+  assert.equal(workbook.getWorksheet("KK Pemantauan Reviu")?.getCell("E16").value, 2);
+  assert.equal(workbook.getWorksheet("KK Pemantauan Reviu")?.getCell("G16").value, 0.875);
+  assert.equal(workbook.getWorksheet("KK Pemantauan Reviu")?.getCell("H16").value, 7);
+  assert.equal(workbook.getWorksheet("KK Pemantauan Reviu")?.getCell("I16").value, "Rendah");
+});

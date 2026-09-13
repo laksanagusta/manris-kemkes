@@ -580,7 +580,7 @@ export default function RiskCharterDetailPage() {
 
   return (
     <FormPage className="space-y-0">
-      <div className="px-6 pb-6 lg:px-8">
+      <div className="px-6 pb-0 lg:px-8">
         <FormHeader
           title="Detail Piagam"
           subtitle="Tinjau mandat dan ruang lingkup piagam manajemen risiko."

@@ -43,7 +43,7 @@ export function FormPage({ children, className }: FormPageProps) {
   return (
     <div
       className={cn(
-        "mx-auto w-full max-w-7xl min-w-0 animate-fade-in space-y-6 pb-20",
+        "mx-auto w-full max-w-7xl min-w-0 animate-fade-in space-y-6 pb-20 [&>header+*]:!mt-0",
         className,
       )}
     >

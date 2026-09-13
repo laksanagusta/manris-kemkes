@@ -3,14 +3,7 @@ import type { UploadedDocument } from "@/types/document-processing";
 
 export const ACCEPTED_EXTENSIONS = [
   "pdf",
-  "png",
-  "jpg",
-  "jpeg",
-  "webp",
-  "docx",
   "xlsx",
-  "xls",
-  "csv",
 ] as const;
 
 export const ACCEPT_ATTRIBUTE = ACCEPTED_EXTENSIONS.map((extension) => `.${extension}`).join(",");
@@ -45,7 +38,6 @@ function issueFor(file: File, message: string, occurrence: number): FileIssue {
 
 function createUploadedDocument(file: File): UploadedDocument {
   const extension = extensionFor(file.name);
-  const isImage = ["png", "jpg", "jpeg", "webp"].includes(extension);
   return {
     id: documentId(file),
     name: file.name,
@@ -56,7 +48,6 @@ function createUploadedDocument(file: File): UploadedDocument {
     pages: 0,
     status: "ready",
     file,
-    previewUrl: isImage ? URL.createObjectURL(file) : undefined,
   };
 }
 
@@ -75,7 +66,7 @@ export function validateFiles(
     const extension = extensionFor(file.name);
     const key = fileKey(file);
     if (!ACCEPTED_EXTENSIONS.includes(extension as (typeof ACCEPTED_EXTENSIONS)[number])) {
-      issues.push(issueFor(file, "Format belum didukung. Gunakan PDF, gambar, DOCX, atau spreadsheet.", index));
+      issues.push(issueFor(file, "Format belum didukung. Gunakan PDF atau XLSX.", index));
       return;
     }
     if (file.size === 0) {

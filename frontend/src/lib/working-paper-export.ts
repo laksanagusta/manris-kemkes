@@ -12,21 +12,28 @@ import { buildWorkingPaperSignatureLayout } from "./working-paper-signature-layo
 type ExportableRiskRow = Record<string, any>;
 
 /**
- * For sheets 1 & 2, use previous quarter data if available.
- * Falls back to current risk data otherwise.
- * Also remaps display labels for human-readable values.
+ * For sheets 1 & 2, use the monitoring source snapshot when available.
+ * This is the immutable risk state immediately before the latest monitoring
+ * result. Legacy links without monitoring keep the previous-profile fallback.
  */
 function getProfileRow(risk: WorkingPaperRiskData): ExportableRiskRow {
   const prev = risk.previous;
-  const src = prev ?? risk;
+  const monitoringSource = risk.monitoring;
+  const src = monitoringSource ? risk : (prev ?? risk);
+  const profileRiskLevel = monitoringSource
+    ? formatRiskLevelLabel(monitoringSource.sourceLevel)
+    : src === prev
+      ? (prev.tingkat_risiko_display ?? prev.tingkat_risiko)
+      : (risk.tingkat_risiko_display ?? risk.tingkat_risiko);
   return {
     ...risk,
-    // Inherent values — prefer previous snapshot and canonical nilai
-    probability: src.probability ?? risk.probability,
-    impact: src.impact ?? risk.impact,
-    bobot: src.bobot ?? risk.bobot,
-    nilai: src.nilai ?? src.inherentScore ?? risk.nilai ?? risk.inherentScore,
-    tingkat_risiko: src === prev ? (prev.tingkat_risiko_display ?? prev.tingkat_risiko) : (risk.tingkat_risiko_display ?? risk.tingkat_risiko),
+    // Inherent values — prefer the immutable monitoring source snapshot.
+    probability: monitoringSource?.sourceProbability ?? src.probability ?? risk.probability,
+    impact: monitoringSource?.sourceImpact ?? src.impact ?? risk.impact,
+    bobot: monitoringSource?.sourceWeight ?? src.bobot ?? risk.bobot,
+    nilai: monitoringSource?.sourceNilai ?? src.nilai ?? src.inherentScore ?? risk.nilai ?? risk.inherentScore,
+    tingkat_risiko: profileRiskLevel,
+    tingkat_risiko_display: profileRiskLevel,
     prioritas_risiko: src.prioritas_risiko ?? risk.prioritas_risiko,
     cause: src.cause ?? risk.cause,
     risk_source: src.risk_source ?? risk.risk_source,
@@ -127,6 +134,20 @@ const RISK_LEVEL_COLORS: Record<
   sangat_rendah: { bg: "FF10B981", font: "FFFFFFFF" }, // emerald-500, white
 };
 
+const RISK_LEVEL_LABELS: Record<string, string> = {
+  sangat_tinggi: "Sangat Tinggi",
+  tinggi: "Tinggi",
+  sedang: "Sedang",
+  rendah: "Rendah",
+  sangat_rendah: "Sangat Rendah",
+};
+
+function formatRiskLevelLabel(value: string | undefined | null): string {
+  if (!value) return "";
+  const key = value.trim().toLowerCase().replace(/\s+/g, "_");
+  return RISK_LEVEL_LABELS[key] ?? value;
+}
+
 function applyRiskLevelStyle(cell: ExcelJS.Cell, tingkatRisiko: string | undefined | null): void {
   if (!tingkatRisiko) return;
   const key = tingkatRisiko.trim().toLowerCase().replace(/\s+/g, "_");
@@ -188,6 +209,12 @@ function safeStr(value: string | undefined | null): string {
 
 function safeNum(value: number | undefined | null): number | string {
   return value ?? "";
+}
+
+function safeRoundedScore(value: number | string | undefined | null): number | string {
+  if (value === undefined || value === null || value === "") return "";
+  const numericValue = typeof value === "string" ? Number(value) : value;
+  return Number.isFinite(numericValue) ? Math.round(numericValue) : value;
 }
 
 function setTextCell(cell: ExcelJS.Cell, value: string | undefined | null) {
@@ -555,7 +582,7 @@ function buildProfilRisikoSheet(
     dataRow.getCell(c + 4).value = safeNum(risk.probability);
     dataRow.getCell(c + 5).value = safeNum(risk.impact);
     dataRow.getCell(c + 6).value = safeNum(risk.bobot);
-    dataRow.getCell(c + 7).value = safeNum(nilai);
+    dataRow.getCell(c + 7).value = safeRoundedScore(nilai);
     dataRow.getCell(c + 8).value = safeStr(tingkatRisiko);
     dataRow.getCell(c + 9).value = safeNum(risk.prioritas_risiko);
     dataRow.getCell(c + 10).value = safeStr(risk.existing_control);
@@ -565,10 +592,10 @@ function buildProfilRisikoSheet(
     dataRow.getCell(c + 14).value = safeNum(risk.target_impact);
     const targetNilai = risk.target_nilai ?? risk.target_score;
     dataRow.getCell(c + 15).value = safeNum(risk.target_bobot);
-    dataRow.getCell(c + 16).value = safeNum(targetNilai);
+    dataRow.getCell(c + 16).value = safeRoundedScore(targetNilai);
     dataRow.getCell(c + 17).value = safeStr(targetTR);
 
-    applyNilaiStyle(dataRow.getCell(c + 16), targetNilai);
+    applyNilaiStyle(dataRow.getCell(c + 16), safeRoundedScore(targetNilai));
     applyRiskLevelStyle(dataRow.getCell(c + 17), risk.target_tingkat_risiko);
   });
 
@@ -730,7 +757,7 @@ function buildPenilaianRisikoSheet(
     dataRow.getCell(C + 10).value = safeNum(risk.probability);
     dataRow.getCell(C + 11).value = safeNum(risk.impact);
     dataRow.getCell(C + 12).value = safeNum(risk.bobot);
-    dataRow.getCell(C + 13).value = safeNum(nilai);
+    dataRow.getCell(C + 13).value = safeRoundedScore(nilai);
     dataRow.getCell(C + 14).value = safeStr(tingkatRisiko);
     dataRow.getCell(C + 15).value = safeNum(risk.prioritas_risiko);
     dataRow.getCell(C + 16).value = safeStr(riskAppetite);
@@ -741,10 +768,10 @@ function buildPenilaianRisikoSheet(
     dataRow.getCell(C + 21).value = safeNum(risk.target_impact);
     const targetNilai = risk.target_nilai ?? risk.target_score;
     dataRow.getCell(C + 22).value = safeNum(risk.target_bobot);
-    dataRow.getCell(C + 23).value = safeNum(targetNilai);
+    dataRow.getCell(C + 23).value = safeRoundedScore(targetNilai);
     dataRow.getCell(C + 24).value = safeStr(targetTR);
 
-    applyNilaiStyle(dataRow.getCell(C + 23), targetNilai);
+    applyNilaiStyle(dataRow.getCell(C + 23), safeRoundedScore(targetNilai));
     applyRiskLevelStyle(dataRow.getCell(C + 24), risk.target_tingkat_risiko);
   });
 
@@ -873,17 +900,24 @@ function buildPemantauanReviuSheet(
   risks.forEach((risk, index) => {
     const dataRow = ws.getRow(DATA_START_ROW + index);
     const prev = risk.previous;
+    const monitoringSource = risk.monitoring;
 
-    // Previous quarter data (cols 1-11)
-    const prevNilai = prev?.nilai ?? prev?.inherentScore ?? risk.nilai ?? risk.inherentScore;
+    // Baseline risk immediately before this monitoring result (cols 1-11)
+    const prevProbability = monitoringSource?.sourceProbability ?? prev?.probability ?? risk.probability;
+    const prevImpact = monitoringSource?.sourceImpact ?? prev?.impact ?? risk.impact;
+    const prevBobot = monitoringSource?.sourceWeight ?? prev?.bobot ?? risk.bobot;
+    const prevNilai = monitoringSource?.sourceNilai ?? prev?.nilai ?? prev?.inherentScore ?? risk.nilai ?? risk.inherentScore;
+    const prevLevel = monitoringSource
+      ? formatRiskLevelLabel(monitoringSource.sourceLevel)
+      : (prev?.tingkat_risiko_display ?? prev?.tingkat_risiko ?? risk.tingkat_risiko_display ?? risk.tingkat_risiko);
     dataRow.getCell(C).value = index + 1;
     dataRow.getCell(C + 1).value = safeStr(risk.title);
     dataRow.getCell(C + 2).value = safeStr(risk.code);
-    dataRow.getCell(C + 3).value = safeNum(prev?.probability ?? risk.probability);
-    dataRow.getCell(C + 4).value = safeNum(prev?.impact ?? risk.impact);
-    dataRow.getCell(C + 5).value = safeNum(prev?.bobot ?? risk.bobot);
-    dataRow.getCell(C + 6).value = safeNum(prevNilai);
-    dataRow.getCell(C + 7).value = safeStr(prev?.tingkat_risiko_display ?? prev?.tingkat_risiko ?? risk.tingkat_risiko_display ?? risk.tingkat_risiko);
+    dataRow.getCell(C + 3).value = safeNum(prevProbability);
+    dataRow.getCell(C + 4).value = safeNum(prevImpact);
+    dataRow.getCell(C + 5).value = safeNum(prevBobot);
+    dataRow.getCell(C + 6).value = safeRoundedScore(prevNilai);
+    dataRow.getCell(C + 7).value = safeStr(prevLevel);
     dataRow.getCell(C + 8).value = safeNum(prev?.prioritas_risiko ?? risk.prioritas_risiko);
     dataRow.getCell(C + 9).value = safeStr(prev?.existing_control ?? risk.existing_control);
     setTextCell(dataRow.getCell(C + 10), risk.jadwal_pelaksanaan);
@@ -893,13 +927,13 @@ function buildPemantauanReviuSheet(
     dataRow.getCell(C + 11).value = safeNum(risk.monitoring_p);
     dataRow.getCell(C + 12).value = safeNum(risk.monitoring_d);
     dataRow.getCell(C + 13).value = safeNum(risk.monitoring_bobot);
-    dataRow.getCell(C + 14).value = safeNum(monNilai);
+    dataRow.getCell(C + 14).value = safeRoundedScore(monNilai);
     dataRow.getCell(C + 15).value = safeStr(risk.monitoring_tingkat_risiko_display ?? risk.monitoring_tingkat_risiko);
 
     // Apply risk level colors
-    applyNilaiStyle(dataRow.getCell(C + 6), prevNilai);
-    applyRiskLevelStyle(dataRow.getCell(C + 7), prev?.tingkat_risiko ?? risk.tingkat_risiko);
-    applyNilaiStyle(dataRow.getCell(C + 14), monNilai);
+    applyNilaiStyle(dataRow.getCell(C + 6), safeRoundedScore(prevNilai));
+    applyRiskLevelStyle(dataRow.getCell(C + 7), prevLevel);
+    applyNilaiStyle(dataRow.getCell(C + 14), safeRoundedScore(monNilai));
     applyRiskLevelStyle(dataRow.getCell(C + 15), risk.monitoring_tingkat_risiko);
   });
 

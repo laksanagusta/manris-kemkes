@@ -76,7 +76,7 @@ test("registration behavior entry points remain intact", () => {
   assert.match(registrationSource, /<CollectionPageHeader/);
   assert.match(
     registrationSource,
-    /<FormPage className="risk-form-filter-controls space-y-6 \[&>header\+\*\]:!mt-12">\s*<CollectionPageHeader/,
+    /<FormPage className="risk-form-filter-controls space-y-6 \[&>header\+\*\]:!mt-6">\s*<CollectionPageHeader/,
   );
   assert.match(
     registrationSource,

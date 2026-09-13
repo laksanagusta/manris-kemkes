@@ -320,7 +320,7 @@ export function MitigationProgressTab({
             className="flex items-center justify-between gap-4 py-1.5"
             role="listitem"
           >
-            <span className="text-xs text-muted-foreground">Selesai</span>
+            <span className="text-sm text-muted-foreground">Selesai</span>
             <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
               {stats.done}
             </span>
@@ -329,7 +329,7 @@ export function MitigationProgressTab({
             className="flex items-center justify-between gap-4 py-1.5"
             role="listitem"
           >
-            <span className="text-xs text-muted-foreground">Menunggu</span>
+            <span className="text-sm text-muted-foreground">Menunggu</span>
             <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
               {stats.pending}
             </span>
@@ -338,7 +338,7 @@ export function MitigationProgressTab({
             className="flex items-center justify-between gap-4 py-1.5"
             role="listitem"
           >
-            <span className="text-xs text-muted-foreground">Terlambat</span>
+            <span className="text-sm text-muted-foreground">Terlambat</span>
             <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
               {stats.overdue}
             </span>
@@ -348,7 +348,7 @@ export function MitigationProgressTab({
               className="flex items-center justify-between gap-4 py-1.5"
               role="listitem"
             >
-              <span className="text-xs text-muted-foreground">
+              <span className="text-sm text-muted-foreground">
                 Tidak dilaporkan
               </span>
               <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
