@@ -415,7 +415,7 @@ export default function TMPMRDetailPage() {
 
   if (loading) {
     return (
-      <FormPage className="max-w-7xl">
+      <FormPage>
         <Card>
           <CardContent className="flex min-h-[360px] items-center justify-center gap-3 text-sm text-muted-foreground">
             <Loader2 className="size-5 animate-spin" />
@@ -427,7 +427,7 @@ export default function TMPMRDetailPage() {
   }
 
   return (
-    <FormPage className="max-w-7xl">
+    <FormPage>
       <FormHeader
         title={isCreateMode ? "Buat TMPMR" : "Detail TMPMR"}
         onBack={() => router.push("/management/tmpmr")}

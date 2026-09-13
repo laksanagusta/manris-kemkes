@@ -5,7 +5,7 @@ import { Slot } from "radix-ui"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "group/button inline-flex shrink-0 cursor-pointer items-center justify-center border border-transparent bg-clip-padding text-[13px] font-medium whitespace-nowrap shadow-[0_1px_1px_rgba(0,0,0,0.04)] transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5",
+  "group/button inline-flex shrink-0 cursor-pointer items-center justify-center border border-transparent bg-clip-padding text-[13px] font-semibold whitespace-nowrap shadow-[0_1px_1px_rgba(0,0,0,0.04)] transition-colors outline-none select-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-3.5",
   {
     variants: {
       variant: {
@@ -29,7 +29,7 @@ const buttonVariants = cva(
         default:
           "h-11 gap-2 rounded-md px-5 has-data-[icon=inline-end]:pr-4 has-data-[icon=inline-start]:pl-4",
         primary:
-          "h-[36px] w-fit gap-[6px] rounded-[8px] p-[1px_12px] text-[14px]/[21px] font-['Inter_Variable',system-ui,sans-serif] font-medium tracking-[-0.14px] text-center whitespace-nowrap",
+          "h-[36px] w-fit gap-[6px] rounded-[8px] p-[1px_12px] text-[14px]/[21px] font-['Inter_Variable',system-ui,sans-serif] font-semibold tracking-[-0.14px] text-center whitespace-nowrap",
         premium:
           "h-12 gap-2 rounded-md px-6 text-sm has-data-[icon=inline-end]:pr-5 has-data-[icon=inline-start]:pl-5",
         md: "h-9 gap-2 rounded-md px-4 has-data-[icon=inline-end]:pr-3 has-data-[icon=inline-start]:pl-3",

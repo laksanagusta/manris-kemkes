@@ -323,7 +323,7 @@ test("working paper detail keeps the ledger wide and context in the right rail",
   assert.doesNotMatch(workingPaperDetail, /useSetHeaderActions/);
   assert.doesNotMatch(workingPaperDetail, /actionsPlacement="title"/);
   assert.match(workingPaperDetail, /const headerActions = \(\s*<>/);
-  assert.match(workingPaperDetail, /<FormPage className="max-w-\[1400px\] space-y-6 pb-0">/);
+  assert.match(workingPaperDetail, /<FormPage className="space-y-6 pb-0">/);
   assert.doesNotMatch(workingPaperDetail, /<Badge/);
   assert.match(workingPaperDetail, /<AccentButton[\s\S]*Mulai Proses TTE/);
   assert.match(workingPaperDetail, /<WorkingPaperStatusActions[\s\S]*onExport=\{handleExport\}/);
@@ -699,10 +699,6 @@ test("risk score selection uses the shared accessible heatmap picker", () => {
   assert.match(riskScoreHeatmapPicker, /Hasil/);
   assert.match(riskScoreHeatmapPicker, /pb-3 sm:pb-4/);
   assert.doesNotMatch(riskScoreHeatmapPicker, /pt-1|sm:pt-2/);
-  assert.match(
-    riskScoreHeatmapPicker,
-    /pt-3 no-scrollbar sm:flex-none sm:overflow-visible/,
-  );
   assert.match(riskScoreHeatmapPicker, /sm:min-h-14/);
   assert.doesNotMatch(riskScoreHeatmapPicker, /sm:min-h-16/);
   assert.match(riskScoreHeatmapPicker, /font-mono text-2xl font-semibold leading-none/);
@@ -718,6 +714,12 @@ test("risk score selection uses the shared accessible heatmap picker", () => {
   assert.doesNotMatch(riskScoreHeatmapPicker, /<span>Dampak<\/span>/);
   assert.doesNotMatch(riskScoreHeatmapPicker, /Pilihan saat ini/);
   assert.doesNotMatch(riskScoreHeatmapPicker, /bg-muted px-2\.5 py-1 font-mono/);
+});
+
+test("modal headers keep bottom breathing room", () => {
+  assert.match(dialogPrimitive, /px-5 pt-5 pb-3 text-left/);
+  assert.match(alertDialogPrimitive, /px-5 pt-5 pb-3 text-left/);
+  assert.doesNotMatch(riskScoreHeatmapPicker, /overflow-y-auto[^\n]*pt-3/);
 });
 
 test("sidebar footer fades into the help and account chrome", () => {
@@ -739,6 +741,12 @@ test("sidebar navigation uses medium weight while supporting chrome stays normal
 
 test("dialog examples keep the header border removed", () => {
   assert.doesNotMatch(dialogExample, /border-b border-border\/60/);
+});
+
+test("shared button labels use semibold weight", () => {
+  assert.match(buttonPrimitive, /font-semibold/);
+  assert.doesNotMatch(buttonPrimitive, /text-\[13px\] font-medium/);
+  assert.doesNotMatch(buttonPrimitive, /text-\[14px\]\/\[21px\][^\n]*font-medium/);
 });
 
 test("mitigation examples are built from shared dialog and form components", () => {

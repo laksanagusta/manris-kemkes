@@ -72,19 +72,15 @@ test("keeps the application canvas painted through viewport overscroll", () => {
 test("uses inset shell header geometry", () => {
   assert.match(
     source,
-    /className=\{cn\([\s\S]*"mx-auto w-full"[\s\S]*"max-w-\[1400px\]"[\s\S]*<CollectionPageHeader[\s\S]*className="mb-12 w-full"/,
+    /className="mx-auto w-full max-w-7xl"[\s\S]*<CollectionPageHeader[\s\S]*className="mb-12 w-full"/,
   );
   assert.doesNotMatch(source, /sticky top-0/);
   assert.doesNotMatch(source, /border-b/);
 });
 
-test("aligns meeting briefing create and detail headers to the form shell", () => {
-  assert.match(source, /const isMeetingBriefingCreate = pathname === "\/minutes\/new";/);
-  assert.match(source, /const isMeetingBriefingDetail = \/\^\\\/minutes\\\/\[\^\/\]\+\$\//);
-  assert.match(
-    source,
-    /isMeetingBriefingCreate \|\| isMeetingBriefingDetail[\s\S]*\? "max-w-5xl"/,
-  );
+test("uses the same max-width for meeting briefing and other page headers", () => {
+  assert.match(source, /className="mx-auto w-full max-w-7xl"/);
+  assert.doesNotMatch(source, /isMeetingBriefingCreate|isMeetingBriefingDetail/);
 });
 
 test("derives the page title from the current route", () => {

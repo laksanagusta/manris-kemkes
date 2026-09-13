@@ -53,7 +53,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <HeaderActionsProvider>
                 <AppHeader />
                 <main className="flex min-w-0 flex-1 flex-col gap-4">
-                  <div className="mx-auto w-full max-w-[1400px] min-w-0 pb-8">
+                  <div className="mx-auto w-full max-w-7xl min-w-0 pb-8">
                     {children}
                   </div>
                 </main>

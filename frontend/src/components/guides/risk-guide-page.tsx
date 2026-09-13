@@ -203,7 +203,7 @@ export function RiskGuidePage({
   return (
     <main
       className={cn(
-        "mx-auto flex w-full max-w-4xl flex-col gap-8 px-4 py-10 sm:px-6 sm:py-14 lg:px-8",
+        "mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-10 sm:px-6 sm:py-14 lg:px-8",
         className,
       )}
     >

@@ -1158,12 +1158,12 @@ export default function AssessmentFormPage() {
     <>
       <FormPage
         className={cn(
-          "risk-form-filter-controls max-w-none space-y-6",
+          "risk-form-filter-controls space-y-6",
           isMonitoringRoute && "pb-32",
         )}
       >
       {isMonitoringRoute ? (
-        <div className="mx-auto w-full max-w-[1400px] min-w-0">
+        <div className="mx-auto w-full max-w-7xl min-w-0">
           <CollectionPageHeader
             backActionPlacement="top"
             actionsPlacement="top"
@@ -1195,7 +1195,7 @@ export default function AssessmentFormPage() {
                     <Button
                       variant="outline"
                       size="md"
-                      className="gap-2 border-primary/20 text-xs font-medium hover:bg-primary/5 hover:text-primary"
+                      className="gap-2 border-primary/20 text-xs font-semibold hover:bg-primary/5 hover:text-primary"
                       onClick={handleSaveDraft}
                       disabled={isSaving || isAssessmentLocked}
                     >
@@ -1226,7 +1226,7 @@ export default function AssessmentFormPage() {
           }
         />
       )}
-      <div className="mx-auto grid w-full max-w-[1400px] min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
+      <div className="mx-auto grid w-full max-w-7xl min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
         {/* Left Column */}
         <div className="space-y-6">
           {!isMonitoringRoute ? (

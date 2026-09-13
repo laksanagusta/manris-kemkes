@@ -13,6 +13,12 @@ import {
 } from "@/components/ui/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import type { ProcessingJob, ProcessingStatus } from "@/types/document-processing";
@@ -21,18 +27,18 @@ import { formatDuration } from "./upload-utils";
 function statusMeta(status: ProcessingStatus) {
   switch (status) {
     case "completed":
-      return { label: "Completed", tone: "success" as const, icon: CheckCircle2 };
+      return { label: "Selesai", tone: "success" as const, icon: CheckCircle2 };
     case "partial":
-      return { label: "Partial", tone: "warning" as const, icon: XCircle };
+      return { label: "Sebagian", tone: "warning" as const, icon: XCircle };
     case "failed":
-      return { label: "Failed", tone: "danger" as const, icon: XCircle };
+      return { label: "Gagal", tone: "danger" as const, icon: XCircle };
     case "cancelled":
-      return { label: "Cancelled", tone: "neutral" as const, icon: XCircle };
+      return { label: "Dibatalkan", tone: "neutral" as const, icon: XCircle };
     case "processing":
     case "queued":
-      return { label: status === "queued" ? "Queued" : "Processing", tone: "progress" as const, icon: Clock };
+      return { label: status === "queued" ? "Dalam antrean" : "Diproses", tone: "progress" as const, icon: Clock };
     default:
-      return { label: "Ready", tone: "neutral" as const, icon: Clock };
+      return { label: "Siap", tone: "neutral" as const, icon: Clock };
   }
 }
 
@@ -77,8 +83,8 @@ export function HistoryPanel({
       <div className="flex items-center justify-between gap-2 px-1">
         <div className="flex items-center gap-2">
           <History className="size-3.5 text-muted-foreground" />
-          <h2 id="process-history-title" className="font-display text-[10px] font-semibold uppercase tracking-[0.13em] text-muted-foreground">
-            Process history
+          <h2 id="process-history-title" className="font-display text-xs font-semibold uppercase tracking-[0.13em] text-muted-foreground">
+            Riwayat proses
           </h2>
         </div>
         <button
@@ -103,7 +109,7 @@ export function HistoryPanel({
                 key={job.id}
                 className={cn(
                   "group rounded-xl border p-2.5 transition-[background-color,border-color,box-shadow] duration-150",
-                  active ? "border-foreground/20 bg-white shadow-[0_3px_12px_rgba(0,0,0,0.04)]" : "border-transparent hover:border-border/70 hover:bg-white/70",
+                  active ? "border-foreground/20 bg-card border-shadow" : "border-transparent hover:border-border/70 hover:bg-card/70",
                 )}
               >
                 {editingJobId === job.id ? (
@@ -131,10 +137,10 @@ export function HistoryPanel({
                 ) : (
                   <button type="button" onClick={() => onOpen(job)} className="block w-full text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40">
                     <div className="flex items-start gap-2">
-                      <Icon className={cn("mt-0.5 size-3.5 shrink-0", meta.tone === "success" ? "text-success" : meta.tone === "warning" ? "text-amber-600" : "text-muted-foreground")} />
+                      <Icon className={cn("mt-0.5 size-3.5 shrink-0", meta.tone === "success" ? "text-success" : meta.tone === "warning" ? "text-warning" : meta.tone === "danger" ? "text-destructive" : "text-muted-foreground")} />
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-xs font-medium text-foreground" title={job.name}>{job.name}</span>
-                        <span className="mt-1 flex items-center gap-1.5 text-[10px] text-muted-foreground">
+                        <span className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
                           <span>{job.documents.length} dokumen</span>
                           <span aria-hidden="true">·</span>
                           <span>{relativeDate(job.updatedAt)}</span>
@@ -148,19 +154,31 @@ export function HistoryPanel({
                 )}
                 {editingJobId !== job.id ? (
                   <div className="mt-2 flex items-center justify-between gap-2 pl-5">
-                    <span className="font-mono text-[10px] tabular-nums text-muted-foreground/75">
+                    <span className="font-mono text-xs tabular-nums text-muted-foreground/75">
                       {job.status === "completed" || job.status === "partial" ? formatDuration(job.durationMs) : `${job.progress}%`}
                     </span>
-                    <div className="flex items-center gap-0.5 opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
-                      <button type="button" aria-label={`Ganti nama ${job.name}`} title="Ganti nama" onClick={() => startRename(job)} className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40">
-                        <Pencil className="size-3" />
-                      </button>
-                      <button type="button" aria-label={`Hapus ${job.name}`} title="Hapus proses" onClick={() => {
-                        if (window.confirm(`Hapus proses “${job.name}”? Hasil lokal proses ini akan dihapus.`)) onDelete(job.id);
-                      }} className="flex size-7 items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-destructive/30">
-                        <Trash2 className="size-3" />
-                      </button>
-                    </div>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button type="button" variant="ghost" size="icon-xs" aria-label={`Tindakan untuk ${job.name}`} title="Tindakan proses">
+                          <MoreHorizontal className="size-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onSelect={() => startRename(job)}>
+                          <Pencil className="size-4" />
+                          Ganti nama
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          variant="destructive"
+                          onSelect={() => {
+                            if (window.confirm(`Hapus proses “${job.name}”? Hasil lokal proses ini akan dihapus.`)) onDelete(job.id);
+                          }}
+                        >
+                          <Trash2 className="size-4" />
+                          Hapus proses
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 ) : null}
               </div>
@@ -172,7 +190,7 @@ export function HistoryPanel({
           Belum ada proses tersimpan. Proses yang selesai akan muncul di sini.
         </div>
       )}
-      <div className="flex items-center gap-2 px-1 pt-1 text-[10px] leading-4 text-muted-foreground/80">
+      <div className="flex items-center gap-2 px-1 pt-1 text-xs leading-4 text-muted-foreground/80">
         <MoreHorizontal className="size-3" />
         <span>Hasil tersimpan lokal di perangkat ini.</span>
       </div>

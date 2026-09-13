@@ -627,7 +627,7 @@ export default function EvaluationDetailPage() {
     organizationNameById.get(evaluation.organizationId) ?? evaluation.organizationId;
 
   return (
-    <FormPage className="evaluation-form max-w-[1400px] space-y-6 [&>header+*]:!mt-12">
+    <FormPage className="evaluation-form space-y-6 [&>header+*]:!mt-12">
       <CollectionPageHeader
         backActionPlacement="local"
         backAction={<FormBackAction href="/evaluations" label="Kembali" />}

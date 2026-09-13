@@ -25,7 +25,7 @@ for (const [name, source] of [
   test(`${name} uses the expected form shell`, () => {
     assert.match(
       source,
-      /<FormPage[\s\S]{0,180}risk-form-filter-controls (?:max-w-none|max-w-\[1400px\])/,
+      /<FormPage[\s\S]{0,180}risk-form-filter-controls space-y-6/,
     );
     if (name === "registration") {
       assert.match(source, /<CollectionPageHeader/);
@@ -76,7 +76,7 @@ test("registration behavior entry points remain intact", () => {
   assert.match(registrationSource, /<CollectionPageHeader/);
   assert.match(
     registrationSource,
-    /<FormPage className="risk-form-filter-controls max-w-\[1400px\] space-y-6">\s*<CollectionPageHeader/,
+    /<FormPage className="risk-form-filter-controls space-y-6 \[&>header\+\*\]:!mt-12">\s*<CollectionPageHeader/,
   );
   assert.match(
     registrationSource,
@@ -167,7 +167,7 @@ test("monitoring mitigation status lives in the compact right panel", () => {
 test("monitoring header and right panel use the shared detail geometry", () => {
   assert.match(
     assessmentSource,
-    /<div className="mx-auto w-full max-w-\[1400px\] min-w-0">\s*<CollectionPageHeader/,
+    /<div className="mx-auto w-full max-w-7xl min-w-0">\s*<CollectionPageHeader/,
   );
   assert.doesNotMatch(
     assessmentSource,

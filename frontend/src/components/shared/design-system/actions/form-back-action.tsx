@@ -16,7 +16,7 @@ type FormBackActionProps = {
 };
 
 const backActionClassName =
-  "group/back border-0 bg-transparent !px-0 text-[12px] font-medium transition-none hover:bg-transparent hover:text-muted-foreground";
+  "group/back border-0 bg-transparent !px-0 text-[12px] font-semibold transition-none hover:bg-transparent hover:text-muted-foreground";
 
 function BackActionContent({ label }: { label: ReactNode }) {
   return (

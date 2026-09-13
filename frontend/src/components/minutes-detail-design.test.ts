@@ -19,6 +19,16 @@ test("uses the shared briefing detail reading pattern", () => {
   assert.doesNotMatch(source, /title="Metadata"/);
 });
 
+test("keeps briefing content editorial and low-noise", () => {
+  assert.match(source, /<p className="text-sm leading-6 text-muted-foreground">/);
+  assert.match(source, /<ul className="space-y-2">\s*\{minutes\.agenda\.map/);
+  assert.doesNotMatch(source, /max-w-\[75ch\]/);
+  assert.doesNotMatch(source, /<Badge/);
+  assert.doesNotMatch(source, /<Circle/);
+  assert.match(source, /className="group block w-full rounded-md px-3 py-3/);
+  assert.match(source, /className="block font-mono text-xs leading-5 text-muted-foreground"/);
+});
+
 test("uses shared actions for the header and destructive confirmation", () => {
   assert.match(source, /<ActionButton icon=\{<Download/);
   assert.match(source, /<CollectionDialogCancel/);

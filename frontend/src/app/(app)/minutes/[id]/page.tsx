@@ -17,7 +17,6 @@ import { deleteMeetingMinute, getMeetingMinute } from "@/lib/meeting-minutes";
 import { exportMeetingMinuteDocument } from "@/lib/meeting-minute-export";
 import type { MeetingMinuteWithRisks } from "@/types/meeting-minute";
 import { FormHeader, FormPage } from "@/components/shared/form-shell";
-import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import {
   Dialog,
@@ -31,7 +30,6 @@ import {
   AlertCircle,
   CalendarDays,
   ChevronRight,
-  Circle,
   Clock,
   Download,
   FileText,
@@ -197,12 +195,6 @@ function MeetingMinuteDetailContent() {
     );
   }
 
-  const priorityConfig = {
-    High: { label: "Tinggi", tone: "danger" as const },
-    Medium: { label: "Sedang", tone: "warning" as const },
-    Low: { label: "Rendah", tone: "neutral" as const },
-  };
-
   const handleDelete = async () => {
     if (!token || !minutes) return;
 
@@ -333,18 +325,27 @@ function MeetingMinuteDetailContent() {
         </header>
 
         <BriefingSection title="Ringkasan">
-          <p className="max-w-[75ch] text-sm leading-6 text-muted-foreground">
+          <p className="text-sm leading-6 text-muted-foreground">
             {minutes.summary || "Belum ada ringkasan yang tercatat."}
           </p>
         </BriefingSection>
 
         <BriefingSection title="Agenda">
           {minutes.agenda.length > 0 ? (
-            <ol className="space-y-2 ps-5 text-sm leading-6 text-muted-foreground marker:font-mono marker:text-xs">
+            <ul className="space-y-2">
               {minutes.agenda.map((item, index) => (
-                <li key={`${item}-${index}`} className="ps-1">{item}</li>
+                <li
+                  key={`${item}-${index}`}
+                  className="flex items-start gap-3 text-sm leading-6 text-muted-foreground"
+                >
+                  <span
+                    className="mt-2 size-2 shrink-0 rounded-full bg-muted-foreground/60"
+                    aria-hidden="true"
+                  />
+                  <span>{item}</span>
+                </li>
               ))}
-            </ol>
+            </ul>
           ) : (
             <p className="text-sm text-muted-foreground">Belum ada agenda yang tercatat.</p>
           )}
@@ -375,24 +376,18 @@ function MeetingMinuteDetailContent() {
                     {items.map((action, index) => (
                       <li
                         key={`${action.task}-${index}`}
-                        className="grid gap-3 px-2 py-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+                        className="px-2 py-3"
                       >
-                        <div className="flex min-w-0 items-start gap-3">
-                          <Circle className="mt-1 size-4 shrink-0 text-muted-foreground/60" aria-hidden="true" />
-                          <div className="min-w-0">
-                            <p className="text-sm font-medium leading-5 text-foreground">{action.task}</p>
-                            <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
-                              {[
-                                action.pic ? `PIC: ${action.pic}` : null,
-                                action.ownerUnit,
-                                action.notes,
-                              ].filter(Boolean).join(" · ") || "Detail tindak lanjut belum dilengkapi."}
-                            </p>
-                          </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium leading-5 text-foreground">{action.task}</p>
+                          <p className="mt-0.5 text-xs leading-5 text-muted-foreground">
+                            {[
+                              action.pic ? `PIC: ${action.pic}` : null,
+                              action.ownerUnit,
+                              action.notes,
+                            ].filter(Boolean).join(" · ") || "Detail tindak lanjut belum dilengkapi."}
+                          </p>
                         </div>
-                        <Badge tone={priorityConfig[action.priority].tone} size="compact" className="ms-7 sm:ms-0">
-                          {priorityConfig[action.priority].label}
-                        </Badge>
                       </li>
                     ))}
                   </ul>
@@ -435,13 +430,19 @@ function MeetingMinuteDetailContent() {
                 <Link
                   key={risk.id}
                   href={`/risk/register/${risk.riskId}`}
-                  className="group flex min-h-11 items-center gap-3 rounded-md px-2 py-2 text-sm transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+                  className="group block w-full rounded-md px-3 py-3 text-sm transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
                 >
-                  <span className="shrink-0 font-mono text-xs text-muted-foreground">
-                    {risk.riskCode || risk.riskId.substring(0, 8)}
+                  <span className="flex items-start justify-between gap-3">
+                    <span className="min-w-0">
+                      <span className="block font-mono text-xs leading-5 text-muted-foreground">
+                        {risk.riskCode || risk.riskId.substring(0, 8)}
+                      </span>
+                      <span className="mt-0.5 block text-foreground">
+                        {risk.riskTitle || "Risiko"}
+                      </span>
+                    </span>
+                    <ChevronRight className="mt-1 size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5 motion-reduce:transition-none" aria-hidden="true" />
                   </span>
-                  <span className="min-w-0 flex-1 text-foreground">{risk.riskTitle || "Risiko"}</span>
-                  <ChevronRight className="size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5 motion-reduce:transition-none" aria-hidden="true" />
                 </Link>
               ))}
             </div>
