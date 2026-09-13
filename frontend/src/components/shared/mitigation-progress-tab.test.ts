@@ -7,13 +7,16 @@ const componentSource = readFileSync(
   "utf8",
 );
 
-test("mitigation progress summary emphasizes the Total label at 14px", () => {
+test("mitigation progress summary uses 14px for every label", () => {
+  for (const label of ["Total", "Selesai", "Menunggu", "Terlambat"]) {
+    assert.match(
+      componentSource,
+      new RegExp(`<span className="text-sm text-muted-foreground">${label}<\\/span>`),
+    );
+  }
   assert.match(
     componentSource,
-    /<span className="text-sm text-muted-foreground">Total<\/span>/,
+    /<span className="text-sm text-muted-foreground">\s*Tidak dilaporkan\s*<\/span>/,
   );
-  assert.match(
-    componentSource,
-    /<span className="text-xs text-muted-foreground">Selesai<\/span>/,
-  );
+  assert.doesNotMatch(componentSource, /<span className="text-xs text-muted-foreground">/);
 });

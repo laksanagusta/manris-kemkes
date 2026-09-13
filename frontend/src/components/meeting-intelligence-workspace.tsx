@@ -385,7 +385,7 @@ export function MeetingIntelligenceWorkspace({
     return (
       <AIFeaturesDisabledState
         title="Workspace AI Dinonaktifkan"
-        description="Analisis meeting, transkrip, dan generator briefing sedang dimatikan melalui environment frontend."
+        description="Analisis MoM, transkrip, dan generator briefing sedang dimatikan melalui environment frontend."
         backHref="/overview"
       />
     );

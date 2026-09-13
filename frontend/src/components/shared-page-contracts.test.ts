@@ -247,6 +247,17 @@ test("working papers consumes the shared create dialog instead of a local duplic
   );
 });
 
+test("working paper mobile card list uses the solid card surface", () => {
+  assert.match(
+    pages.workingPapers,
+    /rounded-lg border border-border bg-card px-4 py-3 transition-colors hover:bg-muted\/50/,
+  );
+  assert.doesNotMatch(
+    pages.workingPapers,
+    /rounded-lg border border-border bg-background px-4 py-3 transition-colors hover:bg-muted\/50/,
+  );
+});
+
 test("working paper create dialog follows the shared mitigation modal shell", () => {
   assert.match(
     workingPaperCreateDialog,
@@ -398,6 +409,11 @@ test("risk category distribution belongs to the scoped reports page", () => {
   assert.doesNotMatch(pages.overview, /RiskCategoryPieChart|risk-categories/);
   assert.match(pages.reports, /RiskCategoryPieChart/);
   assert.match(pages.reports, /dashboard\/risk-categories/);
+});
+
+test("risk movement report omits the snapshot metric grid", () => {
+  assert.doesNotMatch(pages.reports, /<MetricGrid[\s>]/);
+  assert.doesNotMatch(pages.reports, /buildMovementSnapshotData/);
 });
 
 test("evaluations renders its filter toolbar once and keeps it outside the table card", () => {

@@ -19,11 +19,11 @@ export function DashboardKpiCard({
       className="surface-hairline flex min-h-[100px] flex-col overflow-hidden rounded-xl bg-card px-5 py-5"
     >
       <div className="flex items-center">
-        <h2 className="font-sans text-[13px] leading-4 font-medium tracking-normal text-muted-foreground text-pretty">
+        <h2 className="font-sans text-[11px] leading-4 font-semibold uppercase tracking-[1px] text-muted-foreground text-pretty">
           {title}
         </h2>
       </div>
-      <div className="mt-3 flex items-baseline gap-1">
+      <div className="mt-6 flex items-baseline gap-1">
         {loading ? (
           <span
             aria-hidden="true"

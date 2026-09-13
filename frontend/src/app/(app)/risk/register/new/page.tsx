@@ -1436,7 +1436,7 @@ export default function RiskInputPage() {
               : null;
           } catch (error) {
             console.error(
-              "Failed to parse legacy Meeting Intelligence prefill:",
+              "Failed to parse legacy MoM Intelligence prefill:",
               error,
             );
           } finally {
@@ -1498,12 +1498,12 @@ export default function RiskInputPage() {
         setRiskId(null);
         setRiskStatus("draft");
         toast.success(
-          "Draft risiko diisi dari rekomendasi Meeting Intelligence.",
+          "Draft risiko diisi dari rekomendasi MoM Intelligence.",
         );
       } catch (error) {
-        console.error("Failed to apply Meeting Intelligence prefill:", error);
+        console.error("Failed to apply MoM Intelligence prefill:", error);
         toast.error(
-          "Prefill dari Meeting Intelligence tidak dapat dibaca. Silakan isi draft secara manual.",
+          "Prefill dari MoM Intelligence tidak dapat dibaca. Silakan isi draft secara manual.",
         );
       }
     };
@@ -2328,7 +2328,7 @@ export default function RiskInputPage() {
 
   return (
     <TooltipProvider>
-      <FormPage className="risk-form-filter-controls space-y-6 [&>header+*]:!mt-12">
+      <FormPage className="risk-form-filter-controls space-y-6 [&>header+*]:!mt-6">
         <CollectionPageHeader
           backActionPlacement="local"
           backAction={<FormBackAction href="/risk/register" label="Kembali" />}
@@ -2426,7 +2426,7 @@ export default function RiskInputPage() {
           </Card>
         )}
 
-        <div className="grid w-full min-w-0 gap-10 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
+        <div className="grid w-full min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
           <div className="min-w-0">
             <form
               onSubmit={(e) => e.preventDefault()}
@@ -2439,10 +2439,10 @@ export default function RiskInputPage() {
                 >
                   <CardHeader className="px-5 py-4">
                     <div className="flex flex-1 flex-col gap-0.5 pr-4">
-                      <p className="text-base font-medium tracking-tight text-foreground transition-colors">
+                      <p className="text-sm font-medium tracking-tight text-foreground transition-colors">
                         Identifikasi Risiko
                       </p>
-                      <p className="text-sm leading-relaxed text-muted-foreground">
+                      <p className="text-xs leading-relaxed text-muted-foreground">
                         {sectionStatuses[0].description}
                       </p>
                     </div>
@@ -2729,10 +2729,10 @@ export default function RiskInputPage() {
                 >
                   <CardHeader className="px-5 py-4">
                     <div className="flex flex-1 flex-col gap-0.5 pr-4">
-                      <p className="text-base font-medium tracking-tight text-foreground transition-colors">
+                      <p className="text-sm font-medium tracking-tight text-foreground transition-colors">
                         Analisis Risiko
                       </p>
-                      <p className="text-sm leading-relaxed text-muted-foreground">
+                      <p className="text-xs leading-relaxed text-muted-foreground">
                         {sectionStatuses[1].description}
                       </p>
                     </div>
@@ -2818,10 +2818,10 @@ export default function RiskInputPage() {
                 >
                   <CardHeader className="px-5 py-4">
                     <div className="flex flex-1 flex-col gap-0.5 pr-4">
-                      <p className="text-base font-medium tracking-tight text-foreground transition-colors">
+                      <p className="text-sm font-medium tracking-tight text-foreground transition-colors">
                         Evaluasi Risiko
                       </p>
-                      <p className="text-sm leading-relaxed text-muted-foreground">
+                      <p className="text-xs leading-relaxed text-muted-foreground">
                         {sectionStatuses[2].description}
                       </p>
                     </div>
@@ -2885,10 +2885,10 @@ export default function RiskInputPage() {
                 >
                   <CardHeader className="px-5 py-4">
                     <div className="flex flex-1 flex-col gap-0.5 pr-4">
-                      <p className="text-base font-medium tracking-tight text-foreground transition-colors">
+                      <p className="text-sm font-medium tracking-tight text-foreground transition-colors">
                         Rencana Penanganan
                       </p>
-                      <p className="text-sm leading-relaxed text-muted-foreground">
+                      <p className="text-xs leading-relaxed text-muted-foreground">
                         {sectionStatuses[3].description}
                       </p>
                     </div>
@@ -3002,10 +3002,10 @@ export default function RiskInputPage() {
                 >
                   <CardHeader className="px-5 py-4">
                     <div className="flex flex-1 flex-col gap-0.5 pr-4">
-                      <p className="text-base font-medium tracking-tight text-foreground transition-colors">
+                      <p className="text-sm font-medium tracking-tight text-foreground transition-colors">
                         Target Penurunan
                       </p>
-                      <p className="text-sm leading-relaxed text-muted-foreground">
+                      <p className="text-xs leading-relaxed text-muted-foreground">
                         {sectionStatuses[4].description}
                       </p>
                     </div>
@@ -3043,10 +3043,10 @@ export default function RiskInputPage() {
                   >
                     <CardHeader className="px-5 py-4">
                       <div className="flex flex-1 flex-col gap-0.5 pr-4">
-                        <p className="text-base font-medium tracking-tight text-foreground transition-colors">
+                        <p className="text-sm font-medium tracking-tight text-foreground transition-colors">
                           Alur Persetujuan
                         </p>
-                        <p className="text-sm leading-relaxed text-muted-foreground">
+                        <p className="text-xs leading-relaxed text-muted-foreground">
                           Susun reviewer dan rantai persetujuan pimpinan
                         </p>
                       </div>

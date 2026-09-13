@@ -25,6 +25,7 @@ type DashboardSummary = {
   totalRisks: number;
   highExtreme: number;
   overdueMitigations: number;
+  unreportedMitigations: number;
 };
 
 function currentGlobalCycle() {
@@ -122,7 +123,7 @@ export default function DashboardPage() {
 
   const totalRisks = summary?.totalRisks;
   const highExtreme = summary?.highExtreme;
-  const overdueMitigations = summary?.overdueMitigations;
+  const unreportedMitigations = summary?.unreportedMitigations;
   const currentHeatmapMatrix = useMemo(
     () => buildCurrentRiskHeatmapMatrix(trendRisks, currentCycle),
     [trendRisks, currentCycle],
@@ -142,26 +143,28 @@ export default function DashboardPage() {
   };
   const kpiCards = [
     {
-      title: "Total Risiko",
+      title: "Total",
       value: totalRisks === undefined ? "—" : String(totalRisks),
       loading: summaryLoading,
       error: summaryError,
     },
     {
-      title: "Risiko Tinggi & Sangat Tinggi",
+      title: "Prioritas",
       value: highExtreme === undefined ? "—" : String(highExtreme),
       loading: summaryLoading,
       error: summaryError,
     },
     {
-      title: "Penanganan Overdue",
+      title: "Mitigasi belum terlapor",
       value:
-        overdueMitigations === undefined ? "—" : String(overdueMitigations),
+        unreportedMitigations === undefined
+          ? "—"
+          : String(unreportedMitigations),
       loading: summaryLoading,
       error: summaryError,
     },
     {
-      title: "Risk Exposure",
+      title: "Eksposur",
       value: exposureScore === null ? "—" : String(exposureScore),
       loading: trendLoading,
       error: trendError,

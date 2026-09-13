@@ -48,3 +48,20 @@ test("collection disclosures and monitoring form consume the same collapsible co
     assert.doesNotMatch(source, /@\/components\/ui\/collapsible/);
   }
 });
+
+test("collapsible card chevron uses the outline button perimeter", () => {
+  assert.match(
+    componentSource,
+    /size-8 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-\[0_1px_1px_rgba\(0,0,0,0\.04\)\]/,
+  );
+  assert.doesNotMatch(componentSource, /rounded-full bg-muted text-muted-foreground/);
+});
+
+test("working paper progress exposes a row-level download action", () => {
+  assert.match(workingPaperProgressSource, /onExport: \(workingPaper: WorkingPaper\) => void/);
+  assert.match(workingPaperProgressSource, /<CollectionTableHead className="px-3 text-right">\s*Aksi/);
+  assert.match(workingPaperProgressSource, /variant="outline"\s*\n\s*size="icon-xs"/);
+  assert.match(workingPaperProgressSource, /Download kertas kerja/);
+  assert.match(workingPaperProgressSource, /<Download className="size-3\.5" aria-hidden="true" \/>/);
+  assert.match(workingPaperProgressSource, /onClick=\{\(\) => \{\s*if \(workingPaper\) onExport\(workingPaper\);/);
+});

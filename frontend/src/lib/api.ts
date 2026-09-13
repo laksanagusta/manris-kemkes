@@ -73,8 +73,12 @@ export const api = {
       token,
     }),
 
-  postForm: <T>(path: string, body: FormData, token?: string) =>
-    request<T>(path, { method: "POST", body, token }),
+  postForm: <T>(
+    path: string,
+    body: FormData,
+    token?: string,
+    options?: Pick<RequestInit, "signal">,
+  ) => request<T>(path, { method: "POST", body, token, ...options }),
 
   put: <T>(path: string, body: unknown, token?: string) =>
     request<T>(path, { method: "PUT", body: JSON.stringify(body), token }),

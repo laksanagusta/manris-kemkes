@@ -47,7 +47,7 @@ export function AppHeader() {
             />
           </>
         }
-        className="mb-12 w-full"
+        className="mb-6 w-full"
       />
     </div>
   );

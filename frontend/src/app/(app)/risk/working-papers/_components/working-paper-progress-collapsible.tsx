@@ -8,6 +8,8 @@ import {
   TableCell,
   TableRow,
 } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
+import { Download, Loader2 } from "@/components/ui/icons";
 import {
   CollapsibleCard,
   CollectionLoadingState,
@@ -24,6 +26,8 @@ import type { WorkingPaper } from "@/types/working-paper";
 type WorkingPaperProgressCollapsibleProps = {
   workingPapers: WorkingPaper[];
   loading: boolean;
+  exportingPaperId?: string | null;
+  onExport: (workingPaper: WorkingPaper) => void;
 };
 
 function normalizeProgressPeriod(value?: string) {
@@ -49,6 +53,33 @@ function resolveProgressPeriod(
   return `${createdAt.getFullYear()}-Q${Math.floor(createdAt.getMonth() / 3) + 1}`;
 }
 
+function resolveWorkingPaperOrganization(workingPaper: WorkingPaper) {
+  return (
+    workingPaper.risks
+      ?.map((item) => item.risk?.org_name?.trim())
+      .find(Boolean) ||
+    workingPaper.org_id?.trim() ||
+    "Tanpa Unit"
+  );
+}
+
+function findWorkingPaperForProgressRow(
+  row: LatestOrganizationProgressDatum,
+  workingPapers: WorkingPaper[],
+) {
+  return workingPapers
+    .filter(
+      (workingPaper) =>
+        resolveWorkingPaperOrganization(workingPaper) === row.orgName &&
+        resolveProgressPeriod(workingPaper) === row.period,
+    )
+    .sort((left, right) => {
+      const leftCreatedAt = new Date(left.created_at ?? "").getTime();
+      const rightCreatedAt = new Date(right.created_at ?? "").getTime();
+      return rightCreatedAt - leftCreatedAt;
+    })[0];
+}
+
 function periodSortValue(period: string) {
   const [year, quarter] = period.split("-");
   return Number(year) * 4 + Number(quarter.slice(1));
@@ -57,6 +88,8 @@ function periodSortValue(period: string) {
 export function WorkingPaperProgressCollapsible({
   workingPapers,
   loading,
+  exportingPaperId,
+  onExport,
 }: WorkingPaperProgressCollapsibleProps) {
   const [periodFilter, setPeriodFilter] = useState("all");
   const periodOptions = useMemo(() => {
@@ -133,7 +166,12 @@ export function WorkingPaperProgressCollapsible({
                 : `Belum ada progress risiko untuk periode ${activePeriodFilter}.`}
             </div>
           ) : (
-            <LatestProgressTable data={progressData} />
+            <LatestProgressTable
+              data={progressData}
+              workingPapers={filteredWorkingPapers}
+              exportingPaperId={exportingPaperId}
+              onExport={onExport}
+            />
           )}
         </CollapsibleCard.Body>
       </CollapsibleCard.Content>
@@ -143,17 +181,24 @@ export function WorkingPaperProgressCollapsible({
 
 function LatestProgressTable({
   data,
+  workingPapers,
+  exportingPaperId,
+  onExport,
 }: {
   data: LatestOrganizationProgressDatum[];
+  workingPapers: WorkingPaper[];
+  exportingPaperId?: string | null;
+  onExport: (workingPaper: WorkingPaper) => void;
 }) {
   return (
     <CollectionTableSurface viewportClassName="max-h-[300px] overflow-y-auto">
       <Table className="min-w-[640px] table-fixed">
         <colgroup>
-          <col className="w-[30%]" />
-          <col className="w-[18%]" />
-          <col className="w-[38%]" />
+          <col className="w-[26%]" />
+          <col className="w-[16%]" />
+          <col className="w-[34%]" />
           <col className="w-[14%]" />
+          <col className="w-[10%]" />
         </colgroup>
         <CollectionTableHeader density="compact">
           <CollectionTableHeaderRow>
@@ -165,14 +210,21 @@ function LatestProgressTable({
             <CollectionTableHead className="px-4 text-right">
               Final
             </CollectionTableHead>
+            <CollectionTableHead className="px-3 text-right">
+              Aksi
+            </CollectionTableHead>
           </CollectionTableHeaderRow>
         </CollectionTableHeader>
         <TableBody>
-          {data.map((row) => (
-            <TableRow
-              key={`${row.orgName}-${row.period}`}
-              className="h-12 border-border/80 transition-colors hover:bg-muted/70"
-            >
+          {data.map((row) => {
+            const workingPaper = findWorkingPaperForProgressRow(row, workingPapers);
+            const isExporting = workingPaper?.id === exportingPaperId;
+
+            return (
+              <TableRow
+                key={`${row.orgName}-${row.period}`}
+                className="h-12 border-border/80 transition-colors hover:bg-muted/70"
+              >
               <TableCell
                 className="truncate py-2 pl-4 pr-3 text-sm font-medium"
                 title={row.orgName}
@@ -197,8 +249,32 @@ function LatestProgressTable({
               <TableCell className="px-4 py-2 text-right font-mono text-sm tabular-nums text-muted-foreground">
                 {row.progressCount}/{row.totalCount}
               </TableCell>
-            </TableRow>
-          ))}
+                <TableCell className="px-3 py-2 text-right">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon-xs"
+                    disabled={!workingPaper || isExporting}
+                    aria-label={
+                      workingPaper
+                        ? `Download ${workingPaper.title || workingPaper.code}`
+                        : `Download kertas kerja ${row.orgName}`
+                    }
+                    title="Download kertas kerja"
+                    onClick={() => {
+                      if (workingPaper) onExport(workingPaper);
+                    }}
+                  >
+                    {isExporting ? (
+                      <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Download className="size-3.5" aria-hidden="true" />
+                    )}
+                  </Button>
+                </TableCell>
+              </TableRow>
+            );
+          })}
         </TableBody>
       </Table>
     </CollectionTableSurface>

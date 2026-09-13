@@ -2,9 +2,10 @@ package entity
 
 // DashboardSummary holds KPI card data for the dashboard
 type DashboardSummary struct {
-	TotalRisks   int `json:"totalRisks"`
-	HighExtreme  int `json:"highExtreme"`
-	OverdueMitig int `json:"overdueMitigations"`
+	TotalRisks      int `json:"totalRisks"`
+	HighExtreme     int `json:"highExtreme"`
+	OverdueMitig    int `json:"overdueMitigations"`
+	UnreportedMitig int `json:"unreportedMitigations"`
 }
 
 type DashboardActionPressurePoint struct {

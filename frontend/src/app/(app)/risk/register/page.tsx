@@ -966,12 +966,12 @@ export default function RiskRegisterPage() {
         <CollectionTableCard>
             <Table className="min-w-[1040px] table-fixed">
               <colgroup>
-                <col className="w-[36%]" />
-                <col className="w-[14%]" />
-                <col className="w-[7%]" />
-                <col className="w-[17%]" />
-                <col className="w-[18%]" />
-                <col className="w-[8%]" />
+                <col style={{ width: "55%" }} />
+                <col style={{ width: "14%" }} />
+                <col style={{ width: "7%" }} />
+                <col style={{ width: "8%" }} />
+                <col style={{ width: "10%" }} />
+                <col style={{ width: "6%" }} />
               </colgroup>
               <CollectionTableHeader density="compact">
                 <CollectionTableHeaderRow>
@@ -1015,7 +1015,7 @@ export default function RiskRegisterPage() {
                   <CollectionTableHead className="min-w-[176px] px-3">
                     Pemantauan
                   </CollectionTableHead>
-                  <CollectionTableHead className="sticky right-0 z-10 w-[84px] bg-table-header px-3 text-center">
+                  <CollectionTableHead className="sticky right-0 z-10 w-[6%] bg-table-header px-3 text-center">
                       Aksi
                   </CollectionTableHead>
                 </CollectionTableHeaderRow>
@@ -1115,7 +1115,7 @@ export default function RiskRegisterPage() {
                             countLabel=""
                           />
                         </TableCell>
-                        <TableCell className="sticky right-0 bg-card px-3 py-2">
+                        <TableCell className="sticky right-0 w-[6%] bg-card px-3 py-2">
                           <div className="flex justify-center">
                             <RiskRowActions
                               risk={risk}

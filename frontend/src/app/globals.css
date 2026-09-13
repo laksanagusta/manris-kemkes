@@ -94,6 +94,32 @@
   --color-chart-background: var(----chart-background);
 }
 
+.document-processing-status-enter {
+  transition:
+    opacity 180ms var(--ease-out),
+    transform 180ms var(--ease-out);
+}
+
+@starting-style {
+  .document-processing-status-enter {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .document-processing-status-enter {
+    transition: opacity 120ms var(--ease-out);
+  }
+
+  @starting-style {
+    .document-processing-status-enter {
+      opacity: 0;
+      transform: none;
+    }
+  }
+}
+
 /* MANRIS v2 — Cloudflare-inspired monochrome shell with Manris semantic accents */
 :root {
   --background: #fcfcfc;

@@ -152,7 +152,7 @@ const navigation: NavGroup[] = [
     title: "AI & OTOMASI",
     items: [
       {
-        label: "Meeting",
+        label: "MoM",
         href: "/minutes",
         icon: FileText,
         matchHrefs: ["/minutes", "/intelligence/transcript"],

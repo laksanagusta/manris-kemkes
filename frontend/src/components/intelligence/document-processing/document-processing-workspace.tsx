@@ -1,45 +1,29 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
 import {
   AlertTriangle,
-  ClipboardCheck,
-  FileText,
-  PanelLeftIcon,
   XCircle,
 } from "@/components/ui/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
-import {
-  CollectionPageHeader,
-  PageStack,
-} from "@/components/shared/design-system";
+import { PageStack } from "@/components/shared/design-system";
 import { cn } from "@/lib/utils";
 import { currentAssessmentCycle } from "@/lib/risk-cycle-options";
 import type { DocumentAnalysisMode } from "@/types/document-intelligence";
 import type {
   Finding,
-  ProcessingAdapter,
   ProcessingJob,
   ProcessingRunController,
   ProcessingStatus,
   UploadedDocument,
 } from "@/types/document-processing";
-import { CompletedResults } from "./completed-results";
-import { HistoryPanel } from "./history-panel";
-import { Inspector } from "./inspector";
-import { ActivityTimeline, TaskLanes } from "./processing-activity";
-import { SpatialIndex } from "./spatial-index";
-import {
-  createDocumentProcessingAdapter,
-  deleteProcessingJob,
-  loadProcessingJobs,
-  renameProcessingJob,
-  saveProcessingJob,
-} from "@/lib/document-processing/mock-adapter";
+import { FindingsReviewPanel } from "./completed-results";
+import { createDocumentProcessingApiAdapter } from "@/lib/document-processing/api-adapter";
+import { saveProcessingJob } from "@/lib/document-processing/storage";
 import { UploadPanel } from "./upload-panel";
 import { revokeDocumentPreview, validateFiles } from "./upload-utils";
 import type { FileIssue } from "./types";
@@ -48,7 +32,6 @@ type ModeOption = {
   value: DocumentAnalysisMode;
   title: string;
   description: string;
-  icon: "document" | "check";
 };
 
 const modeOptions: ModeOption[] = [
@@ -56,13 +39,11 @@ const modeOptions: ModeOption[] = [
     value: "sop_risk_universe",
     title: "SOP",
     description: "Temukan risiko, kontrol, dan langkah proses dari SOP.",
-    icon: "document",
   },
   {
     value: "mitigation_report_mapper",
     title: "Laporan Mitigasi",
     description: "Petakan realisasi mitigasi, bukti, dan status tindak lanjut.",
-    icon: "check",
   },
 ];
 
@@ -85,94 +66,72 @@ function relativeStart(date?: string) {
   return minutes < 1 ? "baru saja" : `${minutes} mnt lalu`;
 }
 
-function downloadText(filename: string, content: string, mimeType: string) {
-  const blob = new Blob([content], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  anchor.click();
-  URL.revokeObjectURL(url);
-}
-
 export function DocumentProcessingWorkspace({
-  onRunLegacyAnalysis,
+  authToken,
+  organizationId,
   onUseRiskDraft,
 }: {
-  onRunLegacyAnalysis?: (file: File, mode: DocumentAnalysisMode, period?: string) => void;
+  authToken?: string;
+  organizationId?: string;
   onUseRiskDraft: (finding: Finding) => void;
 }) {
   const [documents, setDocuments] = useState<UploadedDocument[]>([]);
   const [issues, setIssues] = useState<FileIssue[]>([]);
-  const [jobs, setJobs] = useState<ProcessingJob[]>([]);
   const [currentJob, setCurrentJob] = useState<ProcessingJob>();
-  const [activeJobId, setActiveJobId] = useState<string | undefined>(undefined);
   const [mode, setMode] = useState<DocumentAnalysisMode>("sop_risk_universe");
   const [period, setPeriod] = useState(currentAssessmentCycle());
   const [dragActive, setDragActive] = useState(false);
-  const [inspectorOpen, setInspectorOpen] = useState(true);
-  const [isDesktop, setIsDesktop] = useState(true);
   const [offline, setOffline] = useState(false);
-  const [selectedDocumentId, setSelectedDocumentId] = useState<string>();
-  const [selectedPageId, setSelectedPageId] = useState<string>();
-  const [selectedFindingId, setSelectedFindingId] = useState<string>();
-  const [zoom, setZoom] = useState(1);
+  const reduceMotion = useReducedMotion();
 
-  const adapterRef = useRef<ProcessingAdapter>(createDocumentProcessingAdapter());
+  const adapter = useMemo(
+    () => createDocumentProcessingApiAdapter({ token: authToken, organizationId }),
+    [authToken, organizationId],
+  );
   const activeJobIdRef = useRef<string | undefined>(undefined);
   const controllersRef = useRef(new Map<string, ProcessingRunController>());
   const statusByJobRef = useRef(new Map<string, ProcessingStatus>());
-  const legacyTriggeredRef = useRef(new Set<string>());
-  const documentsRef = useRef<UploadedDocument[]>([]);
+  const findingsRef = useRef<HTMLDivElement | null>(null);
+  const previousJobStatusRef = useRef<ProcessingStatus | undefined>(undefined);
 
   const updateJob = useCallback(
     (nextJob: ProcessingJob) => {
       const previousStatus = statusByJobRef.current.get(nextJob.id);
       statusByJobRef.current.set(nextJob.id, nextJob.status);
-      saveProcessingJob(nextJob);
-      setJobs((previous) => [nextJob, ...previous.filter((job) => job.id !== nextJob.id)].slice(0, 12));
       if (activeJobIdRef.current === nextJob.id) {
         setCurrentJob(nextJob);
       }
-      if (isTerminal(nextJob.status)) controllersRef.current.delete(nextJob.id);
-      if (onRunLegacyAnalysis && ["completed", "partial"].includes(nextJob.status) && previousStatus === "processing" && !legacyTriggeredRef.current.has(nextJob.id)) {
-        const sourceFile = documentsRef.current.find((document) => document.file)?.file;
-        if (sourceFile) {
-          legacyTriggeredRef.current.add(nextJob.id);
-          onRunLegacyAnalysis(sourceFile, nextJob.mode as DocumentAnalysisMode, nextJob.period);
-        }
+      if (isTerminal(nextJob.status)) {
+        controllersRef.current.delete(nextJob.id);
+        saveProcessingJob(nextJob);
+      }
+      if (isTerminal(nextJob.status) && !isTerminal(previousStatus)) {
+        setDocuments((previous) => {
+          previous.forEach(revokeDocumentPreview);
+          return [];
+        });
+        setIssues([]);
       }
     },
-    [onRunLegacyAnalysis],
+    [],
   );
 
   useEffect(() => {
-    const storedJobs = loadProcessingJobs();
-    // Browser-only persistence is hydrated after the first render to keep SSR markup stable.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setJobs(storedJobs);
-    storedJobs.forEach((job) => statusByJobRef.current.set(job.id, job.status));
-    const resumable = storedJobs.find((job) => job.status === "processing" || job.status === "queued");
-    if (resumable) {
-      activeJobIdRef.current = resumable.id;
-      setActiveJobId(resumable.id);
-      setCurrentJob(resumable);
-      setSelectedDocumentId(resumable.documents[0]?.id);
-      controllersRef.current.set(resumable.id, adapterRef.current.run(resumable, updateJob));
-    }
-  }, [updateJob]);
+    const nextStatus = currentJob?.status;
+    const previousStatus = previousJobStatusRef.current;
+    previousJobStatusRef.current = nextStatus;
 
-  useEffect(() => {
-    documentsRef.current = documents;
-  }, [documents]);
+    if (!currentJob || !isTerminal(nextStatus) || !previousStatus || isTerminal(previousStatus)) return;
 
-  useEffect(() => {
-    const mediaQuery = window.matchMedia("(min-width: 1280px)");
-    const updateViewport = () => setIsDesktop(mediaQuery.matches);
-    updateViewport();
-    mediaQuery.addEventListener("change", updateViewport);
-    return () => mediaQuery.removeEventListener("change", updateViewport);
-  }, []);
+    const frame = window.requestAnimationFrame(() => {
+      findingsRef.current?.scrollIntoView({
+        behavior: "auto",
+        block: "start",
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [currentJob]);
 
   useEffect(() => {
     const handleOffline = () => setOffline(true);
@@ -185,8 +144,8 @@ export function DocumentProcessingWorkspace({
     };
   }, []);
 
-  const selectedFinding = currentJob?.findings.find((finding) => finding.id === selectedFindingId);
   const currentStatus = currentJob ? statusMeta(currentJob.status) : undefined;
+  const terminalState = Boolean(currentJob && isTerminal(currentJob.status));
 
   function addFiles(files: File[]) {
     const result = validateFiles(files, documents);
@@ -202,40 +161,38 @@ export function DocumentProcessingWorkspace({
   }
 
   function startProcessing() {
+    if (!authToken) {
+      toast.error("Sesi Anda telah berakhir. Masuk kembali untuk menganalisis dokumen.");
+      return;
+    }
     const validDocuments = documents.filter((document) => !document.error);
     if (!validDocuments.length) {
       toast.error("Tambahkan minimal satu file yang valid.");
       return;
     }
-    const job = adapterRef.current.createJob({
+    const job = adapter.createJob({
       documents: validDocuments,
       mode,
       period: period.trim() || undefined,
     });
     activeJobIdRef.current = job.id;
     statusByJobRef.current.set(job.id, job.status);
-    setActiveJobId(job.id);
     setCurrentJob(job);
-    setSelectedDocumentId(job.documents[0]?.id);
-    setSelectedPageId(undefined);
-    setSelectedFindingId(undefined);
-    setZoom(1);
     updateJob(job);
-    controllersRef.current.set(job.id, adapterRef.current.run(job, updateJob));
+    controllersRef.current.set(job.id, adapter.run(job, updateJob));
   }
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       const modifier = event.metaKey || event.ctrlKey;
       if (!modifier) {
-        if (event.key === "Escape" && inspectorOpen) setInspectorOpen(false);
         return;
       }
       if (event.key.toLowerCase() === "o") {
         event.preventDefault();
         document.querySelector<HTMLInputElement>("input[data-document-picker]")?.click();
       }
-      if (event.key === "Enter" && !currentJob && documents.some((item) => !item.error)) {
+      if (event.key === "Enter" && (!currentJob || terminalState) && documents.some((item) => !item.error)) {
         event.preventDefault();
         startProcessing();
       }
@@ -250,7 +207,6 @@ export function DocumentProcessingWorkspace({
       if (!confirmed) return;
     }
     activeJobIdRef.current = undefined;
-    setActiveJobId(undefined);
     setCurrentJob(undefined);
     setDocuments((previous) => {
       previous.forEach(revokeDocumentPreview);
@@ -258,9 +214,6 @@ export function DocumentProcessingWorkspace({
     });
     setIssues([]);
     setPeriod(currentAssessmentCycle());
-    setSelectedDocumentId(undefined);
-    setSelectedPageId(undefined);
-    setSelectedFindingId(undefined);
   }
 
   function cancelProcessing() {
@@ -270,223 +223,141 @@ export function DocumentProcessingWorkspace({
     toast.message("Proses dibatalkan. Progress yang selesai tetap tersimpan.");
   }
 
-  function openJob(job: ProcessingJob) {
-    activeJobIdRef.current = job.id;
-    setActiveJobId(job.id);
-    setCurrentJob(job);
-    setSelectedDocumentId(job.documents[0]?.id);
-    setSelectedPageId(undefined);
-    setSelectedFindingId(undefined);
-    if (!isTerminal(job.status) && !controllersRef.current.has(job.id)) {
-      statusByJobRef.current.set(job.id, job.status);
-      controllersRef.current.set(job.id, adapterRef.current.run(job, updateJob));
-    }
-  }
-
-  function handleRename(jobId: string, name: string) {
-    const updated = renameProcessingJob(jobId, name);
-    if (!updated) return;
-    setJobs((previous) => previous.map((job) => (job.id === jobId ? updated : job)));
-    if (currentJob?.id === jobId) setCurrentJob(updated);
-  }
-
-  function handleDelete(jobId: string) {
-    controllersRef.current.get(jobId)?.cancel();
-    controllersRef.current.delete(jobId);
-    deleteProcessingJob(jobId);
-    setJobs((previous) => previous.filter((job) => job.id !== jobId));
-    if (currentJob?.id === jobId) startNewProcess();
-  }
-
-  function handleSelectPage(page: ProcessingJob["pages"][number]) {
-    setSelectedPageId(page.id);
-    setSelectedDocumentId(page.documentId);
-    setSelectedFindingId(page.findingIds[0]);
-    setInspectorOpen(true);
-  }
-
-  function handleSelectFinding(finding: Finding) {
-    setSelectedFindingId(finding.id);
-    setSelectedDocumentId(finding.source.documentId);
-    setSelectedPageId(`${finding.source.documentId}-page-${finding.source.pageNumber}`);
-    setInspectorOpen(true);
-  }
-
-  function openSource(finding: Finding) {
-    handleSelectFinding(finding);
-    toast.message(`${finding.source.documentName} · halaman ${finding.source.pageNumber} dipilih.`);
-  }
-
-  function retryTask(taskId: string) {
-    if (!currentJob) return;
-    statusByJobRef.current.set(currentJob.id, "processing");
-    const nextController = adapterRef.current.retryTask(currentJob, taskId, updateJob);
-    controllersRef.current.set(currentJob.id, nextController);
-  }
-
-  function exportResult() {
-    if (!currentJob) return;
-    downloadText(
-      `${currentJob.name.replace(/\s+/g, "-").toLowerCase()}.json`,
-      JSON.stringify(currentJob, (key, value) => (key === "file" || key === "previewUrl" ? undefined : value), 2),
-      "application/json",
-    );
-    toast.success("Hasil berhasil diekspor.");
-  }
-
-  function downloadReport() {
-    if (!currentJob) return;
-    const lines = [
-      `# ${currentJob.name}`,
-      "",
-      `Status: ${statusMeta(currentJob.status).label}`,
-      `Dokumen: ${currentJob.documents.length} · Halaman: ${currentJob.pages.length} · Temuan: ${currentJob.findings.length}`,
-      "",
-      "## Temuan",
-      ...currentJob.findings.map((finding) => `### ${finding.title}\n- Tingkat: ${finding.severity}\n- Sumber: ${finding.source.documentName}, halaman ${finding.source.pageNumber}\n- Ringkasan: ${finding.summary}\n- Tindakan yang disarankan: ${finding.recommendedAction}`),
-    ];
-    downloadText(`${currentJob.name.replace(/\s+/g, "-").toLowerCase()}.md`, lines.join("\n\n"), "text/markdown");
-    toast.success("Laporan berhasil diunduh.");
-  }
-
   return (
     <PageStack>
-      <div className="space-y-12">
-        <CollectionPageHeader
-          title={currentJob ? currentJob.name : "Document Intelligence"}
-          subtitle={currentJob ? "Tinjau progres, sumber halaman, dan temuan hasil analisis." : "Ubah dokumen operasional menjadi temuan risiko yang dapat ditelusuri ke sumbernya."}
-          showTitle
-          actionsPlacement="title"
-          backActionPlacement="local"
-          actions={
-            <div className="flex flex-wrap items-center gap-2">
-              {currentStatus ? <Badge variant="outline" tone={currentStatus.tone} className="gap-1.5"><span className={cn("size-1.5 rounded-full", currentStatus.tone === "success" ? "bg-success" : currentStatus.tone === "warning" ? "bg-warning" : currentStatus.tone === "danger" ? "bg-destructive" : "bg-primary")} aria-hidden="true" />{currentStatus.label}</Badge> : null}
-              {currentJob && !isTerminal(currentJob.status) ? <Button type="button" variant="outline" size="sm" className="gap-2 active:scale-[0.96]" onClick={cancelProcessing}><XCircle className="size-3.5" />Batalkan proses</Button> : null}
-              {currentJob ? <Button type="button" variant="ghost" size="sm" className="gap-2 active:scale-[0.96]" onClick={() => setInspectorOpen((open) => !open)}><PanelLeftIcon className="size-3.5" />{inspectorOpen ? "Sembunyikan pemeriksa" : "Tampilkan pemeriksa"}</Button> : null}
-            </div>
-          }
-        />
-
-        <div className={cn("grid items-start gap-4", inspectorOpen && currentJob ? "xl:grid-cols-[minmax(0,1fr)_320px]" : "grid-cols-1")}>
-          <main className="min-w-0 space-y-4">
-          {offline ? <div className="flex items-start gap-2 rounded-xl border border-warning/30 bg-warning/10 px-3 py-2.5 text-xs leading-5 text-foreground" role="alert"><AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-warning" />Koneksi terputus. Progres lokal tetap tersimpan; sinkronisasi server akan dicoba kembali saat koneksi pulih.</div> : null}
-          {!currentJob ? (
-            <div className="mx-auto w-full max-w-3xl space-y-4 py-2 sm:py-5">
-              <div className="mb-8 max-w-2xl sm:mb-10">
-                <h2 className="text-lg font-medium tracking-[-0.015em] text-foreground">
-                  Analisis dokumen menjadi temuan risiko
-                </h2>
-                <p className="mt-2 text-sm leading-6 text-secondary-foreground">
-                  Unggah satu dokumen. Manris akan mengelompokkan halaman dan menghubungkan temuan dengan sumbernya.
-                </p>
-              </div>
-
-              <fieldset className="space-y-3" aria-labelledby="analysis-mode-label">
-                <legend id="analysis-mode-label" className="text-base font-medium text-foreground">
-                  Mode analisis
-                </legend>
-                <RadioGroup
-                  value={mode}
-                  onValueChange={(value) => setMode(value as DocumentAnalysisMode)}
-                  aria-labelledby="analysis-mode-label"
-                  className="gap-3"
-                >
-                  {modeOptions.map((option) => {
-                    const selected = mode === option.value;
-                    const ModeIcon = option.icon === "document" ? FileText : ClipboardCheck;
-
-                    return (
-                      <label
-                        key={option.value}
-                        htmlFor={`analysis-mode-${option.value}`}
-                        className={cn(
-                          "group flex min-h-[88px] cursor-pointer items-center gap-4 rounded-xl border px-4 py-4 text-left transition-[background-color,border-color] duration-200 ease-out motion-reduce:transition-none sm:px-5",
-                          selected
-                            ? "border-primary bg-primary/5"
-                            : "border-border bg-card hover:border-foreground/20 hover:bg-state-surface",
-                        )}
-                      >
-                        <span
-                          className={cn(
-                            "flex size-12 shrink-0 items-center justify-center rounded-lg bg-muted text-muted-foreground transition-colors",
-                            selected && "bg-primary/10 text-primary",
-                          )}
-                          aria-hidden="true"
-                        >
-                          <ModeIcon className="size-5" strokeWidth={1.8} />
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-[15px] font-medium leading-5 text-foreground">
-                            {option.title}
-                          </span>
-                          <span className="mt-1 block text-sm leading-5 text-muted-foreground">
-                            {option.description}
-                          </span>
-                        </span>
-                        <RadioGroupItem
-                          id={`analysis-mode-${option.value}`}
-                          value={option.value}
-                          aria-label={option.title}
-                          className="size-5 border-2 border-border bg-transparent text-primary after:-inset-3 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30 data-checked:border-primary data-checked:bg-primary"
-                        />
-                      </label>
-                    );
-                  })}
-                </RadioGroup>
-              </fieldset>
-
-              <UploadPanel
-                documents={documents}
-                issues={issues}
-                dragActive={dragActive}
-                onFiles={addFiles}
-                onRemove={removeDocument}
-                onDragActive={setDragActive}
-                onStart={startProcessing}
-                processing={false}
-              />
-            </div>
-          ) : (
-            <>
-              <JobHeader job={currentJob} status={currentStatus} />
-              <SpatialIndex job={currentJob} selectedDocumentId={selectedDocumentId} selectedPageId={selectedPageId} selectedFindingId={selectedFindingId} zoom={zoom} onSelectPage={handleSelectPage} onZoomChange={setZoom} />
-              {!isTerminal(currentJob.status) || currentJob.status === "partial" || currentJob.status === "failed" ? <TaskLanes job={currentJob} onRetryTask={retryTask} /> : null}
-              <ActivityTimeline job={currentJob} />
-              {isTerminal(currentJob.status) ? <CompletedResults job={currentJob} onSelectFinding={handleSelectFinding} onOpenSource={openSource} onReviewFinding={handleSelectFinding} onUseRiskDraft={onUseRiskDraft} onExport={exportResult} onDownloadReport={downloadReport} onStartNew={startNewProcess} /> : null}
-            </>
-          )}
-          {currentJob ? (
-            <section className="rounded-xl border border-border/80 bg-card p-4 sm:p-5">
-              <HistoryPanel jobs={jobs} activeJobId={activeJobId} onNewProcess={startNewProcess} onOpen={openJob} onRename={handleRename} onDelete={handleDelete} />
-            </section>
+      <main className="mx-auto w-full max-w-3xl min-w-0 space-y-8 py-2 sm:py-5">
+        <AnimatePresence initial={false}>
+          {offline ? (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: reduceMotion ? 0.12 : 0.15, ease: [0.23, 1, 0.32, 1] }}
+              className="flex items-start gap-2 rounded-xl border border-warning/30 bg-warning/10 px-3 py-2.5 text-xs leading-5 text-foreground"
+              role="alert"
+            >
+              <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-warning" />
+              Koneksi terputus. Proses membutuhkan koneksi ke server; periksa koneksi sebelum memulai analisis.
+            </motion.div>
           ) : null}
-          </main>
+        </AnimatePresence>
 
-          {inspectorOpen && currentJob ? (
-            <div className="hidden xl:sticky xl:top-20 xl:block">
-              <Inspector job={currentJob} selectedDocumentId={selectedDocumentId} selectedFinding={selectedFinding} onClose={() => setInspectorOpen(false)} onOpenSource={openSource} onUseRiskDraft={onUseRiskDraft} />
-            </div>
-          ) : null}
+        <div className="mb-8 max-w-2xl space-y-2 sm:mb-10">
+          <h2 className="text-base font-medium tracking-[-0.015em] text-foreground">
+            Analisis dokumen menjadi temuan risiko
+          </h2>
+          <p className="text-sm leading-6 text-secondary-foreground">
+            Unggah satu dokumen. Manris akan mengelompokkan halaman dan menghubungkan temuan dengan sumbernya.
+          </p>
         </div>
-      </div>
 
-      {!isDesktop && currentJob ? (
-        <Sheet open={inspectorOpen} onOpenChange={setInspectorOpen}>
-          <SheetContent side="bottom" showCloseButton={false} className="!inset-x-4 !bottom-4 !top-20 !h-auto !max-h-none !w-auto !rounded-xl !p-0">
-            <SheetTitle className="sr-only">Pemeriksa dokumen</SheetTitle>
-            <SheetDescription className="sr-only">Detail dokumen, halaman sumber, dan temuan yang dipilih.</SheetDescription>
-            <Inspector job={currentJob} selectedDocumentId={selectedDocumentId} selectedFinding={selectedFinding} onClose={() => setInspectorOpen(false)} onOpenSource={openSource} onUseRiskDraft={onUseRiskDraft} />
-          </SheetContent>
-        </Sheet>
-      ) : null}
+        <fieldset className="space-y-3" aria-labelledby="analysis-mode-label" disabled={Boolean(currentJob && !terminalState)}>
+          <legend id="analysis-mode-label" className="text-sm font-medium text-foreground">
+            Mode analisis
+          </legend>
+          <RadioGroup
+            value={mode}
+            onValueChange={(value) => setMode(value as DocumentAnalysisMode)}
+            aria-labelledby="analysis-mode-label"
+            className="grid gap-3 sm:grid-cols-2"
+          >
+            {modeOptions.map((option) => {
+              const selected = mode === option.value;
+
+              return (
+                <label
+                  key={option.value}
+                  htmlFor={`analysis-mode-${option.value}`}
+                  className={cn(
+                    "group relative flex min-h-[88px] cursor-pointer items-start rounded-xl border bg-card px-4 py-4 pr-12 text-left transition-[background-color,border-color] duration-200 ease-(--ease-out) motion-reduce:transition-none sm:px-5 sm:pr-14",
+                    selected
+                      ? "border-primary"
+                      : "border-border bg-card hover:border-foreground/20 hover:bg-state-surface",
+                    currentJob && !terminalState && "cursor-not-allowed opacity-60",
+                  )}
+                >
+                  <span className="min-w-0">
+                    <span className="block text-sm font-medium leading-5 text-foreground">{option.title}</span>
+                    <span className="mt-1 block text-sm leading-5 text-muted-foreground">{option.description}</span>
+                  </span>
+                  <RadioGroupItem
+                    id={`analysis-mode-${option.value}`}
+                    value={option.value}
+                    aria-label={option.title}
+                    className="absolute right-4 top-4 size-5 border-2 border-border bg-transparent text-primary after:-inset-3 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30 data-checked:border-primary data-checked:bg-primary sm:right-5 sm:top-5"
+                  />
+                </label>
+              );
+            })}
+          </RadioGroup>
+        </fieldset>
+
+        <div className="pt-2">
+          <UploadPanel
+            documents={documents}
+            issues={issues}
+            dragActive={dragActive}
+            onFiles={addFiles}
+            onRemove={removeDocument}
+            onDragActive={setDragActive}
+            onStart={startProcessing}
+            processing={Boolean(currentJob && !terminalState)}
+          />
+        </div>
+
+        {currentJob && !terminalState ? <ProcessingStatus job={currentJob} status={currentStatus} onCancel={cancelProcessing} /> : null}
+        {terminalState && currentJob ? (
+          <div ref={findingsRef}>
+            <FindingsReviewPanel
+              job={currentJob}
+              onUseRiskDraft={onUseRiskDraft}
+              onStartNew={startNewProcess}
+            />
+          </div>
+        ) : null}
+      </main>
     </PageStack>
   );
 }
 
-function JobHeader({ job, status }: { job: ProcessingJob; status?: ReturnType<typeof statusMeta> }) {
+function ProcessingStatus({
+  job,
+  status,
+  onCancel,
+}: {
+  job: ProcessingJob;
+  status?: ReturnType<typeof statusMeta>;
+  onCancel: () => void;
+}) {
   const completedTasks = job.tasks.filter((task) => task.status === "completed" || task.status === "warning").length;
-  const stage = processStage(job);
-  return <section className="rounded-xl border border-border/80 bg-card p-4 sm:p-5" aria-labelledby="process-header-title" aria-busy={!isTerminal(job.status)}><div className="flex flex-wrap items-start justify-between gap-4"><div><div className="flex flex-wrap items-center gap-2"><h2 id="process-header-title" className="text-base font-semibold text-foreground">{status?.label ?? "Diproses"}</h2><Badge variant="outline" className="text-xs">{stage}</Badge><Badge variant="outline" className="tabular-nums text-xs">{job.progress}% keseluruhan</Badge></div><p className="mt-1 text-xs leading-5 text-muted-foreground">Dimulai {relativeStart(job.startedAt)} · {job.documents.length} dokumen · {completedTasks}/{job.tasks.length} tugas selesai</p></div><div className="text-right"><div className="font-display text-xs uppercase tracking-[0.12em] text-muted-foreground">Perkiraan</div><div className="mt-1 text-xs font-medium text-foreground">± 1–2 menit</div><div className="mt-0.5 text-xs text-muted-foreground">berdasarkan ukuran kumpulan dokumen</div></div></div><div className="mt-4 h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-label="Progres keseluruhan" aria-valuemin={0} aria-valuemax={100} aria-valuenow={job.progress}><div className="h-full rounded-full bg-primary transition-[width] duration-300 ease-out motion-reduce:transition-none" style={{ width: `${job.progress}%` }} /></div></section>;
+  return (
+    <section className="document-processing-status-enter rounded-xl border border-border/80 bg-card p-4" aria-labelledby="processing-status-title" aria-busy="true">
+      <p className="sr-only" role="status" aria-live="polite">
+        {status?.label ?? "Diproses"}. {completedTasks} dari {job.tasks.length} tugas selesai. Progres {job.progress} persen.
+      </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h2 id="processing-status-title" className="text-sm font-semibold text-foreground">Analisis sedang diproses</h2>
+            <Badge variant="outline" tone={status?.tone ?? "progress"} className="text-xs">{status?.label ?? "Diproses"}</Badge>
+          </div>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            {processStage(job)} · {completedTasks}/{job.tasks.length} tugas selesai · dimulai {relativeStart(job.startedAt)}
+          </p>
+        </div>
+        <Button type="button" variant="outline" size="sm" className="gap-2" onClick={onCancel}>
+          <XCircle className="size-3.5" />
+          Batalkan proses
+        </Button>
+      </div>
+      <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted" role="progressbar" aria-label="Progres keseluruhan" aria-valuemin={0} aria-valuemax={100} aria-valuenow={job.progress}>
+        <div
+          className="h-full w-full rounded-full bg-primary transition-transform duration-200 ease-(--ease-out) motion-reduce:transition-none"
+          style={{ transform: `scaleX(${job.progress / 100})`, transformOrigin: "left" }}
+        />
+      </div>
+    </section>
+  );
 }
 
 function processStage(job: ProcessingJob) {
@@ -496,6 +367,7 @@ function processStage(job: ProcessingJob) {
   if (job.status === "cancelled") return "Dibatalkan";
   const runningTask = job.tasks.find((task) => task.status === "running");
   if (!runningTask) return "Menyiapkan";
+  if (runningTask.id === "analyze-document") return "Menganalisis dokumen";
   if (runningTask.id === "extract-content") return "Mengindeks";
   if (runningTask.id === "build-index") return "Mengindeks";
   if (runningTask.id === "detect-types") return "Menganalisis";

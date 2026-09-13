@@ -58,8 +58,8 @@ export default function MinutesPage() {
   if (isAIFeaturesDisabled()) {
     return (
       <AIFeaturesDisabledState
-        title="Meeting Dinonaktifkan"
-        description="Daftar notulen dan workflow meeting intelligence sedang dimatikan melalui environment frontend."
+        title="MoM Dinonaktifkan"
+        description="Daftar notulen dan workflow MoM Intelligence sedang dimatikan melalui environment frontend."
       />
     );
   }
@@ -204,7 +204,7 @@ function MinutesPageContent() {
 
   return (
     <PageStack>
-      <CollectionPageHeader title="Meeting" />
+      <CollectionPageHeader title="MoM" />
 
       <CollectionToolbar
         leading={

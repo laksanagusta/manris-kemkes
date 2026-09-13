@@ -22,7 +22,7 @@ test("risk charter uses the canonical desktop document editor", () => {
   assert.match(source, /openUPREditor/);
   assert.match(source, /open=\{Boolean\(listEditor\)\}/);
   assert.doesNotMatch(source, /<DirtyActionBar/);
-  assert.match(source, /<div className="px-6 pb-6 lg:px-8">\s*<FormHeader/);
+  assert.match(source, /<div className="px-6 pb-0 lg:px-8">\s*<FormHeader/);
   assert.match(source, /backActionPlacement="local"/);
   assert.match(source, /showTitle/);
   assert.doesNotMatch(source, /Versi \{charter\.versionNumber\}/);
