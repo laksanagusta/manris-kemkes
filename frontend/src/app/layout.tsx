@@ -43,7 +43,10 @@ export const metadata: Metadata = {
   description:
     "Platform SaaS untuk mendigitalisasi seluruh siklus manajemen risiko dan pelaporan insiden berbasis ISO 31000:2018 dengan integrasi kecerdasan buatan.",
   icons: {
-    icon: "/icon.svg",
+    icon: {
+      url: "/icon.svg",
+      type: "image/svg+xml",
+    },
   },
 };
 

@@ -173,6 +173,12 @@ export default function DesignSystemPage() {
             kontrol password memiliki label aksesibel, focus ring, dan hit area
             yang cukup.
           </p>
+          <p className="max-w-3xl text-sm text-muted-foreground">
+            Ikon browser memakai kotak ber-radius yang hampir hitam, dengan
+            gradient abu-abu tipis di tepi untuk memberi kedalaman 3D. Mark ini
+            berdiri sendiri tanpa grid titik agar tetap terbaca pada ukuran
+            favicon.
+          </p>
         </section>
 
         <section className="space-y-4">
