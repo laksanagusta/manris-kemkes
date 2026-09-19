@@ -12,6 +12,9 @@ const catalogue = read(
 const currentHeatmap = read(
   "../app/(app)/overview/_components/current-risk-heatmap.tsx",
 );
+const multiPhaseHeatmap = read(
+  "../app/(app)/compliance/_components/multi-phase-heatmap-compare.tsx",
+);
 const trendCard = read(
   "../app/(app)/overview/_components/unit-total-risk-score-chart.tsx",
 );
@@ -44,7 +47,7 @@ test("overview follows the approved narrative order", () => {
   assert.doesNotMatch(overviewPage, /data-dashboard-section="multi-phase"/);
   assert.match(
     appHeader,
-    /pathname === "\/overview" \|\| pathname === "\/risk\/register\/new"/,
+    /pathname === "\/overview"[\s\S]*pathname === "\/risk\/register\/new"/,
   );
 });
 
@@ -72,6 +75,10 @@ test("overview and catalogue use the same dashboard primitives", () => {
   assert.match(catalogue, /<RiskHeatmapGrid[\s>]/);
   assert.match(currentHeatmap, /<Dialog[\s>]/);
   assert.match(currentHeatmap, /<MultiPhaseHeatmapCompareCard surface="plain"/);
+  assert.match(
+    multiPhaseHeatmap,
+    /surface === "plain"[\s\S]*-mx-5 -mb-5 px-5/,
+  );
   assert.match(
     currentHeatmap,
     /aria-label="Buka perbandingan heatmap multi-fase"/,
@@ -125,10 +132,10 @@ test("attention risk list uses a white card surface for its header", () => {
   assert.doesNotMatch(topRisksCard, /data-testid="risk-list-header"[\s\S]*bg-table-header/);
 });
 
-test("attention risk table headers use a 12px medium label", () => {
+test("attention risk table headers use secondary foreground with balanced padding", () => {
   assert.match(
     topRisksCard,
-    /data-testid="risk-list-header"[\s\S]*text-xs font-medium/,
+    /data-testid="risk-list-header"[\s\S]*px-6 py-1\.5 text-\[13px\] font-medium capitalize[\s\S]*text-secondary-foreground/,
   );
 });
 

@@ -42,7 +42,7 @@ func main() {
 	cleanRiskHandler := httpHandler.NewRiskHandler(
 		container.RiskCreateUC, container.RiskCreateBatchUC, container.RiskSpreadsheetUC, container.RiskGetUC, container.RiskExportPDFUC, container.RiskArchiveUC, container.RiskRestoreUC, container.RiskUpdateUC, container.RiskDeleteUC, container.RiskListUC, container.RiskListRegisterUC, container.RiskListMonitoringUC, container.RiskListCycleSnapshotUC, container.RiskListVersionsUC, container.RiskReviewQueueUC, container.RiskCompareCyclesUC, container.RiskCompareCycleDetailsUC, container.RiskReviewSummaryUC,
 		container.RiskDashboardSummaryUC, container.RiskActionPressureUC, container.RiskExecutiveAlertsUC, container.RiskHeatmapDataUC, container.RiskHeatmapMultiUC, container.RiskTopRisksUC, container.RiskDashboardCategoriesUC, container.RiskListApprovedUC,
-		container.RiskHeatmapVelocityUC, container.RiskOverdueTimelineUC, container.RiskUnitResponseUC, container.RiskMonitoringStartUC, container.RiskMonitoringGetUC, container.RiskMonitoringUpdateUC, container.RiskMonitoringFinalizeUC, container.MMRepository,
+		container.RiskHeatmapVelocityUC, container.RiskOverdueTimelineUC, container.RiskUnitResponseUC, container.RiskMonitoringStartUC, container.RiskMonitoringGetUC, container.RiskMonitoringUpdateUC, container.RiskMonitoringDeleteUC, container.RiskMonitoringFinalizeUC, container.MMRepository,
 	)
 	cleanUserHandler := httpHandler.NewUserHandler(
 		container.UserCreateUC, container.UserGetUC, container.UserUpdateUC, container.UserDeleteUC, container.UserListUC, container.UserListFilterUC, container.UserApproveRegistrationUC, container.UserRejectRegistrationUC,
@@ -50,6 +50,7 @@ func main() {
 	cleanControlHandler := httpHandler.NewControlHandler(
 		container.ControlCreateUC, container.ControlGetUC, container.ControlUpdateUC, container.ControlDeleteUC, container.ControlListUC, container.ControlDashboardUC,
 	)
+	cleanRiskEventHandler := httpHandler.NewRiskEventHandler(container.RiskEventService)
 	approvalHandler := httpHandler.NewApprovalHandler(
 		container.ApprovalListUC, container.ApprovalSubmitUC, container.ApprovalActionUC, container.ApprovalGetDetailUC, container.ApprovalGetPendingCountUC, container.ApprovalGetByEntityUC,
 	)
@@ -320,7 +321,14 @@ func main() {
 	protected.Delete("/risks/:id", cleanRiskHandler.DeleteRisk)
 	protected.Get("/risk-monitorings/:id", cleanRiskHandler.GetMonitoring)
 	protected.Put("/risk-monitorings/:id", cleanRiskHandler.UpdateMonitoring)
+	protected.Delete("/risk-monitorings/:id", cleanRiskHandler.DeleteMonitoring)
 	protected.Post("/risk-monitorings/:id/finalize", cleanRiskHandler.FinalizeMonitoring)
+
+	// Risk Event Ledger (LED) — immutable event records with append-only risk links.
+	protected.Get("/risk-events", cleanRiskEventHandler.List)
+	protected.Post("/risk-events", cleanRiskEventHandler.Create)
+	protected.Get("/risk-events/:id", cleanRiskEventHandler.Get)
+	protected.Post("/risk-events/:id/risks", cleanRiskEventHandler.LinkRisks)
 
 	// Risk Dashboard (Clean Architecture)
 	protected.Get("/dashboard/summary", cleanRiskHandler.DashboardSummary)

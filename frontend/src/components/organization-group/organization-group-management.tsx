@@ -303,14 +303,14 @@ export function OrganizationGroupManagement({
 
   return (
     <div className="space-y-6">
-      <div className="overflow-hidden rounded-xl bg-white smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+      <div className="overflow-hidden rounded-lg bg-white smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
         <div className="flex flex-col gap-4 p-4 shadow-[inset_0_-1px_rgba(24,24,27,0.06)] md:px-6">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div className="min-w-0">
               <h2 className="text-[15px] font-semibold tracking-tight text-foreground text-balance">
                 Grup Organisasi
               </h2>
-              <p className="mt-1 text-xs text-muted-foreground text-pretty">
+              <p className="mt-1 text-xs text-secondary-foreground text-pretty">
                 Kelompokkan unit turunan yang sering dipakai sebagai scope laporan.
               </p>
             </div>
@@ -344,19 +344,19 @@ export function OrganizationGroupManagement({
           <Table className="min-w-[920px]">
             <TableHeader className="[&_tr]:border-b [&_tr]:border-border/60">
               <TableRow className="border-b border-border transition-colors hover:bg-transparent">
-                <CollectionTableHead density="compact" className="w-[30%] whitespace-nowrap pl-4 pr-2.5 text-left align-middle uppercase tracking-[0.12em] text-muted-foreground md:pl-6">
+                <CollectionTableHead density="compact" className="w-[30%] whitespace-nowrap pl-4 pr-2.5 text-left align-middle capitalize text-secondary-foreground md:pl-6">
                   Nama Grup
                 </CollectionTableHead>
-                <CollectionTableHead density="compact" className="w-[30%] whitespace-nowrap px-2.5 text-left align-middle uppercase tracking-[0.12em] text-muted-foreground">
+                <CollectionTableHead density="compact" className="w-[30%] whitespace-nowrap px-2.5 text-left align-middle capitalize text-secondary-foreground">
                   Pemilik
                 </CollectionTableHead>
-                <CollectionTableHead density="compact" className="w-24 whitespace-nowrap px-2.5 text-left align-middle uppercase tracking-[0.12em] text-muted-foreground">
+                <CollectionTableHead density="compact" className="w-24 whitespace-nowrap px-2.5 text-left align-middle capitalize text-secondary-foreground">
                   Anggota
                 </CollectionTableHead>
-                <CollectionTableHead density="compact" className="w-32 whitespace-nowrap px-2.5 text-left align-middle uppercase tracking-[0.12em] text-muted-foreground">
+                <CollectionTableHead density="compact" className="w-32 whitespace-nowrap px-2.5 text-left align-middle capitalize text-secondary-foreground">
                   Diperbarui
                 </CollectionTableHead>
-                <CollectionTableHead density="compact" className="w-28 whitespace-nowrap px-2.5 text-left align-middle uppercase tracking-[0.12em] text-muted-foreground">
+                <CollectionTableHead density="compact" className="w-28 whitespace-nowrap px-2.5 text-left align-middle capitalize text-secondary-foreground">
                   Aksi
                 </CollectionTableHead>
               </TableRow>
@@ -364,13 +364,13 @@ export function OrganizationGroupManagement({
             <TableBody>
               {loading ? (
                 <TableRow className="border-border/80 transition-colors hover:bg-muted/70">
-                  <TableCell colSpan={5} className="py-12 text-left text-xs text-muted-foreground">
+                  <TableCell colSpan={5} className="!py-12 text-left text-xs text-muted-foreground">
                     <Loader2 className="size-5 animate-spin text-disabled-foreground" />
                   </TableCell>
                 </TableRow>
               ) : paginatedGroups.length === 0 ? (
                 <TableRow className="border-border/80 transition-colors hover:bg-muted/70">
-                  <TableCell colSpan={5} className="py-8 text-left text-xs text-muted-foreground">
+                  <TableCell colSpan={5} className="!py-8 text-left text-xs text-muted-foreground">
                     Tidak ada grup organisasi yang ditemukan.
                   </TableCell>
                 </TableRow>
@@ -386,7 +386,7 @@ export function OrganizationGroupManagement({
                           {group.name}
                         </p>
                         {group.description ? (
-                          <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
+                          <p className="mt-1 line-clamp-2 text-xs leading-5 text-secondary-foreground">
                             {group.description}
                           </p>
                         ) : null}

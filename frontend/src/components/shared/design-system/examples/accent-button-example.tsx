@@ -4,10 +4,8 @@ import { AccentButton } from "@/components/shared/design-system";
 
 export function AccentButtonExample({
   children,
-  icon,
 }: {
   children: ReactNode;
-  icon?: ReactNode;
 }) {
-  return <AccentButton icon={icon}>{children}</AccentButton>;
+  return <AccentButton>{children}</AccentButton>;
 }

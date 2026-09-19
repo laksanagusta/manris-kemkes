@@ -16,7 +16,7 @@ export function PageHeader({
   return (
     <div
       className={cn(
-        "flex flex-col overflow-hidden rounded-xl bg-card smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30",
+        "flex flex-col overflow-hidden rounded-lg bg-card smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30",
         className,
       )}
     >

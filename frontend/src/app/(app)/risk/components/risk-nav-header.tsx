@@ -37,7 +37,7 @@ export function RiskNavHeader({ title, description, badge }: { title: string, de
           <h1 className="page-title">{title}</h1>
           {badge && <Badge variant="outline" className="text-xs bg-primary/10 text-primary uppercase font-bold tracking-wider">{badge}</Badge>}
         </div>
-        <p className="text-sm text-muted-foreground mt-1">
+        <p className="mt-1 text-sm text-secondary-foreground">
           {description}
         </p>
       </div>

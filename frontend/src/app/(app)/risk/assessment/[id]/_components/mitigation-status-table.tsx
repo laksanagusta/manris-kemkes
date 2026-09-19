@@ -9,7 +9,7 @@ import {
   listMonitoringTasks,
   updateTaskReport,
 } from "@/lib/api/mitigation-tasks";
-import type { MitigationTask, MitigationTaskStatus } from "@/types/risk";
+import type { MitigationTask } from "@/types/risk";
 import {
   AlertTriangle,
   ChevronDown,
@@ -31,10 +31,20 @@ interface MitigationStatusTableProps {
   monitoringId: string;
 }
 
-function getTaskStatusLabel(status: MitigationTaskStatus) {
-  switch (status) {
+function hasCompletedReport(task: MitigationTask) {
+  return (
+    task.status === "done" &&
+    Boolean(task.reportedAt) &&
+    (task.notes ?? "").trim().length > 0
+  );
+}
+
+function getTaskStatusLabel(task: MitigationTask) {
+  if (hasCompletedReport(task)) return "Dilaporkan";
+
+  switch (task.status) {
     case "done":
-      return "Dilaporkan";
+      return "Laporan belum lengkap";
     case "overdue":
       return "Terlambat";
     case "skipped":
@@ -46,10 +56,12 @@ function getTaskStatusLabel(status: MitigationTaskStatus) {
   }
 }
 
-function getTaskStatusTone(status: MitigationTaskStatus) {
-  switch (status) {
+function getTaskStatusTone(task: MitigationTask) {
+  if (hasCompletedReport(task)) return "success" as const;
+
+  switch (task.status) {
     case "done":
-      return "success" as const;
+      return "warning" as const;
     case "overdue":
       return "danger" as const;
     case "skipped":
@@ -169,7 +181,7 @@ export function MitigationStatusTable({
 
   if (error) {
     return (
-      <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-amber-800">
+      <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-amber-800">
         <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
         <div className="space-y-1">
           <p className="font-medium">Laporan mitigasi tidak tersedia</p>
@@ -188,7 +200,7 @@ export function MitigationStatusTable({
 
   if (tasks.length === 0) {
     return (
-      <div className="rounded-xl bg-state-surface p-3 text-state-foreground">
+      <div className="rounded-lg bg-state-surface p-3 text-state-foreground">
         <p className="text-sm font-medium leading-6 text-state-foreground">
           Belum ada tugas mitigasi pada periode ini
         </p>
@@ -199,17 +211,20 @@ export function MitigationStatusTable({
     );
   }
 
-  const doneCount = tasks.filter((t) => t.status === "done").length;
-  const pendingCount = tasks.filter((task) => task.status !== "done").length;
+  const doneCount = tasks.filter(hasCompletedReport).length;
+  const pendingCount = tasks.length - doneCount;
   const reportableCount = tasks.filter(
-    (task) => task.status === "pending" || task.status === "overdue",
+    (task) =>
+      task.status === "pending" ||
+      task.status === "overdue" ||
+      (task.status === "done" && !hasCompletedReport(task)),
   ).length;
   const progressPct = Math.round((doneCount / tasks.length) * 100);
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">Status pelaporan</p>
+        <p className="text-[13px] text-muted-foreground">Status pelaporan</p>
         <Badge
           size="micro"
           tone={pendingCount === 0 ? "success" : "warning"}
@@ -224,19 +239,19 @@ export function MitigationStatusTable({
       />
       <dl className="space-y-0.5">
         <div className="flex items-center justify-between gap-3 py-1.5">
-          <dt className="text-sm text-muted-foreground">Total mitigasi</dt>
+          <dt className="text-[13px] text-muted-foreground">Total mitigasi</dt>
           <dd className="font-mono text-sm font-semibold tabular-nums text-foreground">
             {tasks.length}
           </dd>
         </div>
         <div className="flex items-center justify-between gap-3 py-1.5">
-          <dt className="text-sm text-muted-foreground">Sudah dilaporkan</dt>
+          <dt className="text-[13px] text-muted-foreground">Sudah dilaporkan</dt>
           <dd className="font-mono text-sm font-semibold tabular-nums text-foreground">
             {doneCount}
           </dd>
         </div>
         <div className="flex items-center justify-between gap-3 py-1.5">
-          <dt className="text-sm text-muted-foreground">Belum dilaporkan</dt>
+          <dt className="text-[13px] text-muted-foreground">Belum dilaporkan</dt>
           <dd className="font-mono text-sm font-semibold tabular-nums text-foreground">
             {pendingCount}
           </dd>
@@ -270,7 +285,9 @@ export function MitigationStatusTable({
             >
               {tasks.map((task) => {
                 const canReport =
-                  task.status === "pending" || task.status === "overdue";
+                  task.status === "pending" ||
+                  task.status === "overdue" ||
+                  (task.status === "done" && !hasCompletedReport(task));
 
                 return (
                   <div
@@ -288,9 +305,9 @@ export function MitigationStatusTable({
                         </span>
                         <Badge
                           size="micro"
-                          tone={getTaskStatusTone(task.status)}
+                          tone={getTaskStatusTone(task)}
                         >
-                          {getTaskStatusLabel(task.status)}
+                          {getTaskStatusLabel(task)}
                         </Badge>
                       </div>
                     </div>

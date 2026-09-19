@@ -18,7 +18,7 @@ test("shared action buttons pass exactly one child to Radix Slot", () => {
   );
 });
 
-test("ActionButton matches AccentButton primary radius", () => {
+test("ActionButton keeps the shared 8px radius", () => {
   const actionButton = readFileSync(
     new URL("./actions/action-button.tsx", import.meta.url),
     "utf8",
@@ -26,7 +26,30 @@ test("ActionButton matches AccentButton primary radius", () => {
 
   assert.equal(
     (actionButton.match(/rounded-\[8px\]/g) ?? []).length,
-    2,
-    "ActionButton must keep the 8px radius in both render branches",
+    1,
+    "ActionButton must keep the 8px radius",
+  );
+});
+
+test("shared labeled buttons use compact medium text-only geometry", () => {
+  const button = readFileSync(
+    new URL("../../ui/button.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(button, /!font-medium/);
+  assert.match(button, /!text-\[14px\]/);
+  assert.match(button, /!px-4/);
+  assert.match(button, /p-\[1px_16px\]/);
+  assert.match(
+    readFileSync(new URL("../../../app/globals.css", import.meta.url), "utf8"),
+    /data-slot="button"\]\:not\(\[data-size\^="icon"\]\) svg[\s\S]*display: none/,
+  );
+  assert.doesNotMatch(
+    readFileSync(
+      new URL("./actions/action-button.tsx", import.meta.url),
+      "utf8",
+    ),
+    /Loader2|\{icon\}/,
   );
 });

@@ -27,7 +27,7 @@ export function CollectionErrorState({
               className="mt-2 gap-2 border-destructive/20 bg-background text-destructive shadow-none hover:bg-destructive/5"
             >
               <ArrowUpRight className="size-4" />
-              Muat Ulang Halaman
+              Coba lagi
             </Button>
           )}
         </div>

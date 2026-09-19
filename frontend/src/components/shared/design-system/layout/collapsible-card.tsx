@@ -16,7 +16,7 @@ function CollapsibleCardRoot({
   ...props
 }: ComponentProps<typeof Collapsible>) {
   return (
-    <Card className={cn("overflow-hidden rounded-xl bg-card p-0", className)}>
+    <Card className={cn("overflow-hidden rounded-lg bg-card p-0", className)}>
       <Collapsible defaultOpen={defaultOpen} {...props}>
         {children}
       </Collapsible>

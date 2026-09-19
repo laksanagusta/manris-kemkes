@@ -24,6 +24,8 @@ import {
   CollectionTableHeader,
   CollectionTableHeaderRow,
   CollectionToolbar,
+  CollectionDialogCancel,
+  DestructiveButton,
   PageStack,
 } from "@/components/shared/design-system";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
@@ -90,6 +92,7 @@ function MinutesPageContent() {
     null,
   );
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const filteredItems = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -184,6 +187,7 @@ function MinutesPageContent() {
     if (!token || !minuteToDelete) return;
 
     setIsDeleting(true);
+    setDeleteError(null);
     try {
       await deleteMeetingMinute(minuteToDelete.id, token);
       setItems((current) =>
@@ -194,9 +198,11 @@ function MinutesPageContent() {
       setMinuteToDelete(null);
     } catch (error) {
       console.error(error);
-      toast.error(
-        error instanceof Error ? error.message : "Gagal menghapus notulen.",
-      );
+      const message =
+        error instanceof Error ? error.message : "Notulen belum berhasil dihapus.";
+      const actionableMessage = `${message} Coba lagi.`;
+      setDeleteError(actionableMessage);
+      toast.error(actionableMessage);
     } finally {
       setIsDeleting(false);
     }
@@ -206,6 +212,7 @@ function MinutesPageContent() {
     <PageStack>
       <CollectionPageHeader title="MoM" />
 
+      <div className="space-y-4">
       <CollectionToolbar
         leading={
           <CollectionSearchField
@@ -215,26 +222,24 @@ function MinutesPageContent() {
             aria-label="Cari notulen"
           />
         }
+        actions={
+          <AccentButton
+            icon={<Plus className="size-3.5" />}
+            onClick={() => router.push("/minutes/new")}
+          >
+            Buat Notulen
+          </AccentButton>
+        }
       />
 
       <CollectionTableCard>
         {loading ? (
           <CollectionLoadingState message="Memuat daftar notulen..." />
         ) : total === 0 && !query.trim() ? (
-          <>
-            <CollectionEmptyState
-              title="Belum ada notulen tersimpan"
-              description="Mulai dari transkrip rapat lalu simpan hasil notulennya agar muncul di daftar ini."
-            />
-            <div className="px-4 pb-4">
-              <AccentButton
-                icon={<Plus className="size-3.5" />}
-                onClick={() => router.push("/minutes/new")}
-              >
-                Buat Notulen
-              </AccentButton>
-            </div>
-          </>
+          <CollectionEmptyState
+            title="Belum ada notulen tersimpan"
+            description="Mulai dari transkrip rapat lalu simpan hasil notulennya agar muncul di daftar ini."
+          />
         ) : filteredItems.length === 0 ? (
           <CollectionEmptyState
             title="Tidak ada notulen yang cocok"
@@ -262,7 +267,7 @@ function MinutesPageContent() {
             </CollectionTableHeader>
             <TableBody>
               {filteredItems.map((minute) => (
-                <TableRow key={minute.id} className="border-0 hover:bg-muted/50">
+                <TableRow key={minute.id} className="border-b border-border/60 hover:bg-muted/50">
                   <TableCell className="py-2 pl-4 pr-3 text-sm text-muted-foreground">
                     {minute.id.slice(0, 8)}
                   </TableCell>
@@ -299,7 +304,10 @@ function MinutesPageContent() {
                           size="sm"
                           aria-label={`Hapus notulen ${minute.title || minute.id}`}
                           className="h-7 w-7 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                          onClick={() => setMinuteToDelete(minute)}
+                          onClick={() => {
+                            setDeleteError(null);
+                            setMinuteToDelete(minute);
+                          }}
                         >
                           <Trash2 className="size-3.5" />
                         </Button>
@@ -327,47 +335,54 @@ function MinutesPageContent() {
           />
         )}
       </CollectionTableCard>
+      </div>
 
       <Dialog
         open={!!minuteToDelete}
-        onOpenChange={(open) => !open && setMinuteToDelete(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setMinuteToDelete(null);
+            setDeleteError(null);
+          }
+        }}
       >
-        <DialogContent>
+        <DialogContent showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>Hapus Notulen?</DialogTitle>
             <DialogDescription>
-              Notulen yang dihapus tidak bisa dikembalikan. Tindakan ini juga
-              akan menghapus relasinya dari log risiko terkait.
+              Notulen ini akan dihapus permanen beserta relasinya dengan risiko terkait.
             </DialogDescription>
           </DialogHeader>
-          <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm">
-            <p className="font-medium">
-              {minuteToDelete?.title || "Tanpa judul"}
-            </p>
-            <p className="text-xs text-muted-foreground">
+          <div className="space-y-0.5 py-1 text-sm">
+            <p className="font-medium">{minuteToDelete?.title || "Tanpa judul"}</p>
+            <p className="font-mono text-xs text-muted-foreground">
               {minuteToDelete?.id || "-"}
             </p>
           </div>
+          {deleteError ? (
+            <p
+              role="alert"
+              className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            >
+              {deleteError}
+            </p>
+          ) : null}
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setMinuteToDelete(null)}
+            <CollectionDialogCancel
+              onClick={() => {
+                setDeleteError(null);
+                setMinuteToDelete(null);
+              }}
               disabled={isDeleting}
             >
               Batal
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={isDeleting}
-            >
+            </CollectionDialogCancel>
+            <DestructiveButton onClick={handleDelete} disabled={isDeleting}>
               {isDeleting ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Trash2 className="size-4" />
-              )}{" "}
-              Hapus
-            </Button>
+                <Loader2 aria-hidden="true" className="size-4 motion-safe:animate-spin" />
+              ) : null}
+              {isDeleting ? "Menghapus..." : "Hapus"}
+            </DestructiveButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

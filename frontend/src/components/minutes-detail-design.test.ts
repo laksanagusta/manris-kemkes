@@ -32,8 +32,11 @@ test("keeps briefing content editorial and low-noise", () => {
   assert.match(source, /className="block font-mono text-xs leading-5 text-muted-foreground"/);
 });
 
-test("uses shared actions for the header and destructive confirmation", () => {
-  assert.match(source, /<ActionButton icon=\{<Download/);
+test("keeps detail actions behind a compact options menu", () => {
+  assert.match(source, /<DropdownMenu>/);
+  assert.match(source, /<ActionIconButton\s+aria-label="Tindakan notulen"/);
+  assert.match(source, /<DropdownMenuItem onSelect=\{handleExport\}>/);
+  assert.doesNotMatch(source, /<ActionButton icon=\{<Download/);
   assert.match(source, /<CollectionDialogCancel/);
   assert.match(source, /<DestructiveButton/);
 });

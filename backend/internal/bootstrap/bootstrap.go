@@ -31,6 +31,7 @@ import (
 	planninguc "github.com/manris/backend/internal/usecase/planning"
 	reportuc "github.com/manris/backend/internal/usecase/report"
 	riskuc "github.com/manris/backend/internal/usecase/risk"
+	riskeventuc "github.com/manris/backend/internal/usecase/risk_event"
 	riskcascadeuc "github.com/manris/backend/internal/usecase/riskcascade"
 	riskcharteruc "github.com/manris/backend/internal/usecase/riskcharter"
 	systemuc "github.com/manris/backend/internal/usecase/system"
@@ -70,6 +71,7 @@ type Container struct {
 	LikelihoodAssessmentRepository domainrepo.LikelihoodAssessmentRepository
 	ImpactCriteriaRepository       domainrepo.ImpactCriteriaRepository
 	RiskMonitoringRepository       domainrepo.RiskMonitoringRepository
+	RiskEventRepository            domainrepo.RiskEventRepository
 
 	// Domain Services
 	OrgHierarchySvc *domainsvc.OrganizationHierarchy
@@ -117,7 +119,9 @@ type Container struct {
 	RiskMonitoringStartUC     *riskuc.StartMonitoringUseCase
 	RiskMonitoringGetUC       *riskuc.GetMonitoringUseCase
 	RiskMonitoringUpdateUC    *riskuc.UpdateMonitoringUseCase
+	RiskMonitoringDeleteUC    *riskuc.DeleteMonitoringUseCase
 	RiskMonitoringFinalizeUC  *riskuc.FinalizeMonitoringUseCase
+	RiskEventService          *riskeventuc.Service
 
 	// Risk Cascade UseCases
 	RiskCascadeCreateMandatoryUC *riskcascadeuc.CreateMandatoryUseCase
@@ -305,6 +309,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.LikelihoodAssessmentRepository = postgresrepo.NewLikelihoodAssessmentRepository(pool)
 	c.ImpactCriteriaRepository = postgresrepo.NewImpactCriteriaRepository(pool)
 	c.RiskMonitoringRepository = postgresrepo.NewRiskMonitoringRepository(pool)
+	c.RiskEventRepository = postgresrepo.NewRiskEventRepository(pool)
 
 	// ============================================================================
 	// Domain Services
@@ -375,7 +380,9 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.RiskMonitoringStartUC = riskuc.NewStartMonitoringUseCase(c.RiskRepository, c.RiskMonitoringRepository, c.RiskRepository, c.MitigationTaskRepository, periodRepo)
 	c.RiskMonitoringGetUC = riskuc.NewGetMonitoringUseCase(c.RiskMonitoringRepository)
 	c.RiskMonitoringUpdateUC = riskuc.NewUpdateMonitoringUseCase(c.RiskRepository, c.RiskMonitoringRepository)
+	c.RiskMonitoringDeleteUC = riskuc.NewDeleteMonitoringUseCase(c.RiskMonitoringRepository)
 	c.RiskMonitoringFinalizeUC = riskuc.NewFinalizeMonitoringUseCase(c.RiskRepository, c.RiskMonitoringRepository, c.MitigationTaskRepository, c.RiskRepository)
+	c.RiskEventService = riskeventuc.NewService(c.RiskEventRepository, c.RiskRepository)
 
 	c.RiskCascadeCreateMandatoryUC = riskcascadeuc.NewCreateMandatoryUseCase(c.RiskCascadeRepository, c.RiskRepository, c.OrgRepository)
 	c.RiskCascadeCreateBottomUpUC = riskcascadeuc.NewCreateBottomUpUseCase(c.RiskCascadeRepository, c.RiskRepository, c.OrgRepository)

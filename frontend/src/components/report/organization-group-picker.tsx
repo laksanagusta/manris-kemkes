@@ -127,7 +127,7 @@ export function OrganizationGroupPicker({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[min(var(--radix-popover-trigger-width),620px)] gap-0 overflow-hidden rounded-xl p-0"
+        className="w-[min(var(--radix-popover-trigger-width),620px)] gap-0 overflow-hidden rounded-lg p-0"
         align="start"
       >
         <div className="flex items-center border-b px-3">

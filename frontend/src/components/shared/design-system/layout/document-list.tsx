@@ -60,7 +60,7 @@ export function DocumentListSection({
         ) : null}
       </div>
       <ListGroup
-        className="surface-hairline rounded-xl bg-card px-4 py-1.5"
+        className="surface-hairline rounded-lg bg-card px-4 py-1.5"
         role="region"
         aria-labelledby={labelId}
       >

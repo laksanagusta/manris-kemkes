@@ -11,7 +11,6 @@ import {
 } from "react";
 import { Check, ChevronDown, Loader2, Search, UserRound } from "@/components/ui/icons";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SearchInput } from "@/components/ui/search-input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -46,15 +45,6 @@ interface RemoteUserPickerProps {
   }) => Promise<RemoteUserPickerResult>;
   className?: string;
   iconOnly?: boolean;
-}
-
-function getUserInitials(name: string): string {
-  return name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("");
 }
 
 export function RemoteUserPicker({
@@ -271,7 +261,11 @@ export function RemoteUserPicker({
 
         <PopoverContent
           variant="dropdown"
-          style={{ width: iconOnly ? "min(320px, calc(100vw - 2rem))" : "var(--radix-popover-trigger-width)" }}
+          style={{
+            width: iconOnly
+              ? "min(320px, calc(100vw - 2rem))"
+              : "min(24rem, calc(100vw - 2rem))",
+          }}
           align="start"
           sideOffset={8}
           onOpenAutoFocus={(e) => {
@@ -290,7 +284,7 @@ export function RemoteUserPicker({
                 onKeyDown={handleSearchKeyDown}
                 placeholder={searchPlaceholder}
                 aria-label={searchPlaceholder}
-                className="h-10 rounded-none border-0 bg-transparent px-0 py-3 shadow-none"
+                className="h-9 rounded-none border-0 bg-transparent px-0 py-2.5 shadow-none"
                 aria-activedescendant={
                   activeIndex >= 0 ? `${panelId}-option-${activeIndex}` : undefined
                 }
@@ -298,7 +292,7 @@ export function RemoteUserPicker({
             </div>
             <p className="sr-only">{description}</p>
 
-            <ScrollArea className="max-h-[300px] overflow-y-auto">
+            <ScrollArea className="mt-1 max-h-[300px] overflow-y-auto">
               <div id={panelId} className="flex flex-col" role="listbox" aria-label={title}>
                 {isLoading && options.length === 0 ? (
                   <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
@@ -337,19 +331,12 @@ export function RemoteUserPicker({
                       onMouseEnter={() => setActiveIndex(optionIndex)}
                       onClick={() => handleSelect(option)}
                     >
-                      <Avatar className="h-6 w-6">
-                        <AvatarFallback className="text-[10px]">
-                          {getUserInitials(option.name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex flex-col items-start truncate">
-                          <span className="truncate font-medium">{option.name}</span>
-                        {option.subtitle ? (
-                          <span className="truncate text-xs text-muted-foreground">
-                            {option.subtitle}
-                          </span>
-                        ) : null}
-                      </div>
+                      <UserRound
+                        className="size-4 shrink-0 text-muted-foreground"
+                        fill="currentColor"
+                        aria-hidden="true"
+                      />
+                      <span className="truncate font-normal">{option.name}</span>
                       {isSelected ? (
                         <span className="absolute right-3 flex size-4 items-center justify-center">
                           <Check className="size-4" />

@@ -1,9 +1,7 @@
 import { ShieldX } from "@/components/ui/icons";
 
-import { FormBackAction } from "@/components/shared/design-system";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -32,9 +30,6 @@ export function AdminOnlyState({
             </CardDescription>
           </div>
         </CardHeader>
-        <CardContent>
-          <FormBackAction href="/overview" label="Kembali ke dashboard" />
-        </CardContent>
       </Card>
     </div>
   );

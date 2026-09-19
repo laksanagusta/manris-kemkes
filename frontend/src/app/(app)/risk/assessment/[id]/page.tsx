@@ -28,6 +28,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { api, ApiError } from "@/lib/api";
 import { getRiskDetail, updateRiskAssessment } from "@/lib/api/risk-assessment";
 import {
+  deleteMonitoringDraft,
   finalizeMonitoring,
   getMonitoringDetail,
   updateMonitoringDraft,
@@ -56,7 +57,7 @@ import {
   CollapsibleCard,
   CollectionStatusBadge,
   CollectionPageHeader,
-  FormBackAction,
+  FieldErrorMessage,
   Textarea,
   RiskScoreHeatmapModal,
   RiskScorePickerTrigger,
@@ -99,6 +100,7 @@ import {
   type RiskSubstanceValues,
 } from "@/lib/risk-assessment-substance";
 import { ProfilRisikoCard } from "../components/profil-risiko-card";
+import { MonitoringActionsMenu } from "../components/monitoring-actions-menu";
 import { type AssessmentFormValues } from "../components/hasil-pemantauan-card";
 import { SimpulanCard } from "../components/simpulan-card";
 
@@ -228,6 +230,7 @@ export default function AssessmentFormPage() {
   const backTarget = isMonitoringRoute
     ? "/risk/register"
     : "/risk/assessment";
+  const monitoringListTarget = "/compliance/monitoring";
   const riskApprovalCapabilityBehavior = useMemo(
     () => getRiskApprovalCapabilityBehavior(user?.capabilities),
     [user?.capabilities],
@@ -257,8 +260,8 @@ export default function AssessmentFormPage() {
   const [approvalWorkflow, setApprovalWorkflow] =
     useState<RiskWorkflowState | null>(null);
   const [showSubmitReviewConfirm, setShowSubmitReviewConfirm] = useState(false);
-  const [showUnsavedChangesConfirm, setShowUnsavedChangesConfirm] =
-    useState(false);
+  const [showDeleteDraftConfirm, setShowDeleteDraftConfirm] = useState(false);
+  const [isDeletingDraft, setIsDeletingDraft] = useState(false);
   const [scorePickerOpen, setScorePickerOpen] = useState(false);
   const submitTarget = useRef<"draft" | "review">("draft");
 
@@ -768,18 +771,32 @@ export default function AssessmentFormPage() {
     return () => window.removeEventListener("beforeunload", handleBeforeUnload);
   }, [draftRisk?.status, form.formState.isDirty, isMonitoringRoute]);
 
-  const handleBack = () => {
-    if (isMonitoringRoute && form.formState.isDirty && draftRisk?.status !== "final") {
-      setShowUnsavedChangesConfirm(true);
+  const handleDeleteMonitoringDraft = async () => {
+    if (!token || !monitoringDraft?.id || draftRisk?.status === "final") {
       return;
     }
-    router.push(backTarget);
+
+    setIsDeletingDraft(true);
+    try {
+      await deleteMonitoringDraft(token, monitoringDraft.id);
+      setShowDeleteDraftConfirm(false);
+      toast.success("Draf pemantauan berhasil dihapus");
+      router.replace(monitoringListTarget);
+    } catch (error) {
+      toast.error("Draf pemantauan gagal dihapus", {
+        description:
+          error instanceof Error
+            ? error.message
+            : "Silakan coba lagi.",
+      });
+    } finally {
+      setIsDeletingDraft(false);
+    }
   };
 
-  const confirmBack = () => {
-    setShowUnsavedChangesConfirm(false);
-    router.push(backTarget);
-  };
+  const openDeleteDraftConfirm = useCallback(() => {
+    setShowDeleteDraftConfirm(true);
+  }, []);
 
   const onSubmit = async (values: AssessmentFormValues) => {
     if (!token || !id || !draftRisk) return;
@@ -852,12 +869,14 @@ export default function AssessmentFormPage() {
         draftSaved = true;
         form.reset(values);
         setMonitoringDraft(updatedMonitoring);
+        setDraftRisk(buildRiskFromMonitoring(updatedMonitoring, sourceRisk));
         if (isFinalizing) {
           try {
             const finalized = await finalizeMonitoring(token, id);
             setShowSubmitReviewConfirm(false);
             toast.success(`Pemantauan ${monitoring?.assessmentCycle || ""} berhasil difinalisasi`);
             setMonitoringDraft(finalized);
+            setDraftRisk(buildRiskFromMonitoring(finalized, sourceRisk));
           } catch (finalizeError) {
             toast.error("Draft tersimpan, tetapi finalisasi gagal.", {
               description:
@@ -869,7 +888,6 @@ export default function AssessmentFormPage() {
         } else {
           toast.success("Transaksi pemantauan berhasil disimpan");
         }
-        await loadRiskData();
         return;
       }
 
@@ -994,7 +1012,7 @@ export default function AssessmentFormPage() {
   if (isLoading) {
     return (
       <div
-        className="flex h-[50vh] w-full items-center justify-center rounded-xl bg-state-surface text-state-foreground"
+        className="flex h-[50vh] w-full items-center justify-center rounded-lg bg-state-surface text-state-foreground"
         role="status"
         aria-live="polite"
         aria-label="Memuat data pemantauan"
@@ -1012,7 +1030,7 @@ export default function AssessmentFormPage() {
 
     return (
       <div
-        className="flex min-h-[50vh] w-full flex-col items-center justify-center gap-4 rounded-xl bg-state-surface px-6 text-center text-state-foreground"
+        className="flex min-h-[50vh] w-full flex-col items-center justify-center gap-4 rounded-lg bg-state-surface px-6 text-center text-state-foreground"
         role="alert"
       >
         <div className="space-y-1">
@@ -1029,10 +1047,6 @@ export default function AssessmentFormPage() {
               Coba lagi
             </Button>
           ) : null}
-          <FormBackAction
-            label="Kembali"
-            onClick={() => router.push(backTarget)}
-          />
         </div>
       </div>
     );
@@ -1041,14 +1055,10 @@ export default function AssessmentFormPage() {
   if (!draftRisk || !sourceRisk) {
     return (
       <div
-        className="flex h-[50vh] w-full flex-col items-center justify-center gap-4 rounded-xl bg-state-surface text-state-foreground"
+        className="flex h-[50vh] w-full flex-col items-center justify-center gap-4 rounded-lg bg-state-surface text-state-foreground"
         role="alert"
       >
         <p className="text-state-foreground">Data risiko tidak ditemukan.</p>
-        <FormBackAction
-          label="Kembali"
-          onClick={() => router.push(backTarget)}
-        />
       </div>
     );
   }
@@ -1103,7 +1113,7 @@ export default function AssessmentFormPage() {
       {!isAssessmentLocked ? (
         <span
           className={cn(
-            "mr-1 inline-flex min-h-9 items-center text-[11px]",
+            "mr-1 inline-flex min-h-9 min-w-[7rem] items-center justify-end text-[11px]",
             form.formState.isDirty
               ? "text-amber-700"
               : "text-muted-foreground",
@@ -1118,6 +1128,14 @@ export default function AssessmentFormPage() {
         </span>
       ) : null}
       <TooltipProvider>
+        {isMonitoringRoute ? (
+          <MonitoringActionsMenu
+            risk={sourceRisk}
+            canDeleteDraft={!isAssessmentLocked && Boolean(monitoringDraft?.id)}
+            deleteDisabled={isSaving || isCheckingFinalize || isDeletingDraft}
+            onDeleteDraft={openDeleteDraftConfirm}
+          />
+        ) : null}
         {!isAssessmentLocked ? (
           <div className="flex flex-wrap items-center gap-2">
             <ActionButton
@@ -1157,22 +1175,12 @@ export default function AssessmentFormPage() {
   return (
     <>
       <FormPage
-        className={cn(
-          "risk-form-filter-controls space-y-6",
-          isMonitoringRoute && "pb-32",
-        )}
+        className="risk-form-filter-controls space-y-6"
       >
       {isMonitoringRoute ? (
         <div className="mx-auto w-full max-w-7xl min-w-0">
           <CollectionPageHeader
-            backActionPlacement="top"
             actionsPlacement="top"
-            backAction={
-              <FormBackAction
-                label="Kembali ke pemantauan"
-                onClick={handleBack}
-              />
-            }
             title={
               hasFinalResult
                 ? "Hasil Pemantauan Risiko"
@@ -1185,8 +1193,6 @@ export default function AssessmentFormPage() {
       <FormHeader
         title="Monitoring Risiko"
           badges={monitoringHeaderBadges}
-          backLabel="Kembali"
-          onBack={handleBack}
           actions={
             <div className="flex flex-wrap items-center gap-2">
               <TooltipProvider>
@@ -1251,7 +1257,7 @@ export default function AssessmentFormPage() {
                 </CollapsibleCard.Actions>
               </CollapsibleCard.Trigger>
               <CollapsibleCard.Content>
-              <CollapsibleCard.Body className="space-y-5 border-t-0 p-5">
+              <CollapsibleCard.Body className="space-y-5 border-t-0 px-5 py-5 text-sm">
                   <div className="grid min-w-0 gap-6">
                   {(() => {
                     const mitigations =
@@ -1325,13 +1331,14 @@ export default function AssessmentFormPage() {
                           : undefined
                       }
                     />
-                    {(form.formState.errors.probability || form.formState.errors.impact) && (
-                      <span id="risk-score-error" role="alert" className="text-xs font-medium text-destructive">
-                        {form.formState.errors.probability?.message ||
+                    <FieldErrorMessage id="risk-score-error">
+                      {form.formState.errors.probability ||
+                      form.formState.errors.impact
+                        ? form.formState.errors.probability?.message ||
                           form.formState.errors.impact?.message ||
-                          "Probabilitas dan dampak wajib diisi"}
-                      </span>
-                    )}
+                          "Probabilitas dan dampak wajib diisi"
+                        : undefined}
+                    </FieldErrorMessage>
                   </div>
 
                   <div className="flex flex-col gap-2">
@@ -1359,12 +1366,11 @@ export default function AssessmentFormPage() {
                         />
                       )}
                     />
-                    {form.formState.errors.changeReason && (
-                      <span id="change-reason-error" role="alert" className="text-xs font-medium text-destructive">
-                        {form.formState.errors.changeReason.message ||
-                          "Wajib diisi"}
-                      </span>
-                    )}
+                    <FieldErrorMessage id="change-reason-error">
+                      {form.formState.errors.changeReason
+                        ? form.formState.errors.changeReason.message || "Wajib diisi"
+                        : undefined}
+                    </FieldErrorMessage>
                   </div>
 
                   <div className="flex flex-col gap-2">
@@ -1392,12 +1398,11 @@ export default function AssessmentFormPage() {
                         />
                       )}
                     />
-                    {form.formState.errors.reviewSummary && (
-                      <span id="monitoring-conclusion-error" role="alert" className="text-xs font-medium text-destructive">
-                        {form.formState.errors.reviewSummary.message ||
-                          "Wajib diisi"}
-                      </span>
-                    )}
+                    <FieldErrorMessage id="monitoring-conclusion-error">
+                      {form.formState.errors.reviewSummary
+                        ? form.formState.errors.reviewSummary.message || "Wajib diisi"
+                        : undefined}
+                    </FieldErrorMessage>
                   </div>
                   </div>
                 </CollapsibleCard.Body>
@@ -1443,7 +1448,7 @@ export default function AssessmentFormPage() {
                 </CollapsibleCard.Actions>
               </CollapsibleCard.Trigger>
               <CollapsibleCard.Content>
-                <CollapsibleCard.Body className="space-y-5 border-t-0 p-5">
+                <CollapsibleCard.Body className="space-y-5 border-t-0 px-5 py-5 text-sm">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="space-y-1">
                       <Label className="text-sm font-medium text-foreground">
@@ -1530,7 +1535,7 @@ export default function AssessmentFormPage() {
                     </CollapsibleCard.Actions>
                   </CollapsibleCard.Trigger>
                   <CollapsibleCard.Content>
-                    <CollapsibleCard.Body className="space-y-5 border-t-0 p-5">
+                    <CollapsibleCard.Body className="space-y-5 border-t-0 px-5 py-5 text-sm">
                       <div className="space-y-3">
                       <div className="space-y-1.5">
                         <Label className="text-sm font-medium text-foreground">
@@ -1596,12 +1601,12 @@ export default function AssessmentFormPage() {
         {/* Right Column / Side Panel */}
         <aside className="min-w-0 xl:sticky xl:top-24 xl:self-start">
           <div className="space-y-6">
-            <Card className="gap-0 overflow-hidden rounded-xl bg-card p-0 transition-colors duration-300">
+            <Card className="gap-0 overflow-hidden rounded-lg bg-card p-0 transition-colors duration-300">
               <CardContent className="px-5 py-5 text-sm">
                 <section aria-labelledby="monitoring-side-summary">
                   <h2
                     id="monitoring-side-summary"
-                    className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70"
+                    className="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground/70"
                   >
                     Simpulan Pemantauan
                   </h2>
@@ -1624,7 +1629,7 @@ export default function AssessmentFormPage() {
                   >
                     <h2
                       id="monitoring-side-mitigation"
-                      className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70"
+                      className="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground/70"
                     >
                       Pelaksanaan Mitigasi
                     </h2>
@@ -1696,11 +1701,11 @@ export default function AssessmentFormPage() {
           {isMonitoringRoute ? (
             <div className="grid gap-x-6 gap-y-3 py-1 text-sm sm:grid-cols-2">
               <div className="space-y-0.5">
-                <span className="text-xs text-muted-foreground">Periode</span>
+                <span className="text-xs uppercase text-muted-foreground">Periode</span>
                 <p className="font-medium">{monitoringCycle || "-"}</p>
               </div>
               <div className="space-y-0.5">
-                <span className="text-xs text-muted-foreground">Skor</span>
+                <span className="text-xs uppercase text-muted-foreground">Skor</span>
                 <p className="font-medium tabular-nums">
                   {formatRiskScore(
                     monitoringDraft?.sourceNilai ??
@@ -1711,7 +1716,7 @@ export default function AssessmentFormPage() {
                 </p>
               </div>
               <div className="space-y-0.5">
-                <span className="text-xs text-muted-foreground">Versi hasil</span>
+                <span className="text-xs uppercase text-muted-foreground">Versi hasil</span>
                 <p className="font-medium">
                   v{(monitoringDraft?.sourceVersionNumber ?? sourceRisk.versionNumber ?? 0) + 1}
                 </p>
@@ -1781,43 +1786,46 @@ export default function AssessmentFormPage() {
         </AlertDialogContent>
       </AlertDialog>
       <AlertDialog
-        open={showUnsavedChangesConfirm}
-        onOpenChange={setShowUnsavedChangesConfirm}
+        open={showDeleteDraftConfirm}
+        onOpenChange={(open) => {
+          if (!isDeletingDraft) {
+            setShowDeleteDraftConfirm(open);
+          }
+        }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="text-base">
-              Perubahan belum disimpan
+              Hapus draf pemantauan?
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Jika kembali sekarang, perubahan pada pemantauan ini akan hilang.
-              Pilih Batal untuk tetap di halaman dan menyimpan draft, atau
-              lanjutkan kembali tanpa menyimpan.
+              Draf periode {monitoringCycle || "ini"} beserta perubahan yang
+              belum disimpan akan dihapus. Risiko sumber tetap aman. Tindakan
+              ini tidak dapat dibatalkan.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel variant="outline" size="md">
+            <AlertDialogCancel variant="outline" size="md" disabled={isDeletingDraft}>
               Batal
             </AlertDialogCancel>
             <AlertDialogAction
-              variant="primary"
-              size="primary"
-              onClick={confirmBack}
+              variant="destructive"
+              size="md"
+              className="border-0 !bg-destructive !text-white hover:!bg-destructive/90 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 disabled:!opacity-50"
+              onClick={(event) => {
+                event.preventDefault();
+                void handleDeleteMonitoringDraft();
+              }}
+              disabled={isDeletingDraft}
+              aria-busy={isDeletingDraft}
             >
-              Kembali tanpa menyimpan
+              {isDeletingDraft ? <Loader2 className="size-4 animate-spin" /> : null}
+              {isDeletingDraft ? "Menghapus…" : "Hapus draf"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
       </FormPage>
-      {isMonitoringRoute && !isAssessmentLocked ? (
-        <ProfilRisikoCard
-          risk={sourceRisk}
-          detailHref={`/risk/register/${sourceRisk.id}`}
-          compact
-          floating
-        />
-      ) : null}
     </>
   );
 }

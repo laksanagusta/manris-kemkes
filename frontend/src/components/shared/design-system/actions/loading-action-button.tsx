@@ -1,7 +1,6 @@
 "use client";
 
 import type { ComponentProps } from "react";
-import { Loader2 } from "@/components/ui/icons";
 
 import { Button } from "@/components/ui/button";
 
@@ -19,14 +18,7 @@ export function LoadingActionButton({
 }: LoadingActionButtonProps) {
   return (
     <Button disabled={loading || disabled} {...props}>
-      {loading ? (
-        <>
-          <Loader2 className="size-3.5 animate-spin" />
-          {loadingLabel}
-        </>
-      ) : (
-        children
-      )}
+      {loading ? loadingLabel : children}
     </Button>
   );
 }

@@ -9,6 +9,7 @@ import { GripVertical, Plus, Trash2 } from "@/components/ui/icons";
 import { RemoteUserPicker } from "@/components/risk/remote-user-picker";
 import {
   CollectionTableCard,
+  FieldErrorMessage,
   CollectionTableHead,
   CollectionTableHeader,
   CollectionTableHeaderRow,
@@ -153,9 +154,7 @@ function SortableOrderedUserSelectionRow({
             onSelect={handleSelect}
             loadOptions={loadRowOptions}
           />
-          {errorMessage ? (
-            <p className="text-xs text-destructive">{errorMessage}</p>
-          ) : null}
+          <FieldErrorMessage>{errorMessage}</FieldErrorMessage>
         </div>
       </TableCell>
       <TableCell className="text-sm text-muted-foreground">

@@ -115,7 +115,7 @@ export function HasilPemantauanCard({
                             type="button"
                             onClick={() => field.onChange(val)}
                             className={cn(
-                              "h-14 rounded-xl border-2 text-lg font-bold transition-all",
+                              "h-14 rounded-lg border-2 text-lg font-bold transition-all",
                               val === field.value
                                 ? "border-amber-600 bg-amber-50 text-amber-900"
                                 : "border-border bg-card text-muted-foreground hover:border-border hover:bg-muted",
@@ -158,7 +158,7 @@ export function HasilPemantauanCard({
                             type="button"
                             onClick={() => field.onChange(val)}
                             className={cn(
-                              "h-14 rounded-xl border-2 text-lg font-bold transition-all",
+                              "h-14 rounded-lg border-2 text-lg font-bold transition-all",
                               val === field.value
                                 ? "border-amber-600 bg-amber-50 text-amber-900"
                                 : "border-border bg-card text-muted-foreground hover:border-border hover:bg-muted",

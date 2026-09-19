@@ -289,7 +289,7 @@ export function ReviewSidePanel({
   return (
     <div className="space-y-4">
       {stepperNodes.length > 0 && (
-        <div className="rounded-xl bg-card p-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+        <div className="rounded-lg bg-card p-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
           <div className="space-y-0">
             {stepperNodes.map((node, index) => {
               const isLast = index === stepperNodes.length - 1;

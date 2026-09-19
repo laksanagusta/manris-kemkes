@@ -354,6 +354,7 @@ export default function OrganizationsManagementPage() {
           <KpiCard label="Sub Unit" value={subUnits} tone="white" />
         </MetricGrid>
 
+        <div className="space-y-4">
         <CollectionToolbar
           className="w-full"
           leading={
@@ -439,6 +440,7 @@ export default function OrganizationsManagementPage() {
             }}
           />
         </Card>
+        </div>
 
         <OrganizationFormDialog
           mode={dialogMode}

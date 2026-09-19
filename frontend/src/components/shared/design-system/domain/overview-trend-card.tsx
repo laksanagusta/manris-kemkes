@@ -14,7 +14,7 @@ export function OverviewTrendCard({
   return (
     <StandardCard
       title={title}
-      className="rounded-2xl"
+      className="rounded-lg"
       headerClassName="px-5 pb-3 pt-5"
       contentClassName="px-5 pb-5 pt-0"
     >

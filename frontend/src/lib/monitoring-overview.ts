@@ -22,6 +22,9 @@ export type MonitoringOverviewRow = {
   sourceLevel: string;
   observedScore: number | null;
   observedLevel: string;
+  mitigationCompletionPercent: number;
+  createdAt: string | null;
+  updatedAt: string | null;
   finalizedAt: string | null;
 };
 
@@ -128,6 +131,12 @@ export function buildMonitoringTransactionRows(
       sourceLevel: getMonitoringRiskLevelLabel(monitoring.sourceLevel),
       observedScore: firstPositive(monitoring.observedNilai),
       observedLevel: getMonitoringRiskLevelLabel(monitoring.observedLevel),
+      mitigationCompletionPercent: Math.min(
+        100,
+        Math.max(0, Math.round(monitoring.mitigationCompletionPercent || 0)),
+      ),
+      createdAt: monitoring.createdAt || monitoring.startedAt || null,
+      updatedAt: monitoring.updatedAt || monitoring.startedAt || null,
       finalizedAt: monitoring.finalizedAt ?? null,
     } satisfies MonitoringOverviewRow;
   });

@@ -1,9 +1,6 @@
 import type { ReactNode } from "react";
 
-import {
-  CollectionPageHeader,
-  FormBackAction,
-} from "@/components/shared/design-system";
+import { CollectionPageHeader } from "@/components/shared/design-system";
 import {
   Card,
   CardContent,
@@ -25,9 +22,6 @@ type FormHeaderProps = {
   badges?: ReactNode;
   actions?: ReactNode;
   actionsPlacement?: "header" | "title" | "top";
-  backActionPlacement?: "local" | "top";
-  onBack?: () => void;
-  backLabel?: string;
 };
 
 type FormSectionProps = {
@@ -59,21 +53,9 @@ export function FormHeader({
   badges,
   actions,
   actionsPlacement = "top",
-  backActionPlacement = "top",
-  onBack,
-  backLabel = "Kembali",
 }: FormHeaderProps) {
   return (
     <CollectionPageHeader
-      backAction={
-        onBack ? (
-          <FormBackAction
-            label={backLabel}
-            onClick={onBack}
-          />
-        ) : undefined
-      }
-      backActionPlacement={backActionPlacement}
       eyebrow={
         badges ? (
           <div className="flex flex-wrap items-center gap-2">{badges}</div>
@@ -100,7 +82,7 @@ export function FormSection({
   return (
     <Card
       className={cn(
-        "rounded-xl bg-card transition-colors duration-200",
+        "rounded-lg bg-card transition-colors duration-200",
         className,
       )}
     >

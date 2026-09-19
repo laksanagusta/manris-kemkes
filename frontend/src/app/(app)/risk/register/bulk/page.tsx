@@ -1,7 +1,6 @@
 "use client";
 
 import { useMemo, useState, type ChangeEvent } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Download, FileSpreadsheet, Loader2, Upload } from "@/components/ui/icons";
 
@@ -95,7 +94,6 @@ function getPreviewStatus(preview: BulkRiskPreview) {
 }
 
 export default function BulkRiskRegisterPage() {
-  const router = useRouter();
   const { token } = useAuth();
   const [sourceName, setSourceName] = useState("");
   const [previews, setPreviews] = useState<BulkRiskPreview[]>([]);
@@ -225,8 +223,6 @@ export default function BulkRiskRegisterPage() {
     <FormPage className="pb-10">
       <FormHeader
         title="Import Risiko"
-        onBack={() => router.push("/risk/register")}
-        backLabel="Kembali"
         actions={
           <>
             <ActionButton
@@ -257,15 +253,15 @@ export default function BulkRiskRegisterPage() {
       />
 
       <div className="space-y-6">
-        <Card className="rounded-xl">
+        <Card className="rounded-lg">
           <CardHeader>
             <CardTitle className="text-base font-semibold text-foreground">
               Sumber Data
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <label className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/70 bg-muted/[0.18] px-6 py-10 text-center transition-[background-color,border-color] duration-150 hover:border-primary/40 hover:bg-muted/[0.28]">
-              <div className="flex size-11 items-center justify-center rounded-xl bg-background text-primary">
+            <label className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-border/70 bg-muted/[0.18] px-6 py-10 text-center transition-[background-color,border-color] duration-150 hover:border-primary/40 hover:bg-muted/[0.28]">
+              <div className="flex size-11 items-center justify-center rounded-lg bg-background text-primary">
                 {isParsing ? (
                   <Loader2 className="size-5 animate-spin" />
                 ) : (
@@ -301,7 +297,7 @@ export default function BulkRiskRegisterPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-xl">
+        <Card className="rounded-lg">
           <CardHeader>
             <CardTitle className="text-base font-semibold text-foreground">
               Review hasil parsing
@@ -314,7 +310,7 @@ export default function BulkRiskRegisterPage() {
                 description="Upload template untuk mulai review."
               />
             ) : (
-              <div className="overflow-hidden rounded-xl border border-border/60">
+              <div className="overflow-hidden rounded-lg border border-border/60">
                 <Table>
                   <CollectionTableHeader density="compact">
                     <TableRow>
@@ -369,14 +365,14 @@ export default function BulkRiskRegisterPage() {
       </div>
 
       {resultItems.length > 0 ? (
-        <Card className="rounded-xl">
+        <Card className="rounded-lg">
           <CardHeader>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="space-y-1">
                 <CardTitle className="text-base font-semibold text-foreground">
                   Hasil import risiko
                 </CardTitle>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-secondary-foreground">
                   Ringkasan status setiap baris yang dikirim.
                 </p>
               </div>
@@ -391,7 +387,7 @@ export default function BulkRiskRegisterPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4 pt-0">
-            <div className="overflow-hidden rounded-xl border border-border/60">
+            <div className="overflow-hidden rounded-lg border border-border/60">
               <Table>
                 <CollectionTableHeader density="compact">
                   <TableRow>

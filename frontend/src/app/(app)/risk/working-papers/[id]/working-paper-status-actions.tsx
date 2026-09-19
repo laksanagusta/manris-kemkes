@@ -5,7 +5,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -54,7 +53,6 @@ export function WorkingPaperStatusActions({
         </ActionButton>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuLabel>Pilih tindakan</DropdownMenuLabel>
         {canSkipTTE ? (
           <DropdownMenuItem className="gap-2" onClick={onSkipTTE}>
             <SkipForward className="size-3.5" />

@@ -35,7 +35,7 @@ function TaskRow({ task, onRetry }: { task: ProcessingTask; onRetry?: () => void
   const meta = taskMeta(task.status);
   const Icon = meta.icon;
   return (
-    <div className="flex items-start gap-3 rounded-xl border border-border/70 bg-card px-3 py-2.5">
+    <div className="flex items-start gap-3 rounded-lg border border-border/70 bg-card px-3 py-2.5">
       <span className={cn("mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg", meta.tone === "success" ? "bg-success/10 text-success" : meta.tone === "warning" ? "bg-warning/10 text-warning" : meta.tone === "danger" ? "bg-destructive/10 text-destructive" : meta.tone === "progress" ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground")}>
         <Icon className={cn("size-3.5", task.status === "running" && "motion-safe:animate-pulse motion-reduce:animate-none")} />
       </span>
@@ -64,7 +64,7 @@ export function TaskLanes({ job, onRetryTask }: { job: ProcessingJob; onRetryTas
   const completed = job.tasks.filter((task) => task.status === "completed" || task.status === "warning").length;
   const processing = job.status === "processing" || job.status === "queued";
   return (
-    <section className="rounded-xl border border-border/80 bg-card p-4 sm:p-5" aria-labelledby="parallel-work-title" aria-busy={processing}>
+    <section className="rounded-lg border border-border/80 bg-card p-4 sm:p-5" aria-labelledby="parallel-work-title" aria-busy={processing}>
       <p className="sr-only" role="status" aria-live="polite">
         {completed} dari {job.tasks.length} tugas selesai. Progres {job.progress} persen.
       </p>
@@ -74,7 +74,7 @@ export function TaskLanes({ job, onRetryTask }: { job: ProcessingJob; onRetryTas
             <h2 id="parallel-work-title" className="text-sm font-semibold text-foreground">Pemrosesan paralel</h2>
             <Badge variant="secondary" className="tabular-nums text-xs">{completed}/{job.tasks.length} tugas selesai</Badge>
           </div>
-          <p className="mt-1 max-w-2xl text-xs leading-5 text-muted-foreground">Beberapa pekerjaan berjalan bersamaan; detail teknis tetap diringkas di bawah agar status mudah dipindai.</p>
+          <p className="mt-1 max-w-2xl text-xs leading-5 text-secondary-foreground">Beberapa pekerjaan berjalan bersamaan; detail teknis tetap diringkas di bawah agar status mudah dipindai.</p>
         </div>
         <span className="font-mono text-xs tabular-nums text-muted-foreground">{job.progress}%</span>
       </div>
@@ -84,7 +84,7 @@ export function TaskLanes({ job, onRetryTask }: { job: ProcessingJob; onRetryTas
       <div className="mt-4 grid gap-2 md:grid-cols-2">
         {job.tasks.slice(0, 4).map((task) => <TaskRow key={task.id} task={task} onRetry={() => onRetryTask(task.id)} />)}
       </div>
-      <details open={detailsOpen} onToggle={(event) => setDetailsOpen(event.currentTarget.open)} className="mt-3 rounded-xl border border-dashed border-border/80 bg-muted/20 px-3 py-2">
+      <details open={detailsOpen} onToggle={(event) => setDetailsOpen(event.currentTarget.open)} className="mt-3 rounded-lg border border-dashed border-border/80 bg-muted/20 px-3 py-2">
         <summary className="cursor-pointer list-none text-xs font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring/40">
           <span className="inline-flex items-center gap-2"><CircleDot className="size-3.5 text-muted-foreground" />Lihat detail pemrosesan</span>
         </summary>
@@ -110,7 +110,7 @@ export function ActivityTimeline({ job }: { job: ProcessingJob }) {
   }, [job.events.length, reduceMotion]);
 
   return (
-    <section className="rounded-xl border border-border/80 bg-card p-4 sm:p-5" aria-labelledby="activity-title">
+    <section className="rounded-lg border border-border/80 bg-card p-4 sm:p-5" aria-labelledby="activity-title">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <h2 id="activity-title" className="text-sm font-semibold text-foreground">Linimasa aktivitas</h2>

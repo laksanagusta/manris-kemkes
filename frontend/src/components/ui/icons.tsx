@@ -4,6 +4,7 @@ import * as React from "react";
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   ActivityIcon,
+  Agreement03Icon as Agreement03Definition,
   Tag01Icon,
   Alert02Icon,
   AlertCircleIcon,
@@ -27,6 +28,7 @@ import {
   CalendarIcon,
   CancelCircleIcon,
   CancelIcon,
+  Certificate01Icon as Certificate01Definition,
   CheckIcon as CheckDefinition,
   CheckmarkCircle02Icon,
   CheckmarkCircleIcon,
@@ -66,6 +68,7 @@ import {
   FileText as FileTextDefinition,
   FilterHorizontalIcon,
   FilterIcon as FilterDefinition,
+  Folder01Icon as Folder01Definition,
   GaugeIcon,
   GitBranchIcon,
   GoalIcon,
@@ -153,6 +156,8 @@ function createIcon(icon: IconSvgElement, displayName: string) {
 }
 
 export const Activity = createIcon(ActivityIcon, "Activity");
+export const Agreement03 = createIcon(Agreement03Definition, "Agreement03");
+export const Alert02 = createIcon(Alert02Icon, "Alert02");
 export const AlertCircle = createIcon(AlertCircleIcon, "AlertCircle");
 export const AlertTriangle = createIcon(Alert02Icon, "AlertTriangle");
 export const AlignLeft = createIcon(AlignLeftIcon, "AlignLeft");
@@ -182,6 +187,7 @@ export const CheckCircle = createIcon(CheckmarkCircleIcon, "CheckCircle");
 export const CheckCircle2 = createIcon(CheckmarkCircle02Icon, "CheckCircle2");
 export const CheckIcon = createIcon(CheckDefinition, "CheckIcon");
 export const CheckSquare = createIcon(CheckmarkSquareIcon, "CheckSquare");
+export const Certificate01 = createIcon(Certificate01Definition, "Certificate01");
 export const ChevronDown = createIcon(ChevronDownDefinition, "ChevronDown");
 export const ChevronDownIcon = createIcon(ChevronDownDefinition, "ChevronDownIcon");
 export const ChevronLeft = createIcon(ChevronLeftIcon, "ChevronLeft");
@@ -217,6 +223,7 @@ export const FileText = createIcon(FileTextDefinition, "FileText");
 export const FileTextIcon = createIcon(FileTextDefinition, "FileTextIcon");
 export const Filter = createIcon(FilterDefinition, "Filter");
 export const FilterIcon = createIcon(FilterDefinition, "FilterIcon");
+export const Folder01 = createIcon(Folder01Definition, "Folder01");
 export const Gauge = createIcon(GaugeIcon, "Gauge");
 export const GitBranch = createIcon(GitBranchIcon, "GitBranch");
 export const Goal = createIcon(GoalIcon, "Goal");

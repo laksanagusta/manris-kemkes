@@ -108,7 +108,7 @@ export function HistoryPanel({
               <div
                 key={job.id}
                 className={cn(
-                  "group rounded-xl border p-2.5 transition-[background-color,border-color,box-shadow] duration-150",
+                  "group rounded-lg border p-2.5 transition-[background-color,border-color,box-shadow] duration-150",
                   active ? "border-foreground/20 bg-card border-shadow" : "border-transparent hover:border-border/70 hover:bg-card/70",
                 )}
               >
@@ -186,7 +186,7 @@ export function HistoryPanel({
           })}
         </div>
       ) : (
-        <div className="rounded-xl border border-dashed border-border/80 p-3 text-xs leading-5 text-muted-foreground">
+        <div className="rounded-lg border border-dashed border-border/80 p-3 text-xs leading-5 text-muted-foreground">
           Belum ada proses tersimpan. Proses yang selesai akan muncul di sini.
         </div>
       )}

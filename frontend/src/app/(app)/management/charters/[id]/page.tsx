@@ -48,6 +48,7 @@ import {
   DropdownActionMenu,
   DocumentListSection,
   DocumentFormSection,
+  FieldErrorMessage,
   Input,
   Label,
   LoadingActionButton,
@@ -178,17 +179,9 @@ function createRowId(prefix: string) {
   return `${prefix}-${crypto.randomUUID()}`;
 }
 
-function FieldMessage({ children }: { children?: ReactNode }) {
-  return children ? (
-    <p className="text-xs leading-5 text-destructive" role="alert">
-      {children}
-    </p>
-  ) : null;
-}
-
 function ReadOnlyValue({ children }: { children: ReactNode }) {
   return (
-    <p className="min-h-10 whitespace-pre-wrap py-2 text-sm leading-6 text-foreground">
+    <p className="min-h-10 whitespace-pre-wrap py-2 text-sm leading-6 text-secondary-foreground">
       {children || <span className="text-muted-foreground">Belum diisi</span>}
     </p>
   );
@@ -392,7 +385,7 @@ export default function RiskCharterDetailPage() {
 
   if (loading) {
     return (
-      <FormPage>
+      <FormPage className="max-w-[672px]">
         <CollectionLoadingState message="Memuat detail Piagam..." />
       </FormPage>
     );
@@ -400,14 +393,11 @@ export default function RiskCharterDetailPage() {
 
   if (loadError || !charter) {
     return (
-    <FormPage>
+    <FormPage className="max-w-[672px]">
         <FormHeader
           title="Detail Piagam"
           subtitle="Piagam belum dapat ditampilkan."
           showTitle
-          backActionPlacement="local"
-          onBack={() => router.push("/management/charters")}
-          backLabel="Kembali ke Piagam"
         />
         <CollectionErrorState
           title="Gagal memuat Piagam"
@@ -579,15 +569,12 @@ export default function RiskCharterDetailPage() {
   };
 
   return (
-    <FormPage className="space-y-0">
+    <FormPage className="max-w-[672px] space-y-0">
       <div className="px-6 pb-0 lg:px-8">
         <FormHeader
           title="Detail Piagam"
           subtitle="Tinjau mandat dan ruang lingkup piagam manajemen risiko."
           showTitle
-          backActionPlacement="local"
-          onBack={() => navigate("/management/charters")}
-          backLabel="Kembali ke Piagam"
           badges={
             <>
             <CollectionStatusBadge tone={status.tone}>
@@ -704,7 +691,7 @@ export default function RiskCharterDetailPage() {
                 {watched.title}
               </h1>
             )}
-            <FieldMessage>{errors.title?.message}</FieldMessage>
+            <FieldErrorMessage>{errors.title?.message}</FieldErrorMessage>
           </div>
         </section>
 
@@ -1080,9 +1067,7 @@ export default function RiskCharterDetailPage() {
               </div>
             ) : null}
 
-            {listEditorError ? (
-              <FieldMessage>{listEditorError}</FieldMessage>
-            ) : null}
+            <FieldErrorMessage>{listEditorError}</FieldErrorMessage>
 
             <DialogFooter>
               <CollectionDialogCancel
@@ -1118,7 +1103,7 @@ export default function RiskCharterDetailPage() {
             {historyLoading ? (
               <CollectionLoadingState message="Memuat riwayat versi..." />
             ) : versions.length === 0 ? (
-              <p className="text-sm text-muted-foreground">Belum ada riwayat versi.</p>
+              <p className="text-sm text-secondary-foreground">Belum ada riwayat versi.</p>
             ) : (
               <VersionTimeline
                 activeId={charter.id}
@@ -1167,7 +1152,7 @@ export default function RiskCharterDetailPage() {
           </AlertDialogHeader>
           {finalizationIssues.length > 0 ? (
             <div className="rounded-lg bg-warning/10 p-4 text-sm text-foreground">
-              <p className="font-medium">Lengkapi bagian berikut terlebih dahulu:</p>
+              <p className="font-medium text-secondary-foreground">Lengkapi bagian berikut terlebih dahulu:</p>
               <ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">
                 {finalizationIssues.map((issue) => (
                   <li key={issue}>{issue}</li>
@@ -1219,7 +1204,7 @@ export default function RiskCharterDetailPage() {
                 placeholder="Jelaskan perubahan yang mendasari revisi ini."
                 className="min-h-28 resize-none"
               />
-              <p className="text-xs text-muted-foreground">Minimal 10 karakter.</p>
+              <p className="text-xs text-secondary-foreground">Minimal 10 karakter.</p>
             </div>
             <DialogFooter>
               <CollectionDialogCancel

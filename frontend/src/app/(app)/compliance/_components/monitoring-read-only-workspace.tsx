@@ -24,10 +24,7 @@ import {
   currentMonitoringCycle,
   getSelectableMonitoringCycles,
 } from "@/lib/risk-cycle-options";
-import {
-  getLinearRiskLevelBadgeTone,
-  getLinearStatusBadgeTone,
-} from "@/lib/linear-status-badge";
+import { getLinearRiskLevelBadgeTone } from "@/lib/linear-status-badge";
 import { formatMonitoringNilai } from "@/lib/risk-register-monitoring";
 import {
   ActionButton,
@@ -62,10 +59,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  ArrowRight,
-  RefreshCcw,
-} from "@/components/ui/icons";
+import { ArrowRight } from "@/components/ui/icons";
 import {
   Table,
   TableBody,
@@ -115,7 +109,7 @@ async function listAllRiskMonitoringsForCycle(token: string, cycle: string) {
   ];
 }
 
-function formatFinalizedAt(value: string | null) {
+function formatMonitoringDate(value: string | null) {
   if (!value) return "-";
 
   const date = new Date(value);
@@ -142,7 +136,7 @@ function ScoreComparison({ row }: { row: MonitoringOverviewRow }) {
 
   return (
     <div
-      className="flex min-w-0 items-center gap-1.5 whitespace-nowrap"
+      className="flex min-w-0 max-w-full items-center gap-1.5 overflow-hidden whitespace-nowrap"
       aria-label={`Skor awal ${formatMonitoringNilai(row.sourceScore)}; skor hasil pemantauan ${formatMonitoringNilai(row.observedScore)}${observedLabel ? `, ${observedLabel}` : ""}`}
     >
       <span className="font-mono text-sm tabular-nums text-muted-foreground/70 line-through decoration-border">
@@ -179,7 +173,7 @@ function OrganizationSummaryTable({
 }) {
   return (
     <div className="overflow-x-auto">
-      <Table className="min-w-[680px] table-fixed">
+      <Table className="w-full min-w-0 table-fixed">
         <colgroup>
           <col className="w-[42%]" />
           <col className="w-[18%]" />
@@ -535,7 +529,7 @@ export function MonitoringReadOnlyWorkspace() {
         </StandardCard>
       </section>
 
-      <section className="space-y-6" aria-label="Daftar status pemantauan">
+      <section className="space-y-4" aria-label="Daftar status pemantauan">
         <CollectionToolbar
           className="w-full"
           leading={
@@ -567,7 +561,11 @@ export function MonitoringReadOnlyWorkspace() {
                   </SelectTrigger>
                   <SelectContent>
                     {cycleOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
+                      <SelectItem
+                        key={option.value}
+                        value={option.value}
+                        className="h-9"
+                      >
                         {option.label}
                       </SelectItem>
                     ))}
@@ -578,13 +576,13 @@ export function MonitoringReadOnlyWorkspace() {
                   <PopoverTrigger asChild>
                     <CollectionFilterTrigger />
                   </PopoverTrigger>
-                  <PopoverContent align="end" sideOffset={8} className="w-72 rounded-xl p-4">
+                  <PopoverContent align="end" sideOffset={8} className="w-72 rounded-lg p-4">
                     <div className="space-y-4">
                       <div>
                         <h3 className="text-sm font-medium text-foreground">
                           Filter Pemantauan
                         </h3>
-                        <p className="mt-1 text-xs text-muted-foreground">
+                        <p className="mt-1 text-xs text-secondary-foreground">
                           Saring berdasarkan status transaksi.
                         </p>
                       </div>
@@ -602,7 +600,11 @@ export function MonitoringReadOnlyWorkspace() {
                           </SelectTrigger>
                           <SelectContent>
                             {STATUS_OPTIONS.map((option) => (
-                              <SelectItem key={option.value} value={option.value}>
+                              <SelectItem
+                                key={option.value}
+                                value={option.value}
+                                className="h-9"
+                              >
                                 {option.label}
                               </SelectItem>
                             ))}
@@ -623,17 +625,6 @@ export function MonitoringReadOnlyWorkspace() {
               </div>
             </div>
           }
-          actions={
-            <ActionButton
-              aria-label="Muat ulang pemantauan"
-              disabled={loading || refreshing}
-              loading={refreshing}
-              icon={<RefreshCcw className="size-3.5" strokeWidth={2.25} />}
-              size="icon-xs"
-              className="size-9"
-              onClick={() => void loadData(false)}
-            />
-          }
         />
 
         {error ? (
@@ -648,29 +639,31 @@ export function MonitoringReadOnlyWorkspace() {
           </CollectionTableCard>
         ) : (
           <CollectionTableCard>
-            <Table className="w-full table-fixed">
+            <Table className="w-full min-w-0 table-fixed">
               <colgroup>
-                <col className="w-[12%]" />
-                <col className="w-[36%]" />
-                <col className="w-[14%]" />
+                <col className="w-[10%]" />
                 <col className="w-[24%]" />
-                <col className="w-[14%]" />
+                <col className="w-[10%]" />
+                <col className="w-[18%]" />
+                <col className="w-[13%]" />
+                <col className="w-[13%]" />
+                <col className="w-[12%]" />
               </colgroup>
               <CollectionTableHeader density="compact">
                 <CollectionTableHeaderRow>
                   <CollectionTableHead className="pl-4 pr-3">Kode</CollectionTableHead>
                   <CollectionTableHead className="px-3">Risiko</CollectionTableHead>
-                  <CollectionTableHead className="px-3">Status</CollectionTableHead>
-                  <CollectionTableHead className="px-3">
-                    Skor Awal → Pemantauan
-                  </CollectionTableHead>
-                  <CollectionTableHead className="px-3">Finalisasi</CollectionTableHead>
+                  <CollectionTableHead className="px-3">Periode</CollectionTableHead>
+                  <CollectionTableHead className="px-3">Perubahan Skor</CollectionTableHead>
+                  <CollectionTableHead className="px-3">Tanggal Dibuat</CollectionTableHead>
+                  <CollectionTableHead className="px-3">Progres Penanganan</CollectionTableHead>
+                  <CollectionTableHead className="px-3">Update Terakhir</CollectionTableHead>
                 </CollectionTableHeaderRow>
               </CollectionTableHeader>
               <TableBody>
                 {pageRows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="p-0">
+                    <TableCell colSpan={7} className="!p-0">
                       <CollectionEmptyState
                         title="Belum ada transaksi pemantauan"
                         description="Belum ada transaksi pemantauan untuk siklus atau filter yang dipilih."
@@ -680,12 +673,6 @@ export function MonitoringReadOnlyWorkspace() {
                 ) : (
                   pageRows.map((row) => {
                     const actionHref = getActionHref(row);
-                    const statusTone =
-                      row.status === "finalized"
-                        ? "success"
-                        : getLinearStatusBadgeTone(
-                            row.status === "in_progress" ? "draft" : "pending",
-                          );
 
                     return (
                       <TableRow
@@ -699,10 +686,10 @@ export function MonitoringReadOnlyWorkspace() {
                         }}
                         onKeyDown={(event) => handleRowKeyDown(event, row)}
                       >
-                        <TableCell className="py-2 pl-4 pr-3 font-mono text-xs text-muted-foreground">
+                        <TableCell className="max-w-0 truncate py-2 pl-4 pr-3 font-mono text-xs text-muted-foreground">
                           {row.code}
                         </TableCell>
-                        <TableCell className="min-w-0 px-3 py-2">
+                        <TableCell className="min-w-0 max-w-0 overflow-hidden px-3 py-2">
                           <div className="min-w-0">
                             <Link
                               href={actionHref}
@@ -711,21 +698,31 @@ export function MonitoringReadOnlyWorkspace() {
                             >
                               {row.title}
                             </Link>
-                            <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
-                              Siklus {row.assessmentCycle}
-                            </p>
                           </div>
                         </TableCell>
-                        <TableCell className="px-3 py-2">
-                          <Badge size="compact" tone={statusTone}>
-                            {getMonitoringStatusLabel(row.status)}
-                          </Badge>
+                        <TableCell className="max-w-0 truncate px-3 py-2 font-mono text-sm text-muted-foreground">
+                          {row.assessmentCycle || "-"}
                         </TableCell>
-                        <TableCell className="px-3 py-2">
+                        <TableCell className="max-w-0 overflow-hidden px-3 py-2">
                           <ScoreComparison row={row} />
                         </TableCell>
-                        <TableCell className="px-3 py-2 text-sm text-muted-foreground">
-                          {formatFinalizedAt(row.finalizedAt)}
+                        <TableCell className="max-w-0 px-3 py-2 text-sm text-muted-foreground">
+                          {formatMonitoringDate(row.createdAt)}
+                        </TableCell>
+                        <TableCell className="max-w-0 overflow-hidden px-3 py-2">
+                          <div className="flex min-w-0 items-center gap-2">
+                            <Progress
+                              value={row.mitigationCompletionPercent}
+                              className="h-1.5 min-w-10 flex-1"
+                              aria-label={`Progres pelaporan ${row.mitigationCompletionPercent}%`}
+                            />
+                            <span className="min-w-10 text-right font-mono text-sm tabular-nums text-foreground">
+                              {row.mitigationCompletionPercent}%
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="max-w-0 px-3 py-2 text-sm text-muted-foreground">
+                          {formatMonitoringDate(row.updatedAt)}
                         </TableCell>
                       </TableRow>
                     );

@@ -16,7 +16,7 @@ export function DashboardKpiCard({
   return (
     <div
       aria-busy={loading}
-      className="surface-hairline flex min-h-[100px] flex-col overflow-hidden rounded-xl bg-card px-5 py-5"
+      className="surface-hairline flex min-h-[100px] flex-col overflow-hidden rounded-lg bg-card px-5 py-5"
     >
       <div className="flex items-center">
         <h2 className="font-sans text-[11px] leading-4 font-semibold uppercase tracking-[1px] text-muted-foreground text-pretty">
@@ -36,7 +36,7 @@ export function DashboardKpiCard({
         )}
       </div>
       {detail ? (
-        <p className="mt-2 text-xs leading-4 text-muted-foreground">
+        <p className="mt-2 text-xs leading-4 text-secondary-foreground">
           {detail}
         </p>
       ) : null}

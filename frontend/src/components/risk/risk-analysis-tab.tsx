@@ -147,7 +147,7 @@ export function RiskAnalysisTab({
   if (loading) {
     return (
       <Card className="bg-card/80">
-        <CardContent className="flex items-center justify-center rounded-b-xl bg-state-surface py-14 text-state-foreground">
+        <CardContent className="flex items-center justify-center rounded-b-lg bg-state-surface py-14 text-state-foreground">
           <Loader2 className="size-5 animate-spin text-state-foreground" />
           <span className="ml-2 text-sm text-state-foreground">
             Memuat analisis risiko...
@@ -176,7 +176,7 @@ export function RiskAnalysisTab({
   return (
     <div className="space-y-5">
       <div className="grid gap-3 md:grid-cols-4">
-        <div className="surface-hairline rounded-xl bg-card/80 px-4 py-3">
+        <div className="surface-hairline rounded-lg bg-card/80 px-4 py-3">
           <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
             Nilai risiko terkini
           </p>
@@ -187,7 +187,7 @@ export function RiskAnalysisTab({
             {latest ? latest.level : "Belum ada data"}
           </p>
         </div>
-        <div className="surface-hairline rounded-xl bg-card/80 px-4 py-3">
+        <div className="surface-hairline rounded-lg bg-card/80 px-4 py-3">
           <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
             Nilai sebelumnya
           </p>
@@ -198,7 +198,7 @@ export function RiskAnalysisTab({
             {previous ? previous.level : "Belum ada pembanding"}
           </p>
         </div>
-        <div className="surface-hairline rounded-xl bg-card/80 px-4 py-3">
+        <div className="surface-hairline rounded-lg bg-card/80 px-4 py-3">
           <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
             Perubahan
           </p>
@@ -214,7 +214,7 @@ export function RiskAnalysisTab({
             {trendLabel}
           </span>
         </div>
-        <div className="surface-hairline rounded-xl bg-card/80 px-4 py-3">
+        <div className="surface-hairline rounded-lg bg-card/80 px-4 py-3">
           <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
             Selisih dari target
           </p>
@@ -320,7 +320,7 @@ export function RiskAnalysisTab({
           <div className="space-y-1.5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 text-xs text-secondary-foreground">
                   Lihat setiap versi risiko, kapan dibuat, nilai target, dan
                   alasan perubahannya.
                 </p>
@@ -336,31 +336,31 @@ export function RiskAnalysisTab({
                 <Table className="w-full caption-bottom text-sm">
                   <TableHeader className="sticky top-0 z-10 bg-table-header [&_tr]:border-b">
                     <TableRow className="border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted">
-                      <TableHead className="h-10 px-2 text-left align-middle font-semibold whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                      <TableHead className="h-10 px-2 text-left align-middle font-semibold whitespace-nowrap text-secondary-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
                         Versi
                       </TableHead>
-                      <TableHead className="h-10 px-2 text-left align-middle font-semibold whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                      <TableHead className="h-10 px-2 text-left align-middle font-semibold whitespace-nowrap text-secondary-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
                         Periode
                       </TableHead>
-                      <TableHead className="h-10 px-2 text-left align-middle font-semibold whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                      <TableHead className="h-10 px-2 text-left align-middle font-semibold whitespace-nowrap text-secondary-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
                         Tanggal
                       </TableHead>
-                      <TableHead className="h-10 px-2 text-left align-middle font-semibold whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                      <TableHead className="h-10 px-2 text-left align-middle font-semibold whitespace-nowrap text-secondary-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
                         Status
                       </TableHead>
-                      <TableHead className="h-10 px-2 text-right align-middle font-semibold whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                      <TableHead className="h-10 px-2 text-right align-middle font-semibold whitespace-nowrap text-secondary-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
                         Nilai
                       </TableHead>
-                      <TableHead className="h-10 px-2 text-right align-middle font-semibold whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                      <TableHead className="h-10 px-2 text-right align-middle font-semibold whitespace-nowrap text-secondary-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
                         Target
                       </TableHead>
-                      <TableHead className="h-10 px-2 text-right align-middle font-semibold whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                      <TableHead className="h-10 px-2 text-right align-middle font-semibold whitespace-nowrap text-secondary-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
                         Perubahan
                       </TableHead>
-                      <TableHead className="h-10 px-2 text-left align-middle font-semibold whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                      <TableHead className="h-10 px-2 text-left align-middle font-semibold whitespace-nowrap text-secondary-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
                         Level
                       </TableHead>
-                      <TableHead className="h-10 px-2 text-left align-middle font-semibold whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                      <TableHead className="h-10 px-2 text-left align-middle font-semibold whitespace-nowrap text-secondary-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
                         Catatan
                       </TableHead>
                     </TableRow>

@@ -54,7 +54,7 @@ export function Inspector({
   const page = job?.pages.find((item) => item.id === `${selectedFinding?.source.documentId}-page-${selectedFinding?.source.pageNumber}`);
 
   return (
-    <aside className="min-w-0 overflow-hidden rounded-xl border border-border/80 bg-card" aria-label="Pemeriksa dokumen">
+    <aside className="min-w-0 overflow-hidden rounded-lg border border-border/80 bg-card" aria-label="Pemeriksa dokumen">
       <div className="flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3">
         <div className="flex min-w-0 items-center gap-2">
           <PanelLeftIcon className="size-3.5 text-muted-foreground" />
@@ -71,9 +71,9 @@ export function Inspector({
           <DocumentInspector document={document} page={page} job={job} />
         ) : (
           <div className="flex min-h-52 flex-col items-center justify-center text-center">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-muted text-muted-foreground"><FileSearch className="size-5" /></div>
+            <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground"><FileSearch className="size-5" /></div>
             <h2 className="mt-3 text-sm font-semibold text-foreground">Pilih halaman atau dokumen</h2>
-            <p className="mt-1 max-w-[220px] text-xs leading-5 text-muted-foreground">Metadata, status pemrosesan, dan temuan terkait akan muncul di sini.</p>
+            <p className="mt-1 max-w-[220px] text-xs leading-5 text-secondary-foreground">Metadata, status pemrosesan, dan temuan terkait akan muncul di sini.</p>
           </div>
         )}
       </div>
@@ -108,8 +108,8 @@ function DocumentInspector({
         <Meta label="Kelompok" value={group?.label ?? "—"} />
         <Meta label="Temuan" value={`${findings.length}`} />
       </div>
-      {page ? <div className="rounded-xl border border-border/70 bg-muted/20 p-3"><div className="font-display text-xs uppercase tracking-[0.12em] text-muted-foreground">Halaman terpilih</div><div className="mt-1 text-sm font-medium text-foreground">Halaman {page.pageNumber}</div><p className="mt-1 text-xs leading-5 text-muted-foreground">{page.findingIds.length ? `${page.findingIds.length} temuan terkait halaman ini.` : "Belum ada temuan yang terhubung."}</p></div> : null}
-      {document.error ? <div className="flex items-start gap-2 rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-xs leading-5 text-destructive"><AlertTriangle className="mt-0.5 size-3.5 shrink-0" />{document.error}</div> : null}
+      {page ? <div className="rounded-lg border border-border/70 bg-muted/20 p-3"><div className="font-display text-xs uppercase tracking-[0.12em] text-muted-foreground">Halaman terpilih</div><div className="mt-1 text-sm font-medium text-foreground">Halaman {page.pageNumber}</div><p className="mt-1 text-xs leading-5 text-muted-foreground">{page.findingIds.length ? `${page.findingIds.length} temuan terkait halaman ini.` : "Belum ada temuan yang terhubung."}</p></div> : null}
+      {document.error ? <div className="flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-xs leading-5 text-destructive"><AlertTriangle className="mt-0.5 size-3.5 shrink-0" />{document.error}</div> : null}
     </div>
   );
 }
@@ -131,15 +131,15 @@ function FindingInspector({
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-2"><Badge variant="outline" tone={severity.tone} size="compact">{severity.label}</Badge><Badge variant="secondary" size="compact">{finding.category}</Badge></div>
         <h2 className="text-base font-semibold leading-6 tracking-[-0.01em] text-foreground text-balance">{finding.title}</h2>
-        <p className="text-sm leading-6 text-muted-foreground">{finding.summary}</p>
+        <p className="text-sm leading-6 text-secondary-foreground">{finding.summary}</p>
       </div>
-      <div className="rounded-xl border border-warning/30 bg-warning/10 p-3">
+      <div className="rounded-lg border border-warning/30 bg-warning/10 p-3">
         <div className="flex items-center justify-between gap-3"><span className="font-display text-xs uppercase tracking-[0.12em] text-foreground/70">Tingkat keyakinan</span><span className="font-mono text-sm font-medium tabular-nums text-foreground">{Math.round(finding.confidence * 100)}%</span></div>
         <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-warning/20"><div className="h-full rounded-full bg-warning" style={{ width: `${finding.confidence * 100}%` }} /></div>
       </div>
       <div className="space-y-3">
         <div className="font-display text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Referensi sumber</div>
-        <div className="rounded-xl border border-border/70 bg-muted/20 p-3">
+        <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
           <div className="flex items-start gap-2"><FileSearch className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" /><div className="min-w-0"><div className="break-words text-xs font-medium text-foreground">{document?.name ?? finding.source.documentName}</div><div className="mt-1 text-xs text-muted-foreground">{finding.source.location}</div></div></div>
           <p className="mt-3 border-l-2 border-amber-300 pl-3 text-xs italic leading-5 text-muted-foreground">“{finding.source.quote}”</p>
         </div>

@@ -29,7 +29,7 @@ import { FormPage, FormSection } from "@/components/shared/form-shell";
 import {
   AccentButton,
   CollectionEmptyState,
-  FormBackAction,
+  FieldErrorMessage,
   CollectionLoadingState,
   CollectionPageHeader,
   CollectionSearchField,
@@ -330,19 +330,10 @@ export default function CreateWorkingPaperPage() {
     }
   };
 
-  const backAction = (
-    <FormBackAction
-      href="/risk/working-papers"
-      label="Kembali ke daftar kertas kerja"
-    />
-  );
-
   if (!organizationId) {
     return (
       <FormPage className="space-y-6 pb-0">
       <CollectionPageHeader
-        backAction={backAction}
-        backActionPlacement="top"
         title="Buat Kertas Kerja Baru"
         />
         <CollectionEmptyState
@@ -360,8 +351,6 @@ export default function CreateWorkingPaperPage() {
   return (
     <FormPage className="space-y-6 pb-0">
       <CollectionPageHeader
-        backAction={backAction}
-        backActionPlacement="top"
         actionsPlacement="top"
         title="Buat Kertas Kerja Baru"
         eyebrow={
@@ -527,12 +516,13 @@ export default function CreateWorkingPaperPage() {
           }
         >
 
-          {errors.signatories &&
-            typeof errors.signatories.message === "string" && (
-              <p className="rounded-lg border border-destructive/20 bg-destructive/[0.04] px-3 py-2 text-xs text-destructive">
-                {errors.signatories.message}
-              </p>
-            )}
+          <FieldErrorMessage
+            className="rounded-lg border border-destructive/20 bg-destructive/[0.04] px-3 py-2"
+          >
+            {typeof errors.signatories?.message === "string"
+              ? errors.signatories.message
+              : undefined}
+          </FieldErrorMessage>
 
           <OrderedUserSelectionTable
             rows={signatoryRows}
@@ -574,7 +564,7 @@ export default function CreateWorkingPaperPage() {
                 . Pemantauan selanjutnya dilakukan dari menu Risiko.
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <dl className="grid grid-cols-2 gap-2 rounded-xl bg-muted/50 p-3">
+            <dl className="grid grid-cols-2 gap-2 rounded-lg bg-muted/50 p-3">
               <div className="rounded-lg bg-card px-3 py-2">
                 <dt className="text-xs text-muted-foreground">
                   Risiko eligible

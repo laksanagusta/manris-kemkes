@@ -40,7 +40,7 @@ export function FindingsReviewPanel({
           <h2 id="findings-title" className="text-sm font-semibold text-foreground">
             Temuan untuk ditinjau
           </h2>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1 text-xs text-secondary-foreground">
             Buka rincian sumber dan tindakan sebelum membuat draf risiko.
           </p>
         </div>
@@ -51,7 +51,7 @@ export function FindingsReviewPanel({
       </div>
 
       {job.status === "failed" && job.error ? (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive" role="alert">
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive" role="alert">
           Analisis dari server gagal: {job.error}
         </div>
       ) : null}
@@ -62,7 +62,7 @@ export function FindingsReviewPanel({
           return (
             <article
               key={finding.id}
-              className="group rounded-xl border border-border/80 bg-card p-4 transition-[border-color,box-shadow] duration-150 hover:border-foreground/20 hover:shadow-sm"
+              className="group rounded-lg border border-border/80 bg-card p-4 transition-[border-color,box-shadow] duration-150 hover:border-foreground/20 hover:shadow-sm"
             >
               <div className="w-full text-left">
                 <div className="flex items-start gap-3">
@@ -93,7 +93,7 @@ export function FindingsReviewPanel({
       </div>
 
       {job.findings.length === 0 ? (
-        <div className="mt-4 rounded-xl border border-dashed border-border/80 p-6 text-center text-sm text-muted-foreground">
+        <div className="mt-4 rounded-lg border border-dashed border-border/80 p-6 text-center text-sm text-muted-foreground">
           Tidak ada temuan yang dihasilkan dari proses ini.
         </div>
       ) : null}

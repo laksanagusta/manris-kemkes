@@ -15,7 +15,7 @@ export function InlineCard({
   return (
     <Card
       className={cn(
-        "rounded-xl bg-card",
+        "rounded-lg bg-card",
         className,
       )}
     >

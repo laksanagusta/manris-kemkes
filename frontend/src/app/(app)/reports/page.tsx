@@ -18,7 +18,6 @@ import {
   Download,
   FileSpreadsheet,
   FileText,
-  Filter,
   Loader2,
   ArrowUpRight,
   ChevronDown,
@@ -91,6 +90,7 @@ import type {
 } from "@/types/risk";
 import { currentAssessmentCycle, shiftAssessmentCycle } from "@/lib/risk-cycle-options";
 import {
+  CollectionFilterTrigger,
   CollectionPageHeader,
   CollectionToolbar,
 } from "@/components/shared/design-system";
@@ -568,22 +568,22 @@ export default function ReportsPage() {
         leading={
           <Popover open={reportFilterOpen} onOpenChange={handleReportFilterOpenChange}>
             <PopoverTrigger asChild>
-              <ActionButton variant="outline" size="md"
+              <CollectionFilterTrigger
+                aria-label="Buka filter laporan"
+                title="Filter laporan"
                 disabled={reportOrganizations.length === 0 && reportOrganizationGroups.length === 0}>
-                <Filter className="size-3.5" strokeWidth={2.5} />
-                Filter
-              </ActionButton>
+              </CollectionFilterTrigger>
             </PopoverTrigger>
             <PopoverContent
               side="right"
               align="start"
               sideOffset={8}
-              className="w-[22rem] rounded-xl p-4"
+              className="w-[22rem] rounded-lg p-4"
             >
               <div className="flex flex-col gap-4">
                 <div>
                   <h4 className="text-sm font-medium">Filter Laporan</h4>
-                  <p className="mt-1 text-xs text-muted-foreground">
+                  <p className="mt-1 text-xs text-secondary-foreground">
                     Atur group dan unit. Perubahan baru diterapkan setelah menekan Terapkan.
                   </p>
                 </div>

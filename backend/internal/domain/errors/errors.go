@@ -135,6 +135,8 @@ var (
 
 	// ── Monitoring ──
 	ErrMonitoringNotDraft             = newStatusError("MONITORING_NOT_DRAFT", "hanya pemantauan draft yang dapat diperbarui")
+	ErrMonitoringNotDeletable         = newStatusError("MONITORING_NOT_DELETABLE", "hanya pemantauan draft yang dapat dihapus")
+	ErrMonitoringHasWorkingPaper      = newStatusError("MONITORING_HAS_WORKING_PAPER", "draf pemantauan yang sudah digunakan dalam kertas kerja tidak dapat dihapus")
 	ErrMonitoringNotFinalizable       = newStatusError("MONITORING_NOT_FINALIZABLE", "hanya pemantauan draft yang dapat difinalisasi")
 	ErrMonitoringAlreadyFinalized     = newStatusError("MONITORING_ALREADY_FINALIZED", "pemantauan untuk siklus ini sudah difinalisasi")
 	ErrPreviousMonitoringNotCompleted = newStatusError("PREVIOUS_MONITORING_NOT_COMPLETED", "pemantauan periode sebelumnya harus difinalisasi terlebih dahulu")

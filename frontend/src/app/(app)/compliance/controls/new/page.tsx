@@ -70,8 +70,6 @@ export default function NewControlPage() {
             Pustaka kontrol
           </Badge>
         }
-        backLabel="Kembali ke pustaka kontrol"
-        onBack={() => router.push("/compliance/controls")}
         actions={
           <Button className="gap-2 text-xs" onClick={handleSave} disabled={saving}>
             <Save className="size-3.5" />

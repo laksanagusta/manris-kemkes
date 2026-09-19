@@ -1,15 +1,26 @@
+import type { ComponentProps } from "react";
+
 import { Filter } from "@/components/ui/icons";
+import { cn } from "@/lib/utils";
 
 import { ActionButton } from "../actions/action-button";
 
-export function CollectionFilterTrigger() {
+export function CollectionFilterTrigger({
+  "aria-label": ariaLabel = "Buka filter",
+  title = "Filter",
+  className,
+  ...props
+}: Omit<ComponentProps<typeof ActionButton>, "children">) {
   return (
     <ActionButton
-      icon={<Filter className="size-3.5" strokeWidth={2.5} />}
+      {...props}
       variant="outline"
-      className="h-9"
+      size="md"
+      className={cn("h-9 w-9 !px-0", className)}
+      aria-label={ariaLabel}
+      title={title}
     >
-      Filter
+      <Filter className="size-4" strokeWidth={2} aria-hidden="true" />
     </ActionButton>
   );
 }

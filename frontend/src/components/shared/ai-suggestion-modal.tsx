@@ -269,14 +269,14 @@ export function AiSuggestionModal({
             <div className="flex flex-1 flex-col items-center justify-center py-12 px-4 text-center">
               <Loader2 className="size-6 animate-spin text-muted-foreground mb-3" />
               <h3 className="text-sm font-medium text-foreground">Menganalisis...</h3>
-              <p className="text-xs text-muted-foreground mt-1 max-w-[250px]">
+              <p className="mt-1 max-w-[250px] text-xs text-secondary-foreground">
                 Mohon tunggu sebentar, kami sedang menyusun rekomendasi terbaik untuk Anda.
               </p>
             </div>
           ) : suggestions.length === 0 ? (
             <div className="flex flex-1 flex-col items-center justify-center py-12 px-4 text-center">
               <p className="text-sm font-medium text-foreground">Belum ada saran</p>
-              <p className="text-xs text-muted-foreground mt-1 max-w-[250px]">
+              <p className="mt-1 max-w-[250px] text-xs text-secondary-foreground">
                 Pastikan Anda sudah melengkapi informasi yang dibutuhkan sebelum meminta saran AI.
               </p>
             </div>

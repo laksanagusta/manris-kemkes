@@ -398,6 +398,7 @@ export default function UsersManagementPage() {
         ))}
       </MetricGrid>
 
+      <div className="space-y-4">
       <CollectionToolbar
         className="w-full"
         leading={
@@ -631,8 +632,9 @@ export default function UsersManagementPage() {
               setPage(1);
             }}
           />
-        </CardContent>
+      </CardContent>
       </Card>
+      </div>
     </PageStack>
   );
 }

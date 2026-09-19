@@ -34,6 +34,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { FieldErrorMessage } from "@/components/shared/design-system";
 import { cn } from "@/lib/utils";
 
 const uprLevelOptions = [
@@ -363,9 +364,9 @@ export function OrganizationFormDialog({
             </div>
           ) : null}
 
-          {errorMessage && (
-            <p className="text-sm text-destructive">{errorMessage}</p>
-          )}
+          <FieldErrorMessage className="text-sm font-normal">
+            {errorMessage}
+          </FieldErrorMessage>
         </div>
 
         <DialogFooter>

@@ -611,6 +611,7 @@ export function PlanningManagementPage() {
         title="Struktur Kinerja"
       />
 
+      <div className="space-y-4">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end">
         <CollectionSearchField
           id="planning-search"
@@ -666,6 +667,7 @@ export function PlanningManagementPage() {
           />
         )}
       </CollectionTableCard>
+      </div>
     </PageStack>
   );
 }

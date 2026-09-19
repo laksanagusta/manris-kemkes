@@ -23,14 +23,14 @@ export function OverviewTopRisksCard({
   return (
     <StandardCard
       title="Risiko yang Perlu Perhatian"
-      className="h-full rounded-2xl"
+      className="h-full rounded-lg"
       headerClassName="px-5 pb-4 pt-5"
       contentClassName="p-0"
     >
       <div className="border-t border-border/60">
         <div
           aria-hidden="true"
-          className="grid min-h-10 w-full grid-cols-[1fr_8fr_1fr] items-center gap-x-3 border-b border-border/60 bg-table-header px-5 text-sm font-normal capitalize tracking-[0.02em] text-muted-foreground sm:grid-cols-[5fr_32fr_8fr_5fr]"
+          className="grid min-h-10 w-full grid-cols-[1fr_8fr_1fr] items-center gap-x-3 border-b border-border/60 bg-table-header px-6 py-1.5 text-[13px] font-medium capitalize tracking-[0.02em] text-secondary-foreground sm:grid-cols-[5fr_32fr_8fr_5fr]"
         >
           <span>Kode</span>
           <span>Judul</span>
@@ -47,7 +47,7 @@ export function OverviewTopRisksCard({
               <Link
                 key={risk.id}
                 href={risk.href}
-                className="group/risk grid min-h-14 w-full grid-cols-[1fr_8fr_1fr] items-center gap-x-3 px-5 py-2 outline-none transition-[background-color,transform] duration-150 hover:bg-muted/30 active:scale-[0.995] focus-visible:bg-muted/30 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:grid-cols-[5fr_32fr_8fr_5fr] motion-reduce:transform-none motion-reduce:transition-none"
+                className="group/risk grid min-h-14 w-full grid-cols-[1fr_8fr_1fr] items-center gap-x-3 px-6 py-4 outline-none transition-[background-color,transform] duration-150 hover:bg-muted/30 active:scale-[0.995] focus-visible:bg-muted/30 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:grid-cols-[5fr_32fr_8fr_5fr] motion-reduce:transform-none motion-reduce:transition-none"
               >
                 <div className="min-w-0 font-normal">
                   <span

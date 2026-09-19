@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 
 import { MitigationProgressFormShell } from "./mitigation-progress-form-shell";
 import { ResourceLinkList, ResourceLinkRow } from "./resource-link-row";
+import { FieldErrorMessage } from "../fields/field-error-message";
 
 export type MitigationProgressFormHandle = {
   cancelEvidenceEditor: () => void;
@@ -262,15 +263,9 @@ export function MitigationProgressForm({
             showValidationErrors && notesError ? `${notesId}-error` : undefined
           }
         />
-        {showValidationErrors && notesError ? (
-          <p
-            id={`${notesId}-error`}
-            role="alert"
-            className="text-xs leading-5 text-destructive"
-          >
-            {notesError}
-          </p>
-        ) : null}
+        <FieldErrorMessage id={`${notesId}-error`}>
+          {showValidationErrors ? notesError : undefined}
+        </FieldErrorMessage>
       </div>
 
       <div className="flex flex-col gap-2">
@@ -298,24 +293,12 @@ export function MitigationProgressForm({
             {evidenceAddControl}
           </div>
         ) : null}
-        {draftEvidenceError ? (
-          <p
-            id={`${evidenceId}-draft-error`}
-            role="alert"
-            className="text-xs leading-5 text-destructive"
-          >
-            {draftEvidenceError}
-          </p>
-        ) : null}
-        {showValidationErrors && evidenceError ? (
-          <p
-            id={`${evidenceId}-error`}
-            role="alert"
-            className="text-xs leading-5 text-destructive"
-          >
-            {evidenceError}
-          </p>
-        ) : null}
+        <FieldErrorMessage id={`${evidenceId}-draft-error`}>
+          {draftEvidenceError}
+        </FieldErrorMessage>
+        <FieldErrorMessage id={`${evidenceId}-error`}>
+          {showValidationErrors ? evidenceError : undefined}
+        </FieldErrorMessage>
       </div>
     </MitigationProgressFormShell>
   );

@@ -22,11 +22,18 @@ test("uses normal typography throughout each top-risk row", () => {
   assert.match(source, /className=\{cn\([\s\S]*?"[^"]*font-normal[^"]*",/);
   assert.match(
     source,
-    /className="min-w-0 truncate text-sm font-normal text-foreground"/,
+    /className="block truncate font-mono text-sm font-normal text-foreground"/,
+  );
+  assert.match(
+    source,
+    /className="min-w-0 truncate text-sm font-normal text-muted-foreground"/,
   );
   assert.match(source, /text-sm font-normal text-muted-foreground sm:block/);
   assert.match(source, /text-sm font-normal text-muted-foreground sm:hidden/);
-  assert.doesNotMatch(source, /className="[^"]*font-(medium|semibold|bold)[^"]*"/);
+  assert.doesNotMatch(
+    source,
+    /group\/risk[\s\S]*?font-(medium|semibold|bold)/,
+  );
 });
 
 test("renders the compact attention list as a checkbox-free category ledger", () => {
@@ -35,8 +42,11 @@ test("renders the compact attention list as a checkbox-free category ledger", ()
     assert.match(componentSource, />Judul<\/span>/);
     assert.match(componentSource, />Kategori<\/span>/);
     assert.match(componentSource, />Skor<\/span>/);
-    assert.match(componentSource, /bg-table-header/);
-    assert.match(componentSource, /text-xs font-normal capitalize/);
+    assert.match(componentSource, /bg-(?:card|table-header)/);
+    assert.match(
+      componentSource,
+      /px-5 py-2 text-\[13px\] font-medium capitalize/,
+    );
     assert.match(componentSource, /grid-cols-\[1fr_8fr_1fr\]/);
     assert.match(componentSource, /sm:grid-cols-\[5fr_32fr_8fr_5fr\]/);
     assert.doesNotMatch(componentSource, /justify-start/);

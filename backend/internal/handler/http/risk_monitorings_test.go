@@ -21,6 +21,20 @@ type riskMonitoringListRepoStub struct {
 	total  int
 }
 
+type riskMonitoringDeleteRepoStub struct {
+	monitoring *entity.RiskMonitoring
+	deleted    bool
+}
+
+func (r *riskMonitoringDeleteRepoStub) GetByID(context.Context, uuid.UUID, []uuid.UUID) (*entity.RiskMonitoring, error) {
+	return r.monitoring, nil
+}
+
+func (r *riskMonitoringDeleteRepoStub) DeleteDraft(context.Context, uuid.UUID, []uuid.UUID) error {
+	r.deleted = true
+	return nil
+}
+
 func (r *riskMonitoringListRepoStub) List(_ context.Context, filter repo.RiskMonitoringListFilter) ([]*entity.RiskMonitoring, int, error) {
 	r.filter = filter
 	return r.items, r.total, nil
@@ -111,5 +125,55 @@ func TestRiskMonitoringsListReturnsMonitoringEnvelope(t *testing.T) {
 	}
 	if payload.Data[0]["status"] != entity.RiskMonitoringStatusDraft {
 		t.Fatalf("expected draft status in response, got %#v", payload.Data[0]["status"])
+	}
+}
+
+func TestDeleteMonitoringDeletesDraftAndReturnsEnvelope(t *testing.T) {
+	orgID := uuid.New()
+	repoStub := &riskMonitoringDeleteRepoStub{
+		monitoring: &entity.RiskMonitoring{
+			ID:     uuid.New(),
+			Status: entity.RiskMonitoringStatusDraft,
+		},
+	}
+	handler := &RiskHandler{
+		deleteMonitoringUC: riskuc.NewDeleteMonitoringUseCase(repoStub),
+	}
+
+	app := fiber.New()
+	app.Delete("/risk-monitorings/:id", func(c *fiber.Ctx) error {
+		c.Locals("accessScope", &entity.AccessScope{
+			OrganizationID:   &orgID,
+			AccessibleOrgIDs: []uuid.UUID{orgID},
+		})
+		return c.Next()
+	}, handler.DeleteMonitoring)
+
+	resp, err := app.Test(httptest.NewRequest(
+		fiber.MethodDelete,
+		"/risk-monitorings/"+repoStub.monitoring.ID.String(),
+		nil,
+	))
+	if err != nil {
+		t.Fatalf("app.Test: %v", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != fiber.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		t.Fatalf("expected status 200, got %d: %s", resp.StatusCode, body)
+	}
+	if !repoStub.deleted {
+		t.Fatal("expected DeleteDraft to be called")
+	}
+	var payload struct {
+		Data struct {
+			Message string `json:"message"`
+		} `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if payload.Data.Message == "" {
+		t.Fatal("expected delete confirmation message")
 	}
 }

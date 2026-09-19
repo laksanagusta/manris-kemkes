@@ -149,7 +149,7 @@ function PredictivePageContent() {
       <Card className="bg-card/80">
         <CardContent className="p-5">
           <div className="flex items-start gap-4">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
               <Sparkles className="size-5 text-primary" />
             </div>
             <div>

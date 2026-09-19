@@ -2,29 +2,24 @@ import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 import { PageHeaderActionsPortal } from "./page-header-actions-portal";
-import { PageBackActionPortal } from "./page-back-action-portal";
 
 export function CollectionPageHeader({
   icon,
   eyebrow,
-  backAction,
   title,
   subtitle,
   showTitle = false,
   actions,
   actionsPlacement = "header",
-  backActionPlacement = "top",
   className,
 }: {
   icon?: ReactNode;
   eyebrow?: ReactNode;
-  backAction?: ReactNode;
   title: ReactNode;
   subtitle?: ReactNode;
   showTitle?: boolean;
   actions?: ReactNode;
   actionsPlacement?: "header" | "title" | "top";
-  backActionPlacement?: "local" | "top";
   className?: string;
 }) {
   const actionsInTitleRow =
@@ -33,19 +28,12 @@ export function CollectionPageHeader({
   const hasLeftContent = Boolean(eyebrow || (showTitle && title));
   const hasHeaderContent = hasLeftContent || Boolean(actions && !actionsInTopSlot);
 
-  if (!hasHeaderContent && !backAction) {
+  if (!hasHeaderContent && !actionsInTopSlot) {
     return null;
   }
 
   return (
     <header className={cn("flex flex-col gap-3", className)}>
-      {backAction ? (
-        backActionPlacement === "top" ? (
-          <PageBackActionPortal>{backAction}</PageBackActionPortal>
-        ) : (
-          <div className="flex items-center">{backAction}</div>
-        )
-      ) : null}
       {actionsInTopSlot ? (
         <PageHeaderActionsPortal>{actions}</PageHeaderActionsPortal>
       ) : null}
@@ -81,7 +69,7 @@ export function CollectionPageHeader({
                       <h1 className="page-title">{title}</h1>
                     </div>
                     {subtitle ? (
-                      <p className="mt-1 text-sm leading-6 text-muted-foreground text-pretty">
+                      <p className="mt-1 text-sm leading-6 text-secondary-foreground text-pretty">
                         {subtitle}
                       </p>
                     ) : null}

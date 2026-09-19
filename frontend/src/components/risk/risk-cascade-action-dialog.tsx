@@ -4,6 +4,12 @@ import { useEffect, useMemo, useState } from "react";
 import { Loader2, Search, GitBranch, CheckCircle2 } from "@/components/ui/icons";
 
 import { useAuth } from "@/contexts/auth-context";
+import {
+  AccentButton,
+  CollectionDialogCancel,
+  DestructiveButton,
+  PopoverSelectField,
+} from "@/components/shared/design-system";
 import { listOrganizations, type OrganizationListItem } from "@/lib/api/organizations";
 import { listRiskRegister, type RiskRegisterListItem } from "@/lib/api/risk-register";
 import {
@@ -29,13 +35,6 @@ import {
 import { Label } from "@/components/ui/label";
 import { SearchInput } from "@/components/ui/search-input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Popover,
   PopoverContent,
@@ -85,6 +84,11 @@ const createCascadeOptions = [
   { value: "bottom_up_escalation", label: "Bottom-up" },
 ] as const;
 
+const adoptionOptions = [
+  { value: "full", label: "Penuh" },
+  { value: "partial", label: "Sebagian" },
+] as const;
+
 const statusLabels: Record<string, string> = {
   proposed: "Menunggu Tinjauan",
   analyzed: "Sedang Ditinjau",
@@ -92,6 +96,14 @@ const statusLabels: Record<string, string> = {
   rejected: "Ditolak",
   implemented: "Selesai",
 };
+
+const statusBadgeTones = {
+  proposed: "warning",
+  analyzed: "info",
+  accepted: "success",
+  rejected: "danger",
+  implemented: "success",
+} as const;
 
 function CascadeRiskSelect({
   token,
@@ -155,14 +167,21 @@ function CascadeRiskSelect({
       }}
     >
       <PopoverTrigger asChild>
-        <Button variant="outline" className="h-10 w-full justify-between gap-2 font-normal">
+        <Button
+          id="cascade-source-risk"
+          variant="outline"
+          className="h-10 w-full justify-between gap-2 font-normal"
+        >
           <span className="truncate">
             {selected ? `${selected.code || "Risk"} · ${selected.title || "-"}` : "Pilih risiko asal"}
           </span>
           <Search className="size-4 shrink-0 opacity-60" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+      <PopoverContent
+        className="w-[var(--radix-popover-trigger-width)] p-0"
+        align="start"
+      >
         <div className="flex items-center border-b px-3">
           <Search className="mr-2 size-4 shrink-0 opacity-50" />
           <SearchInput
@@ -276,12 +295,19 @@ function CascadeOrgSelect({
       }}
     >
       <PopoverTrigger asChild>
-        <Button variant="outline" className="h-10 w-full justify-between gap-2 font-normal">
+        <Button
+          id="cascade-target-organization"
+          variant="outline"
+          className="h-10 w-full justify-between gap-2 font-normal"
+        >
           <span className="truncate">{selected?.name || triggerLabel}</span>
           <Search className="size-4 shrink-0 opacity-60" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+      <PopoverContent
+        className="w-[var(--radix-popover-trigger-width)] p-0"
+        align="start"
+      >
         <div className="flex items-center border-b px-3">
           <Search className="mr-2 size-4 shrink-0 opacity-50" />
           <SearchInput
@@ -379,16 +405,16 @@ export function RiskCascadeActionDialog({
   const dialogTitle =
     title ??
     (mode === "create"
-      ? "Buat Eskalasi Risiko"
+      ? "Buat eskalasi risiko"
       : cascade?.cascadeType === "bottom_up_escalation"
-        ? "Tinjau Bottom-up"
-        : "Tinjau Top-down");
+        ? "Tinjau bottom-up"
+        : "Tinjau top-down");
 
   const dialogDescription =
     description ??
     (mode === "create"
-      ? "Pilih risiko asal, organisasi tujuan, dan alasan pengajuan."
-      : "Setujui atau tolak usulan dengan catatan keputusan yang jelas.");
+      ? "Tentukan risiko asal, organisasi tujuan, dan alasan pengajuan."
+      : "Tinjau usulan lalu berikan keputusan dengan catatan yang jelas.");
 
   const canSubmitCreate = Boolean(sourceRiskId && targetOrgId && token);
   const canSubmitDecision = Boolean(cascade && token && decisionNote.trim());
@@ -439,33 +465,33 @@ export function RiskCascadeActionDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>{dialogTitle}</DialogTitle>
-          <DialogDescription>{dialogDescription}</DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-2xl no-scrollbar" showCloseButton={false}>
+        <div className="flex min-h-0 flex-col gap-5">
+          <DialogHeader>
+            <DialogTitle className="text-base">{dialogTitle}</DialogTitle>
+            <DialogDescription className="max-w-[48ch]">
+              {dialogDescription}
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="space-y-5">
           {mode === "create" ? (
             <>
-              <div className="grid gap-5 md:grid-cols-2">
-                <div className="space-y-2 md:col-span-2">
-                  <Label>Jenis eskalasi</Label>
-                  <Select value={cascadeType} onValueChange={(value) => setCascadeType(value as RiskCascadeType)}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih jenis eskalasi" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {createCascadeOptions.map(({ value, label }) => (
-                        <SelectItem key={value} value={value}>
-                          {label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+              <div className="space-y-5">
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="cascade-type">Jenis eskalasi</Label>
+                  <PopoverSelectField
+                    id="cascade-type"
+                    value={cascadeType}
+                    onValueChange={(value) =>
+                      setCascadeType(value as RiskCascadeType)
+                    }
+                    options={createCascadeOptions}
+                    placeholder="Pilih jenis eskalasi"
+                    ariaLabel="Jenis eskalasi"
+                  />
                 </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label>Risiko sumber</Label>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="cascade-source-risk">Risiko sumber</Label>
                   <CascadeRiskSelect
                     token={token ?? undefined}
                     value={sourceRiskId}
@@ -473,8 +499,10 @@ export function RiskCascadeActionDialog({
                     initialRiskId={initialSourceRiskId}
                   />
                 </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label>Organisasi tujuan</Label>
+                <div className="flex flex-col gap-2">
+                  <Label htmlFor="cascade-target-organization">
+                    Organisasi tujuan
+                  </Label>
                   <CascadeOrgSelect
                     token={token ?? undefined}
                     value={targetOrgId}
@@ -484,9 +512,10 @@ export function RiskCascadeActionDialog({
                   />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>Alasan eskalasi</Label>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="cascade-analysis-note">Alasan eskalasi</Label>
                 <Textarea
+                  id="cascade-analysis-note"
                   value={analysisNote}
                   onChange={(event) => setAnalysisNote(event.target.value)}
                   placeholder="Contoh: risiko ini perlu diteruskan ke unit tujuan karena temuan SPI..."
@@ -495,86 +524,125 @@ export function RiskCascadeActionDialog({
               </div>
             </>
           ) : (
-            <div className="space-y-4">
-              <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+            <div className="space-y-5">
+              <div className="rounded-lg bg-muted/20 p-4 ring-1 ring-inset ring-border/60">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline" className="-primary/20 bg-primary/10 text-primary">
+                  <Badge size="compact" tone="neutral">
                     {cascade?.cascadeType ? cascadeTypeLabels[cascade.cascadeType] : "Eskalasi"}
                   </Badge>
-                  <Badge variant="outline" className="capitalize">
+                  <Badge
+                    size="compact"
+                    tone={statusBadgeTones[cascade?.status || "proposed"] ?? "neutral"}
+                  >
                     {statusLabels[cascade?.status || "proposed"] || cascade?.status || "proposed"}
                   </Badge>
                 </div>
-                <div className="mt-3 grid gap-3 md:grid-cols-2">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Sumber</p>
-                    <p className="mt-1 text-sm font-medium">
+                <div className="mt-4 grid gap-4 md:grid-cols-2">
+                  <div className="min-w-0 space-y-1">
+                    <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                      Sumber
+                    </p>
+                    <p className="break-words text-sm font-medium text-foreground">
                       {cascade?.sourceRiskCode || "Risk"} {cascade?.sourceRiskTitle ? `· ${cascade.sourceRiskTitle}` : ""}
                     </p>
                     <p className="text-xs text-muted-foreground">{cascade?.sourceOrgName || "-"}</p>
                   </div>
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">Tujuan</p>
-                    <p className="mt-1 text-sm font-medium">{cascade?.targetOrgName || "-"}</p>
-                    <p className="text-xs text-muted-foreground">{cascade?.targetRiskCode ? `Target risk: ${cascade.targetRiskCode}` : "Belum ada target risk"}</p>
+                  <div className="min-w-0 space-y-1">
+                    <p className="text-xs font-medium uppercase tracking-[0.08em] text-muted-foreground">
+                      Tujuan
+                    </p>
+                    <p className="break-words text-sm font-medium text-foreground">
+                      {cascade?.targetOrgName || "-"}
+                    </p>
+                    <p className="break-words text-xs text-muted-foreground">
+                      {cascade?.targetRiskCode
+                        ? `Target risiko: ${cascade.targetRiskCode}`
+                        : "Belum ada risiko target"}
+                    </p>
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <Label>Cakupan adopsi</Label>
-                <Select value={adoptionType} onValueChange={(value) => setAdoptionType(value as "full" | "partial")}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih cakupan" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="full">Penuh</SelectItem>
-                    <SelectItem value="partial">Sebagian</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="cascade-adoption-type">Cakupan adopsi</Label>
+                <PopoverSelectField
+                  id="cascade-adoption-type"
+                  value={adoptionType}
+                  onValueChange={(value) =>
+                    setAdoptionType(value as "full" | "partial")
+                  }
+                  options={adoptionOptions}
+                  placeholder="Pilih cakupan"
+                  ariaLabel="Cakupan adopsi"
+                />
               </div>
-              <div className="space-y-2">
-                <Label>Catatan keputusan</Label>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="cascade-decision-note">
+                  Catatan keputusan
+                  <span className="ml-0.5 text-destructive" aria-hidden="true">
+                    *
+                  </span>
+                </Label>
                 <Textarea
+                  id="cascade-decision-note"
                   value={decisionNote}
                   onChange={(event) => setDecisionNote(event.target.value)}
                   placeholder="Tuliskan alasan setuju atau tolak secara singkat dan jelas."
                   className="min-h-28"
+                  aria-required="true"
                 />
               </div>
             </div>
           )}
-        </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={saving}>
-            Batal
-          </Button>
-          {mode === "create" ? (
-            <Button onClick={handleCreate} disabled={!canSubmitCreate || saving} className="gap-2">
-              {saving ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
-              Simpan Eskalasi
-            </Button>
-          ) : (
-            <>
-              <Button
-                variant="destructive"
-                onClick={() => handleDecision("reject")}
-                disabled={!canSubmitDecision || saving}
+          <DialogFooter className="sm:flex-row">
+            <CollectionDialogCancel
+              type="button"
+              onClick={() => onOpenChange(false)}
+              disabled={saving}
+            >
+              Batal
+            </CollectionDialogCancel>
+            {mode === "create" ? (
+              <AccentButton
+                onClick={handleCreate}
+                disabled={!canSubmitCreate || saving}
+                icon={
+                  saving ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <CheckCircle2 className="size-3.5" />
+                  )
+                }
               >
-                {saving ? <Loader2 className="size-4 animate-spin" /> : "Tolak"}
-              </Button>
-              <Button
-                onClick={() => handleDecision("accept")}
-                disabled={!canSubmitDecision || saving}
-                className="gap-2"
-              >
-                {saving ? <Loader2 className="size-4 animate-spin" /> : <CheckCircle2 className="size-4" />}
-                Setujui
-              </Button>
-            </>
-          )}
-        </DialogFooter>
+                Simpan eskalasi
+              </AccentButton>
+            ) : (
+              <>
+                <DestructiveButton
+                  onClick={() => handleDecision("reject")}
+                  disabled={!canSubmitDecision || saving}
+                  loading={saving}
+                >
+                  Tolak
+                </DestructiveButton>
+                <AccentButton
+                  onClick={() => handleDecision("accept")}
+                  disabled={!canSubmitDecision || saving}
+                  icon={
+                    saving ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <CheckCircle2 className="size-3.5" />
+                    )
+                  }
+                >
+                  Setujui
+                </AccentButton>
+              </>
+            )}
+          </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

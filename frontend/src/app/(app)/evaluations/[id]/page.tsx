@@ -54,7 +54,6 @@ import {
   ActionButton,
   AccentButton,
   CollectionPageHeader,
-  FormBackAction,
 } from "@/components/shared/design-system";
 import { OrderedUserSelectionTable } from "@/components/risk/ordered-user-selection-table";
 import { RemoteUserPicker } from "@/components/risk/remote-user-picker";
@@ -244,7 +243,7 @@ function formatStatus(status: EvaluationStatus) {
 }
 
 const evaluationCardClass =
-  "scroll-mt-28 overflow-hidden rounded-xl bg-card gap-0 p-0 transition-colors duration-200";
+  "scroll-mt-28 overflow-hidden rounded-lg bg-card gap-0 p-0 transition-colors duration-200";
 
 const statusTones: Record<EvaluationStatus, "neutral" | "success"> = {
   draft: "neutral",
@@ -602,7 +601,7 @@ export default function EvaluationDetailPage() {
 
   if (loading) {
     return (
-      <div className="font-display flex min-h-[50vh] items-center justify-center rounded-xl bg-state-surface text-sm text-state-foreground">
+      <div className="font-display flex min-h-[50vh] items-center justify-center rounded-lg bg-state-surface text-sm text-state-foreground">
         <Loader2 className="mr-2 size-4 animate-spin" />
         Memuat evaluasi...
       </div>
@@ -611,13 +610,12 @@ export default function EvaluationDetailPage() {
 
   if (!evaluation) {
     return (
-      <div className="font-display rounded-xl bg-state-surface px-6 py-10 text-center text-state-foreground">
+      <div className="font-display rounded-lg bg-state-surface px-6 py-10 text-center text-state-foreground">
         <div className="space-y-3">
           <p className="text-sm font-medium">Evaluasi tidak ditemukan</p>
           <p className="text-sm text-state-foreground">
             Periksa kembali tautan atau buka daftar evaluasi untuk memilih data yang benar.
           </p>
-          <FormBackAction href="/evaluations" label="Kembali ke daftar" />
         </div>
       </div>
     );
@@ -629,8 +627,6 @@ export default function EvaluationDetailPage() {
   return (
     <FormPage className="evaluation-form space-y-6 [&>header+*]:!mt-6">
       <CollectionPageHeader
-        backActionPlacement="local"
-        backAction={<FormBackAction href="/evaluations" label="Kembali" />}
         showTitle
         actionsPlacement="title"
         eyebrow={
@@ -765,7 +761,7 @@ export default function EvaluationDetailPage() {
                   <CardTitle className="text-base font-medium tracking-tight text-foreground">
                     Identitas Evaluasi
                   </CardTitle>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
+                  <p className="text-sm leading-relaxed text-secondary-foreground">
                     Lengkapi metadata laporan, unit kerja, dan susunan tim evaluasi.
                   </p>
                 </div>
@@ -968,14 +964,14 @@ export default function EvaluationDetailPage() {
                 <CardTitle className="text-base font-medium tracking-tight text-foreground">
                   Hasil Pemantauan dan Evaluasi
                 </CardTitle>
-                <p className="text-sm leading-relaxed text-muted-foreground">
+                <p className="text-sm leading-relaxed text-secondary-foreground">
                   Isi jawaban, uraian kondisi, dan keterangan untuk setiap poin evaluasi.
                 </p>
               </div>
             </CardHeader>
             <CardContent className="space-y-6 px-5 pb-6 pt-2">
               {evaluationSections.length === 0 ? (
-                <div className="rounded-xl bg-state-surface px-4 py-8 text-sm text-state-foreground">
+                <div className="rounded-lg bg-state-surface px-4 py-8 text-sm text-state-foreground">
                   Belum ada section evaluasi yang tersedia.
                 </div>
               ) : null}
@@ -1000,7 +996,7 @@ export default function EvaluationDetailPage() {
                           {section.title}
                         </h3>
                         {section.description ? (
-                          <p className="text-sm leading-relaxed text-muted-foreground">
+                          <p className="text-sm leading-relaxed text-secondary-foreground">
                             {section.description}
                           </p>
                         ) : null}
@@ -1193,7 +1189,7 @@ export default function EvaluationDetailPage() {
                 <CardTitle className="text-base font-medium tracking-tight text-foreground">
                   Permasalahan dan saran
                 </CardTitle>
-                <p className="text-sm leading-relaxed text-muted-foreground">
+                <p className="text-sm leading-relaxed text-secondary-foreground">
                   Ringkas hambatan utama dan langkah perbaikannya, tanpa mengulang isi tiap poin.
                 </p>
               </div>
@@ -1238,7 +1234,7 @@ export default function EvaluationDetailPage() {
                   <CardTitle className="text-base font-medium tracking-tight text-foreground">
                     Status kerja
                   </CardTitle>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
+                  <p className="text-sm leading-relaxed text-secondary-foreground">
                     Pantau kelengkapan isian sebelum evaluasi difinalisasi.
                   </p>
                 </div>
@@ -1302,7 +1298,7 @@ export default function EvaluationDetailPage() {
                   </div>
                 </dl>
 
-                <div className="rounded-xl bg-muted/50 px-3 py-3 text-sm leading-relaxed text-muted-foreground">
+                <div className="rounded-lg bg-muted/50 px-3 py-3 text-sm leading-relaxed text-muted-foreground">
                   Sebelum finalisasi, pastikan kesimpulan section dan permasalahan
                   sudah sesuai dengan isi poin. Setelah final, data terkunci dan
                   PDF diambil dari evaluasi tersimpan.

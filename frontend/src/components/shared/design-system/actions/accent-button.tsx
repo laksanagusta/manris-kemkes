@@ -13,6 +13,9 @@ export function AccentButton({
   style,
   ...props
 }: ComponentProps<typeof Button> & { icon?: ReactNode }) {
+  // Keep the prop for backwards-compatible call sites while intentionally
+  // omitting decorative icons from rendered labeled buttons.
+  void icon;
   const sharedProps = {
     variant: "primary" as const,
     size: "primary" as const,
@@ -30,7 +33,6 @@ export function AccentButton({
 
   return (
     <Button {...sharedProps} {...props}>
-      {icon}
       {children}
     </Button>
   );

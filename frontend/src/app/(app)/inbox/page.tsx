@@ -580,6 +580,7 @@ export default function InboxPage() {
         ))}
       </MetricGrid>
 
+      <div className="space-y-4">
       <CollectionToolbar
         leading={
           <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
@@ -741,6 +742,7 @@ export default function InboxPage() {
             }}
           />
       </CollectionTableCard>
+      </div>
 
     </PageStack>
   );

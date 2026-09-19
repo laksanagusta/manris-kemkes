@@ -2,6 +2,12 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* Labeled buttons are text-only in the shared button system. Icon-only
+ * controls opt into an explicit icon size so their affordance remains visible. */
+[data-slot="button"]:not([data-size^="icon"]) svg {
+  display: none;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-main-content: var(--main-content);
@@ -41,6 +47,8 @@
   --color-muted: var(--muted);
   --color-state-surface: var(--state-surface);
   --color-state-foreground: var(--state-foreground);
+  --color-warning-card-surface: var(--warning-card-surface);
+  --color-warning-card-foreground: var(--warning-card-foreground);
   --color-secondary-foreground: var(--secondary-foreground);
   --color-secondary: var(--secondary);
   --color-primary-foreground: var(--primary-foreground);
@@ -63,6 +71,7 @@
   /* Easing tokens */
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 
   /* MANRIS custom colors */
   --color-risk-low: var(--risk-low);
@@ -94,16 +103,60 @@
   --color-chart-background: var(----chart-background);
 }
 
+/* Intrinsic-height drawers keep Vaul's spatial slide while adding an
+ * interruptible grow/shrink transition for content-size changes. */
+[data-slot="drawer-content"][data-dynamic-height="true"] {
+  transition:
+    transform 500ms var(--ease-drawer),
+    height 220ms var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="drawer-content"][data-dynamic-height="true"] {
+    transition: none;
+  }
+}
+
 .document-processing-status-enter {
   transition:
     opacity 180ms var(--ease-out),
     transform 180ms var(--ease-out);
 }
 
+.field-error-message {
+  display: grid;
+  grid-template-rows: 1fr;
+  overflow: clip;
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    grid-template-rows 200ms var(--ease-out),
+    opacity 160ms var(--ease-out),
+    transform 200ms var(--ease-out);
+}
+
+.field-error-message__content {
+  min-height: 0;
+  overflow: hidden;
+  opacity: 1;
+  transition: opacity 160ms var(--ease-out);
+  transition-delay: 20ms;
+}
+
 @starting-style {
   .document-processing-status-enter {
     opacity: 0;
     transform: translateY(8px);
+  }
+
+  .field-error-message {
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  .field-error-message__content {
+    opacity: 0;
   }
 }
 
@@ -112,10 +165,30 @@
     transition: opacity 120ms var(--ease-out);
   }
 
+  .field-error-message {
+    transform: none;
+    transition: opacity 120ms var(--ease-out);
+  }
+
+  .field-error-message__content {
+    transition: opacity 120ms var(--ease-out);
+    transition-delay: 0ms;
+  }
+
   @starting-style {
     .document-processing-status-enter {
       opacity: 0;
       transform: none;
+    }
+
+    .field-error-message {
+      grid-template-rows: 1fr;
+      opacity: 0;
+      transform: none;
+    }
+
+    .field-error-message__content {
+      opacity: 0;
     }
   }
 }
@@ -125,7 +198,7 @@
   --background: #fcfcfc;
   --main-content: #fcfcfc;
   --table-header: #fcfcfc;
-  --table-header-foreground: var(--muted-foreground);
+  --table-header-foreground: var(--secondary-foreground);
   --foreground: #201d1d;
   --card: #ffffff;
   --card-foreground: var(--foreground);
@@ -134,13 +207,15 @@
   --primary: #202020;
   --primary-foreground: #ffffff;
   --secondary: #f6f6f6;
-  --secondary-foreground: #636161;
+  --secondary-foreground: #52525b;
   --muted: var(--sidebar-accent);
   --muted-foreground: #8f8e8e;
   --disabled-foreground: #bcbbbb;
   --disabled-surface: #f8f8f8;
   --state-surface: #fcfbfb;
   --state-foreground: #8f8e8e;
+  --warning-card-surface: #fbf6e8;
+  --warning-card-foreground: #000000;
   --accent: var(--sidebar-accent);
   --accent-foreground: var(--sidebar-accent-foreground);
   --destructive: #e33f47;
@@ -290,8 +365,8 @@ body[data-scroll-locked] [data-component="monitoring-baseline-floating"] {
 .page-title {
   color: var(--foreground);
   font-family: var(--font-display);
-  font-size: 1.75rem;
-  font-weight: 500;
+  font-size: 1.5rem;
+  font-weight: 600;
   letter-spacing: -0.025em;
   line-height: 1.1;
   text-wrap: balance;

@@ -8,6 +8,10 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
   Inbox,
+  Agreement03,
+  Alert02,
+  Certificate01,
+  Folder01,
   ShieldAlert,
   ClipboardCheck,
   BookOpen,
@@ -71,6 +75,10 @@ interface NavGroup {
 const iconMap: Record<string, React.ElementType> = {
   LayoutDashboard,
   Inbox,
+  Agreement03,
+  Alert02,
+  Certificate01,
+  Folder01,
   ShieldAlert,
   ClipboardCheck,
   BookOpen,
@@ -363,7 +371,7 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
       <LayoutGroup id="sidebar-navigation">
         <SidebarContent>
           <ScrollArea className="min-h-0 flex-1">
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-3 pt-2">
               {visibleNavigation.map((group) => (
                 <SidebarGroup key={group.title}>
                   <SidebarGroupLabel>

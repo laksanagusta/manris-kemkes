@@ -40,6 +40,7 @@ import {
 import {
   AccentButton,
   ActionButton,
+  FieldErrorMessage,
   MetricGrid,
   PageStack,
 } from "@/components/shared/design-system";
@@ -147,12 +148,12 @@ function EvaluationFiltersSidebar({
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="w-[22rem] rounded-xl p-4"
+        className="w-[22rem] rounded-lg p-4"
       >
         <div className="space-y-4">
           <div>
             <h4 className="text-sm font-medium">Filter Evaluasi</h4>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-secondary-foreground">
               Atur organisasi, periode, dan status.
             </p>
           </div>
@@ -656,6 +657,7 @@ export default function EvaluationsPage() {
         ))}
       </MetricGrid>
 
+      <div className="space-y-4">
       <CollectionToolbar
         leading={
           <EvaluationFiltersToolbar
@@ -859,6 +861,7 @@ export default function EvaluationsPage() {
             }}
           />
       </CollectionTableCard>
+      </div>
 
       <Dialog
         open={createDialogOpen}
@@ -910,14 +913,9 @@ export default function EvaluationsPage() {
                   }
                   className="h-10 rounded-lg text-sm"
                 />
-                {createFieldErrors.organization ? (
-                  <p
-                    id="create-organization-error"
-                    className="text-xs text-destructive"
-                  >
-                    {createFieldErrors.organization}
-                  </p>
-                ) : null}
+                <FieldErrorMessage id="create-organization-error">
+                  {createFieldErrors.organization}
+                </FieldErrorMessage>
               </div>
 
               <div className="space-y-2">
@@ -952,11 +950,9 @@ export default function EvaluationsPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                {createFieldErrors.period ? (
-                  <p id="create-period-error" className="text-xs text-destructive">
-                    {createFieldErrors.period}
-                  </p>
-                ) : null}
+                <FieldErrorMessage id="create-period-error">
+                  {createFieldErrors.period}
+                </FieldErrorMessage>
               </div>
             </div>
 

@@ -23,7 +23,7 @@ export function StandardCard({
   return (
     <Card
       className={cn(
-        "surface-hairline gap-0 overflow-hidden rounded-xl bg-card p-0",
+        "surface-hairline gap-0 overflow-hidden rounded-lg bg-card p-0",
         className,
       )}
     >

@@ -63,9 +63,7 @@ import {
   GitBranch,
   Link2,
   Loader2,
-  RefreshCw,
   Save,
-  Sparkles,
   X,
 } from "@/components/ui/icons";
 import { createMeetingMinute } from "@/lib/meeting-minutes";
@@ -386,7 +384,6 @@ export function MeetingIntelligenceWorkspace({
       <AIFeaturesDisabledState
         title="Workspace AI Dinonaktifkan"
         description="Analisis MoM, transkrip, dan generator briefing sedang dimatikan melalui environment frontend."
-        backHref="/overview"
       />
     );
   }
@@ -731,7 +728,7 @@ function MeetingIntelligenceWorkspaceContent({
             <div>
               <div className="flex flex-col gap-[2px]">
                 <p className="text-[15px] font-medium leading-[23px] text-foreground">Transkrip rapat</p>
-                <p className="text-[13px] font-normal leading-[22px] text-muted-foreground">
+                <p className="text-[13px] font-normal leading-[22px] text-secondary-foreground">
                   Pilih keluaran, lalu masukkan transkrip atau catatan rapat untuk dianalisis.
                 </p>
               </div>
@@ -761,7 +758,7 @@ function MeetingIntelligenceWorkspaceContent({
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="text-sm font-semibold text-foreground">{config.title}</p>
-                          <p className="mt-1 text-xs leading-5 text-muted-foreground">{config.summary}</p>
+                          <p className="mt-1 text-xs leading-5 text-secondary-foreground">{config.summary}</p>
                         </div>
                       </div>
                     </button>
@@ -782,25 +779,20 @@ function MeetingIntelligenceWorkspaceContent({
               </div>
 
               <div className="flex flex-wrap justify-end gap-2">
-                  <ActionButton
-                    onClick={() => setTranscript("")}
-                    disabled={isWorking || transcript.length === 0}
-                  >
-                    Kosongkan
-                  </ActionButton>
-                  <AccentButton onClick={handleRun} disabled={isWorking || !transcript.trim()} className="gap-2">
-                    {isWorking ? (
-                      <>
-                        <RefreshCw className="size-4 animate-spin" />
-                        {selectedMode.runningLabel}
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="size-4" />
-                        {selectedMode.actionLabel}
-                      </>
-                    )}
-                  </AccentButton>
+                <ActionButton
+                  onClick={() => setTranscript("")}
+                  disabled={isWorking || transcript.length === 0}
+                >
+                  Kosongkan
+                </ActionButton>
+                <AccentButton
+                  onClick={handleRun}
+                  disabled={isWorking || !transcript.trim()}
+                >
+                  {isWorking
+                    ? selectedMode.runningLabel
+                    : selectedMode.actionLabel}
+                </AccentButton>
               </div>
             </CardContent>
           </Card>
@@ -997,7 +989,7 @@ function MeetingIntelligenceWorkspaceContent({
                 </LabeledList>
               </div>
             ) : (
-              <Card className="min-h-[60px] flex-row items-center rounded-[10px]">
+              <Card className="min-h-[60px] flex-row items-center rounded-lg">
                 <CardContent role="status" className="w-full p-0 text-sm font-normal leading-5 text-muted-foreground">
                   Briefing akan muncul di sini setelah Anda menjalankan mode ini.
                 </CardContent>
@@ -1009,7 +1001,7 @@ function MeetingIntelligenceWorkspaceContent({
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                   <div>
                     <h2 className="text-lg font-semibold">Saran perubahan risiko</h2>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-secondary-foreground">
                       Existing risk bisa di-review lalu di-apply langsung. Risiko baru tetap dibuka sebagai draft terpisah.
                     </p>
                   </div>
@@ -1071,7 +1063,7 @@ function MeetingIntelligenceWorkspaceContent({
                                   ? suggestion.targetRiskTitle || "Risiko existing"
                                   : suggestion.draftPrefill?.title || "Draf risiko baru"}
                               </h3>
-                              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                              <p className="mt-1 text-sm leading-6 text-secondary-foreground">
                                 {suggestion.targetType === "existing"
                                   ? `${changeCount} usulan perubahan siap direview sebelum diterapkan ke risk register.`
                                   : suggestion.draftPrefill?.description || "AI menilai pembahasan ini layak disusun sebagai draft risiko baru."}
@@ -1230,7 +1222,7 @@ function MeetingIntelligenceWorkspaceContent({
                             <DialogTitle className="text-base leading-5">
                               {reviewSuggestion.targetRiskTitle || "Tinjau perubahan risiko"}
                             </DialogTitle>
-                            <p className="text-sm leading-6 text-muted-foreground">
+                            <p className="text-sm leading-6 text-secondary-foreground">
                               {reviewSuggestion.reasoning || "Belum ada alasan terstruktur dari AI."}
                             </p>
                           </div>
@@ -1445,7 +1437,7 @@ function MeetingIntelligenceWorkspaceContent({
               </Dialog>
             </>
           ) : (
-            <Card className="min-h-[60px] flex-row items-center rounded-[10px]">
+            <Card className="min-h-[60px] flex-row items-center rounded-lg">
               <CardContent role="status" className="w-full p-0 text-sm font-normal leading-5 text-muted-foreground">
                 Saran akan muncul di sini setelah analisis dijalankan.
               </CardContent>

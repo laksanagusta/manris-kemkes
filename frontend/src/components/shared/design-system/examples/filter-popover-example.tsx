@@ -17,7 +17,7 @@ export function FilterPopoverExample() {
     >
       <div>
         <h4 className="text-sm font-medium">Filter Daftar Risiko</h4>
-        <p className="mt-1 text-xs text-muted-foreground">
+        <p className="mt-1 text-xs text-secondary-foreground">
           Atur filter untuk daftar risiko dan transaksi pemantauan.
         </p>
       </div>

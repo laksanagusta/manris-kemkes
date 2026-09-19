@@ -181,7 +181,7 @@ export default function RegisterScreen() {
           <h1 className="font-logo text-[20px] leading-5 font-semibold lowercase tracking-[-0.4px] text-foreground">
             manris
           </h1>
-          <p className="mt-2 text-sm text-muted-foreground">
+          <p className="mt-2 text-sm text-secondary-foreground">
             Registrasi mandiri untuk pengguna unit kerja
           </p>
         </div>

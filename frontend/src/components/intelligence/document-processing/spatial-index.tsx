@@ -41,7 +41,7 @@ function PageCard({
       aria-pressed={selected}
       aria-label={`${documentName}, halaman ${page.pageNumber}`}
       className={cn(
-        "group/page relative min-w-0 rounded-xl border bg-card p-2 text-left outline-none transition-[border-color,box-shadow,background-color] duration-150 hover:border-foreground/25 hover:border-shadow focus-visible:ring-2 focus-visible:ring-ring/40 motion-reduce:transition-none",
+        "group/page relative min-w-0 rounded-lg border bg-card p-2 text-left outline-none transition-[border-color,box-shadow,background-color] duration-150 hover:border-foreground/25 hover:border-shadow focus-visible:ring-2 focus-visible:ring-ring/40 motion-reduce:transition-none",
         selected ? "border-foreground/50 ring-2 ring-ring/20" : "border-foreground/10",
         selectedFinding && !selected ? "ring-2 ring-warning/50" : "",
       )}
@@ -79,7 +79,7 @@ export function SpatialIndex({
   const indexedPages = job.pages.filter((page) => page.status !== "queued").length;
 
   return (
-    <section className="overflow-hidden rounded-xl border border-border/80 bg-state-surface" aria-labelledby="spatial-index-title">
+    <section className="overflow-hidden rounded-lg border border-border/80 bg-state-surface" aria-labelledby="spatial-index-title">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 bg-card/75 px-4 py-3 backdrop-blur-sm">
         <div className="flex min-w-0 items-center gap-3">
           <div className="size-2 rounded-full bg-primary/70" />
@@ -88,7 +88,7 @@ export function SpatialIndex({
               <h2 id="spatial-index-title" className="text-sm font-semibold text-foreground">Indeks spasial dokumen</h2>
               <Badge variant="outline" className="tabular-nums text-xs">{indexedPages}/{job.pages.length} terindeks</Badge>
             </div>
-            <p className="mt-0.5 text-xs text-muted-foreground">Peta dokumen dan halaman berdasarkan konteks kerja.</p>
+            <p className="mt-0.5 text-xs text-secondary-foreground">Peta dokumen dan halaman berdasarkan konteks kerja.</p>
           </div>
         </div>
         <div className="flex items-center gap-1 rounded-lg border border-border/70 bg-card p-1" aria-label="Perbesaran indeks spasial">
@@ -117,7 +117,7 @@ export function SpatialIndex({
                     initial={reduceMotion ? false : { opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={reduceMotion ? { duration: 0 } : { type: "spring", duration: 0.38, bounce: 0 }}
-                    className="rounded-xl border bg-card/60 p-3 sm:p-4"
+                    className="rounded-lg border bg-card/60 p-3 sm:p-4"
                     style={{ borderColor: `${group.accent}55` }}
                   >
                     <div className="mb-3 flex flex-wrap items-start justify-between gap-3">
@@ -125,7 +125,7 @@ export function SpatialIndex({
                         <span className="mt-1.5 size-2.5 shrink-0 rounded-full" style={{ backgroundColor: group.accent }} />
                         <div>
                           <h3 className="text-xs font-semibold text-foreground">{group.label}</h3>
-                          <p className="mt-0.5 text-xs leading-5 text-muted-foreground">{group.description}</p>
+                          <p className="mt-0.5 text-xs leading-5 text-secondary-foreground">{group.description}</p>
                         </div>
                       </div>
                       <Badge variant="outline" className="border-transparent text-xs" style={{ backgroundColor: group.softAccent, color: group.accent }}>
@@ -156,7 +156,7 @@ export function SpatialIndex({
               })}
             </AnimatePresence>
           ) : (
-            <div className="flex min-h-56 items-center justify-center rounded-xl border border-dashed border-border/80 bg-card/50 text-sm text-muted-foreground">Menunggu halaman diindeks…</div>
+            <div className="flex min-h-56 items-center justify-center rounded-lg border border-dashed border-border/80 bg-card/50 text-sm text-muted-foreground">Menunggu halaman diindeks…</div>
           )}
         </motion.div>
       </div>

@@ -120,7 +120,7 @@ function PhaseBlock({
 
   return (
     <div
-      className={cn("rounded-xl border p-4 space-y-3", variantStyles[variant])}
+      className={cn("rounded-lg border p-4 space-y-3", variantStyles[variant])}
     >
       <div className="flex items-center gap-2">
         <span className="text-[10px] font-mono font-semibold uppercase tracking-widest text-muted-foreground">
@@ -166,7 +166,7 @@ function StepCard({
         {stepNum}
       </div>
 
-      <div className="ml-10 rounded-xl bg-card/30 p-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 transition-colors hover:bg-sidebar-accent/50">
+      <div className="ml-10 rounded-lg bg-card/30 p-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 transition-colors hover:bg-sidebar-accent/50">
         <div className="flex items-start justify-between gap-4 mb-3">
           <div className="flex items-center gap-3">
             <Icon className={cn("size-4", config.text)} />
@@ -177,7 +177,7 @@ function StepCard({
           <StatusPill status={step.status} />
         </div>
 
-        <p className="text-xs text-muted-foreground leading-relaxed mb-4">
+        <p className="mb-4 text-xs leading-relaxed text-secondary-foreground">
           {step.description}
         </p>
 
@@ -226,7 +226,7 @@ export function RiskGuidePage({
             {content.hero.title}
           </h1>
 
-          <p className="text-sm text-muted-foreground leading-relaxed max-w-2xl">
+          <p className="max-w-2xl text-sm leading-relaxed text-secondary-foreground">
             {content.hero.description}
           </p>
 
@@ -260,7 +260,7 @@ export function RiskGuidePage({
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 p-4">
-            <div className="overflow-hidden rounded-xl border border-border/50 bg-primary shadow-sm">
+            <div className="overflow-hidden rounded-lg border border-border/50 bg-primary shadow-sm">
               <div className="aspect-video">
                 <iframe
                   className="h-full w-full"
@@ -303,7 +303,7 @@ export function RiskGuidePage({
           <div className="h-px flex-1 bg-border/50" />
         </div>
 
-        <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
+        <p className="max-w-3xl text-sm leading-relaxed text-secondary-foreground">
           {content.documents.description}
         </p>
 
@@ -352,7 +352,7 @@ export function RiskGuidePage({
           <div className="h-px flex-1 bg-border/50" />
         </div>
 
-        <div className="rounded-xl bg-card/30 p-4 space-y-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+        <div className="rounded-lg bg-card/30 p-4 space-y-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
           <PhaseBlock
             phase={content.flow.phase1}
             steps={[
@@ -411,7 +411,7 @@ export function RiskGuidePage({
           <div className="h-px flex-1 bg-border/50" />
         </div>
 
-        <div className="rounded-xl bg-card/30 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 divide-y divide-border/30">
+        <div className="rounded-lg bg-card/30 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 divide-y divide-border/30">
           {content.faq.items.map((item) => (
             <div key={item.question} className="p-4 space-y-1.5">
               <dt className="text-xs font-mono font-semibold text-foreground">

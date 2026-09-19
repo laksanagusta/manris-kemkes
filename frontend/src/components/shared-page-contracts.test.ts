@@ -28,6 +28,9 @@ const dropdownMenuPrimitive = readSource(
 const dialogPrimitive = readSource("../components/ui/dialog.tsx");
 const alertDialogPrimitive = readSource("../components/ui/alert-dialog.tsx");
 const sheetPrimitive = readSource("../components/ui/sheet.tsx");
+const meetingIntelligenceWorkspace = readSource(
+  "../components/meeting-intelligence-workspace.tsx",
+);
 const collectionDialogCancel = readSource(
   "../components/shared/design-system/collections/collection-dialog-cancel.tsx",
 );
@@ -145,6 +148,21 @@ test("card subtitles use the secondary foreground hierarchy", () => {
   );
 });
 
+test("modal subtitles use the secondary foreground hierarchy", () => {
+  assert.match(dialogPrimitive, /data-slot="dialog-description"[\s\S]*text-secondary-foreground/);
+  assert.match(
+    alertDialogPrimitive,
+    /data-slot="alert-dialog-description"[\s\S]*text-secondary-foreground/,
+  );
+  assert.match(sheetPrimitive, /data-slot="sheet-description"[\s\S]*text-secondary-foreground/);
+  assert.match(
+    meetingIntelligenceWorkspace,
+    /text-secondary-foreground[\s\S]*reviewSuggestion\.reasoning/,
+  );
+  assert.match(designSystemPage, /Semua subtitle atau deskripsi[\s\S]*text-secondary-foreground/i);
+  assert.match(designSystemDocument, /Subtitle or description text[\s\S]*text-secondary-foreground/i);
+});
+
 test("collection routes use the shared CollectionToolbar", () => {
   for (const name of [
     "riskRegister",
@@ -163,7 +181,15 @@ test("collection routes use the shared CollectionToolbar", () => {
 test("monitoring read-only toolbar matches collection control height", () => {
   assert.match(monitoringWorkspace, /<CollectionSearchField[\s\S]*?h-9/);
   assert.match(monitoringWorkspace, /className="h-9 w-full rounded-lg/);
-  assert.match(monitoringWorkspace, /size="icon-xs"[\s\S]*?className="size-9"/);
+  assert.equal(
+    monitoringWorkspace.match(/<SelectItem[\s\S]*?className="h-9"/g)?.length,
+    2,
+  );
+  assert.doesNotMatch(monitoringWorkspace, /Muat ulang pemantauan|RefreshCcw/);
+  assert.match(
+    monitoringWorkspace,
+    /<CollectionTableHead className="px-3">Progres Penanganan<\/CollectionTableHead>/,
+  );
 });
 
 test("mitigation monitoring uses the shared expandable search and compact status badge", () => {
@@ -285,7 +311,7 @@ test("working paper create dialog follows the shared mitigation modal shell", ()
 test("working paper creation follows the canonical form header and roster alignment", () => {
   assert.match(workingPaperCreate, /<CollectionPageHeader/);
   assert.match(workingPaperCreate, /actionsPlacement="title"/);
-  assert.match(workingPaperCreate, /Kembali ke daftar kertas kerja/);
+  assert.doesNotMatch(workingPaperCreate, /FormBackAction|backAction=|backActionPlacement=/);
   assert.match(
     workingPaperCreate,
     /<CollectionTableCard>[\s\S]*<Table className="w-full table-fixed">[\s\S]*<\/CollectionTableCard>/,
@@ -330,17 +356,25 @@ test("working paper creation follows the canonical form header and roster alignm
 });
 
 test("working paper detail keeps the ledger wide and context in the right rail", () => {
-  assert.match(workingPaperDetail, /<CollectionPageHeader[\s\S]*title="Detail Kertas Kerja"/);
+  assert.match(
+    workingPaperDetail,
+    /<CollectionPageHeader[\s\S]*title=\{data\.code \|\| "Detail Kertas Kerja"\}/,
+  );
   assert.doesNotMatch(workingPaperDetail, /useSetHeaderActions/);
   assert.doesNotMatch(workingPaperDetail, /actionsPlacement="title"/);
   assert.match(workingPaperDetail, /const headerActions = \(\s*<>/);
   assert.match(workingPaperDetail, /<FormPage className="space-y-6 pb-0">/);
-  assert.doesNotMatch(workingPaperDetail, /<Badge/);
+  assert.match(
+    workingPaperDetail,
+    /<Badge\s+size="compact"\s+tone=\{isAllMonitoringFinal \? "success" : "progress"\}/,
+  );
+  assert.match(workingPaperDetail, /Risiko[\s\S]*Selesai Dipantau/);
   assert.match(workingPaperDetail, /<AccentButton[\s\S]*Mulai Proses TTE/);
   assert.match(workingPaperDetail, /<WorkingPaperStatusActions[\s\S]*onExport=\{handleExport\}/);
   assert.doesNotMatch(workingPaperDetail, /<ActionButton[\s\S]*Ekspor Excel/);
   assert.match(workingPaperStatusActions, /<Download className="size-3\.5" \/>/);
   assert.match(workingPaperStatusActions, /Ekspor Excel/);
+  assert.doesNotMatch(workingPaperStatusActions, /DropdownMenuLabel|Pilih tindakan/);
   assert.doesNotMatch(workingPaperDetail, /<Button[\s>]/);
   assert.doesNotMatch(workingPaperDetail, /AlertDialogTitle className=/);
   assert.match(
@@ -361,7 +395,23 @@ test("working paper detail keeps the ledger wide and context in the right rail",
   assert.doesNotMatch(workingPaperMonitoringTable, /min-w-\[/);
   assert.match(
     workingPaperDetail,
-    /<div className="min-w-0 space-y-4 lg:sticky lg:top-6 lg:self-start">[\s\S]*title="Ringkasan dokumen"[\s\S]*contentClassName="px-4 pb-4 pt-2"[\s\S]*flex flex-col gap-4[\s\S]*<StandardCard title="Monitoring Final">[\s\S]*title="Status Tanda Tangan"/,
+    /<div className="min-w-0 space-y-4 lg:sticky lg:top-6 lg:self-start">[\s\S]*<Card className="gap-0 overflow-hidden rounded-lg bg-card p-0 transition-colors duration-300">[\s\S]*<CardContent className="px-5 py-5 text-sm">[\s\S]*className="space-y-4">[\s\S]*id="working-paper-monitoring-progress"[\s\S]*Progres Pemantauan[\s\S]*id="working-paper-signature-history"[\s\S]*Histori Tanda Tangan/,
+  );
+  assert.match(
+    workingPaperDetail,
+    /id="working-paper-summary-properties"[\s\S]*className="text-xs font-semibold uppercase tracking-\[0\.6px\] text-muted-foreground\/70"[\s\S]*Ringkasan dokumen/,
+  );
+  assert.match(
+    workingPaperDetail,
+    /<dl className="mt-3 space-y-3">[\s\S]*className="flex items-center justify-between gap-4"[\s\S]*<dt className="text-\[13px\] text-muted-foreground">\{label\}<\/dt>/,
+  );
+  assert.match(
+    workingPaperDetail,
+    /label === "Status"[\s\S]*<Badge size="compact" tone=\{statusTone\[status\]\}>/,
+  );
+  assert.doesNotMatch(
+    workingPaperDetail,
+    /summaryItems\.map\(\(\{ icon: Icon/,
   );
 });
 
@@ -490,11 +540,11 @@ test("sidebar hierarchy prioritizes operations and consolidates administration",
   assert.match(appNavigation, /title: "TATA KELOLA RISIKO"/);
   assert.match(
     appNavigation,
-    /label: "Risiko"[\s\S]*icon: "ClipboardList"[\s\S]*label: "Penanganan"[\s\S]*label: "Pemantauan"[\s\S]*label: "Kertas Kerja"[\s\S]*label: "Persetujuan & TTE"[\s\S]*label: "Laporan"/,
+    /label: "Risiko"[\s\S]*icon: "Folder01"[\s\S]*label: "Kejadian Risiko"[\s\S]*icon: "Alert02"[\s\S]*label: "Penanganan"[\s\S]*label: "Pemantauan"[\s\S]*label: "Kertas Kerja"[\s\S]*label: "Persetujuan & TTE"[\s\S]*label: "Laporan"/,
   );
   assert.match(
     appNavigation,
-    /label: "Penanganan"[\s\S]*icon: "ClipboardCheck"[\s\S]*label: "Pemantauan"[\s\S]*icon: "MonitorDot"[\s\S]*label: "Kertas Kerja"[\s\S]*icon: "FileText"[\s\S]*label: "Persetujuan & TTE"[\s\S]*icon: "FileSignature"/,
+    /label: "Penanganan"[\s\S]*icon: "ClipboardCheck"[\s\S]*label: "Pemantauan"[\s\S]*icon: "MonitorDot"[\s\S]*label: "Kertas Kerja"[\s\S]*icon: "Agreement03"[\s\S]*label: "Persetujuan & TTE"[\s\S]*icon: "FileSignature"/,
   );
   assert.match(appSidebar, /MonitorDot/);
   assert.match(
@@ -721,7 +771,7 @@ test("risk score selection uses the shared accessible heatmap picker", () => {
   assert.match(riskScoreHeatmapPicker, /inline-flex items-baseline tabular-nums/);
   assert.doesNotMatch(riskScoreHeatmapPicker, /bg-muted\/\[0\.18\]/);
   assert.equal(
-    (riskScoreHeatmapPicker.match(/rounded-xl border border-border\/60 bg-card px-3 py-2\.5/g) ?? [])
+    (riskScoreHeatmapPicker.match(/rounded-lg border border-border\/60 bg-card px-3 py-2\.5/g) ?? [])
       .length,
     1,
   );
@@ -759,10 +809,12 @@ test("dialog examples keep the header border removed", () => {
   assert.doesNotMatch(dialogExample, /border-b border-border\/60/);
 });
 
-test("shared button labels use semibold weight", () => {
-  assert.match(buttonPrimitive, /font-semibold/);
-  assert.doesNotMatch(buttonPrimitive, /text-\[13px\] font-medium/);
-  assert.doesNotMatch(buttonPrimitive, /text-\[14px\]\/\[21px\][^\n]*font-medium/);
+test("shared button labels use medium weight", () => {
+  assert.match(buttonPrimitive, /!font-medium/);
+  assert.match(buttonPrimitive, /!text-\[14px\]/);
+  assert.doesNotMatch(buttonPrimitive, /font-semibold/);
+  assert.doesNotMatch(buttonPrimitive, /text-\[13px\] font-normal/);
+  assert.doesNotMatch(buttonPrimitive, /text-\[14px\]\/\[21px\][^\n]*font-normal/);
 });
 
 test("mitigation examples are built from shared dialog and form components", () => {
@@ -815,7 +867,7 @@ test("mitigation examples are built from shared dialog and form components", () 
   assert.match(mitigationForm, /<Textarea[\s\S]*required[\s\S]*aria-required="true"/);
   assert.match(mitigationForm, /Catatan Pelaksanaan/);
   assert.match(mitigationForm, /aria-label="Link Bukti"/);
-  assert.equal((mitigationForm.match(/role="alert"/g) ?? []).length, 3);
+  assert.equal((mitigationForm.match(/<FieldErrorMessage/g) ?? []).length, 3);
   assert.doesNotMatch(mitigationForm, /motion-safe:animate-in/);
   assert.doesNotMatch(mitigationForm, /motion-safe:duration-150/);
   assert.match(mitigationForm, /<Label className="text-sm"/);
@@ -835,6 +887,21 @@ test("risk and monitoring field triggers reuse the subtle existing-border hover"
     readSource("../app/(app)/risk/assessment/[id]/page.tsx"),
     /<RiskScorePickerTrigger[\s\S]*id="risk-score-picker"/,
   );
+});
+
+test("remote user picker keeps user options compact and gives the popover a readable width", () => {
+  assert.match(
+    remoteUserPicker,
+    /width: iconOnly[\s\S]*?"min\(24rem, calc\(100vw - 2rem\)\)"/,
+  );
+  assert.match(
+    remoteUserPicker,
+    /<UserRound[\s\S]*?className="size-4 shrink-0 text-muted-foreground"[\s\S]*?fill="currentColor"[\s\S]*?\/>[\s\S]*?<span className="truncate font-normal">\{option\.name\}<\/span>/,
+  );
+  assert.match(remoteUserPicker, /className="h-9 rounded-none border-0 bg-transparent px-0 py-2\.5 shadow-none"/);
+  assert.match(remoteUserPicker, /<ScrollArea className="mt-1 max-h-\[300px\] overflow-y-auto">/);
+  assert.doesNotMatch(remoteUserPicker, /<Avatar|AvatarFallback|getUserInitials/);
+  assert.doesNotMatch(remoteUserPicker, /option\.subtitle/);
 });
 
 test("risk form text fields consume the shared design-system exports", () => {

@@ -154,7 +154,12 @@ export function MultiPhaseHeatmapCompareCard({
           <div
             role="list"
             aria-label="Legenda level risiko"
-            className="-mx-4 -mb-4 mt-4 flex flex-wrap gap-x-4 gap-y-2 border-t border-border/60 bg-table-header px-4 py-3 text-[11px] text-muted-foreground"
+            className={cn(
+              surface === "plain"
+                ? "-mx-5 -mb-5 px-5"
+                : "-mx-4 -mb-4 px-4",
+              "mt-4 flex flex-wrap gap-x-4 gap-y-2 border-t border-border/60 bg-table-header py-3 text-[11px] text-muted-foreground",
+            )}
           >
             {riskLevelLegend.map((item) => (
               <span

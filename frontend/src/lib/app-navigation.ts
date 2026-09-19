@@ -18,7 +18,7 @@ export const mainMenuItems: MainMenuGroup[] = [
       {
         label: "Piagam Manris",
         href: "/management/charters",
-        icon: "ClipboardPenLine",
+        icon: "Certificate01",
         matchHrefs: ["/management/charters"],
       },
       {
@@ -39,7 +39,12 @@ export const mainMenuItems: MainMenuGroup[] = [
     title: "MANAJEMEN RISIKO",
     items: [
       { label: "Dashboard", href: "/overview", icon: "LayoutDashboard" },
-      { label: "Risiko", href: "/risk/register", icon: "ClipboardList" },
+      { label: "Risiko", href: "/risk/register", icon: "Folder01" },
+      {
+        label: "Kejadian Risiko",
+        href: "/risk-events",
+        icon: "Alert02",
+      },
       {
         label: "Penanganan",
         href: "/compliance/penanganan",
@@ -54,7 +59,7 @@ export const mainMenuItems: MainMenuGroup[] = [
       {
         label: "Kertas Kerja",
         href: "/risk/working-papers",
-        icon: "FileText",
+        icon: "Agreement03",
       },
       { label: "Persetujuan & TTE", href: "/inbox", icon: "FileSignature" },
       { label: "Laporan", href: "/reports", icon: "FileBarChart" },
@@ -97,6 +102,7 @@ export const breadcrumbMap: Record<string, string> = {
   "/compliance/controls": "Control Library",
   "/risk": "Risk Assessments",
   "/risk/register": "Risiko",
+  "/risk-events": "Kejadian Risiko",
   "/risk/new": "New Risk",
   "/risk/history": "Risk History",
   "/risk/working-papers": "Kertas Kerja",
@@ -272,6 +278,10 @@ export const appPageMeta: Record<string, AppPageMeta> = {
     title: "Risiko",
     subtitle: "Kelola identifikasi, status, dan siklus pemantauan risiko.",
   },
+  "/risk-events": {
+    title: "Kejadian Risiko",
+    subtitle: "Catat kejadian aktual dan hubungkan dengan risiko terkait.",
+  },
   "/risk/register/bulk": {
     title: "Import Risiko",
     subtitle: "Tambahkan beberapa risiko melalui template yang telah disiapkan.",
@@ -330,6 +340,10 @@ const dynamicAppPageMeta: Array<[string, AppPageMeta]> = [
   ["/risk/register/", {
     title: "Detail Risiko",
     subtitle: "Tinjau informasi, penilaian, dan riwayat risiko.",
+  }],
+  ["/risk-events/", {
+    title: "Detail Kejadian Risiko",
+    subtitle: "Tinjau record LED dan hubungan risikonya.",
   }],
   ["/risk/working-papers/", {
     title: "Detail Kertas Kerja",

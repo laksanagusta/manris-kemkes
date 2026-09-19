@@ -19,7 +19,7 @@ export function CollectionFilterPopover({
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="w-[22rem] rounded-xl bg-popover p-4"
+        className="w-[22rem] rounded-lg bg-popover p-4"
       >
         <div className="space-y-4">
           {children}

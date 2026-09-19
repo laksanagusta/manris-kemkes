@@ -43,6 +43,7 @@ import {
   Trash2,
 } from "@/components/ui/icons";
 import { cn } from "@/lib/utils";
+import { FieldErrorMessage } from "../fields/field-error-message";
 
 type ResourceLinkMenuContextValue = {
   openId: string | null;
@@ -252,15 +253,9 @@ export function ResourceLinkRow({
                   }
                 />
               </div>
-              {editError ? (
-                <p
-                  id={`${editFieldId}-edit-error`}
-                  role="alert"
-                  className="text-xs text-destructive"
-                >
-                  {editError}
-                </p>
-              ) : null}
+              <FieldErrorMessage id={`${editFieldId}-edit-error`}>
+                {editError}
+              </FieldErrorMessage>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => closeEdit(false)}>

@@ -12,7 +12,7 @@ export function ReportLinkGrid({
         <Link
           key={item.href}
           href={item.href}
-          className="group surface-hairline rounded-xl bg-card p-5 transition-colors hover:bg-muted/50"
+          className="group surface-hairline rounded-lg bg-card p-5 transition-colors hover:bg-muted/50"
         >
           <p className="text-sm font-semibold text-foreground">{item.title}</p>
           <span className="mt-4 inline-flex items-center gap-1 text-xs font-medium text-primary">

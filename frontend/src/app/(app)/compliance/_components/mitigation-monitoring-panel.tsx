@@ -14,10 +14,17 @@ import {
   CollectionTableHead,
   CollectionTableHeader,
   CollectionTableHeaderRow,
+  ActionIconButton,
   KpiCard,
   MetricGrid,
 } from "@/components/shared/design-system";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Dialog,
   DialogContent,
@@ -28,7 +35,6 @@ import {
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { toast } from "sonner";
@@ -60,15 +66,10 @@ import {
 } from "@/lib/mitigation-monitoring-query";
 import type { MitigationTask } from "@/types/risk";
 
-const tierConfig: Record<string, { label: string; color: string }> = {
-  upcoming: { label: "Akan Datang", color: "text-muted-foreground" },
-  reminder: { label: "Reminder", color: "text-violet-700" },
-  light: { label: "Overdue Ringan", color: "text-amber-700" },
-  heavy: { label: "Overdue Berat", color: "text-rose-700" },
-};
+type MitigationTier = "upcoming" | "reminder" | "light" | "heavy";
 
 type MitigationTaskRow = MitigationTask & {
-  tier: keyof typeof tierConfig;
+  tier: MitigationTier;
   unit: string;
   daysOverdue: number;
   mitigationAction: string;
@@ -87,6 +88,45 @@ function getMitigationStatusLabel(status: MitigationTaskRow["status"]) {
   if (status === "overdue") return "Overdue";
   if (status === "not_reported") return "Tidak dilaporkan";
   return "Pending";
+}
+
+function MitigationRowActions({
+  task,
+  submissionState,
+  onOpenSubmit,
+}: {
+  task: MitigationTaskRow;
+  submissionState: ReturnType<typeof getMitigationSubmissionActionState>;
+  onOpenSubmit: () => void;
+}) {
+  const canReport = task.status !== "done" && task.status !== "not_reported";
+
+  if (!canReport) return null;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <ActionIconButton
+          className="text-muted-foreground"
+          aria-label={`Aksi penanganan ${task.mitigationAction}`}
+        />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52">
+        <DropdownMenuItem
+          disabled={!submissionState.allowed}
+          title={submissionState.allowed ? undefined : submissionState.message}
+          onClick={onOpenSubmit}
+        >
+          <Send className="size-3.5" />
+          {submissionState.allowed
+            ? submissionState.isOverdue
+              ? "Lapor terlambat"
+              : "Lapor progress"
+            : "Lapor belum tersedia"}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }
 
 function useDebouncedValue<T>(value: T, delay: number) {
@@ -407,31 +447,34 @@ export function MitigationMonitoringPanel() {
         />
       </MetricGrid>
 
-      <div className="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center md:ml-auto">
-        <CollectionSearchField
-          containerClassName="w-full sm:w-80 sm:flex-none"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Cari mitigasi..."
-          aria-label="Cari mitigasi"
-        />
-      </div>
+      <div className="space-y-4">
+        <div className="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center md:ml-auto">
+          <CollectionSearchField
+            containerClassName="w-full sm:w-80 sm:flex-none"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Cari mitigasi..."
+            aria-label="Cari mitigasi"
+          />
+        </div>
 
-      {loading ? (
-        <CollectionLoadingState message="Memuat data mitigasi..." />
-      ) : mitigations.length === 0 ? (
-        <CollectionEmptyState
-          title="Belum ada rencana mitigasi yang sesuai filter"
-          description="Ubah filter pencarian atau periode untuk melihat data lain."
-        />
-      ) : (
-        <CollectionTableCard>
-          <Table className="min-w-[980px] table-fixed">
+        {loading ? (
+          <CollectionLoadingState message="Memuat data mitigasi..." />
+        ) : mitigations.length === 0 ? (
+          <CollectionEmptyState
+            title="Belum ada rencana mitigasi yang sesuai filter"
+            description="Ubah filter pencarian atau periode untuk melihat data lain."
+          />
+        ) : (
+          <CollectionTableCard>
+          <Table className="min-w-[1180px] table-fixed">
             <colgroup>
-              <col className="w-[44%]" />
-              <col className="w-[18%]" />
-              <col className="w-[14%]" />
-              <col className="w-[12%]" />
+              <col className="w-[26%]" />
+              <col className="w-[17%]" />
+              <col className="w-[13%]" />
+              <col className="w-[10%]" />
+              <col className="w-[13%]" />
+              <col className="w-[9%]" />
               <col className="w-[12%]" />
             </colgroup>
             <CollectionTableHeader>
@@ -439,7 +482,9 @@ export function MitigationMonitoringPanel() {
                 <CollectionTableHead className="px-3">
                   Rencana Penanganan
                 </CollectionTableHead>
+                <CollectionTableHead className="px-3">Risiko</CollectionTableHead>
                 <CollectionTableHead className="px-3">PIC</CollectionTableHead>
+                <CollectionTableHead className="px-3">Periode</CollectionTableHead>
                 <CollectionTableHead className="px-3">
                   Deadline
                 </CollectionTableHead>
@@ -451,7 +496,6 @@ export function MitigationMonitoringPanel() {
             </CollectionTableHeader>
             <TableBody>
               {mitigations.map((item) => {
-                const tier = tierConfig[item.tier];
                 const submissionState =
                   getMitigationSubmissionActionState(
                     item.periodEnd,
@@ -461,7 +505,7 @@ export function MitigationMonitoringPanel() {
                 return (
                   <TableRow
                     key={item.id}
-                    className="group border-0 hover:bg-transparent"
+                    className="group border-0 hover:bg-transparent hover:[&>td]:bg-muted/50 [&>td]:transition-[background-color]"
                   >
                     <TableCell className="px-3 py-2 align-middle">
                       <button
@@ -473,14 +517,21 @@ export function MitigationMonitoringPanel() {
                           {item.mitigationAction}
                         </span>
                       </button>
+                    </TableCell>
+                    <TableCell className="px-3 py-2 align-middle">
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <p
+                          <div
                             tabIndex={0}
-                            className="mt-1 line-clamp-1 cursor-help rounded-sm text-xs text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+                            className="min-w-0 cursor-help rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
                           >
-                            {item.riskCode} · {item.title}
-                          </p>
+                            <p className="truncate font-mono text-sm font-normal tracking-wide text-foreground">
+                              {item.riskCode}
+                            </p>
+                            <p className="line-clamp-1 text-xs text-muted-foreground">
+                              {item.title}
+                            </p>
+                          </div>
                         </TooltipTrigger>
                         <TooltipContent side="top" className="max-w-md text-xs">
                           {item.riskCode} · {item.title}
@@ -492,17 +543,13 @@ export function MitigationMonitoringPanel() {
                         {item.unit}
                       </p>
                     </TableCell>
+                    <TableCell className="px-3 py-2 align-middle">
+                      <span className="font-mono text-sm text-muted-foreground">
+                        {item.periodLabel || "—"}
+                      </span>
+                    </TableCell>
                     <TableCell className="px-3 py-2 align-middle text-sm text-muted-foreground">
-                      <div className="space-y-1">
-                        <p>
-                          {formatDate(item.dueDate)}
-                        </p>
-                        {item.tier !== "upcoming" ? (
-                          <p className="text-xs text-muted-foreground/80">
-                            {tier.label}
-                          </p>
-                        ) : null}
-                      </div>
+                      <p>{formatDate(item.dueDate)}</p>
                     </TableCell>
                     <TableCell className="px-3 py-2 align-middle">
                       <Badge
@@ -512,65 +559,13 @@ export function MitigationMonitoringPanel() {
                         {getMitigationStatusLabel(item.status)}
                       </Badge>
                     </TableCell>
-                    <TableCell className="py-2 pl-3 pr-4 text-right align-middle">
-                      {item.status === "done" || item.status === "not_reported" ? null : !submissionState.allowed ? (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="inline-block cursor-not-allowed">
-                                <ActionButton
-                                  size="sm"
-                                  variant={
-                                    submissionState.isOverdue
-                                      ? "destructive"
-                                      : "default"
-                                  }
-                                  disabled
-                                  className="pointer-events-none text-xs opacity-50"
-                                  onClick={(event) =>
-                                    event.stopPropagation()
-                                  }
-                                  icon={<Send className="size-3" />}
-                                >
-                                  Lapor
-                                </ActionButton>
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent
-                              side="left"
-                              className="max-w-[220px] text-xs"
-                            >
-                              {submissionState.message}
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      ) : submissionState.isOverdue ? (
-                        <ActionButton
-                          size="sm"
-                          variant="destructive"
-                          className="h-8 shrink-0 gap-1.5 text-xs"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleOpenSubmit(item);
-                          }}
-                          icon={<Send className="size-3" />}
-                        >
-                          Lapor
-                        </ActionButton>
-                      ) : (
-                        <AccentButton
-                          size="sm"
-                          className="h-8 shrink-0 gap-1.5 text-xs"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleOpenSubmit(item);
-                          }}
-                          icon={<Send className="size-3" />}
-                        >
-                          Lapor
-                        </AccentButton>
-                      )}
-                    </TableCell>
+                  <TableCell className="sticky right-0 z-10 bg-card py-2 pl-3 pr-4 text-right align-middle">
+                    <MitigationRowActions
+                      task={item}
+                      submissionState={submissionState}
+                      onOpenSubmit={() => handleOpenSubmit(item)}
+                    />
+                  </TableCell>
                   </TableRow>
                 );
               })}
@@ -588,8 +583,9 @@ export function MitigationMonitoringPanel() {
               handleLimitChange(nextLimit);
             }}
           />
-        </CollectionTableCard>
-      )}
+          </CollectionTableCard>
+        )}
+      </div>
 
       <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
         <DialogContent

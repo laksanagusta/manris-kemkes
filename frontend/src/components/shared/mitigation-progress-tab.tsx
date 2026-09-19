@@ -311,7 +311,7 @@ export function MitigationProgressTab({
             className="flex items-center justify-between gap-4 py-1.5"
             role="listitem"
           >
-            <span className="text-sm text-muted-foreground">Total</span>
+            <span className="text-[13px] text-muted-foreground">Total</span>
             <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
               {stats.total}
             </span>
@@ -320,7 +320,7 @@ export function MitigationProgressTab({
             className="flex items-center justify-between gap-4 py-1.5"
             role="listitem"
           >
-            <span className="text-sm text-muted-foreground">Selesai</span>
+            <span className="text-[13px] text-muted-foreground">Selesai</span>
             <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
               {stats.done}
             </span>
@@ -329,7 +329,7 @@ export function MitigationProgressTab({
             className="flex items-center justify-between gap-4 py-1.5"
             role="listitem"
           >
-            <span className="text-sm text-muted-foreground">Menunggu</span>
+            <span className="text-[13px] text-muted-foreground">Menunggu</span>
             <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
               {stats.pending}
             </span>
@@ -338,7 +338,7 @@ export function MitigationProgressTab({
             className="flex items-center justify-between gap-4 py-1.5"
             role="listitem"
           >
-            <span className="text-sm text-muted-foreground">Terlambat</span>
+            <span className="text-[13px] text-muted-foreground">Terlambat</span>
             <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
               {stats.overdue}
             </span>
@@ -348,7 +348,7 @@ export function MitigationProgressTab({
               className="flex items-center justify-between gap-4 py-1.5"
               role="listitem"
             >
-              <span className="text-sm text-muted-foreground">
+              <span className="text-[13px] text-muted-foreground">
                 Tidak dilaporkan
               </span>
               <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
@@ -365,7 +365,7 @@ export function MitigationProgressTab({
           <h3 className="text-sm font-semibold text-foreground">
             Progress Aktual Penanganan
           </h3>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+          <p className="mt-1 text-xs leading-5 text-secondary-foreground">
             Pantau progres task penanganan yang sedang berjalan, termasuk
             status, tenggat, dan laporan realisasi terbaru.
           </p>
@@ -383,14 +383,14 @@ export function MitigationProgressTab({
           <div className="overflow-x-auto rounded-lg border border-border/50">
             <Table className="min-w-[980px] w-full">
               <TableHeader className="bg-table-header">
-                <TableRow className="h-auto text-left text-[11px] uppercase tracking-wider text-muted-foreground">
-                  <TableHead className="px-4 py-3 font-semibold">Kode</TableHead>
-                  <TableHead className="px-4 py-3 font-semibold">Rencana</TableHead>
-                  <TableHead className="px-4 py-3 font-semibold">Periode</TableHead>
-                  <TableHead className="px-4 py-3 font-semibold">Tenggat</TableHead>
-                  <TableHead className="px-4 py-3 font-semibold">Status</TableHead>
-                  <TableHead className="px-4 py-3 font-semibold">Progress</TableHead>
-                  <TableHead className="px-4 py-3 font-semibold text-right">Aksi</TableHead>
+                <TableRow className="h-auto text-left text-[13px] capitalize text-secondary-foreground">
+                  <TableHead className="px-6 py-1.5 font-semibold">Kode</TableHead>
+                  <TableHead className="px-6 py-1.5 font-semibold">Rencana</TableHead>
+                  <TableHead className="px-6 py-1.5 font-semibold">Periode</TableHead>
+                  <TableHead className="px-6 py-1.5 font-semibold">Tenggat</TableHead>
+                  <TableHead className="px-6 py-1.5 font-semibold">Status</TableHead>
+                  <TableHead className="px-6 py-1.5 font-semibold">Progress</TableHead>
+                  <TableHead className="px-6 py-1.5 font-semibold text-right">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

@@ -6,7 +6,7 @@ function ListGroup({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="list-group"
-      className={cn("overflow-hidden rounded-xl", className)}
+      className={cn("overflow-hidden rounded-lg", className)}
       {...props}
     />
   );

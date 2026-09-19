@@ -12,7 +12,7 @@ export function DocumentForm({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-xl bg-card smooth-shadow-ring-sm shadow-black smooth-ring-neutral-300/30",
+        "overflow-hidden rounded-lg bg-card smooth-shadow-ring-sm shadow-black smooth-ring-neutral-300/30",
         className,
       )}
     >
@@ -62,7 +62,7 @@ export function DocumentFormSection({
           {action ? <div className="shrink-0 lg:hidden">{action}</div> : null}
         </div>
         {description ? (
-          <p className="text-sm leading-6 text-muted-foreground">
+          <p className="text-sm leading-6 text-secondary-foreground">
             {description}
           </p>
         ) : null}

@@ -233,7 +233,7 @@ export function DocumentProcessingWorkspace({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: reduceMotion ? 0.12 : 0.15, ease: [0.23, 1, 0.32, 1] }}
-              className="flex items-start gap-2 rounded-xl border border-warning/30 bg-warning/10 px-3 py-2.5 text-xs leading-5 text-foreground"
+              className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2.5 text-xs leading-5 text-foreground"
               role="alert"
             >
               <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-warning" />
@@ -269,7 +269,7 @@ export function DocumentProcessingWorkspace({
                   key={option.value}
                   htmlFor={`analysis-mode-${option.value}`}
                   className={cn(
-                    "group relative flex min-h-[88px] cursor-pointer items-start rounded-xl border bg-card px-4 py-4 pr-12 text-left transition-[background-color,border-color] duration-200 ease-(--ease-out) motion-reduce:transition-none sm:px-5 sm:pr-14",
+                    "group relative flex min-h-[88px] cursor-pointer items-start rounded-lg border bg-card px-4 py-4 pr-12 text-left transition-[background-color,border-color] duration-200 ease-(--ease-out) motion-reduce:transition-none sm:px-5 sm:pr-14",
                     selected
                       ? "border-primary"
                       : "border-border bg-card hover:border-foreground/20 hover:bg-state-surface",
@@ -331,7 +331,7 @@ function ProcessingStatus({
 }) {
   const completedTasks = job.tasks.filter((task) => task.status === "completed" || task.status === "warning").length;
   return (
-    <section className="document-processing-status-enter rounded-xl border border-border/80 bg-card p-4" aria-labelledby="processing-status-title" aria-busy="true">
+    <section className="document-processing-status-enter rounded-lg border border-border/80 bg-card p-4" aria-labelledby="processing-status-title" aria-busy="true">
       <p className="sr-only" role="status" aria-live="polite">
         {status?.label ?? "Diproses"}. {completedTasks} dari {job.tasks.length} tugas selesai. Progres {job.progress} persen.
       </p>
@@ -341,7 +341,7 @@ function ProcessingStatus({
             <h2 id="processing-status-title" className="text-sm font-semibold text-foreground">Analisis sedang diproses</h2>
             <Badge variant="outline" tone={status?.tone ?? "progress"} className="text-xs">{status?.label ?? "Diproses"}</Badge>
           </div>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+          <p className="mt-1 text-xs leading-5 text-secondary-foreground">
             {processStage(job)} · {completedTasks}/{job.tasks.length} tugas selesai · dimulai {relativeStart(job.startedAt)}
           </p>
         </div>

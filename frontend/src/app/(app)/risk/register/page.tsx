@@ -29,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import {
   AccentButton,
   ActionButton,
+  ActionIconButton,
   CollectionPageHeader,
   CollectionSearchField,
   CollectionToolbar,
@@ -110,7 +111,6 @@ import {
   Trash2,
   Upload,
   Archive,
-  MoreHorizontal,
   RefreshCcw,
   RotateCcw,
 } from "@/components/ui/icons";
@@ -239,12 +239,12 @@ function RiskRegisterFiltersSidebar({
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="w-[22rem] rounded-xl p-4"
+        className="w-[22rem] rounded-lg p-4"
       >
         <div className="space-y-4">
           <div>
             <h4 className="text-sm font-medium">Filter Risiko</h4>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-secondary-foreground">
               Atur filter untuk daftar risiko.
             </p>
           </div>
@@ -387,11 +387,8 @@ function RiskRowActions({
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <ActionButton
-          variant="ghost"
-          size="icon-xs"
+        <ActionIconButton
           className="text-muted-foreground"
-          icon={<MoreHorizontal className="size-3.5" />}
           aria-label={`Aksi risiko ${risk.code || risk.title || risk.id}`}
         />
       </DropdownMenuTrigger>
@@ -918,7 +915,7 @@ export default function RiskRegisterPage() {
   return (
     <PageStack>
       <CollectionPageHeader title="Risiko" />
-      <div className="space-y-6">
+      <div className="space-y-4">
         <CollectionToolbar
             className="w-full"
             leading={
@@ -981,13 +978,10 @@ export default function RiskRegisterPage() {
                   <CollectionTableHead className="px-3">
                     Kategori
                   </CollectionTableHead>
-                  <CollectionTableHead
-                    aria-sort={scoreAriaSort}
-                    className="px-0"
-                  >
+                  <CollectionTableHead aria-sort={scoreAriaSort}>
                     <button
                       type="button"
-                      className="flex h-9 w-full items-center gap-1 px-3 text-left uppercase outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/30 active:bg-muted/70"
+                      className="flex h-9 w-full items-center gap-1 px-0 text-left capitalize outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/30 active:bg-muted/70"
                       aria-label={`Urutkan berdasarkan skor, saat ini ${scoreAriaSort === "ascending" ? "menaik" : scoreAriaSort === "descending" ? "menurun" : "belum diurutkan"}`}
                       onClick={() => {
                         if (sortBy === "nilai") {
@@ -1060,7 +1054,7 @@ export default function RiskRegisterPage() {
                     return (
                       <TableRow
                         key={risk.id}
-                        className="h-10 border-0 hover:bg-transparent hover:[&>td]:bg-muted/50 [&>td]:transition-[background-color]"
+                        className="h-10 border-b border-border/60 hover:bg-transparent hover:[&>td]:bg-muted/50 [&>td]:transition-[background-color]"
                       >
                         <TableCell className="px-3 py-2">
                           <div className="flex min-w-0 flex-col items-start gap-0.5">
@@ -1112,7 +1106,7 @@ export default function RiskRegisterPage() {
                         <TableCell className="min-w-[176px] px-3 py-2">
                           <MonitoringTransactionProgress
                             data={risk.semesterMonitoring}
-                            countLabel=""
+                            showCount={false}
                           />
                         </TableCell>
                         <TableCell className="sticky right-0 w-[6%] bg-card px-3 py-2">
@@ -1259,7 +1253,7 @@ export default function RiskRegisterPage() {
                 <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
                   Risiko
                 </p>
-                <p className="text-sm font-medium">
+                <p className="text-sm font-medium text-secondary-foreground">
                   {riskToArchive?.title || "Tanpa judul"}
                 </p>
                 <p className="font-mono text-xs text-muted-foreground">
@@ -1356,7 +1350,7 @@ export default function RiskRegisterPage() {
               terakhirnya.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="rounded-xl ring-1 ring-inset ring-border bg-muted px-3 py-2 text-sm">
+          <div className="rounded-lg ring-1 ring-inset ring-border bg-muted px-3 py-2 text-sm">
             <p className="font-medium">
               {riskToRestore?.title || "Tanpa judul"}
             </p>

@@ -10,7 +10,6 @@ import {
 import Link from "next/link";
 import { toast } from "sonner";
 import {
-  ArrowUpRight,
   Archive,
   MoreHorizontal,
   Plus,
@@ -259,6 +258,7 @@ export default function RiskChartersPage() {
         <CollectionErrorState message={error} onReload={() => loadData()} />
       ) : null}
 
+      <div className="space-y-4">
       <CollectionToolbar
         className="w-full"
         leading={
@@ -347,9 +347,12 @@ export default function RiskChartersPage() {
                 >
                   <TableCell className="max-w-[280px] truncate py-2 pr-3 pl-4 align-middle">
                     <div className="min-w-0">
-                      <p className="truncate font-medium text-foreground">
+                      <Link
+                        href={`/management/charters/${item.id}`}
+                        className="block truncate font-medium text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+                      >
                         {item.title}
-                      </p>
+                      </Link>
                       <p className="truncate text-xs text-muted-foreground">
                         {organizationMap.get(item.organizationId) ??
                           "Organisasi tidak ditemukan"}
@@ -390,15 +393,6 @@ export default function RiskChartersPage() {
                           />
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end" className="w-44">
-                          <DropdownMenuItem asChild>
-                            <Link
-                              href={`/management/charters/${item.id}`}
-                              className="gap-2"
-                            >
-                              <ArrowUpRight className="size-3.5" />
-                              Buka
-                            </Link>
-                          </DropdownMenuItem>
                           {item.status === "active" && item.isCurrent ? (
                             <DropdownMenuItem
                               variant="destructive"
@@ -436,6 +430,7 @@ export default function RiskChartersPage() {
           }}
         />
       </CollectionTableCard>
+      </div>
     </PageStack>
   );
 }

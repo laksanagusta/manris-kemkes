@@ -16,12 +16,12 @@ const iconExamples = [
 
 export function IconographyExample() {
   return (
-    <div className="space-y-4 rounded-xl bg-card p-6 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+    <div className="space-y-4 rounded-lg bg-card p-6 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-5">
         {iconExamples.map(({ label, icon: Icon }) => (
           <div
             key={label}
-            className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-xl border border-border bg-background text-muted-foreground"
+            className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-lg border border-border bg-background text-muted-foreground"
           >
             <Icon aria-hidden="true" className="size-5 text-foreground" strokeWidth={1.8} />
             <span className="text-xs font-medium">{label}</span>

@@ -71,6 +71,13 @@ export async function updateMonitoringDraft(
   );
 }
 
+export async function deleteMonitoringDraft(
+  token: string,
+  id: string,
+): Promise<void> {
+  await api.delete<void>(`/risk-monitorings/${id}`, undefined, token);
+}
+
 export async function finalizeMonitoring(
   token: string,
   id: string

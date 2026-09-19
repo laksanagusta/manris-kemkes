@@ -355,6 +355,60 @@ func (r *riskMonitoringRepository) UpdateDraft(ctx context.Context, monitoring *
 	return nil
 }
 
+func (r *riskMonitoringRepository) DeleteDraft(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID) error {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin monitoring draft deletion: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	var status string
+	statusQuery := `
+		SELECT rm.status
+		FROM risk_monitorings rm
+		JOIN risks src ON src.id = rm.source_risk_id
+		WHERE rm.id = $1`
+	statusArgs := []any{id}
+	if len(orgIDs) > 0 {
+		statusQuery += ` AND src.organization_id = ANY($2::uuid[])`
+		statusArgs = append(statusArgs, orgIDs)
+	}
+	statusQuery += ` FOR UPDATE OF rm`
+	if err := tx.QueryRow(ctx, statusQuery, statusArgs...).Scan(&status); err != nil {
+		return err
+	}
+	if status != entity.RiskMonitoringStatusDraft {
+		return domainerrors.ErrMonitoringNotDeletable
+	}
+
+	var hasWorkingPaperReference bool
+	if err := tx.QueryRow(ctx, `
+		SELECT EXISTS(
+			SELECT 1
+			FROM working_paper_risks
+			WHERE monitoring_id = $1
+		)`, id).Scan(&hasWorkingPaperReference); err != nil {
+		return fmt.Errorf("check monitoring draft references: %w", err)
+	}
+	if hasWorkingPaperReference {
+		return domainerrors.ErrMonitoringHasWorkingPaper
+	}
+
+	tag, err := tx.Exec(ctx, `
+		DELETE FROM risk_monitorings
+		WHERE id = $1 AND status = 'draft'`, id)
+	if err != nil {
+		return fmt.Errorf("delete monitoring draft: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return pgx.ErrNoRows
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit monitoring draft deletion: %w", err)
+	}
+	return nil
+}
+
 func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uuid.UUID, resultRisk *entity.Risk, finalizedBy uuid.UUID) (*entity.RiskMonitoring, error) {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
@@ -486,7 +540,12 @@ func baseRiskMonitoringSelect() string {
 			rm.source_probability, rm.source_impact, rm.source_weight, rm.source_nilai, rm.source_level, rm.source_version_number,
 			rm.observed_probability, rm.observed_impact, rm.observed_weight, rm.observed_nilai, rm.observed_level,
 			rm.conclusion,
-			rm.mitigation_progress_summary, rm.mitigation_completion_percent,
+			rm.mitigation_progress_summary,
+			CASE
+				WHEN mitigation_progress.total_tasks > 0
+					THEN ROUND(mitigation_progress.done_tasks * 100.0 / mitigation_progress.total_tasks)::int
+				ELSE rm.mitigation_completion_percent
+			END AS mitigation_completion_percent,
 			rm.draft_payload, rm.profile_change_summary, rm.change_reason,
 			rm.started_by, rm.started_at, rm.finalized_by, rm.finalized_at,
 			rm.created_at, rm.updated_at,
@@ -517,6 +576,19 @@ func baseRiskMonitoringSelect() string {
 		LEFT JOIN risks res ON res.id = rm.result_risk_id
 		LEFT JOIN organizations res_org ON res_org.id = res.organization_id
 		LEFT JOIN users res_user ON res_user.id = res.created_by
+		LEFT JOIN (
+			SELECT
+				monitoring_id,
+				COUNT(*) AS total_tasks,
+				COUNT(*) FILTER (
+					WHERE status = 'done'
+					  AND reported_at IS NOT NULL
+					  AND NULLIF(BTRIM(COALESCE(notes, '')), '') IS NOT NULL
+				) AS done_tasks
+			FROM mitigation_tasks
+			WHERE monitoring_id IS NOT NULL
+			GROUP BY monitoring_id
+		) AS mitigation_progress ON mitigation_progress.monitoring_id = rm.id
 	`
 }
 

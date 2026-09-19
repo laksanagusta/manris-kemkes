@@ -76,7 +76,7 @@ export function RiskMovementSnapshot({
             {[1, 2, 3, 4, 5].map((i) => (
               <div
                 key={i}
-                className="flex flex-col gap-3 rounded-xl border border-surface-border bg-muted/20 p-4"
+                className="flex flex-col gap-3 rounded-lg border border-surface-border bg-muted/20 p-4"
               >
                 <div className="flex items-center gap-2">
                   <div className="size-4 animate-pulse rounded bg-muted/60" />
@@ -114,7 +114,7 @@ export function RiskMovementSnapshot({
                 key={item.key}
                 data-testid={`movement-${item.key}`}
                 className={cn(
-                  "group flex flex-col gap-3 rounded-xl border p-4",
+                  "group flex flex-col gap-3 rounded-lg border p-4",
                   "transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
                   config.bgClass,
                   config.borderClass,

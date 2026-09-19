@@ -73,6 +73,7 @@ export default function ControlsPage() {
     <PageStack>
       <CollectionPageHeader title="Control Library" />
 
+      <div className="space-y-4">
       <CollectionToolbar
         className="w-full"
         leading={
@@ -135,7 +136,7 @@ export default function ControlsPage() {
                       )}
                     </div>
                     <h3 className="text-sm font-semibold">{control.name}</h3>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">{control.description}</p>
+                    <p className="mt-0.5 text-[11px] text-secondary-foreground">{control.description}</p>
                   </div>
                   <div className="hidden md:flex items-center gap-4 text-[11px] text-muted-foreground shrink-0">
                     <span className="flex items-center gap-1">
@@ -214,6 +215,7 @@ export default function ControlsPage() {
             </Card>
           );
         })}
+      </div>
       </div>
     </PageStack>
   );

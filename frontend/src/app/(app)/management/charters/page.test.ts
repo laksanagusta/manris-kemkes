@@ -17,5 +17,7 @@ test("charter collection follows the shared design-system grammar", () => {
   assert.match(source, /<CollectionLoadingState/);
   assert.match(source, /<CollectionErrorState/);
   assert.match(source, /<CollectionEmptyState/);
+  assert.match(source, /className="block truncate font-medium text-foreground/);
+  assert.doesNotMatch(source, /ArrowUpRight|>\s*Buka\s*</);
   assert.doesNotMatch(source, /getCharterStatusBadgeClass/);
 });

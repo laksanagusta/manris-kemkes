@@ -39,12 +39,14 @@ export function MonitoringTransactionProgress({
   className,
   items,
   countLabel = "",
+  showCount = true,
   ariaLabelOverride,
 }: {
   data?: MonitoringTransactionQuarters | null;
   className?: string;
   items?: MonitoringTransactionProgressItem[];
   countLabel?: string;
+  showCount?: boolean;
   ariaLabelOverride?: string;
 }) {
   const transactions =
@@ -85,9 +87,11 @@ export function MonitoringTransactionProgress({
           )}
         />
       ))}
-      <span className="text-sm leading-none tabular-nums text-muted-foreground">
-        {completed}/{total}{countLabel ? ` ${countLabel}` : ""}
-      </span>
+      {showCount ? (
+        <span className="text-sm leading-none tabular-nums text-muted-foreground">
+          {completed}/{total}{countLabel ? ` ${countLabel}` : ""}
+        </span>
+      ) : null}
     </span>
   );
 }

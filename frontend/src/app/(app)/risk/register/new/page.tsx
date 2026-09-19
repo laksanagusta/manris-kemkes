@@ -17,7 +17,6 @@ import { listAllOrganizations } from "@/lib/api/organizations";
 import { filterToAccessibleOrgs } from "@/lib/organization";
 import { useAuth } from "@/contexts/auth-context";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
-import { ROPicker, type ROSelectionSummary } from "@/components/risk/ro-picker";
 import { useForm, Controller, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -46,19 +45,16 @@ import {
 } from "@/components/ui/alert-dialog";
 
 import {
-  Tooltip,
-  TooltipContent,
   TooltipProvider,
-  TooltipTrigger,
 } from "@/components/ui/tooltip";
 
 import { cn } from "@/lib/utils";
 import {
-  ArrowRight,
   Loader2,
   RefreshCcw,
   Save,
   Send,
+  ShieldAlert,
   Trash2,
 } from "@/components/ui/icons";
 
@@ -85,7 +81,7 @@ import {
   AccentButton,
   CollectionDialogCancel,
   CollectionPageHeader,
-  FormBackAction,
+  FieldErrorMessage,
   Input,
   PopoverSelectField,
   RiskScoreHeatmapModal,
@@ -174,7 +170,7 @@ const CATEGORY_ORDER: string[] = [
   "lingkungan",
 ];
 const RISK_FORM_CARD_CLASS =
-  "scroll-mt-28 overflow-hidden rounded-xl bg-card gap-0 p-0 transition-colors";
+  "scroll-mt-28 overflow-hidden rounded-lg bg-card gap-0 p-0 transition-colors";
 type CategoryKey = "manusia" | "metode" | "mesin" | "material" | "lingkungan";
 
 type SectionId =
@@ -196,6 +192,7 @@ type RiskApiMitigation = MitigationItem & {
 type RiskApiResponse = {
   id: string;
   versionGroupId?: string;
+  versionNumber?: number;
   status?: string;
   isCurrent?: boolean;
   archivedAt?: string | null;
@@ -386,7 +383,6 @@ function RiskVersionHistoryList({
           <Link
             key={version.id}
             href={`/risk/register/new?id=${version.id}`}
-            onPointerDown={() => onVersionSelect(version.id)}
             onClick={() => onVersionSelect(version.id)}
             className="group relative block rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           >
@@ -412,11 +408,6 @@ function RiskVersionHistoryList({
                     ? `v${version.versionNumber}`
                     : "Versi"}
                 </span>
-                {version.isCurrent && (
-                  <Badge tone="success" size="micro" className="font-semibold">
-                    Terkini
-                  </Badge>
-                )}
               </div>
               <p className="mt-1 text-xs text-muted-foreground">
                 {version.code || "Risiko"} ·{" "}
@@ -476,7 +467,7 @@ function AiFieldButton({
       aria-busy={loading}
       aria-label={loading ? "Memproses..." : label}
       data-loading={loading}
-      className="risk-ai-button h-7 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+      className="risk-ai-button h-7 px-4 text-xs text-muted-foreground hover:text-foreground"
     >
       <span aria-hidden="true" className="grid overflow-hidden leading-5">
         <span className="risk-ai-idle-label col-start-1 row-start-1">
@@ -723,6 +714,13 @@ export default function RiskInputPage() {
   const aiFeaturesDisabled = isAIFeaturesDisabled();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const selectedRiskId = searchParams.get("id");
+  const documentPrefillToken = searchParams.get(
+    DOCUMENT_INTELLIGENCE_PREFILL_PARAM,
+  );
+  const meetingPrefillToken = searchParams.get(
+    MEETING_INTELLIGENCE_PREFILL_PARAM,
+  );
   const { token, user } = useAuth();
   const riskApprovalCapabilityBehavior = useMemo(
     () => getRiskApprovalCapabilityBehavior(user?.capabilities),
@@ -731,6 +729,9 @@ export default function RiskInputPage() {
 
   const [riskId, setRiskId] = useState<string | null>(null);
   const [loadingVersionId, setLoadingVersionId] = useState<string | null>(null);
+  const [riskVersionNumber, setRiskVersionNumber] = useState<number | null>(
+    null,
+  );
   const [riskStatus, setRiskStatus] = useState<string>("draft");
   const [riskIsCurrent, setRiskIsCurrent] = useState(false);
   const [riskArchivedAt, setRiskArchivedAt] = useState<string | null>(null);
@@ -747,9 +748,6 @@ export default function RiskInputPage() {
   const [approvalId, setApprovalId] = useState<string | null>(null);
   const [approvalWorkflow, setApprovalWorkflow] =
     useState<RiskWorkflowState | null>(null);
-  const [objectiveSummary, setObjectiveSummary] = useState<
-    ROSelectionSummary | undefined
-  >(undefined);
   const [assessmentCycleDisplay, setAssessmentCycleDisplay] = useState(
     currentAssessmentCycle(),
   );
@@ -777,6 +775,7 @@ export default function RiskInputPage() {
   const [loadingVersions, setLoadingVersions] = useState(false);
   const [showVersionHistoryDialog, setShowVersionHistoryDialog] =
     useState(false);
+  const riskLoadRequestRef = useRef(0);
   const [ongoingAssessmentId, setOngoingAssessmentId] = useState<string | null>(
     null,
   );
@@ -1007,6 +1006,8 @@ export default function RiskInputPage() {
 
   const loadRiskData = useCallback(
     async (id: string) => {
+      const loadRequestId = ++riskLoadRequestRef.current;
+
       try {
         setIsSubmitting(true);
         setOngoingMonitoring(null);
@@ -1015,10 +1016,12 @@ export default function RiskInputPage() {
           `/risks/${id}`,
           token ?? undefined,
         );
+        if (loadRequestId !== riskLoadRequestRef.current) return;
 
         setRiskId(risk.id);
         setRiskStatus(risk.status || "draft");
         setRiskIsCurrent(risk.isCurrent ?? false);
+        setRiskVersionNumber(risk.versionNumber ?? null);
         setRiskArchivedAt(risk.archivedAt || null);
         setRiskArchivedReason(risk.archivedReason || "");
         setOngoingAssessmentId(
@@ -1026,36 +1029,44 @@ export default function RiskInputPage() {
         );
 
         if (risk.status === "final" && risk.isCurrent && !risk.archivedAt) {
-          try {
-            const monitoringResult = await listRiskMonitorings(token ?? "", {
-              q: risk.code || undefined,
-              lifecycle: "all",
-              status: "draft",
-              limit: 100,
-            });
-            const existingMonitoring = monitoringResult.data.find(
-              (monitoring) =>
-                monitoring.status === "draft" &&
-                (monitoring.sourceRiskId === risk.id ||
-                  (risk.versionGroupId &&
-                    monitoring.sourceRisk?.versionGroupId ===
-                      risk.versionGroupId)),
-            );
+          void listRiskMonitorings(token ?? "", {
+            q: risk.code || undefined,
+            lifecycle: "all",
+            status: "draft",
+            limit: 100,
+          })
+            .then((monitoringResult) => {
+              if (loadRequestId !== riskLoadRequestRef.current) return;
 
-            setOngoingMonitoring(
-              existingMonitoring
-                ? {
-                    id: existingMonitoring.id,
-                    assessmentCycle: existingMonitoring.assessmentCycle,
-                  }
-                : null,
-            );
-            setMonitoringLookupStatus("ready");
-          } catch (monitoringError) {
-            console.error("Failed to check ongoing monitoring:", monitoringError);
-            setOngoingMonitoring(null);
-            setMonitoringLookupStatus("error");
-          }
+              const existingMonitoring = monitoringResult.data.find(
+                (monitoring) =>
+                  monitoring.status === "draft" &&
+                  (monitoring.sourceRiskId === risk.id ||
+                    (risk.versionGroupId &&
+                      monitoring.sourceRisk?.versionGroupId ===
+                        risk.versionGroupId)),
+              );
+
+              setOngoingMonitoring(
+                existingMonitoring
+                  ? {
+                      id: existingMonitoring.id,
+                      assessmentCycle: existingMonitoring.assessmentCycle,
+                    }
+                  : null,
+              );
+              setMonitoringLookupStatus("ready");
+            })
+            .catch((monitoringError) => {
+              if (loadRequestId !== riskLoadRequestRef.current) return;
+
+              console.error(
+                "Failed to check ongoing monitoring:",
+                monitoringError,
+              );
+              setOngoingMonitoring(null);
+              setMonitoringLookupStatus("error");
+            });
         } else {
           setMonitoringLookupStatus("ready");
         }
@@ -1160,89 +1171,98 @@ export default function RiskInputPage() {
         if (risk.status) {
           setApprovalId(null);
           setApprovalWorkflow(null);
-          try {
-            const approvalResult = await api.get<{
-              id?: string;
-              currentStatus?: string;
-              currentApproverRole?: string;
-              currentApproverUserId?: string;
-              steps?: {
-                approverUserId?: string;
-                approverName?: string;
-                stepType?: string;
-                status?: string;
-              }[];
-            } | null>(
-              `/approvals/by-entity?request_type=risk&entity_id=${id}`,
-              token ?? undefined,
-            );
-            setApprovalId(approvalResult?.id ?? null);
-            setApprovalWorkflow(
-              approvalResult
-                ? {
-                    currentStatus: approvalResult.currentStatus ?? null,
-                    currentApproverRole:
-                      approvalResult.currentApproverRole ?? null,
-                    currentApproverUserId:
-                      approvalResult.currentApproverUserId ?? null,
-                    steps:
-                      approvalResult.steps?.map((step) => ({
-                        approverUserId: step.approverUserId ?? null,
-                        approverName: step.approverName ?? null,
-                        stepType: step.stepType ?? null,
-                        status: step.status ?? null,
-                      })) ?? [],
-                  }
-                : null,
-            );
-            if (approvalResult?.steps && Array.isArray(approvalResult.steps)) {
-              const reviewerStep = approvalResult.steps.find(
-                (s) => s.stepType === "review",
+          void (async () => {
+            try {
+              const approvalResult = await api.get<{
+                id?: string;
+                currentStatus?: string;
+                currentApproverRole?: string;
+                currentApproverUserId?: string;
+                steps?: {
+                  approverUserId?: string;
+                  approverName?: string;
+                  stepType?: string;
+                  status?: string;
+                }[];
+              } | null>(
+                `/approvals/by-entity?request_type=risk&entity_id=${id}`,
+                token ?? undefined,
               );
-              const approvalSteps = approvalResult.steps
-                .filter(
-                  (step) =>
-                    step.stepType === "approval" &&
-                    step.approverUserId &&
-                    step.approverName,
-                )
-                .map((step) =>
-                  createApprovalLineRow({
-                    id: step.approverUserId!,
-                    name: step.approverName!,
-                  }),
+              if (loadRequestId !== riskLoadRequestRef.current) return;
+
+              setApprovalId(approvalResult?.id ?? null);
+              setApprovalWorkflow(
+                approvalResult
+                  ? {
+                      currentStatus: approvalResult.currentStatus ?? null,
+                      currentApproverRole:
+                        approvalResult.currentApproverRole ?? null,
+                      currentApproverUserId:
+                        approvalResult.currentApproverUserId ?? null,
+                      steps:
+                        approvalResult.steps?.map((step) => ({
+                          approverUserId: step.approverUserId ?? null,
+                          approverName: step.approverName ?? null,
+                          stepType: step.stepType ?? null,
+                          status: step.status ?? null,
+                        })) ?? [],
+                    }
+                  : null,
+              );
+              if (approvalResult?.steps && Array.isArray(approvalResult.steps)) {
+                const reviewerStep = approvalResult.steps.find(
+                  (s) => s.stepType === "review",
                 );
-              if (reviewerStep?.approverUserId) {
-                setReviewerId(reviewerStep.approverUserId);
-                setReviewerOption(
-                  toHydratedUserPickerOption({
-                    id: reviewerStep.approverUserId,
-                    name: reviewerStep.approverName,
-                    role: "reviewer",
-                  }),
-                );
+                const approvalSteps = approvalResult.steps
+                  .filter(
+                    (step) =>
+                      step.stepType === "approval" &&
+                      step.approverUserId &&
+                      step.approverName,
+                  )
+                  .map((step) =>
+                    createApprovalLineRow({
+                      id: step.approverUserId!,
+                      name: step.approverName!,
+                    }),
+                  );
+                if (reviewerStep?.approverUserId) {
+                  setReviewerId(reviewerStep.approverUserId);
+                  setReviewerOption(
+                    toHydratedUserPickerOption({
+                      id: reviewerStep.approverUserId,
+                      name: reviewerStep.approverName,
+                      role: "reviewer",
+                    }),
+                  );
+                }
+                setApprovalLine(approvalSteps);
               }
-              setApprovalLine(approvalSteps);
+            } catch (approvalError) {
+              if (loadRequestId !== riskLoadRequestRef.current) return;
+
+              setApprovalId(null);
+              setApprovalWorkflow(null);
+              if (
+                approvalError instanceof ApiError &&
+                approvalError.status !== 404
+              ) {
+                console.error("Failed to load approval line:", approvalError);
+              }
             }
-          } catch (approvalError) {
-            setApprovalId(null);
-            setApprovalWorkflow(null);
-            if (
-              approvalError instanceof ApiError &&
-              approvalError.status !== 404
-            ) {
-              console.error("Failed to load approval line:", approvalError);
-            }
-          }
+          })();
         } else {
           setApprovalId(null);
           setApprovalWorkflow(null);
         }
       } catch (error) {
+        if (loadRequestId !== riskLoadRequestRef.current) return;
+
         if (error instanceof ApiError && error.status === 404) {
           setRiskId(null);
           setRiskStatus("draft");
           setRiskIsCurrent(false);
+          setRiskVersionNumber(null);
           setRiskArchivedAt(null);
           setRiskArchivedReason("");
           setOngoingAssessmentId(null);
@@ -1262,7 +1282,9 @@ export default function RiskInputPage() {
         console.error("Failed to load risk data:", error);
         toast.error("Gagal memuat data risiko. Silakan coba lagi.");
       } finally {
-        setIsSubmitting(false);
+        if (loadRequestId === riskLoadRequestRef.current) {
+          setIsSubmitting(false);
+        }
       }
     },
     [reset, token],
@@ -1288,43 +1310,40 @@ export default function RiskInputPage() {
   ]);
 
   useEffect(() => {
+    let cancelled = false;
+
+    const loadOrganizations = async () => {
+      if (!token) return;
+
+      try {
+        const res = await listAllOrganizations(token);
+        if (cancelled) return;
+
+        const filtered = user?.isGlobal
+          ? res
+          : filterToAccessibleOrgs(res, user?.accessibleOrgIds || []);
+        setOrganizations(
+          filtered.map((org) => ({
+            id: org.id,
+            name: org.name,
+            uprLevel: org.uprLevel,
+          })),
+        );
+      } catch (err) {
+        if (!cancelled) console.error(err);
+      }
+    };
+
+    void loadOrganizations();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token, user]);
+
+  useEffect(() => {
     const init = async () => {
-      if (token) {
-        try {
-          const res = await listAllOrganizations(token);
-          const filtered = user?.isGlobal
-            ? res
-            : filterToAccessibleOrgs(res, user?.accessibleOrgIds || []);
-          setOrganizations(
-            filtered.map((org) => ({
-              id: org.id,
-              name: org.name,
-              uprLevel: org.uprLevel,
-            })),
-          );
-        } catch (err) {
-          console.error(err);
-        }
-      }
-
-      const existingRiskId = searchParams.get("id");
-      const documentPrefillToken = searchParams.get(
-        DOCUMENT_INTELLIGENCE_PREFILL_PARAM,
-      );
-      const meetingPrefillToken = searchParams.get(
-        MEETING_INTELLIGENCE_PREFILL_PARAM,
-      );
-
-      if (existingRiskId && token) {
-        setLoadingVersionId(existingRiskId);
-        try {
-          await loadRiskData(existingRiskId);
-        } finally {
-          setLoadingVersionId((current) =>
-            current === existingRiskId ? null : current,
-          );
-        }
-      }
+      const existingRiskId = selectedRiskId;
 
       if (documentPrefillToken) {
         const documentPrefill =
@@ -1509,7 +1528,30 @@ export default function RiskInputPage() {
     };
 
     init();
-  }, [loadRiskData, reset, searchParams, setValue, token, user]);
+  }, [documentPrefillToken, meetingPrefillToken, reset, selectedRiskId, setValue, user]);
+
+  useEffect(() => {
+    if (!selectedRiskId || !token) {
+      riskLoadRequestRef.current += 1;
+      setLoadingVersionId(null);
+      if (!selectedRiskId) setRiskVersionNumber(null);
+      return;
+    }
+
+    let active = true;
+    setLoadingVersionId(selectedRiskId);
+    void loadRiskData(selectedRiskId).finally(() => {
+      if (!active) return;
+
+      setLoadingVersionId((current) =>
+        current === selectedRiskId ? null : current,
+      );
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [loadRiskData, selectedRiskId, token]);
 
   // UI state
   const [generatingCause, setGeneratingCause] = useState(false);
@@ -2093,11 +2135,11 @@ export default function RiskInputPage() {
 
   const handleVersionSelect = useCallback(
     (versionId: string) => {
-      if (versionId !== riskId) {
+      if (versionId !== selectedRiskId) {
         setLoadingVersionId(versionId);
       }
     },
-    [riskId],
+    [selectedRiskId],
   );
 
   const FormErrorMessage = ({
@@ -2108,11 +2150,10 @@ export default function RiskInputPage() {
     className?: string;
   }) => {
     const message = typeof error === "string" ? error : error?.message;
-    if (!message) return null;
     return (
-      <span className={cn("mt-1 text-xs font-medium text-destructive", className)}>
+      <FieldErrorMessage className={cn("mt-1", className)}>
         {message}
-      </span>
+      </FieldErrorMessage>
     );
   };
 
@@ -2330,27 +2371,33 @@ export default function RiskInputPage() {
     <TooltipProvider>
       <FormPage className="risk-form-filter-controls space-y-6 [&>header+*]:!mt-6">
         <CollectionPageHeader
-          backActionPlacement="local"
-          backAction={<FormBackAction href="/risk/register" label="Kembali" />}
           showTitle
           actionsPlacement="title"
-          title={riskId ? "Edit Risiko" : "Tambah Risiko"}
+          title={riskId ? riskCode || "Edit Risiko" : "Tambah Risiko"}
           subtitle="Identifikasi konteks, penyebab, dampak, dan penanganan risiko."
           actions={
             <>
+              {riskId ? (
+                <ActionButton asChild variant="outline" icon={<ShieldAlert className="size-3.5" />}>
+                  <Link href={`/risk-events?riskId=${riskId}`}>Catat Kejadian</Link>
+                </ActionButton>
+              ) : null}
               {canContinueMonitoring && ongoingMonitoring ? (
-                <ActionButton asChild variant="secondary">
+                <ActionButton
+                  asChild
+                  variant="outline"
+                  className="px-4"
+                >
                   <Link
                     href={`/risk/monitoring/${ongoingMonitoring.id}`}
                     title={`Lanjutkan pemantauan ${ongoingMonitoring.assessmentCycle}`}
                   >
-                    <ArrowRight className="size-3.5" strokeWidth={2} />
                     Lanjutkan Pemantauan
                   </Link>
                 </ActionButton>
               ) : canStartMonitoring ? (
                 <ActionButton
-                  variant="secondary"
+                  variant="outline"
                   icon={<RefreshCcw className="size-3.5" strokeWidth={2} />}
                   onClick={handleOpenMonitoringDialog}
                   disabled={isSubmitting || isStartingMonitoring}
@@ -2442,7 +2489,7 @@ export default function RiskInputPage() {
                       <p className="text-sm font-medium tracking-tight text-foreground transition-colors">
                         Identifikasi Risiko
                       </p>
-                      <p className="text-xs leading-relaxed text-muted-foreground">
+                      <p className="text-xs leading-relaxed text-secondary-foreground">
                         {sectionStatuses[0].description}
                       </p>
                     </div>
@@ -2537,77 +2584,6 @@ export default function RiskInputPage() {
                       />
                       <FormErrorMessage error={errors.category?.message} />
                     </div>
-
-                    <div className="flex flex-col gap-2">
-                      <Label className="text-sm font-medium text-foreground">RO</Label>
-                      <ROPicker
-                        organizationId={currentOrganizationId}
-                        value={watch("roId")}
-                        disabled={isRiskLocked}
-                        onChange={(id, summary) => {
-                          setValue("roId", id, { shouldDirty: true });
-                          setObjectiveSummary(summary);
-                        }}
-                      />
-                    </div>
-
-                    {objectiveSummary && (
-                      <div className="min-w-0 space-y-2 rounded-xl bg-card p-5 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
-                        <p className="text-xs font-semibold text-foreground">
-                          Ringkasan Hirarki
-                        </p>
-                        <div className="grid min-w-0 gap-2 text-xs text-muted-foreground md:grid-cols-2">
-                          {objectiveSummary.tujuanTitle && (
-                            <div className="min-w-0 break-words">
-                              <span className="font-medium text-foreground">
-                                Tujuan:
-                              </span>{" "}
-                              {objectiveSummary.tujuanTitle}
-                            </div>
-                          )}
-                          {objectiveSummary.sasaranTitle && (
-                            <div className="min-w-0 break-words">
-                              <span className="font-medium text-foreground">
-                                Sasaran:
-                              </span>{" "}
-                              {objectiveSummary.sasaranTitle}
-                            </div>
-                          )}
-                          {objectiveSummary.ikuTitle && (
-                            <div className="min-w-0 break-words">
-                              <span className="font-medium text-foreground">
-                                IKU:
-                              </span>{" "}
-                              {objectiveSummary.ikuTitle}
-                            </div>
-                          )}
-                          {objectiveSummary.programTitle && (
-                            <div className="min-w-0 break-words">
-                              <span className="font-medium text-foreground">
-                                Program:
-                              </span>{" "}
-                              {objectiveSummary.programTitle}
-                            </div>
-                          )}
-                          {objectiveSummary.kegiatanTitle && (
-                            <div className="min-w-0 break-words">
-                              <span className="font-medium text-foreground">
-                                Kegiatan:
-                              </span>{" "}
-                              {objectiveSummary.kegiatanTitle}
-                            </div>
-                          )}
-                          {objectiveSummary.roTitle && (
-                            <div className="min-w-0 break-words">
-                              <span className="font-medium text-foreground">
-                                RO:
-                              </span>{" "}
-                              {objectiveSummary.roTitle}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    )}
 
                     <div className="flex flex-col gap-2">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -2732,7 +2708,7 @@ export default function RiskInputPage() {
                       <p className="text-sm font-medium tracking-tight text-foreground transition-colors">
                         Analisis Risiko
                       </p>
-                      <p className="text-xs leading-relaxed text-muted-foreground">
+                      <p className="text-xs leading-relaxed text-secondary-foreground">
                         {sectionStatuses[1].description}
                       </p>
                     </div>
@@ -2821,7 +2797,7 @@ export default function RiskInputPage() {
                       <p className="text-sm font-medium tracking-tight text-foreground transition-colors">
                         Evaluasi Risiko
                       </p>
-                      <p className="text-xs leading-relaxed text-muted-foreground">
+                      <p className="text-xs leading-relaxed text-secondary-foreground">
                         {sectionStatuses[2].description}
                       </p>
                     </div>
@@ -2888,7 +2864,7 @@ export default function RiskInputPage() {
                       <p className="text-sm font-medium tracking-tight text-foreground transition-colors">
                         Rencana Penanganan
                       </p>
-                      <p className="text-xs leading-relaxed text-muted-foreground">
+                      <p className="text-xs leading-relaxed text-secondary-foreground">
                         {sectionStatuses[3].description}
                       </p>
                     </div>
@@ -3005,7 +2981,7 @@ export default function RiskInputPage() {
                       <p className="text-sm font-medium tracking-tight text-foreground transition-colors">
                         Target Penurunan
                       </p>
-                      <p className="text-xs leading-relaxed text-muted-foreground">
+                      <p className="text-xs leading-relaxed text-secondary-foreground">
                         {sectionStatuses[4].description}
                       </p>
                     </div>
@@ -3046,13 +3022,13 @@ export default function RiskInputPage() {
                         <p className="text-sm font-medium tracking-tight text-foreground transition-colors">
                           Alur Persetujuan
                         </p>
-                        <p className="text-xs leading-relaxed text-muted-foreground">
+                        <p className="text-xs leading-relaxed text-secondary-foreground">
                           Susun reviewer dan rantai persetujuan pimpinan
                         </p>
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-5 px-5 pb-6 pt-2">
-                      <div className="rounded-xl bg-card p-5 space-y-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+                      <div className="rounded-lg bg-card p-5 space-y-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
                         <div className="flex flex-col gap-2">
                           <Label className="text-sm font-medium text-foreground">
                             1. Reviewer (Pemeriksa)
@@ -3077,7 +3053,7 @@ export default function RiskInputPage() {
                         />
                       </div>
 
-                      <div className="rounded-xl bg-card p-5 space-y-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+                      <div className="rounded-lg bg-card p-5 space-y-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
                         <div className="flex flex-col gap-2">
                           <Label className="text-sm font-medium text-foreground">
                             2. Alur Persetujuan (Pimpinan)
@@ -3117,7 +3093,7 @@ export default function RiskInputPage() {
 
           <aside className="min-w-0 self-start">
             <div className="space-y-6 xl:sticky xl:top-20">
-              <Card className="gap-0 overflow-hidden rounded-xl bg-card p-0 transition-colors duration-300">
+              <Card className="gap-0 overflow-hidden rounded-lg bg-card p-0 transition-colors duration-300">
                 <CardContent className="px-5 py-5 text-sm">
                   <div className="space-y-4">
                     <section aria-labelledby="risk-side-properties">
@@ -3128,8 +3104,8 @@ export default function RiskInputPage() {
                         Properti
                       </h2>
                       <dl className="mt-3 space-y-3">
-                        <div className="flex items-start justify-between gap-4">
-                          <dt className="text-muted-foreground">Status</dt>
+                        <div className="flex items-center justify-between gap-4">
+                          <dt className="text-[13px] text-muted-foreground">Status</dt>
                           <dd className="shrink-0 text-right">
                             <Badge
                               size="compact"
@@ -3139,14 +3115,20 @@ export default function RiskInputPage() {
                             </Badge>
                           </dd>
                         </div>
-                        <div className="flex items-start justify-between gap-4">
-                          <dt className="text-muted-foreground">Kode risiko</dt>
+                        <div className="flex items-center justify-between gap-4">
+                          <dt className="text-[13px] text-muted-foreground">Kode risiko</dt>
                           <dd className="max-w-[60%] truncate text-right font-mono text-foreground">
                             {riskCode || "Belum dibuat"}
                           </dd>
                         </div>
-                        <div className="flex items-start justify-between gap-4">
-                          <dt className="text-muted-foreground">Periode asesmen</dt>
+                        <div className="flex items-center justify-between gap-4">
+                          <dt className="text-[13px] text-muted-foreground">Versi</dt>
+                          <dd className="shrink-0 text-right font-mono text-foreground">
+                            {riskVersionNumber ? `v${riskVersionNumber}` : "-"}
+                          </dd>
+                        </div>
+                        <div className="flex items-center justify-between gap-4">
+                          <dt className="text-[13px] text-muted-foreground">Periode asesmen</dt>
                           <dd className="shrink-0 text-right font-mono text-foreground">
                             {assessmentCycleDisplay || "-"}
                           </dd>
@@ -3177,7 +3159,7 @@ export default function RiskInputPage() {
                             }
                           />
                         ) : (
-                          <div className="rounded-xl bg-state-surface px-3 py-4 text-center text-xs text-state-foreground">
+                          <div className="rounded-lg bg-state-surface px-3 py-4 text-center text-xs text-state-foreground">
                             Simpan draft untuk melihat progres penanganan.
                           </div>
                         )}
@@ -3201,7 +3183,7 @@ export default function RiskInputPage() {
                             token={token || ""}
                           />
                         ) : (
-                          <div className="rounded-xl bg-state-surface px-3 py-4 text-center text-xs text-state-foreground">
+                          <div className="rounded-lg bg-state-surface px-3 py-4 text-center text-xs text-state-foreground">
                             Simpan draft untuk mencatat log komunikasi.
                           </div>
                         )}
@@ -3290,7 +3272,10 @@ export default function RiskInputPage() {
               <div className="max-h-[calc(100dvh-14rem)] overflow-y-auto pr-1">
                 <RiskVersionHistoryList
                   versions={riskVersions}
-                  onVersionSelect={handleVersionSelect}
+                  onVersionSelect={(versionId) => {
+                    setShowVersionHistoryDialog(false);
+                    handleVersionSelect(versionId);
+                  }}
                 />
               </div>
               <DialogFooter>

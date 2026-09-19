@@ -17,6 +17,10 @@ const mitigationStatusSource = readFileSync(
   ),
   "utf8",
 );
+const monitoringSummarySource = readFileSync(
+  new URL("../assessment/components/simpulan-card.tsx", import.meta.url),
+  "utf8",
+);
 
 for (const [name, source] of [
   ["registration", registrationSource],
@@ -29,7 +33,7 @@ for (const [name, source] of [
     );
     if (name === "registration") {
       assert.match(source, /<CollectionPageHeader/);
-      assert.match(source, /backAction=/);
+      assert.doesNotMatch(source, /backAction=|FormBackAction/);
       assert.match(source, /actionsPlacement="title"/);
       assert.doesNotMatch(source, /<FormHeader/);
       assert.match(source, /Simpan draft/);
@@ -92,13 +96,24 @@ test("registration behavior entry points remain intact", () => {
   );
 });
 
+test("registration detail header uses the loaded risk code", () => {
+  assert.match(
+    registrationSource,
+    /title=\{riskId \? riskCode \|\| "Edit Risiko" : "Tambah Risiko"\}/,
+  );
+});
+
 test("registration uses the correct finalized-risk monitoring shortcut state", () => {
   assert.match(registrationSource, /const canStartMonitoring =/);
   assert.match(registrationSource, /const canContinueMonitoring =/);
   assert.match(registrationSource, /listRiskMonitorings\(/);
   assert.match(registrationSource, /ongoingMonitoring/);
   assert.match(registrationSource, /Lanjutkan Pemantauan/);
-  assert.match(registrationSource, /variant="secondary"/);
+  assert.match(
+    registrationSource,
+    /<ActionButton\s+asChild\s+variant="outline"\s+className="px-4"[\s\S]*?Lanjutkan Pemantauan/,
+  );
+  assert.doesNotMatch(registrationSource, /ArrowRight/);
   assert.match(registrationSource, /Mulai Pemantauan/);
   assert.match(registrationSource, /startMonitoring\(/);
   assert.match(registrationSource, /getSelectableMonitoringCycles/);
@@ -112,6 +127,18 @@ test("assessment behavior entry points remain intact", () => {
   assert.match(assessmentSource, /handleSaveDraft/);
   assert.match(assessmentSource, /openSubmitReviewConfirm/);
   assert.match(assessmentSource, /router\.push\(backTarget\)/);
+});
+
+test("monitoring draft save keeps the form mounted and action layout stable", () => {
+  assert.match(
+    assessmentSource,
+    /setMonitoringDraft\(updatedMonitoring\);[\s\S]*?setDraftRisk\(buildRiskFromMonitoring\(updatedMonitoring, sourceRisk\)\);/,
+  );
+  assert.doesNotMatch(assessmentSource, /await loadRiskData\(\);/);
+  assert.match(
+    assessmentSource,
+    /min-w-\[7rem\] items-center justify-end text-\[11px\]/,
+  );
 });
 
 test("monitoring workspace does not render a separate finalized success banner", () => {
@@ -148,6 +175,19 @@ test("monitoring mitigation status lives in the compact right panel", () => {
   assert.ok(mitigationStatusIndex > rightPanelIndex);
   assert.match(assessmentSource, /Pelaksanaan Mitigasi/);
   assert.doesNotMatch(mitigationStatusSource, /<Table/);
+  assert.match(
+    monitoringSummarySource,
+    /<dt className="text-\[13px\] text-muted-foreground">Skor risiko<\/dt>/,
+  );
+  assert.doesNotMatch(monitoringSummarySource, /Math\.round\(delta\)/);
+  assert.match(
+    mitigationStatusSource,
+    /<dt className="text-\[13px\] text-muted-foreground">Total mitigasi<\/dt>/,
+  );
+  assert.match(
+    mitigationStatusSource,
+    /<p className="text-\[13px\] text-muted-foreground">Status pelaporan<\/p>/,
+  );
   assert.match(mitigationStatusSource, /Total mitigasi/);
   assert.match(mitigationStatusSource, /Sudah dilaporkan/);
   assert.match(mitigationStatusSource, /Belum dilaporkan/);
@@ -176,5 +216,17 @@ test("monitoring header and right panel use the shared detail geometry", () => {
   assert.match(
     assessmentSource,
     /<CardContent className="px-5 py-5 text-sm">/,
+  );
+  assert.match(
+    assessmentSource,
+    /<CollapsibleCard\.Body className="space-y-5 border-t-0 px-5 py-5 text-sm">/,
+  );
+  assert.match(
+    assessmentSource,
+    /className="text-xs font-semibold uppercase tracking-\[0\.6px\] text-muted-foreground\/70"/,
+  );
+  assert.match(
+    monitoringSummarySource,
+    /className="text-xs font-semibold uppercase tracking-\[0\.6px\] text-muted-foreground\/70"/,
   );
 });

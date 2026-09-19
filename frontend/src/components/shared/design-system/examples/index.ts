@@ -44,3 +44,4 @@ export { TabsExample } from "./tabs-example";
 export { TooltipExample } from "./tooltip-example";
 export { TypographyExample } from "./typography-example";
 export { VersionTimelineExample } from "./version-timeline-example";
+export { WarningCardExample } from "./warning-card-example";

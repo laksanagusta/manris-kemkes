@@ -42,7 +42,7 @@ export function LabeledList({
       </h2>
       <ListGroup
         className={cn(
-          "surface-hairline rounded-[10px] bg-card",
+          "surface-hairline rounded-lg bg-card",
           surfaceClassName,
         )}
       >

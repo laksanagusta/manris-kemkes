@@ -338,12 +338,12 @@ test("risk form geometry overrides preserve the shared active field state", () =
   );
 });
 
-test("all PopoverContent surfaces use the canonical rounded-xl radius", () => {
+test("all PopoverContent surfaces use the canonical rounded-lg radius", () => {
   const popoverSource = readFileSync(
     new URL("./popover.tsx", import.meta.url),
     "utf8",
   );
-  assert.match(popoverSource, /data-slot="popover-content"[\s\S]*rounded-xl/);
+  assert.match(popoverSource, /data-slot="popover-content"[\s\S]*rounded-lg/);
   assert.doesNotMatch(popoverSource, /rounded-(?:2xl|3xl)/);
 
   for (const file of listTypeScriptFiles(sourceRoot)) {
@@ -351,8 +351,8 @@ test("all PopoverContent surfaces use the canonical rounded-xl radius", () => {
     for (const match of source.matchAll(/<PopoverContent\b[^>]*>/g)) {
       assert.doesNotMatch(
         match[0],
-        /rounded-(?:sm|md|lg|2xl|3xl)/,
-        `${file} overrides PopoverContent with a non-xl radius`,
+        /rounded-(?:sm|md|xl|2xl|3xl)/,
+        `${file} overrides PopoverContent with a non-canonical surface radius`,
       );
     }
   }

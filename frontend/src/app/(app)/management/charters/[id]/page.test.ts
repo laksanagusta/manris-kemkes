@@ -13,7 +13,7 @@ const designSystemPage = readSource("../../../design-system/page.tsx");
 const designSystemDocument = readSource("../../../../../../../DESIGN.md");
 
 test("risk charter uses the canonical desktop document editor", () => {
-  assert.match(source, /<FormPage className="space-y-0">/);
+  assert.match(source, /<FormPage className="max-w-\[672px\] space-y-0">/);
   assert.match(source, /<DocumentFormSection/);
   assert.match(source, /<DocumentListSection/);
   assert.equal((source.match(/<DocumentListSection/g) ?? []).length, 3);
@@ -23,7 +23,7 @@ test("risk charter uses the canonical desktop document editor", () => {
   assert.match(source, /open=\{Boolean\(listEditor\)\}/);
   assert.doesNotMatch(source, /<DirtyActionBar/);
   assert.match(source, /<div className="px-6 pb-0 lg:px-8">\s*<FormHeader/);
-  assert.match(source, /backActionPlacement="local"/);
+  assert.doesNotMatch(source, /backActionPlacement=|backLabel=|onBack=/);
   assert.match(source, /showTitle/);
   assert.doesNotMatch(source, /Versi \{charter\.versionNumber\}/);
   assert.match(source, /title="Detail Piagam"[\s\S]*subtitle="Tinjau mandat dan ruang lingkup piagam manajemen risiko\."/);

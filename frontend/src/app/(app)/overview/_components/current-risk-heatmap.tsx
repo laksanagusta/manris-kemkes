@@ -38,7 +38,7 @@ export function CurrentRiskHeatmap({
       <div className="relative h-full">
         <StandardCard
           title="Peta Risiko Saat Ini"
-          className="h-full rounded-2xl"
+          className="h-full rounded-lg"
           contentClassName="px-5 pb-6 pt-3"
           headerClassName="px-5 pb-3 pt-5"
         >

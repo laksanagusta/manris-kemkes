@@ -32,37 +32,37 @@ export function TableExample() {
           <CollectionTableHeaderRow className="h-[40.5px]">
             <CollectionTableHead
               density="compact"
-              className="h-[40.5px] px-6 py-3 text-left uppercase tracking-[0.05em] text-muted-foreground"
+              className="h-[40.5px] px-6 py-1.5 text-left capitalize text-secondary-foreground"
             >
               Name
             </CollectionTableHead>
             <CollectionTableHead
               density="compact"
-              className="h-[40.5px] px-6 py-3 text-left uppercase tracking-[0.05em] text-muted-foreground"
+              className="h-[40.5px] px-6 py-1.5 text-left capitalize text-secondary-foreground"
             >
               Status
             </CollectionTableHead>
             <CollectionTableHead
               density="compact"
-              className="h-[40.5px] px-6 py-3 text-left uppercase tracking-[0.05em] text-muted-foreground"
+              className="h-[40.5px] px-6 py-1.5 text-left capitalize text-secondary-foreground"
             >
               Plan
             </CollectionTableHead>
             <CollectionTableHead
               density="compact"
-              className="h-[40.5px] px-6 py-3 text-center uppercase tracking-[0.05em] text-muted-foreground"
+              className="h-[40.5px] px-6 py-1.5 text-center capitalize text-secondary-foreground"
             >
               Auto renewal
             </CollectionTableHead>
             <CollectionTableHead
               density="compact"
-              className="h-[40.5px] px-6 py-3 text-left uppercase tracking-[0.05em] text-muted-foreground"
+              className="h-[40.5px] px-6 py-1.5 text-left capitalize text-secondary-foreground"
             >
               Expiry
             </CollectionTableHead>
             <CollectionTableHead
               density="compact"
-              className="h-[40.5px] px-6 py-3 text-right uppercase tracking-[0.05em] text-muted-foreground"
+              className="h-[40.5px] px-6 py-1.5 text-right capitalize text-secondary-foreground"
             >
               Actions
             </CollectionTableHead>
@@ -70,7 +70,7 @@ export function TableExample() {
         </CollectionTableHeader>
         <TableBody>
           {/* Two-line ledger rows stay tall; single-line registers opt into h-10. */}
-          <TableRow className="h-[72.5px] border-0 hover:bg-sidebar-accent">
+          <TableRow className="h-[72.5px] border-b border-border/60 hover:bg-sidebar-accent">
             <TableCell className="h-[72.5px] p-4 px-6 align-middle">
               <div className="flex h-10 items-center gap-3">
                 <div
@@ -89,7 +89,7 @@ export function TableExample() {
                 </div>
               </div>
             </TableCell>
-            <TableCell className="h-[72.5px] p-0 px-6 align-middle">
+            <TableCell className="h-[72.5px] px-6 py-4 align-middle">
               <Badge
                 size="compact"
                 tone="success"
@@ -108,7 +108,7 @@ export function TableExample() {
                 </span>
               </div>
             </TableCell>
-            <TableCell className="h-[72.5px] p-0 px-6 text-center align-middle">
+            <TableCell className="h-[72.5px] px-6 py-4 text-center align-middle">
               <div className="flex justify-center">
                 <Switch defaultChecked aria-label="Auto renewal aktif" />
               </div>
@@ -120,7 +120,7 @@ export function TableExample() {
                 (8 days left)
               </span>
             </TableCell>
-            <TableCell className="h-[72.5px] p-0 text-center align-middle">
+            <TableCell className="h-[72.5px] px-6 py-4 text-center align-middle">
               <Button
                 variant="ghost"
                 size="xs"

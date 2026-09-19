@@ -24,8 +24,10 @@ test("sidebar does not duplicate the page-level create-risk action", () => {
 test("risk register table exposes accessible sorting and monitoring progress", () => {
   assert.match(registerSource, /aria-sort=\{scoreAriaSort\}/);
   assert.match(registerSource, /aria-label=\{`Urutkan berdasarkan skor/);
+  assert.match(registerSource, /flex h-9 w-full items-center gap-1 px-0 text-left capitalize outline-none transition-colors/);
+  assert.doesNotMatch(registerSource, /text-left uppercase outline-none transition-colors/);
   assert.match(registerSource, /<MonitoringTransactionProgress/);
-  assert.match(registerSource, /<MonitoringTransactionProgress\s+data=\{risk\.semesterMonitoring\}\s+countLabel=""/);
+  assert.match(registerSource, /<MonitoringTransactionProgress\s+data=\{risk\.semesterMonitoring\}\s+showCount=\{false\}/);
   assert.doesNotMatch(registerSource, /<CollectionTableHead[^>]*>\s*Kode\s*<\/CollectionTableHead>/);
   assert.match(registerSource, /<CollectionTableHead className="min-w-\[176px\] px-3">\s*Pemantauan/);
   assert.match(registerSource, /Mulai Pemantauan/);
@@ -43,7 +45,7 @@ test("risk register table uses the approved column proportions", () => {
 test("risk register data rows stay compact", () => {
   assert.match(
     registerSource,
-    /className="h-10 border-0 hover:bg-transparent hover:\[&>td\]:bg-muted\/50 \[&>td\]:transition-\[background-color\]"/,
+    /className="h-10 border-b border-border\/60 hover:bg-transparent hover:\[&>td\]:bg-muted\/50 \[&>td\]:transition-\[background-color\]"/,
   );
 });
 
@@ -103,25 +105,21 @@ test("risk register header uses the shared compact neutral surface", () => {
   );
 });
 
-test("risk register body rows do not use separator borders", () => {
+test("risk register body rows use internal separator borders", () => {
   assert.match(
     registerSource,
-    /className="h-10 border-0 hover:bg-transparent hover:\[&>td\]:bg-muted\/50 \[&>td\]:transition-\[background-color\]"/,
+    /className="h-10 border-b border-border\/60 hover:bg-transparent hover:\[&>td\]:bg-muted\/50 \[&>td\]:transition-\[background-color\]"/,
   );
   assert.match(
     registerSource,
-    /className="text-muted-foreground"\s+icon=\{/,
+    /<ActionIconButton\s+className="text-muted-foreground"\s+aria-label=\{`Aksi risiko/,
   );
   assert.match(
     registerSource,
     /className="sticky right-0 w-\[6%\] bg-card px-3 py-2"/,
   );
-  assert.doesNotMatch(
-    registerSource,
-    /className="text-muted-foreground"\s*aria-label={`Aksi risiko/,
-  );
   assert.match(registerSource, /<MonitoringTransactionProgress\s+data=\{risk\.semesterMonitoring\}/);
-  assert.match(registerSource, /className="text-sm font-normal tabular-nums text-muted-foreground"/);
+  assert.doesNotMatch(registerSource, /countLabel=""/);
   assert.doesNotMatch(registerSource, /Pemantauan \{new Date\(\)\.getFullYear\(\)\}/);
   assert.doesNotMatch(
     registerSource,

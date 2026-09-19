@@ -150,13 +150,13 @@ export function MitigationTable({
   return (
     <div className="space-y-3">
       {items.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-border/50 bg-muted/10 px-4 py-8 text-left">
+        <div className="rounded-lg border border-dashed border-border/50 bg-muted/10 px-4 py-8 text-left">
           <p className="text-xs text-muted-foreground">
             Belum ada rencana mitigasi.
           </p>
         </div>
       ) : (
-        <div className="w-full min-w-0 overflow-hidden rounded-xl border border-border/60">
+        <div className="w-full min-w-0 overflow-hidden rounded-lg border border-border/60">
           <Table className="w-full table-fixed">
             <colgroup>
               <col className="w-[40%]" />
@@ -296,8 +296,8 @@ export function MitigationTable({
                     </TableRow>
 
                     {expanded ? (
-                      <TableRow className="border-0 bg-muted/15">
-                        <TableCell colSpan={5} className="p-0">
+                      <TableRow className="border-b border-border/60 bg-muted/15">
+                        <TableCell colSpan={5} className="!p-0">
                           <div className="border-t border-border/50 px-4 py-4">
                             {disabled ? (
                               <p className="mb-3 text-xs text-muted-foreground">

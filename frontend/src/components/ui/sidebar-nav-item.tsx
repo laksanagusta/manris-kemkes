@@ -98,7 +98,7 @@ export function SidebarNavItem({
             <motion.span
               aria-hidden="true"
               className={cn(
-                "relative z-10 inline-flex size-4 shrink-0 items-center justify-center transition-[color] duration-[180ms] ease-(--ease-out) [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:transition-[stroke-width,color] [&>svg]:duration-[180ms] [&>svg]:ease-(--ease-out) group-hover/menu-button:[&>svg]:[stroke-width:1.95] group-active/menu-button:[&>svg]:[stroke-width:2.1]",
+                "relative z-10 inline-flex size-4 shrink-0 items-center justify-center transition-[color] duration-[180ms] ease-(--ease-out) [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:transition-[stroke-width,color] [&>svg]:duration-[180ms] [&>svg]:ease-(--ease-out) group-hover/menu-button:!text-sidebar-accent-foreground group-active/menu-button:!text-sidebar-accent-foreground group-hover/menu-button:[&>svg]:[stroke-width:1.95] group-active/menu-button:[&>svg]:[stroke-width:2.1]",
                 isActive
                   ? "!text-sidebar-accent-foreground"
                   : "!text-sidebar-muted-foreground",

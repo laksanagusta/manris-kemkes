@@ -10,6 +10,10 @@ export function MonitoringTransactionProgressExample() {
         data={{ q1: "final", q2: "final", q3: "draft" }}
       />
       <MonitoringTransactionProgress
+        data={{ q1: "final", q2: "draft" }}
+        showCount={false}
+      />
+      <MonitoringTransactionProgress
         items={[
           { label: "Ketua", status: "final" },
           { label: "Reviewer", status: "draft" },

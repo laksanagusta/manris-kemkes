@@ -26,7 +26,7 @@ const toneStyles: Record<
 > = {
   white: {
     container:
-      "surface-hairline min-h-[100px] rounded-xl bg-card px-5 py-5",
+      "surface-hairline min-h-[100px] rounded-lg bg-card px-5 py-5",
     label:
       "text-[13px] leading-4 font-medium tracking-normal text-muted-foreground text-pretty",
     value:

@@ -20,7 +20,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
   CollectionPageHeader,
-  FormBackAction,
   KpiCard,
   MetricGrid,
   PageStack,
@@ -118,10 +117,6 @@ export default function PlanningDetailPage() {
           <p className="text-sm text-muted-foreground">
             Struktur dengan ID tersebut belum ditemukan di cache kompatibilitas.
           </p>
-          <FormBackAction
-            href="/management/planning"
-            label="Kembali ke Struktur Kinerja & RO"
-          />
         </CardContent>
       </Card>
     );
@@ -130,7 +125,6 @@ export default function PlanningDetailPage() {
   return (
     <PageStack>
       <CollectionPageHeader
-        backActionPlacement="top"
         actionsPlacement="top"
         eyebrow={
           <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/80">
@@ -138,9 +132,6 @@ export default function PlanningDetailPage() {
           </p>
         }
         title="Detail Struktur Kinerja"
-        backAction={
-          <FormBackAction href="/management/planning" label="Kembali" />
-        }
         actions={
           <Badge
             variant="outline"

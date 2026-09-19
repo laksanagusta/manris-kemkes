@@ -113,7 +113,7 @@ export function RiskScorePickerTrigger({
       disabled={disabled}
       aria-describedby={ariaDescribedBy}
       aria-label={`Pilih ${title.toLowerCase()} dari heatmap. Probabilitas ${probability}, dampak ${impact}, skor ${metrics.inherentScore}.`}
-      className="group flex min-h-11 w-fit max-w-full self-start items-center justify-between gap-3 rounded-xl border border-border/60 bg-card px-3 py-2.5 text-left transition-[background-color,border-color] hover:border-foreground/15 hover:bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:hover:border-border/60 disabled:cursor-not-allowed disabled:opacity-60"
+      className="group flex min-h-11 w-fit max-w-full self-start items-center justify-between gap-3 rounded-lg border border-border/60 bg-card px-3 py-2.5 text-left transition-[background-color,border-color] hover:border-foreground/15 hover:bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:hover:border-border/60 disabled:cursor-not-allowed disabled:opacity-60"
     >
       <div className="flex shrink-0 items-center gap-2">
         <span className="text-3xl font-mono font-medium leading-none tracking-tight text-foreground tabular-nums">
@@ -210,7 +210,7 @@ export function RiskScoreHeatmapModal({
               {IMPACT_VALUES.map((impactValue) => (
                 <div
                   key={impactValue}
-                  className="flex min-h-12 flex-col justify-end rounded-xl px-1 py-1 text-center sm:min-h-14"
+                  className="flex min-h-12 flex-col justify-end rounded-lg px-1 py-1 text-center sm:min-h-14"
                 >
                   <span className="font-mono text-xs font-semibold tabular-nums text-foreground">
                     {impactValue}
@@ -223,7 +223,7 @@ export function RiskScoreHeatmapModal({
 
               {PROBABILITY_VALUES.map((probabilityValue) => (
                 <Fragment key={probabilityValue}>
-                  <div className="flex min-h-12 flex-col justify-center rounded-xl px-1 py-1 sm:min-h-14">
+                  <div className="flex min-h-12 flex-col justify-center rounded-lg px-1 py-1 sm:min-h-14">
                     <span className="font-mono text-xs font-semibold tabular-nums text-foreground">
                       {probabilityValue}
                     </span>
@@ -253,7 +253,7 @@ export function RiskScoreHeatmapModal({
                           handleCellKeyDown(event, probabilityValue, impactValue)
                         }
                         className={cn(
-                          "relative flex min-h-12 items-center justify-center rounded-xl border px-1 py-1 text-center transition-[filter,box-shadow,transform] duration-150 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.96] motion-reduce:transition-none motion-reduce:transform-none sm:min-h-14",
+                          "relative flex min-h-12 items-center justify-center rounded-lg border px-1 py-1 text-center transition-[filter,box-shadow,transform] duration-150 focus-visible:z-10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-[0.96] motion-reduce:transition-none motion-reduce:transform-none sm:min-h-14",
                           levelToColor(metrics.level),
                         isSelected ? "z-10 border-2" : "hover:brightness-95",
                       )}

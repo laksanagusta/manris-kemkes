@@ -38,6 +38,7 @@ export interface RiskMonitoringDetail {
   profileChangeSummary: string[];
   changeReason: string;
   startedAt: string;
+  createdAt?: string;
   updatedAt?: string;
   finalizedAt?: string | null;
   sourceRisk?: Risk | null;

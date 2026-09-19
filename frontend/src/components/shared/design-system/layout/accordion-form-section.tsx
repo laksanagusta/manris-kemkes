@@ -20,7 +20,7 @@ export function AccordionFormSection({
   return (
     <AccordionItem
       value={value}
-      className="scroll-mt-28 overflow-hidden rounded-xl not-last:border-b-0 bg-card smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 transition-all"
+      className="scroll-mt-28 overflow-hidden rounded-lg not-last:border-b-0 bg-card smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 transition-all"
     >
       <AccordionTrigger className="pointer-events-none cursor-default items-center rounded-none border-0 border-b border-border/60 px-4 py-6 hover:no-underline [&>svg]:hidden">
         <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.15em] text-muted-foreground">
@@ -29,7 +29,7 @@ export function AccordionFormSection({
       </AccordionTrigger>
       <AccordionContent className="space-y-5 px-4 pb-6 pt-10">
         {description ? (
-          <p className="text-xs leading-relaxed text-muted-foreground/70">
+          <p className="text-xs leading-relaxed text-secondary-foreground">
             {description}
           </p>
         ) : null}

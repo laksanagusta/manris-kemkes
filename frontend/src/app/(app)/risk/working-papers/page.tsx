@@ -136,12 +136,12 @@ function WorkingPaperFiltersSidebar({
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="w-[22rem] rounded-xl p-4"
+        className="w-[22rem] rounded-lg p-4"
       >
         <div className="space-y-4">
           <div>
             <h4 className="text-sm font-medium">Filter Kertas Kerja</h4>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-secondary-foreground">
               Atur status, siklus asesmen, dan tanggal dibuat.
             </p>
           </div>
@@ -654,6 +654,7 @@ export default function WorkingPapersPage() {
         />
       ) : null}
 
+      <div className="space-y-4">
       <CollectionToolbar
         className="w-full"
         leading={
@@ -833,7 +834,8 @@ export default function WorkingPapersPage() {
               setPage(1);
             }}
           />
-        </CollectionTableCard>
+      </CollectionTableCard>
+      </div>
       <WorkingPaperProgressCollapsible
         workingPapers={papers}
         loading={loading}

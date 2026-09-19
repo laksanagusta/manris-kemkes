@@ -49,7 +49,7 @@ export function DialogExample() {
               Konfirmasi Pemantauan
             </AlertDialogTitle>
           </AlertDialogHeader>
-          <div className="space-y-2 rounded-xl bg-accent p-3 ring-1 ring-inset ring-border">
+          <div className="space-y-2 rounded-lg bg-accent p-3 ring-1 ring-inset ring-border">
             <div className="text-sm">
               <span className="font-medium text-foreground">Kode: </span>
               <span className="font-mono text-xs text-muted-foreground">RISK-001</span>

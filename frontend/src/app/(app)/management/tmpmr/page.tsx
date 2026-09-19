@@ -211,6 +211,7 @@ export default function TMPMRListPage() {
         ))}
       </MetricGrid>
 
+      <div className="space-y-4">
       <CollectionToolbar
         className="w-full"
         leading={
@@ -299,12 +300,12 @@ export default function TMPMRListPage() {
         <CardContent className="space-y-5">
 
           {loading ? (
-            <div className="flex min-h-56 items-center justify-center gap-3 rounded-xl bg-state-surface text-sm text-state-foreground">
+            <div className="flex min-h-56 items-center justify-center gap-3 rounded-lg bg-state-surface text-sm text-state-foreground">
               <Loader2 className="size-5 animate-spin" />
               Memuat daftar TMPMR...
             </div>
           ) : error ? (
-            <div className="rounded-xl bg-state-surface px-4 py-8 text-center text-sm text-state-foreground">
+            <div className="rounded-lg bg-state-surface px-4 py-8 text-center text-sm text-state-foreground">
               {error}
             </div>
           ) : (
@@ -324,7 +325,7 @@ export default function TMPMRListPage() {
                 <TableBody>
                   {paginatedItems.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="bg-state-surface py-10 text-center text-sm text-state-foreground">
+                      <TableCell colSpan={7} className="bg-state-surface !py-10 text-center text-sm text-state-foreground">
                         Belum ada assessment yang cocok dengan filter ini.
                       </TableCell>
                     </TableRow>
@@ -403,6 +404,7 @@ export default function TMPMRListPage() {
           )}
         </CardContent>
       </Card>
+      </div>
     </PageStack>
   );
 }

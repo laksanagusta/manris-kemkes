@@ -16,7 +16,7 @@ export function AiSuggestionDropdown({
   onSelect: (suggestion: AiSuggestion) => void;
 }) {
   return (
-    <div className="w-full max-w-md overflow-hidden rounded-xl bg-background/95 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 backdrop-blur-md">
+    <div className="w-full max-w-md overflow-hidden rounded-lg bg-background/95 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 backdrop-blur-md">
       <div className="flex items-center border-b border-border/60 px-4 py-6">
         <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.15em] text-muted-foreground">
           {label}
@@ -33,7 +33,7 @@ export function AiSuggestionDropdown({
             <p className="text-sm font-medium text-foreground">
               {suggestion.title}
             </p>
-            <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+            <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-secondary-foreground">
               {suggestion.description}
             </p>
           </button>

@@ -13,6 +13,7 @@ test("quick create asks for title only and never prefills it", () => {
   assert.match(source, /maxLength=\{120\}/);
   assert.doesNotMatch(source, /value=\{user\?\.orgName/);
   assert.doesNotMatch(source, /<Select/);
+  assert.match(source, /className="flex flex-col gap-2"/);
 });
 
 test("quick create uses annual identity and waits for modal exit", () => {

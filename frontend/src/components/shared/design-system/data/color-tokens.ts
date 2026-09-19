@@ -22,6 +22,8 @@ export const designSystemColorTokens: DesignSystemColorToken[] = [
   { name: "disabled-surface", value: "var(--disabled-surface)" },
   { name: "state-surface", value: "var(--state-surface)" },
   { name: "state-foreground", value: "var(--state-foreground)" },
+  { name: "warning-card-surface", value: "var(--warning-card-surface)" },
+  { name: "warning-card-foreground", value: "var(--warning-card-foreground)" },
   { name: "accent", value: "var(--accent)" },
   { name: "accent-foreground", value: "var(--accent-foreground)" },
   { name: "destructive", value: "var(--destructive)" },

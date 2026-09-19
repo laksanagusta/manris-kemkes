@@ -179,8 +179,6 @@ export default function NewUserPage() {
             </Badge>
           </div>
         }
-        backLabel="Kembali ke daftar pengguna"
-        onBack={() => router.push("/admin/users")}
         actions={
           <Button className="text-xs" onClick={handleSave} disabled={loading}>
             {loading ? (
@@ -363,7 +361,7 @@ export default function NewUserPage() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-border/15 bg-muted/20 px-4 py-4">
+        <div className="rounded-lg border border-border/15 bg-muted/20 px-4 py-4">
           <p className="text-xs font-medium text-foreground">Ringkasan peran</p>
           <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
             {roleOptions.map((option) => (

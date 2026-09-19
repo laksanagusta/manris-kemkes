@@ -3,7 +3,6 @@ export { ActionButton } from "./actions/action-button";
 export { ActionIconButton } from "./actions/action-icon-button";
 export { DestructiveButton } from "./actions/destructive-button";
 export { DirtyActionBar } from "./actions/dirty-action-bar";
-export { FormBackAction } from "./actions/form-back-action";
 export {
   DialogActionList,
   type DialogActionItem,
@@ -44,6 +43,7 @@ export { SidebarTabsList } from "./collections/sidebar-tabs-list";
 export { ArchivedBanner } from "./feedback/archived-banner";
 export { InlineEmptyState } from "./feedback/inline-empty-state";
 export { ProgressMeter } from "./feedback/progress-meter";
+export { WarningCard } from "./feedback/warning-card";
 export {
   VersionTimeline,
   type VersionTimelineItem,
@@ -78,7 +78,6 @@ export {
 } from "./layout/page-header-actions-portal";
 export { PageStack } from "./layout/page-stack";
 export { CollectionPageHeader } from "./layout/collection-page-header";
-export { PAGE_BACK_ACTION_SLOT_ID } from "./layout/page-back-action-portal";
 export { StandardCard, type StandardCardProps } from "./layout/standard-card";
 export {
   Card,
@@ -132,10 +131,28 @@ export {
   SheetTrigger,
 } from "@/components/ui/sheet";
 export {
+  Drawer,
+  DrawerBody,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHandle,
+  DrawerHeader,
+  DrawerOverlay,
+  DrawerPortal,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
+export {
   PopoverSelectField,
   type PopoverSelectFieldProps,
   type PopoverSelectOption,
 } from "./fields/popover-select-field";
+export {
+  FieldErrorMessage,
+  type FieldErrorMessageProps,
+} from "./fields/field-error-message";
 export {
   Tooltip,
   TooltipContent,

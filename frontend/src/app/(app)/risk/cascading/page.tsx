@@ -244,7 +244,7 @@ export default function RiskCascadingPage() {
         ))}
       </MetricGrid>
 
-      <div className="space-y-6">
+      <div className="space-y-4">
           <CollectionToolbar
             className="w-full"
             leading={

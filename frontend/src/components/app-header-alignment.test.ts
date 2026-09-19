@@ -17,13 +17,6 @@ const collectionHeaderSource = readFileSync(
   ),
   "utf8",
 );
-const formBackActionSource = readFileSync(
-  new URL(
-    "./shared/design-system/actions/form-back-action.tsx",
-    import.meta.url,
-  ),
-  "utf8",
-);
 const appTopbarSource = readFileSync(
   new URL("./app-topbar.tsx", import.meta.url),
   "utf8",
@@ -105,10 +98,8 @@ test("renders the shared title and subtitle header with route exceptions", () =>
 });
 
 test("uses the shared compact page header", () => {
-  assert.match(
-    source,
-    /CollectionPageHeader,[\s\S]*PAGE_BACK_ACTION_SLOT_ID,[\s\S]*from "@\/components\/shared\/design-system"/,
-  );
+  assert.doesNotMatch(source, /PAGE_BACK_ACTION_SLOT_ID/);
+  assert.doesNotMatch(collectionHeaderSource, /backAction|PageBackAction/);
   assert.match(
     source,
     /<CollectionPageHeader[\s\S]*title=\{title\}/,
@@ -128,7 +119,7 @@ test("keeps the canonical header title at the shared page-title scale", () => {
   );
   assert.match(
     collectionHeaderSource,
-    /className="mt-1 text-sm leading-6 text-muted-foreground text-pretty"/,
+    /className="mt-1 text-sm leading-6 text-secondary-foreground text-pretty"/,
   );
   assert.match(collectionHeaderSource, /subtitle\?: ReactNode/);
 });
@@ -148,16 +139,12 @@ test("allows form and detail actions to use the global title-row slot", () => {
   assert.match(collectionHeaderSource, /<PageHeaderActionsPortal>\{actions\}<\/PageHeaderActionsPortal>/);
 });
 
-test("uses one aligned, transparent back action across forms and details", () => {
-  assert.match(formBackActionSource, /variant="ghost"/);
-  assert.match(formBackActionSource, /size="sm"/);
-  assert.match(formBackActionSource, /!px-0 text-\[12px\]/);
-  assert.match(formBackActionSource, /ChevronLeft/);
-  assert.match(formBackActionSource, /hover:bg-transparent/);
-  assert.match(formBackActionSource, /group-hover\/back:text-foreground/);
+test("does not render a back-action slot in the shared shell", () => {
+  assert.doesNotMatch(source, /app-header-back-action/);
+  assert.doesNotMatch(source, /empty:hidden/);
 });
 
-test("defines page-title as 28px medium", () => {
+test("defines page-title as 24px semibold", () => {
   const globalsSource = readFileSync(
     new URL("../app/globals.css", import.meta.url),
     "utf8",
@@ -165,7 +152,7 @@ test("defines page-title as 28px medium", () => {
 
   assert.match(
     globalsSource,
-    /\.page-title \{[\s\S]*font-size: 1\.75rem;[\s\S]*font-weight: 500;/,
+    /\.page-title \{[\s\S]*font-size: 1\.5rem;[\s\S]*font-weight: 600;/,
   );
 });
 

@@ -16,6 +16,7 @@ type RiskMonitoringRepository interface {
 	ListByVersionGroup(ctx context.Context, versionGroupID uuid.UUID) ([]*entity.RiskMonitoring, error)
 	Create(ctx context.Context, monitoring *entity.RiskMonitoring) error
 	UpdateDraft(ctx context.Context, monitoring *entity.RiskMonitoring) error
+	DeleteDraft(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID) error
 	Finalize(ctx context.Context, monitoringID uuid.UUID, resultRisk *entity.Risk, finalizedBy uuid.UUID) (*entity.RiskMonitoring, error)
 
 	// UpdateTaskMonitoringIDs links pending mitigation_tasks for a given risk+cycle

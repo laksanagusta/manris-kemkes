@@ -16,7 +16,7 @@ export default function FormalReportsPage() {
       <CollectionPageHeader title="Laporan Monitoring & Evaluasi dipindahkan ke Evaluasi" />
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="rounded-xl bg-card">
+        <Card className="rounded-lg bg-card">
           <CardHeader className="border-b border-border/40 pb-4">
             <CardTitle className="flex items-center gap-2 text-sm font-medium normal-case">
               <ClipboardList className="size-4" />
@@ -37,7 +37,7 @@ export default function FormalReportsPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-xl bg-card">
+        <Card className="rounded-lg bg-card">
           <CardHeader className="border-b border-border/40 pb-4">
             <CardTitle className="flex items-center gap-2 text-sm font-medium normal-case">
               <FileText className="size-4" />
