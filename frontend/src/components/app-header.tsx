@@ -17,7 +17,8 @@ export function AppHeader() {
   if (
     pathname === "/overview" ||
     pathname === "/risk/register/new" ||
-    pathname === "/intelligence/document"
+    pathname === "/risk/register/import-sop" ||
+    pathname === "/compliance/penanganan/impor"
   ) {
     return null;
   }

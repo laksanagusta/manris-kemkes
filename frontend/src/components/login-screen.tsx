@@ -96,7 +96,7 @@ export default function LoginScreen() {
                   placeholder="masukkan NIP"
                   autoComplete="username"
                   inputMode="numeric"
-                  className="h-10 border-input bg-muted/30 focus-visible:ring-primary/30"
+                  className="h-10 border border-input bg-muted/30 !shadow-none hover:border-foreground/15 focus:border-primary focus-visible:border-primary focus:ring-0 focus-visible:ring-0"
                   required
                   value={nip}
                   onChange={(event) => setNip(event.target.value)}
@@ -119,7 +119,7 @@ export default function LoginScreen() {
                     type={showPassword ? "text" : "password"}
                     placeholder="masukkan password"
                     autoComplete="current-password"
-                    className="h-10 border-input bg-muted/30 pr-10 focus-visible:ring-primary/30"
+                    className="h-10 border border-input bg-muted/30 pr-10 !shadow-none hover:border-foreground/15 focus:border-primary focus-visible:border-primary focus:ring-0 focus-visible:ring-0"
                     required
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}

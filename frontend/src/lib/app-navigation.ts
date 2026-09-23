@@ -11,6 +11,11 @@ export type MainMenuGroup = {
   items: MainMenuItem[];
 };
 
+export type BreadcrumbItem = {
+  label: string;
+  href?: string;
+};
+
 export const mainMenuItems: MainMenuGroup[] = [
   {
     title: "TATA KELOLA RISIKO",
@@ -90,6 +95,176 @@ export const adminMenuGroup: MainMenuGroup = {
   ],
 };
 
+type BreadcrumbSearchParams = {
+  get(name: string): string | null;
+};
+
+function parentBreadcrumb(label: string, href: string): BreadcrumbItem {
+  return { label, href };
+}
+
+function detailBreadcrumb(
+  parent: BreadcrumbItem,
+  label: string,
+): BreadcrumbItem[] {
+  return [parent, { label }];
+}
+
+/**
+ * Resolves the visible hierarchy for the authenticated application shell.
+ *
+ * Route segments are implementation details (for example `register` or
+ * `working-papers`) and should not leak into the breadcrumb. The resolver
+ * keeps each module's collection route as the parent and each form/detail
+ * route as the current page.
+ */
+export function getBreadcrumbItems(
+  pathname: string,
+  searchParams?: BreadcrumbSearchParams,
+  dynamicLabel?: string,
+): BreadcrumbItem[] {
+  const route = pathname.replace(/\/+$/, "") || "/";
+  const riskParent = parentBreadcrumb("Risiko", "/risk/register");
+
+  if (route === "/overview") return [{ label: "Dashboard" }];
+  if (route === "/account") return [{ label: "Akun" }];
+  if (route === "/design-system") return [{ label: "Design System" }];
+  if (route === "/inbox") return [{ label: "Persetujuan & TTE" }];
+
+  if (route === "/risk/register") return [riskParent];
+  if (route === "/risk/register/new") {
+    return detailBreadcrumb(
+      riskParent,
+      searchParams?.get("id") ? dynamicLabel ?? "Detail Risiko" : "Tambah Risiko",
+    );
+  }
+  if (route === "/risk/register/bulk") {
+    return detailBreadcrumb(riskParent, "Import Risiko");
+  }
+  if (route === "/risk/register/import-sop") {
+    return detailBreadcrumb(riskParent, "Ekstrak Risiko dari SOP");
+  }
+  if (/^\/risk\/register\/[^/]+$/.test(route)) {
+    return detailBreadcrumb(riskParent, dynamicLabel ?? "Detail Risiko");
+  }
+  if (route === "/risk/history") {
+    return detailBreadcrumb(riskParent, "Riwayat Risiko");
+  }
+  if (route === "/risk/cascading") return [{ label: "Eskalasi Risiko" }];
+  if (/^\/risk\/(assessment|monitoring)\/[^/]+$/.test(route)) {
+    return detailBreadcrumb(
+      parentBreadcrumb("Pemantauan", "/compliance/monitoring"),
+      dynamicLabel ?? "Monitoring Risiko",
+    );
+  }
+
+  const workingPaperParent = parentBreadcrumb("Kertas Kerja", "/risk/working-papers");
+  if (route === "/risk/working-papers") return [workingPaperParent];
+  if (route === "/risk/working-papers/new") {
+    return detailBreadcrumb(workingPaperParent, "Buat Kertas Kerja");
+  }
+  if (/^\/risk\/working-papers\/[^/]+$/.test(route)) {
+    return detailBreadcrumb(workingPaperParent, dynamicLabel ?? "Detail Kertas Kerja");
+  }
+
+  const riskEventParent = parentBreadcrumb("Kejadian Risiko", "/risk-events");
+  if (route === "/risk-events") return [riskEventParent];
+  if (/^\/risk-events\/[^/]+$/.test(route)) {
+    return detailBreadcrumb(riskEventParent, dynamicLabel ?? "Detail Kejadian");
+  }
+
+  const handlingParent = parentBreadcrumb("Penanganan", "/compliance/penanganan");
+  if (route === "/compliance/penanganan") return [handlingParent];
+  if (route === "/compliance/penanganan/impor") {
+    return detailBreadcrumb(handlingParent, "Impor Laporan Mitigasi");
+  }
+  if (route === "/compliance/monitoring") return [{ label: "Pemantauan" }];
+  if (route === "/compliance/controls") return [{ label: "Control Library" }];
+  if (route === "/compliance/controls/new") {
+    return detailBreadcrumb(
+      parentBreadcrumb("Control Library", "/compliance/controls"),
+      "Tambah Kontrol",
+    );
+  }
+
+  const charterParent = parentBreadcrumb("Piagam Manris", "/management/charters");
+  if (route === "/management/charters") return [charterParent];
+  if (route === "/management/charters/new") {
+    return detailBreadcrumb(charterParent, "Buat Piagam Manris");
+  }
+  if (/^\/management\/charters\/[^/]+$/.test(route)) {
+    return detailBreadcrumb(charterParent, dynamicLabel ?? "Detail Piagam");
+  }
+
+  const planningParent = parentBreadcrumb("Struktur Kinerja", "/management/planning");
+  if (route === "/management/planning") return [planningParent];
+  if (/^\/management\/planning\/[^/]+$/.test(route)) {
+    return detailBreadcrumb(planningParent, "Detail Struktur Kinerja");
+  }
+
+  const tmpmrParent = parentBreadcrumb("TMPMR", "/management/tmpmr");
+  if (route === "/management/tmpmr") return [tmpmrParent];
+  if (route === "/management/tmpmr/new") return detailBreadcrumb(tmpmrParent, "Buat TMPMR");
+  if (/^\/management\/tmpmr\/[^/]+$/.test(route)) {
+    return detailBreadcrumb(tmpmrParent, "Detail TMPMR");
+  }
+
+  const evaluationParent = parentBreadcrumb("Evaluasi", "/evaluations");
+  if (route === "/evaluations") return [evaluationParent];
+  if (route === "/evaluations/new") return detailBreadcrumb(evaluationParent, "Buat Evaluasi");
+  if (/^\/evaluations\/[^/]+$/.test(route)) {
+    return detailBreadcrumb(evaluationParent, dynamicLabel ?? "Detail Evaluasi");
+  }
+
+  const reportParent = parentBreadcrumb("Laporan", "/reports");
+  if (route === "/reports") return [reportParent];
+  if (route === "/reports/formal") return detailBreadcrumb(reportParent, "Laporan Formal");
+  if (route === "/reports/cycle-detail") {
+    return detailBreadcrumb(reportParent, "Detail Siklus Risiko");
+  }
+
+  const minutesParent = parentBreadcrumb("MoM", "/minutes");
+  if (route === "/minutes") return [minutesParent];
+  if (route === "/minutes/new") return detailBreadcrumb(minutesParent, "Buat Notulen");
+  if (/^\/minutes\/[^/]+$/.test(route)) {
+    return detailBreadcrumb(minutesParent, dynamicLabel ?? "Detail Notulen");
+  }
+  if (route === "/intelligence/transcript") {
+    return detailBreadcrumb(parentBreadcrumb("Intelligence", "/intelligence/minutes"), "MoM Intelligence");
+  }
+  if (route === "/intelligence/minutes") {
+    return detailBreadcrumb(parentBreadcrumb("Intelligence", "/intelligence/minutes"), "MoM");
+  }
+  if (route === "/intelligence/minutes/new") {
+    return detailBreadcrumb(parentBreadcrumb("MoM", "/minutes"), "Buat Notulen");
+  }
+  if (route === "/intelligence/predictive") {
+    return detailBreadcrumb(parentBreadcrumb("Intelligence", "/intelligence/minutes"), "Predictive Scoring");
+  }
+
+  if (route === "/admin/users") return [{ label: "Pengguna" }];
+  if (route === "/admin/users/new") {
+    return detailBreadcrumb(parentBreadcrumb("Pengguna", "/admin/users"), "Tambah Pengguna");
+  }
+  if (route === "/admin/organizations") return [{ label: "Organisasi" }];
+  if (route === "/admin/settings") {
+    return detailBreadcrumb(parentBreadcrumb("Administrasi", "/admin/users"), "Pengaturan Admin");
+  }
+  if (route === "/settings") return [{ label: "Pengaturan" }];
+  if (route === "/settings/groups") {
+    return detailBreadcrumb(parentBreadcrumb("Pengaturan", "/settings"), "Grup");
+  }
+  if (route === "/panduan/risiko") {
+    return [{ label: "Panduan Risiko" }];
+  }
+
+  const fallbackSegments = route.split("/").filter(Boolean);
+  return fallbackSegments.map((segment, index) => ({
+    label: segment.replaceAll("-", " ").replace(/\b\w/g, (character) => character.toUpperCase()),
+    href: index === fallbackSegments.length - 1 ? undefined : `/${fallbackSegments.slice(0, index + 1).join("/")}`,
+  }));
+}
+
 export const breadcrumbMap: Record<string, string> = {
   "/overview": "Dashboard",
   "/design-system": "Design System",
@@ -99,9 +274,11 @@ export const breadcrumbMap: Record<string, string> = {
   "/compliance": "Compliance",
   "/compliance/monitoring": "Pemantauan",
   "/compliance/penanganan": "Penanganan",
+  "/compliance/penanganan/impor": "Impor Laporan Mitigasi",
   "/compliance/controls": "Control Library",
   "/risk": "Risk Assessments",
   "/risk/register": "Risiko",
+  "/risk/register/import-sop": "Ekstrak Risiko dari SOP",
   "/risk-events": "Kejadian Risiko",
   "/risk/new": "New Risk",
   "/risk/history": "Risk History",
@@ -119,7 +296,6 @@ export const breadcrumbMap: Record<string, string> = {
   "/intelligence/transcript": "MoM",
   "/intelligence/minutes": "MoM",
   "/intelligence/minutes/new": "Buat Notulen",
-  "/intelligence/document": "Document Intelligence",
   "/minutes": "MoM",
   "/minutes/new": "Buat Notulen",
 	"/intelligence/predictive": "Predictive Scoring",
@@ -190,6 +366,10 @@ export const appPageMeta: Record<string, AppPageMeta> = {
     title: "Penanganan",
     subtitle: "Kelola rencana mitigasi dan tindak lanjut risiko.",
   },
+  "/compliance/penanganan/impor": {
+    title: "Impor Laporan Mitigasi",
+    subtitle: "Gunakan dokumen untuk mengisi laporan penanganan yang masih terbuka.",
+  },
   "/evaluations": {
     title: "Evaluasi",
     subtitle: "Tinjau hasil evaluasi dan tetapkan tindak lanjut yang diperlukan.",
@@ -201,10 +381,6 @@ export const appPageMeta: Record<string, AppPageMeta> = {
   "/inbox": {
     title: "Persetujuan & TTE",
     subtitle: "Tinjau pengajuan dan selesaikan proses persetujuan.",
-  },
-  "/intelligence/document": {
-    title: "Document Intelligence",
-    subtitle: "Analisis dokumen untuk menemukan risiko dan tindak lanjut.",
   },
   "/intelligence/minutes": {
     title: "MoM",
@@ -285,6 +461,10 @@ export const appPageMeta: Record<string, AppPageMeta> = {
   "/risk/register/bulk": {
     title: "Import Risiko",
     subtitle: "Tambahkan beberapa risiko melalui template yang telah disiapkan.",
+  },
+  "/risk/register/import-sop": {
+    title: "Ekstrak Risiko dari SOP",
+    subtitle: "Temukan kandidat risiko dari dokumen SOP untuk ditinjau dan dibuat sebagai draf.",
   },
   "/risk/register/new": {
     title: "Tambah Risiko",

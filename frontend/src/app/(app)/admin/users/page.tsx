@@ -501,7 +501,7 @@ export default function UsersManagementPage() {
                     >
                       <TableCell className="max-w-[250px]">
                         <div className="flex items-center gap-3">
-                          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-medium text-primary">
                             {getInitials(managedUser.name)}
                           </div>
                           <div className="min-w-0">
@@ -524,7 +524,7 @@ export default function UsersManagementPage() {
                         <Badge
                           variant="outline"
                           className={cn(
-                            "h-5 border px-1.5 text-[10px] font-semibold",
+                            "h-5 border px-1.5 text-[10px] font-medium",
                             role?.badgeClassName ??
                               "border-border bg-muted text-muted-foreground",
                           )}

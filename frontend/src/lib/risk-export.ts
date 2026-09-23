@@ -75,7 +75,7 @@ const EXCEL_EXPORT_HEADER_ROW_3 = 3;
 const EXCEL_EXPORT_HEADER_ROW_4 = 4;
 const EXCEL_EXPORT_DATA_START_ROW = 5;
 const EXCEL_EXPORT_FIRST_COL = 1;
-const EXCEL_EXPORT_LAST_COL = 25;
+const EXCEL_EXPORT_LAST_COL = 26;
 
 const EXCEL_EXPORT_HEADER_FILL: ExcelJS.FillPattern = {
   type: "pattern",
@@ -133,6 +133,7 @@ const EXCEL_EXPORT_COLUMN_WIDTHS = [
   10,  // BOBOT (target)
   10,  // NILAI (target)
   18,  // TINGKAT RISIKO (target)
+  20,  // UNIT KERJA
 ] as const;
 
 function toDelimited(value?: string[]) {
@@ -300,6 +301,7 @@ function buildRiskExportSheet(
   row1.getCell(C + 15).value = "EVALUASI RISIKO";
   row1.getCell(C + 17).value = "RENCANA PENANGANAN RISIKO (RPR)";
   row1.getCell(C + 20).value = "TARGET PENURUNAN TINGKAT RISIKO";
+  row1.getCell(C + 25).value = "UNIT KERJA";
   row1.height = 28;
 
   sheet.mergeCells(EXCEL_EXPORT_HEADER_ROW_1, C, EXCEL_EXPORT_HEADER_ROW_3, C);
@@ -308,6 +310,7 @@ function buildRiskExportSheet(
   sheet.mergeCells(EXCEL_EXPORT_HEADER_ROW_1, C + 15, EXCEL_EXPORT_HEADER_ROW_1, C + 16);
   sheet.mergeCells(EXCEL_EXPORT_HEADER_ROW_1, C + 17, EXCEL_EXPORT_HEADER_ROW_1, C + 19);
   sheet.mergeCells(EXCEL_EXPORT_HEADER_ROW_1, C + 20, EXCEL_EXPORT_HEADER_ROW_1, C + 24);
+  sheet.mergeCells(EXCEL_EXPORT_HEADER_ROW_1, C + 25, EXCEL_EXPORT_HEADER_ROW_3, C + 25);
 
   const row2 = sheet.getRow(EXCEL_EXPORT_HEADER_ROW_2);
   for (let i = 0; i < EXCEL_EXPORT_COLUMN_WIDTHS.length; i += 1) {
@@ -403,6 +406,7 @@ function buildRiskExportSheet(
     dataRow.getCell(C + 22).value = risk.targetWeight ?? "";
     dataRow.getCell(C + 23).value = targetScore;
     dataRow.getCell(C + 24).value = targetLevel;
+    dataRow.getCell(C + 25).value = risk.orgName || "";
 
     dataRow.font = EXCEL_EXPORT_DATA_FONT;
     dataRow.alignment = EXCEL_EXPORT_WRAP_ALIGNMENT;

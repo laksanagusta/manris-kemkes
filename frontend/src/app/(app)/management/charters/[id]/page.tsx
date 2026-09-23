@@ -385,7 +385,7 @@ export default function RiskCharterDetailPage() {
 
   if (loading) {
     return (
-      <FormPage className="max-w-[672px]">
+      <FormPage className="mx-auto max-w-[672px]">
         <CollectionLoadingState message="Memuat detail Piagam..." />
       </FormPage>
     );
@@ -393,7 +393,7 @@ export default function RiskCharterDetailPage() {
 
   if (loadError || !charter) {
     return (
-    <FormPage className="max-w-[672px]">
+    <FormPage className="mx-auto max-w-[672px]">
         <FormHeader
           title="Detail Piagam"
           subtitle="Piagam belum dapat ditampilkan."
@@ -569,7 +569,7 @@ export default function RiskCharterDetailPage() {
   };
 
   return (
-    <FormPage className="max-w-[672px] space-y-0">
+    <FormPage className="mx-auto max-w-[672px] space-y-0">
       <div className="px-6 pb-0 lg:px-8">
         <FormHeader
           title="Detail Piagam"
@@ -684,7 +684,7 @@ export default function RiskCharterDetailPage() {
                 rows={1}
                 placeholder="Judul Piagam"
                 aria-invalid={Boolean(errors.title)}
-                className="min-h-0 resize-none overflow-hidden rounded-none border-0 bg-transparent px-0 py-1 text-2xl font-semibold leading-tight tracking-tight shadow-none placeholder:text-muted-foreground/60 hover:border-0 focus:border-0 focus-visible:border-0 focus-visible:ring-0 lg:text-3xl"
+                className="min-h-0 resize-none overflow-hidden rounded-none border-0 bg-transparent px-0 py-1 text-2xl font-semibold leading-tight tracking-tight !shadow-none placeholder:text-muted-foreground/60 hover:border-0 focus:border-0 focus-visible:border-0 focus-visible:ring-0 lg:text-3xl"
               />
             ) : (
               <h1 className="break-words whitespace-pre-wrap text-2xl font-semibold leading-tight tracking-tight text-foreground lg:text-3xl">
@@ -1114,15 +1114,9 @@ export default function RiskCharterDetailPage() {
                 items={versions.map((version) => ({
                   id: version.id,
                   title: `Versi ${version.versionNumber}`,
-                  status: version.id === charter.id ? "Dibuka" : undefined,
                   description:
                     version.revisionReason ||
                     (version.versionNumber === 1 ? "Versi awal" : "Tanpa catatan revisi"),
-                  meta: (
-                    <CollectionStatusBadge tone={statusPresentation[version.status].tone}>
-                      {statusPresentation[version.status].label}
-                    </CollectionStatusBadge>
-                  ),
                 }))}
               />
             )}

@@ -409,7 +409,7 @@ function PlanningHierarchyRows({
                     </button>
                     <div className="min-w-0 space-y-0.5 py-0">
                       <div className="flex min-w-0 flex-wrap items-center gap-2">
-                        <span className="min-w-0 text-[13px] font-semibold leading-5 text-foreground">
+                        <span className="min-w-0 text-[13px] font-medium leading-5 text-foreground">
                           {node.title}
                         </span>
                       </div>
@@ -428,7 +428,7 @@ function PlanningHierarchyRows({
                 {node.periods[0] ?? "-"}
                 {node.periods.length > 1 ? ` +${node.periods.length - 1}` : ""}
               </TableCell>
-              <TableCell className="text-[12px] font-semibold leading-5 text-foreground">
+              <TableCell className="text-[12px] font-medium leading-5 text-foreground">
                 {node.count}
               </TableCell>
             </TableRow>
@@ -477,7 +477,7 @@ function PlanningHierarchyRows({
                     <TableCell className="text-[12px] leading-5 text-secondary-foreground">
                       {item.period || "-"}
                     </TableCell>
-                    <TableCell className="text-[12px] font-semibold leading-5 text-foreground">
+                    <TableCell className="text-[12px] font-medium leading-5 text-foreground">
                       1
                     </TableCell>
                   </TableRow>

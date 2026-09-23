@@ -30,8 +30,8 @@ import {
   CollectionTableHeaderRow,
   CollectionPageHeader,
   CollectionToolbar,
-  DashboardKpiCard,
   ExpandableSearchField,
+  KpiCard,
   MetricGrid,
 } from "@/components/shared/design-system";
 import {
@@ -79,7 +79,7 @@ export default function RiskCascadingPage() {
   const [pageSize, setPageSize] = useState(10);
   const [createOpen, setCreateOpen] = useState(false);
   const [createCascadeType, setCreateCascadeType] =
-    useState<RiskCascadeType>("mandatory_top_down");
+    useState<RiskCascadeType>("bottom_up_escalation");
   const [decisionItem, setDecisionItem] = useState<RiskCascadeRecord | null>(
     null,
   );
@@ -187,19 +187,19 @@ export default function RiskCascadingPage() {
   const kpiCards = useMemo(
     () => [
       {
-        title: "Total Eskalasi",
+        label: "Total Eskalasi",
         value: String(summary.total),
       },
       {
-        title: "Menunggu Tinjauan",
+        label: "Menunggu Tinjauan",
         value: String(summary.pending),
       },
       {
-        title: "Sudah Disetujui",
+        label: "Sudah Disetujui",
         value: String(summary.approved),
       },
       {
-        title: "Bottom-up",
+        label: "Bottom-up",
         value: String(summary.bottomUp),
       },
     ],
@@ -240,7 +240,12 @@ export default function RiskCascadingPage() {
 
       <MetricGrid>
         {kpiCards.map((card) => (
-          <DashboardKpiCard key={card.title} {...card} />
+          <KpiCard
+            key={card.label}
+            label={card.label}
+            value={card.value}
+            tone="white"
+          />
         ))}
       </MetricGrid>
 
@@ -261,7 +266,7 @@ export default function RiskCascadingPage() {
               <AccentButton
                 icon={<Plus className="size-4" />}
                 onClick={() => {
-                  setCreateCascadeType("mandatory_top_down");
+                  setCreateCascadeType("bottom_up_escalation");
                   setCreateOpen(true);
                 }}
               >

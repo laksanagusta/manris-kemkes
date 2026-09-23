@@ -384,13 +384,13 @@ export function MitigationProgressTab({
             <Table className="min-w-[980px] w-full">
               <TableHeader className="bg-table-header">
                 <TableRow className="h-auto text-left text-[13px] capitalize text-secondary-foreground">
-                  <TableHead className="px-6 py-1.5 font-semibold">Kode</TableHead>
-                  <TableHead className="px-6 py-1.5 font-semibold">Rencana</TableHead>
-                  <TableHead className="px-6 py-1.5 font-semibold">Periode</TableHead>
-                  <TableHead className="px-6 py-1.5 font-semibold">Tenggat</TableHead>
-                  <TableHead className="px-6 py-1.5 font-semibold">Status</TableHead>
-                  <TableHead className="px-6 py-1.5 font-semibold">Progress</TableHead>
-                  <TableHead className="px-6 py-1.5 font-semibold text-right">Aksi</TableHead>
+                  <TableHead className="px-6 py-1.5 font-medium">Kode</TableHead>
+                  <TableHead className="px-6 py-1.5 font-medium">Rencana</TableHead>
+                  <TableHead className="px-6 py-1.5 font-medium">Periode</TableHead>
+                  <TableHead className="px-6 py-1.5 font-medium">Tenggat</TableHead>
+                  <TableHead className="px-6 py-1.5 font-medium">Status</TableHead>
+                  <TableHead className="px-6 py-1.5 font-medium">Progress</TableHead>
+                  <TableHead className="px-6 py-1.5 font-medium text-right">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -412,7 +412,7 @@ export function MitigationProgressTab({
                       onClick={() => handleOpenDetail(task)}
                     >
                       <TableCell className="px-4 py-3 align-top">
-                        <div className="text-xs font-semibold text-foreground">
+                        <div className="text-xs font-medium text-foreground">
                           {task.riskCode || "—"}
                         </div>
                         <div className="text-[11px] text-muted-foreground">

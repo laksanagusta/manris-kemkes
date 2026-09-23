@@ -3,28 +3,26 @@ export const DOCUMENT_INTELLIGENCE_PREFILL_KEY =
 export const DOCUMENT_INTELLIGENCE_PREFILL_PREFIX =
   "manris:document-intelligence-prefill:";
 export const DOCUMENT_INTELLIGENCE_PREFILL_PARAM = "documentPrefillToken";
-export const DOCUMENT_INTELLIGENCE_LATEST_MITIGATION_KEY =
-  "manris:document-intelligence-latest-mitigation";
 
-export type DocumentIntelligencePrefill =
-  | {
-      kind: "risk";
-      title: string;
-      description: string;
-      riskCode?: string;
-      source?: string;
-      probability?: number;
-      impact?: number;
-      mitigation?: string;
-      quote?: string;
-      treatmentOption?: "menerima" | "mitigasi" | "avoid" | "mitigate" | "transfer" | "accept";
-    }
-  | {
-      kind: "mitigation-report";
-      taskId: string;
-      notes?: string;
-      quote?: string;
-    };
+export type DocumentIntelligencePrefill = {
+  kind: "risk";
+  findingId?: string;
+  title: string;
+  description: string;
+  riskCode?: string;
+  source?: string;
+  probability?: number;
+  impact?: number;
+  mitigation?: string;
+  quote?: string;
+  treatmentOption?:
+    | "menerima"
+    | "mitigasi"
+    | "avoid"
+    | "mitigate"
+    | "transfer"
+    | "accept";
+};
 
 function getStorageKey(token: string) {
   return `${DOCUMENT_INTELLIGENCE_PREFILL_PREFIX}${token}`;
@@ -66,27 +64,4 @@ export function consumeDocumentIntelligencePrefill(token: string) {
 
   window.localStorage.removeItem(storageKey);
   return parseStoredPrefill<DocumentIntelligencePrefill>(raw);
-}
-
-export function saveLatestMitigationReportPrefill(
-  payload: Extract<DocumentIntelligencePrefill, { kind: "mitigation-report" }>,
-) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(
-    DOCUMENT_INTELLIGENCE_LATEST_MITIGATION_KEY,
-    JSON.stringify(payload),
-  );
-}
-
-export function consumeLatestMitigationReportPrefill() {
-  if (typeof window === "undefined") return null;
-
-  const raw = window.localStorage.getItem(
-    DOCUMENT_INTELLIGENCE_LATEST_MITIGATION_KEY,
-  );
-  if (!raw) return null;
-
-  window.localStorage.removeItem(DOCUMENT_INTELLIGENCE_LATEST_MITIGATION_KEY);
-  const parsed = parseStoredPrefill<DocumentIntelligencePrefill>(raw);
-  return parsed?.kind === "mitigation-report" ? parsed : null;
 }

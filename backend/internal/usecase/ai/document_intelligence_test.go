@@ -128,9 +128,6 @@ func TestAnalyzeDocumentIntelligenceFiltersOpenMitigationTasksAndNormalizesResul
 					RiskTitle:        "Terlambat laporan",
 					MitigationAction: "Susun checklist",
 					PeriodLabel:      "2026-H1",
-					SuggestedStatus:  "something-else",
-					ProgressPct:      123,
-					ActualCost:       0,
 					ReportNotes:      "Ringkasan laporan",
 					Confidence:       180,
 					SourceRefs:       []entity.DocumentSourceRef{{Quote: " checklist sudah dipakai ", Location: " Halaman 3 "}},
@@ -210,12 +207,6 @@ func TestAnalyzeDocumentIntelligenceFiltersOpenMitigationTasksAndNormalizesResul
 	}
 	if match.Confidence != 100 {
 		t.Fatalf("expected confidence clamped to 100, got %d", match.Confidence)
-	}
-	if match.ProgressPct != 100 {
-		t.Fatalf("expected progress clamped to 100, got %d", match.ProgressPct)
-	}
-	if match.SuggestedStatus != "pending" {
-		t.Fatalf("expected status normalized to pending, got %q", match.SuggestedStatus)
 	}
 	if len(match.SourceRefs) != 1 || match.SourceRefs[0].Quote != "checklist sudah dipakai" || match.SourceRefs[0].Location != "Halaman 3" {
 		t.Fatalf("expected source refs trimmed and preserved, got %+v", match.SourceRefs)

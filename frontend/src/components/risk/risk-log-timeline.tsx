@@ -17,7 +17,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { CollectionDialogCancel } from "@/components/shared/design-system";
+import {
+  ActionIconButton,
+  CollectionDialogCancel,
+} from "@/components/shared/design-system";
 
 import type { CommunicationLog } from "@/types/communication-log";
 import type { MeetingMinutesRisk } from "@/types/meeting-minute";
@@ -36,6 +39,7 @@ import { CommunicationLogDialog } from "./communication-log-dialog";
 interface RiskLogTimelineProps {
   riskId: string;
   token: string;
+  canAdd?: boolean;
 }
 
 interface RawCommunicationLog {
@@ -240,7 +244,11 @@ function ActivityFeedRow({
   );
 }
 
-export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
+export function RiskLogTimeline({
+  riskId,
+  token,
+  canAdd = true,
+}: RiskLogTimelineProps) {
   const [loading, setLoading] = useState(true);
   const [commLogs, setCommLogs] = useState<CommunicationLog[]>([]);
   const [approvalHistory, setApprovalHistory] = useState<ApprovalHistory[]>([]);
@@ -276,7 +284,7 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
       );
       setMeetingMinutes(minutesData || []);
     } catch {
-      toast.error("Gagal memuat log komunikasi");
+      toast.error("Gagal memuat catatan komunikasi");
     } finally {
       setLoading(false);
     }
@@ -285,6 +293,10 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
   useEffect(() => {
     fetchData();
   }, [fetchData, refreshKey]);
+
+  useEffect(() => {
+    if (!canAdd) setShowAddDialog(false);
+  }, [canAdd]);
 
   const timelineItems: TimelineItem[] = [
     ...approvalHistory.map((h) => ({
@@ -334,35 +346,64 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
     setRefreshKey((k) => k + 1);
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground">
-        <Loader2 className="size-3.5 animate-spin" />
-        Memuat log...
-      </div>
-    );
-  }
+  const handleOpenAddDialog = useCallback(() => {
+    if (canAdd) setShowAddDialog(true);
+  }, [canAdd]);
 
   return (
     <>
-      <div className="space-y-1">
-        {timelineItems.length === 0 ? (
-          <p className="py-2 text-xs text-muted-foreground">
-            Belum ada aktivitas log.
-          </p>
-        ) : (
-          visibleTimelineItems.map((item) => (
-            <ActivityFeedRow
-              key={item.id}
-              item={item}
-              onOpen={() => setSelectedItem(item)}
+      <div className="flex items-center justify-between gap-3">
+        <h2
+          id="risk-side-log"
+          className="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground/70"
+        >
+          Catatan
+        </h2>
+        <div className="flex items-center gap-2">
+          {timelineItems.length > 0 ? (
+            <span className="font-mono text-xs tabular-nums text-muted-foreground">
+              {timelineItems.length}
+            </span>
+          ) : null}
+          {canAdd ? (
+            <ActionIconButton
+              type="button"
+              icon={<Plus className="size-3.5" />}
+              aria-label="Tambah catatan"
+              title="Tambah catatan"
+              onClick={handleOpenAddDialog}
             />
-          ))
+          ) : null}
+        </div>
+      </div>
+
+      <div className="mt-3">
+        {loading ? (
+          <div className="flex items-center gap-2 py-2 text-xs text-muted-foreground">
+            <Loader2 className="size-3.5 animate-spin" />
+            Memuat catatan...
+          </div>
+        ) : (
+          <div className="space-y-1">
+            {timelineItems.length === 0 ? (
+              <p className="py-2 text-xs text-muted-foreground">
+                Belum ada catatan aktivitas.
+              </p>
+            ) : (
+              visibleTimelineItems.map((item) => (
+                <ActivityFeedRow
+                  key={item.id}
+                  item={item}
+                  onOpen={() => setSelectedItem(item)}
+                />
+              ))
+            )}
+          </div>
         )}
       </div>
 
-      <div className="mt-2 flex items-center justify-between gap-3 pt-2">
-        {timelineItems.length > LOG_PREVIEW_LIMIT ? (
+      {timelineItems.length > LOG_PREVIEW_LIMIT ? (
+        <div className="mt-2 flex items-center pt-2">
           <Button
             type="button"
             variant="ghost"
@@ -370,29 +411,20 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
             className="h-8 px-0 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"
             onClick={() => setShowAllLogsDialog(true)}
           >
-            Lihat semua log ({timelineItems.length})
+            Lihat semua catatan ({timelineItems.length})
           </Button>
-        ) : (
-          <span />
-        )}
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="h-8 gap-1.5 px-0 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"
-          onClick={() => setShowAddDialog(true)}
-        >
-          <Plus className="size-3.5" /> Tambah log
-        </Button>
-      </div>
+        </div>
+      ) : null}
 
-      <CommunicationLogDialog
-        open={showAddDialog}
-        onOpenChange={setShowAddDialog}
-        riskId={riskId}
-        token={token}
-        onSuccess={handleAddSuccess}
-      />
+      {canAdd ? (
+        <CommunicationLogDialog
+          open={showAddDialog}
+          onOpenChange={setShowAddDialog}
+          riskId={riskId}
+          token={token}
+          onSuccess={handleAddSuccess}
+        />
+      ) : null}
 
       <Dialog
         open={showAllLogsDialog}
@@ -404,7 +436,7 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
         >
           <div className="flex min-h-0 flex-col gap-5">
             <DialogHeader>
-              <DialogTitle className="text-base">Semua Log</DialogTitle>
+              <DialogTitle className="text-base">Semua Catatan</DialogTitle>
             </DialogHeader>
             <div className="max-h-[calc(100dvh-14rem)] overflow-y-auto pr-1">
               <div className="space-y-1">
@@ -444,7 +476,7 @@ export function RiskLogTimeline({ riskId, token }: RiskLogTimelineProps) {
           <div className="flex min-h-0 flex-col gap-5">
             <DialogHeader>
               <DialogTitle className="text-base">
-                Detail Aktivitas Log
+                Detail Aktivitas Catatan
               </DialogTitle>
             </DialogHeader>
 

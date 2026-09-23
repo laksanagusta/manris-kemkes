@@ -13,6 +13,7 @@ const {
   buildLatestOrganizationProgressData,
   buildMovementChartData,
   buildMovementSnapshotData,
+  buildRiskCountTrendData,
   buildSemesterScoreTargetTrendData,
   buildTopRiskBadgeMap,
   buildUnitTotalRiskScoreData,
@@ -680,6 +681,67 @@ test("buildSemesterScoreTargetTrendData uses latest version per risk within each
       gap: 2,
       riskCount: 1,
       targetCount: 1,
+    },
+  ]);
+});
+
+test("buildRiskCountTrendData counts total and every risk level per quarter", () => {
+  const result = buildRiskCountTrendData([
+    makeDashboardRisk({
+      id: "risk-very-low",
+      code: "R-001",
+      versionGroupId: "vg-1",
+      assessmentCycle: "2026-Q3",
+      nilai: 4,
+    }),
+    makeDashboardRisk({
+      id: "risk-low-old",
+      code: "R-002",
+      versionGroupId: "vg-2",
+      versionNumber: 1,
+      assessmentCycle: "2026-Q3",
+      nilai: 6,
+    }),
+    makeDashboardRisk({
+      id: "risk-low-new",
+      code: "R-002",
+      versionGroupId: "vg-2",
+      versionNumber: 2,
+      assessmentCycle: "2026-Q3",
+      nilai: 8,
+    }),
+    makeDashboardRisk({
+      id: "risk-medium",
+      code: "R-003",
+      versionGroupId: "vg-3",
+      assessmentCycle: "2026-Q3",
+      nilai: 10,
+    }),
+    makeDashboardRisk({
+      id: "risk-high",
+      code: "R-004",
+      versionGroupId: "vg-4",
+      assessmentCycle: "2026-Q3",
+      nilai: 15,
+    }),
+    makeDashboardRisk({
+      id: "risk-extreme",
+      code: "R-005",
+      versionGroupId: "vg-5",
+      assessmentCycle: "2026-Q3",
+      nilai: 20,
+    }),
+  ]);
+
+  assert.deepEqual(result, [
+    {
+      period: "2026-Q3",
+      totalRisks: 5,
+      sangatRendah: 1,
+      rendah: 1,
+      sedang: 1,
+      tinggi: 1,
+      sangatTinggi: 1,
     },
   ]);
 });

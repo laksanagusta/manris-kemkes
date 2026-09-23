@@ -22,7 +22,7 @@ export function OverviewPanelState({
         role="status"
         aria-live="polite"
         className={cn(
-          "flex min-h-48 items-center justify-center rounded-lg bg-state-surface px-6 text-center text-sm text-state-foreground",
+          "flex min-h-48 items-center justify-center rounded-[12px] bg-state-surface px-6 text-center text-sm text-state-foreground",
           className,
         )}
       >
@@ -36,7 +36,7 @@ export function OverviewPanelState({
       <div
         role="alert"
         className={cn(
-          "flex min-h-48 flex-col items-center justify-center gap-3 rounded-lg bg-state-surface px-6 text-center text-sm text-state-foreground",
+          "flex min-h-48 flex-col items-center justify-center gap-3 rounded-[12px] bg-state-surface px-6 text-center text-sm text-state-foreground",
           className,
         )}
       >
@@ -62,7 +62,7 @@ export function OverviewPanelState({
   return (
     <div
       className={cn(
-        "flex min-h-48 items-center justify-center rounded-lg bg-state-surface px-6 text-center text-sm text-state-foreground",
+        "flex min-h-48 items-center justify-center rounded-[12px] bg-state-surface px-6 text-center text-sm text-state-foreground",
         className,
       )}
     >

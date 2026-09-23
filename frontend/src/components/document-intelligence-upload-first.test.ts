@@ -28,6 +28,10 @@ const historyPanel = readSource(
 const completedResults = readSource(
   "./intelligence/document-processing/completed-results.tsx",
 );
+const riskDraftDialog = readSource(
+  "./intelligence/document-processing/risk-draft-dialog.tsx",
+);
+const importSopPage = readSource("../app/(app)/risk/register/import-sop/page.tsx");
 const designSystemPage = readSource("../app/(app)/design-system/page.tsx");
 const designSystemDocument = readSource("../../../DESIGN.md");
 const globalStyles = readSource("../app/globals.css");
@@ -50,28 +54,22 @@ test("turns the selected document into a single reference-led file row", () => {
   assert.doesNotMatch(uploadPanel, /sm:grid-cols-2 2xl:grid-cols-3/);
 });
 
-test("keeps analysis controls visible above upload without setup accordions", () => {
-  assert.match(workspace, /<fieldset className="space-y-3" aria-labelledby="analysis-mode-label"/);
-  assert.match(workspace, /<RadioGroup/);
-  assert.match(workspace, /className="grid gap-3 sm:grid-cols-2"/);
+test("uses the contextual route mode without a mode selector", () => {
+  assert.match(workspace, /analysisMode: DocumentAnalysisMode/);
+  assert.match(workspace, /mode: analysisMode/);
+  assert.doesNotMatch(workspace, /<fieldset/);
+  assert.doesNotMatch(workspace, /<RadioGroup/);
   assert.match(workspace, /<div className="pt-2">\s*<UploadPanel/);
-  assert.match(workspace, /<UploadPanel/);
-  assert.ok(workspace.indexOf('id="analysis-mode-label"') < workspace.indexOf("<UploadPanel"));
   assert.doesNotMatch(workspace, /Tahapan proses, kontrol, dan risiko per tahap\./);
   assert.doesNotMatch(workspace, /<Label htmlFor="period"/);
   assert.doesNotMatch(workspace, /<Select/);
   assert.doesNotMatch(workspace, /<CollapsibleCard\.Root/);
   assert.doesNotMatch(workspace, /Riwayat pemrosesan|<HistoryPanel/);
-  assert.match(workspace, /<legend id="analysis-mode-label" className="text-sm font-medium/);
-  assert.match(workspace, /<span className="block text-sm font-medium leading-5 text-foreground">\{option\.title\}<\/span>/);
 });
 
-test("keeps mode cards icon-free with the radio control in the top-right corner", () => {
-  assert.match(workspace, /group relative flex min-h-\[88px\]/);
-  assert.match(workspace, /absolute right-4 top-4 size-5/);
-  assert.match(workspace, /selected\s*\? "border-primary"/);
+test("keeps the contextual workspace free of mode cards", () => {
   assert.doesNotMatch(workspace, /ModeIcon|option\.icon|<ModeIcon/);
-  assert.doesNotMatch(workspace, /selected\s*\? "border-primary bg-primary\/5"/);
+  assert.doesNotMatch(workspace, /RadioGroupItem|analysis-mode-label/);
 });
 
 test("keeps the setup heading at 16px and the drop-zone heading compact", () => {
@@ -83,11 +81,8 @@ test("keeps the setup heading at 16px and the drop-zone heading compact", () => 
   assert.doesNotMatch(uploadPanel, /text-lg|text-xl/);
 });
 
-test("limits analysis modes to SOP and mitigation reports", () => {
-  assert.match(workspace, /title: "SOP"/);
-  assert.match(workspace, /title: "Laporan Mitigasi"/);
-  assert.match(workspace, /Temukan risiko, kontrol, dan langkah proses dari SOP/);
-  assert.match(workspace, /Petakan realisasi mitigasi, bukti, dan status tindak lanjut/);
+test("supports both destination-specific analysis modes", () => {
+  assert.match(workspace, /analysisMode/);
   assert.doesNotMatch(workspace, /shadow-\[0_8px_24px/);
   assert.doesNotMatch(workspace, /Audit Finding|Struktur Kinerja|Mitigation Report Draft/);
 });
@@ -163,6 +158,7 @@ test("uses Indonesian workflow labels and discoverable history actions", () => {
   assert.match(completedResults, />\s*Lihat\s*\n\s*<ChevronDown/);
   assert.match(completedResults, /variant="outline" size="sm" className="gap-2 border-0 border-shadow"/);
   assert.match(completedResults, /border-t border-dashed/);
+  assert.match(completedResults, /border-t border-border\/70 bg-table-header/);
   assert.match(completedResults, /grid-rows-\[0fr\]/);
   assert.match(completedResults, /grid-rows-\[1fr\]/);
   assert.match(completedResults, /transition-\[grid-template-rows\] duration-200 ease-\(--ease-out\)/);
@@ -222,9 +218,27 @@ test("keeps findings flat without a priority grouping or outer card wrapper", ()
 });
 
 test("uses an outlined action for risk drafts", () => {
-  assert.match(completedResults, /<footer className="-mx-4 -mb-4 mt-4[\s\S]*?Buat draf risiko/);
-  assert.match(completedResults, /variant="outline" size="xs"[\s\S]*?Buat draf risiko/);
-  assert.doesNotMatch(completedResults, /variant="ghost" size="xs"[\s\S]*?Buat draf risiko/);
+  assert.match(completedResults, /Buat draf risiko/);
+  assert.match(completedResults, /variant="outline"/);
+  assert.doesNotMatch(completedResults, /variant="ghost"/);
+});
+
+test("keeps mitigation reporting in the findings flow", () => {
+  assert.match(completedResults, /onUseMitigationReport/);
+  assert.match(completedResults, /Gunakan untuk laporan/);
+  assert.match(completedResults, /Sudah dilaporkan/);
+});
+
+test("opens a focused risk draft modal with the minimum save fields", () => {
+  assert.match(importSopPage, /<RiskDraftDialog/);
+  assert.doesNotMatch(importSopPage, /useRouter|router\.push/);
+  assert.match(riskDraftDialog, /Buat draf risiko/);
+  assert.match(riskDraftDialog, /document-risk-draft-title/);
+  assert.match(riskDraftDialog, /document-risk-draft-description/);
+  assert.match(riskDraftDialog, /document-risk-draft-category/);
+  assert.match(riskDraftDialog, /buildRiskRegisterPayload/);
+  assert.match(riskDraftDialog, /await api\.post\("\/risks"/);
+  assert.match(riskDraftDialog, /status:.*draft|,\s*"draft"/s);
 });
 
 test("keeps operational metadata at twelve pixels or larger", () => {
@@ -236,10 +250,10 @@ test("keeps operational metadata at twelve pixels or larger", () => {
 test("documents the upload-first pattern in both design-system sources", () => {
   assert.match(designSystemPage, /upload-first/);
   assert.match(designSystemDocument, /upload-first/);
-  assert.match(designSystemDocument, /Mode analisis/);
+  assert.match(designSystemDocument, /destination-specific/);
   assert.match(designSystemDocument, /global `AppHeader`/);
   assert.match(designSystemDocument, /programmatically activated file input stays outside[\s\S]*tab order/);
-  assert.match(designSystemDocument, /local `CollectionPageHeader` remain suppressed/);
+  assert.match(designSystemDocument, /suppress the duplicate global `AppHeader` and local `CollectionPageHeader`/);
   assert.match(designSystemDocument, /one centered upload-first layout for setup, active processing, and completed findings/);
   assert.match(designSystemDocument, /When analysis reaches a terminal state, keep the same upload-first layout/);
   assert.match(designSystemDocument, /show only the `Temuan untuk ditinjau` panel below it/);

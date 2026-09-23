@@ -15,30 +15,35 @@ export function OverviewTopRisksCard({
     code: string;
     title: string;
     category: string;
+    probability: number;
+    impact: number;
     score: number;
     levelClass: string;
     href: string;
   }>;
 }) {
+  const visibleRisks = risks.slice(0, 5);
+
   return (
     <StandardCard
       title="Risiko yang Perlu Perhatian"
-      className="h-full rounded-lg"
+      className="rounded-lg xl:h-full xl:min-h-[377px]"
       headerClassName="px-5 pb-4 pt-5"
-      contentClassName="p-0"
+      contentClassName="p-0 xl:flex xl:flex-1 xl:flex-col"
     >
-      <div className="border-t border-border/60">
+      <div className="border-t border-border/60 xl:flex xl:flex-1 xl:flex-col">
         <div
           aria-hidden="true"
-          className="grid min-h-10 w-full grid-cols-[1fr_8fr_1fr] items-center gap-x-3 border-b border-border/60 bg-table-header px-6 py-1.5 text-[13px] font-medium capitalize tracking-[0.02em] text-secondary-foreground sm:grid-cols-[5fr_32fr_8fr_5fr]"
+          className="grid min-h-10 w-full grid-cols-[1fr_1fr_1fr_1fr] items-center gap-x-3 border-b border-border/60 bg-table-header px-6 py-1.5 text-[13px] font-medium capitalize tracking-[0.02em] text-secondary-foreground sm:grid-cols-[5fr_7fr_7fr_10fr_5fr]"
         >
           <span>Kode</span>
-          <span>Judul</span>
+          <span>Probabilitas</span>
+          <span>Dampak</span>
           <span className="hidden sm:block">Kategori</span>
           <span className="text-right">Skor</span>
         </div>
         <div className="divide-y divide-border/40">
-          {risks.map((risk) => {
+          {visibleRisks.map((risk) => {
             const categoryLabel =
               riskCategoryLabels[risk.category as keyof typeof riskCategoryLabels] ??
               (risk.category || "Belum dikategorikan");
@@ -47,7 +52,7 @@ export function OverviewTopRisksCard({
               <Link
                 key={risk.id}
                 href={risk.href}
-                className="group/risk grid min-h-14 w-full grid-cols-[1fr_8fr_1fr] items-center gap-x-3 px-6 py-4 outline-none transition-[background-color,transform] duration-150 hover:bg-muted/30 active:scale-[0.995] focus-visible:bg-muted/30 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:grid-cols-[5fr_32fr_8fr_5fr] motion-reduce:transform-none motion-reduce:transition-none"
+                className="group/risk grid min-h-14 w-full grid-cols-[1fr_1fr_1fr_1fr] items-center gap-x-3 px-6 py-4 outline-none transition-[background-color,transform] duration-150 hover:bg-muted/30 active:scale-[0.995] focus-visible:bg-muted/30 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:grid-cols-[5fr_7fr_7fr_10fr_5fr] motion-reduce:transform-none motion-reduce:transition-none"
               >
                 <div className="min-w-0 font-normal">
                   <span
@@ -58,13 +63,16 @@ export function OverviewTopRisksCard({
                   </span>
                 </div>
                 <p
-                  className="min-w-0 truncate text-sm font-normal text-foreground"
-                  title={risk.title}
+                  className="min-w-0 truncate font-mono text-sm font-normal text-foreground tabular-nums"
+                  title={`Probabilitas ${risk.probability}`}
                 >
-                  {risk.title}
-                  <span className="mt-0.5 block truncate text-sm font-normal text-muted-foreground sm:hidden">
-                    {categoryLabel}
-                  </span>
+                  {risk.probability}
+                </p>
+                <p
+                  className="min-w-0 truncate font-mono text-sm font-normal text-foreground tabular-nums"
+                  title={`Dampak ${risk.impact}`}
+                >
+                  {risk.impact}
                 </p>
                 <p
                   className="hidden min-w-0 truncate text-sm font-normal text-muted-foreground sm:block"
@@ -85,6 +93,9 @@ export function OverviewTopRisksCard({
               </Link>
             );
           })}
+          {Array.from({ length: 5 - visibleRisks.length }, (_, index) => (
+            <div key={`empty-risk-slot-${index}`} aria-hidden="true" className="hidden h-14 xl:block" />
+          ))}
         </div>
       </div>
     </StandardCard>

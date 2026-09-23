@@ -29,7 +29,7 @@ function TrendChartExample() {
       viewBox="0 0 360 180"
       className="h-64 w-full"
       role="img"
-      aria-label="Line chart contoh untuk tren skor risiko"
+      aria-label="Line chart contoh untuk tren jumlah risiko dan level risiko"
     >
       <g fill="none" stroke="oklch(0.5 0 0 / 10%)" strokeWidth="1">
         <path d="M16 36 H344" />
@@ -38,13 +38,17 @@ function TrendChartExample() {
         <path d="M16 144 H344" />
       </g>
       <path
-        d="M16 132 L92 118 L168 126 L244 82 L320 94"
+        d="M16 48 L92 42 L168 58 L244 44 L320 52"
         fill="none"
-        stroke="oklch(0.62 0.19 240)"
-        strokeWidth="3"
+        stroke="var(--foreground)"
+        strokeWidth="3.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
+      <path d="M16 116 L92 124 L168 112 L244 120 L320 114" fill="none" stroke="var(--risk-low)" strokeWidth="2" strokeLinecap="round" />
+      <path d="M16 130 L92 134 L168 126 L244 132 L320 128" fill="none" stroke="var(--risk-medium)" strokeWidth="2" strokeLinecap="round" />
+      <path d="M16 148 L92 142 L168 150 L244 144 L320 146" fill="none" stroke="var(--risk-high)" strokeWidth="2" strokeLinecap="round" />
+      <path d="M16 160 L92 154 L168 162 L244 156 L320 158" fill="none" stroke="var(--risk-extreme)" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
@@ -62,13 +66,16 @@ export function OverviewDashboardExample() {
 
       <section aria-label="Tren risiko">
         <OverviewTrendCard
-          title="Tren Eksposur Risiko"
+          title="Tren Jumlah Risiko"
           chart={<TrendChartExample />}
           legend={
             <>
-              <span>Aktual</span>
-              <span>Target</span>
-              <span>4 kuartal terakhir</span>
+              <span>Total risiko</span>
+              <span>Sangat Rendah</span>
+              <span>Rendah</span>
+              <span>Sedang</span>
+              <span>Tinggi</span>
+              <span>Sangat Tinggi</span>
             </>
           }
         />
@@ -76,22 +83,40 @@ export function OverviewDashboardExample() {
 
       <section
         aria-label="Prioritas dan distribusi risiko"
-        className="grid gap-4 pb-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.65fr)]"
+        className="grid items-start gap-4 pb-4 xl:items-stretch xl:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.65fr)]"
       >
         <OverviewTopRisksCard risks={designSystemOverviewTopRisks} />
         <Dialog>
-          <div className="relative h-full">
+          <div className="relative xl:h-full">
             <StandardCard
               title="Peta Risiko Saat Ini"
-              className="h-full rounded-lg"
-              contentClassName="px-5 pb-6 pt-3"
-              headerClassName="px-5 pb-3 pt-5"
+              className="rounded-lg xl:h-full"
+              contentClassName="px-5 pb-6 pt-3 xl:flex xl:flex-1 xl:flex-col xl:pb-3 xl:pt-2"
+              headerClassName="px-5 pb-3 pt-5 xl:!pb-2 xl:pt-4"
             >
               <RiskHeatmapGrid
                 matrix={fixtureMatrix()}
                 label="Contoh peta risiko kuartal berjalan"
-                className="mx-auto max-w-72"
+                className="mx-auto w-full max-w-72 xl:max-w-[287px]"
               />
+              <div
+                role="list"
+                aria-label="Legenda level risiko"
+                className="mt-5 flex flex-wrap justify-center gap-x-3 gap-y-2 text-[10px] text-muted-foreground xl:mt-2"
+              >
+                {[
+                  ["Sangat Rendah", "heatmap-sangat-rendah"],
+                  ["Rendah", "heatmap-rendah"],
+                  ["Sedang", "heatmap-sedang"],
+                  ["Tinggi", "heatmap-tinggi"],
+                  ["Sangat Tinggi", "heatmap-sangat-tinggi"],
+                ].map(([label, className]) => (
+                  <span key={label} role="listitem" className="inline-flex items-center gap-1.5">
+                    <span aria-hidden="true" className={`size-2 rounded-sm ${className}`} />
+                    {label}
+                  </span>
+                ))}
+              </div>
             </StandardCard>
             <DialogTrigger asChild>
               <button

@@ -9,9 +9,7 @@ import {
 } from "@/components/ui/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { PageStack } from "@/components/shared/design-system";
-import { cn } from "@/lib/utils";
 import { currentAssessmentCycle } from "@/lib/risk-cycle-options";
 import type { DocumentAnalysisMode } from "@/types/document-intelligence";
 import type {
@@ -23,29 +21,14 @@ import type {
 } from "@/types/document-processing";
 import { FindingsReviewPanel } from "./completed-results";
 import { createDocumentProcessingApiAdapter } from "@/lib/document-processing/api-adapter";
-import { saveProcessingJob } from "@/lib/document-processing/storage";
+import {
+  clearProcessingJobs,
+  loadLatestProcessingJob,
+  saveProcessingJob,
+} from "@/lib/document-processing/storage";
 import { UploadPanel } from "./upload-panel";
 import { revokeDocumentPreview, validateFiles } from "./upload-utils";
 import type { FileIssue } from "./types";
-
-type ModeOption = {
-  value: DocumentAnalysisMode;
-  title: string;
-  description: string;
-};
-
-const modeOptions: ModeOption[] = [
-  {
-    value: "sop_risk_universe",
-    title: "SOP",
-    description: "Temukan risiko, kontrol, dan langkah proses dari SOP.",
-  },
-  {
-    value: "mitigation_report_mapper",
-    title: "Laporan Mitigasi",
-    description: "Petakan realisasi mitigasi, bukti, dan status tindak lanjut.",
-  },
-];
 
 function isTerminal(status?: ProcessingStatus) {
   return status === "completed" || status === "partial" || status === "failed" || status === "cancelled";
@@ -70,15 +53,24 @@ export function DocumentProcessingWorkspace({
   authToken,
   organizationId,
   onUseRiskDraft,
+  onUseMitigationReport,
+  reportedFindingIds,
+  analysisMode,
+  heading = "Analisis dokumen menjadi temuan risiko",
+  description = "Unggah satu dokumen. Manris akan mengelompokkan halaman dan menghubungkan temuan dengan sumbernya.",
 }: {
   authToken?: string;
   organizationId?: string;
-  onUseRiskDraft: (finding: Finding) => void;
+  onUseRiskDraft?: (finding: Finding) => void;
+  onUseMitigationReport?: (finding: Finding) => void;
+  reportedFindingIds?: ReadonlySet<string>;
+  analysisMode: DocumentAnalysisMode;
+  heading?: string;
+  description?: string;
 }) {
   const [documents, setDocuments] = useState<UploadedDocument[]>([]);
   const [issues, setIssues] = useState<FileIssue[]>([]);
   const [currentJob, setCurrentJob] = useState<ProcessingJob>();
-  const [mode, setMode] = useState<DocumentAnalysisMode>("sop_risk_universe");
   const [period, setPeriod] = useState(currentAssessmentCycle());
   const [dragActive, setDragActive] = useState(false);
   const [offline, setOffline] = useState(false);
@@ -93,6 +85,10 @@ export function DocumentProcessingWorkspace({
   const statusByJobRef = useRef(new Map<string, ProcessingStatus>());
   const findingsRef = useRef<HTMLDivElement | null>(null);
   const previousJobStatusRef = useRef<ProcessingStatus | undefined>(undefined);
+
+  useEffect(() => {
+    setCurrentJob(loadLatestProcessingJob(analysisMode));
+  }, [analysisMode]);
 
   const updateJob = useCallback(
     (nextJob: ProcessingJob) => {
@@ -172,7 +168,7 @@ export function DocumentProcessingWorkspace({
     }
     const job = adapter.createJob({
       documents: validDocuments,
-      mode,
+      mode: analysisMode,
       period: period.trim() || undefined,
     });
     activeJobIdRef.current = job.id;
@@ -208,6 +204,7 @@ export function DocumentProcessingWorkspace({
     }
     activeJobIdRef.current = undefined;
     setCurrentJob(undefined);
+    clearProcessingJobs(analysisMode);
     setDocuments((previous) => {
       previous.forEach(revokeDocumentPreview);
       return [];
@@ -244,53 +241,12 @@ export function DocumentProcessingWorkspace({
 
         <div className="mb-8 max-w-2xl space-y-2 sm:mb-10">
           <h2 className="text-base font-medium tracking-[-0.015em] text-foreground">
-            Analisis dokumen menjadi temuan risiko
+            {heading}
           </h2>
           <p className="text-sm leading-6 text-secondary-foreground">
-            Unggah satu dokumen. Manris akan mengelompokkan halaman dan menghubungkan temuan dengan sumbernya.
+            {description}
           </p>
         </div>
-
-        <fieldset className="space-y-3" aria-labelledby="analysis-mode-label" disabled={Boolean(currentJob && !terminalState)}>
-          <legend id="analysis-mode-label" className="text-sm font-medium text-foreground">
-            Mode analisis
-          </legend>
-          <RadioGroup
-            value={mode}
-            onValueChange={(value) => setMode(value as DocumentAnalysisMode)}
-            aria-labelledby="analysis-mode-label"
-            className="grid gap-3 sm:grid-cols-2"
-          >
-            {modeOptions.map((option) => {
-              const selected = mode === option.value;
-
-              return (
-                <label
-                  key={option.value}
-                  htmlFor={`analysis-mode-${option.value}`}
-                  className={cn(
-                    "group relative flex min-h-[88px] cursor-pointer items-start rounded-lg border bg-card px-4 py-4 pr-12 text-left transition-[background-color,border-color] duration-200 ease-(--ease-out) motion-reduce:transition-none sm:px-5 sm:pr-14",
-                    selected
-                      ? "border-primary"
-                      : "border-border bg-card hover:border-foreground/20 hover:bg-state-surface",
-                    currentJob && !terminalState && "cursor-not-allowed opacity-60",
-                  )}
-                >
-                  <span className="min-w-0">
-                    <span className="block text-sm font-medium leading-5 text-foreground">{option.title}</span>
-                    <span className="mt-1 block text-sm leading-5 text-muted-foreground">{option.description}</span>
-                  </span>
-                  <RadioGroupItem
-                    id={`analysis-mode-${option.value}`}
-                    value={option.value}
-                    aria-label={option.title}
-                    className="absolute right-4 top-4 size-5 border-2 border-border bg-transparent text-primary after:-inset-3 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30 data-checked:border-primary data-checked:bg-primary sm:right-5 sm:top-5"
-                  />
-                </label>
-              );
-            })}
-          </RadioGroup>
-        </fieldset>
 
         <div className="pt-2">
           <UploadPanel
@@ -311,6 +267,8 @@ export function DocumentProcessingWorkspace({
             <FindingsReviewPanel
               job={currentJob}
               onUseRiskDraft={onUseRiskDraft}
+              onUseMitigationReport={onUseMitigationReport}
+              reportedFindingIds={reportedFindingIds}
               onStartNew={startNewProcess}
             />
           </div>

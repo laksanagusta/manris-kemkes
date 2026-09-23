@@ -93,7 +93,7 @@ export function CollectionPagination({
             onValueChange={(value) => onPageSizeChange(Number(value))}
           >
             <SelectTrigger
-              className="h-9 w-[72px] rounded-lg border-input bg-white px-3 text-sm shadow-none"
+              className="h-9 w-[72px] rounded-lg bg-white px-3 text-sm"
               aria-label="Items per page"
             >
               <SelectValue />

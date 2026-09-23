@@ -37,7 +37,7 @@ export function FormPage({ children, className }: FormPageProps) {
   return (
     <div
       className={cn(
-        "mx-auto w-full max-w-7xl min-w-0 animate-fade-in space-y-6 pb-20 [&>header+*]:!mt-0",
+        "w-full min-w-0 animate-fade-in space-y-6 pb-20 [&>header+*]:!mt-0",
         className,
       )}
     >
@@ -82,7 +82,7 @@ export function FormSection({
   return (
     <Card
       className={cn(
-        "rounded-lg bg-card transition-colors duration-200",
+        "rounded-[12px] bg-card transition-colors duration-200",
         className,
       )}
     >

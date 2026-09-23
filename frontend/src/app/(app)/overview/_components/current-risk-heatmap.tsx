@@ -35,43 +35,43 @@ export function CurrentRiskHeatmap({
 
   return (
     <Dialog>
-      <div className="relative h-full">
+      <div className="relative xl:h-full">
         <StandardCard
           title="Peta Risiko Saat Ini"
-          className="h-full rounded-lg"
-          contentClassName="px-5 pb-6 pt-3"
-          headerClassName="px-5 pb-3 pt-5"
+          className="rounded-lg xl:h-full"
+          contentClassName="px-5 pb-6 pt-3 xl:flex xl:flex-1 xl:flex-col xl:pb-3 xl:pt-2"
+          headerClassName="px-5 pb-3 pt-5 xl:!pb-2 xl:pt-4"
         >
           {loading ? (
             <OverviewPanelState
               state="loading"
               message="Memuat peta risiko..."
-              className="min-h-64"
+              className="min-h-64 xl:min-h-0 xl:flex-1"
             />
           ) : error ? (
             <OverviewPanelState
               state="error"
               message="Peta risiko tidak dapat dimuat."
               onRetry={onRetry}
-              className="min-h-64"
+              className="min-h-64 xl:min-h-0 xl:flex-1"
             />
           ) : total === 0 ? (
             <OverviewPanelState
               state="empty"
               message="Belum ada distribusi risiko untuk kuartal ini."
-              className="min-h-64"
+              className="min-h-64 xl:min-h-0 xl:flex-1"
             />
           ) : (
             <div>
               <RiskHeatmapGrid
                 matrix={matrix}
                 label="Peta risiko kuartal berjalan"
-                className="mx-auto max-w-72"
+                className="mx-auto w-full max-w-72 xl:max-w-[287px]"
               />
               <div
                 role="list"
                 aria-label="Legenda level risiko"
-                className="mt-5 flex flex-wrap justify-center gap-x-3 gap-y-2 text-[10px] text-muted-foreground"
+                className="mt-5 flex flex-wrap justify-center gap-x-3 gap-y-2 text-[10px] text-muted-foreground xl:mt-2"
               >
                 {riskLevelLegend.map((item) => (
                   <span

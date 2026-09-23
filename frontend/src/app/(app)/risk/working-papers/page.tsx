@@ -157,7 +157,7 @@ function WorkingPaperFiltersSidebar({
                   onStatusFilterChange(value as WorkingPaperStatusFilter)
                 }
               >
-                <SelectTrigger className="h-9 rounded-lg border border-input bg-card text-sm">
+                <SelectTrigger className="h-9 rounded-lg bg-card text-sm">
                   <SelectValue placeholder="Semua status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -381,7 +381,7 @@ function WorkingPaperMobileCard({
           </div>
           <Link
             href={`/risk/working-papers/${paper.id}`}
-            className="mt-1 line-clamp-2 text-sm font-semibold text-foreground transition-colors hover:text-primary"
+            className="mt-1 line-clamp-2 text-sm font-medium text-foreground transition-colors hover:text-primary"
           >
             {paper.title || "Tanpa Judul"}
           </Link>
@@ -423,7 +423,7 @@ function WorkingPaperDesktopSigningProgress({
         label: signatory.signer_name || `Penandatangan ${signatory.sequence_no}`,
         status: signatory.status === "signed" ? "final" : "draft",
       }))}
-      countLabel="TTE"
+      showCount={false}
       ariaLabelOverride={`Progres TTE: ${signedCount} dari ${signatories.length} penandatangan sudah menandatangani.`}
     />
   );
@@ -784,7 +784,7 @@ export default function WorkingPapersPage() {
                           <TableCell className="min-w-[320px] py-2 pl-4 pr-3 align-middle">
                             <Link
                               href={`/risk/working-papers/${paper.id}`}
-                              className="block text-sm font-semibold leading-relaxed text-foreground transition-colors hover:text-primary"
+                              className="block text-sm font-medium leading-relaxed text-foreground transition-colors hover:text-primary"
                               title={paper.title}
                             >
                               {paper.title || "Tanpa Judul"}

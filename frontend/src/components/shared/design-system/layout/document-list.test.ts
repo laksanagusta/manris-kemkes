@@ -7,9 +7,10 @@ const source = readFileSync(new URL("./document-list.tsx", import.meta.url), "ut
 test("document list section exposes the reference list grammar", () => {
   assert.match(
     source,
-    /surface-hairline rounded-lg bg-card px-4 py-1\.5/,
+    /surface-hairline rounded-\[12px\] bg-card px-4 py-1\.5/,
   );
   assert.match(source, /<h2[\s\S]*\{title\}[\s\S]*<ListGroup/);
+  assert.match(source, /text-sm font-semibold leading-5 text-muted-foreground/);
   assert.match(source, /aria-labelledby=\{labelId\}/);
   assert.doesNotMatch(source, /<ListGroup[\s\S]*<h2/);
   assert.match(source, /hover:bg-transparent hover:text-muted-foreground/);

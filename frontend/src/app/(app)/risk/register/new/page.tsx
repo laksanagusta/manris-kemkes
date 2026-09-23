@@ -12,6 +12,7 @@ import {
   listRiskMonitorings,
   startMonitoring,
 } from "@/lib/api/risk-monitoring";
+import { listRiskEvents } from "@/lib/api/risk-events";
 import { listUsers, type UserListItem } from "@/lib/api/users";
 import { listAllOrganizations } from "@/lib/api/organizations";
 import { filterToAccessibleOrgs } from "@/lib/organization";
@@ -51,10 +52,10 @@ import {
 import { cn } from "@/lib/utils";
 import {
   Loader2,
+  Plus,
   RefreshCcw,
   Save,
   Send,
-  ShieldAlert,
   Trash2,
 } from "@/components/ui/icons";
 
@@ -78,9 +79,9 @@ import { EditableItemsTable } from "@/components/shared/editable-items-table";
 import { FormPage } from "@/components/shared/form-shell";
 import {
   ActionButton,
+  ActionIconButton,
   AccentButton,
   CollectionDialogCancel,
-  CollectionPageHeader,
   FieldErrorMessage,
   Input,
   PopoverSelectField,
@@ -95,12 +96,12 @@ import {
 import { MitigationPicker } from "@/components/shared/mitigation-picker";
 import {
   MitigationProgressTab,
-  type MitigationProgressDraft,
 } from "@/components/shared/mitigation-progress-tab";
 import type {
   RiskCategory,
   RiskVersionTimelineItem,
 } from "@/types/risk";
+import type { RiskEvent, RiskEventSeverity } from "@/types/risk-event";
 import {
   consumeMeetingIntelligencePrefill,
   MEETING_INTELLIGENCE_PREFILL_PARAM,
@@ -109,9 +110,10 @@ import {
 } from "@/lib/meeting-intelligence";
 import {
   consumeDocumentIntelligencePrefill,
-  consumeLatestMitigationReportPrefill,
   DOCUMENT_INTELLIGENCE_PREFILL_PARAM,
 } from "@/lib/document-intelligence-prefill";
+import { markProcessingFindingHandled } from "@/lib/document-processing/storage";
+import { RiskEventFormDialog } from "@/app/(app)/risk-events/_components/risk-event-form-sheet";
 import {
   ReviewSidePanel,
   type RiskWorkflowState,
@@ -146,7 +148,7 @@ const RiskLogTimeline = dynamic(
         <CardContent className="flex items-center justify-center py-12">
           <Loader2 className="size-6 animate-spin text-muted-foreground" />
           <span className="ml-2 text-sm text-muted-foreground">
-            Memuat log...
+            Memuat catatan...
           </span>
         </CardContent>
       </Card>
@@ -368,6 +370,27 @@ type SectionStatus = {
 };
 
 const SIDE_PANEL_PREVIEW_LIMIT = 5;
+const SIDE_PANEL_EVENT_PREVIEW_LIMIT = 3;
+const riskEventSeverityLabels: Record<RiskEventSeverity, string> = {
+  low: "Rendah",
+  medium: "Sedang",
+  high: "Tinggi",
+  extreme: "Ekstrem",
+};
+const riskEventSeverityTones: Record<
+  RiskEventSeverity,
+  "success" | "warning" | "danger"
+> = {
+  low: "success",
+  medium: "warning",
+  high: "danger",
+  extreme: "danger",
+};
+const riskEventDateFormatter = new Intl.DateTimeFormat("id-ID", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+});
 
 function RiskVersionHistoryList({
   versions,
@@ -715,6 +738,11 @@ export default function RiskInputPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedRiskId = searchParams.get("id");
+  const requestedReturnTo = searchParams.get("returnTo");
+  const returnTo =
+    requestedReturnTo?.startsWith("/") && !requestedReturnTo.startsWith("//")
+      ? requestedReturnTo
+      : "/risk/register";
   const documentPrefillToken = searchParams.get(
     DOCUMENT_INTELLIGENCE_PREFILL_PARAM,
   );
@@ -736,6 +764,8 @@ export default function RiskInputPage() {
   const [riskIsCurrent, setRiskIsCurrent] = useState(false);
   const [riskArchivedAt, setRiskArchivedAt] = useState<string | null>(null);
   const [riskArchivedReason, setRiskArchivedReason] = useState("");
+  const [documentFindingId, setDocumentFindingId] = useState<string | null>(null);
+  const documentFindingHandledRef = useRef(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [organizations, setOrganizations] = useState<
     { id: string; name: string; uprLevel?: string }[]
@@ -755,6 +785,7 @@ export default function RiskInputPage() {
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
   const [showMonitoringDialog, setShowMonitoringDialog] = useState(false);
+  const [riskEventDrawerOpen, setRiskEventDrawerOpen] = useState(false);
   const [selectedMonitoringCycle, setSelectedMonitoringCycle] = useState(
     currentMonitoringCycle(),
   );
@@ -772,10 +803,14 @@ export default function RiskInputPage() {
   const [riskVersions, setRiskVersions] = useState<RiskVersionTimelineItem[]>(
     [],
   );
+  const [riskEvents, setRiskEvents] = useState<RiskEvent[]>([]);
+  const [loadingRiskEvents, setLoadingRiskEvents] = useState(false);
+  const [riskEventsError, setRiskEventsError] = useState("");
   const [loadingVersions, setLoadingVersions] = useState(false);
   const [showVersionHistoryDialog, setShowVersionHistoryDialog] =
     useState(false);
   const riskLoadRequestRef = useRef(0);
+  const riskEventsRequestRef = useRef(0);
   const [ongoingAssessmentId, setOngoingAssessmentId] = useState<string | null>(
     null,
   );
@@ -857,6 +892,10 @@ export default function RiskInputPage() {
     riskApprovalCapabilityBehavior.usesDirectApprovalCopy
       ? "Finalisasi"
       : "Ajukan untuk review";
+  const isDraftSubmitting =
+    isSubmitting && submitTarget.current === "draft";
+  const isReviewSubmitting =
+    isSubmitting && submitTarget.current === "review";
 
   // KMK Risk Appetite Advisory
   const advisoryWeight = getBobot(probability, impact);
@@ -1004,12 +1043,42 @@ export default function RiskInputPage() {
     [orgFilter, token],
   );
 
+  const loadLinkedRiskEvents = useCallback(
+    async (id: string) => {
+      const requestId = ++riskEventsRequestRef.current;
+
+      if (!token) {
+        setRiskEvents([]);
+        setRiskEventsError("");
+        setLoadingRiskEvents(false);
+        return;
+      }
+
+      setLoadingRiskEvents(true);
+      setRiskEventsError("");
+      try {
+        const events = await listRiskEvents(token, id);
+        if (requestId !== riskEventsRequestRef.current) return;
+        setRiskEvents(events);
+      } catch (error) {
+        if (requestId !== riskEventsRequestRef.current) return;
+        console.error("Failed to load linked risk events:", error);
+        setRiskEvents([]);
+        setRiskEventsError("Kejadian terkait tidak dapat dimuat.");
+      } finally {
+        if (requestId === riskEventsRequestRef.current) {
+          setLoadingRiskEvents(false);
+        }
+      }
+    },
+    [token],
+  );
+
   const loadRiskData = useCallback(
     async (id: string) => {
       const loadRequestId = ++riskLoadRequestRef.current;
 
       try {
-        setIsSubmitting(true);
         setOngoingMonitoring(null);
         setMonitoringLookupStatus("loading");
         const risk = await api.get<RiskApiResponse>(
@@ -1024,6 +1093,7 @@ export default function RiskInputPage() {
         setRiskVersionNumber(risk.versionNumber ?? null);
         setRiskArchivedAt(risk.archivedAt || null);
         setRiskArchivedReason(risk.archivedReason || "");
+        void loadLinkedRiskEvents(risk.id);
         setOngoingAssessmentId(
           risk.hasOngoing && risk.draftId ? risk.draftId : null,
         );
@@ -1275,19 +1345,31 @@ export default function RiskInputPage() {
           setApprovalWorkflow(null);
           setAssessmentCycleDisplay(currentAssessmentCycle());
           setRiskVersions([]);
+          riskEventsRequestRef.current += 1;
+          setRiskEvents([]);
+          setRiskEventsError("");
+          setLoadingRiskEvents(false);
           reset();
           toast.error("Risiko tidak ditemukan. Form baru dibuka.");
           return;
         }
         console.error("Failed to load risk data:", error);
         toast.error("Gagal memuat data risiko. Silakan coba lagi.");
-      } finally {
-        if (loadRequestId === riskLoadRequestRef.current) {
-          setIsSubmitting(false);
-        }
       }
     },
-    [reset, token],
+    [loadLinkedRiskEvents, reset, token],
+  );
+
+  const reloadRiskData = useCallback(
+    async (id: string) => {
+      setIsSubmitting(true);
+      try {
+        await loadRiskData(id);
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [loadRiskData],
   );
 
   const currentOrganizationId = watch("organizationId");
@@ -1348,18 +1430,10 @@ export default function RiskInputPage() {
       if (documentPrefillToken) {
         const documentPrefill =
           consumeDocumentIntelligencePrefill(documentPrefillToken);
-        if (documentPrefill?.kind === "mitigation-report") {
-          setMitigationProgressDraft({
-            taskId: documentPrefill.taskId,
-            notes: documentPrefill.notes || "",
-          });
-          if (existingRiskId) {
-            toast.success(
-              "Draft laporan mitigasi siap dipakai di tab Progress.",
-            );
-          }
-        } else if (documentPrefill?.kind === "risk" && !existingRiskId) {
+        if (documentPrefill?.kind === "risk" && !existingRiskId) {
           try {
+            setDocumentFindingId(documentPrefill.findingId ?? null);
+            documentFindingHandledRef.current = false;
             reset({
               title: documentPrefill.title || "",
               description: documentPrefill.description || "",
@@ -1422,15 +1496,6 @@ export default function RiskInputPage() {
               "Prefill dari Document Intelligence tidak dapat dibaca. Silakan isi draft secara manual.",
             );
           }
-        }
-      } else if (existingRiskId) {
-        const latestMitigationPrefill = consumeLatestMitigationReportPrefill();
-        if (latestMitigationPrefill?.kind === "mitigation-report") {
-          setMitigationProgressDraft({
-            taskId: latestMitigationPrefill.taskId,
-            notes: latestMitigationPrefill.notes || "",
-          });
-          toast.success("Draft laporan mitigasi siap dipakai di tab Progress.");
         }
       }
 
@@ -1540,7 +1605,7 @@ export default function RiskInputPage() {
 
     let active = true;
     setLoadingVersionId(selectedRiskId);
-    void loadRiskData(selectedRiskId).finally(() => {
+    void reloadRiskData(selectedRiskId).finally(() => {
       if (!active) return;
 
       setLoadingVersionId((current) =>
@@ -1551,7 +1616,7 @@ export default function RiskInputPage() {
     return () => {
       active = false;
     };
-  }, [loadRiskData, selectedRiskId, token]);
+  }, [reloadRiskData, selectedRiskId, token]);
 
   // UI state
   const [generatingCause, setGeneratingCause] = useState(false);
@@ -1570,8 +1635,6 @@ export default function RiskInputPage() {
   const [generatingRisk, setGeneratingRisk] = useState(false);
   const [riskSuggestions, setRiskSuggestions] = useState<RiskSuggestion[]>([]);
   const [showRiskSuggestions, setShowRiskSuggestions] = useState(false);
-  const [mitigationProgressDraft, setMitigationProgressDraft] =
-    useState<MitigationProgressDraft | null>(null);
 
   // Computed - using new bobot matrix and nilai calculation
   const weight = useMemo(
@@ -1660,6 +1723,7 @@ export default function RiskInputPage() {
   const isRiskLocked =
     riskStatus === "final" ||
     !!riskArchivedAt;
+  const canCreateRiskEvent = Boolean(riskId) && riskStatus === "final";
   const canManageMonitoring =
     Boolean(riskId) &&
     riskIsCurrent &&
@@ -1928,15 +1992,21 @@ export default function RiskInputPage() {
         setRiskId(res.id);
         setValue("riskCode", res.code || "");
         currentRiskId = res.id;
+        if (documentFindingId && !documentFindingHandledRef.current) {
+          markProcessingFindingHandled("sop_risk_universe", documentFindingId);
+          documentFindingHandledRef.current = true;
+        }
       }
 
       if (isDraft) {
         toast.success("Draft berhasil disimpan!");
         if (!riskId && currentRiskId) {
+          const nextParams = new URLSearchParams({ id: currentRiskId });
+          if (returnTo !== "/risk/register") nextParams.set("returnTo", returnTo);
           window.history.replaceState(
             null,
             "",
-            `/risk/register/new?id=${currentRiskId}`,
+            `/risk/register/new?${nextParams.toString()}`,
           );
           await loadRiskData(currentRiskId);
           return;
@@ -1965,7 +2035,7 @@ export default function RiskInputPage() {
 
         if (!riskApprovalCapabilityBehavior.submitsForApproval) {
           toast.success("Risiko berhasil disimpan dan difinalisasi!");
-          router.push("/risk/register");
+          router.push(returnTo);
           return;
         }
 
@@ -1982,12 +2052,12 @@ export default function RiskInputPage() {
             token || undefined,
           );
           toast.success("Risiko berhasil disimpan dan diajukan untuk review!");
-          router.push("/risk/register");
+          router.push(returnTo);
         } catch {
           toast.error(
             "Risiko tersimpan, tetapi pengajuan review gagal. Periksa koneksi dan coba lagi.",
           );
-          router.push("/risk/register");
+          router.push(returnTo);
         }
       }
     } catch (err: unknown) {
@@ -2036,7 +2106,7 @@ export default function RiskInputPage() {
     setShowDeleteConfirm(false);
     const promise = (async () => {
       await api.delete(`/risks/${riskId}`, undefined, token || undefined);
-      router.push("/risk/register");
+      router.push(returnTo);
     })();
 
     toast.promise(promise, {
@@ -2059,6 +2129,8 @@ export default function RiskInputPage() {
   };
 
   const openSubmitReviewConfirm = () => {
+    if (isSubmitting) return;
+
     submitTarget.current = "review";
     clearErrors();
 
@@ -2363,85 +2435,93 @@ export default function RiskInputPage() {
   };
 
   const visibleRiskVersions = riskVersions.slice(0, SIDE_PANEL_PREVIEW_LIMIT);
+  const visibleRiskEvents = useMemo(
+    () =>
+      [...riskEvents]
+        .sort(
+          (left, right) =>
+            new Date(right.occurredAt).getTime() -
+            new Date(left.occurredAt).getTime(),
+        )
+        .slice(0, SIDE_PANEL_EVENT_PREVIEW_LIMIT),
+    [riskEvents],
+  );
   const loadingVersion = riskVersions.find(
     (version) => version.id === loadingVersionId,
   );
+  const handleRetryRiskEvents = useCallback(() => {
+    if (riskId) void loadLinkedRiskEvents(riskId);
+  }, [loadLinkedRiskEvents, riskId]);
+  const handleCreateRiskEvent = useCallback(() => {
+    if (canCreateRiskEvent) setRiskEventDrawerOpen(true);
+  }, [canCreateRiskEvent]);
+  const handleRiskEventCreated = useCallback(() => {
+    if (riskId) void loadLinkedRiskEvents(riskId);
+  }, [loadLinkedRiskEvents, riskId]);
 
   return (
     <TooltipProvider>
-      <FormPage className="risk-form-filter-controls space-y-6 [&>header+*]:!mt-6">
-        <CollectionPageHeader
-          showTitle
-          actionsPlacement="title"
-          title={riskId ? riskCode || "Edit Risiko" : "Tambah Risiko"}
-          subtitle="Identifikasi konteks, penyebab, dampak, dan penanganan risiko."
-          actions={
+      <FormPage className="risk-form-filter-controls space-y-6">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {returnTo !== "/risk/register" ? (
+            <ActionButton asChild variant="outline">
+              <Link href={returnTo}>Kembali ke hasil ekstraksi</Link>
+            </ActionButton>
+          ) : null}
+          {canContinueMonitoring && ongoingMonitoring ? (
+            <ActionButton asChild variant="outline" className="px-4">
+              <Link
+                href={`/risk/monitoring/${ongoingMonitoring.id}`}
+                title={`Lanjutkan pemantauan ${ongoingMonitoring.assessmentCycle}`}
+              >
+                Lanjutkan Pemantauan
+              </Link>
+            </ActionButton>
+          ) : canStartMonitoring ? (
+            <ActionButton
+              variant="outline"
+              icon={<RefreshCcw className="size-3.5" strokeWidth={2} />}
+              onClick={handleOpenMonitoringDialog}
+              disabled={isSubmitting || isStartingMonitoring}
+            >
+              Mulai Pemantauan
+            </ActionButton>
+          ) : canManageMonitoring && monitoringLookupStatus === "loading" ? (
+            <ActionButton variant="secondary" loading disabled>
+              Memeriksa pemantauan…
+            </ActionButton>
+          ) : null}
+          {riskStatus === "draft" || !riskId ? (
             <>
-              {riskId ? (
-                <ActionButton asChild variant="outline" icon={<ShieldAlert className="size-3.5" />}>
-                  <Link href={`/risk-events?riskId=${riskId}`}>Catat Kejadian</Link>
-                </ActionButton>
-              ) : null}
-              {canContinueMonitoring && ongoingMonitoring ? (
-                <ActionButton
-                  asChild
-                  variant="outline"
-                  className="px-4"
-                >
-                  <Link
-                    href={`/risk/monitoring/${ongoingMonitoring.id}`}
-                    title={`Lanjutkan pemantauan ${ongoingMonitoring.assessmentCycle}`}
-                  >
-                    Lanjutkan Pemantauan
-                  </Link>
-                </ActionButton>
-              ) : canStartMonitoring ? (
-                <ActionButton
-                  variant="outline"
-                  icon={<RefreshCcw className="size-3.5" strokeWidth={2} />}
-                  onClick={handleOpenMonitoringDialog}
-                  disabled={isSubmitting || isStartingMonitoring}
-                >
-                  Mulai Pemantauan
-                </ActionButton>
-              ) : canManageMonitoring && monitoringLookupStatus === "loading" ? (
-                <ActionButton variant="secondary" loading disabled>
-                  Memeriksa pemantauan…
-                </ActionButton>
-              ) : null}
-              {riskStatus === "draft" || !riskId ? (
-                <>
-                  <ActionButton
-                    variant="outline"
-                    loading={
-                      isSubmitting && submitTarget.current === "draft"
-                    }
-                    icon={<Save className="size-3.5" />}
-                    onClick={() => handleSaveDraftHeaderRef.current()}
-                    disabled={isSubmitting}
-                  >
-                    Simpan draft
-                  </ActionButton>
-                  <AccentButton
-                    icon={
-                      isSubmitting && submitTarget.current === "review" ? (
-                        <Loader2 className="size-3.5 animate-spin" />
-                      ) : (
-                        <Send className="size-3.5" />
-                      )
-                    }
-                    onClick={() =>
-                      openSubmitReviewConfirmHeaderRef.current()
-                    }
-                    disabled={isSubmitting}
-                  >
-                    {submitActionLabel}
-                  </AccentButton>
-                </>
-              ) : null}
+              <ActionButton
+                variant="outline"
+                loading={isDraftSubmitting}
+                icon={<Save className="size-3.5" />}
+                onClick={() => handleSaveDraftHeaderRef.current()}
+                disabled={isSubmitting}
+              >
+                Simpan draft
+              </ActionButton>
+              <AccentButton
+                icon={
+                  isSubmitting && submitTarget.current === "review" ? (
+                    <Loader2 className="size-3.5 animate-spin" />
+                  ) : (
+                    <Send className="size-3.5" />
+                  )
+                }
+                onClick={() => openSubmitReviewConfirmHeaderRef.current()}
+                aria-disabled={isSubmitting || undefined}
+                disabled={isReviewSubmitting}
+                className={
+                  isDraftSubmitting ? "pointer-events-none" : undefined
+                }
+              >
+                {submitActionLabel}
+              </AccentButton>
             </>
-          }
-        />
+          ) : null}
+        </div>
 
         {loadingVersionId && (
           <div
@@ -3128,7 +3208,7 @@ export default function RiskInputPage() {
                           </dd>
                         </div>
                         <div className="flex items-center justify-between gap-4">
-                          <dt className="text-[13px] text-muted-foreground">Periode asesmen</dt>
+                          <dt className="text-[13px] text-muted-foreground">Periode pemantauan</dt>
                           <dd className="shrink-0 text-right font-mono text-foreground">
                             {assessmentCycleDisplay || "-"}
                           </dd>
@@ -3153,10 +3233,6 @@ export default function RiskInputPage() {
                           <MitigationProgressTab
                             riskId={riskId}
                             token={token || ""}
-                            aiDraft={mitigationProgressDraft}
-                            onAiDraftConsumed={() =>
-                              setMitigationProgressDraft(null)
-                            }
                           />
                         ) : (
                           <div className="rounded-lg bg-state-surface px-3 py-4 text-center text-xs text-state-foreground">
@@ -3167,27 +3243,144 @@ export default function RiskInputPage() {
                     </section>
 
                     <section
-                      aria-labelledby="risk-side-log"
+                      aria-labelledby="risk-side-events"
                       className="border-t border-dashed border-border/70 pt-5"
                     >
-                      <h2
-                        id="risk-side-log"
-                        className="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground/70"
-                      >
-                        Log
-                      </h2>
+                      <div className="flex items-center justify-between gap-3">
+                        <h2
+                          id="risk-side-events"
+                          className="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground/70"
+                        >
+                          Kejadian
+                        </h2>
+                        <div className="flex items-center gap-2">
+                          {riskEvents.length > 0 ? (
+                            <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                              {riskEvents.length}
+                            </span>
+                          ) : null}
+                          {canCreateRiskEvent ? (
+                            <ActionIconButton
+                              type="button"
+                              icon={<Plus className="size-3.5" />}
+                              aria-label="Catat kejadian"
+                              title="Catat kejadian"
+                              onClick={handleCreateRiskEvent}
+                            />
+                          ) : null}
+                        </div>
+                      </div>
                       <div className="mt-3">
-                        {riskId ? (
-                          <RiskLogTimeline
-                            riskId={riskId}
-                            token={token || ""}
-                          />
+                        {!riskId ? (
+                          <div className="rounded-lg bg-state-surface px-3 py-4 text-center text-xs text-state-foreground">
+                            Finalisasi risiko sebelum mencatat dan menautkan kejadian.
+                          </div>
+                        ) : loadingRiskEvents ? (
+                          <div
+                            className="flex items-center gap-2 rounded-lg bg-state-surface px-3 py-2 text-xs text-state-foreground"
+                            role="status"
+                            aria-live="polite"
+                          >
+                            <Loader2
+                              className="size-3.5 animate-spin"
+                              aria-hidden="true"
+                            />
+                            Memuat kejadian...
+                          </div>
+                        ) : riskEventsError ? (
+                          <div className="rounded-lg bg-state-surface px-3 py-3 text-xs text-state-foreground">
+                            <p>{riskEventsError}</p>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              className="mt-2 h-7 px-0 text-xs hover:bg-transparent hover:text-foreground"
+                              onClick={handleRetryRiskEvents}
+                            >
+                              Coba lagi
+                            </Button>
+                          </div>
+                        ) : visibleRiskEvents.length > 0 ? (
+                          <ul className="space-y-1">
+                            {visibleRiskEvents.map((event) => (
+                              <li key={event.id}>
+                                <Link
+                                  href={`/risk-events/${event.id}`}
+                                  className="group -mx-2 block rounded-md px-2 py-2 outline-none transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring/40"
+                                >
+                                  <div className="flex items-center justify-between gap-2">
+                                    <span className="truncate font-mono text-xs text-muted-foreground">
+                                      {event.code}
+                                    </span>
+                                    <Badge
+                                      size="micro"
+                                      tone={riskEventSeverityTones[event.severity]}
+                                    >
+                                      {riskEventSeverityLabels[event.severity]}
+                                    </Badge>
+                                  </div>
+                                  <p className="mt-1 line-clamp-2 text-xs font-medium leading-5 text-foreground">
+                                    {event.description}
+                                  </p>
+                                  <time
+                                    dateTime={event.occurredAt}
+                                    className="mt-1 block text-[11px] text-muted-foreground"
+                                  >
+                                    {riskEventDateFormatter.format(
+                                      new Date(event.occurredAt),
+                                    )}
+                                  </time>
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
                         ) : (
                           <div className="rounded-lg bg-state-surface px-3 py-4 text-center text-xs text-state-foreground">
-                            Simpan draft untuk mencatat log komunikasi.
+                            {riskStatus === "final"
+                              ? "Belum ada kejadian terkait."
+                              : "Finalisasi risiko sebelum mencatat dan menautkan kejadian."}
                           </div>
                         )}
                       </div>
+                      {riskEvents.length > SIDE_PANEL_EVENT_PREVIEW_LIMIT ? (
+                        <Button
+                          asChild
+                          variant="ghost"
+                          size="sm"
+                          className="mt-2 h-8 px-0 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"
+                        >
+                          <Link href="/risk-events">
+                            Lihat semua kejadian ({riskEvents.length})
+                          </Link>
+                        </Button>
+                      ) : null}
+                    </section>
+
+                    <section
+                      aria-labelledby="risk-side-log"
+                      className="border-t border-dashed border-border/70 pt-5"
+                    >
+                      {riskId ? (
+                        <RiskLogTimeline
+                          riskId={riskId}
+                          token={token || ""}
+                          canAdd={riskStatus !== "draft"}
+                        />
+                      ) : (
+                        <>
+                          <h2
+                            id="risk-side-log"
+                            className="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground/70"
+                          >
+                            Catatan
+                          </h2>
+                          <div className="mt-3">
+                            <div className="rounded-lg bg-state-surface px-3 py-4 text-center text-xs text-state-foreground">
+                              Simpan draft untuk menambahkan catatan komunikasi.
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </section>
 
                     <section
@@ -3251,11 +3444,22 @@ export default function RiskInputPage() {
                 userRole={user?.role || ""}
                 inherentScore={Math.round(nilai)}
                 token={token || undefined}
-                onActionComplete={() => riskId && loadRiskData(riskId)}
+                onActionComplete={() => riskId && reloadRiskData(riskId)}
               />
             </div>
           </aside>
         </div>
+
+        {token && riskId && canCreateRiskEvent ? (
+          <RiskEventFormDialog
+            open={riskEventDrawerOpen}
+            onOpenChange={setRiskEventDrawerOpen}
+            token={token}
+            organizationId={user?.organizationId ?? undefined}
+            initialRiskId={riskId}
+            onCreated={handleRiskEventCreated}
+          />
+        ) : null}
 
         <Dialog
           open={showVersionHistoryDialog}

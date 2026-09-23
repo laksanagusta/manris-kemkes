@@ -324,7 +324,7 @@ export function OrganizationGroupManagement({
                     setPage(1);
                   }}
                   placeholder="Cari grup..."
-                  className="h-9 border-input bg-card pl-9 text-sm shadow-none"
+                  className="h-9 border-input bg-card pl-9 text-sm"
                 />
               </div>
               <div className="flex flex-wrap items-center gap-2 md:justify-end">
@@ -382,7 +382,7 @@ export function OrganizationGroupManagement({
                   >
                     <TableCell className="pl-4 pr-2 align-middle md:pl-6">
                       <div className="max-w-[250px]">
-                        <p className="block truncate text-sm font-semibold leading-relaxed text-foreground">
+                        <p className="block truncate text-sm font-medium leading-relaxed text-foreground">
                           {group.name}
                         </p>
                         {group.description ? (

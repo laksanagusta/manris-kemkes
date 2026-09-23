@@ -127,6 +127,15 @@ test("dashboard KPI titles use an 11px semibold label", () => {
   assert.doesNotMatch(dashboardKpiCard, /className="mt-3 flex items-baseline gap-1"/);
 });
 
+test("dashboard KPI surfaces use the shared 60% corner smoothing path", () => {
+  assert.match(dashboardKpiCard, /data-corner-smoothing="60"/);
+  assert.match(dashboardKpiCard, /data-smooth-radius="12"/);
+  assert.match(
+    dashboardKpiCard,
+    /className="surface-hairline relative min-h-\[148px\] overflow-hidden rounded-\[12px\]"/,
+  );
+});
+
 test("attention risk list uses a white card surface for its header", () => {
   assert.match(topRisksCard, /data-testid="risk-list-header"[\s\S]*bg-card/);
   assert.doesNotMatch(topRisksCard, /data-testid="risk-list-header"[\s\S]*bg-table-header/);
@@ -161,7 +170,10 @@ test("narrative overview is documented in both design-system surfaces", () => {
     designDocument,
     /order: "kpis > trend > priorities-current-heatmap"/,
   );
-  assert.match(designDocument, /header: "none; \/overview suppresses AppHeader"/);
+  assert.match(
+    designDocument,
+    /header: "none; all authenticated routes suppress AppHeader"/,
+  );
   assert.match(
     designDocument,
     /multi-phase: "modal from the current-heatmap card bottom-center expand control"/,

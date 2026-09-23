@@ -22,7 +22,7 @@ export function CollectionLayoutExample() {
   const [search, setSearch] = useState("");
 
   return (
-    <PageStack className="rounded-lg border bg-background p-4">
+    <PageStack className="rounded-[12px] border bg-background p-4">
       <MetricGrid>
         {["Total", "Aktif", "Menunggu", "Selesai"].map((label, index) => (
           <KpiCard

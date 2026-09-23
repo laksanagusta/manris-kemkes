@@ -28,50 +28,49 @@ export function TableExample() {
           <col className="w-[130.03px]" />
           <col className="w-[121.55px]" />
         </colgroup>
-        <CollectionTableHeader className="bg-table-header [&_tr]:border-b [&_tr]:border-border/60">
-          <CollectionTableHeaderRow className="h-[40.5px]">
+        <CollectionTableHeader>
+          <CollectionTableHeaderRow>
             <CollectionTableHead
               density="compact"
-              className="h-[40.5px] px-6 py-1.5 text-left capitalize text-secondary-foreground"
+              className="text-left"
             >
               Name
             </CollectionTableHead>
             <CollectionTableHead
               density="compact"
-              className="h-[40.5px] px-6 py-1.5 text-left capitalize text-secondary-foreground"
+              className="text-left"
             >
               Status
             </CollectionTableHead>
             <CollectionTableHead
               density="compact"
-              className="h-[40.5px] px-6 py-1.5 text-left capitalize text-secondary-foreground"
+              className="text-left"
             >
               Plan
             </CollectionTableHead>
             <CollectionTableHead
               density="compact"
-              className="h-[40.5px] px-6 py-1.5 text-center capitalize text-secondary-foreground"
+              className="text-center"
             >
               Auto renewal
             </CollectionTableHead>
             <CollectionTableHead
               density="compact"
-              className="h-[40.5px] px-6 py-1.5 text-left capitalize text-secondary-foreground"
+              className="text-left"
             >
               Expiry
             </CollectionTableHead>
             <CollectionTableHead
               density="compact"
-              className="h-[40.5px] px-6 py-1.5 text-right capitalize text-secondary-foreground"
+              className="text-right"
             >
               Actions
             </CollectionTableHead>
           </CollectionTableHeaderRow>
         </CollectionTableHeader>
         <TableBody>
-          {/* Two-line ledger rows stay tall; single-line registers opt into h-10. */}
-          <TableRow className="h-[72.5px] border-b border-border/60 hover:bg-sidebar-accent">
-            <TableCell className="h-[72.5px] p-4 px-6 align-middle">
+          <TableRow>
+            <TableCell>
               <div className="flex h-10 items-center gap-3">
                 <div
                   aria-hidden="true"
@@ -83,13 +82,13 @@ export function TableExample() {
                   <span className="truncate text-sm font-normal leading-5 text-foreground">
                     Rencana Penanganan
                   </span>
-                  <span className="truncate font-mono text-sm font-normal tracking-wide text-muted-foreground">
+                  <span className="truncate font-mono text-[11px] leading-4 text-muted-foreground">
                     R-151
                   </span>
                 </div>
               </div>
             </TableCell>
-            <TableCell className="h-[72.5px] px-6 py-4 align-middle">
+            <TableCell>
               <Badge
                 size="compact"
                 tone="success"
@@ -98,7 +97,7 @@ export function TableExample() {
                 active
               </Badge>
             </TableCell>
-            <TableCell className="h-[72.5px] p-4 px-6 align-middle">
+            <TableCell>
               <div className="flex h-10 flex-col justify-start">
                 <span className="text-sm font-normal leading-5 text-foreground">
                   Monthly
@@ -108,19 +107,19 @@ export function TableExample() {
                 </span>
               </div>
             </TableCell>
-            <TableCell className="h-[72.5px] px-6 py-4 text-center align-middle">
+            <TableCell className="text-center">
               <div className="flex justify-center">
                 <Switch defaultChecked aria-label="Auto renewal aktif" />
               </div>
             </TableCell>
-            <TableCell className="h-[72.5px] p-4 px-6 align-middle">
+            <TableCell>
               <span className="text-sm font-normal leading-5 text-muted-foreground">
                 21/08/2026
                 <br />
                 (8 days left)
               </span>
             </TableCell>
-            <TableCell className="h-[72.5px] px-6 py-4 text-center align-middle">
+            <TableCell className="text-center">
               <Button
                 variant="ghost"
                 size="xs"

@@ -18,7 +18,6 @@ import {
   FileBarChart,
   ClipboardList,
   FileText,
-  FileSearch,
   MonitorDot,
 		Users,
 		Settings2,
@@ -27,6 +26,7 @@ import {
   ClipboardPenLine,
   GitBranch,
   LogOut,
+  HelpCircle,
   User as UserIcon,
 } from "@/components/ui/icons";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -38,6 +38,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { adminMenuGroup, mainMenuItems } from "@/lib/app-navigation";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -66,7 +71,7 @@ interface NavItem {
 }
 
 interface NavGroup {
-  title: string;
+  title?: string;
   icon?: React.ElementType;
   items?: NavItem[];
   collapsible?: boolean;
@@ -132,13 +137,21 @@ const managementRiskNavigation: NavItem[] = (managementRiskGroup?.items ?? [])
     icon: iconMap[item.icon] ?? LayoutDashboard,
   }));
 
+const approvalNavigation = managementRiskNavigation.filter(
+  (item) => item.href === "/inbox",
+);
+
+const operationalNavigation = managementRiskNavigation.filter(
+  (item) => item.href !== "/inbox",
+);
+
 const navigation: NavGroup[] = [
   {
+    items: [dashboardNavigation, ...approvalNavigation],
+  },
+  {
     title: "OPERASIONAL",
-    items: [
-      dashboardNavigation,
-      ...managementRiskNavigation,
-    ],
+    items: operationalNavigation,
   },
   ...mainMenuItems
     .filter((group) => group.title !== "MANAJEMEN RISIKO")
@@ -164,12 +177,6 @@ const navigation: NavGroup[] = [
         href: "/minutes",
         icon: FileText,
         matchHrefs: ["/minutes", "/intelligence/transcript"],
-      },
-      {
-        label: "Document Intelligence",
-        href: "/intelligence/document",
-        icon: FileSearch,
-        matchHrefs: ["/intelligence/document"],
       },
       // {
       //   label: "Predictive Scoring",
@@ -346,7 +353,7 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
       collapsible="icon"
       variant="sidebar"
     >
-      <SidebarHeader className="h-14 justify-center px-2 md:hidden">
+      <SidebarHeader className="h-14 justify-center px-3 md:hidden">
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild size="lg" tooltip="Manris">
@@ -371,12 +378,12 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
       <LayoutGroup id="sidebar-navigation">
         <SidebarContent>
           <ScrollArea className="min-h-0 flex-1">
-            <div className="flex flex-col gap-3 pt-2">
+            <div className="flex flex-col gap-5 pt-2">
               {visibleNavigation.map((group) => (
-                <SidebarGroup key={group.title}>
-                  <SidebarGroupLabel>
-                    {group.title}
-                  </SidebarGroupLabel>
+                <SidebarGroup key={group.title ?? group.items?.[0]?.href}>
+                  {group.title ? (
+                    <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
+                  ) : null}
 
                   <SidebarMenu>
                     {group.items?.map((item) => (
@@ -396,33 +403,20 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
           </ScrollArea>
         </SidebarContent>
 
-        <SidebarFooter className="relative isolate space-y-2">
+        <SidebarFooter className="relative isolate space-y-2 px-3 group-data-[collapsible=icon]:px-2">
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-x-0 -top-10 z-10 h-10 bg-gradient-to-b from-transparent via-sidebar/75 to-sidebar backdrop-blur-md"
           />
-          <SidebarGroup className="p-0">
-            <SidebarGroupLabel>Bantuan</SidebarGroupLabel>
-            <SidebarMenu>
-              {utilityLinks.map((item) => (
-                <NavLink
-                  key={item.href}
-                  item={item}
-                  currentHash={currentHash}
-                />
-              ))}
-            </SidebarMenu>
-          </SidebarGroup>
-
           {user && (
-            <DropdownMenu modal={false}>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  className="rounded-lg bg-white p-3 text-left smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 transition-colors transition-transform duration-100 active:scale-[0.97] hover:bg-muted/30 focus-visible:outline-none"
-                  aria-label="Open user menu"
-                >
-                  <div className="flex items-center gap-3">
+            <div className="flex min-w-0 items-center justify-center gap-1">
+              <DropdownMenu modal={false}>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    className="group flex min-w-0 flex-1 items-center gap-3 rounded-md px-2 py-2 text-left transition-colors duration-150 hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
+                    aria-label="Open user menu"
+                  >
                     <span className="inline-flex shrink-0 items-center justify-center">
                       <Avatar size="sm">
                         <AvatarFallback className="overflow-hidden bg-muted text-foreground">
@@ -430,49 +424,81 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
                         </AvatarFallback>
                       </Avatar>
                     </span>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-normal text-sidebar-foreground">
-                        {user?.name || "User"}
-                      </p>
-                      <p className="truncate text-xs text-sidebar-foreground/60">
-                        {normalizedScopeLabel}
-                      </p>
+                    <span className="min-w-0 flex-1 truncate text-sm font-normal text-sidebar-foreground group-data-[collapsible=icon]:hidden">
+                      {user?.name || "User"}
+                    </span>
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="font-display w-56 pl-2">
+                  <DropdownMenuLabel className="space-y-1 px-2 py-1.5">
+                    <div className="truncate text-sm font-normal text-foreground">
+                      {user?.name || "User"}
                     </div>
-                  </div>
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="font-display w-56 pl-2">
-                <DropdownMenuLabel className="space-y-1 px-2 py-1.5">
-                  <div className="truncate text-sm font-normal text-foreground">
-                    {user?.name || "User"}
-                  </div>
-                  <div className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
-                    <Building2 className="size-3.5 shrink-0" />
-                    <span className="truncate">{normalizedScopeLabel}</span>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => router.push("/account")}>
-                  <UserIcon className="mr-2 size-4" />
-                  Profile
-                </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Settings2 className="mr-2 size-4" />
-                  Settings
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  className="text-destructive"
-                  onClick={() => {
-                    logout();
-                    router.push("/login");
-                  }}
+                    <div className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
+                      <Building2 className="size-3.5 shrink-0" />
+                      <span className="truncate">{normalizedScopeLabel}</span>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => router.push("/account")}>
+                    <UserIcon className="mr-2 size-4" />
+                    Profile
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Settings2 className="mr-2 size-4" />
+                    Settings
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    className="text-destructive"
+                    onClick={() => {
+                      logout();
+                      router.push("/login");
+                    }}
+                  >
+                    <LogOut className="mr-2 size-4" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-sidebar-muted-foreground transition-colors duration-150 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 group-data-[collapsible=icon]:hidden"
+                    aria-label="Buka panduan"
+                    title="Panduan"
+                  >
+                    <HelpCircle className="size-4" aria-hidden="true" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent
+                  side="top"
+                  align="end"
+                  sideOffset={8}
+                  variant="dropdown"
+                  className="w-52"
                 >
-                  <LogOut className="mr-2 size-4" />
-                  Logout
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+                  <div className="px-2 py-1.5 text-xs font-normal text-muted-foreground">
+                    Bantuan
+                  </div>
+                  {utilityLinks.map(({ label, href, icon: Icon }) => (
+                    <Link
+                      key={href}
+                      href={href}
+                      className="flex h-8 items-center gap-2 rounded-md px-2 text-sm text-foreground transition-colors hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+                    >
+                      <Icon
+                        className="size-4 text-muted-foreground"
+                        aria-hidden="true"
+                      />
+                      <span>{label}</span>
+                    </Link>
+                  ))}
+                </PopoverContent>
+              </Popover>
+            </div>
           )}
         </SidebarFooter>
       </LayoutGroup>

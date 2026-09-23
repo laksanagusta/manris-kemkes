@@ -5,17 +5,17 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export function TypographyExample() {
   return (
-    <Card className="overflow-hidden rounded-lg bg-card">
+      <Card className="overflow-hidden rounded-[12px] bg-card">
       <CardContent className="space-y-5 p-6">
         <div className="space-y-1.5">
           <p className="font-mono text-[11px] text-muted-foreground">
             --font-sans: Inter
           </p>
           <p className="font-mono text-[11px] text-muted-foreground">
-            --font-logo: Poppins 600
+            --font-logo: Inter
           </p>
           <p className="font-mono text-[11px] text-muted-foreground">
-            --font-mono: JetBrains Mono
+            --font-mono: Inter
           </p>
         </div>
         <div className="space-y-3">
@@ -33,7 +33,7 @@ export function TypographyExample() {
               </p>
             </div>
             <p className="font-mono text-[11px] text-muted-foreground">
-              Brand mark + wordmark · 4×4 dot grid · Poppins 20px semibold · lowercase · -0.4px tracking
+              Brand mark + wordmark · 4×4 dot grid · Inter 20px semibold · lowercase · -0.4px tracking
             </p>
           </div>
           <div>
@@ -86,10 +86,10 @@ export function TypographyExample() {
           </div>
           <div>
             <p className="font-mono tabular-nums text-sm text-foreground">
-              Monospace: 12345.67
+              Inter tabular value: 12345.67
             </p>
             <p className="font-mono text-[11px] text-muted-foreground">
-              font-mono tabular-nums
+              font-mono alias · Inter · tabular-nums
             </p>
           </div>
         </div>

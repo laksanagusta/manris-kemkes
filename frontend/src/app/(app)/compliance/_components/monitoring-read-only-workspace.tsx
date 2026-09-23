@@ -80,7 +80,7 @@ const STATUS_OPTIONS: Array<{
 
 async function listAllRiskMonitoringsForCycle(token: string, cycle: string) {
   const firstPage = await listRiskMonitorings(token, {
-    assessment_cycle: cycle,
+    assessment_cycle: cycle === "all" ? undefined : cycle,
     page: 1,
     limit: MONITORING_PAGE_SIZE,
   });
@@ -96,7 +96,7 @@ async function listAllRiskMonitoringsForCycle(token: string, cycle: string) {
   const remainingPages = await Promise.all(
     Array.from({ length: totalPages - 1 }, (_, index) =>
       listRiskMonitorings(token, {
-        assessment_cycle: cycle,
+        assessment_cycle: cycle === "all" ? undefined : cycle,
         page: index + 2,
         limit: pageSize,
       }),
@@ -198,7 +198,7 @@ function OrganizationSummaryTable({
         </CollectionTableHeader>
         <TableBody>
           {summaries.map((summary) => (
-            <TableRow key={summary.id} className="h-12">
+            <TableRow key={summary.id}>
               <TableCell className="py-2 pl-4 pr-3">
                 <div className="flex items-center gap-2">
                   <span
@@ -289,16 +289,15 @@ export function MonitoringReadOnlyWorkspace() {
   const { token, user } = useAuth();
   const currentCycle = useMemo(() => currentMonitoringCycle(), []);
   const cycleOptions = useMemo(
-    () => getSelectableMonitoringCycles(currentCycle),
+    () => [
+      { value: "all", label: "Semua" },
+      ...getSelectableMonitoringCycles(currentCycle),
+    ],
     [currentCycle],
   );
   const initialQuery = useMemo(
-    () =>
-      parseMonitoringQueryState(
-        new URLSearchParams(searchParams.toString()),
-        currentCycle,
-      ),
-    [searchParams, currentCycle],
+    () => parseMonitoringQueryState(new URLSearchParams(searchParams.toString())),
+    [searchParams],
   );
 
   const [search, setSearch] = useState(initialQuery.search);
@@ -399,7 +398,6 @@ export function MonitoringReadOnlyWorkspace() {
   useEffect(() => {
     const nextQuery = buildMonitoringQueryString(
       { search, status, cycle, organizationId, page, limit },
-      currentCycle,
     );
     const nextUrl = nextQuery ? `${pathname}?${nextQuery}` : pathname;
     const currentUrl = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
@@ -408,7 +406,6 @@ export function MonitoringReadOnlyWorkspace() {
       router.replace(nextUrl, { scroll: false });
     }
   }, [
-    currentCycle,
     cycle,
     limit,
     organizationId,
@@ -475,6 +472,7 @@ export function MonitoringReadOnlyWorkspace() {
   const resetFilters = () => {
     setSearch("");
     setStatus("all");
+    setCycle("all");
     setOrganizationId("all");
     setPage(1);
     setFilterOpen(false);
@@ -505,7 +503,11 @@ export function MonitoringReadOnlyWorkspace() {
           />
         </MetricGrid>
 
-        <StandardCard title="Progress keseluruhan">
+        <StandardCard
+          title="Progress keseluruhan"
+          subtitle="Menunjukkan persentase risiko berstatus Final dalam cakupan pemantauan saat ini."
+          contentClassName="p-4 pt-0"
+        >
           <div className="space-y-3">
             <div className="flex items-end justify-between gap-4">
               <div>
@@ -513,7 +515,9 @@ export function MonitoringReadOnlyWorkspace() {
                   {finalizedCount} dari {scopedRows.length} risiko sudah Final
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Berdasarkan transaksi pemantauan {cycle}.
+                  {cycle === "all"
+                    ? "Berdasarkan seluruh transaksi pemantauan."
+                    : `Berdasarkan transaksi pemantauan ${cycle}.`}
                 </p>
               </div>
               <span className="font-mono text-lg font-semibold tabular-nums text-foreground">
@@ -554,7 +558,7 @@ export function MonitoringReadOnlyWorkspace() {
                   }}
                 >
                   <SelectTrigger
-                    className="h-9 w-full rounded-lg border border-input bg-card text-sm sm:w-36"
+                    className="h-9 w-full rounded-lg bg-card text-sm sm:w-36"
                     aria-label="Pilih siklus pemantauan"
                   >
                     <SelectValue placeholder="Siklus" />
@@ -595,7 +599,7 @@ export function MonitoringReadOnlyWorkspace() {
                             setPage(1);
                           }}
                         >
-                          <SelectTrigger id="monitoring-status-filter" className="h-9 rounded-lg border border-input bg-card text-sm">
+                          <SelectTrigger id="monitoring-status-filter" className="h-9 rounded-lg bg-card text-sm">
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
@@ -641,19 +645,21 @@ export function MonitoringReadOnlyWorkspace() {
           <CollectionTableCard>
             <Table className="w-full min-w-0 table-fixed">
               <colgroup>
+                <col className="w-[9%]" />
+                <col className="w-[22%]" />
+                <col className="w-[9%]" />
                 <col className="w-[10%]" />
-                <col className="w-[24%]" />
-                <col className="w-[10%]" />
-                <col className="w-[18%]" />
-                <col className="w-[13%]" />
-                <col className="w-[13%]" />
+                <col className="w-[17%]" />
+                <col className="w-[11%]" />
                 <col className="w-[12%]" />
+                <col className="w-[10%]" />
               </colgroup>
               <CollectionTableHeader density="compact">
                 <CollectionTableHeaderRow>
                   <CollectionTableHead className="pl-4 pr-3">Kode</CollectionTableHead>
                   <CollectionTableHead className="px-3">Risiko</CollectionTableHead>
                   <CollectionTableHead className="px-3">Periode</CollectionTableHead>
+                  <CollectionTableHead className="px-3">Status</CollectionTableHead>
                   <CollectionTableHead className="px-3">Perubahan Skor</CollectionTableHead>
                   <CollectionTableHead className="px-3">Tanggal Dibuat</CollectionTableHead>
                   <CollectionTableHead className="px-3">Progres Penanganan</CollectionTableHead>
@@ -663,7 +669,7 @@ export function MonitoringReadOnlyWorkspace() {
               <TableBody>
                 {pageRows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="!p-0">
+                    <TableCell colSpan={8} className="!p-0">
                       <CollectionEmptyState
                         title="Belum ada transaksi pemantauan"
                         description="Belum ada transaksi pemantauan untuk siklus atau filter yang dipilih."
@@ -693,7 +699,7 @@ export function MonitoringReadOnlyWorkspace() {
                           <div className="min-w-0">
                             <Link
                               href={actionHref}
-                              className="block truncate text-sm font-semibold text-foreground hover:text-primary focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+                              className="block truncate text-sm font-medium text-foreground hover:text-primary focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
                               title={row.title}
                             >
                               {row.title}
@@ -702,6 +708,15 @@ export function MonitoringReadOnlyWorkspace() {
                         </TableCell>
                         <TableCell className="max-w-0 truncate px-3 py-2 font-mono text-sm text-muted-foreground">
                           {row.assessmentCycle || "-"}
+                        </TableCell>
+                        <TableCell className="max-w-0 px-3 py-2">
+                          <Badge
+                            size="compact"
+                            tone={row.status === "finalized" ? "success" : "progress"}
+                            className="max-w-full truncate"
+                          >
+                            {getMonitoringStatusLabel(row.status)}
+                          </Badge>
                         </TableCell>
                         <TableCell className="max-w-0 overflow-hidden px-3 py-2">
                           <ScoreComparison row={row} />

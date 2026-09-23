@@ -247,9 +247,9 @@ export function RemoteUserPicker({
             aria-label={iconOnly ? `${title}: ${value?.name ?? placeholder}` : undefined}
             title={iconOnly ? `${title}: ${value?.name ?? placeholder}` : undefined}
             className={cn(
-              "group/remote-user-picker flex h-10 w-full items-center justify-between gap-1.5 rounded-lg border border-input bg-card py-2 pr-3 pl-3 text-sm whitespace-nowrap transition-[background-color,border-color] active:translate-y-0 active:scale-100 outline-none select-none hover:border-foreground/15 disabled:hover:border-input focus:border-input focus-visible:border-input focus:ring-0 focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+              "group/remote-user-picker flex h-10 w-full items-center justify-between gap-1.5 rounded-lg border-0 border-shadow bg-card py-2 pr-3 pl-3 text-sm whitespace-nowrap transition-[background-color,box-shadow] active:translate-y-0 active:scale-100 outline-none select-none hover:bg-muted/20 focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:ring-2 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
               !value && "text-muted-foreground",
-        iconOnly && "size-8 justify-center border-0 bg-transparent p-0 hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-ring",
+        iconOnly && "size-8 justify-center border-0 bg-transparent p-0 !shadow-none hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-ring",
             )}
           >
             {iconOnly ? <UserRound className="size-4" /> : <>
@@ -284,7 +284,7 @@ export function RemoteUserPicker({
                 onKeyDown={handleSearchKeyDown}
                 placeholder={searchPlaceholder}
                 aria-label={searchPlaceholder}
-                className="h-9 rounded-none border-0 bg-transparent px-0 py-2.5 shadow-none"
+                className="h-9 rounded-none border-0 bg-transparent px-0 py-2.5 !shadow-none"
                 aria-activedescendant={
                   activeIndex >= 0 ? `${panelId}-option-${activeIndex}` : undefined
                 }

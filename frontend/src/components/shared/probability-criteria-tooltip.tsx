@@ -73,7 +73,7 @@ export function ProbabilityCriteriaTooltip({
         <TooltipContent
           side="top"
           align="start"
-          className="w-[min(92vw,44rem)] max-w-[44rem] rounded-lg bg-background p-0 text-foreground"
+          className="w-[min(92vw,44rem)] max-w-[44rem] rounded-[12px] bg-background p-0 text-foreground"
         >
           <div className="max-h-[70vh] overflow-auto">
             <div className="border-b border-border/60 px-4 py-3">
@@ -85,16 +85,16 @@ export function ProbabilityCriteriaTooltip({
             <Table className="w-full border-collapse text-left text-xs">
               <TableHeader className="bg-table-header text-[13px] capitalize text-secondary-foreground">
                 <TableRow className="h-auto">
-                  <TableHead className="border-b border-r border-border/60 px-6 py-1.5 font-semibold">
+                  <TableHead className="border-b border-r border-border/60 px-6 py-1.5 font-medium">
                     Level Kemungkinan
                   </TableHead>
-                  <TableHead className="border-b border-r border-border/60 px-6 py-1.5 font-semibold">
+                  <TableHead className="border-b border-r border-border/60 px-6 py-1.5 font-medium">
                     Probabilitas
                   </TableHead>
-                  <TableHead className="border-b border-r border-border/60 px-6 py-1.5 font-semibold">
+                  <TableHead className="border-b border-r border-border/60 px-6 py-1.5 font-medium">
                     Jumlah frekuensi
                   </TableHead>
-                  <TableHead className="border-b border-border/60 px-6 py-1.5 font-semibold">
+                  <TableHead className="border-b border-border/60 px-6 py-1.5 font-medium">
                     Low Frequency Event
                   </TableHead>
                 </TableRow>

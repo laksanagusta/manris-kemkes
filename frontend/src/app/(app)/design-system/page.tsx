@@ -53,13 +53,14 @@ export default function DesignSystemPage() {
           <DesignSystemSectionLabel>Color Palette</DesignSystemSectionLabel>
           <p className="max-w-3xl text-sm text-muted-foreground">
             Root dokumen tetap transparan. Canvas utama dan app shell memakai
-            token background, main-content, dan sidebar #fcfcfc; header tabel
-            memakai surface #fcfcfc yang sama dengan canvas. Gunakan token
+            token background dan main-content #ffffff, serta sidebar #fafafa;
+            header tabel memakai surface #fcfcfc. Gunakan token
             background pada shell, halaman, dan surface yang memang memiliki
             konteks; hover hanya
             dimiliki oleh kontrol interaktifnya. Batas struktur memakai token
-            surface-border (#e3e3e3), sedangkan field/input memakai field-border
-            (#ebebeb); warna semantik tetap khusus untuk
+            surface-border (#e3e3e3), sedangkan field/input memakai boundary
+            `border-shadow` berbasis shadow-custom tanpa hard border; field-border
+            (#ebebeb) tetap tersedia untuk override legacy/semantik; warna semantik tetap khusus untuk
             status, validasi, selection, dan focus. Chart memakai token Origin:
             cyan signal sebagai seri utama, iris sebagai pembanding, dan aksen
             orchid/periwinkle untuk kategori pendukung; level risiko tetap
@@ -86,20 +87,31 @@ export default function DesignSystemPage() {
         <section className="space-y-4">
           <DesignSystemSectionLabel>Sidebar Motion</DesignSystemSectionLabel>
           <p className="max-w-3xl text-sm text-muted-foreground">
-            Item navigasi dan label grup sidebar memakai bobot medium; label grup
-            berukuran 12px dengan character spacing 0,6px, sedangkan elemen pendukung tetap normal. State aktif dibedakan oleh
+            Item navigasi sidebar memakai bobot normal saat inactive dan medium
+            saat aktif; label grup tetap medium dan
+            berukuran 11px tanpa character spacing tambahan, sedangkan elemen pendukung tetap normal. State aktif dibedakan oleh
             surface netral dan warna icon/teks yang lebih gelap, sedangkan state
-            inactive memakai teks dan icon `muted-foreground` (`#8f8e8e`) dengan stroke icon `1.8`,
-            lalu icon ikut berubah ke warna foreground aktif saat hover atau press,
+            inactive memakai teks dan icon `secondary-foreground` (`#52525b`) dengan stroke icon `1.8`,
+            tanpa animasi transform maupun transition pada icon,
             tanpa garis dekoratif di sisi kiri. Setiap baris menu memiliki jarak vertikal
-            4px agar surface hover tidak saling menempel, sedangkan antarkelompok menu
-            memakai jarak 12px (`gap-3`) untuk memperjelas hierarki. Navigasi
-            memiliki inset atas 8px (`pt-2`) dari batas bawah header/logo.
+            2px (`gap-0.5`) agar surface hover tetap rapat namun terbaca. Setiap item menu memiliki
+            tinggi 36px (`h-9`) dengan padding horizontal 8px (`px-2`), sedangkan
+            Dashboard dan
+            Persetujuan &amp; TTE berada dalam satu grup mandiri tanpa label di atas
+            section OPERASIONAL. Antarkelompok menu memakai jarak 20px (`gap-5`)
+            untuk memperjelas hierarki. Navigasi
+            memiliki lebar desktop 260px (`16.25rem`), inset horizontal 12px
+            (`px-3`), dan inset atas 8px (`pt-2`)
+            dari batas bawah header/logo.
             Radius item hover
             mengikuti button standar dengan `rounded-md` (6px). Hover netral di seluruh
             aplikasi mengikuti surface sidebar yang sama; hover semantik tetap
             mempertahankan warna statusnya. Batas footer memakai fade blur halus
-            sebelum area Bantuan dan akun.
+            sebelum area akun dan bantuan.
+            Footer akun memakai baris borderless yang menempatkan nama user di
+            samping icon `HelpCircle`; icon tersebut membuka popover compact berisi
+            pilihan `Panduan`. Jangan menambahkan kembali kartu, border keras, atau
+            shadow pada baris footer ini.
           </p>
           <p className="max-w-3xl text-sm text-muted-foreground">
             Hierarki navigasi produksi menempatkan jalur kerja harian di bawah
@@ -137,7 +149,7 @@ export default function DesignSystemPage() {
           </p>
           <p className="max-w-3xl text-sm text-muted-foreground">
             Field yang read-only atau disabled mengikuti treatment input pada
-            modal Detail Aktivitas Log: surface disabled yang sangat ringan
+            modal Detail Aktivitas Catatan: surface disabled yang sangat ringan
             (#f8f8f8), teks disabled (#bcbbbb), dan cursor not-allowed.
           </p>
           <p className="max-w-3xl text-sm text-muted-foreground">
@@ -146,8 +158,8 @@ export default function DesignSystemPage() {
           </p>
           <p className="max-w-3xl text-sm text-muted-foreground">
             Semua field bersama, termasuk trigger custom pada form Risiko dan
-            Pemantauan, mengubah warna border yang sudah ada menjadi sedikit
-            lebih gelap saat hover tanpa menambah ring atau perimeter baru.
+            Pemantauan, memakai `border-shadow` sebagai perimeter bersama tanpa
+            hard border; focus dan invalid state memakai ring/shadow semantik.
           </p>
           <p className="max-w-3xl text-sm text-muted-foreground">
             Selector berbasis opsi memakai export shared
@@ -181,7 +193,10 @@ export default function DesignSystemPage() {
             nyaman diisi. CTA login memakai tinggi 40px (`h-10`) dengan bentuk
             pill (`rounded-full`) tanpa icon dekoratif. Frasa `Masuk ke` pada
             heading memakai 20px medium;
-            wordmark `Manris` pada judul memakai treatment Poppins tanpa underline.
+            wordmark `Manris` pada judul memakai treatment Inter tanpa underline.
+            Field login dan daftar akun memakai surface netral `bg-muted/30`
+            dengan border 1px `border-input` agar tetap terbaca pada shell
+            autentikasi yang terang.
             Animasi dekoratif dan entrance menghormati
             <code className="mx-1 text-xs">prefers-reduced-motion</code>;
             kontrol password memiliki label aksesibel, focus ring, dan hit area
@@ -222,10 +237,11 @@ export default function DesignSystemPage() {
           <DesignSystemSectionLabel>Shared Action Buttons</DesignSystemSectionLabel>
           <p className="max-w-3xl text-sm text-muted-foreground">
             Button berlabel selalu memakai teks 14px dan text-only, termasuk saat
-            loading; state loading ditunjukkan melalui label. Gunakan kontrol icon-only untuk
+            loading; state loading ditunjukkan melalui label. Jika aksi toolbar sengaja
+            memasangkan ikon dan label, gunakan jarak 8px (`gap-2`). Gunakan kontrol icon-only untuk
             dropdown action yang perlu tetap ringkas, termasuk di luar tabel,
-            dengan ukuran
-            <code className="mx-1 text-xs">icon-xs</code> dan pertahankan
+            dengan ukuran 32px (`icon-xs`) dan perimeter `border-0 border-shadow`;
+            pertahankan
             <code className="mx-1 text-xs">aria-label</code> serta
             <code className="mx-1 text-xs">title</code> saat label visual
             dihilangkan.
@@ -263,8 +279,10 @@ export default function DesignSystemPage() {
             `border-shadow` berbasis `--shadow-custom`; dashboard, KPI, analisis
             risiko, collection, dan context side-panel card juga memakai
             treatment yang sama.
-            Card biasa dapat memakai subtitle atau description dengan
+            `StandardCard` dapat memakai satu subtitle atau description ringkas dengan
             `secondary-foreground` (`#52525b`) sebagai konteks pendukung;
+            gunakan `contentClassName=&quot;p-4 pt-0&quot;` ketika content memang perlu
+            menempel langsung ke bawah header tanpa gap atas tambahan;
             `KpiCard` sengaja tidak memuat subtitle atau description agar
             ringkasan KPI tetap ringkas;
             `muted-foreground` (`#8f8e8e`) tetap untuk caption, helper text,
@@ -282,19 +300,19 @@ export default function DesignSystemPage() {
             bawah form pada viewport sempit.
             struktural non-Card memakai
             `surface-hairline`, yang resolve ke `--shadow-custom` tanpa hard
-            border tambahan, sehingga card, panel, dan table memiliki depth
+            border tambahan, sehingga card, panel, table, dan field memiliki depth
             yang konsisten. Ringkasan KPI collection memakai `KpiCard` dengan surface
             putih, padding dan typography bawaan yang sama di semua halaman;
             KPI tidak memuat subtitle atau description;
             gunakan tone warna hanya untuk konteks non-KPI. Input, search, select,
-            dan combobox memakai field-border agar batas field tetap lebih ringan
-            dari container. Kontrol pada collection/list memakai tinggi compact
+            dan combobox memakai `border-shadow` agar boundary field konsisten
+            dengan outline control. Kontrol pada collection/list memakai tinggi compact
             36px (`h-9`), sedangkan form/detail tetap memakai baseline 40px
             (`h-10`); primitive Input, SearchInput, dan SelectTrigger menjadi
-            sumber treatment field bersama, termasuk state disabled yang memakai
+            sumber treatment field bersama, termasuk `border-shadow` dan state disabled yang memakai
             `disabled-surface`. Form risiko yang sudah final bersifat read-only;
             selector RO disembunyikan pada mode pembuatan maupun detail risiko,
-            sementara Ringkasan Hirarki juga tidak ditampilkan. Periode asesmen
+            sementara Ringkasan Hirarki juga tidak ditampilkan. Periode pemantauan
             hanya tampil sebagai metadata pada panel Properti. Nilai `roId`
             tetap dipertahankan di state dan payload.
             Label kiri pada panel kanan Form Risiko dan Pemantauan memakai
@@ -303,7 +321,7 @@ export default function DesignSystemPage() {
             setiap blok kerja utama memakai Card terpisah dengan header
             `text-base font-medium tracking-tight`, deskripsi `text-sm
             leading-relaxed`, dan content inset `px-5 pb-6 pt-2`; field tetap
-            memakai baseline 40px (`h-10`) dan textarea memakai field-border
+            memakai baseline 40px (`h-10`) dan textarea memakai `border-shadow`
             bersama. Baris poin evaluasi memakai separator internal dan spacing,
             bukan nested card atau ring kedua.
           </p>
@@ -331,10 +349,11 @@ export default function DesignSystemPage() {
           </DesignSystemSectionLabel>
           <p className="max-w-3xl text-sm text-muted-foreground">
             Dashboard, Register, form risiko, MoM, dan Document Intelligence
-            memakai shell halaman yang sama: topbar global menjadi konteks ringkas,
-            sementara AppHeader merender title/subtitle route standar dengan
-            `page-title` 24px semibold. Detail
-            Piagam menjadi pengecualian karena header lokalnya memiliki title/subtitle. Header
+            memakai shell halaman yang sama: topbar global menjadi breadcrumb ringkas
+            yang memetakan parent muted ke halaman aktif,
+            tanpa global page header tambahan. Header lokal di dalam konten menangani
+            title/subtitle dan aksi utama hanya ketika workflow membutuhkannya. Detail
+            Piagam tetap memiliki header lokal dengan title/subtitle. Header
             borderless di dalam konten menangani konteks dan aksi utama. Toolbar tetap berada di
             luar card data,
             dengan filter/search di sisi kiri dan button action di sisi kanan,
@@ -342,24 +361,31 @@ export default function DesignSystemPage() {
             collection/list memakai tinggi compact 36px (`h-9`) agar field di
             kiri sejajar dengan action di kanan; field form/detail tetap 40px
             (`h-10`). Search pada Daftar Risiko dan Penanganan memakai
-            `CollectionSearchField` yang persisten dengan ikon di sisi kiri;
+            `CollectionSearchField` yang persisten dengan ikon di sisi kiri dan
+            keycap `Esc` di sisi kanan untuk mengosongkan query;
             trigger filter memakai icon-only 36px dengan `aria-label` dan tooltip
             untuk menjaga konteks tanpa label visual;
             `ExpandableSearchField` dicadangkan untuk toolbar padat yang memang
             membutuhkan affordance minimal. Header form
+            memakai jarak 8px (`gap-2`) ketika aksi berlabel sengaja dipasangkan
+            dengan ikon kontekstual, seperti `Import Risiko`;
             mengikuti lebar shell dua kolom agar tepi trailing action sejajar
             dengan tepi panel konteks; action utama tetap di trailing edge pada
             form/detail.
-            Action group form/detail dikirim ke title row `AppHeader` melalui
-            `actionsPlacement=&quot;top&quot;`, sehingga pusat CTA mengikuti blok title
-            dan subtitle secara vertikal.
-            Pada title row, grup CTA memakai `items-center` agar berada di
-            tengah vertikal terhadap blok title dan subtitle.
+            Action group form/detail tetap inline pada header lokal melalui
+            `actionsPlacement=&quot;top&quot;`; wrapper action memakai
+            `justify-end` agar seluruh CTA menempel ke sisi trailing shell dan
+            tidak ada portal ke global page header.
+            Pada title row lokal, grup CTA memakai `items-center` agar tetap
+            sejajar secara vertikal.
             Background tetap transparan agar action group tetap ringan.
             Root shell mempertahankan lebar layout dengan
             <code className="mx-1 text-xs">scrollbar-gutter: stable</code> agar
             breadcrumb, topbar, dan floating controls tidak bergeser ketika
             modal, menu, atau popover mengaktifkan scroll lock.
+            Elemen root <code className="mx-1 text-xs">html</code> memakai
+            utility <code className="mx-1 text-xs">border-shadow</code> dari
+            design system sebagai boundary global yang konsisten.
             Fixed shell chrome membaca ukuran scrollbar yang dihapus melalui
             <code className="mx-1 text-xs">--removed-body-scroll-bar-size</code>
             agar lebarnya tetap sama selama scroll lock.
@@ -373,23 +399,27 @@ export default function DesignSystemPage() {
             Detail kertas kerja menempatkan aksi Ekspor Excel di dalam popover
             Tindakan tanpa label menu visual tambahan agar header tetap ringkas
             dan seluruh aksi sekunder terpusat.
-            AppHeader merender satu title dan subtitle halaman untuk route
-            authenticated standar; Detail
-            Piagam memindahkan title/subtitle ke header form lokal agar sejajar dengan
-            lebar dokumen 672px. Jarak 24px (`mb-6`) dipakai secara konsisten antara
-            header halaman dan komponen pertama di main content.
+            Route authenticated tidak merender AppHeader global; Detail
+            Piagam memakai title/subtitle pada header form lokal agar sejajar dengan
+            lebar dokumen 672px. Jarak 24px (`mb-6`) dipakai antara
+            header lokal dan komponen pertama di main content bila header tersebut ada.
             Section setelah komponen pertama memakai ritme vertikal 24px
             (`space-y-6` atau `gap-y-6`) pada seluruh halaman. Collection table
             atau result list yang langsung mengikuti toolbar/filter memakai
             ritme 16px (`space-y-4`) agar kontrol dan data tetap terbaca sebagai
             satu kelompok kerja di semua halaman.
-            Form registrasi Risiko memakai standalone CollectionPageHeader
-            dengan action form dalam satu header. CollectionPageHeader di dalam halaman tetap dapat memakai
-            `showTitle={false}` saat hanya membawa badge atau action lokal; jarak konten dimulai dari inset shell yang
-            sama dengan sisi kiri dan kanan. Contoh katalog mengaktifkan judul
-            dan subtitle untuk mendemonstrasikan primitive tersebut. Header setiap
-            section card pada form Risiko memakai title 14px (`text-sm`) dan
-            subtitle 12px (`text-xs`) agar hierarkinya tetap ringkas.
+            Form registrasi Risiko sengaja tidak memakai CollectionPageHeader lokal
+            kedua karena route ini sudah memiliki konteks dari shell aplikasi.
+            Action utama tetap berada dalam satu toolbar compact di sisi trailing
+            sebagai child pertama FormPage. CollectionPageHeader di dalam halaman
+            tetap dapat memakai `showTitle={false}` saat hanya membawa badge atau
+            action lokal; jarak konten dimulai dari inset shell yang sama dengan sisi
+            kiri dan kanan. Contoh katalog mengaktifkan judul dan subtitle untuk
+            mendemonstrasikan primitive tersebut. Header memakai satu wrapper
+            content tanpa nested `min-w-0` yang redundan agar struktur header tetap
+            ringkas. Header setiap section card pada form Risiko memakai
+            title 14px (`text-sm`) dan subtitle 12px (`text-xs`) agar hierarkinya
+            tetap ringkas.
             Detail Evaluasi mengikuti shell standalone yang sama ketika form
             memiliki konteks persisten: gunakan `FormPage` `max-w-7xl`,
             `CollectionPageHeader` dengan `actionsPlacement=&quot;title&quot;`, lalu grid
@@ -398,11 +428,15 @@ export default function DesignSystemPage() {
             kesimpulan, dan saran tetap dipisah sebagai section card yang selalu
             terbuka.
             Risk Register memakai satu collection risiko tanpa tab sekunder.
-            Kolom Kode digabung ke kolom Risiko dengan kode muted di atas judul;
-            proporsi tabelnya adalah Risiko/Judul 55% fleksibel, Kategori 14%, Skor 7%,
-            Status 8%, Pemantauan 10%, dan Aksi 6%.
-            Semua teks tabel memakai `text-muted-foreground` kecuali judul
-            risiko dan warna semantic pada badge status. Tabel tetap menampilkan progres Pemantauan secara ringkas
+            Kolom Kode digabung ke kolom Risiko sebagai metadata muted di bawah
+            judul primer, mengikuti pola dua tingkat pada tabel operasional.
+            Proporsi tabelnya adalah Risiko/Judul 42%, Kategori 15%, Skor 8%,
+            Status 11%, Pemantauan 18%, dan Aksi 6%. Surface memakai radius 12px,
+            header 44px dengan fill netral tipis, row 68px, inset horizontal 20px,
+            divider horizontal halus, dan tanpa grid vertikal. Kategori memakai
+            `text-secondary-foreground`, skor dan judul memakai `text-foreground`,
+            metadata memakai `text-muted-foreground`, dan warna tetap dibatasi
+            pada badge status. Tabel tetap menampilkan progres Pemantauan secara ringkas
             sebagai hitungan seperti `2/4`, tanpa label “transaksi”, dan menu
             aksi menyediakan Mulai/Lanjutkan Pemantauan melalui pemilihan periode;
             form edit risiko final yang masih aktif juga boleh menyediakan aksi
@@ -418,30 +452,31 @@ export default function DesignSystemPage() {
             register hanya menampilkan action import dan tambah risiko yang relevan,
             tanpa tombol refresh manual. Ikon overflow pada kolom Aksi memakai
             `ActionIconButton` ukuran icon-xs dengan label aksesibel spesifik
-            risiko, sama seperti tabel Evaluasi, agar affordance menu tetap ringan
+            risiko dan perimeter `border-shadow` tanpa hard border, sama seperti
+            tabel Evaluasi, agar affordance menu tetap ringan
             dan konsisten. Pada row
             yang dapat di-hover, surface `bg-muted/50` diterapkan langsung ke
             seluruh body cell, termasuk cell Aksi yang sticky, supaya hover
             tidak terputus di trailing edge tabel.
             Shell authenticated memakai topbar global 56px di atas sidebar dan
-            konten: wordmark `manris` Poppins 20px semibold lowercase dengan
+            konten: wordmark `manris` Inter 20px semibold lowercase dengan
             letter-spacing -0.4px tanpa logo dan sejajar dengan inset
             menu sidebar, dan konteks halaman di tengah. Tanpa action tambahan di
             sisi kiri maupun kanan, konteks halaman tetap terpusat dan tenang. AI Tools tetap tersedia melalui section
             AI & OTOMASI di sidebar. Sidebar desktop dimulai di bawah topbar
             dan mengikuti state expanded/collapsed, sedangkan mobile memakai
-            trigger sidebar serta wordmark `manris` Poppins 20px semibold yang
+            trigger sidebar serta wordmark `manris` Inter 20px semibold yang
             ringkas. Public registration juga memakai wordmark text-only
             lowercase `manris` yang sama dan tidak menampilkan field nomor HP.
             Search field memakai lebar content-fit `sm:w-80` pada desktop dan
             hanya melebar penuh pada mobile saat ruang memang terbatas.
-            AppShell menyediakan canvas bersama `max-w-7xl` bergaya Vercel
-            untuk seluruh halaman; inset atasnya mengikuti `p-4 md:p-6` yang
+            AppShell menyediakan canvas selebar area konten untuk seluruh halaman;
+            inset atasnya mengikuti `p-4 md:p-6` yang
             sama dengan sisi kiri dan kanan agar konten tidak terlalu jauh dari
             topbar; halaman atau form yang membutuhkan measure
             lebih sempit tetap dapat memilih batas internalnya sendiri. Form
-            Risiko yang memakai side panel menetapkan `max-w-7xl` pada
-            `FormPage` sebagai satu owner lebar; header, notice, dan grid konten
+            Risiko yang memakai side panel memakai `FormPage` selebar area konten;
+            header, notice, dan grid konten
             menjadi child langsung tanpa wrapper `mx-auto`/`max-w-*` tambahan.
             Form panjang dengan panel konteks memakai shell `max-w-7xl`
             dengan jarak 24px (`gap-6`): form tetap di kolom utama, panel
@@ -458,11 +493,23 @@ export default function DesignSystemPage() {
             memakai tab untuk konten paralel; gunakan section terpisah dengan
             seluruh heading section uppercase 12px (`text-xs`) berwarna muted
             70% dengan character spacing 0.6px. Semua section memakai divider dashed/soft, dan timeline atau
-            list untuk histori versi agar
-            progres, log, dan riwayat tetap terlihat serta mudah dipindai. Log memakai compact activity feed:
+            list untuk histori versi agar progres, kejadian terkait, catatan, dan
+            riwayat tetap terlihat serta mudah dipindai. Section Kejadian menampilkan
+            maksimal tiga record terbaru sebagai row flat yang menaut ke detail LED,
+            disertai kode, tingkat, deskripsi ringkas, dan tanggal kejadian tanpa
+            nested card. Aksi Catat kejadian berada di trailing judul section sebagai
+            ActionIconButton plus-only dengan label aksesibel, bukan di toolbar form.
+            Aksi ini membuka ulang drawer pencatatan LED yang sama dengan halaman
+            Kejadian dan otomatis memilih risiko yang sedang dibuka, tetapi hanya
+            tersedia ketika risiko berstatus final. Sebelum finalisasi, state
+            kosong menjelaskan syarat tersebut.
+            Catatan memakai compact activity feed:
             aktivitas inti dan waktu relatif tanpa avatar atau nested card;
             detail lengkap dibuka lewat modal dengan shell form yang sama seperti
-            Tambah Log dan field Input/Textarea disabled. Preview log dan histori
+            Tambah catatan dan field Input/Textarea disabled. Judul Catatan mengikuti
+            pola Kejadian dengan jumlah item dan ActionIconButton plus-only di sisi
+            kanan; aksi tambah tidak tersedia selama risiko masih berstatus draft.
+            Preview catatan dan histori
             versi dibatasi lima item terbaru, dengan action untuk membuka seluruh
             daftar di modal scrollable. Marker timeline versi berukuran ringkas
             12px; connector vertikal ditarik dari pusat marker ke pusat marker
@@ -470,7 +517,7 @@ export default function DesignSystemPage() {
             memakai fill success, sedangkan versi lain memakai fill abu-abu solid.
             Section pertama pada panel konteks adalah Properti, memakai list
             label/nilai vertikal tanpa nested card yang menampilkan status, kode
-            risiko, versi, dan periode asesmen. Kode dan periode tidak diulang lagi
+            risiko, versi, dan periode pemantauan. Kode dan periode tidak diulang lagi
             sebagai field di kartu Identifikasi; nilainya tetap dikelola oleh state
             form dan payload penyimpanan. Saat memilih versi, tutup dialog riwayat
             dan tampilkan loading kontekstual; request lama tidak boleh menimpa
@@ -523,7 +570,7 @@ export default function DesignSystemPage() {
             <DesignSystemSectionLabel>MoM Briefing Creation</DesignSystemSectionLabel>
             <p className="max-w-3xl text-sm text-muted-foreground">
               Form buat briefing dan workspace transkrip memakai FormPage
-              max-w-7xl tanpa FormHeader lokal yang menduplikasi AppHeader.
+              max-w-7xl tanpa FormHeader lokal yang menduplikasi konteks halaman.
               Card setup transkrip memiliki satu inset 16px tanpa padding content tambahan. Pilihan keluaran memakai
               fieldset berlabel, permukaan netral, pressed state melalui kontras
               border/background tanpa ikon dekoratif, dan focus ring. Label transkrip berada di atas textarea yang bisa
@@ -545,7 +592,7 @@ export default function DesignSystemPage() {
               leading dan aksi `Buat Notulen` di sisi trailing; filter date
               dihilangkan agar tombol pembuatan tetap tersedia pada semua kondisi
               daftar. Empty state tidak menduplikasi CTA tersebut.
-              Pada `/minutes/new`, AppHeader dan form memakai container max-w-7xl
+              Pada `/minutes/new`, header lokal dan form memakai container max-w-7xl
               yang sama agar judul dan isi form sejajar horizontal.
               Ringkasan briefing memakai pola editorial yang sama dengan Isu Terbuka
               dan menggunakan lebar section penuh tanpa batas 75ch. Agenda memakai
@@ -553,9 +600,13 @@ export default function DesignSystemPage() {
               datar tanpa ikon dekoratif atau badge prioritas; metadata yang tersedia
               tetap berada di bawah judul task.
               Halaman detail briefing memakai shell max-w-7xl yang sama untuk
-              AppHeader dan isi agar garis kirinya sejajar. Detail dibaca sebagai
+              header lokal dan isi agar garis kirinya sejajar. Detail dibaca sebagai
               satu document Card `gap-0 p-0`, dengan inset horizontal 24px pada
               layar kecil dan 32px pada desktop serta divider penuh antarbagian.
+              Divider antar-section memakai garis putus-putus dengan
+              `border-t border-dashed border-border/70`; divider pada baris
+              tindak lanjut dan risiko terkait mengikuti treatment yang sama
+              melalui `divide-y divide-dashed divide-border/70`.
               Section pertama memakai heading `Properti` dan definition list
               responsif satu, dua, lalu tiga kolom tanpa card lokal atau ikon
               dekoratif. Enam propertinya memuat judul notulen, pembuat beserta
@@ -595,9 +646,13 @@ export default function DesignSystemPage() {
           </section>
 
           <section className="space-y-4">
-            <DesignSystemSectionLabel>Document Intelligence Workspace</DesignSystemSectionLabel>
+            <DesignSystemSectionLabel>Contextual Document Intelligence Workspaces</DesignSystemSectionLabel>
             <p className="max-w-3xl text-sm text-muted-foreground">
-              Document Intelligence memakai pola upload-first: kanvas terpusat
+              Document Intelligence dipakai sebagai workflow kontekstual di
+              Risiko dan Penanganan, bukan sebagai modul sidebar mandiri.
+              Risiko membuka ekstraksi SOP dari menu Import Risiko, sedangkan
+              Penanganan menyediakan tombol Import pada toolbar koleksi.
+              Keduanya memakai pola upload-first: kanvas terpusat
               memberi prioritas visual pada drop zone besar bergaris putus-putus,
               dengan glyph dokumen yang tenang sebagai satu-satunya aksen setup.
               Drop zone hanya memiliki satu target keyboard; input file yang
@@ -607,19 +662,14 @@ export default function DesignSystemPage() {
               utama Mulai analisis. Upload hanya menerima PDF atau XLSX lalu
               mengirim file langsung ke backend Document Intelligence API dengan
               sesi autentikasi dan konteks organisasi; tidak ada mock processing
-              atau sinkronisasi hasil lokal sebagai fallback. Mode analisis tetap
-              terlihat tepat di atas upload dengan gap 24px sebagai grid
-              responsif dua kolom berisi dua radio card: SOP dan Laporan
-              Mitigasi. Setiap card tidak memakai ikon; radio berada di kanan
-              atas, dan state aktif hanya mengubah border tanpa mengubah warna
-              background. Periode
-              diproses otomatis tanpa field. Route menekan AppHeader global dan
+              atau sinkronisasi hasil lokal sebagai fallback. Mode analisis
+              ditentukan oleh entry point dan tidak ditampilkan sebagai selector
+              di dalam workspace. Periode diproses otomatis tanpa field. Route
+              menekan global page header dan
               tidak menampilkan CollectionPageHeader lokal; heading setup
               menjadi konteks langsung workspace dan memakai skala 16px
               (text-base) dengan jarak 8px (`space-y-2`) ke subtitle,
               sedangkan heading drop zone tetap compact 14px.
-              Legend mode, judul opsi, dan heading drop zone mengikuti skala
-              14px yang sama agar hierarki halaman tetap ringkas.
               Satu layout upload-first dipakai untuk setup, proses aktif, dan
               hasil. Saat proses aktif, status dan progress ditampilkan ringkas
               di bawah upload; setelah selesai, file dibersihkan dan hanya panel
@@ -639,8 +689,16 @@ export default function DesignSystemPage() {
               Tombol outline `Mulai proses baru` memakai `border-0 border-shadow`
               berbasis `--shadow-custom` agar memiliki perimeter dan lift yang
               sama dengan surface card tanpa garis border tambahan. `Buat draf risiko` tetap memakai tombol outline di
-              dalam footer card dengan divider atas seperti modal agar tetap
-              terlihat sebagai aksi sekunder yang jelas.
+              dalam footer card dengan divider atas dan surface `table-header`
+              (`#fcfcfc`) seperti modal agar tetap terlihat sebagai aksi
+              sekunder yang jelas. Temuan SOP memakai
+              `Buat draf risiko` untuk membuka modal ringkas di tempat yang
+              sama, dengan `Judul`, `Deskripsi`, dan `Kategori` yang sudah
+              terisi. Pengguna dapat menyimpan draft langsung dari modal, lalu
+              aksinya berubah menjadi `Draf dibuat`. Temuan laporan mitigasi memakai
+              `Gunakan untuk laporan`, membuka modal `Lapor Progress Penanganan`
+              di tempat yang sama, lalu berubah menjadi `Sudah dilaporkan` setelah
+              task dikirim dengan status `done`.
               Disclosure sumber memakai divider dashed, label `Sumber` yang
               muted, serta label `Lihat` berwarna foreground dengan chevron di
               sisi kanan. Detail sumber memakai fade 150ms dengan jarak 12px
@@ -665,7 +723,10 @@ export default function DesignSystemPage() {
               Seluruh label operasional memakai bahasa Indonesia, ukuran metadata
               minimal 12px, warna status memakai token semantik. Kegagalan dari
               backend ditampilkan pada panel hasil terminal dan pembatalan proses
-              menghentikan request API yang sedang berjalan.
+              menghentikan request API yang sedang berjalan. Ringkasan terminal
+              disimpan hanya selama sesi tab agar pengguna dapat kembali dari
+              form draf risiko atau melanjutkan batch laporan tanpa membentuk
+              riwayat dokumen permanen.
             </p>
           </section>
 
@@ -742,8 +803,8 @@ export default function DesignSystemPage() {
               Connector pada timeline tanda tangan diperpanjang melewati
               offset marker agar setiap langkah tersambung secara visual.
               Header detail memakai `CollectionPageHeader` seperti halaman
-              operasional lain; action dikirim ke title row `AppHeader` agar CTA sejajar tengah dengan
-              title serta subtitle. Aksi utama memakai `AccentButton`,
+              operasional lain; action tetap inline pada header lokal agar CTA sejajar
+              dengan title serta subtitle. Aksi utama memakai `AccentButton`,
               sedangkan ekspor dan overflow memakai `ActionButton`; konfirmasi
               mengikuti ukuran action dialog yang sama. Modal aksi
               detail memakai `AlertDialogHeader` yang berisi title dan
@@ -774,9 +835,10 @@ export default function DesignSystemPage() {
               dengan teks muted-foreground, bukan fill status semantik. Ledger
               utama memakai layout fluid `w-full table-fixed` tanpa `min-width`
               route-local agar tidak memaksa scroll horizontal, dengan kolom
-              `Kode`, `Risiko`, `Periode`, `Perubahan Skor`, `Tanggal Dibuat`,
-              `Progres Penanganan`, dan `Update Terakhir`. Siklus dipisahkan
-              menjadi kolom Periode, tanggal dibuat memakai `createdAt` dengan
+              `Kode`, `Risiko`, `Periode`, `Status`, `Perubahan Skor`,
+              `Tanggal Dibuat`, `Progres Penanganan`, dan `Update Terakhir`.
+              Status memakai badge semantik `Berlangsung` atau `Final`.
+              Siklus dipisahkan menjadi kolom Periode, tanggal dibuat memakai `createdAt` dengan
               fallback `startedAt`, progres ditampilkan sebagai persentase
               ringkas, dan Update Terakhir memakai `updatedAt` dengan fallback
               `startedAt`. Konten panjang dikunci di dalam proporsi kolom dan
@@ -875,7 +937,7 @@ export default function DesignSystemPage() {
               ringkasan `Periode`, `Skor`, dan `Versi hasil` tampil dalam presentasi
               uppercase yang compact. Warning menjelaskan
               bahwa mitigasi yang belum dilaporkan menjadi “Tidak dilaporkan” dan
-              memakai surface borderless <code>bg-state-surface text-state-foreground</code>;
+            memakai surface borderless <code>bg-state-surface text-state-foreground</code> dengan radius 12px;
               CTA utama memakai label “Finalisasi” dan aksi sekunder memakai “Batal”.
             </p>
           </section>
@@ -892,18 +954,24 @@ export default function DesignSystemPage() {
             Label KPI overview mengikuti istilah metrik: Total, Prioritas,
             Mitigasi belum terlapor, dan Eksposur. `Mitigasi belum terlapor`
             memakai count backend `unreportedMitigations`, yaitu task mitigasi
-            tanpa laporan valid, bukan count overdue. Judul dashboard KPI memakai Inter 11px uppercase dengan token muted
-            `muted-foreground`, weight semibold, dan letter-spacing 1px.
-            Angka KPI memakai Inter 28px dengan weight semibold.
+            tanpa laporan valid, bukan count overdue. Judul dashboard KPI memakai
+            Inter 14px sentence case dengan token `secondary-foreground` dan
+            weight medium. Angka KPI memakai Inter 38px dengan weight semibold,
+            lalu descriptor unit 12px memakai `muted-foreground` bila relevan.
+            Header dapat menampilkan icon `TrendingUp` atau `TrendingDown`
+            berukuran 20px dengan warna `success` untuk uptrend dan
+            `destructive` untuk downtrend sebagai cue arah yang eksplisit;
+            icon tidak menggantikan delta numerik.
             Dashboard KPI card dan collection KPI card tetap memakai surface
             yang sama, tetapi collection KPI mempertahankan treatment labelnya
-            sendiri; KPI card tidak
-            memuat chart maupun indikator perbandingan. Nilai `—` tetap dipakai
-            bila data tidak tersedia. Judul
-            panel/chart tetap memakai treatment card title 14px. Dashboard KPI
-            card memakai baseline tinggi 100px dengan padding 20px; card
-            menempatkan angka langsung di bawah judul dengan jarak 24px, dan
-            dapat bertambah tinggi saat judul panjang perlu wrap. Chart produksi
+            sendiri; dashboard KPI card tidak memuat chart maupun indikator
+            perbandingan tanpa payload per-metrik. Nilai `—` tetap dipakai bila
+            data tidak tersedia. Judul panel/chart tetap memakai treatment card
+            title 14px. Dashboard KPI card memakai baseline tinggi 148px dengan
+            padding 20px dan corner smoothing 60% pada radius visual 10px
+            melalui shared path utility; wrapper luar tetap memegang shadow agar
+            perimeter tidak terpotong. Card menempatkan angka di bawah judul
+            dengan jarak 20px. Chart produksi
             memakai shadcn
             ChartContainer dan persistent text legend; tooltip hanya menjadi
             pelengkap, bukan satu-satunya penanda makna. Distribusi kategori
@@ -965,33 +1033,41 @@ export default function DesignSystemPage() {
             checkbox: header memakai padding horizontal 24px dan padding vertikal
             6px (`px-6 py-1.5`) serta label 13px (`text-[13px]`) medium
             `text-secondary-foreground` pada surface putih `bg-card`, lalu kolom
-            Kode, Judul, Kategori, dan Skor. Kode dan judul
-            berada di kolom terpisah; kode memakai foreground, judul memakai
-            muted foreground, skor tetap berupa badge semantik, dan
+            Kode, Probabilitas, Dampak, Kategori, dan Skor. Kolom Judul
+            dihilangkan dari ringkasan; kode, probabilitas, dan dampak memakai
+            foreground, kategori memakai muted foreground, skor tetap berupa
+            badge semantik, dan
             divider antarbaris memakai hairline netral tanpa ikon panah. Baris memakai
             padding `px-6 py-4` dan
             `font-normal` untuk kode, kategori, skor, dan judul pada 14px agar seluruh daftar memiliki
             bobot visual yang sama. Header menggunakan kapitalisasi normal dan
             badge skor mengikuti primitive `Badge` ukuran `micro`, font mono
             tabular, dan warna level risiko semantik.
-            Distribusi kolom desktop memakai rasio Kode 10%, Judul 64%, Kategori
-            16%, dan Skor 10% melalui grid `5fr 32fr 8fr 5fr`; rasio dihitung
+            Distribusi kolom desktop memakai grid `5fr 7fr 7fr 10fr 5fr`
+            untuk Kode, Probabilitas, Dampak, Kategori, dan Skor; rasio dihitung
             dari ruang yang tersedia setelah gap sehingga ledger tetap `w-full`
-            tanpa overflow. Pada layar sempit, Kategori diringkas inline di
-            bawah Judul dan grid memakai rasio Kode 10%, Judul 80%, Skor 10%.
+            tanpa overflow. Pada layar sempit, Kategori disembunyikan dan grid
+            memakai empat kolom setara untuk Kode, Probabilitas, Dampak, dan Skor.
             Narrative Overview mengikuti satu urutan baca: condition, change,
             attention, lalu concentrated risk. KPI tetap tenang, tren
             empat kuartal memiliki bidang visual terlebar, risiko prioritas
             berdampingan dengan heatmap saat ini. Perbandingan multi-fase menjadi
             analisis progresif dalam modal yang dibuka lewat kontrol expand kecil
             di tengah bawah card heatmap saat ini. Kedua card pada baris ini
-            berbagi baseline bawah yang sama; kontrol expand melintasi perimeter
-            tanpa menambah tinggi card kanan. Isi heatmap memakai inset atas yang
-            cukup setelah header agar matriks tidak menempel pada judul. Dashboard tidak memakai `AppHeader`
-            maupun helper subtitle di dalam card. Heatmap ringkas mengandalkan
+            berbagi baseline bawah pada layar lebar. Tabel selalu menyediakan
+            lima slot setinggi 56px: baris yang berisi data tidak meregang,
+            sedangkan slot sisanya tetap ditandai divider halus. Heatmap
+            mempertahankan ukuran besar yang seimbang dengan tinggi lima baris.
+            Pada layar sempit, tinggi card mengikuti kontennya masing-masing.
+            Kontrol expand melintasi perimeter card heatmap tanpa
+            menambah tingginya. Isi heatmap memakai inset atas yang
+            cukup setelah header agar matriks tidak menempel pada judul. Dashboard tidak memakai
+            global page header maupun helper subtitle di dalam card. Heatmap ringkas mengandalkan
             matriks dan legenda level tanpa caption total yang berulang; tooltip
             memisahkan angka dan label seri dengan jarak yang konsisten. Konten langsung
-            dimulai dari KPI karena konteks rute sudah tersedia pada topbar. Pada
+            dimulai dari KPI karena konteks rute sudah tersedia pada topbar. Dashboard
+            seperti halaman lain mengisi seluruh lebar area konten tanpa batas max-width tambahan;
+            hanya padding shell 16px pada mobile dan 24px pada desktop yang tersisa. Pada
             viewport sempit seluruh panel menumpuk mengikuti urutan dokumen tanpa
             menyembunyikan informasi penting.
           </p>
@@ -1011,9 +1087,9 @@ export default function DesignSystemPage() {
           <DesignSystemSectionLabel>Collapsible Card</DesignSystemSectionLabel>
           <p className="max-w-3xl text-sm text-muted-foreground">
             Monitoring Overview dan form Monitoring memakai compound component
-            yang sama: trigger penuh dengan chevron bulat memakai perimeter
-            border button outline dan shadow tombol yang halus, dengan stroke
-            2px, title 14px, optional description dan action kontekstual,
+            yang sama: trigger penuh dengan chevron bulat 36px memakai perimeter
+            border button outline dan shadow tombol yang halus, dengan glyph
+            20px dan stroke 2px, title 14px, optional description dan action kontekstual,
             divider body, serta animasi collapse 200ms yang menghormati reduced
             motion. Susun bagian yang diperlukan melalui children; jangan
             menambah prop boolean untuk variasi header. Kontrol interaktif seperti
@@ -1047,15 +1123,41 @@ export default function DesignSystemPage() {
             `text-muted-foreground`, judul rencana memakai `text-foreground`,
             dan badge tetap mempertahankan warna semantic dari `tone`. Semua
             header tabel memakai `text-[13px]` (13px), `font-medium` (500),
-            `capitalize`, `text-secondary-foreground`, dan `py-1.5 px-6`, termasuk varian compact. Header tidak memakai letter-spacing tambahan agar teks tidak tampak renggang. `TableBody` menerapkan divider internal `border-b border-border/60` pada cell baris data, sementara divider pada baris terakhir dihilangkan. Kontrol header yang sortable mengikuti treatment `capitalize` yang sama, tidak memakai inset horizontal tambahan agar sejajar dengan data, dan tidak boleh memakai `uppercase`; divider header dan footer memakai
-            `border-border/60`. Footer pagination hanya muncul saat total item
+            `capitalize`, `text-secondary-foreground`, tinggi 44px, dan `py-3 px-5`.
+            Header tidak memakai letter-spacing tambahan agar teks tidak tampak renggang.
+            Baris data memakai tinggi dasar 68px dan inset `py-3 px-5`.
+            `TableBody` menerapkan divider internal `border-b border-border/50`
+            pada cell baris data, sementara divider pada baris terakhir dihilangkan.
+            Kontrol header sortable mengikuti treatment `capitalize` yang sama,
+            tidak memakai inset horizontal tambahan agar sejajar dengan data, dan
+            tidak boleh memakai `uppercase`; divider header dan footer memakai
+            `border-border/50`. Footer pagination hanya muncul saat total item
             lebih dari 10; tabel dengan 10 item atau kurang tidak menampilkan
-            footer tersebut. Gunakan
+            footer tersebut. Kontrol header sortable tidak memakai tinggi tetap
+            agar mengikuti tinggi header tabel yang sama. Gunakan
+            Geometri tersebut berlaku untuk seluruh tabel aplikasi melalui
+            primitive `Table`, `CollectionTableHeader`, `CollectionTableHead`, dan
+            `CollectionTableCard`; varian compact hanya boleh menurunkan tinggi
+            header menjadi 40px pada tabel form atau picker yang benar-benar padat.
+            Gunakan
             <code className="mx-1 text-xs">CollectionTableCard</code> untuk
             tabel collection yang memiliki shell sendiri, atau
             <code className="mx-1 text-xs">CollectionTableSurface</code> untuk
             tabel yang ditanam di dalam Card atau disclosure tanpa border kedua;
             keduanya menjaga overflow tabel tetap aman.
+            Empty state pada tabel dirender sebagai satu
+            <code className="mx-1 text-xs">TableRow</code> dengan
+            <code className="mx-1 text-xs">TableCell colSpan</code> di dalam
+            <code className="mx-1 text-xs">TableBody</code>, lalu memakai
+            alignment tengah agar tetap terbaca sebagai bagian dari ledger;
+            jangan menaruhnya sebagai sibling tabel di luar shell.
+            Judul risiko pada Register Risiko adalah link detail dengan
+            `text-sm font-medium` agar tetap menjadi titik fokus utama baris;
+            kode monospaced 11px ditempatkan sebagai metadata di bawah judul.
+            primitive tabel mempertahankan bobot normal pada `td` tanpa
+            memaksa seluruh turunannya, sehingga judul dapat memilih bobotnya.
+            Judul utama pada collection table lain mengikuti treatment medium
+            yang sama.
             Koleksi Piagam Manris mengikuti grammar yang sama: header compact
             40px, tabel enam kolom dengan kolom Aksi sticky di trailing edge,
             status melalui <code className="mx-1 text-xs">CollectionStatusBadge</code>,
@@ -1064,7 +1166,7 @@ export default function DesignSystemPage() {
             mengulang opsi `Buka` dan hanya menampung aksi administratif seperti
             arsip atau pulihkan.
             Sel Aksi memakai surface <code className="mx-1 text-xs">bg-card</code>
-            dengan padding data canonical `px-6 py-4`; hover row diterapkan ke seluruh
+            dengan padding data canonical `px-5 py-3`; hover row diterapkan ke seluruh
             sel melalui selector child `td` agar tetap konsisten dengan tabel Risiko.
             Untuk tabel Penanganan, sel ini memakai trigger ellipsis seperti tabel
             Risiko; menu hanya menempatkan aksi kontekstual `Lapor progress`,
@@ -1083,6 +1185,17 @@ export default function DesignSystemPage() {
         <section className="space-y-4">
           <DesignSystemSectionLabel>Filter Popover</DesignSystemSectionLabel>
           <FilterPopoverExample />
+          <p className="max-w-3xl text-sm text-muted-foreground">
+            Field scope multi-select menjaga trigger tetap satu baris: tampilkan
+            nama unit ketika hanya satu unit dipilih, atau ringkasan jumlah unit
+            ketika pilihannya lebih banyak. Detail pilihan dan pencarian tetap
+            tersedia di dalam popover tanpa menumpuk chip pada field.
+          </p>
+          <p className="max-w-3xl text-sm text-muted-foreground">
+            Filter popover terbuka di bawah trigger dan mulai dari sisi leading
+            (`side=&quot;bottom&quot;`, `align=&quot;start&quot;`) agar panel melebar ke kanan
+            pada toolbar.
+          </p>
         </section>
 
         <section className="space-y-4">
@@ -1120,10 +1233,12 @@ export default function DesignSystemPage() {
             sebagai “Tidak dilaporkan”, tidak memiliki aksi Lapor, dan tidak
             dibuat sebagai tindak lanjut periode berikutnya.
             Dialog Eskalasi Risiko mengikuti shell dan footer yang sama;
-            mode review memakai satu surface metadata tenang dengan badge
-            context/status semantik, sementara aksi Tolak memakai
-            `DestructiveButton`. Nilai sumber dan tujuan membungkus di dalam
-            kolomnya dan tidak menambah close icon kedua.
+            flow create hanya menyediakan pilihan Bottom-up, sedangkan mode
+            review tetap dapat membaca record Top-down lama. Mode review
+            memakai satu surface metadata tenang dengan badge context/status
+            semantik, sementara aksi Tolak memakai `DestructiveButton`. Nilai
+            sumber dan tujuan membungkus di dalam kolomnya dan tidak menambah
+            close icon kedua.
           </p>
           <DialogExample />
         </section>
@@ -1346,6 +1461,11 @@ export default function DesignSystemPage() {
 
         <section className="space-y-4">
           <DesignSystemSectionLabel>Timeline / Version Selector</DesignSystemSectionLabel>
+          <p className="max-w-3xl text-sm text-muted-foreground">
+            Riwayat versi memakai vertical timeline yang sama dengan panel kanan
+            form risiko: marker aktif, connector antarversi, row flat tanpa card
+            bertingkat, dan metadata muted yang tetap dapat dipilih.
+          </p>
           <VersionTimelineExample />
         </section>
 
@@ -1357,8 +1477,8 @@ export default function DesignSystemPage() {
         <section className="space-y-4">
           <DesignSystemSectionLabel>Form Page Container</DesignSystemSectionLabel>
           <p className="max-w-3xl text-sm text-muted-foreground">
-            Form Piagam Manris memakai FormPage satu kolom dengan lebar maksimum
-            672px
+            Form Piagam Manris memakai FormPage satu kolom yang dipusatkan
+            dengan lebar maksimum 672px
             tanpa card wrapper. Label Judul Piagam tetap terlihat, sementara
             textarea judul tampil seperti teks dokumen tanpa chrome field,
             membungkus teks panjang, dan tumbuh mengikuti isi;
@@ -1367,9 +1487,11 @@ export default function DesignSystemPage() {
             metadata organisasi, level UPR, dan tahun tidak diulang di body form.
             Ruang lingkup, konteks internal, dan konteks eksternal memakai
             DocumentFormSection yang selalu terbuka tanpa divider atau subtitle
-            tambahan, dengan field ditata vertikal di bawah label bagiannya.
+            tambahan, dengan label section `text-muted-foreground` dan field
+            ditata vertikal di bawahnya.
             Dasar hukum, stakeholder eksternal, dan struktur UPR memakai
-            DocumentListSection dengan label section di atas surface list, tombol +
+            DocumentListSection dengan label section `text-muted-foreground` di
+            atas surface list, tombol +
             di ujung kanan label untuk membuka modal tambah/edit, dan menu ellipsis
             untuk tindakan item. Surface list tidak mengulang title atau header card.
             List memakai inset horizontal 16px dan vertikal 6px, tanpa fill hover dekoratif;
@@ -1411,30 +1533,37 @@ export default function DesignSystemPage() {
             max-h viewport), max-width yang mengikuti form (max-w-3xl), handle drag,
             dan footer sticky. Grow/shrink tinggi tray memakai layout animation
             interruptible selama 220ms dengan ease-out; reduced motion menonaktifkan
-            transisi posisi. Pada mobile tray menyusut mengikuti viewport. Flow dibagi menjadi empat
-            langkah: Fakta utama, Dampak &amp; penanganan, Konteks &amp; risiko, lalu
-            Periksa. Counter dan progress bar di header tidak ditampilkan; progres
-            hanya memakai empat lingkaran di footer, satu active dan sisanya
-            inactive, dengan label screen-reader Langkah n dari 4. Deskripsi header
-            memakai text-secondary-foreground; tombol
+            transisi posisi. Pada mobile tray menyusut mengikuti viewport. Flow dibagi menjadi lima
+            langkah: Fakta utama, Dampak &amp; penanganan, Risiko terkait, Detail tambahan,
+            lalu Periksa. Setiap langkah dirender sebagai konten terpisah di dalam satu
+            shell Drawer yang stabil; saat berpindah langkah, shell tetap dan hanya
+            tinggi kontennya yang grow/shrink tanpa menghapus isian form.
+            Counter dan progress bar di header tidak ditampilkan; progres
+            hanya memakai lima lingkaran di footer, satu active dan sisanya
+            inactive, dengan label screen-reader Langkah n dari 5. Header langsung
+            memakai DrawerTitle dan DrawerDescription tanpa eyebrow tambahan, dengan
+            deskripsi text-secondary-foreground. Tombol
             Lanjut hanya aktif ketika field wajib pada langkah aktif valid dan
             pengguna dapat kembali tanpa kehilangan isian. Setiap pasangan label
             dan field menggunakan wrapper flex flex-col gap-2 untuk jarak 8px
             yang konsisten; fieldset memakai legend block dengan mb-2 agar jarak
-            label ke checkbox group tetap 8px. Risiko terkait dan detail pendukung
-            dibuka melalui CollapsibleCard. Sebelum record immutable disimpan,
-            langkah Periksa dan AlertDialog merangkum kejadian, tingkat, dampak,
-            dan risiko terkait. Halaman detail bersifat read-only; pengguna hanya
+            label ke checkbox group tetap 8px. Risiko terkait dan detail tambahan
+            menjadi dua langkah Drawer berurutan di dalam shell yang sama. Langkah Periksa memakai satu summary
+            card tanpa border atau surface muted tambahan; CTA penyimpanan menggunakan label
+            Simpan dan langsung menyimpan record immutable setelah ringkasan ditinjau. Halaman detail bersifat read-only; pengguna hanya
             dapat menambahkan hubungan risiko baru melalui konfirmasi permanen.
+            Section Informasi utama dan Detail tambahan memakai vertical spacing
+            tanpa divider internal.
             Label metadata pada detail memakai 13px (`text-[13px]`) dengan
             `text-muted-foreground`, sedangkan nilai detail tetap 14px.
-            AppHeader menjadi satu-satunya pemilik judul/subtitle halaman; aksi
-            detail dikirim ke title row melalui portal tanpa header lokal kedua.
+            Header lokal menjadi pemilik judul/subtitle halaman bila konteks tersebut
+            diperlukan; aksi detail tetap inline tanpa portal global dan tanpa header lokal kedua.
             Daftar LED mengikuti pola tabel Penanganan dengan CollectionToolbar
             dan CollectionTableCard, sementara warna hanya dipakai pada badge
             tingkat kejadian. Urutan kolom daftar adalah Kode, Kejadian, Tingkat,
             Risiko terkait, Dicatat oleh, lalu Waktu sebagai kolom trailing
-            terpisah. Empty state tanpa data menjelaskan langkah berikutnya;
+            terpisah. Empty state tanpa data dirender sebagai row penuh di dalam
+            tabel, dengan konten ter-align center, dan menjelaskan langkah berikutnya;
             hasil pencarian menyebutkan kata kunci yang dicari dan menyediakan
             aksi Hapus pencarian. Error pemuatan memakai pesan yang dapat
             dipahami pengguna dan aksi Coba lagi tanpa menampilkan detail teknis

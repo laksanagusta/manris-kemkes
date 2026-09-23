@@ -80,7 +80,7 @@ export function RiskAssessmentSummaryStrip({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-lg bg-card",
+        "overflow-hidden rounded-[12px] bg-card",
         surface === "elevated"
           ? "smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
           : "border border-border/60 bg-card/80",

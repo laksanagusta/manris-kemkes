@@ -233,7 +233,7 @@ function PredictivePageContent() {
                 <TableCell>
                   <Badge
                     className={cn(
-                      "text-[10px] font-semibold border h-5 px-1.5",
+                      "text-[10px] font-medium border h-5 px-1.5",
                       levelBadgeVariant[pred.currentLevel]
                     )}
                   >
@@ -246,7 +246,7 @@ function PredictivePageContent() {
                 <TableCell>
                   <Badge
                     className={cn(
-                      "text-[10px] font-semibold border h-5 px-1.5",
+                      "text-[10px] font-medium border h-5 px-1.5",
                       levelBadgeVariant[pred.predictedLevel]
                     )}
                   >

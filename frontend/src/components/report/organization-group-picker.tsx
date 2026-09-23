@@ -114,7 +114,7 @@ export function OrganizationGroupPicker({
           disabled={disabled}
           className={cn(
             controlHeight,
-            "w-full min-w-0 justify-between overflow-hidden border-input bg-background/80 px-3 text-xs font-normal shadow-none",
+            "w-full min-w-0 justify-between overflow-hidden border-0 border-shadow bg-background/80 px-3 text-xs font-normal",
             className,
           )}
         >
@@ -140,7 +140,7 @@ export function OrganizationGroupPicker({
             placeholder={searchPlaceholder}
             className={cn(
               controlHeight,
-              "rounded-none border-0 bg-transparent px-0 py-2 text-xs shadow-none",
+              "rounded-none border-0 bg-transparent px-0 py-2 text-xs !shadow-none",
             )}
           />
         </div>

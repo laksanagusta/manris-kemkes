@@ -19,10 +19,14 @@ function severityMeta(severity: Finding["severity"]) {
 export function FindingsReviewPanel({
   job,
   onUseRiskDraft,
+  onUseMitigationReport,
+  reportedFindingIds,
   onStartNew,
 }: {
   job: ProcessingJob;
-  onUseRiskDraft: (finding: Finding) => void;
+  onUseRiskDraft?: (finding: Finding) => void;
+  onUseMitigationReport?: (finding: Finding) => void;
+  reportedFindingIds?: ReadonlySet<string>;
   onStartNew: () => void;
 }) {
   const reduceMotion = useReducedMotion();
@@ -59,6 +63,8 @@ export function FindingsReviewPanel({
       <div className="space-y-3">
         {job.findings.map((finding) => {
           const meta = severityMeta(finding.severity);
+          const isMitigationReport = finding.kind === "mitigation-report";
+          const isReported = reportedFindingIds?.has(finding.id) ?? false;
           return (
             <article
               key={finding.id}
@@ -82,10 +88,30 @@ export function FindingsReviewPanel({
                 <span className="tabular-nums">Keyakinan {Math.round(finding.confidence * 100)}%</span>
               </div>
               <FindingSourceDisclosure finding={finding} />
-              <footer className="-mx-4 -mb-4 mt-4 flex flex-wrap justify-end gap-2 border-t border-border/70 px-4 py-3">
-                <Button type="button" variant="outline" size="xs" className="gap-1.5" onClick={() => onUseRiskDraft(finding)}>
-                  Buat draf risiko
-                </Button>
+              <footer className="-mx-4 -mb-4 mt-4 flex flex-wrap justify-end gap-2 border-t border-border/70 bg-table-header px-4 py-3">
+                {isMitigationReport && onUseMitigationReport ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="xs"
+                    className="gap-1.5"
+                    disabled={isReported}
+                    onClick={() => onUseMitigationReport(finding)}
+                  >
+                    {isReported ? "Sudah dilaporkan" : "Gunakan untuk laporan"}
+                  </Button>
+                ) : onUseRiskDraft ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="xs"
+                    className="gap-1.5"
+                    disabled={isReported}
+                    onClick={() => onUseRiskDraft(finding)}
+                  >
+                    {isReported ? "Draf dibuat" : "Buat draf risiko"}
+                  </Button>
+                ) : null}
               </footer>
             </article>
           );

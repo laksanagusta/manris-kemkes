@@ -235,7 +235,6 @@ function parsePositiveInt(value: string | null, fallback: number) {
 
 export function parseMonitoringQueryState(
   searchParams: URLSearchParams,
-  currentCycle: string,
 ): MonitoringQueryState {
   const rawStatus = searchParams.get("status");
   const status: MonitoringStatusFilter =
@@ -246,7 +245,7 @@ export function parseMonitoringQueryState(
   return {
     search: searchParams.get("q") ?? "",
     status,
-    cycle: searchParams.get("cycle") || currentCycle,
+    cycle: searchParams.get("cycle") || "all",
     organizationId: searchParams.get("org_id") || "all",
     page: parsePositiveInt(searchParams.get("page"), 1),
     limit: parsePositiveInt(searchParams.get("limit"), 25),
@@ -255,14 +254,13 @@ export function parseMonitoringQueryState(
 
 export function buildMonitoringQueryString(
   state: MonitoringQueryState,
-  currentCycle: string,
 ) {
   const query = new URLSearchParams();
   const normalizedSearch = state.search.trim();
 
   if (normalizedSearch) query.set("q", normalizedSearch);
   if (state.status !== "all") query.set("status", state.status);
-  if (state.cycle !== currentCycle) query.set("cycle", state.cycle);
+  if (state.cycle !== "all") query.set("cycle", state.cycle);
   if (state.organizationId !== "all") query.set("org_id", state.organizationId);
   if (state.page !== 1) query.set("page", state.page.toString());
   if (state.limit !== 25) query.set("limit", state.limit.toString());

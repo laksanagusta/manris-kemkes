@@ -152,21 +152,28 @@ export function OrganizationPicker({
           ref={comboboxAnchor}
           className={cn(
             controlHeight,
-            "w-full min-w-0 border-input bg-background/80 text-xs shadow-none",
+            "w-full min-w-0 flex-nowrap overflow-hidden border-0 border-shadow bg-card text-sm",
             className,
           )}
         >
           <ComboboxValue>
             {(values) => (
               <Fragment>
-                {values.map((selectedId: string) => (
-                  <ComboboxChip key={selectedId}>
-                    {optionNameById.get(selectedId) ?? selectedId}
+                {values.length > 0 ? (
+                  <ComboboxChip
+                    showRemove={values.length === 1}
+                    className="max-w-[62%] shrink-0"
+                  >
+                    <span className="truncate">
+                      {values.length === 1
+                        ? optionNameById.get(values[0]) ?? values[0]
+                        : `${values.length} unit dipilih`}
+                    </span>
                   </ComboboxChip>
-                ))}
+                ) : null}
                 <ComboboxChipsInput
                   placeholder={values.length === 0 ? placeholder : searchPlaceholder}
-                  className="min-w-32 text-xs"
+                  className="min-w-0 flex-1 text-sm"
                 />
               </Fragment>
             )}
@@ -212,7 +219,7 @@ export function OrganizationPicker({
           disabled={disabled}
           className={cn(
             controlHeight,
-            "w-full min-w-0 justify-between overflow-hidden border-input bg-background/80 px-3 text-xs font-normal shadow-none",
+            "w-full min-w-0 justify-between overflow-hidden border-0 border-shadow bg-background/80 px-3 text-xs font-normal",
             className,
           )}
         >
@@ -236,7 +243,7 @@ export function OrganizationPicker({
             placeholder={searchPlaceholder}
             className={cn(
               controlHeight,
-              "rounded-none border-0 bg-transparent px-0 py-2 text-xs shadow-none",
+              "rounded-none border-0 bg-transparent px-0 py-2 text-xs !shadow-none",
             )}
           />
         </div>

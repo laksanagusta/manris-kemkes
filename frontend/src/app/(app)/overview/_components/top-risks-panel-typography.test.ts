@@ -26,34 +26,49 @@ test("uses normal typography throughout each top-risk row", () => {
   );
   assert.match(
     source,
-    /className="min-w-0 truncate text-sm font-normal text-muted-foreground"/,
+    /className="hidden min-w-0 truncate text-sm font-normal text-muted-foreground sm:block"/,
   );
   assert.match(source, /text-sm font-normal text-muted-foreground sm:block/);
-  assert.match(source, /text-sm font-normal text-muted-foreground sm:hidden/);
+  assert.match(
+    source,
+    /font-mono text-sm font-normal text-foreground tabular-nums/,
+  );
   assert.doesNotMatch(
     source,
     /group\/risk[\s\S]*?font-(medium|semibold|bold)/,
   );
 });
 
-test("renders the compact attention list as a checkbox-free category ledger", () => {
+test("renders the compact attention list as a checkbox-free probability ledger", () => {
   for (const componentSource of [source, catalogueSource]) {
     assert.match(componentSource, />Kode<\/span>/);
-    assert.match(componentSource, />Judul<\/span>/);
+    assert.match(componentSource, />Probabilitas<\/span>/);
+    assert.match(componentSource, />Dampak<\/span>/);
     assert.match(componentSource, />Kategori<\/span>/);
     assert.match(componentSource, />Skor<\/span>/);
+    assert.doesNotMatch(componentSource, />Judul<\/span>/);
     assert.match(componentSource, /bg-(?:card|table-header)/);
     assert.match(
       componentSource,
-      /px-5 py-2 text-\[13px\] font-medium capitalize/,
+      /px-6 py-1\.5 text-\[13px\] font-medium capitalize/,
     );
-    assert.match(componentSource, /grid-cols-\[1fr_8fr_1fr\]/);
-    assert.match(componentSource, /sm:grid-cols-\[5fr_32fr_8fr_5fr\]/);
+    assert.match(componentSource, /grid-cols-\[1fr_1fr_1fr_1fr\]/);
+    assert.match(componentSource, /sm:grid-cols-\[5fr_7fr_7fr_10fr_5fr\]/);
     assert.doesNotMatch(componentSource, /justify-start/);
     assert.match(componentSource, /min-h-14/);
     assert.match(componentSource, /capitalize/);
     assert.doesNotMatch(componentSource, /Unit kerja/);
     assert.doesNotMatch(componentSource, /Checkbox|type="checkbox"/);
     assert.doesNotMatch(componentSource, /ChevronRight|translate-x/);
+  }
+});
+
+test("reserves five fixed-height desktop slots without stretching risk rows", () => {
+  for (const componentSource of [source, catalogueSource]) {
+    assert.match(componentSource, /xl:min-h-\[377px\]/);
+    assert.match(componentSource, /const visibleRisks = risks\.slice\(0, 5\)/);
+    assert.match(componentSource, /Array\.from\(\{ length: 5 - visibleRisks\.length \}/);
+    assert.match(componentSource, /aria-hidden="true" className="hidden h-14 xl:block"/);
+    assert.doesNotMatch(componentSource, /xl:flex-1 motion-reduce:transform-none/);
   }
 });

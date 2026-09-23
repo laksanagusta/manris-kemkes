@@ -14,7 +14,7 @@ export function ReportEmptyState({
   return (
     <div
       className={cn(
-        "flex min-h-40 items-center justify-center rounded-lg bg-state-surface px-6 py-8 text-center text-state-foreground",
+        "flex min-h-40 items-center justify-center rounded-[12px] bg-state-surface px-6 py-8 text-center text-state-foreground",
         className,
       )}
     >

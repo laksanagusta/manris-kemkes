@@ -9,6 +9,7 @@ const pages = {
   overview: readSource("../app/(app)/overview/page.tsx"),
   reports: readSource("../app/(app)/reports/page.tsx"),
   riskRegister: readSource("../app/(app)/risk/register/page.tsx"),
+  riskMonitoringForm: readSource("../app/(app)/risk/assessment/[id]/page.tsx"),
   workingPapers: readSource("../app/(app)/risk/working-papers/page.tsx"),
   inbox: readSource("../app/(app)/inbox/page.tsx"),
   mitigation: readSource("../app/(app)/compliance/penanganan/page.tsx"),
@@ -19,6 +20,9 @@ const pages = {
 const designSystemPage = readSource("../app/(app)/design-system/page.tsx");
 const designSystemDocument = readSource("../../../DESIGN.md");
 const designSystemBarrel = readSource("../components/shared/design-system/index.ts");
+const collectionFilterPopover = readSource(
+  "../components/shared/design-system/collections/collection-filter-popover.tsx",
+);
 const globals = readSource("../app/globals.css");
 const buttonPrimitive = readSource("../components/ui/button.tsx");
 const selectPrimitive = readSource("../components/ui/select.tsx");
@@ -78,6 +82,12 @@ const workingPaperCreateDialog = readSource(
 );
 const riskRegisterForm = readSource(
   "../app/(app)/risk/register/new/page.tsx",
+);
+const riskLogTimeline = readSource(
+  "../components/risk/risk-log-timeline.tsx",
+);
+const communicationLogDialog = readSource(
+  "../components/risk/communication-log-dialog.tsx",
 );
 const workingPaperCreate = readSource(
   "../app/(app)/risk/working-papers/new/page.tsx",
@@ -179,6 +189,10 @@ test("collection routes use the shared CollectionToolbar", () => {
 });
 
 test("monitoring read-only toolbar matches collection control height", () => {
+  assert.match(
+    monitoringWorkspace,
+    /title="Progress keseluruhan"[\s\S]*contentClassName="p-4 pt-0"/,
+  );
   assert.match(monitoringWorkspace, /<CollectionSearchField[\s\S]*?h-9/);
   assert.match(monitoringWorkspace, /className="h-9 w-full rounded-lg/);
   assert.equal(
@@ -189,6 +203,29 @@ test("monitoring read-only toolbar matches collection control height", () => {
   assert.match(
     monitoringWorkspace,
     /<CollectionTableHead className="px-3">Progres Penanganan<\/CollectionTableHead>/,
+  );
+  assert.match(
+    monitoringWorkspace,
+    /<CollectionTableHead className="px-3">Status<\/CollectionTableHead>/,
+  );
+  assert.match(
+    monitoringWorkspace,
+    /tone=\{row\.status === "finalized" \? "success" : "progress"\}/,
+  );
+  assert.match(monitoringWorkspace, /getMonitoringStatusLabel\(row\.status\)/);
+});
+
+test("collection filter popovers open below and toward the trailing side", () => {
+  assert.match(
+    collectionFilterPopover,
+    /<PopoverContent\s+side="bottom"\s+align="start"\s+sideOffset=\{8\}/,
+  );
+});
+
+test("risk monitoring keeps header actions in the trailing local slot", () => {
+  assert.match(
+    pages.riskMonitoringForm,
+    /<CollectionPageHeader[\s\S]*actionsPlacement="top"[\s\S]*actions=\{monitoringHeaderActions\}/,
   );
 });
 
@@ -271,6 +308,14 @@ test("working papers consumes the shared create dialog instead of a local duplic
     pages.workingPapers,
     /function WorkingPaperCreateDialog\(/,
   );
+});
+
+test("working paper desktop signing progress hides the redundant count", () => {
+  assert.match(
+    pages.workingPapers,
+    /<MonitoringTransactionProgress[\s\S]*?showCount=\{false\}[\s\S]*?ariaLabelOverride=\{`Progres TTE:/,
+  );
+  assert.doesNotMatch(pages.workingPapers, /countLabel="TTE"/);
 });
 
 test("working paper mobile card list uses the solid card surface", () => {
@@ -492,27 +537,32 @@ test("the design-system catalogue documents shared page and collection layout pr
   assert.match(designSystemDocument, /Sidebar icon motion/);
 });
 
-test("sidebar navigation uses reusable, reduced-motion-safe icon micro-interactions", () => {
-  assert.match(sidebarNavItem, /whileHover=\{reducedMotion \? undefined : "hover"\}/);
-  assert.match(sidebarNavItem, /whileTap=\{reducedMotion \? undefined : "tap"\}/);
-  assert.match(sidebarNavItem, /scale: 1\.08/);
-  assert.match(sidebarNavItem, /scale: 0\.92/);
-  assert.match(sidebarNavItem, /duration: 0\.18/);
-  assert.match(sidebarNavItem, /duration: 0\.35/);
+test("sidebar navigation keeps inactive labels normal and icons static", () => {
+  assert.doesNotMatch(sidebarNavItem, /whileHover=/);
+  assert.doesNotMatch(sidebarNavItem, /whileTap=/);
+  assert.doesNotMatch(sidebarNavItem, /sidebarIconVariants/);
+  assert.doesNotMatch(sidebarNavItem, /scale: 1\.08|scale: 0\.92/);
+  assert.doesNotMatch(
+    sidebarNavItem,
+    /transition-\[color\]|transition-\[stroke-width,color\]/,
+  );
   assert.match(sidebarNavItem, /layoutId="sidebar-active-background"/);
   assert.doesNotMatch(sidebarNavItem, /sidebar-active-indicator/);
   assert.match(
     sidebarNavItem,
-    /isActive\s*\?\s*"!text-sidebar-accent-foreground"\s*:\s*"!text-sidebar-muted-foreground"/,
+    /isActive\s*\?\s*"!text-sidebar-accent-foreground"\s*:\s*"!text-secondary-foreground"/,
   );
-  assert.match(sidebarPrimitive, /text-sm font-medium text-sidebar-muted-foreground/);
+  assert.match(sidebarPrimitive, /text-sm font-normal text-secondary-foreground/);
   assert.match(globals, /--sidebar-muted-foreground:\s*var\(--muted-foreground\);/);
   assert.match(sidebarPrimitive, /overflow-hidden rounded-md p-2 text-left/);
+  assert.match(sidebarPrimitive, /default: "h-9 text-sm"/);
   assert.match(sidebarNavItem, /rounded-md bg-sidebar-accent/);
   assert.match(sidebarNavItem, /\[&>svg\]:\[stroke-width:1\.8\]/);
   assert.match(sidebarNavItem, /MotionConfig reducedMotion="user"/);
   assert.doesNotMatch(sidebarNavItem, /transition: all/);
-  assert.match(sidebarPrimitive, /data-slot="sidebar-menu"[\s\S]*flex-col gap-1/);
+  assert.match(sidebarPrimitive, /data-slot="sidebar-menu"[\s\S]*flex-col gap-0\.5/);
+  assert.match(appSidebar, /<div className="flex flex-col gap-5 pt-2">/);
+  assert.match(sidebarPrimitive, /const SIDEBAR_WIDTH = "16\.25rem"/);
   assert.match(sidebarMotionExample, /Dashboard/);
   assert.match(sidebarMotionExample, /Library/);
   assert.match(sidebarMotionExample, /Search/);
@@ -535,6 +585,10 @@ test("sidebar frame uses the same subtle divider as the topbar", () => {
 
 test("sidebar hierarchy prioritizes operations and consolidates administration", () => {
   assert.match(appSidebar, /title: "OPERASIONAL"/);
+  assert.match(
+    appSidebar,
+    /items: \[dashboardNavigation, \.\.\.approvalNavigation\][\s\S]*title: "OPERASIONAL"/,
+  );
   assert.match(appSidebar, /title: "LAPORAN"[\s\S]*label: "Laporan"/);
   assert.match(appSidebar, /title: "AI & OTOMASI"/);
   assert.match(appNavigation, /title: "TATA KELOLA RISIKO"/);
@@ -782,6 +836,64 @@ test("risk score selection uses the shared accessible heatmap picker", () => {
   assert.doesNotMatch(riskScoreHeatmapPicker, /bg-muted px-2\.5 py-1 font-mono/);
 });
 
+test("risk property metadata labels the cycle as monitoring period", () => {
+  assert.match(
+    riskRegisterForm,
+    /<dt className="text-\[13px\] text-muted-foreground">Periode pemantauan<\/dt>/,
+  );
+  assert.doesNotMatch(riskRegisterForm, />Periode asesmen<\/dt>/);
+});
+
+test("risk activity surfaces use catatan terminology", () => {
+  assert.match(riskRegisterForm, />\s*Catatan\s*</);
+  assert.match(riskRegisterForm, /menambahkan catatan komunikasi/);
+  assert.match(riskLogTimeline, /Tambah catatan/);
+  assert.match(riskLogTimeline, /<ActionIconButton/);
+  assert.match(riskLogTimeline, /icon=\{<Plus className="size-3\.5" \/>\}/);
+  assert.match(riskLogTimeline, /\{timelineItems\.length\}/);
+  assert.match(riskRegisterForm, /canAdd=\{riskStatus !== "draft"\}/);
+  assert.match(
+    riskLogTimeline,
+    /\{canAdd \? \([\s\S]*?<CommunicationLogDialog/,
+  );
+  assert.match(riskLogTimeline, /Semua Catatan/);
+  assert.match(communicationLogDialog, /Tambah Catatan Komunikasi/);
+  assert.doesNotMatch(riskLogTimeline, /> Tambah log/);
+  assert.doesNotMatch(riskLogTimeline, /<Plus className="size-3\.5" \/> Tambah catatan/);
+});
+
+test("risk data reload does not toggle the submit state during draft save", () => {
+  const loadRiskDataBody = riskRegisterForm.match(
+    /const loadRiskData = useCallback\(([\s\S]*?)\n  \);\n\n  const reloadRiskData/,
+  )?.[1];
+
+  assert.ok(loadRiskDataBody, "loadRiskData body must be present");
+  assert.doesNotMatch(loadRiskDataBody, /setIsSubmitting\(/);
+});
+
+test("draft save keeps the finalization action visually stable", () => {
+  assert.match(
+    riskRegisterForm,
+    /const isDraftSubmitting\s*=\s*isSubmitting\s*&&\s*submitTarget\.current === "draft"/,
+  );
+  assert.match(
+    riskRegisterForm,
+    /const isReviewSubmitting\s*=\s*isSubmitting\s*&&\s*submitTarget\.current === "review"/,
+  );
+  assert.match(
+    riskRegisterForm,
+    /<AccentButton[\s\S]*?aria-disabled=\{isSubmitting \|\| undefined\}[\s\S]*?disabled=\{isReviewSubmitting\}[\s\S]*?>\s*\{submitActionLabel\}/,
+  );
+  assert.match(
+    riskRegisterForm,
+    /className=\{\s*isDraftSubmitting \? "pointer-events-none" : undefined\s*\}/,
+  );
+  assert.match(
+    riskRegisterForm,
+    /const openSubmitReviewConfirm = \(\) => \{\s*if \(isSubmitting\) return;/,
+  );
+});
+
 test("modal headers keep bottom breathing room", () => {
   assert.match(dialogPrimitive, /px-5 pt-5 pb-3 text-left/);
   assert.match(alertDialogPrimitive, /px-5 pt-5 pb-3 text-left/);
@@ -789,16 +901,28 @@ test("modal headers keep bottom breathing room", () => {
 });
 
 test("sidebar footer fades into the help and account chrome", () => {
-  assert.match(appSidebar, /<SidebarFooter className="relative isolate space-y-2">/);
+  assert.match(
+    appSidebar,
+    /<SidebarFooter className="relative isolate space-y-2 px-3[^"]*">/,
+  );
   assert.match(
     appSidebar,
     /aria-hidden="true"[\s\S]*-top-10 z-10 h-10 bg-gradient-to-b from-transparent via-sidebar\/75 to-sidebar backdrop-blur-md/,
   );
+  assert.match(appSidebar, /<Popover>/);
+  assert.match(appSidebar, /<HelpCircle[\s\S]*aria-hidden="true"/);
+  assert.match(appSidebar, /aria-label="Buka panduan"/);
+  assert.match(appSidebar, /utilityLinks\.map/);
+  assert.doesNotMatch(appSidebar, /border-shadow bg-white p-3 text-left/);
 });
 
-test("sidebar navigation uses medium weight while supporting chrome stays normal", () => {
-  assert.match(sidebarPrimitive, /text-xs font-medium uppercase tracking-\[0\.6px\]/);
-  assert.match(sidebarPrimitive, /text-sm font-medium text-sidebar-muted-foreground/);
+test("sidebar navigation uses normal inactive weight and medium active weight", () => {
+  assert.match(
+    sidebarPrimitive,
+    /text-\[11px\] font-medium uppercase tracking-normal/,
+  );
+  assert.doesNotMatch(sidebarPrimitive, /tracking-\[0\.6px\]/);
+  assert.match(sidebarPrimitive, /text-sm font-normal text-secondary-foreground/);
   assert.match(sidebarPrimitive, /data-active:font-medium/);
   assert.match(sidebarPrimitive, /text-xs font-normal text-sidebar-foreground/);
   assert.doesNotMatch(sidebarPrimitive, /data-active:font-normal/);

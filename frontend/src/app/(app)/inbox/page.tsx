@@ -31,13 +31,6 @@ import {
   PageStack,
 } from "@/components/shared/design-system";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
@@ -210,14 +203,6 @@ export default function InboxPage() {
     }
     return "all";
   });
-  const [typeFilter, setTypeFilter] = useState<
-    "all" | "risk" | "working_paper"
-  >(() => {
-    const value = searchParams.get("type");
-    return value === "risk" || value === "working_paper"
-      ? value
-      : "all";
-  });
   const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
   const [requests, setRequests] = useState<InboxItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -273,7 +258,6 @@ export default function InboxPage() {
 
   useEffect(() => {
     const queryStatus = searchParams.get("status");
-    const queryType = searchParams.get("type");
     const querySearch = searchParams.get("search");
     const nextPage = parsePositiveInt(searchParams.get("page"), 1);
     const nextLimit = parsePositiveInt(searchParams.get("limit"), 10);
@@ -293,11 +277,6 @@ export default function InboxPage() {
     } else {
       setFilter("all");
     }
-    setTypeFilter(
-      queryType === "risk" || queryType === "working_paper"
-        ? queryType
-        : "all",
-    );
     setSearch(querySearch ?? "");
     setPage((current) => (current === nextPage ? current : nextPage));
     setLimit((current) => (current === nextLimit ? current : nextLimit));
@@ -356,17 +335,12 @@ export default function InboxPage() {
 
   useEffect(() => {
     const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete("type");
 
     if (filter === "all") {
       nextParams.delete("status");
     } else {
       nextParams.set("status", filter);
-    }
-
-    if (typeFilter === "all") {
-      nextParams.delete("type");
-    } else {
-      nextParams.set("type", typeFilter);
     }
 
     const normalizedSearch = search.trim();
@@ -402,7 +376,6 @@ export default function InboxPage() {
     });
   }, [
     filter,
-    typeFilter,
     search,
     page,
     limit,
@@ -483,9 +456,6 @@ export default function InboxPage() {
         if ((item as ApprovalRequest).currentStatus !== filter) return false;
       }
 
-      // Filter by type
-      if (typeFilter !== "all" && item.requestType !== typeFilter) return false;
-
       // Filter by search
       const keyword = search.trim().toLowerCase();
       if (!keyword) return true;
@@ -513,7 +483,7 @@ export default function InboxPage() {
         .filter(Boolean)
         .some((value) => value!.toLowerCase().includes(keyword));
     });
-  }, [filter, requests, search, typeFilter, currentUserId]);
+  }, [filter, requests, search, currentUserId]);
 
   if (loading) {
     return (
@@ -590,22 +560,6 @@ export default function InboxPage() {
               onChange={(event) => setSearch(event.target.value)}
               aria-label="Cari permintaan persetujuan"
             />
-            <Select
-              value={typeFilter}
-              onValueChange={(value) => {
-                setTypeFilter(value as typeof typeFilter);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="h-9 w-full bg-muted/50 text-sm sm:w-40">
-                <SelectValue placeholder="Jenis Permintaan" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Jenis</SelectItem>
-                <SelectItem value="risk">Risiko</SelectItem>
-                <SelectItem value="working_paper">Kertas Kerja</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         }
       />
@@ -614,7 +568,7 @@ export default function InboxPage() {
         {filteredRequests.length === 0 ? (
           <CollectionEmptyState
             title="Belum ada permintaan persetujuan yang sesuai filter"
-            description="Ubah filter pencarian atau jenis permintaan untuk melihat data lain."
+            description="Ubah filter pencarian untuk melihat data lain."
           />
         ) : (
           <Table className="min-w-[760px] table-fixed">

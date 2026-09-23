@@ -28,7 +28,7 @@ const cardPatternsExample = readFileSync(
 test("collection table uses the shared default border-shadow shell", () => {
   assert.match(
     collectionTableCard,
-    /rounded-lg bg-card p-0/,
+    /rounded-\[12px\] bg-card p-0/,
   );
 });
 
@@ -36,13 +36,13 @@ test("shared table primitive uses the reference ledger geometry", () => {
   assert.match(tablePrimitive, /bg-table-header/);
   assert.match(
     tablePrimitive,
-    /h-\[40\.5px\][\s\S]*!px-6[\s\S]*!py-1\.5[\s\S]*text-\[13px\][\s\S]*capitalize[\s\S]*text-secondary-foreground/,
+    /h-11[\s\S]*!px-5[\s\S]*!py-3[\s\S]*text-\[13px\][\s\S]*capitalize[\s\S]*text-secondary-foreground/,
   );
   assert.doesNotMatch(tablePrimitive, /tracking-\[0\.05em\]/);
   assert.match(tablePrimitive, /\[&_th\]:font-medium/);
   assert.match(tablePrimitive, /\[&_td\]:font-normal/);
   assert.match(tablePrimitive, /\[&_th_\*\]:font-medium/);
-  assert.match(tablePrimitive, /\[&_td_\*\]:font-normal/);
+  assert.doesNotMatch(tablePrimitive, /\[&_td_\*\]:font-normal/);
   assert.match(tablePrimitive, /\[&_th\]:text-\[13px\]/);
   assert.match(tablePrimitive, /\[&_th_\*\]:text-\[13px\]/);
   assert.match(collectionTableHead, /text-\[13px\] font-medium/);
@@ -53,10 +53,11 @@ test("shared table primitive uses the reference ledger geometry", () => {
   assert.match(tablePrimitive, /\[&_th\]:text-secondary-foreground/);
   assert.match(tablePrimitive, /\[&_td\]:text-muted-foreground/);
   assert.match(collectionTableHead, /text-secondary-foreground/);
-  assert.match(tablePrimitive, /!px-6 !py-4/);
-  assert.match(tablePrimitive, /\[&_tr\]:border-border\/60/);
-  assert.match(tablePrimitive, /border-b border-border\/60/);
-  assert.match(tablePrimitive, /h-\[72px\][\s\S]*border-b/);
+  assert.match(tablePrimitive, /!px-5 !py-3/);
+  assert.match(tablePrimitive, /\[&_tr\]:border-border\/50/);
+  assert.match(tablePrimitive, /border-border\/50/);
+  assert.match(tablePrimitive, /h-\[68px\][\s\S]*border-0/);
+  assert.match(tablePrimitive, /hover:\[&>td\]:bg-muted\/30/);
 });
 
 test("table body keeps an internal divider and omits the trailing divider", () => {

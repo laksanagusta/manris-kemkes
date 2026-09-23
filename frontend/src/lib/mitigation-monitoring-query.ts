@@ -37,3 +37,12 @@ export function buildMitigationMonitoringQueryString(
 
   return params.toString();
 }
+
+export function buildMitigationMonitoringApiQueryString(
+  state: MitigationMonitoringQueryState,
+) {
+  const params = new URLSearchParams(buildMitigationMonitoringQueryString(state));
+  params.set("page", String(state.page));
+  params.set("limit", String(state.limit));
+  return params.toString();
+}

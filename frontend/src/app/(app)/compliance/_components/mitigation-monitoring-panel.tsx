@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useReducedMotion } from "motion/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import {
   CollectionDialogCancel,
@@ -49,6 +50,7 @@ import {
   Target,
   ExternalLink,
   UserRound,
+  Upload,
 } from "@/components/ui/icons";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
@@ -61,6 +63,7 @@ import {
 import { validateMitigationReportForm } from "@/lib/validation/reporting";
 import { getMitigationSubmissionActionState } from "@/lib/mitigation-reporting";
 import {
+  buildMitigationMonitoringApiQueryString,
   buildMitigationMonitoringQueryString,
   parseMitigationMonitoringQueryState,
 } from "@/lib/mitigation-monitoring-query";
@@ -227,7 +230,7 @@ export function MitigationMonitoringPanel() {
 
     setLoading(true);
     try {
-      const query = buildMitigationMonitoringQueryString({
+      const query = buildMitigationMonitoringApiQueryString({
         search: queryState.search,
         page,
         limit,
@@ -427,7 +430,7 @@ export function MitigationMonitoringPanel() {
       <MetricGrid>
         <KpiCard
           label="Total Penanganan"
-          value={mitigations.length}
+          value={total}
           tone="white"
         />
         <KpiCard
@@ -450,12 +453,18 @@ export function MitigationMonitoringPanel() {
       <div className="space-y-4">
         <div className="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center md:ml-auto">
           <CollectionSearchField
-            containerClassName="w-full sm:w-80 sm:flex-none"
+            containerClassName="w-full sm:w-80 sm:flex-none xl:w-[calc((100%_-_3rem)/4)]"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Cari mitigasi..."
             aria-label="Cari mitigasi"
           />
+          <ActionButton asChild variant="outline" className="border-0 border-shadow sm:ml-auto">
+            <Link href="/compliance/penanganan/impor">
+              <Upload className="size-3.5" />
+              Import
+            </Link>
+          </ActionButton>
         </div>
 
         {loading ? (
@@ -511,9 +520,9 @@ export function MitigationMonitoringPanel() {
                       <button
                         type="button"
                         onClick={() => handleOpenDetail(item)}
-                        className="block min-w-0 text-left text-sm font-semibold leading-5 text-foreground transition-colors hover:text-primary"
+                        className="block min-w-0 text-left text-sm font-medium leading-5 text-foreground transition-colors hover:text-primary"
                       >
-                        <span className="line-clamp-2 font-semibold">
+                        <span className="line-clamp-2 font-medium">
                           {item.mitigationAction}
                         </span>
                       </button>

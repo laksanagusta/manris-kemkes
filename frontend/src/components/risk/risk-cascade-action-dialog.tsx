@@ -80,7 +80,6 @@ const cascadeTypeLabels: Record<RiskCascadeType, string> = {
 };
 
 const createCascadeOptions = [
-  { value: "mandatory_top_down", label: "Top-down" },
   { value: "bottom_up_escalation", label: "Bottom-up" },
 ] as const;
 
@@ -186,7 +185,7 @@ function CascadeRiskSelect({
           <Search className="mr-2 size-4 shrink-0 opacity-50" />
           <SearchInput
             type="search"
-            className="h-10 rounded-none border-0 bg-transparent px-0 py-3 shadow-none"
+            className="h-10 rounded-none border-0 bg-transparent px-0 py-3 !shadow-none"
             placeholder="Cari kode atau judul risiko..."
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -312,7 +311,7 @@ function CascadeOrgSelect({
           <Search className="mr-2 size-4 shrink-0 opacity-50" />
           <SearchInput
             type="search"
-            className="h-10 rounded-none border-0 bg-transparent px-0 py-3 shadow-none"
+            className="h-10 rounded-none border-0 bg-transparent px-0 py-3 !shadow-none"
             placeholder="Cari organisasi..."
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -359,7 +358,7 @@ export function RiskCascadeActionDialog({
   mode,
   cascade,
   initialSourceRiskId = "",
-  initialCascadeType = "mandatory_top_down",
+  initialCascadeType = "bottom_up_escalation",
   title,
   description,
   onSaved,

@@ -268,12 +268,6 @@ function ikuFinding(
   };
 }
 
-function mitigationSeverity(item: MitigationTaskReportSuggestion): Finding["severity"] {
-  if (item.blocker?.trim()) return "high";
-  if (item.progressPct < 100) return "medium";
-  return "low";
-}
-
 function mitigationFinding(
   document: UploadedDocument,
   item: MitigationTaskReportSuggestion,
@@ -288,18 +282,18 @@ function mitigationFinding(
 
   return {
     id: "api-finding-mitigation-" + slug(item.clientKey, "task-" + (index + 1)),
+    kind: "mitigation-report",
+    taskId: item.taskId,
     title,
     summary:
       item.reportNotes.trim() ||
-      item.blocker?.trim() ||
       item.reasoning.trim() ||
       "Hasil realisasi mitigasi teridentifikasi dari dokumen.",
-    severity: mitigationSeverity(item),
+    severity: "low",
     category: "Realisasi mitigasi",
     source: sourceFor(document, item.sourceRefs[0]),
     confidence: normalizeConfidence(item.confidence),
     recommendedAction:
-      item.blocker?.trim() ||
       item.mitigationAction.trim() ||
       "Tinjau status dan bukti pelaksanaan mitigasi.",
     groupId,

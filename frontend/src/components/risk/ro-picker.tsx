@@ -171,7 +171,7 @@ export function ROPicker({
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
-          className="group/ro-picker h-10 w-full justify-between overflow-hidden rounded-lg border-input bg-card px-2.5 text-sm font-normal shadow-none transition-[background-color,border-color] active:translate-y-0 active:scale-100 aria-expanded:bg-card aria-expanded:text-foreground hover:border-foreground/15 disabled:hover:border-input focus:border-input focus-visible:border-input focus:ring-0 focus-visible:ring-0"
+          className="group/ro-picker h-10 w-full justify-between overflow-hidden rounded-lg border-0 border-shadow bg-card px-2.5 text-sm font-normal transition-[background-color,box-shadow] active:translate-y-0 active:scale-100 aria-expanded:bg-card aria-expanded:text-foreground hover:bg-muted/20 focus-visible:ring-2 focus-visible:ring-ring/30"
         >
           {selected ? (
             <span className="min-w-0 flex-1 truncate text-left">
@@ -217,7 +217,7 @@ export function ROPicker({
           <Search className="mr-2 size-4 shrink-0 opacity-50" />
           <SearchInput
             type="search"
-            className="h-10 rounded-none border-0 bg-transparent px-0 py-3 shadow-none"
+            className="h-10 rounded-none border-0 bg-transparent px-0 py-3 !shadow-none"
             disabled={disabled}
             placeholder="Cari RO, kegiatan, program, IKU, atau sasaran..."
             value={query}

@@ -16,7 +16,7 @@ function CollapsibleCardRoot({
   ...props
 }: ComponentProps<typeof Collapsible>) {
   return (
-    <Card className={cn("overflow-hidden rounded-lg bg-card p-0", className)}>
+    <Card className={cn("overflow-hidden rounded-[12px] bg-card p-0", className)}>
       <Collapsible defaultOpen={defaultOpen} {...props}>
         {children}
       </Collapsible>
@@ -61,7 +61,7 @@ function CollapsibleCardIcon({
   return (
     <span
       className={cn(
-        "inline-flex size-8 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-[0_1px_1px_rgba(0,0,0,0.04)]",
+        "inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-[0_1px_1px_rgba(0,0,0,0.04)]",
         className,
       )}
       {...props}
@@ -69,7 +69,7 @@ function CollapsibleCardIcon({
       <ChevronDown
         aria-hidden="true"
         strokeWidth={2}
-        className="size-4 transition-transform duration-200 ease-out group-data-[state=open]:rotate-180 motion-reduce:transition-none"
+        className="size-5 transition-transform duration-200 ease-out group-data-[state=open]:rotate-180 motion-reduce:transition-none"
       />
     </span>
   );

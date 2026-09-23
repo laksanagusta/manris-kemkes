@@ -23,6 +23,13 @@ const bulkRiskPage = readFileSync(
   new URL("./bulk/page.tsx", import.meta.url),
   "utf8",
 );
+const actionIconButton = readFileSync(
+  new URL(
+    "../../../../components/shared/design-system/actions/action-icon-button.tsx",
+    import.meta.url,
+  ),
+  "utf8",
+);
 const globals = readFileSync(
   new URL("../../../globals.css", import.meta.url),
   "utf8",
@@ -50,6 +57,17 @@ test("risk register table headings share one typography scale", () => {
   assert.equal(tableHeaderSection.match(/<CollectionTableHead(?:\s|>)/g)?.length, 6);
   assert.doesNotMatch(tableHeaderSection, />\s*Kode\s*</);
   assert.match(tableHeaderSection, /Pemantauan/);
+  assert.match(
+    tableHeaderSection,
+    /<CollectionTableHead aria-sort=\{scoreAriaSort\}>/,
+  );
+});
+
+test("risk register titles use medium-weight detail links", () => {
+  assert.match(
+    page,
+    /<Link\s+href=\{`\/risk\/register\/\$\{risk\.id\}`\}\s+className="min-w-0 max-w-full truncate text-sm font-medium leading-5 text-foreground transition-colors hover:text-primary"/,
+  );
 });
 
 test("risk form context card uses the shared default border shadow", () => {
@@ -306,10 +324,18 @@ test("risk register import action shares the card shadow boundary", () => {
   );
 });
 
+test("risk register row actions use the card shadow boundary", () => {
+  assert.match(actionIconButton, /border-0 border-shadow bg-card/);
+  assert.doesNotMatch(
+    actionIconButton,
+    /border border-border\/60 bg-card shadow-none/,
+  );
+});
+
 test("scores and compact badges follow the table density", () => {
   assert.match(
     page,
-    /className="text-sm font-normal tabular-nums text-muted-foreground"/,
+    /className="text-sm font-medium tabular-nums text-foreground"/,
   );
   assert.match(page, /<Badge\s+size="compact"\s+tone=/);
   assert.match(page, /<CollectionTableHead className="sticky right-0/);

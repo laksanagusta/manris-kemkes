@@ -59,7 +59,7 @@ export function CollectionPageHeader({
                       "flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between",
                   )}
                 >
-                  <div className="min-w-0">
+                  <div>
                     <div className="flex items-center gap-2.5">
                       {icon ? (
                         <span className="flex size-7 shrink-0 items-center justify-center text-foreground">

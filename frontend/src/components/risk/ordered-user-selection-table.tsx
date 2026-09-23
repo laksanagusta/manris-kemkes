@@ -137,7 +137,7 @@ function SortableOrderedUserSelectionRow({
         </button>
       </TableCell>
       <TableCell className="w-10">
-        <span className="flex size-5 items-center justify-center rounded-full bg-muted/70 text-[10px] font-semibold text-muted-foreground">
+        <span className="flex size-5 items-center justify-center rounded-full bg-muted/70 text-[10px] font-medium text-muted-foreground">
           {index + 1}
         </span>
       </TableCell>

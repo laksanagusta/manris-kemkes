@@ -290,7 +290,7 @@ function RiskRegisterFiltersSidebar({
                 ]}
                 placeholder="Lifecycle"
                 ariaLabel="Filter lifecycle risiko"
-                triggerClassName="h-9 rounded-lg border border-input bg-card text-sm"
+                triggerClassName="h-9 rounded-lg bg-card text-sm"
               />
             </div>
 
@@ -310,7 +310,7 @@ function RiskRegisterFiltersSidebar({
                 ]}
                 placeholder="Status"
                 ariaLabel="Filter status risiko"
-                triggerClassName="h-9 rounded-lg border border-input bg-card text-sm"
+                triggerClassName="h-9 rounded-lg bg-card text-sm"
               />
             </div>
 
@@ -343,7 +343,7 @@ function RiskRegisterFiltersSidebar({
                 ]}
                 placeholder="Kategori"
                 ariaLabel="Filter kategori risiko"
-                triggerClassName="h-9 rounded-lg border border-input bg-card text-sm"
+                triggerClassName="h-9 rounded-lg bg-card text-sm"
               />
             </div>
           </div>
@@ -941,16 +941,26 @@ export default function RiskRegisterPage() {
             }
             actions={
               <>
-                <ActionButton
-                  asChild
-                  variant="outline"
-                  className="border-0 border-shadow"
-                >
-                  <Link href="/risk/register/bulk">
-                    <Upload className="size-3.5" strokeWidth={2.5} />
-                    Import Risiko
-                  </Link>
-                </ActionButton>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <ActionButton
+                      variant="outline"
+                      className="gap-2 border-0 border-shadow"
+                    >
+                      <Upload className="size-3.5" strokeWidth={2.5} />
+                      Import Risiko
+                      <ChevronDown className="size-3.5" />
+                    </ActionButton>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-56">
+                    <DropdownMenuItem asChild>
+                      <Link href="/risk/register/bulk">Import file/template</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/risk/register/import-sop">Ekstrak risiko dari SOP</Link>
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
                 <AccentButton asChild>
                   <Link href="/risk/register/new">
                     <Plus className="size-3.5" strokeWidth={2.5} />
@@ -961,27 +971,27 @@ export default function RiskRegisterPage() {
             }
         />
         <CollectionTableCard>
-            <Table className="min-w-[1040px] table-fixed">
+            <Table className="min-w-[1120px] table-fixed bg-card">
               <colgroup>
-                <col style={{ width: "55%" }} />
-                <col style={{ width: "14%" }} />
-                <col style={{ width: "7%" }} />
+                <col style={{ width: "42%" }} />
+                <col style={{ width: "15%" }} />
                 <col style={{ width: "8%" }} />
-                <col style={{ width: "10%" }} />
+                <col style={{ width: "11%" }} />
+                <col style={{ width: "18%" }} />
                 <col style={{ width: "6%" }} />
               </colgroup>
-              <CollectionTableHeader density="compact">
+              <CollectionTableHeader>
                 <CollectionTableHeaderRow>
-                  <CollectionTableHead className="px-3">
+                  <CollectionTableHead>
                     Risiko
                   </CollectionTableHead>
-                  <CollectionTableHead className="px-3">
+                  <CollectionTableHead>
                     Kategori
                   </CollectionTableHead>
                   <CollectionTableHead aria-sort={scoreAriaSort}>
                     <button
                       type="button"
-                      className="flex h-9 w-full items-center gap-1 px-0 text-left capitalize outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/30 active:bg-muted/70"
+                      className="flex w-full items-center gap-1 px-0 text-left capitalize outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/30 active:bg-muted/70"
                       aria-label={`Urutkan berdasarkan skor, saat ini ${scoreAriaSort === "ascending" ? "menaik" : scoreAriaSort === "descending" ? "menurun" : "belum diurutkan"}`}
                       onClick={() => {
                         if (sortBy === "nilai") {
@@ -1003,13 +1013,13 @@ export default function RiskRegisterPage() {
                         ))}
                     </button>
                   </CollectionTableHead>
-                  <CollectionTableHead className="px-3">
+                  <CollectionTableHead>
                     Status
                   </CollectionTableHead>
-                  <CollectionTableHead className="min-w-[176px] px-3">
+                  <CollectionTableHead className="min-w-[176px]">
                     Pemantauan
                   </CollectionTableHead>
-                  <CollectionTableHead className="sticky right-0 z-10 w-[6%] bg-table-header px-3 text-center">
+                  <CollectionTableHead className="sticky right-0 z-10 w-[6%] bg-table-header px-5 text-center">
                       Aksi
                   </CollectionTableHead>
                 </CollectionTableHeaderRow>
@@ -1019,7 +1029,7 @@ export default function RiskRegisterPage() {
                   <TableRow>
                   <TableCell
                       colSpan={6}
-                      className="py-8 text-left text-xs text-muted-foreground"
+                      className="!px-5 !py-10 text-left text-xs text-muted-foreground"
                     >
                       Tidak ada risiko yang ditemukan
                     </TableCell>
@@ -1054,18 +1064,14 @@ export default function RiskRegisterPage() {
                     return (
                       <TableRow
                         key={risk.id}
-                        className="h-10 border-b border-border/60 hover:bg-transparent hover:[&>td]:bg-muted/50 [&>td]:transition-[background-color]"
                       >
-                        <TableCell className="px-3 py-2">
-                          <div className="flex min-w-0 flex-col items-start gap-0.5">
-                            <span className="font-mono text-xs text-muted-foreground">
-                              {risk.code || "-"}
-                            </span>
+                        <TableCell>
+                          <div className="flex min-w-0 flex-col items-start gap-1">
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Link
                                   href={`/risk/register/${risk.id}`}
-                                  className="min-w-0 max-w-full truncate text-sm font-normal leading-relaxed text-foreground hover:text-primary"
+                                  className="min-w-0 max-w-full truncate text-sm font-medium leading-5 text-foreground transition-colors hover:text-primary"
                                 >
                                   {risk.title || "-"}
                                 </Link>
@@ -1074,21 +1080,24 @@ export default function RiskRegisterPage() {
                                 {risk.title || "-"}
                               </TooltipContent>
                             </Tooltip>
+                            <span className="font-mono text-[11px] leading-4 text-muted-foreground">
+                              {risk.code || "-"}
+                            </span>
                           </div>
                         </TableCell>
-                        <TableCell className="whitespace-nowrap px-3 py-2 text-muted-foreground">
+                        <TableCell className="whitespace-nowrap text-sm text-secondary-foreground">
                           {riskCategoryLabels[risk.category ?? ""] ||
                             risk.category ||
                             "-"}
                         </TableCell>
-                        <TableCell className="px-3 py-2">
-                          <span className="text-sm font-normal tabular-nums text-muted-foreground">
+                        <TableCell>
+                          <span className="text-sm font-medium tabular-nums text-foreground">
                             {formatMonitoringNilai(
                               risk.nilai ?? risk.inherentScore,
                             )}
                           </span>
                         </TableCell>
-                        <TableCell className="px-3 py-2">
+                        <TableCell>
                           <div className="flex items-center gap-1.5 whitespace-nowrap">
                             <Badge
                               size="compact"
@@ -1103,13 +1112,13 @@ export default function RiskRegisterPage() {
                             </Badge>
                           </div>
                         </TableCell>
-                        <TableCell className="min-w-[176px] px-3 py-2">
+                        <TableCell className="min-w-[176px]">
                           <MonitoringTransactionProgress
                             data={risk.semesterMonitoring}
                             showCount={false}
                           />
                         </TableCell>
-                        <TableCell className="sticky right-0 w-[6%] bg-card px-3 py-2">
+                        <TableCell className="sticky right-0 w-[6%] bg-card px-5 py-3">
                           <div className="flex justify-center">
                             <RiskRowActions
                               risk={risk}

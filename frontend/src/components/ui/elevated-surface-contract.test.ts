@@ -134,11 +134,11 @@ test("all neutral component boundaries inherit the Vercel-strength token", () =>
   assert.doesNotMatch(globalsSource, /\bdark\b/);
   assert.match(
     globalsSource,
-    /\.border-shadow \{\s*box-shadow: var\(--shadow-custom\);\s*\}/s,
+    /\.border-shadow \{[\s\S]*?var\(--tw-ring-offset-shadow, 0 0 #0000\),[\s\S]*?var\(--tw-ring-shadow, 0 0 #0000\),[\s\S]*?var\(--shadow-custom\);[\s\S]*?\}/,
   );
   assert.match(
     globalsSource,
-    /\.surface-hairline \{\s*border: 0;\s*box-shadow: var\(--shadow-custom\);\s*\}/,
+    /\.surface-hairline \{\s*border: 0;\s*border-radius: var\(--radius-surface\);\s*box-shadow: var\(--shadow-custom\);\s*\}/,
   );
   assert.match(
     colorTokensSource,
@@ -266,7 +266,7 @@ test("modal overlays use the shared frosted scrim", () => {
   assert.match(globalsSource, /--background\) 64%/);
 });
 
-test("shared field surfaces use the dedicated field border token", () => {
+test("shared field surfaces use the canonical shadow boundary", () => {
   for (const file of [
     "input.tsx",
     "textarea.tsx",
@@ -275,15 +275,12 @@ test("shared field surfaces use the dedicated field border token", () => {
     "combobox.tsx",
   ]) {
     const source = readFileSync(new URL(`./${file}`, import.meta.url), "utf8");
-    assert.match(source, /border-input/);
+    assert.match(source, /border-shadow/);
+    assert.match(source, /border-0/);
     assert.doesNotMatch(source, /border-border/);
     assert.match(
       source,
-      /(?:focus:border-primary|focus-visible:border-primary|focus-within:border-primary|:focus\]:border-primary|:focus-visible\]:border-primary)/,
-    );
-    assert.match(
-      source,
-      /(?:focus:ring-0|focus-visible:ring-0|focus-within:ring-0|:focus\]:ring-0|:focus-visible\]:ring-0)/,
+      /(?:focus-visible:ring|focus-within:ring|:focus\]:ring|:focus-visible\]:ring)/,
     );
   }
 
@@ -291,14 +288,14 @@ test("shared field surfaces use the dedicated field border token", () => {
     new URL("./select.tsx", import.meta.url),
     "utf8",
   );
-  assert.match(selectSource, /border-input/);
+  assert.match(selectSource, /border-shadow/);
+  assert.match(selectSource, /border-0/);
   assert.doesNotMatch(selectSource, /border-border/);
   assert.doesNotMatch(
     selectSource,
     /(?:focus:border-black|focus-visible:border-black|\bdark\b)/,
   );
-  assert.match(selectSource, /focus:ring-0/);
-  assert.match(selectSource, /focus-visible:ring-0/);
+  assert.match(selectSource, /focus-visible:ring-2/);
 });
 
 test("select and dropdown options expose a visible keyboard focus indicator", () => {
@@ -326,7 +323,7 @@ test("risk form geometry overrides preserve the shared active field state", () =
   assert.doesNotMatch(riskFieldGeometry, /border-color:\s*var\(--input\)/);
   assert.match(
     globalsSource,
-    /\.risk-form-filter-controls \[data-slot="input"\]:focus,[\s\S]*?border-color: var\(--primary\);[\s\S]*?box-shadow: none;/,
+    /\.risk-form-filter-controls \[data-slot="input"\]:focus,[\s\S]*?box-shadow: 0 0 0 2px[\s\S]*?var\(--shadow-custom\);/,
   );
   assert.match(
     globalsSource,
@@ -338,12 +335,12 @@ test("risk form geometry overrides preserve the shared active field state", () =
   );
 });
 
-test("all PopoverContent surfaces use the canonical rounded-lg radius", () => {
+test("all PopoverContent surfaces use the canonical 12px radius", () => {
   const popoverSource = readFileSync(
     new URL("./popover.tsx", import.meta.url),
     "utf8",
   );
-  assert.match(popoverSource, /data-slot="popover-content"[\s\S]*rounded-lg/);
+  assert.match(popoverSource, /data-slot="popover-content"[\s\S]*rounded-\[12px\]/);
   assert.doesNotMatch(popoverSource, /rounded-(?:2xl|3xl)/);
 
   for (const file of listTypeScriptFiles(sourceRoot)) {

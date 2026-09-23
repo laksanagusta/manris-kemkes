@@ -133,7 +133,7 @@ export function WorkingPaperMonitoringTable({
               </TableCell>
               <TableCell className="max-w-0 px-3 py-2">
                 <span
-                  className="block truncate text-sm font-semibold leading-relaxed text-foreground"
+                  className="block truncate text-sm font-medium leading-relaxed text-foreground"
                   title={row.title}
                 >
                   {row.title}

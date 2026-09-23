@@ -83,7 +83,7 @@ export function ImpactCriteriaTooltip({
         <TooltipContent
           side="top"
           align="start"
-          className="w-[min(92vw,44rem)] max-w-[44rem] rounded-lg bg-background p-0 text-foreground"
+          className="w-[min(92vw,44rem)] max-w-[44rem] rounded-[12px] bg-background p-0 text-foreground"
         >
           <div className="max-h-[70vh] overflow-auto">
             <div className="border-b border-border/60 px-4 py-3">
@@ -105,10 +105,10 @@ export function ImpactCriteriaTooltip({
               <Table className="w-full border-collapse text-left text-xs">
                 <TableHeader className="bg-table-header text-[13px] capitalize text-secondary-foreground">
                   <TableRow className="h-auto">
-                    <TableHead className="w-10 border-b border-r border-border/60 px-6 py-1.5 font-semibold">
+                    <TableHead className="w-10 border-b border-r border-border/60 px-6 py-1.5 font-medium">
                       Level
                     </TableHead>
-                    <TableHead className="border-b border-border/60 px-6 py-1.5 font-semibold">
+                    <TableHead className="border-b border-border/60 px-6 py-1.5 font-medium">
                       Kriteria &amp; Deskripsi
                     </TableHead>
                   </TableRow>
@@ -116,7 +116,7 @@ export function ImpactCriteriaTooltip({
                 <TableBody>
                   {criteria.map((c) => (
                     <TableRow key={c.id} className="h-auto border-t-0 align-top">
-                      <TableCell className="border-b border-r border-border/60 px-3 py-3 text-center font-bold">
+                      <TableCell className="border-b border-r border-border/60 px-3 py-3 text-center font-medium">
                         {c.impactLevel}
                       </TableCell>
                       <TableCell className="border-b border-border/60 px-3 py-3">

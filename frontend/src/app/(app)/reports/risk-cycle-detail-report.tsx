@@ -377,7 +377,7 @@ export function RiskCycleDetailReport({
   const requiresScopeSelection =
     requiresOrganizationSelection && !organizationGroupId && !orgFilter;
   const compactSelectTriggerClass =
-    "h-10 border border-input bg-background/80 text-xs shadow-none";
+    "h-10 border-0 border-shadow bg-background/80 text-xs";
 
   useEffect(() => {
     if (controlledFromCycle) setFromCycle(controlledFromCycle);

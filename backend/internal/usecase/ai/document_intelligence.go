@@ -357,8 +357,6 @@ func normalizeDocumentIntelligenceResult(result *entity.DocumentIntelligenceResu
 			match := &result.Mitigation.TaskMatches[i]
 			match.ClientKey = sanitizeDocumentClientKey(match.ClientKey, match.TaskID)
 			match.Confidence = clampConfidence(match.Confidence)
-			match.ProgressPct = clampProgress(match.ProgressPct)
-			match.SuggestedStatus = normalizeDocumentMitigationStatus(match.SuggestedStatus)
 			match.SourceRefs = normalizeSourceRefs(match.SourceRefs)
 		}
 	}
@@ -421,15 +419,6 @@ func normalizeDocumentTreatmentOption(value string) string {
 	}
 }
 
-func normalizeDocumentMitigationStatus(value string) string {
-	switch strings.TrimSpace(strings.ToLower(value)) {
-	case "done", "on_track", "blocked", "pending":
-		return strings.TrimSpace(strings.ToLower(value))
-	default:
-		return "pending"
-	}
-}
-
 func normalizeSourceRefs(refs []entity.DocumentSourceRef) []entity.DocumentSourceRef {
 	result := make([]entity.DocumentSourceRef, 0, len(refs))
 	for _, ref := range refs {
@@ -466,16 +455,6 @@ func clampRiskScore(value int) int {
 	}
 	if value > 5 {
 		return 5
-	}
-	return value
-}
-
-func clampProgress(value int) int {
-	if value < 0 {
-		return 0
-	}
-	if value > 100 {
-		return 100
 	}
 	return value
 }

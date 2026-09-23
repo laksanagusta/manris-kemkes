@@ -17,6 +17,13 @@ const collectionHeaderSource = readFileSync(
   ),
   "utf8",
 );
+const pageHeaderActionsPortalSource = readFileSync(
+  new URL(
+    "./shared/design-system/layout/page-header-actions-portal.tsx",
+    import.meta.url,
+  ),
+  "utf8",
+);
 const appTopbarSource = readFileSync(
   new URL("./app-topbar.tsx", import.meta.url),
   "utf8",
@@ -36,7 +43,7 @@ const rootLayoutSource = readFileSync(
 
 test("uses the compact 56px global topbar geometry", () => {
   assert.match(appTopbarSource, /className="fixed[\s\S]*flex h-14 w-full/);
-  assert.match(appShellSource, /className="relative flex min-h-svh w-full flex-col bg-background pt-14"/);
+  assert.match(appShellSource, /className="relative flex min-h-svh w-full flex-col bg-white pt-14"/);
   assert.match(appSidebarSource, /md:top-14 md:h-\[calc\(100svh-3\.5rem\)\]/);
   assert.doesNotMatch(appTopbarSource, /AI Tools/);
   assert.doesNotMatch(appTopbarSource, /Semua Modul/);
@@ -57,8 +64,12 @@ test("uses the compact 56px global topbar geometry", () => {
 test("keeps the application canvas painted through viewport overscroll", () => {
   assert.match(rootLayoutSource, /<body className="bg-background antialiased">/);
   assert.match(
+    rootLayoutSource,
+    /className=\{`\$\{inter\.variable\} border-shadow`\}/,
+  );
+  assert.match(
     appShellSource,
-    /className="relative flex min-h-svh w-full flex-col bg-background pt-14"/,
+    /className="relative flex min-h-svh w-full flex-col bg-white pt-14"/,
   );
 });
 
@@ -124,6 +135,14 @@ test("keeps the canonical header title at the shared page-title scale", () => {
   assert.match(collectionHeaderSource, /subtitle\?: ReactNode/);
 });
 
+test("keeps the title content free of a redundant min-width wrapper", () => {
+  assert.doesNotMatch(
+    collectionHeaderSource,
+    /<div className="min-w-0">\s*<div className="flex items-center gap-2\.5">/,
+  );
+  assert.match(collectionHeaderSource, /"min-w-0"/);
+});
+
 test("centers title-row actions against the title and subtitle block", () => {
   assert.match(
     collectionHeaderSource,
@@ -137,6 +156,13 @@ test("allows form and detail actions to use the global title-row slot", () => {
   assert.match(collectionHeaderSource, /actionsPlacement\?: "header" \| "title" \| "top"/);
   assert.match(collectionHeaderSource, /actionsInTopSlot/);
   assert.match(collectionHeaderSource, /<PageHeaderActionsPortal>\{actions\}<\/PageHeaderActionsPortal>/);
+});
+
+test("right-aligns action groups in the local top slot", () => {
+  assert.match(
+    pageHeaderActionsPortalSource,
+    /className="flex flex-wrap items-center justify-end gap-2"/,
+  );
 });
 
 test("does not render a back-action slot in the shared shell", () => {
@@ -156,15 +182,29 @@ test("defines page-title as 24px semibold", () => {
   );
 });
 
-test("uses the topbar as a compact context alongside the visible page header", () => {
+test("uses the topbar as compact context without a duplicated global page header", () => {
   assert.match(
     appTopbarSource,
-    /<h1 className="truncate text-center text-sm font-medium text-foreground">/,
+    /<AppBreadcrumbs \/>/,
   );
-  assert.match(source, /showTitle/);
+  assert.doesNotMatch(appShellSource, /<AppHeader/);
+  assert.doesNotMatch(appShellSource, /HeaderActionsProvider/);
   assert.match(collectionHeaderSource, /showTitle = false/);
   assert.match(
     collectionHeaderSource,
     /const hasHeaderContent = hasLeftContent \|\| Boolean\(actions && !actionsInTopSlot\);/,
   );
+});
+
+test("keeps route-local header actions visible without a global header slot", () => {
+  const portalSource = readFileSync(
+    new URL(
+      "./shared/design-system/layout/page-header-actions-portal.tsx",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+
+  assert.match(portalSource, /flex flex-wrap items-center justify-end gap-2/);
+  assert.doesNotMatch(portalSource, /createPortal|document\.getElementById/);
 });

@@ -27,7 +27,7 @@ export function DirtyActionBar({
         className,
       )}
     >
-      <div className="pointer-events-auto mx-auto flex w-full max-w-7xl items-center justify-between gap-4 rounded-lg bg-card px-4 py-3 smooth-shadow-ring-lg shadow-black smooth-ring-neutral-300/30">
+      <div className="pointer-events-auto mx-auto flex w-full max-w-7xl items-center justify-between gap-4 rounded-[12px] bg-card px-4 py-3 smooth-shadow-ring-lg shadow-black smooth-ring-neutral-300/30">
         <div className="min-w-0 text-sm text-muted-foreground">{status}</div>
         <div className="flex shrink-0 items-center gap-2">{actions}</div>
       </div>

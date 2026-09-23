@@ -14,7 +14,7 @@ export function CollectionErrorState({
   onReload?: () => void;
 }) {
   return (
-    <div className="rounded-lg bg-state-surface px-4 py-4 text-sm text-state-foreground">
+    <div className="rounded-[12px] bg-state-surface px-4 py-4 text-sm text-state-foreground">
       <div className="flex items-start gap-3">
         <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
         <div className="space-y-1">

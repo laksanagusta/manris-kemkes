@@ -217,7 +217,7 @@ export default function RegisterScreen() {
                     value={name}
                     onChange={(event) => setName(event.target.value)}
                     placeholder="Contoh: Dr. Andi Pratama, M.Kes"
-                    className="h-10 border-input bg-muted/30"
+                    className="h-10 border border-input bg-muted/30 !shadow-none hover:border-foreground/15 focus:border-primary focus-visible:border-primary focus:ring-0 focus-visible:ring-0"
                     required
                   />
                 </div>
@@ -234,7 +234,7 @@ export default function RegisterScreen() {
                     value={email}
                     onChange={(event) => setEmail(event.target.value)}
                     placeholder="nama@kemenkes.go.id"
-                    className="h-10 border-input bg-muted/30"
+                    className="h-10 border border-input bg-muted/30 !shadow-none hover:border-foreground/15 focus:border-primary focus-visible:border-primary focus:ring-0 focus-visible:ring-0"
                     required
                   />
                 </div>
@@ -274,7 +274,7 @@ export default function RegisterScreen() {
                         <Search className="mr-2 size-4 shrink-0 text-muted-foreground/70" />
                         <SearchInput
                           type="search"
-                          className="h-10 rounded-none border-0 bg-transparent px-0 py-3 shadow-none"
+                          className="h-10 rounded-none border-0 bg-transparent px-0 py-3 !shadow-none"
                           placeholder="Cari nama unit kerja..."
                           value={organizationQuery}
                           onChange={(event) =>
@@ -327,7 +327,7 @@ export default function RegisterScreen() {
                     value={nip}
                     onChange={(event) => setNip(event.target.value)}
                     placeholder="Nomor induk pegawai"
-                    className="h-10 border-input bg-muted/30"
+                    className="h-10 border border-input bg-muted/30 !shadow-none hover:border-foreground/15 focus:border-primary focus-visible:border-primary focus:ring-0 focus-visible:ring-0"
                     required
                   />
                 </div>
@@ -343,7 +343,7 @@ export default function RegisterScreen() {
                     value={jabatan}
                     onChange={(event) => setJabatan(event.target.value)}
                     placeholder="Jabatan"
-                    className="h-10 border-input bg-muted/30"
+                    className="h-10 border border-input bg-muted/30 !shadow-none hover:border-foreground/15 focus:border-primary focus-visible:border-primary focus:ring-0 focus-visible:ring-0"
                   />
                 </div>
                 <div className="space-y-2">
@@ -355,7 +355,7 @@ export default function RegisterScreen() {
                     value={pangkat}
                     onChange={(event) => setPangkat(event.target.value)}
                     placeholder="Pangkat"
-                    className="h-10 border-input bg-muted/30"
+                    className="h-10 border border-input bg-muted/30 !shadow-none hover:border-foreground/15 focus:border-primary focus-visible:border-primary focus:ring-0 focus-visible:ring-0"
                   />
                 </div>
               </div>
@@ -372,7 +372,7 @@ export default function RegisterScreen() {
                       value={password}
                       onChange={(event) => setPassword(event.target.value)}
                       placeholder="Buat password sendiri"
-                      className="h-10 border-input bg-muted/30 pr-10"
+                      className="h-10 border border-input bg-muted/30 pr-10 !shadow-none hover:border-foreground/15 focus:border-primary focus-visible:border-primary focus:ring-0 focus-visible:ring-0"
                       required
                     />
                     <button
@@ -404,7 +404,7 @@ export default function RegisterScreen() {
                         setConfirmPassword(event.target.value)
                       }
                       placeholder="Ulangi password"
-                      className="h-10 border-input bg-muted/30 pr-10"
+                      className="h-10 border border-input bg-muted/30 pr-10 !shadow-none hover:border-foreground/15 focus:border-primary focus-visible:border-primary focus:ring-0 focus-visible:ring-0"
                       required
                     />
                     <button

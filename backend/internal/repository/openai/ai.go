@@ -1092,11 +1092,7 @@ Kembalikan HANYA JSON valid dengan struktur:
       "riskTitle": "Judul risiko",
       "mitigationAction": "Aksi mitigasi",
       "periodLabel": "2026-H1",
-      "suggestedStatus": "done|on_track|blocked|pending",
-      "progressPct": 100,
-      "actualCost": 0,
       "reportNotes": "Ringkasan pelaporan yang bisa dipakai",
-      "blocker": "",
       "reasoning": "Alasan pencocokan dokumen dengan task",
       "confidence": 0,
       "sourceRefs": [
@@ -1109,7 +1105,7 @@ Kembalikan HANYA JSON valid dengan struktur:
 Aturan tambahan:
 - Hanya gunakan taskId dari daftar task open yang diberikan.
 - Jangan isi evidenceUrl.
-- Jika belum cukup bukti, gunakan suggestedStatus = "pending".
+- Setiap task yang cocok diperlakukan sebagai laporan yang siap ditinjau dan dikirim sebagai selesai oleh pengguna.
 
 %s`, req.Filename, req.Period, req.OpenTasksJSON, req.DocumentText, baseInstructions)
 	default:

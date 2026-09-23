@@ -41,7 +41,7 @@ export function DocumentListSection({
       <div className="flex items-center justify-between gap-4">
         <h2
           id={labelId}
-          className="text-sm font-semibold leading-5 text-foreground"
+          className="text-sm font-semibold leading-5 text-muted-foreground"
         >
           {title}
         </h2>
@@ -60,7 +60,7 @@ export function DocumentListSection({
         ) : null}
       </div>
       <ListGroup
-        className="surface-hairline rounded-lg bg-card px-4 py-1.5"
+        className="surface-hairline rounded-[12px] bg-card px-4 py-1.5"
         role="region"
         aria-labelledby={labelId}
       >

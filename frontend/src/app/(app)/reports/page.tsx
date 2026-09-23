@@ -6,11 +6,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { ReportScopePicker } from "@/components/report/report-scope-picker";
@@ -90,7 +85,7 @@ import type {
 } from "@/types/risk";
 import { currentAssessmentCycle, shiftAssessmentCycle } from "@/lib/risk-cycle-options";
 import {
-  CollectionFilterTrigger,
+  CollectionFilterPopover,
   CollectionPageHeader,
   CollectionToolbar,
 } from "@/components/shared/design-system";
@@ -566,77 +561,81 @@ export default function ReportsPage() {
 
       <CollectionToolbar
         leading={
-          <Popover open={reportFilterOpen} onOpenChange={handleReportFilterOpenChange}>
-            <PopoverTrigger asChild>
-              <CollectionFilterTrigger
-                aria-label="Buka filter laporan"
-                title="Filter laporan"
-                disabled={reportOrganizations.length === 0 && reportOrganizationGroups.length === 0}>
-              </CollectionFilterTrigger>
-            </PopoverTrigger>
-            <PopoverContent
-              side="right"
-              align="start"
-              sideOffset={8}
-              className="w-[22rem] rounded-lg p-4"
-            >
-              <div className="flex flex-col gap-4">
-                <div>
-                  <h4 className="text-sm font-medium">Filter Laporan</h4>
-                  <p className="mt-1 text-xs text-secondary-foreground">
-                    Atur group dan unit. Perubahan baru diterapkan setelah menekan Terapkan.
-                  </p>
-                </div>
-                <ReportScopePicker
-                  organizationId={draftReportScope.organizationId}
-                  onOrganizationChange={(organizationId) =>
-                    setDraftReportScope((current) => ({
-                      ...current,
-                      organizationId,
-                    }))
-                  }
-                  selectedOrganizationIds={draftReportScope.organizationIds}
-                  onSelectedOrganizationIdsChange={(organizationIds) =>
-                    setDraftReportScope((current) => ({
-                      ...current,
-                      organizationIds,
-                    }))
-                  }
-                  organizations={reportOrganizations}
-                  organizationGroups={reportOrganizationGroups}
-                  organizationGroupId={draftReportScope.organizationGroupId}
-                  onOrganizationGroupChange={(organizationGroupId) =>
-                    setDraftReportScope((current) => ({
-                      ...current,
-                      organizationGroupId,
-                    }))
-                  }
-                  organizationPlaceholder="Pilih unit"
-                  organizationGroupPlaceholder="Pilih grup"
-                  orientation="vertical"
-                  density="compact"
-                />
-                <div className="flex items-center justify-between pt-4">
-                  <ActionButton type="button" variant="ghost" size="md" onClick={handleResetReportFilter}>
-                    Reset
-                  </ActionButton>
-                  <AccentButton
-                    type="button"
-                    size="md"
-                    onClick={handleApplyReportFilter}
-                  >
-                    Terapkan
-                  </AccentButton>
-                </div>
+          <CollectionFilterPopover
+            open={reportFilterOpen}
+            onOpenChange={handleReportFilterOpenChange}
+            triggerProps={{
+              "aria-label": "Buka filter laporan",
+              title: "Filter laporan",
+              disabled:
+                reportOrganizations.length === 0 &&
+                reportOrganizationGroups.length === 0,
+            }}
+            footer={
+              <div className="flex items-center justify-between gap-3 pt-4">
+                <ActionButton
+                  type="button"
+                  variant="ghost"
+                  size="md"
+                  onClick={handleResetReportFilter}
+                >
+                  Reset
+                </ActionButton>
+                <AccentButton
+                  type="button"
+                  size="md"
+                  onClick={handleApplyReportFilter}
+                >
+                  Terapkan
+                </AccentButton>
               </div>
-            </PopoverContent>
-          </Popover>
+            }
+          >
+            <div>
+              <h4 className="text-sm font-medium text-foreground">
+                Filter Laporan
+              </h4>
+              <p className="mt-1 text-xs text-secondary-foreground">
+                Atur grup dan unit. Perubahan diterapkan setelah menekan
+                Terapkan.
+              </p>
+            </div>
+            <ReportScopePicker
+              organizationId={draftReportScope.organizationId}
+              onOrganizationChange={(organizationId) =>
+                setDraftReportScope((current) => ({
+                  ...current,
+                  organizationId,
+                }))
+              }
+              selectedOrganizationIds={draftReportScope.organizationIds}
+              onSelectedOrganizationIdsChange={(organizationIds) =>
+                setDraftReportScope((current) => ({
+                  ...current,
+                  organizationIds,
+                }))
+              }
+              organizations={reportOrganizations}
+              organizationGroups={reportOrganizationGroups}
+              organizationGroupId={draftReportScope.organizationGroupId}
+              onOrganizationGroupChange={(organizationGroupId) =>
+                setDraftReportScope((current) => ({
+                  ...current,
+                  organizationGroupId,
+                }))
+              }
+              organizationPlaceholder="Pilih unit"
+              organizationGroupPlaceholder="Pilih grup"
+              orientation="vertical"
+              density="compact"
+            />
+          </CollectionFilterPopover>
         }
         actions={
           <>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <ActionButton variant="outline" size="md">
+            <ActionButton variant="outline" size="md" className="gap-2">
               <Download className="size-3.5" strokeWidth={2.5} />
               Export
               <ChevronDown className="size-3.5 text-muted-foreground" />

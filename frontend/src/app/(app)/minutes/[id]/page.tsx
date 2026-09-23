@@ -53,7 +53,7 @@ function BriefingSection({
   className?: string;
 }) {
   return (
-    <section className={`border-t border-border/70 px-6 py-6 md:px-8 ${className ?? ""}`}>
+    <section className={`border-t border-dashed border-border/70 px-6 py-6 md:px-8 ${className ?? ""}`}>
       <h3 className="text-base font-medium tracking-tight text-foreground">{title}</h3>
       <div className="mt-3">{children}</div>
     </section>
@@ -374,7 +374,7 @@ function MeetingMinuteDetailContent() {
                   <div className="rounded-md bg-muted/60 px-3 py-2 text-xs font-medium text-secondary-foreground">
                     {deadline}
                   </div>
-                  <ul className="divide-y divide-border/70">
+                  <ul className="divide-y divide-dashed divide-border/70">
                     {items.map((action, index) => (
                       <li
                         key={`${action.task}-${index}`}
@@ -427,7 +427,7 @@ function MeetingMinuteDetailContent() {
 
         <BriefingSection title="Risiko terkait" className="pb-7">
           {(minutes.linkedRisks?.length ?? 0) > 0 ? (
-            <div className="divide-y divide-border/70">
+            <div className="divide-y divide-dashed divide-border/70">
               {minutes.linkedRisks.map((risk) => (
                 <Link
                   key={risk.id}

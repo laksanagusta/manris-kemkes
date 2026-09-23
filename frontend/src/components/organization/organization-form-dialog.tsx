@@ -277,7 +277,7 @@ export function OrganizationFormDialog({
                   <Search className="mr-2 size-4 shrink-0 opacity-50" />
                   <SearchInput
                     type="search"
-                    className="h-10 rounded-none border-0 bg-transparent px-0 py-3 shadow-none"
+                  className="h-10 rounded-none border-0 bg-transparent px-0 py-3 !shadow-none"
                     placeholder="Cari parent unit..."
                     value={parentQuery}
                     onChange={(event) => setParentQuery(event.target.value)}

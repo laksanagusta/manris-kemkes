@@ -21,9 +21,9 @@ export function SidebarMotionExample() {
   const [activeHref, setActiveHref] = useState<string>(items[0].href);
 
   return (
-    <div className="space-y-4 rounded-lg bg-card p-6 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+    <div className="space-y-4 rounded-[12px] bg-card p-6 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
       <SidebarProvider className="min-h-0 w-full">
-        <div className="w-full max-w-xs rounded-lg border border-sidebar-border bg-sidebar p-2">
+        <div className="w-full max-w-xs rounded-lg border border-sidebar-border bg-sidebar px-3 py-2">
           <LayoutGroup id="design-system-sidebar-motion">
             <SidebarMenu>
               {items.map((item) => (
@@ -44,10 +44,9 @@ export function SidebarMotionExample() {
         </div>
       </SidebarProvider>
       <p className="text-xs text-muted-foreground">
-        Hover untuk scale 1.08 dan translateY -1.5px. Klik memberi press
-        feedback 0.92 lalu spring kembali; icon inactive abu-abu, icon active
-        mengikuti warna font, dan surface netral berpindah dengan layout
-        animation tanpa garis indikator kiri.
+        Ikon tetap statis tanpa transform atau transition khusus. Surface aktif
+        berpindah dengan layout animation tanpa garis indikator kiri; label
+        inactive memakai font normal dan label aktif memakai font medium.
       </p>
     </div>
   );

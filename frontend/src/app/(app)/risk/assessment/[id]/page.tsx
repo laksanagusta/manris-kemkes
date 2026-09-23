@@ -1178,7 +1178,7 @@ export default function AssessmentFormPage() {
         className="risk-form-filter-controls space-y-6"
       >
       {isMonitoringRoute ? (
-        <div className="mx-auto w-full max-w-7xl min-w-0">
+        <div className="w-full min-w-0">
           <CollectionPageHeader
             actionsPlacement="top"
             title={
@@ -1232,7 +1232,7 @@ export default function AssessmentFormPage() {
           }
         />
       )}
-      <div className="mx-auto grid w-full max-w-7xl min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
+      <div className="grid w-full min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
         {/* Left Column */}
         <div className="space-y-6">
           {!isMonitoringRoute ? (

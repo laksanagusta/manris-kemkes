@@ -12,7 +12,7 @@ export function DocumentForm({
   return (
     <div
       className={cn(
-        "overflow-hidden rounded-lg bg-card smooth-shadow-ring-sm shadow-black smooth-ring-neutral-300/30",
+        "overflow-hidden rounded-[12px] bg-card smooth-shadow-ring-sm shadow-black smooth-ring-neutral-300/30",
         className,
       )}
     >
@@ -55,7 +55,7 @@ export function DocumentFormSection({
         <div className="flex items-start justify-between gap-3">
           <h2
             id={titleId}
-            className="text-sm font-semibold leading-5 text-foreground"
+            className="text-sm font-semibold leading-5 text-muted-foreground"
           >
             {title}
           </h2>

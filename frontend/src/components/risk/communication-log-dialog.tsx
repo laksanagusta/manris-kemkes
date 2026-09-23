@@ -69,7 +69,7 @@ export function CommunicationLogDialog({
         },
         token
       );
-      toast.success("Log komunikasi berhasil ditambahkan");
+      toast.success("Catatan komunikasi berhasil ditambahkan");
       onSuccess();
       // Reset form
       setDate(new Date().toISOString().split("T")[0]);
@@ -77,7 +77,7 @@ export function CommunicationLogDialog({
       setStakeholder("");
       setNotes("");
     } catch {
-      toast.error("Gagal menambahkan log komunikasi");
+      toast.error("Gagal menambahkan catatan komunikasi");
     } finally {
       setSubmitting(false);
     }
@@ -101,7 +101,7 @@ export function CommunicationLogDialog({
         <div className="flex min-h-0 flex-col gap-5">
           <DialogHeader>
             <DialogTitle className="text-base">
-              Tambah Log Komunikasi
+              Tambah Catatan Komunikasi
             </DialogTitle>
           </DialogHeader>
 

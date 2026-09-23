@@ -10,14 +10,13 @@ export function CollectionTableHead({
 }: ComponentProps<typeof TableHead> & {
   density?: "default" | "compact";
 }) {
-  // Keep the prop for API compatibility; compact density changes header geometry,
-  // not the shared 13px/500 header typography.
+  // Keep the prop for API compatibility; the enclosing header owns density.
   void density;
 
   return (
     <TableHead
       className={cn(
-        "whitespace-nowrap !px-6 !py-1.5 text-left align-middle text-[13px] font-medium capitalize text-secondary-foreground",
+        "h-11 whitespace-nowrap !px-5 !py-3 text-left align-middle text-[13px] font-medium capitalize text-secondary-foreground",
         className,
       )}
       {...props}

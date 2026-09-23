@@ -12,7 +12,7 @@ export function WarningCard({
   action?: ReactNode;
 }) {
   return (
-    <Card className="gap-0 rounded-lg bg-warning-card-surface p-0 text-warning-card-foreground">
+    <Card className="gap-0 rounded-[12px] bg-warning-card-surface p-0 text-warning-card-foreground">
       <CardContent className="space-y-1 p-4 text-sm text-warning-card-foreground">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">

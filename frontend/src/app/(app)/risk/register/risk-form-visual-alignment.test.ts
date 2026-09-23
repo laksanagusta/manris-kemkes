@@ -32,9 +32,11 @@ for (const [name, source] of [
       /<FormPage[\s\S]{0,180}risk-form-filter-controls space-y-6/,
     );
     if (name === "registration") {
-      assert.match(source, /<CollectionPageHeader/);
-      assert.doesNotMatch(source, /backAction=|FormBackAction/);
-      assert.match(source, /actionsPlacement="title"/);
+      assert.doesNotMatch(source, /<CollectionPageHeader/);
+      assert.match(
+        source,
+        /<FormPage className="risk-form-filter-controls space-y-6">\s*<div className="flex flex-wrap items-center justify-end gap-2">/,
+      );
       assert.doesNotMatch(source, /<FormHeader/);
       assert.match(source, /Simpan draft/);
       assert.match(source, /Finalisasi/);
@@ -77,10 +79,9 @@ for (const [name, source] of [
 test("registration behavior entry points remain intact", () => {
   assert.match(registrationSource, /handleSaveDraft/);
   assert.match(registrationSource, /openSubmitReviewConfirm/);
-  assert.match(registrationSource, /<CollectionPageHeader/);
   assert.match(
     registrationSource,
-    /<FormPage className="risk-form-filter-controls space-y-6 \[&>header\+\*\]:!mt-6">\s*<CollectionPageHeader/,
+    /<FormPage className="risk-form-filter-controls space-y-6">\s*<div className="flex flex-wrap items-center justify-end gap-2">/,
   );
   assert.match(
     registrationSource,
@@ -96,10 +97,61 @@ test("registration behavior entry points remain intact", () => {
   );
 });
 
-test("registration detail header uses the loaded risk code", () => {
-  assert.match(
+test("registration detail omits the duplicate local page header", () => {
+  assert.doesNotMatch(registrationSource, /<CollectionPageHeader/);
+  assert.doesNotMatch(
     registrationSource,
     /title=\{riskId \? riskCode \|\| "Edit Risiko" : "Tambah Risiko"\}/,
+  );
+});
+
+test("registration context panel previews linked risk events", () => {
+  assert.match(registrationSource, /listRiskEvents\(token, id\)/);
+  assert.doesNotMatch(registrationSource, />Catat Kejadian<\/Link>/);
+  assert.match(
+    registrationSource,
+    /<section[\s\S]*aria-labelledby="risk-side-events"/,
+  );
+  assert.match(registrationSource, />\s*Kejadian\s*</);
+  assert.match(
+    registrationSource,
+    /<ActionIconButton[\s\S]*icon=\{<Plus className="size-3\.5" \/>\}[\s\S]*aria-label="Catat kejadian"[\s\S]*onClick=\{handleCreateRiskEvent\}/,
+  );
+  assert.match(
+    registrationSource,
+    /const canCreateRiskEvent = Boolean\(riskId\) && riskStatus === "final";/,
+  );
+  assert.match(
+    registrationSource,
+    /\{canCreateRiskEvent \? \(\s*<ActionIconButton/,
+  );
+  assert.match(
+    registrationSource,
+    /const handleCreateRiskEvent = useCallback\(\(\) => \{\s*if \(canCreateRiskEvent\) setRiskEventDrawerOpen\(true\);/,
+  );
+  assert.match(
+    registrationSource,
+    /\{token && riskId && canCreateRiskEvent \? \(\s*<RiskEventFormDialog/,
+  );
+  assert.match(
+    registrationSource,
+    /Finalisasi risiko sebelum mencatat dan menautkan kejadian\./,
+  );
+  assert.match(
+    registrationSource,
+    /<RiskEventFormDialog[\s\S]*open=\{riskEventDrawerOpen\}[\s\S]*initialRiskId=\{riskId\}[\s\S]*onCreated=\{handleRiskEventCreated\}/,
+  );
+  assert.match(
+    registrationSource,
+    /visibleRiskEvents\.map\(\(event\) =>/,
+  );
+  assert.match(
+    registrationSource,
+    /href=\{`\/risk-events\/\$\{event\.id\}`\}/,
+  );
+  assert.match(
+    registrationSource,
+    /<Link href="\/risk-events">\s*Lihat semua kejadian/,
   );
 });
 
@@ -207,7 +259,7 @@ test("monitoring mitigation status lives in the compact right panel", () => {
 test("monitoring header and right panel use the shared detail geometry", () => {
   assert.match(
     assessmentSource,
-    /<div className="mx-auto w-full max-w-7xl min-w-0">\s*<CollectionPageHeader/,
+    /<div className="w-full min-w-0">\s*<CollectionPageHeader/,
   );
   assert.doesNotMatch(
     assessmentSource,

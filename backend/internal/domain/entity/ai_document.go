@@ -179,11 +179,7 @@ type MitigationTaskReportSuggestion struct {
 	RiskTitle        string              `json:"riskTitle"`
 	MitigationAction string              `json:"mitigationAction"`
 	PeriodLabel      string              `json:"periodLabel"`
-	SuggestedStatus  string              `json:"suggestedStatus"`
-	ProgressPct      int                 `json:"progressPct"`
-	ActualCost       float64             `json:"actualCost"`
 	ReportNotes      string              `json:"reportNotes"`
-	Blocker          string              `json:"blocker,omitempty"`
 	Reasoning        string              `json:"reasoning"`
 	Confidence       int                 `json:"confidence"`
 	SourceRefs       []DocumentSourceRef `json:"sourceRefs"`

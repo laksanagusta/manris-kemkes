@@ -91,7 +91,7 @@ const DrawerContent = React.forwardRef<
         ref={ref}
         {...props}
       >
-        <div className="relative flex h-full w-full grow flex-col overflow-hidden rounded-[16px] bg-card p-5 text-sm text-foreground smooth-shadow-ring-xl shadow-black smooth-ring-neutral-300/30">
+        <div className="relative flex h-full w-full grow flex-col overflow-hidden rounded-[12px] bg-card p-5 text-sm text-foreground smooth-shadow-ring-xl shadow-black smooth-ring-neutral-300/30">
           {children}
           {showCloseButton ? (
             <DrawerPrimitive.Close asChild>

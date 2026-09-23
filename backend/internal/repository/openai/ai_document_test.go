@@ -46,10 +46,10 @@ func TestBuildDocumentIntelligencePromptMitigationIncludesOpenTasks(t *testing.T
 
 	for _, fragment := range []string{
 		`"taskMatches": [`,
-		`"progressPct": 100`,
 		`"reportNotes": "Ringkasan pelaporan yang bisa dipakai"`,
 		`Jangan isi evidenceUrl`,
 		`Hanya gunakan taskId dari daftar task open`,
+		`Setiap task yang cocok diperlakukan sebagai laporan yang siap ditinjau`,
 	} {
 		if !strings.Contains(prompt, fragment) {
 			t.Fatalf("expected prompt to contain %q", fragment)

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
-import { UnitTotalRiskScoreChart } from "./_components/unit-total-risk-score-chart";
+import { RiskCountTrendChart } from "./_components/risk-count-trend-chart";
 import { TopRisksPanel } from "./_components/top-risks-panel";
 import { CurrentRiskHeatmap } from "./_components/current-risk-heatmap";
 import {
@@ -145,12 +145,16 @@ export default function DashboardPage() {
     {
       title: "Total",
       value: totalRisks === undefined ? "—" : String(totalRisks),
+      detail: "risiko terdaftar",
+      trend: "up",
       loading: summaryLoading,
       error: summaryError,
     },
     {
       title: "Prioritas",
       value: highExtreme === undefined ? "—" : String(highExtreme),
+      detail: "risiko tinggi & ekstrem",
+      trend: "up",
       loading: summaryLoading,
       error: summaryError,
     },
@@ -160,16 +164,20 @@ export default function DashboardPage() {
         unreportedMitigations === undefined
           ? "—"
           : String(unreportedMitigations),
+      detail: "tugas tanpa laporan",
+      trend: "down",
       loading: summaryLoading,
       error: summaryError,
     },
     {
       title: "Eksposur",
       value: exposureScore === null ? "—" : String(exposureScore),
+      detail: "skor paparan risiko",
+      trend: "down",
       loading: trendLoading,
       error: trendError,
     },
-  ];
+  ] as const;
 
   return (
     <PageStack className="space-y-5 lg:space-y-6">
@@ -185,7 +193,7 @@ export default function DashboardPage() {
       </section>
 
       <section data-dashboard-section="trend" aria-label="Tren risiko">
-        <UnitTotalRiskScoreChart
+        <RiskCountTrendChart
           risks={trendRisks}
           currentCycle={currentCycle}
           loading={trendLoading}
@@ -197,7 +205,7 @@ export default function DashboardPage() {
       <section
         data-dashboard-section="priorities"
         aria-label="Prioritas dan distribusi risiko"
-        className="grid gap-4 pb-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.65fr)]"
+        className="grid items-start gap-4 pb-4 xl:items-stretch xl:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.65fr)]"
       >
         <TopRisksPanel
           risks={topRisks}

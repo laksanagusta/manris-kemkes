@@ -129,7 +129,7 @@ export function EditableItemsTable({
                     </div>
                   </TableCell>
                   <TableCell className="w-8 px-2 py-2">
-                    <span className="text-[10px] font-semibold text-muted-foreground bg-muted/50 rounded-full w-5 h-5 flex items-center justify-center">
+                    <span className="text-[10px] font-medium text-muted-foreground bg-muted/50 rounded-full w-5 h-5 flex items-center justify-center">
                       {index + 1}
                     </span>
                   </TableCell>

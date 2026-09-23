@@ -10,6 +10,8 @@ const source = readFileSync(
 test("uses the shared briefing detail reading pattern", () => {
   assert.match(source, /<FormPage className="space-y-0">/);
   assert.match(source, /<Card className="gap-0 overflow-hidden p-0">/);
+  assert.match(source, /border-t border-dashed border-border\/70/);
+  assert.match(source, /divide-y divide-dashed divide-border\/70/);
   assert.match(
     source,
     /<dl className="mt-8 grid gap-x-12 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">/,

@@ -89,8 +89,12 @@ export interface SourceReference {
 
 export type FindingSeverity = "critical" | "high" | "medium" | "low";
 
+export type FindingKind = "risk" | "mitigation-report";
+
 export interface Finding {
   id: string;
+  kind?: FindingKind;
+  taskId?: string;
   title: string;
   summary: string;
   severity: FindingSeverity;
@@ -119,6 +123,7 @@ export interface ProcessingJob {
   events: ProcessingEvent[];
   findings: Finding[];
   progress: number;
+  handledFindingIds?: string[];
   error?: string;
 }
 

@@ -26,7 +26,7 @@ const toneStyles: Record<
 > = {
   white: {
     container:
-      "surface-hairline min-h-[100px] rounded-lg bg-card px-5 py-5",
+      "surface-hairline min-h-[100px] rounded-[12px] bg-card px-5 py-5",
     label:
       "text-[13px] leading-4 font-medium tracking-normal text-muted-foreground text-pretty",
     value:
@@ -35,14 +35,14 @@ const toneStyles: Record<
   },
   zinc: {
     container:
-      "surface-hairline min-h-[100px] rounded-lg bg-muted px-5 py-5",
+      "surface-hairline min-h-[100px] rounded-[12px] bg-muted px-5 py-5",
     label: "text-[13px] leading-4 font-medium tracking-normal text-muted-foreground",
     value: "text-[28px] font-semibold tabular-nums text-foreground leading-none",
     valueWrap: "mt-3 flex items-center justify-between gap-3",
   },
   emerald: {
     container:
-      "surface-hairline min-h-[100px] rounded-lg bg-emerald-50/60 px-5 py-5",
+      "surface-hairline min-h-[100px] rounded-[12px] bg-emerald-50/60 px-5 py-5",
     label: "text-[13px] leading-4 font-medium tracking-normal text-emerald-700",
     value:
       "text-[28px] font-semibold tabular-nums text-emerald-900 leading-none",
@@ -50,7 +50,7 @@ const toneStyles: Record<
   },
   rose: {
     container:
-      "surface-hairline min-h-[100px] rounded-lg bg-rose-50/60 px-5 py-5",
+      "surface-hairline min-h-[100px] rounded-[12px] bg-rose-50/60 px-5 py-5",
     label: "text-[13px] leading-4 font-medium tracking-normal text-rose-700",
     value: "text-[28px] font-semibold tabular-nums text-rose-900 leading-none",
     valueWrap: "mt-3 flex items-center justify-between gap-3",

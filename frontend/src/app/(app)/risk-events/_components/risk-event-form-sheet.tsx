@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
 import { toast } from "sonner";
 
 import { createRiskEvent } from "@/lib/api/risk-events";
@@ -9,9 +9,7 @@ import { cn } from "@/lib/utils";
 import type { RiskEvent, RiskEventCondition, RiskEventSeverity } from "@/types/risk-event";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
-  AccentButton, ActionButton, AlertDialog, AlertDialogAction, AlertDialogCancel,
-  AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
-  AlertDialogTitle, CollapsibleCard, CollectionDialogCancel, Drawer, DrawerBody,
+  AccentButton, ActionButton, CollectionDialogCancel, Drawer, DrawerBody,
   DrawerContent, DrawerDescription, DrawerFooter, DrawerHandle, DrawerHeader,
   DrawerTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger,
   SelectValue, Textarea,
@@ -38,7 +36,8 @@ const conditionLabels: Record<RiskEventCondition, string> = {
 const steps = [
   { title: "Fakta utama", description: "Mulai dari apa yang benar-benar terjadi." },
   { title: "Dampak & penanganan", description: "Lengkapi dampak dan kondisi setelah respons awal." },
-  { title: "Konteks & risiko", description: "Hubungkan risiko atau tambahkan konteks bila tersedia." },
+  { title: "Risiko terkait", description: "Pilih risiko yang berkaitan dengan kejadian ini." },
+  { title: "Detail tambahan", description: "Tambahkan konteks yang sudah tersedia sebelum record dikunci." },
   { title: "Periksa", description: "Pastikan ringkasan sudah tepat sebelum record dikunci." },
 ] as const;
 
@@ -46,6 +45,97 @@ function localDateTimeValue() {
   const now = new Date();
   const local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
   return local.toISOString().slice(0, 16);
+}
+
+function RiskEventStepDrawer({
+  open,
+  step,
+  title,
+  description,
+  stepValid,
+  submitting,
+  isLastStep,
+  drawerContentRef,
+  drawerBodyContentRef,
+  onOpenChange,
+  onBack,
+  onCancel,
+  onNext,
+  onConfirm,
+  children,
+}: {
+  open: boolean;
+  step: number;
+  title: string;
+  description: string;
+  stepValid: boolean;
+  submitting: boolean;
+  isLastStep: boolean;
+  drawerContentRef: RefObject<HTMLDivElement | null>;
+  drawerBodyContentRef: RefObject<HTMLDivElement | null>;
+  onOpenChange: (open: boolean) => void;
+  onBack: () => void;
+  onCancel: () => void;
+  onNext: () => void;
+  onConfirm: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <Drawer
+      direction="bottom"
+      open={open}
+      onOpenChange={onOpenChange}
+      handleOnly
+    >
+      <DrawerContent
+        ref={drawerContentRef}
+        dynamicHeight
+        className="bottom-2 left-2 right-2 top-auto mx-auto max-h-[calc(100dvh-1rem)] w-auto max-w-3xl"
+        showCloseButton={false}
+      >
+        <DrawerHandle aria-label="Tarik untuk menutup" />
+        <DrawerHeader className="mx-auto w-full max-w-3xl pb-4 pr-0">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <DrawerTitle>{title}</DrawerTitle>
+              <DrawerDescription>{description}</DrawerDescription>
+            </div>
+          </div>
+        </DrawerHeader>
+        <DrawerBody>
+          <div ref={drawerBodyContentRef} className="mx-auto w-full max-w-3xl">
+            {children}
+          </div>
+        </DrawerBody>
+        <DrawerFooter>
+          <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-2" role="status" aria-label={`Langkah ${step + 1} dari ${steps.length}`}>
+              {steps.map((item, index) => (
+                <span
+                  key={item.title}
+                  className={cn("size-2 rounded-full transition-colors duration-150 ease-(--ease-out) motion-reduce:transition-none", index === step ? "bg-foreground" : "bg-border")}
+                  aria-hidden="true"
+                />
+              ))}
+              <span className="sr-only">Langkah {step + 1} dari {steps.length}</span>
+            </div>
+            <div className="flex w-full gap-2 sm:w-auto">
+              {step > 0 ? (
+                <ActionButton type="button" className="flex-1 sm:flex-none" onClick={onBack}>Kembali</ActionButton>
+              ) : (
+                <CollectionDialogCancel type="button" className="flex-1 sm:flex-none" onClick={onCancel}>Batal</CollectionDialogCancel>
+              )}
+              {isLastStep ? (
+                <AccentButton type="button" className="flex-1 sm:flex-none" icon={<Lock className="size-3.5" />} disabled={!stepValid || submitting} onClick={onConfirm}>Simpan</AccentButton>
+              ) : (
+                <AccentButton type="button" className="flex-1 sm:flex-none" disabled={!stepValid} onClick={onNext}>Lanjut</AccentButton>
+              )}
+            </div>
+          </div>
+        </DrawerFooter>
+      </DrawerContent>
+    </Drawer>
+  );
 }
 
 export function RiskEventFormDialog({
@@ -79,7 +169,6 @@ export function RiskEventFormDialog({
   const [extraordinaryReason, setExtraordinaryReason] = useState("");
   const [ongoingAction, setOngoingAction] = useState("");
   const [step, setStep] = useState(0);
-  const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const drawerContentRef = useRef<HTMLDivElement>(null);
   const drawerBodyContentRef = useRef<HTMLDivElement>(null);
@@ -104,7 +193,7 @@ export function RiskEventFormDialog({
       if (!drawer.isConnected || drawer.classList.contains("vaul-dragging")) return;
 
       const currentHeight = drawer.getBoundingClientRect().height;
-      // Use the rendered height as the starting point so a quick step change
+      // Use the rendered height as the starting point so a quick content change
       // retargets the current transition instead of snapping back to an older
       // target height.
       const previousHeight = currentHeight || drawerHeightRef.current || 0;
@@ -188,6 +277,11 @@ export function RiskEventFormDialog({
     if (!open || !token) return;
     api.get<RiskOption[]>("/risks", token).then(setRisks).catch(() => toast.error("Daftar risiko gagal dimuat."));
   }, [open, token]);
+  useEffect(() => {
+    if (!open) {
+      setStep(0);
+    }
+  }, [open]);
   useEffect(() => { if (initialRiskId) setRiskIds([initialRiskId]); }, [initialRiskId]);
 
   const filteredRisks = useMemo(() => {
@@ -230,197 +324,164 @@ export function RiskEventFormDialog({
         financialLoss: impactTypes.includes("financial") && financialLossState === "known" ? Number(financialLoss) : undefined,
       });
       toast.success("Kejadian tersimpan permanen dalam LED.");
-      setConfirmOpen(false); setStep(0); onOpenChange(false); onCreated(event);
+      setStep(0); onOpenChange(false); onCreated(event);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Kejadian gagal disimpan.");
     } finally { setSubmitting(false); }
   };
 
+  const stepContent = step === 0 ? (
+    <section className="space-y-4" aria-labelledby="risk-event-facts">
+      <h2 id="risk-event-facts" className="sr-only">Fakta utama</h2>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="event-occurred">Waktu kejadian <span className="text-destructive">*</span></Label>
+        <Input id="event-occurred" type="datetime-local" value={occurredAt} onChange={(e) => setOccurredAt(e.target.value)} />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="event-description">Apa yang terjadi? <span className="text-destructive">*</span></Label>
+        <Textarea id="event-description" rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Jelaskan kejadian secara faktual dan ringkas." />
+      </div>
+      <fieldset>
+        <legend className="mb-2 block text-sm">Jenis dampak <span className="text-destructive">*</span></legend>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {impactOptions.map(([value, label]) => (
+            <label key={value} className="flex min-h-10 items-center gap-2 rounded-lg border-0 border-shadow px-3 text-sm">
+              <Checkbox checked={impactTypes.includes(value)} onCheckedChange={() => toggleImpact(value)} />
+              <span>{label}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      {impactTypes.includes("other") ? (
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="event-other-impact">Jenis dampak lainnya <span className="text-destructive">*</span></Label>
+          <Input id="event-other-impact" value={otherImpactType} onChange={(event) => setOtherImpactType(event.target.value)} />
+        </div>
+      ) : null}
+    </section>
+  ) : step === 1 ? (
+    <section className="space-y-4" aria-labelledby="risk-event-response">
+      <h2 id="risk-event-response" className="sr-only">Dampak dan penanganan</h2>
+      {impactTypes.includes("financial") ? (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="flex flex-col gap-2">
+            <Label>Status nilai kerugian <span className="text-destructive">*</span></Label>
+            <Select value={financialLossState} onValueChange={(value) => setFinancialLossState(value as "known" | "unknown")}>
+              <SelectTrigger><SelectValue placeholder="Pilih status" /></SelectTrigger>
+              <SelectContent><SelectItem value="known">Nilai diketahui</SelectItem><SelectItem value="unknown">Belum diketahui</SelectItem></SelectContent>
+            </Select>
+          </div>
+          {financialLossState === "known" ? (
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="event-financial-loss">Nilai kerugian <span className="text-destructive">*</span></Label>
+              <Input id="event-financial-loss" type="number" min="0" inputMode="decimal" value={financialLoss} onChange={(event) => setFinancialLoss(event.target.value)} placeholder="0" />
+            </div>
+          ) : null}
+        </div>
+      ) : null}
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="event-impact">Dampak aktual <span className="text-destructive">*</span></Label>
+        <Textarea id="event-impact" rows={3} value={actualImpact} onChange={(e) => setActualImpact(e.target.value)} placeholder="Tuliskan dampak yang benar-benar terjadi." />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label>Tingkat kejadian <span className="text-destructive">*</span></Label>
+        <Select value={severity} onValueChange={(value) => setSeverity(value as RiskEventSeverity)}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>{Object.entries(severityLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
+        </Select>
+      </div>
+      {severity === "extreme" ? (
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="event-extraordinary">Alasan tingkat ekstrem <span className="text-destructive">*</span></Label>
+          <Textarea id="event-extraordinary" value={extraordinaryReason} onChange={(e) => setExtraordinaryReason(e.target.value)} />
+        </div>
+      ) : null}
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="event-response">Penanganan langsung <span className="text-destructive">*</span></Label>
+        <Textarea id="event-response" rows={3} value={immediateResponse} onChange={(e) => setImmediateResponse(e.target.value)} placeholder="Jika belum ada, tuliskan “Belum ada penanganan”." />
+      </div>
+      <div className="flex flex-col gap-2">
+        <Label>Kondisi setelah penanganan <span className="text-destructive">*</span></Label>
+        <Select value={condition} onValueChange={(value) => setCondition(value as RiskEventCondition)}>
+          <SelectTrigger><SelectValue /></SelectTrigger>
+          <SelectContent>{Object.entries(conditionLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
+        </Select>
+      </div>
+      {["ongoing", "worsening"].includes(condition) ? (
+        <div className="flex flex-col gap-2">
+          <Label htmlFor="event-ongoing">Tindakan yang sedang berjalan <span className="text-destructive">*</span></Label>
+          <Textarea id="event-ongoing" value={ongoingAction} onChange={(e) => setOngoingAction(e.target.value)} />
+        </div>
+      ) : null}
+    </section>
+  ) : step === 2 ? (
+    <section className="space-y-4" aria-labelledby="risk-event-risk">
+      <h2 id="risk-event-risk" className="sr-only">Risiko terkait</h2>
+      <div className="relative">
+        <Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
+        <Input className="pl-9" value={riskQuery} onChange={(e) => setRiskQuery(e.target.value)} placeholder="Cari kode atau nama risiko" />
+      </div>
+      <div className="max-h-52 space-y-1 overflow-y-auto">
+        {filteredRisks.length ? filteredRisks.map((risk) => (
+          <label key={risk.id} className="flex items-start gap-3 rounded-lg px-2 py-2 text-sm hover:bg-muted/40">
+            <Checkbox checked={riskIds.includes(risk.id)} onCheckedChange={() => toggleRisk(risk.id)} />
+            <span><span className="font-mono text-xs">{risk.code || "Tanpa kode"}</span><span className="mt-0.5 block text-secondary-foreground">{risk.title}</span></span>
+          </label>
+        )) : <p className="px-2 py-3 text-sm text-secondary-foreground">Risiko tidak ditemukan.</p>}
+      </div>
+    </section>
+  ) : step === 3 ? (
+    <section className="space-y-4" aria-labelledby="risk-event-details">
+      <h2 id="risk-event-details" className="sr-only">Detail tambahan</h2>
+      <div className="grid gap-4">
+        <div className="flex flex-col gap-2"><Label htmlFor="event-location">Lokasi</Label><Input id="event-location" value={location} onChange={(e) => setLocation(e.target.value)} /></div>
+        <div className="flex flex-col gap-2"><Label htmlFor="event-parties">Pihak terdampak</Label><Input id="event-parties" value={affectedParties} onChange={(e) => setAffectedParties(e.target.value)} /></div>
+        <div className="flex flex-col gap-2"><Label htmlFor="event-cause">Dugaan penyebab</Label><Textarea id="event-cause" value={suspectedCause} onChange={(e) => setSuspectedCause(e.target.value)} /></div>
+        <div className="flex flex-col gap-2"><Label htmlFor="event-duration">Durasi gangguan</Label><Input id="event-duration" value={disruptionDuration} onChange={(e) => setDisruptionDuration(e.target.value)} placeholder="Contoh: 4 jam" /></div>
+        <div className="flex flex-col gap-2"><Label htmlFor="event-evidence">Tautan bukti</Label><Input id="event-evidence" type="url" value={evidenceUrl} onChange={(e) => setEvidenceUrl(e.target.value)} placeholder="https://" /></div>
+      </div>
+    </section>
+  ) : (
+    <section className="space-y-4" aria-labelledby="risk-event-review">
+      <h2 id="risk-event-review" className="sr-only">Periksa kejadian</h2>
+      <div className="rounded-lg bg-card p-4">
+        <dl className="grid gap-4 text-sm sm:grid-cols-2">
+          <div><dt className="text-xs text-muted-foreground">Waktu kejadian</dt><dd className="mt-1 text-foreground">{occurredAt ? new Intl.DateTimeFormat("id-ID", { dateStyle: "long", timeStyle: "short" }).format(new Date(occurredAt)) : "-"}</dd></div>
+          <div><dt className="text-xs text-muted-foreground">Jenis dampak</dt><dd className="mt-1 text-foreground">{impactTypes.map((impact) => impactLabels[impact] || impact).join(", ") || "-"}</dd></div>
+          <div className="sm:col-span-2"><dt className="text-xs text-muted-foreground">Apa yang terjadi</dt><dd className="mt-1 whitespace-pre-wrap text-foreground">{description || "-"}</dd></div>
+          <div><dt className="text-xs text-muted-foreground">Dampak aktual</dt><dd className="mt-1 whitespace-pre-wrap text-foreground">{actualImpact || "-"}</dd></div>
+          <div><dt className="text-xs text-muted-foreground">Tingkat kejadian</dt><dd className="mt-1 text-foreground">{severityLabels[severity]}</dd></div>
+          <div><dt className="text-xs text-muted-foreground">Kondisi</dt><dd className="mt-1 text-foreground">{conditionLabels[condition]}</dd></div>
+          <div><dt className="text-xs text-muted-foreground">Risiko terkait</dt><dd className="mt-1 text-foreground">{selectedRisks.length ? selectedRisks.map((risk) => risk.code || risk.title).join(", ") : "Belum dipetakan"}</dd></div>
+        </dl>
+      </div>
+    </section>
+  );
+
   return (
     <>
-      <Drawer
-        direction="bottom"
-        open={open}
-        onOpenChange={(nextOpen) => {
-          if (!nextOpen && !submitting) setStep(0);
-          onOpenChange(nextOpen);
-        }}
-        handleOnly
-      >
-        <DrawerContent
-          ref={drawerContentRef}
-          dynamicHeight
-          className="bottom-2 left-2 right-2 top-auto mx-auto max-h-[calc(100dvh-1rem)] w-auto max-w-3xl"
-          showCloseButton={false}
+      {open ? (
+        <RiskEventStepDrawer
+          open={open}
+          step={step}
+          title={steps[step].title}
+          description={steps[step].description}
+          stepValid={stepValid}
+          submitting={submitting}
+          isLastStep={step === steps.length - 1}
+          drawerContentRef={drawerContentRef}
+          drawerBodyContentRef={drawerBodyContentRef}
+          onOpenChange={(nextOpen) => {
+            if (!nextOpen && !submitting) onOpenChange(false);
+          }}
+          onBack={() => setStep((current) => current - 1)}
+          onCancel={() => onOpenChange(false)}
+          onNext={() => setStep((current) => current + 1)}
+          onConfirm={() => { void submit(); }}
         >
-          <DrawerHandle aria-label="Tarik untuk menutup" />
-          <DrawerHeader className="mx-auto w-full max-w-3xl pb-4 pr-0">
-            <div className="flex items-start justify-between gap-4">
-              <div className="min-w-0">
-                <p className="mb-1 text-xs font-medium uppercase tracking-[0.6px] text-muted-foreground">Catat Kejadian Risiko</p>
-                <DrawerTitle>{steps[step].title}</DrawerTitle>
-                <DrawerDescription>{steps[step].description}</DrawerDescription>
-              </div>
-            </div>
-          </DrawerHeader>
-          <DrawerBody>
-            <div ref={drawerBodyContentRef} className="mx-auto w-full max-w-3xl">
-              <section className={cn("space-y-4", step === 0 ? "block" : "hidden")} aria-labelledby="risk-event-facts">
-                <h2 id="risk-event-facts" className="sr-only">Fakta utama</h2>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="event-occurred">Waktu kejadian <span className="text-destructive">*</span></Label>
-                  <Input id="event-occurred" type="datetime-local" value={occurredAt} onChange={(e) => setOccurredAt(e.target.value)} />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="event-description">Apa yang terjadi? <span className="text-destructive">*</span></Label>
-                  <Textarea id="event-description" rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Jelaskan kejadian secara faktual dan ringkas." />
-                </div>
-                <fieldset>
-                  <legend className="mb-2 block text-sm">Jenis dampak <span className="text-destructive">*</span></legend>
-                  <div className="grid gap-2 sm:grid-cols-2">
-                    {impactOptions.map(([value, label]) => (
-                      <label key={value} className="flex min-h-10 items-center gap-2 rounded-lg border border-input px-3 text-sm">
-                        <Checkbox checked={impactTypes.includes(value)} onCheckedChange={() => toggleImpact(value)} />
-                        <span>{label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </fieldset>
-                {impactTypes.includes("other") ? (
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="event-other-impact">Jenis dampak lainnya <span className="text-destructive">*</span></Label>
-                    <Input id="event-other-impact" value={otherImpactType} onChange={(event) => setOtherImpactType(event.target.value)} />
-                  </div>
-                ) : null}
-              </section>
-
-              <section className={cn("space-y-4", step === 1 ? "block" : "hidden")} aria-labelledby="risk-event-response">
-                <h2 id="risk-event-response" className="sr-only">Dampak dan penanganan</h2>
-                {impactTypes.includes("financial") ? (
-                  <div className="grid gap-4 sm:grid-cols-2">
-                    <div className="flex flex-col gap-2">
-                      <Label>Status nilai kerugian <span className="text-destructive">*</span></Label>
-                      <Select value={financialLossState} onValueChange={(value) => setFinancialLossState(value as "known" | "unknown")}>
-                        <SelectTrigger><SelectValue placeholder="Pilih status" /></SelectTrigger>
-                        <SelectContent><SelectItem value="known">Nilai diketahui</SelectItem><SelectItem value="unknown">Belum diketahui</SelectItem></SelectContent>
-                      </Select>
-                    </div>
-                    {financialLossState === "known" ? (
-                      <div className="flex flex-col gap-2">
-                        <Label htmlFor="event-financial-loss">Nilai kerugian <span className="text-destructive">*</span></Label>
-                        <Input id="event-financial-loss" type="number" min="0" inputMode="decimal" value={financialLoss} onChange={(event) => setFinancialLoss(event.target.value)} placeholder="0" />
-                      </div>
-                    ) : null}
-                  </div>
-                ) : null}
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="event-impact">Dampak aktual <span className="text-destructive">*</span></Label>
-                  <Textarea id="event-impact" rows={3} value={actualImpact} onChange={(e) => setActualImpact(e.target.value)} placeholder="Tuliskan dampak yang benar-benar terjadi." />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label>Tingkat kejadian <span className="text-destructive">*</span></Label>
-                  <Select value={severity} onValueChange={(value) => setSeverity(value as RiskEventSeverity)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{Object.entries(severityLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                {severity === "extreme" ? (
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="event-extraordinary">Alasan tingkat ekstrem <span className="text-destructive">*</span></Label>
-                    <Textarea id="event-extraordinary" value={extraordinaryReason} onChange={(e) => setExtraordinaryReason(e.target.value)} />
-                  </div>
-                ) : null}
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="event-response">Penanganan langsung <span className="text-destructive">*</span></Label>
-                  <Textarea id="event-response" rows={3} value={immediateResponse} onChange={(e) => setImmediateResponse(e.target.value)} placeholder="Jika belum ada, tuliskan “Belum ada penanganan”." />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label>Kondisi setelah penanganan <span className="text-destructive">*</span></Label>
-                  <Select value={condition} onValueChange={(value) => setCondition(value as RiskEventCondition)}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>{Object.entries(conditionLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
-                  </Select>
-                </div>
-                {["ongoing", "worsening"].includes(condition) ? (
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="event-ongoing">Tindakan yang sedang berjalan <span className="text-destructive">*</span></Label>
-                    <Textarea id="event-ongoing" value={ongoingAction} onChange={(e) => setOngoingAction(e.target.value)} />
-                  </div>
-                ) : null}
-              </section>
-
-              <section className={cn("space-y-4", step === 2 ? "block" : "hidden")} aria-labelledby="risk-event-context">
-                <h2 id="risk-event-context" className="sr-only">Konteks dan risiko</h2>
-              <CollapsibleCard.Root defaultOpen={Boolean(initialRiskId)}>
-                <CollapsibleCard.Trigger><CollapsibleCard.Text><CollapsibleCard.Title>Risiko terkait</CollapsibleCard.Title><CollapsibleCard.Description>Opsional. Kejadian boleh disimpan sebagai belum dipetakan.</CollapsibleCard.Description></CollapsibleCard.Text><CollapsibleCard.Icon /></CollapsibleCard.Trigger>
-                <CollapsibleCard.Content><CollapsibleCard.Body className="space-y-3 p-4"><div className="relative"><Search className="absolute left-3 top-3 size-4 text-muted-foreground" /><Input className="pl-9" value={riskQuery} onChange={(e) => setRiskQuery(e.target.value)} placeholder="Cari kode atau nama risiko" /></div><div className="max-h-52 space-y-1 overflow-y-auto">{filteredRisks.map((risk) => <label key={risk.id} className="flex items-start gap-3 rounded-lg px-2 py-2 text-sm hover:bg-muted/40"><Checkbox checked={riskIds.includes(risk.id)} onCheckedChange={() => toggleRisk(risk.id)} /><span><span className="font-mono text-xs">{risk.code || "Tanpa kode"}</span><span className="mt-0.5 block text-secondary-foreground">{risk.title}</span></span></label>)}</div></CollapsibleCard.Body></CollapsibleCard.Content>
-              </CollapsibleCard.Root>
-
-              <CollapsibleCard.Root defaultOpen={false}>
-                <CollapsibleCard.Trigger><CollapsibleCard.Text><CollapsibleCard.Title>Detail tambahan</CollapsibleCard.Title><CollapsibleCard.Description>Tambahkan konteks yang sudah tersedia sebelum record dikunci.</CollapsibleCard.Description></CollapsibleCard.Text><CollapsibleCard.Icon /></CollapsibleCard.Trigger>
-                <CollapsibleCard.Content>
-                  <CollapsibleCard.Body className="grid gap-4 p-4">
-                    <div className="flex flex-col gap-2"><Label htmlFor="event-location">Lokasi</Label><Input id="event-location" value={location} onChange={(e) => setLocation(e.target.value)} /></div>
-                    <div className="flex flex-col gap-2"><Label htmlFor="event-parties">Pihak terdampak</Label><Input id="event-parties" value={affectedParties} onChange={(e) => setAffectedParties(e.target.value)} /></div>
-                    <div className="flex flex-col gap-2"><Label htmlFor="event-cause">Dugaan penyebab</Label><Textarea id="event-cause" value={suspectedCause} onChange={(e) => setSuspectedCause(e.target.value)} /></div>
-                    <div className="flex flex-col gap-2"><Label htmlFor="event-duration">Durasi gangguan</Label><Input id="event-duration" value={disruptionDuration} onChange={(e) => setDisruptionDuration(e.target.value)} placeholder="Contoh: 4 jam" /></div>
-                    <div className="flex flex-col gap-2"><Label htmlFor="event-evidence">Tautan bukti</Label><Input id="event-evidence" type="url" value={evidenceUrl} onChange={(e) => setEvidenceUrl(e.target.value)} placeholder="https://" /></div>
-                  </CollapsibleCard.Body>
-                </CollapsibleCard.Content>
-              </CollapsibleCard.Root>
-              </section>
-
-              <section className={cn("space-y-4", step === 3 ? "block" : "hidden")} aria-labelledby="risk-event-review">
-                <h2 id="risk-event-review" className="sr-only">Periksa kejadian</h2>
-                <div className="rounded-lg border border-border/70 bg-card p-4">
-                  <dl className="grid gap-4 text-sm sm:grid-cols-2">
-                    <div><dt className="text-xs text-muted-foreground">Waktu kejadian</dt><dd className="mt-1 text-foreground">{occurredAt ? new Intl.DateTimeFormat("id-ID", { dateStyle: "long", timeStyle: "short" }).format(new Date(occurredAt)) : "-"}</dd></div>
-                    <div><dt className="text-xs text-muted-foreground">Jenis dampak</dt><dd className="mt-1 text-foreground">{impactTypes.map((impact) => impactLabels[impact] || impact).join(", ") || "-"}</dd></div>
-                    <div className="sm:col-span-2"><dt className="text-xs text-muted-foreground">Apa yang terjadi</dt><dd className="mt-1 whitespace-pre-wrap text-foreground">{description || "-"}</dd></div>
-                    <div><dt className="text-xs text-muted-foreground">Dampak aktual</dt><dd className="mt-1 whitespace-pre-wrap text-foreground">{actualImpact || "-"}</dd></div>
-                    <div><dt className="text-xs text-muted-foreground">Tingkat kejadian</dt><dd className="mt-1 text-foreground">{severityLabels[severity]}</dd></div>
-                    <div><dt className="text-xs text-muted-foreground">Kondisi</dt><dd className="mt-1 text-foreground">{conditionLabels[condition]}</dd></div>
-                    <div><dt className="text-xs text-muted-foreground">Risiko terkait</dt><dd className="mt-1 text-foreground">{selectedRisks.length ? selectedRisks.map((risk) => risk.code || risk.title).join(", ") : "Belum dipetakan"}</dd></div>
-                  </dl>
-                </div>
-                <div className="rounded-lg bg-muted/40 p-4 text-sm text-secondary-foreground">
-                  Setelah disimpan, record menjadi permanen dan tidak dapat diubah atau dihapus.
-                </div>
-              </section>
-            </div>
-          </DrawerBody>
-          <DrawerFooter>
-            <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex items-center gap-2" role="status" aria-label={`Langkah ${step + 1} dari ${steps.length}`}>
-                {steps.map((item, index) => (
-                  <span
-                    key={item.title}
-                    className={cn("size-2 rounded-full transition-colors duration-150 ease-(--ease-out) motion-reduce:transition-none", index === step ? "bg-foreground" : "bg-border")}
-                    aria-hidden="true"
-                  />
-                ))}
-                <span className="sr-only">Langkah {step + 1} dari {steps.length}</span>
-              </div>
-              <div className="flex w-full gap-2 sm:w-auto">
-                {step > 0 ? (
-                  <ActionButton type="button" className="flex-1 sm:flex-none" onClick={() => setStep((current) => current - 1)}>Kembali</ActionButton>
-                ) : (
-                  <CollectionDialogCancel type="button" className="flex-1 sm:flex-none" onClick={() => onOpenChange(false)}>Batal</CollectionDialogCancel>
-                )}
-                {step < steps.length - 1 ? (
-                  <AccentButton type="button" className="flex-1 sm:flex-none" disabled={!stepValid} onClick={() => setStep((current) => current + 1)}>Lanjut</AccentButton>
-                ) : (
-                  <AccentButton type="button" className="flex-1 sm:flex-none" icon={<Lock className="size-3.5" />} disabled={!stepValid} onClick={() => setConfirmOpen(true)}>Periksa & simpan</AccentButton>
-                )}
-              </div>
-            </div>
-          </DrawerFooter>
-        </DrawerContent>
-      </Drawer>
-
-      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <AlertDialogContent className="max-w-lg"><AlertDialogHeader><AlertDialogTitle>Periksa sebelum disimpan</AlertDialogTitle><AlertDialogDescription>Setelah disimpan, isi kejadian tidak dapat diubah atau dihapus.</AlertDialogDescription></AlertDialogHeader><dl className="grid gap-3 rounded-lg bg-muted/40 p-4 text-sm"><div><dt className="text-xs text-muted-foreground">Kejadian</dt><dd className="mt-1">{description}</dd></div><div className="grid grid-cols-2 gap-3"><div><dt className="text-xs text-muted-foreground">Tingkat</dt><dd className="mt-1">{severityLabels[severity]}</dd></div><div><dt className="text-xs text-muted-foreground">Risiko</dt><dd className="mt-1">{selectedRisks.length ? selectedRisks.map((risk) => risk.code || risk.title).join(", ") : "Belum dipetakan"}</dd></div></div><div><dt className="text-xs text-muted-foreground">Dampak aktual</dt><dd className="mt-1">{actualImpact}</dd></div></dl><AlertDialogFooter><AlertDialogCancel disabled={submitting}>Kembali perbaiki</AlertDialogCancel><AlertDialogAction disabled={submitting} onClick={(event) => { event.preventDefault(); void submit(); }}>{submitting ? "Menyimpan…" : "Simpan permanen"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
-      </AlertDialog>
+          {stepContent}
+        </RiskEventStepDrawer>
+      ) : null}
     </>
   );
 }

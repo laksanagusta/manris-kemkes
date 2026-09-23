@@ -49,41 +49,46 @@ export default function RiskEventsPage() {
   return (
     <PageStack>
       <CollectionToolbar leading={<CollectionSearchField value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Cari kode, kejadian, atau risiko" aria-label="Cari kejadian atau risiko" />} actions={<AccentButton icon={<Plus className="size-3.5" />} onClick={() => setFormOpen(true)}>Catat Kejadian</AccentButton>} />
-      {filtered.length === 0 ? (
-        <CollectionEmptyState
-          title={query ? `Tidak ada hasil untuk “${query}”.` : "Belum ada kejadian risiko"}
-          description={query ? "Periksa ejaan atau hapus kata kunci untuk melihat semua kejadian." : "Catat kejadian pertama untuk mulai mengisi daftar kejadian risiko."}
-          action={query ? <ActionButton type="button" variant="outline" onClick={() => setQuery("")}>Hapus pencarian</ActionButton> : undefined}
-        />
-      ) : (
-        <CollectionTableCard>
-          <Table className="min-w-[1180px] table-fixed">
-            <colgroup>
-              <col className="w-[12%]" />
-              <col className="w-[30%]" />
-              <col className="w-[11%]" />
-              <col className="w-[21%]" />
-              <col className="w-[12%]" />
-              <col className="w-[14%]" />
-            </colgroup>
-            <CollectionTableHeader>
-              <CollectionTableHeaderRow className="h-9 hover:bg-transparent">
-                <CollectionTableHead className="px-3">Kode</CollectionTableHead>
-                <CollectionTableHead className="px-3">Kejadian</CollectionTableHead>
-                <CollectionTableHead className="px-3">Tingkat</CollectionTableHead>
-                <CollectionTableHead className="px-3">Risiko terkait</CollectionTableHead>
-                <CollectionTableHead className="px-3">Dicatat oleh</CollectionTableHead>
-                <CollectionTableHead className="px-3">Waktu</CollectionTableHead>
-              </CollectionTableHeaderRow>
-            </CollectionTableHeader>
-            <TableBody>
-              {filtered.map((item) => (
+      <CollectionTableCard>
+        <Table className="min-w-[1180px] table-fixed">
+          <colgroup>
+            <col className="w-[12%]" />
+            <col className="w-[30%]" />
+            <col className="w-[11%]" />
+            <col className="w-[21%]" />
+            <col className="w-[12%]" />
+            <col className="w-[14%]" />
+          </colgroup>
+          <CollectionTableHeader>
+            <CollectionTableHeaderRow className="h-9 hover:bg-transparent">
+              <CollectionTableHead className="px-3">Kode</CollectionTableHead>
+              <CollectionTableHead className="px-3">Kejadian</CollectionTableHead>
+              <CollectionTableHead className="px-3">Tingkat</CollectionTableHead>
+              <CollectionTableHead className="px-3">Risiko terkait</CollectionTableHead>
+              <CollectionTableHead className="px-3">Dicatat oleh</CollectionTableHead>
+              <CollectionTableHead className="px-3">Waktu</CollectionTableHead>
+            </CollectionTableHeaderRow>
+          </CollectionTableHeader>
+          <TableBody>
+            {filtered.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="!p-0">
+                  <CollectionEmptyState
+                    align="center"
+                    title={query ? `Tidak ada hasil untuk “${query}”.` : "Belum ada kejadian risiko"}
+                    description={query ? "Periksa ejaan atau hapus kata kunci untuk melihat semua kejadian." : "Catat kejadian pertama untuk mulai mengisi daftar kejadian risiko."}
+                    action={query ? <ActionButton type="button" variant="outline" onClick={() => setQuery("")}>Hapus pencarian</ActionButton> : undefined}
+                  />
+                </TableCell>
+              </TableRow>
+            ) : (
+              filtered.map((item) => (
                 <TableRow key={item.id} className="group border-0 hover:bg-transparent">
                   <TableCell className="px-3 py-2 align-middle">
                     <span className="font-mono text-xs text-muted-foreground">{item.code}</span>
                   </TableCell>
                   <TableCell className="px-3 py-2 align-middle">
-                    <Link href={`/risk-events/${item.id}`} className="line-clamp-2 text-sm font-semibold leading-5 text-foreground transition-colors hover:text-primary">
+                    <Link href={`/risk-events/${item.id}`} className="line-clamp-2 text-sm font-medium leading-5 text-foreground transition-colors hover:text-primary">
                       {item.description}
                     </Link>
                     <span className="mt-0.5 block truncate text-xs text-muted-foreground">{item.actualImpact}</span>
@@ -99,11 +104,11 @@ export default function RiskEventsPage() {
                     {new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(new Date(item.occurredAt))}
                   </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CollectionTableCard>
-      )}
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </CollectionTableCard>
       {token ? <RiskEventFormDialog open={formOpen} onOpenChange={setFormOpen} token={token} organizationId={user?.organizationId ?? undefined} initialRiskId={initialRiskId} onCreated={(event) => setItems((current) => [event, ...current])} /> : null}
     </PageStack>
   );

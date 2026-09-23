@@ -131,3 +131,15 @@ test("filter and organization summaries include descendants for a parent scope",
     ],
   );
 });
+
+test("monitoring defaults to all cycles and keeps that default out of the URL", () => {
+  const state = overview.parseMonitoringQueryState(
+    new URLSearchParams(),
+  );
+
+  assert.equal(state.cycle, "all");
+  assert.equal(
+    overview.buildMonitoringQueryString(state),
+    "",
+  );
+});
