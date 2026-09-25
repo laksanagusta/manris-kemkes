@@ -1,20 +1,26 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 
 import { createRiskEvent } from "@/lib/api/risk-events";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 import type { RiskEvent, RiskEventCondition, RiskEventSeverity } from "@/types/risk-event";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Card, CardContent } from "@/components/ui/card";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Separator } from "@/components/ui/separator";
 import {
-  AccentButton, ActionButton, CollectionDialogCancel, Drawer, DrawerBody,
-  DrawerContent, DrawerDescription, DrawerFooter, DrawerHandle, DrawerHeader,
-  DrawerTitle, Input, Label, Select, SelectContent, SelectItem, SelectTrigger,
+  AccentButton, ActionButton, CollectionDialogCancel, Dialog, DialogContent,
+  DialogDescription, DialogFooter, DialogHeader, DialogTitle, Input, Select, SelectContent, SelectItem, SelectTrigger,
   SelectValue, Textarea,
 } from "@/components/shared/design-system";
-import { Lock, Search } from "@/components/ui/icons";
+import { Calendar as CalendarIcon, Lock, Search } from "@/components/shared/icons";
 
 type RiskOption = { id: string; code?: string; title: string; organizationId?: string };
 
@@ -42,12 +48,25 @@ const steps = [
 ] as const;
 
 function localDateTimeValue() {
-  const now = new Date();
-  const local = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
-  return local.toISOString().slice(0, 16);
+  return `${formatLocalDate(new Date())}T12:00`;
 }
 
-function RiskEventStepDrawer({
+function parseLocalDate(value: string) {
+  const [datePart] = value.split("T");
+  if (!datePart) return undefined;
+
+  const [year, month, day] = datePart.split("-").map(Number);
+  if ([year, month, day].some(Number.isNaN)) return undefined;
+
+  return new Date(year, month - 1, day);
+}
+
+function formatLocalDate(date: Date) {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+function RiskEventStepModal({
   open,
   step,
   title,
@@ -55,8 +74,8 @@ function RiskEventStepDrawer({
   stepValid,
   submitting,
   isLastStep,
-  drawerContentRef,
-  drawerBodyContentRef,
+  modalContentRef,
+  modalBodyContentRef,
   onOpenChange,
   onBack,
   onCancel,
@@ -71,8 +90,8 @@ function RiskEventStepDrawer({
   stepValid: boolean;
   submitting: boolean;
   isLastStep: boolean;
-  drawerContentRef: RefObject<HTMLDivElement | null>;
-  drawerBodyContentRef: RefObject<HTMLDivElement | null>;
+  modalContentRef: (node: HTMLDivElement | null) => void;
+  modalBodyContentRef: (node: HTMLDivElement | null) => void;
   onOpenChange: (open: boolean) => void;
   onBack: () => void;
   onCancel: () => void;
@@ -81,34 +100,26 @@ function RiskEventStepDrawer({
   children: ReactNode;
 }) {
   return (
-    <Drawer
-      direction="bottom"
-      open={open}
-      onOpenChange={onOpenChange}
-      handleOnly
-    >
-      <DrawerContent
-        ref={drawerContentRef}
-        dynamicHeight
-        className="bottom-2 left-2 right-2 top-auto mx-auto max-h-[calc(100dvh-1rem)] w-auto max-w-3xl"
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        ref={modalContentRef}
+        data-dynamic-height="true"
+        className="flex max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] max-w-3xl flex-col gap-0 overflow-hidden rounded-2xl p-0 sm:max-w-3xl"
         showCloseButton={false}
       >
-        <DrawerHandle aria-label="Tarik untuk menutup" />
-        <DrawerHeader className="mx-auto w-full max-w-3xl pb-4 pr-0">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0">
-              <DrawerTitle>{title}</DrawerTitle>
-              <DrawerDescription>{description}</DrawerDescription>
-            </div>
-          </div>
-        </DrawerHeader>
-        <DrawerBody>
-          <div ref={drawerBodyContentRef} className="mx-auto w-full max-w-3xl">
+        <DialogHeader className="w-full shrink-0 gap-0.5 p-4 text-left">
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        <Separator />
+        <div data-slot="modal-body" className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
+          <div ref={modalBodyContentRef} className="w-full">
             {children}
           </div>
-        </DrawerBody>
-        <DrawerFooter>
-          <div className="mx-auto flex w-full max-w-3xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        </div>
+        <Separator />
+        <DialogFooter className="m-0 shrink-0 rounded-none border-0 bg-transparent p-4 sm:flex-col">
+          <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2" role="status" aria-label={`Langkah ${step + 1} dari ${steps.length}`}>
               {steps.map((item, index) => (
                 <span
@@ -132,9 +143,9 @@ function RiskEventStepDrawer({
               )}
             </div>
           </div>
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -170,52 +181,47 @@ export function RiskEventFormDialog({
   const [ongoingAction, setOngoingAction] = useState("");
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
-  const drawerContentRef = useRef<HTMLDivElement>(null);
-  const drawerBodyContentRef = useRef<HTMLDivElement>(null);
-  const drawerHeightRef = useRef<number | null>(null);
+  const [modalContentElement, setModalContentElement] = useState<HTMLDivElement | null>(null);
+  const [modalBodyContentElement, setModalBodyContentElement] = useState<HTMLDivElement | null>(null);
+  const modalHeightRef = useRef<number | null>(null);
+  const occurredDate = parseLocalDate(occurredAt);
 
   useLayoutEffect(() => {
     if (!open) {
-      drawerHeightRef.current = null;
-      if (drawerContentRef.current) drawerContentRef.current.style.height = "";
+      modalHeightRef.current = null;
       return;
     }
 
-    const drawer = drawerContentRef.current;
-    const bodyContent = drawerBodyContentRef.current;
-    if (!drawer || !bodyContent) return;
+    const modal = modalContentElement;
+    const bodyContent = modalBodyContentElement;
+    if (!modal || !bodyContent) return;
 
     let frame = 0;
     let pending = false;
 
     const measureAndAnimate = () => {
       pending = false;
-      if (!drawer.isConnected || drawer.classList.contains("vaul-dragging")) return;
+      if (!modal.isConnected) return;
 
-      const currentHeight = drawer.getBoundingClientRect().height;
+      // DialogContent opens with a zoom transform. offsetHeight reads the
+      // layout height without that transform, keeping the first measurement accurate.
+      const currentHeight = modal.offsetHeight;
       // Use the rendered height as the starting point so a quick content change
       // retargets the current transition instead of snapping back to an older
       // target height.
-      const previousHeight = currentHeight || drawerHeightRef.current || 0;
-      const previousInlineHeight = drawer.style.height;
-      const previousInlineMaxHeight = drawer.style.maxHeight;
-      const previousInlineTransition = drawer.style.transition;
-      const shell = drawer.firstElementChild as HTMLElement | null;
-      const previousShellHeight = shell?.style.height ?? "";
-      const previousShellMaxHeight = shell?.style.maxHeight ?? "";
-      const body = drawer.querySelector<HTMLElement>('[data-slot="drawer-body"]');
+      const previousHeight = currentHeight || modalHeightRef.current || 0;
+      const previousInlineHeight = modal.style.height;
+      const previousInlineMaxHeight = modal.style.maxHeight;
+      const previousInlineTransition = modal.style.transition;
+      const body = modal.querySelector<HTMLElement>('[data-slot="modal-body"]');
       const previousBodyFlex = body?.style.flex ?? "";
       const previousBodyHeight = body?.style.height ?? "";
       const previousBodyMaxHeight = body?.style.maxHeight ?? "";
       const previousBodyOverflow = body?.style.overflow ?? "";
 
-      drawer.style.transition = "none";
-      drawer.style.height = "auto";
-      drawer.style.maxHeight = "none";
-      if (shell) {
-        shell.style.height = "auto";
-        shell.style.maxHeight = "none";
-      }
+      modal.style.transition = "none";
+      modal.style.height = "auto";
+      modal.style.maxHeight = "none";
       if (body) {
         body.style.flex = "none";
         body.style.height = "auto";
@@ -223,11 +229,8 @@ export function RiskEventFormDialog({
         body.style.overflow = "visible";
       }
 
-      // Vaul adds a bottom pseudo-element to the drawer for overscroll. Read
-      // the shell's intrinsic height instead so that pseudo-element is not
-      // mistaken for form content.
-      const naturalHeight = Math.ceil(shell?.scrollHeight ?? drawer.scrollHeight);
-      const maxHeight = Math.max(240, window.innerHeight - 16);
+      const naturalHeight = modal.offsetHeight;
+      const maxHeight = Math.max(0, window.innerHeight - 16);
       const targetHeight = Math.min(naturalHeight, maxHeight);
 
       if (body) {
@@ -236,25 +239,21 @@ export function RiskEventFormDialog({
         body.style.maxHeight = previousBodyMaxHeight;
         body.style.overflow = previousBodyOverflow;
       }
-      if (shell) {
-        shell.style.height = previousShellHeight;
-        shell.style.maxHeight = previousShellMaxHeight;
-      }
-      drawer.style.height = previousInlineHeight;
-      drawer.style.maxHeight = previousInlineMaxHeight;
-      drawer.style.transition = previousInlineTransition;
+      modal.style.height = previousInlineHeight;
+      modal.style.maxHeight = previousInlineMaxHeight;
+      modal.style.transition = previousInlineTransition;
 
       if (!targetHeight) return;
-      if (drawerHeightRef.current === null || Math.abs(targetHeight - previousHeight) < 1) {
-        drawer.style.height = `${targetHeight}px`;
-        drawerHeightRef.current = targetHeight;
+      if (modalHeightRef.current === null || Math.abs(targetHeight - previousHeight) < 1) {
+        modal.style.height = `${targetHeight}px`;
+        modalHeightRef.current = targetHeight;
         return;
       }
 
-      drawer.style.height = `${previousHeight}px`;
-      void drawer.offsetHeight;
-      drawer.style.height = `${targetHeight}px`;
-      drawerHeightRef.current = targetHeight;
+      modal.style.height = `${previousHeight}px`;
+      void modal.offsetHeight;
+      modal.style.height = `${targetHeight}px`;
+      modalHeightRef.current = targetHeight;
     };
 
     const scheduleMeasure = () => {
@@ -271,7 +270,7 @@ export function RiskEventFormDialog({
       observer.disconnect();
       if (frame) window.cancelAnimationFrame(frame);
     };
-  }, [open, step, impactTypes, financialLossState, severity, condition]);
+  }, [open, step, impactTypes, financialLossState, severity, condition, modalContentElement, modalBodyContentElement]);
 
   useEffect(() => {
     if (!open || !token) return;
@@ -309,6 +308,10 @@ export function RiskEventFormDialog({
 
   const toggleImpact = (value: string) => setImpactTypes((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value]);
   const toggleRisk = (id: string) => setRiskIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  const updateOccurredDate = (date: Date | undefined) => {
+    if (!date) return;
+    setOccurredAt(`${formatLocalDate(date)}T12:00`);
+  };
 
   const submit = async () => {
     setSubmitting(true);
@@ -331,122 +334,155 @@ export function RiskEventFormDialog({
   };
 
   const stepContent = step === 0 ? (
-    <section className="space-y-4" aria-labelledby="risk-event-facts">
+    <section aria-labelledby="risk-event-facts">
       <h2 id="risk-event-facts" className="sr-only">Fakta utama</h2>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="event-occurred">Waktu kejadian <span className="text-destructive">*</span></Label>
-        <Input id="event-occurred" type="datetime-local" value={occurredAt} onChange={(e) => setOccurredAt(e.target.value)} />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="event-description">Apa yang terjadi? <span className="text-destructive">*</span></Label>
-        <Textarea id="event-description" rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Jelaskan kejadian secara faktual dan ringkas." />
-      </div>
-      <fieldset>
-        <legend className="mb-2 block text-sm">Jenis dampak <span className="text-destructive">*</span></legend>
-        <div className="grid gap-2 sm:grid-cols-2">
-          {impactOptions.map(([value, label]) => (
-            <label key={value} className="flex min-h-10 items-center gap-2 rounded-lg border-0 border-shadow px-3 text-sm">
-              <Checkbox checked={impactTypes.includes(value)} onCheckedChange={() => toggleImpact(value)} />
-              <span>{label}</span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
-      {impactTypes.includes("other") ? (
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="event-other-impact">Jenis dampak lainnya <span className="text-destructive">*</span></Label>
-          <Input id="event-other-impact" value={otherImpactType} onChange={(event) => setOtherImpactType(event.target.value)} />
-        </div>
-      ) : null}
+      <FieldGroup>
+        <Field>
+          <FieldLabel htmlFor="event-occurred-date">Tanggal kejadian <span className="text-destructive">*</span></FieldLabel>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                id="event-occurred-date"
+                type="button"
+                variant="outline"
+                className="w-full justify-start text-left font-normal"
+              >
+                <CalendarIcon aria-hidden="true" data-icon="inline-start" />
+                {occurredDate
+                  ? new Intl.DateTimeFormat("id-ID", { dateStyle: "long" }).format(occurredDate)
+                  : "Pilih tanggal"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="start" className="w-auto p-0">
+              <Calendar
+                mode="single"
+                selected={occurredDate}
+                onSelect={updateOccurredDate}
+              />
+            </PopoverContent>
+          </Popover>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="event-description">Apa yang terjadi? <span className="text-destructive">*</span></FieldLabel>
+          <Textarea id="event-description" rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Jelaskan kejadian secara faktual dan ringkas." />
+        </Field>
+        <fieldset>
+          <legend className="mb-2 block text-sm font-medium">Jenis dampak <span className="text-destructive">*</span></legend>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {impactOptions.map(([value, label]) => (
+              <FieldLabel key={value}>
+                <Field orientation="horizontal">
+                  <Checkbox checked={impactTypes.includes(value)} onCheckedChange={() => toggleImpact(value)} />
+                  <span>{label}</span>
+                </Field>
+              </FieldLabel>
+            ))}
+          </div>
+        </fieldset>
+        {impactTypes.includes("other") ? (
+          <Field>
+            <FieldLabel htmlFor="event-other-impact">Jenis dampak lainnya <span className="text-destructive">*</span></FieldLabel>
+            <Input id="event-other-impact" value={otherImpactType} onChange={(event) => setOtherImpactType(event.target.value)} />
+          </Field>
+        ) : null}
+      </FieldGroup>
     </section>
   ) : step === 1 ? (
-    <section className="space-y-4" aria-labelledby="risk-event-response">
+    <section aria-labelledby="risk-event-response">
       <h2 id="risk-event-response" className="sr-only">Dampak dan penanganan</h2>
-      {impactTypes.includes("financial") ? (
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="flex flex-col gap-2">
-            <Label>Status nilai kerugian <span className="text-destructive">*</span></Label>
+      <FieldGroup>
+        {impactTypes.includes("financial") ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+          <Field>
+            <FieldLabel htmlFor="event-loss-status">Status nilai kerugian <span className="text-destructive">*</span></FieldLabel>
             <Select value={financialLossState} onValueChange={(value) => setFinancialLossState(value as "known" | "unknown")}>
-              <SelectTrigger><SelectValue placeholder="Pilih status" /></SelectTrigger>
+              <SelectTrigger id="event-loss-status" className="w-full"><SelectValue placeholder="Pilih status" /></SelectTrigger>
               <SelectContent><SelectItem value="known">Nilai diketahui</SelectItem><SelectItem value="unknown">Belum diketahui</SelectItem></SelectContent>
             </Select>
-          </div>
+          </Field>
           {financialLossState === "known" ? (
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="event-financial-loss">Nilai kerugian <span className="text-destructive">*</span></Label>
+            <Field>
+              <FieldLabel htmlFor="event-financial-loss">Nilai kerugian <span className="text-destructive">*</span></FieldLabel>
               <Input id="event-financial-loss" type="number" min="0" inputMode="decimal" value={financialLoss} onChange={(event) => setFinancialLoss(event.target.value)} placeholder="0" />
-            </div>
+            </Field>
           ) : null}
-        </div>
-      ) : null}
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="event-impact">Dampak aktual <span className="text-destructive">*</span></Label>
-        <Textarea id="event-impact" rows={3} value={actualImpact} onChange={(e) => setActualImpact(e.target.value)} placeholder="Tuliskan dampak yang benar-benar terjadi." />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label>Tingkat kejadian <span className="text-destructive">*</span></Label>
-        <Select value={severity} onValueChange={(value) => setSeverity(value as RiskEventSeverity)}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>{Object.entries(severityLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
-        </Select>
-      </div>
-      {severity === "extreme" ? (
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="event-extraordinary">Alasan tingkat ekstrem <span className="text-destructive">*</span></Label>
-          <Textarea id="event-extraordinary" value={extraordinaryReason} onChange={(e) => setExtraordinaryReason(e.target.value)} />
-        </div>
-      ) : null}
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="event-response">Penanganan langsung <span className="text-destructive">*</span></Label>
-        <Textarea id="event-response" rows={3} value={immediateResponse} onChange={(e) => setImmediateResponse(e.target.value)} placeholder="Jika belum ada, tuliskan “Belum ada penanganan”." />
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label>Kondisi setelah penanganan <span className="text-destructive">*</span></Label>
-        <Select value={condition} onValueChange={(value) => setCondition(value as RiskEventCondition)}>
-          <SelectTrigger><SelectValue /></SelectTrigger>
-          <SelectContent>{Object.entries(conditionLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
-        </Select>
-      </div>
-      {["ongoing", "worsening"].includes(condition) ? (
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="event-ongoing">Tindakan yang sedang berjalan <span className="text-destructive">*</span></Label>
-          <Textarea id="event-ongoing" value={ongoingAction} onChange={(e) => setOngoingAction(e.target.value)} />
-        </div>
-      ) : null}
+          </div>
+        ) : null}
+        <Field>
+          <FieldLabel htmlFor="event-impact">Dampak aktual <span className="text-destructive">*</span></FieldLabel>
+          <Textarea id="event-impact" rows={3} value={actualImpact} onChange={(e) => setActualImpact(e.target.value)} placeholder="Tuliskan dampak yang benar-benar terjadi." />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="event-severity">Tingkat kejadian <span className="text-destructive">*</span></FieldLabel>
+          <Select value={severity} onValueChange={(value) => setSeverity(value as RiskEventSeverity)}>
+            <SelectTrigger id="event-severity" className="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent>{Object.entries(severityLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
+          </Select>
+        </Field>
+        {severity === "extreme" ? (
+          <Field>
+            <FieldLabel htmlFor="event-extraordinary">Alasan tingkat ekstrem <span className="text-destructive">*</span></FieldLabel>
+            <Textarea id="event-extraordinary" value={extraordinaryReason} onChange={(e) => setExtraordinaryReason(e.target.value)} />
+          </Field>
+        ) : null}
+        <Field>
+          <FieldLabel htmlFor="event-response">Penanganan langsung <span className="text-destructive">*</span></FieldLabel>
+          <Textarea id="event-response" rows={3} value={immediateResponse} onChange={(e) => setImmediateResponse(e.target.value)} placeholder="Jika belum ada, tuliskan “Belum ada penanganan”." />
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="event-condition">Kondisi setelah penanganan <span className="text-destructive">*</span></FieldLabel>
+          <Select value={condition} onValueChange={(value) => setCondition(value as RiskEventCondition)}>
+            <SelectTrigger id="event-condition" className="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent>{Object.entries(conditionLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
+          </Select>
+        </Field>
+        {["ongoing", "worsening"].includes(condition) ? (
+          <Field>
+            <FieldLabel htmlFor="event-ongoing">Tindakan yang sedang berjalan <span className="text-destructive">*</span></FieldLabel>
+            <Textarea id="event-ongoing" value={ongoingAction} onChange={(e) => setOngoingAction(e.target.value)} />
+          </Field>
+        ) : null}
+      </FieldGroup>
     </section>
   ) : step === 2 ? (
     <section className="space-y-4" aria-labelledby="risk-event-risk">
       <h2 id="risk-event-risk" className="sr-only">Risiko terkait</h2>
-      <div className="relative">
-        <Search className="absolute left-3 top-3 size-4 text-muted-foreground" />
-        <Input className="pl-9" value={riskQuery} onChange={(e) => setRiskQuery(e.target.value)} placeholder="Cari kode atau nama risiko" />
-      </div>
-      <div className="max-h-52 space-y-1 overflow-y-auto">
+      <InputGroup>
+        <InputGroupAddon><Search aria-hidden="true" /></InputGroupAddon>
+        <InputGroupInput aria-label="Cari risiko terkait" value={riskQuery} onChange={(e) => setRiskQuery(e.target.value)} placeholder="Cari kode atau nama risiko" />
+      </InputGroup>
+      <div className="max-h-52 space-y-2 overflow-y-auto" role="group" aria-label="Pilihan risiko terkait">
         {filteredRisks.length ? filteredRisks.map((risk) => (
-          <label key={risk.id} className="flex items-start gap-3 rounded-lg px-2 py-2 text-sm hover:bg-muted/40">
-            <Checkbox checked={riskIds.includes(risk.id)} onCheckedChange={() => toggleRisk(risk.id)} />
-            <span><span className="font-mono text-xs">{risk.code || "Tanpa kode"}</span><span className="mt-0.5 block text-secondary-foreground">{risk.title}</span></span>
-          </label>
-        )) : <p className="px-2 py-3 text-sm text-secondary-foreground">Risiko tidak ditemukan.</p>}
+          <FieldLabel key={risk.id}>
+            <Field orientation="horizontal">
+              <Checkbox checked={riskIds.includes(risk.id)} onCheckedChange={() => toggleRisk(risk.id)} />
+              <span className="min-w-0">
+                <span className="block font-mono text-xs text-muted-foreground">{risk.code || "Tanpa kode"}</span>
+                <span className="mt-0.5 block text-sm text-foreground">{risk.title}</span>
+              </span>
+            </Field>
+          </FieldLabel>
+        )) : <p className="py-3 text-sm text-muted-foreground">Risiko tidak ditemukan.</p>}
       </div>
     </section>
   ) : step === 3 ? (
-    <section className="space-y-4" aria-labelledby="risk-event-details">
+    <section aria-labelledby="risk-event-details">
       <h2 id="risk-event-details" className="sr-only">Detail tambahan</h2>
-      <div className="grid gap-4">
-        <div className="flex flex-col gap-2"><Label htmlFor="event-location">Lokasi</Label><Input id="event-location" value={location} onChange={(e) => setLocation(e.target.value)} /></div>
-        <div className="flex flex-col gap-2"><Label htmlFor="event-parties">Pihak terdampak</Label><Input id="event-parties" value={affectedParties} onChange={(e) => setAffectedParties(e.target.value)} /></div>
-        <div className="flex flex-col gap-2"><Label htmlFor="event-cause">Dugaan penyebab</Label><Textarea id="event-cause" value={suspectedCause} onChange={(e) => setSuspectedCause(e.target.value)} /></div>
-        <div className="flex flex-col gap-2"><Label htmlFor="event-duration">Durasi gangguan</Label><Input id="event-duration" value={disruptionDuration} onChange={(e) => setDisruptionDuration(e.target.value)} placeholder="Contoh: 4 jam" /></div>
-        <div className="flex flex-col gap-2"><Label htmlFor="event-evidence">Tautan bukti</Label><Input id="event-evidence" type="url" value={evidenceUrl} onChange={(e) => setEvidenceUrl(e.target.value)} placeholder="https://" /></div>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field><FieldLabel htmlFor="event-location">Lokasi</FieldLabel><Input id="event-location" value={location} onChange={(e) => setLocation(e.target.value)} /></Field>
+        <Field><FieldLabel htmlFor="event-parties">Pihak terdampak</FieldLabel><Input id="event-parties" value={affectedParties} onChange={(e) => setAffectedParties(e.target.value)} /></Field>
+        <Field className="sm:col-span-2"><FieldLabel htmlFor="event-cause">Dugaan penyebab</FieldLabel><Textarea id="event-cause" value={suspectedCause} onChange={(e) => setSuspectedCause(e.target.value)} /></Field>
+        <Field><FieldLabel htmlFor="event-duration">Durasi gangguan</FieldLabel><Input id="event-duration" value={disruptionDuration} onChange={(e) => setDisruptionDuration(e.target.value)} placeholder="Contoh: 4 jam" /></Field>
+        <Field><FieldLabel htmlFor="event-evidence">Tautan bukti</FieldLabel><Input id="event-evidence" type="url" value={evidenceUrl} onChange={(e) => setEvidenceUrl(e.target.value)} placeholder="https://" /></Field>
       </div>
     </section>
   ) : (
     <section className="space-y-4" aria-labelledby="risk-event-review">
       <h2 id="risk-event-review" className="sr-only">Periksa kejadian</h2>
-      <div className="rounded-lg bg-card p-4">
+      <Card>
+        <CardContent>
         <dl className="grid gap-4 text-sm sm:grid-cols-2">
-          <div><dt className="text-xs text-muted-foreground">Waktu kejadian</dt><dd className="mt-1 text-foreground">{occurredAt ? new Intl.DateTimeFormat("id-ID", { dateStyle: "long", timeStyle: "short" }).format(new Date(occurredAt)) : "-"}</dd></div>
+          <div><dt className="text-xs text-muted-foreground">Tanggal kejadian</dt><dd className="mt-1 text-foreground">{occurredDate ? new Intl.DateTimeFormat("id-ID", { dateStyle: "long" }).format(occurredDate) : "-"}</dd></div>
           <div><dt className="text-xs text-muted-foreground">Jenis dampak</dt><dd className="mt-1 text-foreground">{impactTypes.map((impact) => impactLabels[impact] || impact).join(", ") || "-"}</dd></div>
           <div className="sm:col-span-2"><dt className="text-xs text-muted-foreground">Apa yang terjadi</dt><dd className="mt-1 whitespace-pre-wrap text-foreground">{description || "-"}</dd></div>
           <div><dt className="text-xs text-muted-foreground">Dampak aktual</dt><dd className="mt-1 whitespace-pre-wrap text-foreground">{actualImpact || "-"}</dd></div>
@@ -454,34 +490,31 @@ export function RiskEventFormDialog({
           <div><dt className="text-xs text-muted-foreground">Kondisi</dt><dd className="mt-1 text-foreground">{conditionLabels[condition]}</dd></div>
           <div><dt className="text-xs text-muted-foreground">Risiko terkait</dt><dd className="mt-1 text-foreground">{selectedRisks.length ? selectedRisks.map((risk) => risk.code || risk.title).join(", ") : "Belum dipetakan"}</dd></div>
         </dl>
-      </div>
+        </CardContent>
+      </Card>
     </section>
   );
 
   return (
-    <>
-      {open ? (
-        <RiskEventStepDrawer
-          open={open}
-          step={step}
-          title={steps[step].title}
-          description={steps[step].description}
-          stepValid={stepValid}
-          submitting={submitting}
-          isLastStep={step === steps.length - 1}
-          drawerContentRef={drawerContentRef}
-          drawerBodyContentRef={drawerBodyContentRef}
-          onOpenChange={(nextOpen) => {
-            if (!nextOpen && !submitting) onOpenChange(false);
-          }}
-          onBack={() => setStep((current) => current - 1)}
-          onCancel={() => onOpenChange(false)}
-          onNext={() => setStep((current) => current + 1)}
-          onConfirm={() => { void submit(); }}
-        >
-          {stepContent}
-        </RiskEventStepDrawer>
-      ) : null}
-    </>
+    <RiskEventStepModal
+      open={open}
+      step={step}
+      title={steps[step].title}
+      description={steps[step].description}
+      stepValid={stepValid}
+      submitting={submitting}
+      isLastStep={step === steps.length - 1}
+      modalContentRef={setModalContentElement}
+      modalBodyContentRef={setModalBodyContentElement}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen && !submitting) onOpenChange(false);
+      }}
+      onBack={() => setStep((current) => current - 1)}
+      onCancel={() => onOpenChange(false)}
+      onNext={() => setStep((current) => current + 1)}
+      onConfirm={() => { void submit(); }}
+    >
+      {stepContent}
+    </RiskEventStepModal>
   );
 }

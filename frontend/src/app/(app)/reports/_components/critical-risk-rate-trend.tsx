@@ -63,7 +63,7 @@ export function CriticalRiskRateTrend({
       title="Tingkat Risiko Kritis"
       action={
         hasData ? (
-          <Badge variant="outline" className="h-5 px-2 text-[10px]">
+          <Badge variant="outline" className="">
             {latestRate}%
           </Badge>
         ) : null

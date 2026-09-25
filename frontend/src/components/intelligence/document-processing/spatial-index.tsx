@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { LayoutGridIcon, Minus, Plus } from "@/components/ui/icons";
+import { LayoutGridIcon, Minus, Plus } from "@/components/shared/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -41,7 +41,7 @@ function PageCard({
       aria-pressed={selected}
       aria-label={`${documentName}, halaman ${page.pageNumber}`}
       className={cn(
-        "group/page relative min-w-0 rounded-lg border bg-card p-2 text-left outline-none transition-[border-color,box-shadow,background-color] duration-150 hover:border-foreground/25 hover:border-shadow focus-visible:ring-2 focus-visible:ring-ring/40 motion-reduce:transition-none",
+        "group/page relative min-w-0 rounded-lg border bg-card p-2 text-left outline-none transition-[border-color,box-shadow,background-color] duration-150 hover:border-foreground/25 hover:focus-visible:ring-2 focus-visible:ring-ring/40 motion-reduce:transition-none",
         selected ? "border-foreground/50 ring-2 ring-ring/20" : "border-foreground/10",
         selectedFinding && !selected ? "ring-2 ring-warning/50" : "",
       )}
@@ -86,7 +86,7 @@ export function SpatialIndex({
           <div className="min-w-0">
             <div className="flex items-center gap-2">
               <h2 id="spatial-index-title" className="text-sm font-semibold text-foreground">Indeks spasial dokumen</h2>
-              <Badge variant="outline" className="tabular-nums text-xs">{indexedPages}/{job.pages.length} terindeks</Badge>
+              <Badge variant="outline" className="tabular-nums">{indexedPages}/{job.pages.length} terindeks</Badge>
             </div>
             <p className="mt-0.5 text-xs text-secondary-foreground">Peta dokumen dan halaman berdasarkan konteks kerja.</p>
           </div>
@@ -128,7 +128,7 @@ export function SpatialIndex({
                           <p className="mt-0.5 text-xs leading-5 text-secondary-foreground">{group.description}</p>
                         </div>
                       </div>
-                      <Badge variant="outline" className="border-transparent text-xs" style={{ backgroundColor: group.softAccent, color: group.accent }}>
+                      <Badge variant="outline">
                         {pages.length} halaman
                       </Badge>
                     </div>

@@ -4,48 +4,48 @@ import {
   ChevronLeft,
   Filter,
   MoreHorizontal,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 
 import { AccentButton, DestructiveButton, LoadingActionButton } from "@/components/shared/design-system";
 import { Button } from "@/components/ui/button";
 
 export function ButtonVariantsExample() {
   return (
-    <div className="space-y-4 rounded-[12px] bg-card p-6 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+    <div className="space-y-4 rounded-[12px] bg-card p-6 shadow-black">
       <div className="flex flex-wrap items-center gap-3">
         <AccentButton>Primary</AccentButton>
-        <Button variant="secondary" size="md">
+        <Button variant="secondary" size="default">
           Secondary
         </Button>
-        <Button variant="outline" size="md" className="border-transparent shadow-none">
+        <Button variant="outline" size="default" className="">
           Outline
         </Button>
         <Button
           variant="outline"
           size="icon-xs"
-          className="border-transparent shadow-none"
+          className=""
           aria-label="Filter"
           title="Filter"
         >
           <Filter className="size-3.5" />
         </Button>
-        <Button variant="ghost" size="md" className="shadow-none">
+        <Button variant="ghost" size="default" className="">
           Ghost
         </Button>
         <DestructiveButton>Hapus</DestructiveButton>
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <AccentButton>Ajukan review</AccentButton>
-        <Button variant="outline" size="icon-xs" className="rounded-lg border-transparent bg-white shadow-none">
+        <Button variant="outline" size="icon-xs" className="">
           <ChevronLeft className="size-3.5" />
         </Button>
-        <Button variant="outline" size="xs" className="min-w-10 rounded-lg border-transparent bg-white px-4 text-foreground shadow-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+        <Button variant="outline" size="xs" className="min-w-10">
           1
         </Button>
-        <Button variant="outline" size="xs" className="min-w-10 rounded-lg border-transparent bg-white px-4 text-foreground/80 shadow-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+        <Button variant="outline" size="xs" className="min-w-10">
           2
         </Button>
-        <Button variant="ghost" size="icon-xs" className="bg-white text-foreground shadow-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+        <Button variant="ghost" size="icon-xs" className="">
           <MoreHorizontal className="size-3.5" />
         </Button>
       </div>

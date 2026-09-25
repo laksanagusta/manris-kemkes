@@ -6,9 +6,11 @@ import { toast } from "sonner";
 import {
   AlertTriangle,
   XCircle,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
+import { Card, CardContent } from "@/components/ui/card";
 import { PageStack } from "@/components/shared/design-system";
 import { currentAssessmentCycle } from "@/lib/risk-cycle-options";
 import type { DocumentAnalysisMode } from "@/types/document-intelligence";
@@ -38,9 +40,9 @@ function statusMeta(status: ProcessingStatus) {
   if (status === "completed") return { label: "Selesai", tone: "success" as const };
   if (status === "partial") return { label: "Sebagian selesai", tone: "warning" as const };
   if (status === "failed") return { label: "Gagal", tone: "danger" as const };
-  if (status === "cancelled") return { label: "Dibatalkan", tone: "neutral" as const };
+  if (status === "cancelled") return { label: "Dibatalkan", tone: "danger" as const };
   if (status === "processing") return { label: "Diproses", tone: "progress" as const };
-  return { label: "Dalam antrean", tone: "neutral" as const };
+  return { label: "Dalam antrean", tone: "progress" as const };
 }
 
 function relativeStart(date?: string) {
@@ -289,7 +291,8 @@ function ProcessingStatus({
 }) {
   const completedTasks = job.tasks.filter((task) => task.status === "completed" || task.status === "warning").length;
   return (
-    <section className="document-processing-status-enter rounded-lg border border-border/80 bg-card p-4" aria-labelledby="processing-status-title" aria-busy="true">
+    <Card className="document-processing-status-enter" aria-labelledby="processing-status-title" aria-busy="true">
+      <CardContent>
       <p className="sr-only" role="status" aria-live="polite">
         {status?.label ?? "Diproses"}. {completedTasks} dari {job.tasks.length} tugas selesai. Progres {job.progress} persen.
       </p>
@@ -297,13 +300,13 @@ function ProcessingStatus({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h2 id="processing-status-title" className="text-sm font-semibold text-foreground">Analisis sedang diproses</h2>
-            <Badge variant="outline" tone={status?.tone ?? "progress"} className="text-xs">{status?.label ?? "Diproses"}</Badge>
+            <Badge variant={toBadgeVariant(status?.tone ?? "progress")} className={getStatusBadgeClassName(status?.tone ?? "progress")}>{status?.label ?? "Diproses"}</Badge>
           </div>
           <p className="mt-1 text-xs leading-5 text-secondary-foreground">
             {processStage(job)} · {completedTasks}/{job.tasks.length} tugas selesai · dimulai {relativeStart(job.startedAt)}
           </p>
         </div>
-        <Button type="button" variant="outline" size="sm" className="gap-2" onClick={onCancel}>
+        <Button type="button" variant="outline" size="sm" className="" onClick={onCancel}>
           <XCircle className="size-3.5" />
           Batalkan proses
         </Button>
@@ -314,7 +317,8 @@ function ProcessingStatus({
           style={{ transform: `scaleX(${job.progress / 100})`, transformOrigin: "left" }}
         />
       </div>
-    </section>
+      </CardContent>
+    </Card>
   );
 }
 

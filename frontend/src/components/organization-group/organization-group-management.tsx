@@ -8,11 +8,12 @@ import {
   Search,
   Trash2,
   Users,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   CollectionPagination,
   CollectionTableHead,
@@ -303,16 +304,16 @@ export function OrganizationGroupManagement({
 
   return (
     <div className="space-y-6">
-      <div className="overflow-hidden rounded-lg bg-white smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
-        <div className="flex flex-col gap-4 p-4 shadow-[inset_0_-1px_rgba(24,24,27,0.06)] md:px-6">
+      <Card className="overflow-hidden">
+        <CardHeader className="flex flex-col gap-4">
           <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
             <div className="min-w-0">
-              <h2 className="text-[15px] font-semibold tracking-tight text-foreground text-balance">
+              <CardTitle>
                 Grup Organisasi
-              </h2>
-              <p className="mt-1 text-xs text-secondary-foreground text-pretty">
+              </CardTitle>
+              <CardDescription>
                 Kelompokkan unit turunan yang sering dipakai sebagai scope laporan.
-              </p>
+              </CardDescription>
             </div>
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-end">
               <div className="relative w-full max-w-sm md:w-[260px]">
@@ -324,53 +325,54 @@ export function OrganizationGroupManagement({
                     setPage(1);
                   }}
                   placeholder="Cari grup..."
-                  className="h-9 border-input bg-card pl-9 text-sm"
+                  className=""
                 />
               </div>
               <div className="flex flex-wrap items-center gap-2 md:justify-end">
-                <Badge tone="neutral" size="compact" className="tabular-nums">
+                <Badge variant="secondary" className="tabular-nums">
                   {totalGroups} grup
                 </Badge>
-                <Button size="md" className="gap-2 text-xs" variant="outline" onClick={openCreateDialog}>
+                <Button size="default" className="" variant="outline" onClick={openCreateDialog}>
                   <Plus className="size-3.5" />
                   Tambah Grup
                 </Button>
               </div>
             </div>
           </div>
-        </div>
+        </CardHeader>
 
+        <CardContent>
         <CollectionTableSurface>
           <Table className="min-w-[920px]">
             <TableHeader className="[&_tr]:border-b [&_tr]:border-border/60">
-              <TableRow className="border-b border-border transition-colors hover:bg-transparent">
-                <CollectionTableHead density="compact" className="w-[30%] whitespace-nowrap pl-4 pr-2.5 text-left align-middle capitalize text-secondary-foreground md:pl-6">
+              <TableRow className="transition-colors hover:bg-transparent">
+                <CollectionTableHead density="compact" className="w-[30%] px-24 whitespace-nowrap text-left align-middle">
                   Nama Grup
                 </CollectionTableHead>
-                <CollectionTableHead density="compact" className="w-[30%] whitespace-nowrap px-2.5 text-left align-middle capitalize text-secondary-foreground">
+                <CollectionTableHead density="compact" className="w-[30%] whitespace-nowrap text-left align-middle">
                   Pemilik
                 </CollectionTableHead>
-                <CollectionTableHead density="compact" className="w-24 whitespace-nowrap px-2.5 text-left align-middle capitalize text-secondary-foreground">
+                <CollectionTableHead density="compact" className="w-24 whitespace-nowrap text-left align-middle">
                   Anggota
                 </CollectionTableHead>
-                <CollectionTableHead density="compact" className="w-32 whitespace-nowrap px-2.5 text-left align-middle capitalize text-secondary-foreground">
+                <CollectionTableHead density="compact" className="w-32 whitespace-nowrap text-left align-middle">
                   Diperbarui
                 </CollectionTableHead>
-                <CollectionTableHead density="compact" className="w-28 whitespace-nowrap px-2.5 text-left align-middle capitalize text-secondary-foreground">
-                  Aksi
+                <CollectionTableHead density="compact" className="w-28 whitespace-nowrap text-left align-middle">
+                  <span className="sr-only">Aksi</span>
                 </CollectionTableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
-                <TableRow className="border-border/80 transition-colors hover:bg-muted/70">
-                  <TableCell colSpan={5} className="!py-12 text-left text-xs text-muted-foreground">
+                <TableRow className="transition-colors hover:bg-muted/70">
+                  <TableCell colSpan={5} className="text-left">
                     <Loader2 className="size-5 animate-spin text-disabled-foreground" />
                   </TableCell>
                 </TableRow>
               ) : paginatedGroups.length === 0 ? (
-                <TableRow className="border-border/80 transition-colors hover:bg-muted/70">
-                  <TableCell colSpan={5} className="!py-8 text-left text-xs text-muted-foreground">
+                <TableRow className="transition-colors hover:bg-muted/70">
+                  <TableCell colSpan={5} className="text-left">
                     Tidak ada grup organisasi yang ditemukan.
                   </TableCell>
                 </TableRow>
@@ -378,9 +380,9 @@ export function OrganizationGroupManagement({
                 paginatedGroups.map((group) => (
                   <TableRow
                     key={group.id}
-                    className="border-border/80 transition-colors hover:bg-muted/70"
+                    className="transition-colors hover:bg-muted/70"
                   >
-                    <TableCell className="pl-4 pr-2 align-middle md:pl-6">
+                    <TableCell className="align-middle px-24 md:pl-6">
                       <div className="max-w-[250px]">
                         <p className="block truncate text-sm font-medium leading-relaxed text-foreground">
                           {group.name}
@@ -392,27 +394,27 @@ export function OrganizationGroupManagement({
                         ) : null}
                       </div>
                     </TableCell>
-                    <TableCell className="px-2.5 align-middle text-secondary-foreground">
+                    <TableCell className="align-middle">
                       <div className="max-w-[280px] truncate text-sm">
                         {group.ownerOrganizationName}
                       </div>
                     </TableCell>
-                    <TableCell className="px-2.5 align-middle">
-                      <Badge tone="neutral" size="micro">
+                    <TableCell className="align-middle">
+                      <Badge variant="secondary">
                         <Users className="size-3" />
                         {group.memberCount}
                       </Badge>
                     </TableCell>
-                    <TableCell className="px-2.5 align-middle text-xs text-secondary-foreground">
+                    <TableCell className="align-middle">
                       {formatDateTime(group.updatedAt)}
                     </TableCell>
-                    <TableCell className="px-2.5 align-middle">
+                    <TableCell className="align-middle">
                       <div className="flex">
                         <Button
                           type="button"
                           variant="ghost"
                           size="icon-xs"
-                          className="text-muted-foreground"
+                          className=""
                           onClick={() => openEditDialog(group)}
                           aria-label={`Edit grup ${group.name}`}
                         >
@@ -422,7 +424,7 @@ export function OrganizationGroupManagement({
                           type="button"
                           variant="ghost"
                           size="icon-xs"
-                          className="text-muted-foreground"
+                          className=""
                           onClick={() => {
                             setGroupToDelete(group);
                             setDeleteOpen(true);
@@ -452,7 +454,8 @@ export function OrganizationGroupManagement({
             setPage(1);
           }}
         />
-      </div>
+        </CardContent>
+      </Card>
 
       <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
         <DialogContent className="max-w-2xl" showCloseButton={!saving}>
@@ -474,7 +477,7 @@ export function OrganizationGroupManagement({
                 onChange={(event) => setName(event.target.value)}
                 placeholder="Contoh: Jawa Timur"
                 disabled={saving}
-                className="h-10"
+                className=""
               />
             </div>
 
@@ -486,7 +489,7 @@ export function OrganizationGroupManagement({
                 onChange={(event) => setDescription(event.target.value)}
                 placeholder="Catatan tambahan grup"
                 disabled={saving}
-                className="min-h-[88px] resize-none"
+                className="resize-none"
               />
             </div>
 
@@ -498,7 +501,7 @@ export function OrganizationGroupManagement({
                     {selectedMemberIds.length} dipilih, {filteredDescendantOptions.length} ditampilkan.
                   </p>
                 </div>
-                <Badge variant="outline" className="gap-1">
+                <Badge variant="outline" className="">
                   <Users className="size-3.5" />
                   {selectedMemberIds.length}
                 </Badge>
@@ -542,7 +545,7 @@ export function OrganizationGroupManagement({
                   value={memberSearch}
                   onChange={(event) => setMemberSearch(event.target.value)}
                   placeholder="Cari organisasi..."
-                  className="h-10 pl-9"
+                  className=""
                   disabled={saving}
                 />
               </div>

@@ -14,10 +14,10 @@ export function AppTopbar() {
   return (
     <header
       data-slot="app-topbar"
-      className="fixed inset-x-0 top-0 z-50 isolate flex h-14 w-full shrink-0 self-start bg-white backdrop-blur"
+      className="fixed inset-x-0 top-0 z-50 isolate flex h-14 w-full shrink-0 self-start bg-background backdrop-blur"
     >
       <div className="flex min-w-0 flex-1">
-        <div className="hidden h-full shrink-0 items-center border-e border-border/60 bg-sidebar px-3 transition-[width] duration-200 ease-(--ease-out) motion-reduce:transition-none md:flex md:w-(--sidebar-width) md:group-data-[state=collapsed]/sidebar-wrapper:w-(--sidebar-width-icon) md:group-data-[state=collapsed]/sidebar-wrapper:justify-center">
+        <div className="hidden h-full shrink-0 items-center border-e border-sidebar-border bg-sidebar px-2 transition-[width] duration-200 ease-(--ease-out) motion-reduce:transition-none md:flex md:w-(--sidebar-width) md:group-data-[state=collapsed]/sidebar-wrapper:w-(--sidebar-width-icon) md:group-data-[state=collapsed]/sidebar-wrapper:justify-center">
           <Link
             href="/overview"
             className="font-logo flex min-w-0 items-center rounded-md px-2 py-1 text-[20px] leading-5 font-semibold lowercase tracking-[-0.4px] text-foreground outline-hidden transition-colors duration-150 hover:bg-muted/70 focus-visible:ring-2 focus-visible:ring-ring md:group-data-[state=collapsed]/sidebar-wrapper:hidden"
@@ -26,7 +26,7 @@ export function AppTopbar() {
           </Link>
         </div>
 
-        <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-border/60 px-3 md:px-5">
+        <div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 border-b border-sidebar-border px-3 md:px-5">
           <div className="flex min-w-0 items-center gap-1">
             <SidebarTrigger className="md:hidden" />
             <Link

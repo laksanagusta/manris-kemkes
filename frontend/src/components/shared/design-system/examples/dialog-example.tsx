@@ -3,9 +3,9 @@
 import { useState } from "react";
 
 import { CollectionDialogCancel, DestructiveButton } from "@/components/shared/design-system";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export function DialogExample() {
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -21,6 +21,9 @@ export function DialogExample() {
           <DialogTitle className="text-base">
               Hapus Draft Risiko?
             </DialogTitle>
+            <DialogDescription>
+              Draft yang dihapus tidak bisa dikembalikan.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-0.5 py-1 text-sm">
             <p className="font-medium">Contoh Item</p>
@@ -48,6 +51,9 @@ export function DialogExample() {
             <AlertDialogTitle className="text-base">
               Konfirmasi Pemantauan
             </AlertDialogTitle>
+            <AlertDialogDescription>
+              Periksa detail risiko sebelum memulai pemantauan.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-2 rounded-lg bg-accent p-3 ring-1 ring-inset ring-border">
             <div className="text-sm">
@@ -60,10 +66,10 @@ export function DialogExample() {
             </div>
           </div>
           <AlertDialogFooter>
-            <AlertDialogCancel variant="outline" size="md">
+            <AlertDialogCancel variant="outline" size="default">
               Batal
             </AlertDialogCancel>
-            <AlertDialogAction variant="primary" size="primary">
+            <AlertDialogAction variant="default" size="default">
               Lanjutkan
             </AlertDialogAction>
           </AlertDialogFooter>

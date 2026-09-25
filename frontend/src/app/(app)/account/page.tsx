@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { KeyRound, Save, UserRound } from "@/components/ui/icons";
+import { KeyRound, Save, UserRound } from "@/components/shared/icons";
 import { toast } from "sonner";
 
 import { useAuth } from "@/contexts/auth-context";
@@ -161,9 +161,9 @@ export default function AccountPage() {
         }
       />
 
-      <Card className="bg-card">
+      <Card className="">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base font-semibold">
+          <CardTitle className="flex items-center gap-2">
             <UserRound className="size-4" /> Profil Pengguna
           </CardTitle>
           <CardDescription>
@@ -173,7 +173,7 @@ export default function AccountPage() {
             <Button
               type="button"
               variant="outline"
-              className="gap-2"
+              className=""
               onClick={() => handlePasswordDialogChange(true)}
             >
               <KeyRound className="size-4" />
@@ -233,7 +233,7 @@ export default function AccountPage() {
               />
             </div>
             <div className="md:col-span-2 flex justify-end">
-              <Button type="submit" className="gap-2" disabled={savingProfile}>
+              <Button type="submit" className="" disabled={savingProfile}>
                 <Save className="size-4" />
                 {savingProfile ? "Menyimpan..." : "Simpan Profil"}
               </Button>
@@ -306,11 +306,11 @@ export default function AccountPage() {
 
             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
               <DialogClose asChild>
-                <Button type="button" variant="outline" className="gap-2" disabled={savingPassword}>
+                <Button type="button" variant="outline" className="" disabled={savingPassword}>
                   Batal
                 </Button>
               </DialogClose>
-              <Button type="submit" className="gap-2" disabled={savingPassword}>
+              <Button type="submit" className="" disabled={savingPassword}>
                 <KeyRound className="size-4" />
                 {savingPassword ? "Menyimpan..." : "Perbarui Password"}
               </Button>

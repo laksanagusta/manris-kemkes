@@ -1,12 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useReducedMotion } from "motion/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import {
-  CollectionDialogCancel,
   CollectionEmptyState,
   CollectionLoadingState,
   CollectionPagination,
@@ -26,18 +24,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { parseEvidenceUrls } from "@/lib/validation/reporting";
 import {
@@ -51,17 +37,19 @@ import {
   ExternalLink,
   UserRound,
   Upload,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
 import {
   ActionButton,
   AccentButton,
-  MitigationProgressDialog,
+  MitigationProgressFlowDialog,
+  type MitigationProgressFlowView,
 } from "@/components/shared/design-system";
 import { validateMitigationReportForm } from "@/lib/validation/reporting";
 import { getMitigationSubmissionActionState } from "@/lib/mitigation-reporting";
+import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 import {
   buildMitigationMonitoringApiQueryString,
   buildMitigationMonitoringQueryString,
@@ -165,18 +153,18 @@ export function MitigationMonitoringPanel() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [detailTask, setDetailTask] = useState<MitigationTaskRow | null>(null);
-  const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [showMitigationDialog, setShowMitigationDialog] = useState(false);
+  const [dialogView, setDialogView] = useState<MitigationProgressFlowView>(
+    "detail",
+  );
   const [selectedTask, setSelectedTask] = useState<MitigationTaskRow | null>(
     null,
   );
-  const [showDialog, setShowDialog] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [evidenceUrl, setEvidenceUrl] = useState("");
   const [notes, setNotes] = useState("");
   const evidenceInputRef = useRef<HTMLInputElement | null>(null);
   const notesInputRef = useRef<HTMLTextAreaElement | null>(null);
-  const pendingReportTaskRef = useRef<MitigationTaskRow | null>(null);
-  const reducedMotion = useReducedMotion();
   const [showValidationErrors, setShowValidationErrors] = useState(false);
   const [search, setSearch] = useState(queryState.search);
 
@@ -323,38 +311,25 @@ export function MitigationMonitoringPanel() {
     setEvidenceUrl(task.evidenceUrl || "");
     setNotes(task.notes || "");
     setShowValidationErrors(false);
-    setShowDialog(true);
+    setDialogView("form");
+    setShowMitigationDialog(true);
   }, []);
-
-  const flushPendingReport = useCallback(() => {
-    const task = pendingReportTaskRef.current;
-    if (!task) return;
-
-    pendingReportTaskRef.current = null;
-    handleOpenSubmit(task);
-  }, [handleOpenSubmit]);
 
   const handleOpenSubmitFromDetail = useCallback(
     (task: MitigationTaskRow) => {
-      pendingReportTaskRef.current = task;
-      setShowDetailDialog(false);
-
-      if (reducedMotion) {
-        window.requestAnimationFrame(flushPendingReport);
-      }
+      setSelectedTask(task);
+      setEvidenceUrl(task.evidenceUrl || "");
+      setNotes(task.notes || "");
+      setShowValidationErrors(false);
+      setDialogView("form");
     },
-    [flushPendingReport, reducedMotion],
+    [],
   );
-
-  useEffect(() => {
-    return () => {
-      pendingReportTaskRef.current = null;
-    };
-  }, []);
 
   const handleOpenDetail = (task: MitigationTaskRow) => {
     setDetailTask(task);
-    setShowDetailDialog(true);
+    setDialogView("detail");
+    setShowMitigationDialog(true);
   };
 
   const handleSubmitProgress = async () => {
@@ -384,7 +359,7 @@ export function MitigationMonitoringPanel() {
         token,
       );
       toast.success("Progress berhasil dilaporkan!");
-      setShowDialog(false);
+      setShowMitigationDialog(false);
       await fetchMitigations();
     } catch (error) {
       console.error(error);
@@ -459,7 +434,7 @@ export function MitigationMonitoringPanel() {
             placeholder="Cari mitigasi..."
             aria-label="Cari mitigasi"
           />
-          <ActionButton asChild variant="outline" className="border-0 border-shadow sm:ml-auto">
+          <ActionButton asChild variant="outline" className="sm:ml-auto">
             <Link href="/compliance/penanganan/impor">
               <Upload className="size-3.5" />
               Import
@@ -478,28 +453,26 @@ export function MitigationMonitoringPanel() {
           <CollectionTableCard>
           <Table className="min-w-[1180px] table-fixed">
             <colgroup>
-              <col className="w-[26%]" />
-              <col className="w-[17%]" />
+              <col className="w-[35%]" />
+              <col className="w-[16%]" />
+              <col className="w-[12%]" />
+              <col className="w-[14%]" />
               <col className="w-[13%]" />
               <col className="w-[10%]" />
-              <col className="w-[13%]" />
-              <col className="w-[9%]" />
-              <col className="w-[12%]" />
             </colgroup>
             <CollectionTableHeader>
               <CollectionTableHeaderRow className="h-9 hover:bg-transparent">
-                <CollectionTableHead className="px-3">
+                <CollectionTableHead className="px-24">
                   Rencana Penanganan
                 </CollectionTableHead>
-                <CollectionTableHead className="px-3">Risiko</CollectionTableHead>
-                <CollectionTableHead className="px-3">PIC</CollectionTableHead>
-                <CollectionTableHead className="px-3">Periode</CollectionTableHead>
-                <CollectionTableHead className="px-3">
+                <CollectionTableHead >PIC</CollectionTableHead>
+                <CollectionTableHead >Periode</CollectionTableHead>
+                <CollectionTableHead >
                   Deadline
                 </CollectionTableHead>
-                <CollectionTableHead className="px-3">Status</CollectionTableHead>
-                <CollectionTableHead className="pl-3 pr-4 text-right">
-                  Aksi
+                <CollectionTableHead >Status</CollectionTableHead>
+                <CollectionTableHead className="text-right">
+                  <span className="sr-only">Aksi</span>
                 </CollectionTableHead>
               </CollectionTableHeaderRow>
             </CollectionTableHeader>
@@ -514,61 +487,45 @@ export function MitigationMonitoringPanel() {
                 return (
                   <TableRow
                     key={item.id}
-                    className="group border-0 hover:bg-transparent hover:[&>td]:bg-muted/50 [&>td]:transition-[background-color]"
+                    className="group hover:bg-transparent hover:[&>td]:bg-muted/50 [&>td]:transition-[background-color]"
                   >
-                    <TableCell className="px-3 py-2 align-middle">
+                    <TableCell className="align-middle px-24">
                       <button
                         type="button"
                         onClick={() => handleOpenDetail(item)}
-                        className="block min-w-0 text-left text-sm font-medium leading-5 text-foreground transition-colors hover:text-primary"
+                        className="block w-full min-w-0 text-left text-sm font-medium leading-5 text-foreground transition-colors hover:text-primary"
                       >
-                        <span className="line-clamp-2 font-medium">
+                        <span className="block truncate font-medium">
                           {item.mitigationAction}
+                        </span>
+                        <span className="mt-0.5 block font-mono text-sm leading-5 text-muted-foreground">
+                          {item.riskCode}
                         </span>
                       </button>
                     </TableCell>
-                    <TableCell className="px-3 py-2 align-middle">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <div
-                            tabIndex={0}
-                            className="min-w-0 cursor-help rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
-                          >
-                            <p className="truncate font-mono text-sm font-normal tracking-wide text-foreground">
-                              {item.riskCode}
-                            </p>
-                            <p className="line-clamp-1 text-xs text-muted-foreground">
-                              {item.title}
-                            </p>
-                          </div>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-md text-xs">
-                          {item.riskCode} · {item.title}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TableCell>
-                    <TableCell className="px-3 py-2 align-middle">
+                    <TableCell className="align-middle">
                       <p className="truncate text-sm font-medium text-muted-foreground">
                         {item.unit}
                       </p>
                     </TableCell>
-                    <TableCell className="px-3 py-2 align-middle">
+                    <TableCell className="align-middle">
                       <span className="font-mono text-sm text-muted-foreground">
                         {item.periodLabel || "—"}
                       </span>
                     </TableCell>
-                    <TableCell className="px-3 py-2 align-middle text-sm text-muted-foreground">
-                      <p>{formatDate(item.dueDate)}</p>
+                    <TableCell className="align-middle">
+                      <p className="text-muted-foreground">
+                        {formatDate(item.dueDate)}
+                      </p>
                     </TableCell>
-                    <TableCell className="px-3 py-2 align-middle">
-                      <Badge
-                        size="compact"
-                        tone={getMitigationStatusTone(item.status)}
+                    <TableCell className="align-middle">
+                      <Badge variant={toBadgeVariant(getMitigationStatusTone(item.status))}
+                        className={getStatusBadgeClassName(getMitigationStatusTone(item.status))}
                       >
                         {getMitigationStatusLabel(item.status)}
                       </Badge>
                     </TableCell>
-                  <TableCell className="sticky right-0 z-10 bg-card py-2 pl-3 pr-4 text-right align-middle">
+                  <TableCell className="sticky right-0 z-10 text-right align-middle">
                     <MitigationRowActions
                       task={item}
                       submissionState={submissionState}
@@ -596,26 +553,21 @@ export function MitigationMonitoringPanel() {
         )}
       </div>
 
-      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
-        <DialogContent
-          className="max-w-2xl no-scrollbar"
-          showCloseButton={false}
-          onAnimationEnd={(event) => {
-            if (
-              event.currentTarget !== event.target ||
-              event.animationName !== "exit"
-            ) {
-              return;
-            }
-
-            flushPendingReport();
-          }}
-        >
-          <DialogHeader>
-            <DialogTitle className="text-base">Detail Laporan Penanganan</DialogTitle>
-          </DialogHeader>
-
-          {detailTask && (
+      <MitigationProgressFlowDialog
+        open={showMitigationDialog}
+        onOpenChange={(open) => {
+          setShowMitigationDialog(open);
+          if (!open) {
+            setShowValidationErrors(false);
+            setDialogView("detail");
+          }
+        }}
+        view={dialogView}
+        onViewChange={setDialogView}
+        detailTitle="Detail Laporan Penanganan"
+        detailDescription="Tinjau status, bukti, dan catatan penanganan."
+        detailContent={
+          detailTask ? (
             <div className="space-y-6">
               <div className="space-y-4">
                 <div className="flex flex-col gap-2">
@@ -758,46 +710,31 @@ export function MitigationMonitoringPanel() {
                 </div>
               </div>
             </div>
-          )}
-
-          <DialogFooter className="gap-2 sm:justify-between">
-            <CollectionDialogCancel
-              type="button"
-              variant="outline"
-              size="md"
-              className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
-              onClick={() => setShowDetailDialog(false)}
-            >
-              Tutup
-            </CollectionDialogCancel>
-            {detailTask &&
-              (detailTask.status === "pending" ||
-                detailTask.status === "overdue") && (
-                detailTask.status === "overdue" ? (
-                  <ActionButton
-                    variant="destructive"
-                    onClick={() => handleOpenSubmitFromDetail(detailTask)}
-                    icon={<Send className="size-3" />}
-                  >
-                    Lapor Progress
-                  </ActionButton>
-                ) : (
-                  <AccentButton
-                    onClick={() => handleOpenSubmitFromDetail(detailTask)}
-                    icon={<Send className="size-3" />}
-                  >
-                    Lapor Progress
-                  </AccentButton>
-                )
-              )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <MitigationProgressDialog
-        open={showDialog}
-        onOpenChange={setShowDialog}
-        title="Lapor Progress Penanganan"
+          ) : null
+        }
+        detailAction={
+          detailTask &&
+          (detailTask.status === "pending" || detailTask.status === "overdue") ? (
+            detailTask.status === "overdue" ? (
+              <ActionButton
+                variant="destructive"
+                onClick={() => handleOpenSubmitFromDetail(detailTask)}
+                icon={<Send className="size-3" />}
+              >
+                Lapor Progress
+              </ActionButton>
+            ) : (
+              <AccentButton
+                onClick={() => handleOpenSubmitFromDetail(detailTask)}
+                icon={<Send className="size-3" />}
+              >
+                Lapor Progress
+              </AccentButton>
+            )
+          ) : null
+        }
+        formTitle="Lapor Progress Penanganan"
+        onFormCancel={() => setDialogView("detail")}
         evidenceUrl={evidenceUrl}
         onEvidenceUrlChange={setEvidenceUrl}
         notes={notes}

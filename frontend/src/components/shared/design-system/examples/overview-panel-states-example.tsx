@@ -3,13 +3,13 @@ import { OverviewPanelState, StandardCard } from "@/components/shared/design-sys
 export function OverviewPanelStatesExample() {
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      <StandardCard title="Loading State" contentClassName="p-4 pt-0">
+      <StandardCard title="Loading State">
         <OverviewPanelState state="loading" message="Memuat data dashboard..." />
       </StandardCard>
-      <StandardCard title="Error State" contentClassName="p-4 pt-0">
+      <StandardCard title="Error State">
         <OverviewPanelState state="error" message="Data tidak dapat dimuat." />
       </StandardCard>
-      <StandardCard title="Empty State" contentClassName="p-4 pt-0">
+      <StandardCard title="Empty State">
         <OverviewPanelState state="empty" message="Belum ada data pada periode ini." />
       </StandardCard>
     </div>

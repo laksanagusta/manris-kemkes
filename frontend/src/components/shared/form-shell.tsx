@@ -82,18 +82,18 @@ export function FormSection({
   return (
     <Card
       className={cn(
-        "rounded-[12px] bg-card transition-colors duration-200",
+        "transition-colors duration-200",
         className,
       )}
     >
       <CardHeader>
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div className="space-y-1">
-            <CardTitle className="text-base font-semibold text-foreground">
+            <CardTitle className="">
               {title}
             </CardTitle>
             {description ? (
-              <CardDescription className="max-w-2xl text-sm leading-6">
+              <CardDescription className="max-w-2xl">
                 {description}
               </CardDescription>
             ) : null}

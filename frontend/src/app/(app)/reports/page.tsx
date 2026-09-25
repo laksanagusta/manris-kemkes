@@ -16,7 +16,7 @@ import {
   Loader2,
   ArrowUpRight,
   ChevronDown,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 import {
   ChartContainer,
   ChartTooltip,
@@ -576,14 +576,14 @@ export default function ReportsPage() {
                 <ActionButton
                   type="button"
                   variant="ghost"
-                  size="md"
+                  size="default"
                   onClick={handleResetReportFilter}
                 >
                   Reset
                 </ActionButton>
                 <AccentButton
                   type="button"
-                  size="md"
+                  size="default"
                   onClick={handleApplyReportFilter}
                 >
                   Terapkan
@@ -635,7 +635,7 @@ export default function ReportsPage() {
           <>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <ActionButton variant="outline" size="md" className="gap-2">
+            <ActionButton variant="outline" size="default" className="gap-2">
               <Download className="size-3.5" strokeWidth={2.5} />
               Export
               <ChevronDown className="size-3.5 text-muted-foreground" />
@@ -671,7 +671,7 @@ export default function ReportsPage() {
               title="Laporan Pergerakan Risiko"
               contentClassName="flex min-h-0 flex-1 flex-col"
               actions={
-                  <Badge variant="outline" className="h-5 px-2 text-[10px]">
+                  <Badge variant="outline" className="">
                     {`${previousCycle} ke ${exportCycle}`}
                   </Badge>
               }
@@ -736,7 +736,7 @@ export default function ReportsPage() {
               title="Paparan Risiko"
               contentClassName="flex min-h-0 flex-1 flex-col"
               actions={
-                  <Badge variant="outline" className="h-5 px-2 text-[10px]">
+                  <Badge variant="outline" className="">
                     {exportCycle}
                   </Badge>
               }
@@ -830,7 +830,7 @@ export default function ReportsPage() {
 
           <div className={REPORT_WIDGET_WRAPPER_CLASS}>
             <ReportPanel
-              contentClassName="flex min-h-0 flex-1 flex-col p-4"
+              contentClassName="flex min-h-0 flex-1 flex-col"
               headerClassName="items-start"
               title="Tren Risiko"
               actions={
@@ -841,7 +841,7 @@ export default function ReportsPage() {
                   }
                   options={trendWindowOptions}
                   placeholder="Pilih periode"
-                  triggerClassName="h-9 w-28 bg-muted/30 text-[10px]"
+                  triggerClassName="h-8 w-28 bg-muted/30 text-[10px]"
                 />
               }
             >

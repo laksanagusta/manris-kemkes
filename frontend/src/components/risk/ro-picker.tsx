@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, ChevronsUpDown, Loader2, Search } from "@/components/ui/icons";
+import { Check, ChevronsUpDown, Loader2, Search } from "@/components/shared/icons";
 
 import { useAuth } from "@/contexts/auth-context";
 import {
@@ -19,7 +19,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { PopoverSelectField } from "@/components/shared/design-system";
-import { SearchInput } from "@/components/ui/search-input";
+import { SearchInput } from "@/components/shared/search-input";
 import { cn } from "@/lib/utils";
 
 export type ROSelectionSummary = PlanningROOption;
@@ -167,11 +167,11 @@ export function ROPicker({
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          size="md"
+          size="default"
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
-          className="group/ro-picker h-10 w-full justify-between overflow-hidden rounded-lg border-0 border-shadow bg-card px-2.5 text-sm font-normal transition-[background-color,box-shadow] active:translate-y-0 active:scale-100 aria-expanded:bg-card aria-expanded:text-foreground hover:bg-muted/20 focus-visible:ring-2 focus-visible:ring-ring/30"
+          className="group/ro-picker w-full justify-between overflow-hidden transition-[background-color,box-shadow] active:translate-y-0 active:scale-100 aria-expanded:bg-card aria-expanded:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
         >
           {selected ? (
             <span className="min-w-0 flex-1 truncate text-left">
@@ -187,7 +187,6 @@ export function ROPicker({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        variant="dropdown"
         className="w-[var(--radix-popover-trigger-width)]"
         align="start"
         sideOffset={8}

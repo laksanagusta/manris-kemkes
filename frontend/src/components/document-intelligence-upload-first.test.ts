@@ -202,9 +202,9 @@ test("keeps confidence metadata and left-aligns finding summaries", () => {
 });
 
 test("uses the design-system badge primitive for finding severity", () => {
-  assert.match(completedResults, /import \{ Badge \} from "@\/components\/shared\/design-system"/);
-  assert.match(completedResults, /<Badge tone=\{meta\.tone\} size="micro">/);
-  assert.doesNotMatch(completedResults, /<Badge variant="outline" tone=\{meta\.tone\}/);
+  assert.match(completedResults, /import \{ Badge \} from "@\/components\/ui\/badge"/);
+  assert.match(completedResults, /<Badge variant=\{toBadgeVariant\(meta\.tone\)\}>/);
+  assert.doesNotMatch(completedResults, /<Badge[^>]+tone=/);
 });
 
 test("keeps findings flat without a priority grouping or outer card wrapper", () => {

@@ -9,10 +9,10 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
-import { Check, ChevronDown, Loader2, Search, UserRound } from "@/components/ui/icons";
+import { Check, ChevronDown, Loader2, Search, UserRound } from "@/components/shared/icons";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { SearchInput } from "@/components/ui/search-input";
+import { SearchInput } from "@/components/shared/search-input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   appendUniqueUserOptions,
@@ -33,7 +33,7 @@ interface RemoteUserPickerProps {
   title: string;
   description: string;
   placeholder: string;
-  searchPlaceholder: string;
+  searchPlaceholder?: string;
   emptyMessage: string;
   disabled?: boolean;
   value: UserPickerOption | null;
@@ -247,7 +247,7 @@ export function RemoteUserPicker({
             aria-label={iconOnly ? `${title}: ${value?.name ?? placeholder}` : undefined}
             title={iconOnly ? `${title}: ${value?.name ?? placeholder}` : undefined}
             className={cn(
-              "group/remote-user-picker flex h-10 w-full items-center justify-between gap-1.5 rounded-lg border-0 border-shadow bg-card py-2 pr-3 pl-3 text-sm whitespace-nowrap transition-[background-color,box-shadow] active:translate-y-0 active:scale-100 outline-none select-none hover:bg-muted/20 focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:ring-2 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
+              "group/remote-user-picker flex h-10 w-full items-center justify-between gap-1.5 rounded-lg border-0 bg-card py-2 pr-3 pl-3 text-sm whitespace-nowrap transition-[background-color,box-shadow] active:translate-y-0 active:scale-100 outline-none select-none hover:bg-muted/20 focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:ring-2 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
               !value && "text-muted-foreground",
         iconOnly && "size-8 justify-center border-0 bg-transparent p-0 !shadow-none hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-ring",
             )}
@@ -260,7 +260,6 @@ export function RemoteUserPicker({
         </PopoverTrigger>
 
         <PopoverContent
-          variant="dropdown"
           style={{
             width: iconOnly
               ? "min(320px, calc(100vw - 2rem))"
@@ -282,8 +281,8 @@ export function RemoteUserPicker({
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 onKeyDown={handleSearchKeyDown}
-                placeholder={searchPlaceholder}
-                aria-label={searchPlaceholder}
+                placeholder={searchPlaceholder || undefined}
+                aria-label={searchPlaceholder || `${title}: cari`}
                 className="h-9 rounded-none border-0 bg-transparent px-0 py-2.5 !shadow-none"
                 aria-activedescendant={
                   activeIndex >= 0 ? `${panelId}-option-${activeIndex}` : undefined

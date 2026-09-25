@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Loader2, Shield, Users } from "@/components/ui/icons";
+import { Loader2, Shield, Users } from "@/components/shared/icons";
 
 import {
   Card,
@@ -11,7 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/shared/animated-tabs";
 import { useAuth } from "@/contexts/auth-context";
 import { listAllOrganizations } from "@/lib/api/organizations";
 import type { Organization } from "@/lib/organization";
@@ -23,15 +23,15 @@ import {
 
 function PlaceholderTab() {
   return (
-    <Card className="bg-card/80 backdrop-blur-sm">
+    <Card className="">
       <CardHeader className="space-y-2">
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className="gap-1.5">
+          <Badge variant="outline" className="">
             <Users className="size-3.5" />
             Segera hadir
           </Badge>
         </div>
-        <CardTitle className="text-sm font-semibold">Grup Pengguna</CardTitle>
+        <CardTitle className="">Grup Pengguna</CardTitle>
         <CardDescription>
           Tab ini disiapkan untuk pengelompokan pengguna di tahap berikutnya.
         </CardDescription>
@@ -97,8 +97,8 @@ export default function SettingsGroupsPage() {
 
         <TabsContent value="organizations" className="space-y-6">
           {loadingOrganizations ? (
-            <Card className="bg-card/80 backdrop-blur-sm">
-              <CardContent className="flex items-center justify-center py-12">
+            <Card className="">
+              <CardContent className="flex items-center justify-center">
                 <Loader2 className="size-5 animate-spin text-muted-foreground" />
               </CardContent>
             </Card>

@@ -10,7 +10,7 @@ import {
   FileSpreadsheet,
   FileText,
   X,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { UploadedDocument } from "@/types/document-processing";
@@ -204,7 +204,7 @@ export function UploadPanel({
               exit={reduceMotion ? { opacity: 0 } : { opacity: 0, transform: "translateY(-6px)" }}
               transition={{ duration: reduceMotion ? 0.12 : 0.18, ease: [0.23, 1, 0.32, 1] }}
               className={cn(
-                "rounded-lg bg-card p-4 border-shadow sm:p-5",
+                "rounded-lg bg-card p-4 sm:p-5",
                 document.error && "ring-1 ring-destructive/35",
               )}
             >
@@ -247,10 +247,10 @@ export function UploadPanel({
         </p>
         <Button
           type="button"
-          variant="primary"
-          size="primary"
+          variant="default"
+          size="default"
           disabled={!validDocuments.length || processing}
-          className="gap-2"
+          className=""
           onClick={onStart}
           aria-label={processing ? "Menyiapkan analisis" : "Mulai analisis"}
         >

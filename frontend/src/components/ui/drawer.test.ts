@@ -10,8 +10,9 @@ test("Vaul right drawer uses the floating 8px inset treatment", () => {
   assert.match(source, /fixed bottom-2 right-2 top-2 z-\[70\]/);
   assert.match(source, /w-\[310px\]/);
   assert.match(source, /"--initial-transform": "calc\(100% \+ 8px\)"/);
-  assert.match(source, /rounded-\[16px\] bg-card p-5/);
-  assert.match(source, /fixed inset-0 z-\[60\] bg-black\/40/);
+  assert.match(source, /rounded-\[12px\] bg-card/);
+  assert.match(source, /px-5 py-5/);
+  assert.match(source, /frosted-scrim fixed inset-0 z-\[60\]/);
 });
 
 test("drawer scrim sits above fixed shell chrome", () => {

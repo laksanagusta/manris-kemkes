@@ -6,6 +6,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import {
   riskGuideContent,
   type RiskGuideContent,
@@ -18,7 +20,7 @@ import {
   Circle,
   PlayCircle,
   RotateCcw,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 
 type RiskGuidePageProps = {
   content?: RiskGuideContent;
@@ -29,18 +31,10 @@ const STATUS_CONFIG = {
   draft: {
     label: "draft",
     icon: Circle,
-    tone: "warning" as const,
-    bg: "bg-yellow-500/10",
-    border: "border-yellow-500/30",
-    text: "text-yellow-400",
   },
   final: {
     label: "final",
     icon: CheckCircle2,
-    tone: "success" as const,
-    bg: "bg-green-500/10",
-    border: "border-green-500/30",
-    text: "text-green-400",
   },
 };
 
@@ -49,14 +43,9 @@ function StatusPill({ status }: { status: string }) {
     STATUS_CONFIG[status as keyof typeof STATUS_CONFIG] ||
     STATUS_CONFIG.draft;
   const Icon = config.icon;
-
   return (
-    <Badge
-      tone={config.tone}
-      size="micro"
-      className={cn("font-mono uppercase tracking-wider", config.text)}
-    >
-      <Icon className="size-2.5" />
+    <Badge variant={status === "final" ? "default" : "secondary"} className={status === "final" ? "border-transparent bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300" : ""}>
+      <Icon />
       {config.label}
     </Badge>
   );
@@ -80,24 +69,13 @@ function FlowNode({
 
   return (
     <div className="flex items-center gap-0">
-      {!isFirst && (
-        <div className="w-8 border-t border-dashed border-muted-foreground/20" />
-      )}
+      {!isFirst ? <Separator className="w-8" /> : null}
       <div className="flex flex-col items-center gap-1">
-        <div
-          className={cn(
-            "flex items-center gap-2 rounded-lg border px-3 py-1.5 font-mono text-xs",
-            config.bg,
-            config.border,
-          )}
-        >
-          <Icon className={cn("size-3.5", config.text)} />
-          <span className="text-foreground/80">{label}</span>
-        </div>
+      <Badge variant={status === "final" ? "default" : "secondary"} className={status === "final" ? "border-transparent bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300" : ""}><Icon />{label}</Badge>
       </div>
       {!isLast && (
         <div className="flex items-center justify-center w-6">
-          <ArrowRight className="size-3 text-muted-foreground/40" />
+          <ArrowRight className="size-3 text-muted-foreground" />
         </div>
       )}
     </div>
@@ -107,28 +85,14 @@ function FlowNode({
 function PhaseBlock({
   phase,
   steps,
-  variant,
 }: {
   phase: string;
   steps: { label: string; status: string }[];
-  variant: "blue" | "purple";
 }) {
-  const variantStyles = {
-    blue: "border-blue-500/20 bg-blue-500/5",
-    purple: "border-purple-500/20 bg-purple-500/5",
-  };
-
   return (
-    <div
-      className={cn("rounded-lg border p-4 space-y-3", variantStyles[variant])}
-    >
-      <div className="flex items-center gap-2">
-        <span className="text-[10px] font-mono font-semibold uppercase tracking-widest text-muted-foreground">
-          {phase}
-        </span>
-        <div className="h-px flex-1 bg-border/50" />
-      </div>
-      <div className="flex flex-wrap items-center gap-1">
+    <Card>
+      <CardHeader><CardTitle>{phase}</CardTitle></CardHeader>
+      <CardContent className="flex flex-wrap items-center gap-1">
         {steps.map((step, i) => (
           <FlowNode
             key={step.label}
@@ -138,8 +102,8 @@ function PhaseBlock({
             isLast={i === steps.length - 1}
           />
         ))}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -151,11 +115,6 @@ function StepCard({
   index: number;
 }) {
   const stepNum = String(index + 1).padStart(2, "0");
-  const config =
-    STATUS_CONFIG[step.status as keyof typeof STATUS_CONFIG] ||
-    STATUS_CONFIG.draft;
-  const Icon = config.icon;
-
   return (
     <div className="group relative pb-8">
       {index < 5 && (
@@ -166,32 +125,21 @@ function StepCard({
         {stepNum}
       </div>
 
-      <div className="ml-10 rounded-lg bg-card/30 p-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 transition-colors hover:bg-sidebar-accent/50">
-        <div className="flex items-start justify-between gap-4 mb-3">
-          <div className="flex items-center gap-3">
-            <Icon className={cn("size-4", config.text)} />
-            <h3 className="font-mono text-sm font-semibold text-foreground">
-              {step.title}
-            </h3>
-          </div>
+      <Card className="ml-10 transition-colors hover:bg-sidebar-accent/50">
+        <CardHeader>
+          <CardTitle><h3>{step.title}</h3></CardTitle>
           <StatusPill status={step.status} />
-        </div>
-
-        <p className="mb-4 text-xs leading-relaxed text-secondary-foreground">
-          {step.description}
-        </p>
-
-        <div className="space-y-1.5 border-t border-border/30 pt-3">
+          <CardDescription>{step.description}</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-col gap-1.5">
           {step.actions.map((action, i) => (
-            <div key={i} className="flex items-start gap-2 text-xs">
-              <span className="font-mono text-muted-foreground/40 mt-0.5">
-                →
-              </span>
-              <span className="text-foreground/70 font-mono">{action}</span>
+            <div key={i} className="flex items-start gap-2">
+              <ArrowRight className="size-4 shrink-0" aria-hidden="true" />
+              <span>{action}</span>
             </div>
           ))}
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -221,7 +169,7 @@ export function RiskGuidePage({
 
           <h1
             id="risk-guide-title"
-            className="page-title"
+            className="text-2xl font-semibold tracking-tight"
           >
             {content.hero.title}
           </h1>
@@ -247,19 +195,19 @@ export function RiskGuidePage({
           <div className="h-px flex-1 bg-border/50" />
         </div>
 
-        <Card className="overflow-hidden bg-card/40">
-          <CardHeader className="space-y-2 border-b border-border/40 pb-4">
+        <Card className="overflow-hidden">
+          <CardHeader className="space-y-2">
             <div className="flex items-center gap-2">
               <PlayCircle className="size-4 text-primary" />
-              <CardTitle className="text-sm font-semibold">
+              <CardTitle className="">
                 {content.video.title}
               </CardTitle>
             </div>
-            <CardDescription className="text-xs leading-6 text-secondary-foreground">
+            <CardDescription className="">
               {content.video.description}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4 p-4">
+          <CardContent className="space-y-4">
             <div className="overflow-hidden rounded-lg border border-border/50 bg-primary shadow-sm">
               <div className="aspect-video">
                 <iframe
@@ -278,15 +226,11 @@ export function RiskGuidePage({
               <p className="leading-6">
                 Jika video tidak tampil, buka langsung lewat YouTube.
               </p>
-              <a
-                href={content.video.url}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1.5 font-medium text-foreground underline-offset-4 transition hover:underline"
-              >
-                {content.video.label}
-                <ExternalLink className="size-3.5" />
-              </a>
+              <Button asChild variant="link">
+                <a href={content.video.url} target="_blank" rel="noreferrer">
+                  {content.video.label}<ExternalLink data-icon="inline-end" />
+                </a>
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -311,30 +255,26 @@ export function RiskGuidePage({
           {content.documents.items.map((document) => (
             <Card
               key={document.title}
-              className="overflow-hidden bg-card/40"
+              className="overflow-hidden"
             >
-              <CardHeader className="space-y-2 border-b border-border/40 pb-4">
-                <CardTitle className="text-sm font-semibold">
+              <CardHeader className="space-y-2">
+                <CardTitle className="">
                   {document.title}
                 </CardTitle>
-                <CardDescription className="text-xs leading-6 text-secondary-foreground">
+                <CardDescription className="">
                   {document.description}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <CardContent className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <p className="max-w-2xl text-xs leading-6 text-muted-foreground">
                   Buka dokumen di tab baru untuk membaca versi lengkapnya
                   langsung dari Google Drive.
                 </p>
-                <a
-                  href={document.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center justify-center gap-1.5 rounded-full border border-border/60 px-3 py-2 text-xs font-medium text-foreground transition hover:border-border hover:bg-muted/40"
-                >
-                  {document.label}
-                  <ExternalLink className="size-3.5" />
-                </a>
+                <Button asChild variant="outline">
+                  <a href={document.url} target="_blank" rel="noreferrer">
+                    {document.label}<ExternalLink data-icon="inline-end" />
+                  </a>
+                </Button>
               </CardContent>
             </Card>
           ))}
@@ -352,7 +292,7 @@ export function RiskGuidePage({
           <div className="h-px flex-1 bg-border/50" />
         </div>
 
-        <div className="rounded-lg bg-card/30 p-4 space-y-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+        <div className="flex flex-col gap-3">
           <PhaseBlock
             phase={content.flow.phase1}
             steps={[
@@ -360,7 +300,6 @@ export function RiskGuidePage({
               { label: "finalisasi", status: "final" },
               { label: "aktif", status: "final" },
             ]}
-            variant="blue"
           />
 
           <div className="flex items-center justify-center py-1">
@@ -377,7 +316,6 @@ export function RiskGuidePage({
               { label: "lanjutkan", status: "draft" },
               { label: "selesai", status: "final" },
             ]}
-            variant="purple"
           />
         </div>
       </section>
@@ -411,16 +349,11 @@ export function RiskGuidePage({
           <div className="h-px flex-1 bg-border/50" />
         </div>
 
-        <div className="rounded-lg bg-card/30 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 divide-y divide-border/30">
+        <div className="grid gap-3">
           {content.faq.items.map((item) => (
-            <div key={item.question} className="p-4 space-y-1.5">
-              <dt className="text-xs font-mono font-semibold text-foreground">
-                {item.question}
-              </dt>
-              <dd className="text-xs font-mono text-muted-foreground/70 leading-relaxed pl-3 border-l border-border/30">
-                {item.answer}
-              </dd>
-            </div>
+            <Card key={item.question}>
+              <CardHeader><CardTitle>{item.question}</CardTitle><CardDescription>{item.answer}</CardDescription></CardHeader>
+            </Card>
           ))}
         </div>
       </section>

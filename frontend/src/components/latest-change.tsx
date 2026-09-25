@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { XIcon } from "@/components/ui/icons";
+import { XIcon } from "@/components/shared/icons";
 
 const latestChange = {
 	badge: "CHANGELOG",
@@ -36,14 +36,14 @@ export function LatestChange() {
 			</span>
 			<Button
 				asChild
-				className="w-max px-0 font-light text-xs"
+				className="w-max"
 				size="sm"
 				variant="link"
 			>
 				<a href={latestChange.readMore.href}>{latestChange.readMore.label}</a>
 			</Button>
 			<Button
-				className="absolute top-2 right-2 z-10 size-6 rounded-full opacity-0 transition-opacity group-hover/latest-change:opacity-100"
+				className="absolute top-2 right-2 z-10 size-6 transition-opacity group-hover/latest-change:opacity-100"
 				onClick={() => setIsOpen(false)}
 				size="icon-sm"
 				variant="ghost"

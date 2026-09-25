@@ -53,3 +53,15 @@ test("shared labeled buttons use compact medium text-only geometry", () => {
     /Loader2|\{icon\}/,
   );
 });
+
+test("dropdown action menus use one native menu surface", () => {
+  const menu = readFileSync(
+    new URL("./actions/dropdown-action-menu.tsx", import.meta.url),
+    "utf8",
+  );
+
+  assert.match(menu, /DropdownMenuItem/);
+  assert.match(menu, /sideOffset=\{8\}/);
+  assert.match(menu, /className="w-52"/);
+  assert.doesNotMatch(menu, /DialogActionList items=/);
+});

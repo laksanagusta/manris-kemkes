@@ -2,8 +2,8 @@
 
 import { useMemo } from "react";
 import { Cell, Pie, PieChart } from "recharts";
+import { Badge } from "@/components/ui/badge";
 import {
-  Badge,
   OverviewPanelState,
   ReportPanel,
 } from "@/components/shared/design-system";
@@ -55,13 +55,13 @@ export function RiskCategoryPieChart({
       title="Distribusi Kategori Risiko"
       actions={
         cycle ? (
-          <Badge variant="outline" className="h-5 px-2 text-[10px]">
+          <Badge variant="outline" className="">
             {cycle}
           </Badge>
         ) : undefined
       }
       className="h-full"
-      contentClassName="flex flex-1 flex-col p-4 pt-2"
+      contentClassName="flex flex-1 flex-col"
     >
       {loading ? (
         <OverviewPanelState

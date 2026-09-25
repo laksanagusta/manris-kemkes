@@ -6,18 +6,20 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { useAuth } from "@/contexts/auth-context";
 import { listRiskEvents } from "@/lib/api/risk-events";
+import { getStatusBadgeClassName } from "@/lib/badge-variant";
 import type { RiskEvent, RiskEventSeverity } from "@/types/risk-event";
 import { RiskEventFormDialog } from "./_components/risk-event-form-sheet";
+import { Badge } from "@/components/ui/badge";
 import {
   AccentButton, ActionButton, CollectionEmptyState, CollectionErrorState, CollectionLoadingState,
-  CollectionSearchField, CollectionStatusBadge, CollectionTableCard,
+  CollectionSearchField, CollectionTableCard,
   CollectionTableHead, CollectionTableHeader, CollectionTableHeaderRow, CollectionToolbar, PageStack,
 } from "@/components/shared/design-system";
-import { Plus } from "@/components/ui/icons";
+import { Plus } from "@/components/shared/icons";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 
 const severityLabel: Record<RiskEventSeverity, string> = { low: "Rendah", medium: "Sedang", high: "Tinggi", extreme: "Ekstrem" };
-const severityTone: Record<RiskEventSeverity, "success" | "warning" | "danger"> = { low: "success", medium: "warning", high: "danger", extreme: "danger" };
+const severityTone: Record<RiskEventSeverity, "default" | "outline" | "destructive"> = { low: "default", medium: "default", high: "destructive", extreme: "destructive" };
 
 export default function RiskEventsPage() {
   const { token, user } = useAuth();
@@ -52,8 +54,7 @@ export default function RiskEventsPage() {
       <CollectionTableCard>
         <Table className="min-w-[1180px] table-fixed">
           <colgroup>
-            <col className="w-[12%]" />
-            <col className="w-[30%]" />
+            <col className="w-[42%]" />
             <col className="w-[11%]" />
             <col className="w-[21%]" />
             <col className="w-[12%]" />
@@ -61,18 +62,17 @@ export default function RiskEventsPage() {
           </colgroup>
           <CollectionTableHeader>
             <CollectionTableHeaderRow className="h-9 hover:bg-transparent">
-              <CollectionTableHead className="px-3">Kode</CollectionTableHead>
-              <CollectionTableHead className="px-3">Kejadian</CollectionTableHead>
-              <CollectionTableHead className="px-3">Tingkat</CollectionTableHead>
-              <CollectionTableHead className="px-3">Risiko terkait</CollectionTableHead>
-              <CollectionTableHead className="px-3">Dicatat oleh</CollectionTableHead>
-              <CollectionTableHead className="px-3">Waktu</CollectionTableHead>
+              <CollectionTableHead className="px-24">Kejadian</CollectionTableHead>
+              <CollectionTableHead >Tingkat</CollectionTableHead>
+              <CollectionTableHead >Risiko terkait</CollectionTableHead>
+              <CollectionTableHead >Dicatat oleh</CollectionTableHead>
+              <CollectionTableHead >Tanggal</CollectionTableHead>
             </CollectionTableHeaderRow>
           </CollectionTableHeader>
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="!p-0">
+                <TableCell colSpan={5} className="">
                   <CollectionEmptyState
                     align="center"
                     title={query ? `Tidak ada hasil untuk “${query}”.` : "Belum ada kejadian risiko"}
@@ -83,25 +83,22 @@ export default function RiskEventsPage() {
               </TableRow>
             ) : (
               filtered.map((item) => (
-                <TableRow key={item.id} className="group border-0 hover:bg-transparent">
-                  <TableCell className="px-3 py-2 align-middle">
-                    <span className="font-mono text-xs text-muted-foreground">{item.code}</span>
-                  </TableCell>
-                  <TableCell className="px-3 py-2 align-middle">
+                <TableRow key={item.id} className="group hover:bg-transparent">
+                  <TableCell className="px-24 align-middle">
                     <Link href={`/risk-events/${item.id}`} className="line-clamp-2 text-sm font-medium leading-5 text-foreground transition-colors hover:text-primary">
                       {item.description}
                     </Link>
-                    <span className="mt-0.5 block truncate text-xs text-muted-foreground">{item.actualImpact}</span>
+                    <span className="mt-0.5 block truncate font-mono text-xs text-muted-foreground">{item.code}</span>
                   </TableCell>
-                  <TableCell className="px-3 py-2 align-middle">
-                    <CollectionStatusBadge tone={severityTone[item.severity]}>{severityLabel[item.severity]}</CollectionStatusBadge>
+                  <TableCell className="align-middle">
+                    <Badge variant={severityTone[item.severity]} className={getStatusBadgeClassName(item.severity)}>{severityLabel[item.severity]}</Badge>
                   </TableCell>
-                  <TableCell className="px-3 py-2 align-middle text-sm">
-                    {item.linkedRisks.length ? item.linkedRisks.map((risk) => risk.code || risk.title).join(", ") : <CollectionStatusBadge variant="secondary">Belum dipetakan</CollectionStatusBadge>}
+                  <TableCell className="align-middle text-muted-foreground">
+                    {item.linkedRisks.length ? item.linkedRisks.map((risk) => risk.code || risk.title).join(", ") : <Badge variant="secondary">Belum dipetakan</Badge>}
                   </TableCell>
-                  <TableCell className="px-3 py-2 align-middle text-sm text-secondary-foreground">{item.createdByName || "-"}</TableCell>
-                  <TableCell className="px-3 py-2 align-middle text-sm text-secondary-foreground">
-                    {new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(new Date(item.occurredAt))}
+                  <TableCell className="align-middle text-muted-foreground">{item.createdByName || "-"}</TableCell>
+                  <TableCell className="align-middle text-muted-foreground">
+                    {new Intl.DateTimeFormat("id-ID", { dateStyle: "medium" }).format(new Date(item.occurredAt))}
                   </TableCell>
                 </TableRow>
               ))

@@ -9,10 +9,10 @@ import {
   Minus,
   Plus,
   Trash2,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 import { toast } from "sonner";
 
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -99,34 +99,34 @@ const tabOptions: Array<{ value: FilterTab; label: string }> = [
 
 const categoryMeta: Record<
   string,
-  { label: string; className: string; icon: typeof ChevronRight }
+  { label: string; variant: BadgeVariant; icon: typeof ChevronRight }
 > = {
   changed: {
     label: "Changed",
-    className: "border-primary/20 bg-primary/10 text-primary",
+    variant: "default",
     icon: ChevronRight,
   },
   added: {
     label: "Added",
-    className: "border-success/20 bg-success/10 text-success",
+    variant: "default",
     icon: Plus,
   },
   removed: {
     label: "Removed",
-    className: "border-destructive/20 bg-destructive/10 text-destructive",
+    variant: "destructive",
     icon: Trash2,
   },
   stable: {
     label: "Stable",
-    className: "border-border bg-muted/40 text-muted-foreground",
+    variant: "secondary",
     icon: Minus,
   },
 };
 
-const changeTypeMeta: Record<string, string> = {
-  modified: "border-primary/20 bg-primary/10 text-primary",
-  added: "border-success/20 bg-success/10 text-success",
-  removed: "border-destructive/20 bg-destructive/10 text-destructive",
+const changeTypeMeta: Record<string, BadgeVariant> = {
+  modified: "default",
+  added: "default",
+  removed: "destructive",
 };
 
 function currentGlobalCycle() {
@@ -268,22 +268,17 @@ function FieldDiffTable({ diffs }: { diffs: RiskFieldDiff[] }) {
               </TableCell>
               <TableCell>
                 <Badge
-                  variant="outline"
-                  className={cn(
-                    "font-normal",
-                    changeTypeMeta[diff.changeType] ||
-                      "border-border text-foreground",
-                  )}
+                  variant={changeTypeMeta[diff.changeType] ?? "secondary"}
                 >
                   {diff.changeType}
                 </Badge>
               </TableCell>
-              <TableCell className="text-sm text-muted-foreground">
+              <TableCell className="">
                 <div className="break-words whitespace-pre-wrap py-1">
                   {formatValue(diff.before)}
                 </div>
               </TableCell>
-              <TableCell className="text-sm text-foreground">
+              <TableCell className="">
                 <div className="break-words whitespace-pre-wrap py-1">
                   {formatValue(diff.after)}
                 </div>
@@ -316,9 +311,9 @@ function MitigationDiffTable({ diffs }: { diffs: RiskMitigationDiff[] }) {
             <Badge
               variant="outline"
               className={cn(
-                "font-normal",
+                "",
                 changeTypeMeta[diff.changeType] ||
-                  "border-border text-foreground",
+                  "",
               )}
             >
               {diff.changeType}
@@ -377,7 +372,7 @@ export function RiskCycleDetailReport({
   const requiresScopeSelection =
     requiresOrganizationSelection && !organizationGroupId && !orgFilter;
   const compactSelectTriggerClass =
-    "h-10 border-0 border-shadow bg-background/80 text-xs";
+    "h-10 border-0 bg-background/80 text-xs";
 
   useEffect(() => {
     if (controlledFromCycle) setFromCycle(controlledFromCycle);
@@ -581,7 +576,7 @@ export function RiskCycleDetailReport({
   };
 
   return (
-    <Card className="rounded-lg bg-card">
+    <Card className="">
       <div className="space-y-3">
         <CollectionToolbar
           leading={
@@ -658,7 +653,7 @@ export function RiskCycleDetailReport({
                     type="button"
                     size="sm"
                     variant={activeTab === tab.value ? "default" : "outline"}
-                    className="h-8 text-xs"
+                    className=""
                     onClick={() => setActiveTab(tab.value)}
                   >
                     {tab.label}
@@ -673,7 +668,7 @@ export function RiskCycleDetailReport({
               type="button"
               size="sm"
               variant="outline"
-              className="h-8 gap-1 text-xs"
+              className=""
               onClick={handleExportCSV}
               disabled={!exportReport || filteredItems.length === 0 || loading}
             >
@@ -683,7 +678,7 @@ export function RiskCycleDetailReport({
               type="button"
               size="sm"
               variant="outline"
-              className="h-8 gap-1 text-xs"
+              className=""
               onClick={handleExportXLSX}
               disabled={!exportReport || filteredItems.length === 0 || loading}
             >
@@ -777,7 +772,7 @@ export function RiskCycleDetailReport({
                     <TableHead className="w-24 whitespace-nowrap">
                       Kode
                     </TableHead>
-                    <TableHead className="whitespace-nowrap">Risiko</TableHead>
+                    <TableHead className="px-24 whitespace-nowrap">Risiko</TableHead>
                     <TableHead className="w-40 whitespace-nowrap">
                       Unit
                     </TableHead>
@@ -831,10 +826,10 @@ export function RiskCycleDetailReport({
                                 )}
                               </Button>
                             </TableCell>
-                            <TableCell className="font-mono text-xs text-muted-foreground">
+                            <TableCell className="">
                               {item.code || "-"}
                             </TableCell>
-                            <TableCell className="max-w-[300px]">
+                            <TableCell className="max-w-[300px] px-24">
                               <div className="space-y-1">
                                 <p className="truncate text-sm font-medium text-foreground">
                                   {item.title || "-"}
@@ -846,38 +841,37 @@ export function RiskCycleDetailReport({
                                 </p>
                               </div>
                             </TableCell>
-                            <TableCell className="text-sm text-muted-foreground">
+                            <TableCell className="">
                               {item.orgName || "-"}
                             </TableCell>
                             <TableCell className="text-center">
                               <Badge
-                                variant="outline"
-                                className={cn(
-                                  "gap-1 font-normal",
-                                  meta.className,
-                                )}
+                                variant={meta.variant}
                               >
                                 <Icon className="size-3" /> {meta.label}
                               </Badge>
                             </TableCell>
-                            <TableCell className="text-center text-sm text-muted-foreground">
+                            <TableCell className="text-center">
                               {fieldDiffLabel(item)}
                             </TableCell>
                           </TableRow>
                           {isExpanded ? (
-                            <TableRow className="bg-muted/10">
+                            <TableRow className="">
                               <TableCell colSpan={6}>
                                 <div className="space-y-4 py-3">
                                   <div className="grid gap-3 md:grid-cols-2">
-                                    <div className="rounded-lg bg-card p-3 text-sm smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+                                    <Card size="sm">
+                                      <CardContent>
                                       <p className="text-xs uppercase tracking-wider text-muted-foreground">
                                         Periode
                                       </p>
                                       <p className="mt-1 font-medium text-foreground">
                                         {item.fromCycle} ke {item.toCycle}
                                       </p>
-                                    </div>
-                                    <div className="rounded-lg bg-card p-3 text-sm smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+                                      </CardContent>
+                                    </Card>
+                                    <Card size="sm">
+                                      <CardContent>
                                       <p className="text-xs uppercase tracking-wider text-muted-foreground">
                                         Versi Risiko
                                       </p>
@@ -887,7 +881,8 @@ export function RiskCycleDetailReport({
                                       <p className="break-words text-foreground">
                                         To: {item.toRiskId || "-"}
                                       </p>
-                                    </div>
+                                      </CardContent>
+                                    </Card>
                                   </div>
                                   <div className="space-y-2">
                                     <p className="text-sm font-semibold text-foreground">

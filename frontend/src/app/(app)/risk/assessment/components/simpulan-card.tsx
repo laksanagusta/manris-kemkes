@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/shared/design-system";
+import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
+import { Badge } from "@/components/ui/badge";
 import {
   getBobot,
   getSimpulanEfektifitas,
@@ -64,9 +65,7 @@ export function SimpulanCard({
               <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
                 {newScore}
               </span>
-              <Badge
-                tone={riskLevelTone}
-                size="compact"
+              <Badge variant={toBadgeVariant(riskLevelTone)} className={getStatusBadgeClassName(riskLevelTone)}
               >
                 {getRiskLevelLabel(levelBaru)}
               </Badge>
@@ -87,13 +86,11 @@ export function SimpulanCard({
           <div className="flex items-center justify-between gap-3 py-2">
             <dt className="text-[13px] text-muted-foreground">Selera risiko</dt>
             <dd>
-              <Badge
-                tone={
+              <Badge variant={
                   scoreClassification.appetite === "di_atas_batas"
-                    ? "warning"
-                    : "success"
+                    ? "outline"
+                    : "default"
                 }
-                size="compact"
               >
                 {scoreClassification.appetite === "di_atas_batas"
                   ? "Di Atas Batas"
@@ -154,9 +151,8 @@ export function SimpulanCard({
           <div className="flex items-center justify-between gap-3 py-2">
             <dt className="text-[13px] text-muted-foreground">Efektivitas</dt>
             <dd>
-              <Badge
-                tone={efektifitasLabel === "Efektif" ? "success" : "danger"}
-                size="compact"
+              <Badge variant={efektifitasLabel === "Efektif" ? "default" : "destructive"}
+                className={efektifitasLabel === "Efektif" ? "border-transparent bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300" : "border-transparent bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300"}
               >
                 {efektifitasLabel}
               </Badge>

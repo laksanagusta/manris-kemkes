@@ -1,4 +1,4 @@
-import { Type, AlignLeft, CheckSquare, Circle, ChevronDown } from "@/components/ui/icons";
+import { Type, AlignLeft, CheckSquare, Circle, ChevronDown } from "@/components/shared/icons";
 
 import type { FormFieldType } from "@/types/form";
 

@@ -23,7 +23,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -50,6 +50,7 @@ import {
 } from "@/components/ui/tooltip";
 
 import { cn } from "@/lib/utils";
+import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 import {
   Loader2,
   Plus,
@@ -57,7 +58,7 @@ import {
   Save,
   Send,
   Trash2,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 
 import {
   getRiskLevelFromNilai,
@@ -145,7 +146,7 @@ const RiskLogTimeline = dynamic(
     ssr: false,
     loading: () => (
       <Card>
-        <CardContent className="flex items-center justify-center py-12">
+        <CardContent className="flex items-center justify-center">
           <Loader2 className="size-6 animate-spin text-muted-foreground" />
           <span className="ml-2 text-sm text-muted-foreground">
             Memuat catatan...
@@ -172,7 +173,7 @@ const CATEGORY_ORDER: string[] = [
   "lingkungan",
 ];
 const RISK_FORM_CARD_CLASS =
-  "scroll-mt-28 overflow-hidden rounded-lg bg-card gap-0 p-0 transition-colors";
+  "scroll-mt-28 transition-colors";
 type CategoryKey = "manusia" | "metode" | "mesin" | "material" | "lingkungan";
 
 type SectionId =
@@ -490,7 +491,7 @@ function AiFieldButton({
       aria-busy={loading}
       aria-label={loading ? "Memproses..." : label}
       data-loading={loading}
-      className="risk-ai-button h-7 px-4 text-xs text-muted-foreground hover:text-foreground"
+      className="risk-ai-button"
     >
       <span aria-hidden="true" className="grid overflow-hidden leading-5">
         <span className="risk-ai-idle-label col-start-1 row-start-1">
@@ -2540,8 +2541,8 @@ export default function RiskInputPage() {
         )}
 
         {riskArchivedAt && (
-          <Card className="bg-amber-50/80">
-            <CardContent className="space-y-1 p-4 text-sm text-amber-900">
+          <Card className="">
+            <CardContent className="space-y-1">
               <p className="font-semibold">
                 Risiko ini diarsipkan pada{" "}
                 {new Date(riskArchivedAt).toLocaleDateString("id-ID")}.
@@ -2564,17 +2565,11 @@ export default function RiskInputPage() {
                   id="identifikasi"
                   className={RISK_FORM_CARD_CLASS}
                 >
-                  <CardHeader className="px-5 py-4">
-                    <div className="flex flex-1 flex-col gap-0.5 pr-4">
-                      <p className="text-sm font-medium tracking-tight text-foreground transition-colors">
-                        Identifikasi Risiko
-                      </p>
-                      <p className="text-xs leading-relaxed text-secondary-foreground">
-                        {sectionStatuses[0].description}
-                      </p>
-                    </div>
+                  <CardHeader>
+                    <CardTitle className="transition-colors">Identifikasi Risiko</CardTitle>
+                    <CardDescription>{sectionStatuses[0].description}</CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-5 px-5 pb-6 pt-2">
+                  <CardContent className="space-y-5">
                     <div>
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <Label className="text-sm font-medium text-foreground">
@@ -2597,12 +2592,11 @@ export default function RiskInputPage() {
                           render={({ field }) => (
                             <Input
                               {...field}
-                              placeholder="Contoh: Terjadi kebakaran di gudang bahan baku"
                               disabled={isRiskLocked}
                               className={cn(
-                                "text-sm",
+                                "",
                                 lockedControlClass,
-                                errors.title && "border-destructive",
+                                errors.title && "",
                               )}
                             />
                           )}
@@ -2623,12 +2617,11 @@ export default function RiskInputPage() {
                         render={({ field }) => (
                           <Textarea
                             {...field}
-                            placeholder="Contoh: Mesin A mati tiba-tiba saat proses produksi sehingga produksi terhenti selama 2 jam."
                             disabled={isRiskLocked}
                             className={cn(
-                              "min-h-[120px] text-sm",
+                              "",
                               lockedControlClass,
-                              errors.description && "border-destructive",
+                              errors.description && "",
                             )}
                           />
                         )}
@@ -2687,7 +2680,6 @@ export default function RiskInputPage() {
                           <EditableItemsTable
                             items={field.value}
                             onChange={field.onChange}
-                            placeholder="Tulis penyebab risiko"
                             addItemLabel="Tambah sebab"
                             emptyMessage="Belum ada sebab"
                             disabled={isRiskLocked}
@@ -2768,7 +2760,6 @@ export default function RiskInputPage() {
                           <EditableItemsTable
                             items={field.value}
                             onChange={field.onChange}
-                            placeholder="Tulis dampak risiko"
                             addItemLabel="Tambah dampak"
                             disabled={isRiskLocked}
                           />
@@ -2783,17 +2774,11 @@ export default function RiskInputPage() {
                   id="analisis"
                   className={RISK_FORM_CARD_CLASS}
                 >
-                  <CardHeader className="px-5 py-4">
-                    <div className="flex flex-1 flex-col gap-0.5 pr-4">
-                      <p className="text-sm font-medium tracking-tight text-foreground transition-colors">
-                        Analisis Risiko
-                      </p>
-                      <p className="text-xs leading-relaxed text-secondary-foreground">
-                        {sectionStatuses[1].description}
-                      </p>
-                    </div>
+                  <CardHeader>
+                    <CardTitle className="transition-colors">Analisis Risiko</CardTitle>
+                    <CardDescription>{sectionStatuses[1].description}</CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-5 px-5 pb-6 pt-2">
+                  <CardContent className="space-y-5">
                     <div className="flex flex-col gap-2">
                       <Label className="text-sm font-medium text-foreground">
                         Pengendalian yang Ada
@@ -2806,7 +2791,6 @@ export default function RiskInputPage() {
                           <EditableList
                             value={field.value || ""}
                             onChange={field.onChange}
-                            placeholder="Contoh: SOP inspeksi dan pemeliharaan berkala."
                             disabled={isRiskLocked}
                           />
                         )}
@@ -2872,17 +2856,11 @@ export default function RiskInputPage() {
                   id="evaluasi"
                   className={RISK_FORM_CARD_CLASS}
                 >
-                  <CardHeader className="px-5 py-4">
-                    <div className="flex flex-1 flex-col gap-0.5 pr-4">
-                      <p className="text-sm font-medium tracking-tight text-foreground transition-colors">
-                        Evaluasi Risiko
-                      </p>
-                      <p className="text-xs leading-relaxed text-secondary-foreground">
-                        {sectionStatuses[2].description}
-                      </p>
-                    </div>
+                  <CardHeader>
+                    <CardTitle className="transition-colors">Evaluasi Risiko</CardTitle>
+                    <CardDescription>{sectionStatuses[2].description}</CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-5 px-5 pb-6 pt-2">
+                  <CardContent className="space-y-5">
                     <div className="grid gap-5 text-sm font-normal text-muted-foreground md:grid-cols-2">
                       <div className="flex flex-col gap-2">
                         <Label className="text-sm font-medium text-foreground">
@@ -2939,17 +2917,11 @@ export default function RiskInputPage() {
                   id="penanganan"
                   className={RISK_FORM_CARD_CLASS}
                 >
-                  <CardHeader className="px-5 py-4">
-                    <div className="flex flex-1 flex-col gap-0.5 pr-4">
-                      <p className="text-sm font-medium tracking-tight text-foreground transition-colors">
-                        Rencana Penanganan
-                      </p>
-                      <p className="text-xs leading-relaxed text-secondary-foreground">
-                        {sectionStatuses[3].description}
-                      </p>
-                    </div>
+                  <CardHeader>
+                    <CardTitle className="transition-colors">Rencana Penanganan</CardTitle>
+                    <CardDescription>{sectionStatuses[3].description}</CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-5 px-5 pb-6 pt-2">
+                  <CardContent className="space-y-5">
                     <div className="space-y-3">
                       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                         <Label className="text-sm font-medium text-foreground">
@@ -3026,6 +2998,7 @@ export default function RiskInputPage() {
                             loadPicOptions={loadPicOptions}
                             disabled={isRiskLocked}
                             actionErrors={mitigationActionErrors}
+                            showPlaceholders={false}
                           />
                         )}
                       />
@@ -3038,7 +3011,6 @@ export default function RiskInputPage() {
                       </Label>
                       <Input
                         type="text"
-                        placeholder="Contoh: Minggu ke-2 pada Triwulan I 2026"
                         value={nextReviewDate}
                         onChange={(event) =>
                           setValue("nextReviewDate", event.target.value, {
@@ -3046,7 +3018,7 @@ export default function RiskInputPage() {
                           })
                         }
                         disabled={isRiskLocked}
-                        className={cn("h-10 text-sm", lockedControlClass)}
+                        className={cn("", lockedControlClass)}
                       />
                     </div>
                   </CardContent>
@@ -3056,17 +3028,11 @@ export default function RiskInputPage() {
                   id="target"
                   className={RISK_FORM_CARD_CLASS}
                 >
-                  <CardHeader className="px-5 py-4">
-                    <div className="flex flex-1 flex-col gap-0.5 pr-4">
-                      <p className="text-sm font-medium tracking-tight text-foreground transition-colors">
-                        Target Penurunan
-                      </p>
-                      <p className="text-xs leading-relaxed text-secondary-foreground">
-                        {sectionStatuses[4].description}
-                      </p>
-                    </div>
+                  <CardHeader>
+                    <CardTitle className="transition-colors">Target Penurunan</CardTitle>
+                    <CardDescription>{sectionStatuses[4].description}</CardDescription>
                   </CardHeader>
-                  <CardContent className="space-y-5 px-5 pb-6 pt-2">
+                  <CardContent className="space-y-5">
                     <div className="flex flex-col gap-3">
                       <div className="flex items-center">
                         <Label className="flex h-6 items-center text-sm font-medium">
@@ -3097,18 +3063,12 @@ export default function RiskInputPage() {
                     id="approval-line"
                     className={RISK_FORM_CARD_CLASS}
                   >
-                    <CardHeader className="px-5 py-4">
-                      <div className="flex flex-1 flex-col gap-0.5 pr-4">
-                        <p className="text-sm font-medium tracking-tight text-foreground transition-colors">
-                          Alur Persetujuan
-                        </p>
-                        <p className="text-xs leading-relaxed text-secondary-foreground">
-                          Susun reviewer dan rantai persetujuan pimpinan
-                        </p>
-                      </div>
+                    <CardHeader>
+                      <CardTitle className="transition-colors">Alur Persetujuan</CardTitle>
+                      <CardDescription>Susun reviewer dan rantai persetujuan pimpinan</CardDescription>
                     </CardHeader>
-                    <CardContent className="space-y-5 px-5 pb-6 pt-2">
-                      <div className="rounded-lg bg-card p-5 space-y-3 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+                    <CardContent className="space-y-5">
+                      <div className="space-y-3">
                         <div className="flex flex-col gap-2">
                           <Label className="text-sm font-medium text-foreground">
                             1. Reviewer (Pemeriksa)
@@ -3124,16 +3084,16 @@ export default function RiskInputPage() {
                           title="Pilih Reviewer"
                           description="Cari reviewer yang akan memeriksa dan memberikan penilaian resmi untuk risiko ini."
                           placeholder="Pilih reviewer"
-                          searchPlaceholder="Cari nama reviewer"
                           emptyMessage="Reviewer tidak ditemukan."
                           value={reviewerOption}
                           onSelect={handleReviewerSelect}
                           loadOptions={loadReviewerOptions}
                           disabled={isRiskLocked}
+                          searchPlaceholder=""
                         />
                       </div>
 
-                      <div className="rounded-lg bg-card p-5 space-y-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+                      <div className="space-y-4">
                         <div className="flex flex-col gap-2">
                           <Label className="text-sm font-medium text-foreground">
                             2. Alur Persetujuan (Pimpinan)
@@ -3155,7 +3115,7 @@ export default function RiskInputPage() {
                           pickerTitle="Pilih penyetuju"
                           pickerDescription="Cari penyetuju untuk disusun ke dalam alur persetujuan."
                           pickerPlaceholder="Pilih penyetuju"
-                          pickerSearchPlaceholder="Cari nama penyetuju"
+                          pickerSearchPlaceholder=""
                           pickerEmptyMessage="Penyetuju tidak ditemukan."
                           emptyStateMessage="Belum ada penyetuju. Tambahkan minimal satu pengguna sebelum mengajukan persetujuan."
                           addRowLabel="Tambah penyetuju"
@@ -3173,8 +3133,8 @@ export default function RiskInputPage() {
 
           <aside className="min-w-0 self-start">
             <div className="space-y-6 xl:sticky xl:top-20">
-              <Card className="gap-0 overflow-hidden rounded-lg bg-card p-0 transition-colors duration-300">
-                <CardContent className="px-5 py-5 text-sm">
+              <Card className="overflow-hidden transition-colors duration-300">
+                <CardContent className="">
                   <div className="space-y-4">
                     <section aria-labelledby="risk-side-properties">
                       <h2
@@ -3187,9 +3147,8 @@ export default function RiskInputPage() {
                         <div className="flex items-center justify-between gap-4">
                           <dt className="text-[13px] text-muted-foreground">Status</dt>
                           <dd className="shrink-0 text-right">
-                            <Badge
-                              size="compact"
-                              tone={getRiskStatusTone(riskStatus)}
+                            <Badge variant={toBadgeVariant(getRiskStatusTone(riskStatus))}
+                              className={getStatusBadgeClassName(getRiskStatusTone(riskStatus))}
                             >
                               {getRiskStatusLabel(riskStatus)}
                             </Badge>
@@ -3294,7 +3253,7 @@ export default function RiskInputPage() {
                               type="button"
                               variant="ghost"
                               size="sm"
-                              className="mt-2 h-7 px-0 text-xs hover:bg-transparent hover:text-foreground"
+                              className="mt-2"
                               onClick={handleRetryRiskEvents}
                             >
                               Coba lagi
@@ -3312,9 +3271,8 @@ export default function RiskInputPage() {
                                     <span className="truncate font-mono text-xs text-muted-foreground">
                                       {event.code}
                                     </span>
-                                    <Badge
-                                      size="micro"
-                                      tone={riskEventSeverityTones[event.severity]}
+                                    <Badge variant={toBadgeVariant(riskEventSeverityTones[event.severity])}
+                                      className={getStatusBadgeClassName(riskEventSeverityTones[event.severity])}
                                     >
                                       {riskEventSeverityLabels[event.severity]}
                                     </Badge>
@@ -3347,7 +3305,7 @@ export default function RiskInputPage() {
                           asChild
                           variant="ghost"
                           size="sm"
-                          className="mt-2 h-8 px-0 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"
+                          className="mt-2"
                         >
                           <Link href="/risk-events">
                             Lihat semua kejadian ({riskEvents.length})
@@ -3425,7 +3383,7 @@ export default function RiskInputPage() {
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="mt-2 h-8 px-0 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"
+                          className="mt-2"
                           onClick={() => setShowVersionHistoryDialog(true)}
                         >
                           Lihat semua versi ({riskVersions.length})
@@ -3472,6 +3430,9 @@ export default function RiskInputPage() {
             <div className="flex min-h-0 flex-col gap-5">
               <DialogHeader>
                 <DialogTitle className="text-base">Riwayat Versi</DialogTitle>
+                <DialogDescription>
+                  Lihat perubahan yang tersimpan pada setiap versi risiko.
+                </DialogDescription>
               </DialogHeader>
               <div className="max-h-[calc(100dvh-14rem)] overflow-y-auto pr-1">
                 <RiskVersionHistoryList
@@ -3621,6 +3582,9 @@ export default function RiskInputPage() {
             <div className="flex min-h-0 flex-col gap-5">
               <DialogHeader>
                 <DialogTitle>Arsipkan Risiko?</DialogTitle>
+                <DialogDescription>
+                  Risiko akan dipindahkan dari daftar aktif. Isi alasan pengarsipan untuk melanjutkan.
+                </DialogDescription>
               </DialogHeader>
               <div className="space-y-5">
                 <div className="space-y-1">
@@ -3644,8 +3608,7 @@ export default function RiskInputPage() {
                     onChange={(event) =>
                       setArchiveReasonInput(event.target.value)
                     }
-                    placeholder="Contoh: Risiko sudah tidak relevan"
-                    className="text-base sm:text-sm"
+                    className=""
                   />
                 </div>
                 <div className="flex flex-col gap-2">
@@ -3656,8 +3619,7 @@ export default function RiskInputPage() {
                     id="new-archive-note"
                     value={archiveNoteInput}
                     onChange={(event) => setArchiveNoteInput(event.target.value)}
-                    placeholder="Tambahkan konteks jika diperlukan"
-                    className="min-h-[80px] text-base sm:text-sm"
+                    className=""
                   />
                 </div>
               </div>
@@ -3698,8 +3660,8 @@ export default function RiskInputPage() {
                 Batal
               </CollectionDialogCancel>
               <AlertDialogAction
-                variant="primary"
-                size="primary"
+                variant="default"
+                size="default"
                 onClick={handleRestoreCurrentRisk}
                 disabled={isSubmitting}
               >
@@ -3734,8 +3696,8 @@ export default function RiskInputPage() {
                 Batal
               </CollectionDialogCancel>
               <AlertDialogAction
-                variant="primary"
-                size="primary"
+                variant="default"
+                size="default"
                 onClick={handleConfirmSubmitReview}
                 disabled={isSubmitting}
               >

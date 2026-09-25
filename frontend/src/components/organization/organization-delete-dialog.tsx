@@ -13,7 +13,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Trash2, Loader2 } from "@/components/ui/icons";
+import { Trash2, Loader2 } from "@/components/shared/icons";
 
 interface OrganizationDeleteDialogProps {
   open: boolean;
@@ -93,7 +93,7 @@ export function OrganizationDeleteDialog({
             type="button"
             onClick={handleDelete}
             disabled={isDeleting}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            className=""
           >
             {isDeleting ? (
               <>

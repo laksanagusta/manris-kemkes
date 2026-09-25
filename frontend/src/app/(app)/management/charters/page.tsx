@@ -14,7 +14,7 @@ import {
   MoreHorizontal,
   Plus,
   RotateCcw,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 
 import { useAuth } from "@/contexts/auth-context";
 import {
@@ -44,6 +44,7 @@ import {
   TableCell,
   TableRow,
 } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 import {
   CollectionEmptyState,
   CollectionErrorState,
@@ -51,7 +52,6 @@ import {
   CollectionPagination,
   CollectionPageHeader,
   CollectionSearchField,
-  CollectionStatusBadge,
   CollectionTableCard,
   CollectionTableHead,
   CollectionTableHeader,
@@ -63,6 +63,7 @@ import {
   ActionButton,
   PageStack,
 } from "@/components/shared/design-system";
+import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 
 const uprLevelLabel: Record<string, string> = {
   eksekutif: "Eksekutif",
@@ -270,7 +271,7 @@ export default function RiskChartersPage() {
               placeholder="Cari judul, organisasi, UPR, atau tahun"
             />
             <Select value={periodFilter} onValueChange={setPeriodFilter}>
-              <SelectTrigger className="h-9 w-full sm:w-56">
+              <SelectTrigger className="w-full sm:w-56">
                 <SelectValue placeholder="Semua periode" />
               </SelectTrigger>
               <SelectContent>
@@ -327,15 +328,15 @@ export default function RiskChartersPage() {
             </colgroup>
             <CollectionTableHeader density="compact">
               <CollectionTableHeaderRow>
-                <CollectionTableHead className="pl-4 pr-3">
+                <CollectionTableHead className="px-24">
                   Judul Piagam
                 </CollectionTableHead>
-                <CollectionTableHead className="px-3">UPR</CollectionTableHead>
-                <CollectionTableHead className="px-3">Periode</CollectionTableHead>
-                <CollectionTableHead className="px-3">Status</CollectionTableHead>
-                <CollectionTableHead className="px-3">Diperbarui</CollectionTableHead>
-                <CollectionTableHead className="sticky right-0 z-10 w-[84px] bg-table-header px-3 text-center">
-                  Aksi
+                <CollectionTableHead >UPR</CollectionTableHead>
+                <CollectionTableHead >Periode</CollectionTableHead>
+                <CollectionTableHead >Status</CollectionTableHead>
+                <CollectionTableHead >Diperbarui</CollectionTableHead>
+                <CollectionTableHead className="sticky right-0 z-10 w-[84px] text-center">
+                  <span className="sr-only">Aksi</span>
                 </CollectionTableHead>
               </CollectionTableHeaderRow>
             </CollectionTableHeader>
@@ -343,9 +344,9 @@ export default function RiskChartersPage() {
               {paginatedItems.map((item) => (
                 <TableRow
                   key={item.id}
-                  className="h-10 border-0 hover:bg-transparent hover:[&>td]:bg-muted/50 [&>td]:transition-[background-color]"
+                  className="h-10 hover:bg-transparent hover:[&>td]:bg-muted/50 [&>td]:transition-[background-color]"
                 >
-                  <TableCell className="max-w-[280px] truncate py-2 pr-3 pl-4 align-middle">
+                  <TableCell className="max-w-[280px] px-24 truncate align-middle">
                     <div className="min-w-0">
                       <Link
                         href={`/management/charters/${item.id}`}
@@ -359,27 +360,27 @@ export default function RiskChartersPage() {
                       </p>
                     </div>
                   </TableCell>
-                  <TableCell className="whitespace-nowrap px-3 py-2 align-middle">
+                  <TableCell className="whitespace-nowrap align-middle">
                     {uprLevelLabel[item.uprLevel] ?? item.uprLevel}
                   </TableCell>
-                  <TableCell className="whitespace-nowrap px-3 py-2 align-middle">
+                  <TableCell className="whitespace-nowrap align-middle">
                     {item.period}
                   </TableCell>
-                  <TableCell className="px-3 py-2 align-middle">
-                    <CollectionStatusBadge
-                      tone={charterStatusTone[item.status] ?? "neutral"}
+                  <TableCell className="align-middle">
+                    <Badge variant={toBadgeVariant(charterStatusTone[item.status] ?? "neutral")}
+                      className={getStatusBadgeClassName(charterStatusTone[item.status] ?? "neutral")}
                     >
                       {charterStatusLabel[item.status] ?? item.status}
-                    </CollectionStatusBadge>
+                    </Badge>
                   </TableCell>
-                  <TableCell className="whitespace-nowrap px-3 py-2 align-middle text-muted-foreground">
+                  <TableCell className="whitespace-nowrap align-middle">
                     {new Date(item.updatedAt).toLocaleDateString("id-ID", {
                       year: "numeric",
                       month: "short",
                       day: "numeric",
                     })}
                   </TableCell>
-                  <TableCell className="sticky right-0 bg-card px-3 py-2">
+                  <TableCell className="sticky right-0 bg-card">
                     <div className="flex justify-center">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>

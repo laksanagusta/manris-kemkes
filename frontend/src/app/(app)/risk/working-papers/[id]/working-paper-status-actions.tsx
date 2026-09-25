@@ -14,7 +14,7 @@ import {
   SkipForward,
   Trash2,
   XCircle,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 
 export function WorkingPaperStatusActions({
   canSkipTTE,

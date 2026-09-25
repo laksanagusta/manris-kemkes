@@ -3,16 +3,17 @@
 import {
   Bar,
   BarChart,
-  ResponsiveContainer,
-  Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import type { LatestOrganizationProgressDatum } from "@/lib/dashboard-insights";
 
-const PROGRESS_COLOR = "oklch(0.72 0.17 155)";
+const chartConfig = {
+  progressPercent: { label: "Progress", color: "oklch(0.72 0.17 155)" },
+} satisfies ChartConfig;
 
 type OrganizationLatestProgressChartProps = {
   data?: LatestOrganizationProgressDatum[];
@@ -24,11 +25,11 @@ export function OrganizationLatestProgressChart({
   const hasData = data.length > 0;
 
   return (
-    <Card className="bg-card/80 backdrop-blur-sm">
+    <Card className="">
       <CardHeader>
         <div className="flex items-center justify-between gap-3">
           <div>
-            <CardTitle className="text-sm font-medium normal-case">
+            <CardTitle className="">
               Progress Kertas Kerja Terakhir
             </CardTitle>
             <p className="mt-1 text-xs text-secondary-foreground">
@@ -36,7 +37,7 @@ export function OrganizationLatestProgressChart({
             </p>
           </div>
           {hasData ? (
-            <Badge variant="outline" className="text-[10px]">
+            <Badge variant="outline" className="">
               {data.length} organisasi
             </Badge>
           ) : null}
@@ -49,8 +50,8 @@ export function OrganizationLatestProgressChart({
           </div>
         ) : (
           <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={data} layout="vertical" margin={{ top: 4, right: 16, left: 24, bottom: 0 }}>
+            <ChartContainer config={chartConfig} className="h-full w-full">
+              <BarChart accessibilityLayer data={data} layout="vertical" margin={{ top: 4, right: 16, left: 24, bottom: 0 }}>
                 <XAxis
                   type="number"
                   domain={[0, 100]}
@@ -66,24 +67,25 @@ export function OrganizationLatestProgressChart({
                   axisLine={false}
                   tickLine={false}
                 />
-                <Tooltip
-                  formatter={(value, _name, item) => {
-                    const payload = item.payload as LatestOrganizationProgressDatum;
-                    return [
-                      `${value}%`,
-                      `${payload.progressCount}/${payload.totalCount} progres · ${payload.period}`,
-                    ];
-                  }}
-                  contentStyle={{
-                    background: "oklch(0.98 0.003 170 / 95%)",
-                    border: "1px solid oklch(0.91 0.008 170)",
-                    borderRadius: "8px",
-                    fontSize: "11px",
-                  }}
+                <ChartTooltip
+                  content={
+                    <ChartTooltipContent
+                      hideLabel
+                      formatter={(value, _name, item) => {
+                        const payload = item.payload as LatestOrganizationProgressDatum;
+                        return (
+                          <span className="flex flex-col gap-0.5">
+                            <span className="font-medium">{payload.orgName}: {value}%</span>
+                            <span className="text-muted-foreground">{payload.progressCount}/{payload.totalCount} progres · {payload.period}</span>
+                          </span>
+                        );
+                      }}
+                    />
+                  }
                 />
-                <Bar dataKey="progressPercent" fill={PROGRESS_COLOR} radius={[0, 4, 4, 0]} />
+                <Bar dataKey="progressPercent" fill="var(--color-progressPercent)" radius={[0, 4, 4, 0]} />
               </BarChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           </div>
         )}
       </CardContent>

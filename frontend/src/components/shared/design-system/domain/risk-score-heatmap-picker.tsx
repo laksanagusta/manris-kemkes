@@ -12,7 +12,7 @@ import {
 } from "@/lib/risk";
 import type { RiskLevel } from "@/types/risk";
 import { cn } from "@/lib/utils";
-import { ChevronRight } from "@/components/ui/icons";
+import { ChevronRight } from "@/components/shared/icons";
 import {
   Dialog,
   DialogContent,
@@ -192,7 +192,7 @@ export function RiskScoreHeatmapModal({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="gap-0 overflow-hidden sm:max-w-3xl"
+        className="overflow-hidden sm:max-w-3xl"
         showCloseButton={false}
         onOpenAutoFocus={() => setDraft({ probability, impact })}
       >

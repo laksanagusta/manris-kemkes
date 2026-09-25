@@ -15,7 +15,7 @@ import {
   ChevronDown,
   Loader2,
   Send,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 import {
   AccentButton,
   ActionButton,
@@ -26,6 +26,7 @@ import {
   validateMitigationReportForm,
 } from "@/lib/validation/reporting";
 import { toast } from "sonner";
+import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 
 interface MitigationStatusTableProps {
   monitoringId: string;
@@ -225,9 +226,8 @@ export function MitigationStatusTable({
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
         <p className="text-[13px] text-muted-foreground">Status pelaporan</p>
-        <Badge
-          size="micro"
-          tone={pendingCount === 0 ? "success" : "warning"}
+        <Badge variant={pendingCount === 0 ? "default" : "outline"}
+          className={pendingCount === 0 ? "border-transparent bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300" : "border-transparent bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"}
         >
           {doneCount}/{tasks.length} dilaporkan
         </Badge>
@@ -303,9 +303,8 @@ export function MitigationStatusTable({
                         <span className="truncate text-xs text-muted-foreground">
                           {task.periodLabel}
                         </span>
-                        <Badge
-                          size="micro"
-                          tone={getTaskStatusTone(task)}
+                        <Badge variant={toBadgeVariant(getTaskStatusTone(task))}
+                          className={getStatusBadgeClassName(getTaskStatusTone(task))}
                         >
                           {getTaskStatusLabel(task)}
                         </Badge>

@@ -1,6 +1,6 @@
 import type { ComponentProps } from "react";
 
-import { Filter } from "@/components/ui/icons";
+import { Filter } from "@/components/shared/icons";
 import { cn } from "@/lib/utils";
 
 import { ActionButton } from "../actions/action-button";
@@ -15,8 +15,8 @@ export function CollectionFilterTrigger({
     <ActionButton
       {...props}
       variant="outline"
-      size="md"
-      className={cn("h-9 w-9 !px-0", className)}
+      size="default"
+      className={cn("h-8 w-8 !px-0", className)}
       aria-label={ariaLabel}
       title={title}
     >

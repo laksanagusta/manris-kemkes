@@ -46,7 +46,8 @@ import {
 } from "@/components/shared/design-system";
 
 import { cn } from "@/lib/utils";
-import { Pen } from "@/components/ui/icons";
+import { Pen } from "@/components/shared/icons";
+import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 
 
 const dateFormatter = new Intl.DateTimeFormat("id-ID", {
@@ -364,8 +365,8 @@ export default function WorkingPaperDetailPage(props: {
       />
 
       {viewModel.monitoringBlockers.length > 0 ? (
-        <Card className="rounded-lg bg-amber-50/80">
-          <CardContent className="space-y-1 p-4 text-sm text-amber-900">
+        <Card className="">
+          <CardContent className="space-y-1">
             <p className="font-semibold">Finalisasi monitoring terlebih dahulu</p>
             <p>
               Berikut risiko yang masih memiliki monitoring draft atau belum
@@ -390,8 +391,8 @@ export default function WorkingPaperDetailPage(props: {
         </div>
 
         <div className="min-w-0 space-y-4 lg:sticky lg:top-6 lg:self-start">
-          <Card className="gap-0 overflow-hidden rounded-lg bg-card p-0 transition-colors duration-300">
-            <CardContent className="px-5 py-5 text-sm">
+          <Card className="overflow-hidden transition-colors duration-300">
+            <CardContent className="">
               <div className="space-y-4">
                 <section aria-labelledby="working-paper-summary-properties">
                   <h2
@@ -414,7 +415,7 @@ export default function WorkingPaperDetailPage(props: {
                           )}
                         >
                           {label === "Status" ? (
-                            <Badge size="compact" tone={statusTone[status]}>
+                            <Badge variant={toBadgeVariant(statusTone[status])} className={getStatusBadgeClassName(statusTone[status])}>
                               {value}
                             </Badge>
                           ) : (
@@ -440,10 +441,8 @@ export default function WorkingPaperDetailPage(props: {
                     {totalRiskCount > 0 ? (
                       <div className="flex flex-col gap-3">
                         <div className="flex items-center justify-between gap-4">
-                          <Badge
-                            size="compact"
-                            tone={isAllMonitoringFinal ? "success" : "progress"}
-                            className="max-w-full truncate"
+                          <Badge variant={isAllMonitoringFinal ? "default" : "outline"}
+                            className={isAllMonitoringFinal ? "max-w-full truncate border-transparent bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300" : "max-w-full truncate border-transparent bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"}
                           >
                             {finalizedMonitoringCount} dari {totalRiskCount} Risiko
                             Selesai Dipantau
@@ -514,7 +513,7 @@ export default function WorkingPaperDetailPage(props: {
             <CollectionDialogCancel onClick={() => setStartSigningDialogOpen(false)}>
               Batal
             </CollectionDialogCancel>
-            <AlertDialogAction variant="primary" size="primary" onClick={handleStartSigning}>
+            <AlertDialogAction variant="default" size="default" onClick={handleStartSigning}>
               Mulai proses TTE
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -536,7 +535,7 @@ export default function WorkingPaperDetailPage(props: {
             <CollectionDialogCancel onClick={() => setSignDialogOpen(false)}>
               Batal
             </CollectionDialogCancel>
-            <AlertDialogAction variant="primary" size="primary" onClick={handleSign}>
+            <AlertDialogAction variant="default" size="default" onClick={handleSign}>
               Tanda Tangani
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -559,8 +558,8 @@ export default function WorkingPaperDetailPage(props: {
               Batal
             </CollectionDialogCancel>
             <AlertDialogAction
-              variant="primary"
-              size="primary"
+              variant="default"
+              size="default"
               onClick={handleCancel}
             >
               Batalkan Dokumen
@@ -585,7 +584,7 @@ export default function WorkingPaperDetailPage(props: {
             <CollectionDialogCancel onClick={() => setSkipDialogOpen(false)}>
               Batal
             </CollectionDialogCancel>
-            <AlertDialogAction variant="primary" size="primary" onClick={handleSkipTTE}>
+            <AlertDialogAction variant="default" size="default" onClick={handleSkipTTE}>
               Lewati tanda tangan elektronik
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -607,7 +606,7 @@ export default function WorkingPaperDetailPage(props: {
             <CollectionDialogCancel onClick={() => setDeleteDialogOpen(false)}>
               Batal
             </CollectionDialogCancel>
-            <AlertDialogAction variant="destructive" size="md" onClick={handleDelete}>
+            <AlertDialogAction variant="destructive" size="default" onClick={handleDelete}>
               Ya, hapus
             </AlertDialogAction>
           </AlertDialogFooter>

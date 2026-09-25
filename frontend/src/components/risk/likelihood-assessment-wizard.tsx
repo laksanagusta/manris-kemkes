@@ -1,11 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Info, X } from "@/components/ui/icons";
+import { CheckCircle2, Info, X } from "@/components/shared/icons";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/shared/animated-tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Tooltip,
@@ -192,7 +192,7 @@ export function LikelihoodAssessmentWizard({
           variant="outline"
           onClick={() => setShowWizard(true)}
           disabled={disabled}
-          className="w-full justify-start text-left h-auto py-2"
+          className="w-full justify-start text-left"
         >
           {value ? (
             <div className="flex w-full items-center justify-between">
@@ -213,7 +213,7 @@ export function LikelihoodAssessmentWizard({
               size="sm"
               onClick={() => setShowWizard(true)}
               disabled={disabled}
-              className="text-xs h-7"
+              className=""
             >
               Ubah
             </Button>
@@ -223,7 +223,7 @@ export function LikelihoodAssessmentWizard({
               size="sm"
               onClick={handleClear}
               disabled={disabled}
-              className="text-xs h-7 text-destructive hover:text-destructive"
+              className=""
             >
               Hapus
             </Button>
@@ -253,7 +253,7 @@ export function LikelihoodAssessmentWizard({
               </TooltipTrigger>
               <TooltipContent
                 side="right"
-                className="max-w-xs text-xs"
+                className="max-w-xs"
               >
                 Tentukan level kemungkinan berdasarkan data historis
                 kejadian atau pendapat ahli. Pilihan UPR dapat berbeda dari
@@ -268,7 +268,7 @@ export function LikelihoodAssessmentWizard({
               size="sm"
               onClick={handleClear}
               disabled={disabled}
-              className="text-xs h-7 text-destructive hover:text-destructive"
+              className=""
             >
               Reset
             </Button>
@@ -400,7 +400,7 @@ export function LikelihoodAssessmentWizard({
                             );
                           }}
                           disabled={disabled}
-                          className="pr-10 ring-offset-background"
+                          className=""
                         />
                         <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
                           bulan
@@ -430,7 +430,7 @@ export function LikelihoodAssessmentWizard({
                           );
                         }}
                         disabled={disabled}
-                        className="ring-offset-background"
+                        className=""
                         placeholder="Jumlah kejadian"
                       />
                     </div>
@@ -460,7 +460,7 @@ export function LikelihoodAssessmentWizard({
                           );
                         }}
                         disabled={disabled}
-                        className="ring-offset-background"
+                        className=""
                         placeholder="Total populasi yang berisiko"
                       />
                       <p className="text-[11px] text-muted-foreground">
@@ -480,7 +480,7 @@ export function LikelihoodAssessmentWizard({
                       value={dataSource}
                       onChange={(e) => setDataSource(e.target.value)}
                       disabled={disabled}
-                      className="ring-offset-background"
+                      className=""
                       placeholder="Contoh: Sistem pelaporan insiden 2024-2025"
                     />
                   </div>
@@ -503,7 +503,7 @@ export function LikelihoodAssessmentWizard({
                       onChange={(e) => setJustification(e.target.value)}
                       disabled={disabled}
                       rows={3}
-                      className="min-h-20 resize-none ring-offset-background"
+                      className="resize-none"
                       placeholder="Jelaskan dasar penilaian level kemungkinan..."
                     />
                   </div>
@@ -602,18 +602,18 @@ export function LikelihoodAssessmentWizard({
           size="sm"
           onClick={handleConfirm}
           disabled={disabled || !canConfirm}
-          className="h-8 text-xs"
+          className=""
         >
           Konfirmasi
         </Button>
         {!compact && value && (
           <Button
             type="button"
-            variant="ghost"
+            variant="outline"
             size="sm"
             onClick={() => setShowWizard(false)}
             disabled={disabled}
-            className="h-8 text-xs"
+            className=""
           >
             Batal
           </Button>

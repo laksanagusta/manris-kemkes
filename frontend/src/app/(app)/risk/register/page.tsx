@@ -25,11 +25,13 @@ import { useAuth } from "@/contexts/auth-context";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { getStatusBadgeClassName, toBadgeVariant, type StatusTone } from "@/lib/badge-variant";
 import { Button } from "@/components/ui/button";
 import {
   AccentButton,
   ActionButton,
   ActionIconButton,
+  CollectionFilterPopover,
   CollectionPageHeader,
   CollectionSearchField,
   CollectionToolbar,
@@ -56,11 +58,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   Dialog,
   DialogContent,
@@ -93,13 +90,13 @@ import {
   CollectionErrorState,
   CollectionDialogCancel,
   CollectionFilterInput,
-  CollectionFilterTrigger,
   CollectionLoadingState,
   CollectionTableCard,
   CollectionTableHead,
   CollectionTableHeader,
   CollectionTableHeaderRow,
   MonitoringTransactionProgress,
+  RiskCategoryIndicator,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -113,11 +110,9 @@ import {
   Archive,
   RefreshCcw,
   RotateCcw,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 
-type BadgeTone = NonNullable<React.ComponentProps<typeof Badge>["tone"]>;
-
-const registerStatusTone: Record<string, BadgeTone> = {
+const registerStatusTone: Record<string, StatusTone> = {
   draft: "neutral",
   final: "success",
   finalized: "success",
@@ -172,9 +167,10 @@ function RiskRegisterFilterToolbar({
   onReset,
 }: RiskRegisterFilterToolbarProps) {
   return (
-    <div className="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
+    <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
       <CollectionSearchField
         containerClassName="w-full sm:w-80 sm:flex-none"
+        className="placeholder:text-tertiary-foreground"
         value={search}
         onChange={(event) => onSearchChange(event.target.value)}
         placeholder={searchPlaceholder}
@@ -232,138 +228,126 @@ function RiskRegisterFiltersSidebar({
   onReset,
 }: RiskRegisterFiltersSidebarProps) {
   return (
-    <Popover open={open} onOpenChange={onOpenChange}>
-      <PopoverTrigger asChild>
-        <CollectionFilterTrigger />
-      </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        sideOffset={8}
-        className="w-[22rem] rounded-lg p-4"
-      >
-        <div className="space-y-4">
-          <div>
-            <h4 className="text-sm font-medium">Filter Risiko</h4>
-            <p className="mt-1 text-xs text-secondary-foreground">
-              Atur filter untuk daftar risiko.
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex flex-col gap-2">
-              <Label className="text-sm font-medium text-foreground">
-                Periode Kuartal
-              </Label>
-              <CollectionFilterInput
-                placeholder="YYYY-QN"
-                value={assessmentCycleFilter}
-                onChange={(event) =>
-                  onAssessmentCycleFilterChange(event.target.value)
-                }
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label className="text-sm font-medium text-foreground">
-                Tanggal Dibuat
-              </Label>
-              <CollectionFilterInput
-                type="date"
-                value={createdAtFilter}
-                onChange={(event) => onCreatedAtFilterChange(event.target.value)}
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label className="text-sm font-medium text-foreground">
-                Lifecycle
-              </Label>
-              <PopoverSelectField
-                value={lifecycleFilter}
-                onValueChange={(value) =>
-                  onLifecycleFilterChange(value as RiskRegisterLifecycleFilter)
-                }
-                options={[
-                  { value: "active", label: "Aktif" },
-                  { value: "archived", label: "Arsip" },
-                  { value: "all", label: "Semua" },
-                ]}
-                placeholder="Lifecycle"
-                ariaLabel="Filter lifecycle risiko"
-                triggerClassName="h-9 rounded-lg bg-card text-sm"
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label className="text-sm font-medium text-foreground">
-                Status
-              </Label>
-              <PopoverSelectField
-                value={statusFilter}
-                onValueChange={(value) =>
-                  onStatusFilterChange(value as RiskRegisterStatusFilter)
-                }
-                options={[
-                  { value: "all", label: "Semua Status" },
-                  { value: "draft", label: "Draf Risiko" },
-                  { value: "final", label: "Final" },
-                ]}
-                placeholder="Status"
-                ariaLabel="Filter status risiko"
-                triggerClassName="h-9 rounded-lg bg-card text-sm"
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label className="text-sm font-medium text-foreground">
-                Kategori
-              </Label>
-              <PopoverSelectField
-                value={categoryFilter}
-                onValueChange={(value) =>
-                  onCategoryFilterChange(value as RiskRegisterCategoryFilter)
-                }
-                options={[
-                  { value: "all", label: "Semua Kategori" },
-                  { value: "kebijakan", label: riskCategoryLabels.kebijakan },
-                  { value: "reputasi", label: riskCategoryLabels.reputasi },
-                  {
-                    value: "fraud_korupsi",
-                    label: riskCategoryLabels.fraud_korupsi,
-                  },
-                  { value: "legal", label: riskCategoryLabels.legal },
-                  {
-                    value: "kepatuhan",
-                    label: riskCategoryLabels.kepatuhan,
-                  },
-                  {
-                    value: "operasional",
-                    label: riskCategoryLabels.operasional,
-                  },
-                ]}
-                placeholder="Kategori"
-                ariaLabel="Filter kategori risiko"
-                triggerClassName="h-9 rounded-lg bg-card text-sm"
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between pt-4">
-            <Button type="button" variant="ghost" size="md" onClick={onReset} className="shadow-none">
-              Reset
-            </Button>
-            <Button
-              type="button"
-              size="md"
-              className="gap-1.5"
-              onClick={() => onOpenChange(false)}
-            >
-              Terapkan
-            </Button>
-          </div>
+    <CollectionFilterPopover
+      open={open}
+      onOpenChange={onOpenChange}
+      contentClassName="w-[22rem]"
+      triggerProps={{
+        "aria-label": "Buka filter risiko",
+        title: "Filter risiko",
+      }}
+      footer={
+        <div className="flex items-center justify-between pt-4">
+          <Button type="button" variant="ghost" size="default" onClick={onReset}>
+            Reset
+          </Button>
+          <Button
+            type="button"
+            size="default"
+            onClick={() => onOpenChange(false)}
+          >
+            Terapkan
+          </Button>
         </div>
-      </PopoverContent>
-    </Popover>
+      }
+    >
+      <div>
+        <h4 className="text-sm font-medium">Filter Risiko</h4>
+        <p className="mt-1 text-xs text-secondary-foreground">
+          Atur filter untuk daftar risiko.
+        </p>
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex flex-col gap-2">
+          <Label className="text-sm font-medium text-foreground">
+            Periode Kuartal
+          </Label>
+          <CollectionFilterInput
+            placeholder="YYYY-QN"
+            value={assessmentCycleFilter}
+            onChange={(event) =>
+              onAssessmentCycleFilterChange(event.target.value)
+            }
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <Label className="text-sm font-medium text-foreground">
+            Tanggal Dibuat
+          </Label>
+          <CollectionFilterInput
+            type="date"
+            value={createdAtFilter}
+            onChange={(event) => onCreatedAtFilterChange(event.target.value)}
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <Label className="text-sm font-medium text-foreground">
+            Lifecycle
+          </Label>
+          <PopoverSelectField
+            value={lifecycleFilter}
+            onValueChange={(value) =>
+              onLifecycleFilterChange(value as RiskRegisterLifecycleFilter)
+            }
+            options={[
+              { value: "active", label: "Aktif" },
+              { value: "archived", label: "Arsip" },
+              { value: "all", label: "Semua" },
+            ]}
+            placeholder="Lifecycle"
+            ariaLabel="Filter lifecycle risiko"
+            triggerClassName="h-8 rounded-lg bg-card text-sm"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <Label className="text-sm font-medium text-foreground">
+            Status
+          </Label>
+          <PopoverSelectField
+            value={statusFilter}
+            onValueChange={(value) =>
+              onStatusFilterChange(value as RiskRegisterStatusFilter)
+            }
+            options={[
+              { value: "all", label: "Semua Status" },
+              { value: "draft", label: "Draf Risiko" },
+              { value: "final", label: "Final" },
+            ]}
+            placeholder="Status"
+            ariaLabel="Filter status risiko"
+            triggerClassName="h-8 rounded-lg bg-card text-sm"
+          />
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <Label className="text-sm font-medium text-foreground">
+            Kategori
+          </Label>
+          <PopoverSelectField
+            value={categoryFilter}
+            onValueChange={(value) =>
+              onCategoryFilterChange(value as RiskRegisterCategoryFilter)
+            }
+            options={[
+              { value: "all", label: "Semua Kategori" },
+              { value: "kebijakan", label: riskCategoryLabels.kebijakan },
+              { value: "reputasi", label: riskCategoryLabels.reputasi },
+              { value: "fraud_korupsi", label: riskCategoryLabels.fraud_korupsi },
+              { value: "legal", label: riskCategoryLabels.legal },
+              { value: "kepatuhan", label: riskCategoryLabels.kepatuhan },
+              { value: "operasional", label: riskCategoryLabels.operasional },
+            ]}
+            placeholder="Kategori"
+            ariaLabel="Filter kategori risiko"
+            triggerClassName="h-8 rounded-lg bg-card text-sm"
+          />
+        </div>
+      </div>
+    </CollectionFilterPopover>
   );
 }
 
@@ -912,86 +896,92 @@ export default function RiskRegisterPage() {
         ? "ascending"
         : "descending"
       : "none";
+  const hasAppliedFilters =
+    Boolean(search.trim()) ||
+    statusFilter !== "all" ||
+    lifecycleFilter !== "active" ||
+    categoryFilter !== "all" ||
+    Boolean(assessmentCycleFilter.trim()) ||
+    Boolean(createdAtFilter.trim());
   return (
     <PageStack>
       <CollectionPageHeader title="Risiko" />
       <div className="space-y-4">
         <CollectionToolbar
-            className="w-full"
-            leading={
-              <RiskRegisterFilterToolbar
-                search={search}
-                onSearchChange={handleRegisterSearchChange}
-                searchPlaceholder="Cari risiko..."
-                searchAriaLabel="Cari risiko"
-                filterOpen={filterOpen}
-                onFilterOpenChange={setFilterOpen}
-                assessmentCycleFilter={assessmentCycleFilter}
-                onAssessmentCycleFilterChange={handleRegisterAssessmentCycleChange}
-                createdAtFilter={createdAtFilter}
-                onCreatedAtFilterChange={handleRegisterCreatedAtChange}
-                lifecycleFilter={lifecycleFilter}
-                onLifecycleFilterChange={handleRegisterLifecycleChange}
-                statusFilter={statusFilter}
-                onStatusFilterChange={handleRegisterStatusChange}
-                categoryFilter={categoryFilter}
-                onCategoryFilterChange={handleRegisterCategoryChange}
-                onReset={handleResetRegisterFilters}
-              />
-            }
-            actions={
-              <>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <ActionButton
-                      variant="outline"
-                      className="gap-2 border-0 border-shadow"
-                    >
-                      <Upload className="size-3.5" strokeWidth={2.5} />
-                      Import Risiko
-                      <ChevronDown className="size-3.5" />
-                    </ActionButton>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <DropdownMenuItem asChild>
-                      <Link href="/risk/register/bulk">Import file/template</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/risk/register/import-sop">Ekstrak risiko dari SOP</Link>
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-                <AccentButton asChild>
-                  <Link href="/risk/register/new">
-                    <Plus className="size-3.5" strokeWidth={2.5} />
-                    Risiko Baru
-                  </Link>
-                </AccentButton>
-              </>
-            }
+          leading={
+            <RiskRegisterFilterToolbar
+              search={search}
+              onSearchChange={handleRegisterSearchChange}
+              searchPlaceholder="Cari risiko..."
+              searchAriaLabel="Cari risiko"
+              filterOpen={filterOpen}
+              onFilterOpenChange={setFilterOpen}
+              assessmentCycleFilter={assessmentCycleFilter}
+              onAssessmentCycleFilterChange={handleRegisterAssessmentCycleChange}
+              createdAtFilter={createdAtFilter}
+              onCreatedAtFilterChange={handleRegisterCreatedAtChange}
+              lifecycleFilter={lifecycleFilter}
+              onLifecycleFilterChange={handleRegisterLifecycleChange}
+              statusFilter={statusFilter}
+              onStatusFilterChange={handleRegisterStatusChange}
+              categoryFilter={categoryFilter}
+              onCategoryFilterChange={handleRegisterCategoryChange}
+              onReset={handleResetRegisterFilters}
+            />
+          }
+          actions={
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <ActionButton variant="outline" className="gap-2">
+                    <Upload className="size-3.5" strokeWidth={2.5} />
+                    Import Risiko
+                  </ActionButton>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem asChild>
+                    <Link href="/risk/register/bulk">Import file/template</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/risk/register/import-sop">
+                      Ekstrak risiko dari SOP
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <AccentButton asChild>
+                <Link href="/risk/register/new">
+                  <Plus className="size-3.5" strokeWidth={2.5} />
+                  Risiko Baru
+                </Link>
+              </AccentButton>
+            </>
+          }
         />
         <CollectionTableCard>
-            <Table className="min-w-[1120px] table-fixed bg-card">
+            <Table className="min-w-[1120px] table-fixed">
               <colgroup>
-                <col style={{ width: "42%" }} />
-                <col style={{ width: "15%" }} />
-                <col style={{ width: "8%" }} />
+                <col style={{ width: "38%" }} />
+                <col style={{ width: "17%" }} />
+                <col style={{ width: "9%" }} />
                 <col style={{ width: "11%" }} />
-                <col style={{ width: "18%" }} />
-                <col style={{ width: "6%" }} />
+                <col style={{ width: "17%" }} />
+                <col style={{ width: "8%" }} />
               </colgroup>
               <CollectionTableHeader>
                 <CollectionTableHeaderRow>
-                  <CollectionTableHead>
+                  <CollectionTableHead className="px-24">
                     Risiko
                   </CollectionTableHead>
                   <CollectionTableHead>
                     Kategori
                   </CollectionTableHead>
                   <CollectionTableHead aria-sort={scoreAriaSort}>
-                    <button
+                    <Button
                       type="button"
-                      className="flex w-full items-center gap-1 px-0 text-left capitalize outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/30 active:bg-muted/70"
+                      variant="ghost"
+                      size="sm"
+                      className="-ml-2"
                       aria-label={`Urutkan berdasarkan skor, saat ini ${scoreAriaSort === "ascending" ? "menaik" : scoreAriaSort === "descending" ? "menurun" : "belum diurutkan"}`}
                       onClick={() => {
                         if (sortBy === "nilai") {
@@ -1007,20 +997,20 @@ export default function RiskRegisterPage() {
                       Skor
                       {sortBy === "nilai" &&
                         (sortOrder === "desc" ? (
-                          <ChevronDown aria-hidden="true" className="size-3" />
+                          <ChevronDown aria-hidden="true" data-icon="inline-end" />
                         ) : (
-                          <ChevronUp aria-hidden="true" className="size-3" />
+                          <ChevronUp aria-hidden="true" data-icon="inline-end" />
                         ))}
-                    </button>
+                    </Button>
                   </CollectionTableHead>
                   <CollectionTableHead>
                     Status
                   </CollectionTableHead>
-                  <CollectionTableHead className="min-w-[176px]">
+                  <CollectionTableHead>
                     Pemantauan
                   </CollectionTableHead>
-                  <CollectionTableHead className="sticky right-0 z-10 w-[6%] bg-table-header px-5 text-center">
-                      Aksi
+                  <CollectionTableHead className="text-center">
+                    <span className="sr-only">Aksi</span>
                   </CollectionTableHead>
                 </CollectionTableHeaderRow>
               </CollectionTableHeader>
@@ -1029,9 +1019,20 @@ export default function RiskRegisterPage() {
                   <TableRow>
                   <TableCell
                       colSpan={6}
-                      className="!px-5 !py-10 text-left text-xs text-muted-foreground"
+                      className="text-left text-muted-foreground"
                     >
-                      Tidak ada risiko yang ditemukan
+                      <div className="flex min-h-24 flex-col items-center justify-center gap-1 py-6 text-center">
+                        <p className="font-normal">
+                          {hasAppliedFilters
+                            ? "Tidak ada risiko yang sesuai"
+                            : "Belum ada risiko"}
+                        </p>
+                        <p className="max-w-lg text-xs">
+                          {hasAppliedFilters
+                            ? "Coba ubah kata kunci atau sesuaikan filter untuk menampilkan risiko lain."
+                            : "Tambahkan risiko baru untuk memulai daftar risiko."}
+                        </p>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -1065,7 +1066,7 @@ export default function RiskRegisterPage() {
                       <TableRow
                         key={risk.id}
                       >
-                        <TableCell>
+                        <TableCell className="px-24">
                           <div className="flex min-w-0 flex-col items-start gap-1">
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -1080,15 +1081,13 @@ export default function RiskRegisterPage() {
                                 {risk.title || "-"}
                               </TooltipContent>
                             </Tooltip>
-                            <span className="font-mono text-[11px] leading-4 text-muted-foreground">
+                            <span className="font-sans text-sm leading-5 text-muted-foreground">
                               {risk.code || "-"}
                             </span>
                           </div>
                         </TableCell>
-                        <TableCell className="whitespace-nowrap text-sm text-secondary-foreground">
-                          {riskCategoryLabels[risk.category ?? ""] ||
-                            risk.category ||
-                            "-"}
+                        <TableCell className="whitespace-nowrap">
+                          <RiskCategoryIndicator category={risk.category} />
                         </TableCell>
                         <TableCell>
                           <span className="text-sm font-medium tabular-nums text-foreground">
@@ -1099,26 +1098,28 @@ export default function RiskRegisterPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1.5 whitespace-nowrap">
-                            <Badge
-                              size="compact"
-                              tone={
+                            <Badge variant={toBadgeVariant(
                                 risk.archivedAt
                                   ? registerStatusTone.archived
                                   : registerStatusTone[risk.status || ""] ||
                                     "neutral"
-                              }
+                              )} className={getStatusBadgeClassName(
+                                risk.archivedAt
+                                  ? registerStatusTone.archived
+                                  : registerStatusTone[risk.status || ""] || "neutral"
+                              )}
                             >
                               {statusText}
                             </Badge>
                           </div>
                         </TableCell>
-                        <TableCell className="min-w-[176px]">
+                        <TableCell>
                           <MonitoringTransactionProgress
                             data={risk.semesterMonitoring}
                             showCount={false}
                           />
                         </TableCell>
-                        <TableCell className="sticky right-0 w-[6%] bg-card px-5 py-3">
+                        <TableCell className="text-center">
                           <div className="flex justify-center">
                             <RiskRowActions
                               risk={risk}
@@ -1176,6 +1177,9 @@ export default function RiskRegisterPage() {
         <AlertDialogContent className="max-w-lg no-scrollbar">
           <AlertDialogHeader>
             <AlertDialogTitle>Konfirmasi Pemantauan</AlertDialogTitle>
+            <AlertDialogDescription>
+              Periksa detail risiko dan pilih periode pemantauan.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-5">
             <div className="grid gap-4 sm:grid-cols-2">
@@ -1226,14 +1230,14 @@ export default function RiskRegisterPage() {
           <AlertDialogFooter>
             <AlertDialogCancel
               variant="outline"
-              size="md"
-              className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
+              size="default"
+              className="border-0 shadow-black"
             >
               Batal
             </AlertDialogCancel>
             <AlertDialogAction
-              variant="primary"
-              size="primary"
+              variant="default"
+              size="default"
               onClick={handleCreateReassessment}
             >
               Lanjutkan
@@ -1256,16 +1260,19 @@ export default function RiskRegisterPage() {
           <div className="flex min-h-0 flex-col gap-5">
             <DialogHeader>
               <DialogTitle>Arsipkan Risiko?</DialogTitle>
+              <DialogDescription>
+                Risiko akan dipindahkan dari daftar aktif. Isi alasan pengarsipan untuk melanjutkan.
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-5">
               <div className="space-y-1">
                 <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
                   Risiko
                 </p>
-                <p className="text-sm font-medium text-secondary-foreground">
+                <p className="text-sm font-medium text-foreground">
                   {riskToArchive?.title || "Tanpa judul"}
                 </p>
-                <p className="font-mono text-xs text-muted-foreground">
+                <p className="font-mono text-xs text-tertiary-foreground">
                   {riskToArchive?.code || riskToArchive?.id}
                 </p>
               </div>
@@ -1281,7 +1288,7 @@ export default function RiskRegisterPage() {
                   value={archiveReason}
                   onChange={(event) => setArchiveReason(event.target.value)}
                   placeholder="Masukkan alasan pengarsipan"
-                  className="text-base sm:text-sm"
+                  className=""
                   required
                 />
               </div>
@@ -1294,7 +1301,7 @@ export default function RiskRegisterPage() {
                   value={archiveNote}
                   onChange={(event) => setArchiveNote(event.target.value)}
                   placeholder="Tambahkan konteks jika diperlukan"
-                  className="min-h-[80px] text-base sm:text-sm"
+                  className=""
                 />
               </div>
             </div>

@@ -1,6 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 
 export function ReportDrilldownSummary({
   children,
@@ -10,16 +12,18 @@ export function ReportDrilldownSummary({
   onReset: () => void;
 }) {
   return (
-    <div className="surface-hairline flex flex-wrap items-center gap-2 rounded-[12px] bg-muted/20 px-4 py-3 text-xs text-muted-foreground">
-      <span className="font-medium text-foreground">Drilldown aktif:</span>
-      {children}
-      <button
+    <Alert>
+      <AlertTitle>Drilldown aktif:</AlertTitle>
+      <AlertDescription className="flex flex-wrap items-center gap-2">{children}</AlertDescription>
+      <Button
         type="button"
         onClick={onReset}
-        className="ml-auto text-[11px] font-semibold text-primary hover:underline"
+        variant="ghost"
+        size="sm"
+        className="ml-auto"
       >
         Reset filter
-      </button>
-    </div>
+      </Button>
+    </Alert>
   );
 }

@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function FormContainer({
   title,
@@ -17,25 +16,14 @@ export function FormContainer({
   className?: string;
 }) {
   return (
-    <Card
-      className={cn(
-        "gap-0 overflow-hidden rounded-[12px] bg-card p-0",
-        className,
-      )}
-    >
+    <Card className={className}>
       {title || description ? (
-        <CardHeader className="px-4 py-6 !pb-6">
-          {title ? (
-            <CardTitle className="text-sm font-medium normal-case text-foreground">
-              {title}
-            </CardTitle>
-          ) : null}
-          {description ? (
-            <p className="text-xs text-secondary-foreground">{description}</p>
-          ) : null}
+        <CardHeader>
+          {title ? <CardTitle>{title}</CardTitle> : null}
+          {description ? <CardDescription>{description}</CardDescription> : null}
         </CardHeader>
       ) : null}
-      <CardContent className="p-4">{children}</CardContent>
+      <CardContent>{children}</CardContent>
       {footer}
     </Card>
   );

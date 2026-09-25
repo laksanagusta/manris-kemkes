@@ -1,5 +1,5 @@
 import type { ComponentProps } from "react";
-import { ChevronDown } from "@/components/ui/icons";
+import { ChevronDown } from "@/components/shared/icons";
 
 import {
   Collapsible,
@@ -16,7 +16,7 @@ function CollapsibleCardRoot({
   ...props
 }: ComponentProps<typeof Collapsible>) {
   return (
-    <Card className={cn("overflow-hidden rounded-[12px] bg-card p-0", className)}>
+    <Card className={cn("overflow-hidden py-0", className)}>
       <Collapsible defaultOpen={defaultOpen} {...props}>
         {children}
       </Collapsible>

@@ -22,7 +22,7 @@ import {
   TrendingDown,
   TrendingUp,
   Minus,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
@@ -60,7 +60,7 @@ export default function RiskHistoryPage() {
         icon={<History className="size-6" />}
         title="Risk Versioning (History)"
         actions={
-          <Button size="md" className="gap-2">
+          <Button size="default" className="">
             <GitBranch className="size-4" />
             Create Snapshot Baru
           </Button>
@@ -77,7 +77,7 @@ export default function RiskHistoryPage() {
                 key={ver.id}
                 onClick={() => setSelectedVersion(ver.id)}
                 className={cn(
-                  "relative flex items-center justify-between w-full p-3 rounded-lg text-left transition-all z-10 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30",
+                  "relative flex items-center justify-between w-full p-3 rounded-lg text-left transition-all z-10 shadow-black",
                   selectedVersion === ver.id
                     ? "bg-primary/10"
                     : "bg-card/80 hover:bg-muted/50",
@@ -87,7 +87,7 @@ export default function RiskHistoryPage() {
                   <div className="flex items-center gap-2">
                     <span className="font-semibold text-sm">{ver.name}</span>
                     {ver.isCurrent && (
-                      <Badge tone="info" size="micro" className="ml-1">Current</Badge>
+                      <Badge variant="outline" className="ml-1">Current</Badge>
                     )}
                   </div>
                   <div className="flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground">
@@ -102,29 +102,29 @@ export default function RiskHistoryPage() {
 
         {/* Change Comparison */}
         <div className="lg:col-span-3 space-y-4">
-          <Card className="bg-card/80">
+          <Card className="">
             <CardContent>
               <Table>
                 <TableHeader>
-                  <TableRow className="border-border/50 hover:bg-transparent">
-                    <TableHead className="w-20 text-sm whitespace-nowrap">Kode</TableHead>
-                    <TableHead className="text-sm whitespace-nowrap">Risiko & Alasan Perubahan</TableHead>
-                    <TableHead className="text-sm w-28 whitespace-nowrap">Versi Lama</TableHead>
-                    <TableHead className="text-sm text-center w-12 whitespace-nowrap">→</TableHead>
-                    <TableHead className="text-sm w-28 whitespace-nowrap">Versi Current</TableHead>
-                    <TableHead className="text-sm w-16 text-center whitespace-nowrap">Tren</TableHead>
+                  <TableRow className="hover:bg-transparent">
+                    <TableHead className="w-20 whitespace-nowrap">Kode</TableHead>
+                    <TableHead className="px-24 whitespace-nowrap">Risiko & Alasan Perubahan</TableHead>
+                    <TableHead className="w-28 whitespace-nowrap">Versi Lama</TableHead>
+                    <TableHead className="text-center w-12 whitespace-nowrap">→</TableHead>
+                    <TableHead className="w-28 whitespace-nowrap">Versi Current</TableHead>
+                    <TableHead className="w-16 text-center whitespace-nowrap">Tren</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="bg-state-surface text-center h-24 text-state-foreground">
+                      <TableCell colSpan={6} className="text-center h-24">
                         Memuat data history...
                       </TableCell>
                     </TableRow>
                   ) : historyData.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="bg-state-surface h-24">
+                      <TableCell colSpan={6} className="h-24">
                         <div className="flex flex-col gap-1 text-left text-state-foreground">
                           <p className="text-sm font-medium text-state-foreground">Belum ada history untuk snapshot ini</p>
                           <p className="text-xs text-state-foreground">Snapshot ini tidak memiliki rekam jejak yang tercatat</p>
@@ -132,20 +132,20 @@ export default function RiskHistoryPage() {
                       </TableCell>
                     </TableRow>
                   ) : historyData.map((history) => (
-                    <TableRow key={history.riskId} className="border-border/30 hover:bg-muted/30">
-                      <TableCell className="text-xs font-mono text-muted-foreground">{history.riskId}</TableCell>
-                      <TableCell className="max-w-[300px]">
+                    <TableRow key={history.riskId} className="hover:bg-muted/30">
+                      <TableCell className="">{history.riskId}</TableCell>
+                      <TableCell className="max-w-[300px] px-24">
                         <p className="truncate text-xs font-medium leading-relaxed text-foreground">{history.title}</p>
                         <p className="truncate text-[10px] text-muted-foreground mt-0.5 italic text-primary/70">{history.changeReason}</p>
                       </TableCell>
                       <TableCell>
-                        <Badge tone={getLinearRiskLevelBadgeTone(history.previousLevel)} size="compact">
+                        <Badge variant={getLinearRiskLevelBadgeTone(history.previousLevel)}>
                           {history.previousLevel}
                         </Badge>
                       </TableCell>
-                      <TableCell className="text-center text-muted-foreground">→</TableCell>
+                      <TableCell className="text-center">→</TableCell>
                       <TableCell>
-                        <Badge tone={getLinearRiskLevelBadgeTone(history.currentLevel)} size="compact">
+                        <Badge variant={getLinearRiskLevelBadgeTone(history.currentLevel)}>
                           {history.currentLevel}
                         </Badge>
                       </TableCell>

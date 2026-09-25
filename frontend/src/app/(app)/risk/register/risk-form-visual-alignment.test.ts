@@ -60,18 +60,19 @@ for (const [name, source] of [
   });
 
   if (name === "registration") {
-    test(`${name} uses the risk register section geometry`, () => {
+    test(`${name} retains the stock Card spacing for risk sections`, () => {
       assert.match(
         source,
-        /const RISK_FORM_CARD_CLASS[\s\S]{0,140}gap-0 p-0/,
+        /const RISK_FORM_CARD_CLASS[\s\S]{0,140}scroll-mt-28 transition-colors/,
       );
+      assert.doesNotMatch(source, /const RISK_FORM_CARD_CLASS[^;]*gap-0|const RISK_FORM_CARD_CLASS[^;]*p-0/);
       assert.doesNotMatch(
         source,
         /RISK_FORM_SURFACE_CLASS/,
       );
       assert.doesNotMatch(source, /Accordion/);
-      assert.match(source, /px-5 py-4/);
-      assert.match(source, /space-y-5 px-5 pb-6 pt-2/);
+      assert.match(source, /<CardTitle className="transition-colors">Identifikasi Risiko<\/CardTitle>/);
+      assert.match(source, /<CardDescription>\{sectionStatuses\[0\]\.description\}<\/CardDescription>/);
     });
   }
 }
@@ -200,10 +201,10 @@ test("monitoring workspace does not render a separate finalized success banner",
 });
 
 test("monitoring status uses the shared collection state component", () => {
-  assert.match(assessmentSource, /CollectionStatusBadge/);
+  assert.match(assessmentSource, /<Badge/);
   assert.match(
     assessmentSource,
-    /<CollectionStatusBadge[\s\S]*?assessmentStatusLabel\[draftRisk\.status\]/,
+    /<Badge[\s\S]*?assessmentStatusLabel\[draftRisk\.status\]/,
   );
 });
 

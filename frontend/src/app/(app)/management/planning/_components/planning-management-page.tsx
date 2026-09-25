@@ -9,7 +9,7 @@ import {
   useState,
 } from "react";
 import { toast } from "sonner";
-import { ChevronRight } from "@/components/ui/icons";
+import { ChevronRight } from "@/components/shared/icons";
 
 import { useAuth } from "@/contexts/auth-context";
 import {
@@ -21,7 +21,7 @@ import {
   type ListPlanningObjectiveCompatibilityParams,
 } from "@/lib/api/planning";
 import type { PlanningObjectiveCompatibilityItem } from "@/types/planning";
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -78,13 +78,13 @@ const hierarchyLevelLabel: Record<PlanningHierarchyLevel, string> = {
   kegiatan: "Kegiatan",
 };
 
-const hierarchyBadgeClass: Record<PlanningHierarchyLevel, string> = {
-  agreement: "border-border bg-muted text-muted-foreground",
-  tujuan: "border-border bg-muted text-muted-foreground",
-  sasaran: "border-border bg-muted text-muted-foreground",
-  iku: "border-border bg-muted text-muted-foreground",
-  program: "border-border bg-muted text-muted-foreground",
-  kegiatan: "border-border bg-muted text-muted-foreground",
+const hierarchyBadgeVariant: Record<PlanningHierarchyLevel, BadgeVariant> = {
+  agreement: "secondary",
+  tujuan: "secondary",
+  sasaran: "secondary",
+  iku: "secondary",
+  program: "secondary",
+  kegiatan: "secondary",
 };
 
 function pushUnique(values: string[], value?: string) {
@@ -259,43 +259,43 @@ function PlanningHierarchyLoadingState() {
     <Table className="min-w-[880px]">
           <CollectionTableHeader>
             <CollectionTableHeaderRow>
-              <CollectionTableHead className="w-[52%] pl-4 pr-2.5 md:pl-6">
+              <CollectionTableHead className="w-[52%] px-24">
                 Struktur
               </CollectionTableHead>
-              <CollectionTableHead className="w-28 px-2.5">
+              <CollectionTableHead className="w-28">
                 Level
               </CollectionTableHead>
-              <CollectionTableHead className="w-32 px-2.5">
+              <CollectionTableHead className="w-32">
                 Periode
               </CollectionTableHead>
-              <CollectionTableHead className="w-24 px-2.5">
+              <CollectionTableHead className="w-24">
                 Jumlah
               </CollectionTableHead>
             </CollectionTableHeaderRow>
           </CollectionTableHeader>
           <TableBody>
             {Array.from({ length: 4 }).map((_, index) => (
-              <TableRow key={index} className="border-border/80">
-                <TableCell className="align-top pl-4 pr-2 py-2 md:pl-6">
+              <TableRow key={index} className="">
+                <TableCell className="align-top px-24 md:pl-6">
                   <div className="flex min-w-0 items-center gap-3 py-0.5">
-                    <Skeleton className="h-5 w-5 rounded-md" />
+                    <Skeleton className="h-5 w-5" />
                     <div className="min-w-0 space-y-2">
-                      <Skeleton className="h-4 w-32 rounded-full" />
-                      <Skeleton className="h-3.5 w-40 rounded-full" />
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3.5 w-40" />
                     </div>
                   </div>
                 </TableCell>
                 <TableCell className="align-top">
-                  <Skeleton className="h-6 w-20 rounded-full" />
+                  <Skeleton className="h-6 w-20" />
                 </TableCell>
                 <TableCell className="align-top">
-                  <Skeleton className="h-4 w-24 rounded-full" />
+                  <Skeleton className="h-4 w-24" />
                 </TableCell>
                 <TableCell className="align-top">
-                  <Skeleton className="h-4 w-28 rounded-full" />
+                  <Skeleton className="h-4 w-28" />
                 </TableCell>
                 <TableCell className="align-top">
-                  <Skeleton className="h-4 w-8 rounded-full" />
+                  <Skeleton className="h-4 w-8" />
                 </TableCell>
               </TableRow>
             ))}
@@ -321,16 +321,16 @@ function PlanningHierarchyTable({
     <Table className="min-w-[880px]">
           <CollectionTableHeader>
             <CollectionTableHeaderRow>
-              <CollectionTableHead className="w-[52%] pl-4 pr-2.5 md:pl-6">
+              <CollectionTableHead className="w-[52%] px-24">
                 Struktur
               </CollectionTableHead>
-              <CollectionTableHead className="w-28 px-2.5">
+              <CollectionTableHead className="w-28">
                 Level
               </CollectionTableHead>
-              <CollectionTableHead className="w-32 px-2.5">
+              <CollectionTableHead className="w-32">
                 Periode
               </CollectionTableHead>
-              <CollectionTableHead className="w-24 px-2.5">
+              <CollectionTableHead className="w-24">
                 Jumlah
               </CollectionTableHead>
             </CollectionTableHeaderRow>
@@ -372,7 +372,7 @@ function PlanningHierarchyRows({
                 depth > 0 && "bg-zinc-50/30",
               )}
             >
-              <TableCell className="align-middle pl-4 pr-2 py-2 md:pl-6">
+              <TableCell className="align-middle px-24 md:pl-6">
                 <div className="flex h-full min-w-0 items-center">
                   <div
                     className="flex min-w-0 items-center gap-2.5"
@@ -417,18 +417,18 @@ function PlanningHierarchyRows({
                   </div>
                 </div>
               </TableCell>
-              <TableCell className="align-middle text-[12px] leading-5 text-secondary-foreground">
+              <TableCell className="align-middle">
                 <div className="flex h-full items-center">
-                  <Badge className={cn("w-fit", hierarchyBadgeClass[node.level])}>
+                  <Badge variant={hierarchyBadgeVariant[node.level]} className="w-fit">
                     {hierarchyLevelLabel[node.level]}
                   </Badge>
                 </div>
               </TableCell>
-              <TableCell className="text-[12px] leading-5 text-secondary-foreground">
+              <TableCell className="">
                 {node.periods[0] ?? "-"}
                 {node.periods.length > 1 ? ` +${node.periods.length - 1}` : ""}
               </TableCell>
-              <TableCell className="text-[12px] font-medium leading-5 text-foreground">
+              <TableCell className="">
                 {node.count}
               </TableCell>
             </TableRow>
@@ -446,9 +446,9 @@ function PlanningHierarchyRows({
               ? node.items.map((item) => (
                   <TableRow
                     key={item.id}
-                    className="h-12 border-border/80 bg-muted/20 hover:bg-muted/70"
+                    className="h-12 hover:bg-muted/70"
                   >
-                    <TableCell className="align-middle">
+                    <TableCell className="align-middle px-24">
                       <div className="flex h-full min-w-0 items-center">
                         <div
                           className="flex min-w-0 items-center gap-2.5"
@@ -467,17 +467,17 @@ function PlanningHierarchyRows({
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="align-middle text-[12px] leading-5 text-secondary-foreground">
+                    <TableCell className="align-middle">
                       <div className="flex h-full items-center">
-                        <Badge className="bg-muted text-muted-foreground">
+                        <Badge className="">
                           RO
                         </Badge>
                       </div>
                     </TableCell>
-                    <TableCell className="text-[12px] leading-5 text-secondary-foreground">
+                    <TableCell className="">
                       {item.period || "-"}
                     </TableCell>
-                    <TableCell className="text-[12px] font-medium leading-5 text-foreground">
+                    <TableCell className="">
                       1
                     </TableCell>
                   </TableRow>
@@ -598,7 +598,7 @@ export function PlanningManagementPage() {
   if (!activeToken) {
     return (
       <Card>
-        <CardContent className="py-10 text-sm text-muted-foreground">
+        <CardContent className="">
           Silakan masuk untuk mengelola Struktur Kinerja.
         </CardContent>
       </Card>
@@ -621,7 +621,7 @@ export function PlanningManagementPage() {
         />
 
         <Select value={periodFilter} onValueChange={setPeriodFilter}>
-          <SelectTrigger className="h-9 w-full min-w-[180px] md:w-44">
+          <SelectTrigger className="w-full min-w-[180px] md:w-44">
             <SelectValue placeholder="Semua periode" />
           </SelectTrigger>
           <SelectContent>
@@ -635,7 +635,7 @@ export function PlanningManagementPage() {
         </Select>
 
         <Select value={organizationFilter} onValueChange={setOrganizationFilter}>
-          <SelectTrigger className="h-9 w-full min-w-[180px] md:w-44">
+          <SelectTrigger className="w-full min-w-[180px] md:w-44">
             <SelectValue placeholder="Semua satker" />
           </SelectTrigger>
           <SelectContent>

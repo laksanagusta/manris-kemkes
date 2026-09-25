@@ -8,10 +8,10 @@ import {
   formatRiskScore,
   getRiskLevelFromNilai,
   getRiskLevelLabel,
-  levelToColor,
   roundRiskScore,
 } from "@/lib/risk";
 import { cn } from "@/lib/utils";
+import { getLinearRiskLevelBadgeTone } from "@/lib/linear-status-badge";
 
 interface ProfilRisikoCardProps {
   risk: Risk;
@@ -93,10 +93,10 @@ export function ProfilRisikoCard({
   if (compact) {
     return (
       <Card data-testid="profil-risiko-card" className="overflow-hidden">
-        <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0 space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline" className="font-mono text-[11px]">
+              <Badge variant="outline" className="">
                 {code}
               </Badge>
               <span className="text-xs text-muted-foreground">Versi sumber {risk.versionNumber ?? "-"}</span>
@@ -129,16 +129,16 @@ export function ProfilRisikoCard({
       data-testid="profil-risiko-card"
       className="overflow-hidden"
     >
-      <CardHeader className="gap-3 border-b border-border/40 pb-4">
+      <CardHeader className="gap-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
-            <CardTitle className="text-base">Profil Risiko Saat Ini</CardTitle>
+            <CardTitle className="">Profil Risiko Saat Ini</CardTitle>
             <p className="text-sm leading-6 text-secondary-foreground">
               Ringkasan versi terakhir yang menjadi acuan pemantauan saat ini.
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <Badge variant="outline" className="font-mono">
+            <Badge variant="outline" className="">
               {code}
             </Badge>
             {detailHref ? (
@@ -184,11 +184,8 @@ export function ProfilRisikoCard({
               </p>
               {currentLevelLabel ? (
                 <Badge
-                  variant="outline"
-                  className={cn(
-                    "h-6 rounded-full px-2.5 text-[10px] font-semibold uppercase tracking-[0.14em]",
-                    level ? levelToColor(level) : "",
-                  )}
+                  variant={level ? getLinearRiskLevelBadgeTone(getRiskLevelLabel(level)) : "secondary"}
+                  className="uppercase"
                 >
                   {currentLevelLabel}
                 </Badge>
@@ -249,11 +246,8 @@ export function ProfilRisikoCard({
               </p>
               {targetLevelLabel ? (
                 <Badge
-                  variant="outline"
-                  className={cn(
-                    "h-6 rounded-full px-2.5 text-[10px] font-semibold uppercase tracking-[0.14em]",
-                    targetLevel ? levelToColor(targetLevel) : "",
-                  )}
+                  variant={targetLevel ? getLinearRiskLevelBadgeTone(getRiskLevelLabel(targetLevel)) : "secondary"}
+                  className="uppercase"
                 >
                   {targetLevelLabel}
                 </Badge>

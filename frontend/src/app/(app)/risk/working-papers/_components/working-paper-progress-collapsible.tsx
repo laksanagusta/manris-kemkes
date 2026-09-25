@@ -9,7 +9,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Download, Loader2 } from "@/components/ui/icons";
+import { Download, Loader2 } from "@/components/shared/icons";
 import {
   CollapsibleCard,
   CollectionLoadingState,
@@ -156,7 +156,7 @@ export function WorkingPaperProgressCollapsible({
       </div>
 
       <CollapsibleCard.Content>
-        <CollapsibleCard.Body>
+        <CollapsibleCard.Body className="px-0">
           {loading ? (
             <CollectionLoadingState message="Memuat progress kertas kerja..." />
           ) : progressData.length === 0 ? (
@@ -202,16 +202,16 @@ function LatestProgressTable({
         </colgroup>
         <CollectionTableHeader density="compact">
           <CollectionTableHeaderRow>
-            <CollectionTableHead className="pl-4 pr-3">
+            <CollectionTableHead className="px-24">
               Organisasi
             </CollectionTableHead>
-            <CollectionTableHead className="px-3">Periode</CollectionTableHead>
-            <CollectionTableHead className="px-3">Progress</CollectionTableHead>
-            <CollectionTableHead className="px-4 text-right">
+            <CollectionTableHead >Periode</CollectionTableHead>
+            <CollectionTableHead >Progress</CollectionTableHead>
+            <CollectionTableHead className="text-right">
               Final
             </CollectionTableHead>
-            <CollectionTableHead className="px-3 text-right">
-              Aksi
+            <CollectionTableHead className="text-right">
+              <span className="sr-only">Aksi</span>
             </CollectionTableHead>
           </CollectionTableHeaderRow>
         </CollectionTableHeader>
@@ -223,18 +223,18 @@ function LatestProgressTable({
             return (
               <TableRow
                 key={`${row.orgName}-${row.period}`}
-                className="h-12 border-border/80 transition-colors hover:bg-muted/70"
+                className="h-12 transition-colors hover:bg-muted/70"
               >
               <TableCell
-                className="truncate py-2 pl-4 pr-3 text-sm font-medium"
+                className="truncate px-24"
                 title={row.orgName}
               >
                 {row.orgName}
               </TableCell>
-              <TableCell className="px-3 py-2 text-sm text-muted-foreground">
+              <TableCell className="">
                 {row.period}
               </TableCell>
-              <TableCell className="px-3 py-2">
+              <TableCell className="">
                 <div className="flex items-center gap-2">
                   <Progress
                     value={row.progressPercent}
@@ -246,10 +246,10 @@ function LatestProgressTable({
                   </span>
                 </div>
               </TableCell>
-              <TableCell className="px-4 py-2 text-right font-mono text-sm tabular-nums text-muted-foreground">
+              <TableCell className="text-right tabular-nums">
                 {row.progressCount}/{row.totalCount}
               </TableCell>
-                <TableCell className="px-3 py-2 text-right">
+                <TableCell className="text-right">
                   <Button
                     type="button"
                     variant="outline"

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown } from "@/components/ui/icons";
+import { ChevronDown } from "@/components/shared/icons";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -57,8 +57,7 @@ export function PopoverSelectField({
           aria-invalid={invalid || undefined}
           disabled={disabled}
           className={cn(
-            "group/popover-select h-10 w-full justify-between gap-2 rounded-lg border-0 border-shadow bg-card px-3 text-sm font-normal transition-[background-color,box-shadow] active:translate-y-0 active:scale-100 aria-expanded:bg-card aria-expanded:text-foreground hover:bg-muted/20 focus-visible:ring-2 focus-visible:ring-ring/30",
-            !selected && "text-muted-foreground",
+            "group/popover-select w-full justify-between active:translate-y-0 active:scale-100",
             triggerClassName,
           )}
         >

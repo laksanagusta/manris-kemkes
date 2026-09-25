@@ -3,26 +3,26 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
-  ArrowRight,
-  Check,
   ChevronsUpDown,
   Eye,
   EyeOff,
-  Loader2,
-  Search,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 
 import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
   CardDescription,
+  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { SearchInput } from "@/components/ui/search-input";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
+import { Spinner } from "@/components/ui/spinner";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ApiError } from "@/lib/api";
 import {
@@ -30,7 +30,6 @@ import {
   type OrganizationListItem,
 } from "@/lib/api/organizations";
 import { registerUser } from "@/lib/api/auth";
-import { cn } from "@/lib/utils";
 
 export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
@@ -162,296 +161,97 @@ export default function RegisterScreen() {
 
   return (
     <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4 py-10">
-      <div className="absolute inset-0 overflow-hidden">
+      <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
         <div className="absolute -left-[35%] -top-[30%] h-[70%] w-[70%] rounded-full bg-primary/5 blur-3xl animate-[pulse_10s_ease-in-out_infinite]" />
         <div className="absolute bottom-[-25%] right-[-25%] h-[60%] w-[60%] rounded-full bg-muted-foreground/5 blur-3xl animate-[pulse_12s_ease-in-out_infinite_2s]" />
       </div>
-
-      <div
-        className="absolute inset-0 opacity-[0.02]"
-        style={{
-          backgroundImage:
-            "linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)",
-          backgroundSize: "64px 64px",
-        }}
-      />
+      <div className="absolute inset-0 opacity-[0.02]" aria-hidden="true" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)", backgroundSize: "64px 64px" }} />
 
       <div className="relative z-10 w-full max-w-3xl animate-fade-in">
-        <div className="mb-8 text-center">
-          <h1 className="font-logo text-[20px] leading-5 font-semibold lowercase tracking-[-0.4px] text-foreground">
-            manris
-          </h1>
-          <p className="mt-2 text-sm text-secondary-foreground">
-            Registrasi mandiri untuk pengguna unit kerja
-          </p>
-        </div>
-
-        <Card className="bg-card/85 backdrop-blur-xl">
-          <CardHeader className="pb-4">
+        <header className="mb-8 text-center">
+          <h1 className="text-xl font-semibold">Manris</h1>
+          <p className="text-muted-foreground">Registrasi mandiri untuk pengguna unit kerja</p>
+        </header>
+        <Card>
+          <CardHeader>
             <CardTitle>Buat akun baru</CardTitle>
-            <CardDescription>
-              Akun yang dibuat akan berstatus menunggu aktivasi sampai admin
-              menyetujui registrasi.
-            </CardDescription>
+            <CardDescription>Akun yang dibuat akan berstatus menunggu aktivasi sampai admin menyetujui registrasi.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="grid gap-5">
-              {error && (
-                <div className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                  {error}
-                </div>
-              )}
-              {success && (
-                <div className="rounded-md border border-success/20 bg-success/10 px-3 py-2 text-xs text-success">
-                  {success}
-                </div>
-              )}
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-xs font-medium">
-                    Nama lengkap
-                  </Label>
-                  <Input
-                    id="name"
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                    placeholder="Contoh: Dr. Andi Pratama, M.Kes"
-                    className="h-10 border border-input bg-muted/30 !shadow-none hover:border-foreground/15 focus:border-primary focus-visible:border-primary focus:ring-0 focus-visible:ring-0"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="email" className="text-xs font-medium">
-                    Email
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    placeholder="nama@kemenkes.go.id"
-                    className="h-10 border border-input bg-muted/30 !shadow-none hover:border-foreground/15 focus:border-primary focus-visible:border-primary focus:ring-0 focus-visible:ring-0"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="organization" className="text-xs font-medium">
-                    Unit kerja
-                  </Label>
-                  <Popover
-                    open={organizationPickerOpen}
-                    onOpenChange={setOrganizationPickerOpen}
-                  >
+            <form id="registration-form" onSubmit={handleSubmit}>
+              <FieldGroup className="grid md:grid-cols-2">
+                {error ? <Alert variant="destructive" className="md:col-span-2"><AlertDescription>{error}</AlertDescription></Alert> : null}
+                {success ? <Alert className="md:col-span-2"><AlertDescription>{success}</AlertDescription></Alert> : null}
+                <Field>
+                  <FieldLabel htmlFor="name">Nama lengkap</FieldLabel>
+                  <Input id="name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Contoh: Dr. Andi Pratama, M.Kes" required />
+                </Field>
+                <Field className="md:col-span-2">
+                  <FieldLabel htmlFor="email">Email</FieldLabel>
+                  <Input id="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="nama@kemenkes.go.id" required />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="organization">Unit kerja</FieldLabel>
+                  <Popover open={organizationPickerOpen} onOpenChange={setOrganizationPickerOpen}>
                     <PopoverTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={organizationPickerOpen}
-                        disabled={orgLoading}
-                        className="h-10 w-full justify-between gap-2 border-input bg-muted/30 font-normal"
-                      >
-                        <span className="min-w-0 flex-1 truncate text-left">
-                          {orgLoading
-                            ? "Memuat organisasi..."
-                            : selectedOrganization?.name || "Pilih unit kerja"}
-                        </span>
-                        <ChevronsUpDown className="size-4 shrink-0 opacity-50" />
+                      <Button id="organization" type="button" variant="outline" role="combobox" aria-expanded={organizationPickerOpen} disabled={orgLoading} className="w-full justify-between">
+                        <span className="min-w-0 flex-1 truncate text-left">{orgLoading ? "Memuat organisasi..." : selectedOrganization?.name || "Pilih unit kerja"}</span>
+                        <ChevronsUpDown data-icon="inline-end" aria-hidden="true" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent
-                      className="w-[var(--radix-popover-trigger-width)] p-0"
-                      align="start"
-                    >
-                      <div className="flex items-center border-b border-border/50 px-3">
-                        <Search className="mr-2 size-4 shrink-0 text-muted-foreground/70" />
-                        <SearchInput
-                          type="search"
-                          className="h-10 rounded-none border-0 bg-transparent px-0 py-3 !shadow-none"
-                          placeholder="Cari nama unit kerja..."
-                          value={organizationQuery}
-                          onChange={(event) =>
-                            setOrganizationQuery(event.target.value)
-                          }
-                        />
-                      </div>
-                      <div className="max-h-60 overflow-y-auto p-1">
-                        {filteredOrganizations.length === 0 ? (
-                          <div className="py-6 text-center text-sm text-muted-foreground">
-                            Tidak ada unit kerja ditemukan.
-                          </div>
-                        ) : (
-                          filteredOrganizations.map((organization) => {
-                            const isSelected =
-                              organization.id === organizationId;
-                            return (
-                              <button
-                                key={organization.id}
-                                type="button"
-                                className={cn(
-                                  "relative flex w-full cursor-pointer select-none items-center rounded-sm py-2 pl-8 pr-2 text-left text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground",
-                                  isSelected && "bg-accent text-accent-foreground",
-                                )}
-                                onClick={() => selectOrganization(organization)}
-                              >
-                                <Check
-                                  className={cn(
-                                    "absolute left-2 size-4",
-                                    isSelected ? "opacity-100" : "opacity-0",
-                                  )}
-                                />
-                                <span className="min-w-0 flex-1 truncate">
-                                  {organization.name}
-                                </span>
-                              </button>
-                            );
-                          })
-                        )}
-                      </div>
+                    <PopoverContent className="w-[var(--radix-popover-trigger-width)]" align="start">
+                      <Command shouldFilter={false}>
+                        <CommandInput placeholder="Cari nama unit kerja..." value={organizationQuery} onValueChange={setOrganizationQuery} />
+                        <CommandList>
+                          <CommandEmpty>Tidak ada unit kerja ditemukan.</CommandEmpty>
+                          <CommandGroup>
+                            {filteredOrganizations.map((organization) => (
+                              <CommandItem key={organization.id} value={organization.name} data-checked={organization.id === organizationId} onSelect={() => selectOrganization(organization)}>
+                                {organization.name}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
                     </PopoverContent>
                   </Popover>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="nip" className="text-xs font-medium">
-                    NIP
-                  </Label>
-                  <Input
-                    id="nip"
-                    value={nip}
-                    onChange={(event) => setNip(event.target.value)}
-                    placeholder="Nomor induk pegawai"
-                    className="h-10 border border-input bg-muted/30 !shadow-none hover:border-foreground/15 focus:border-primary focus-visible:border-primary focus:ring-0 focus-visible:ring-0"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="jabatan" className="text-xs font-medium">
-                    Jabatan
-                  </Label>
-                  <Input
-                    id="jabatan"
-                    value={jabatan}
-                    onChange={(event) => setJabatan(event.target.value)}
-                    placeholder="Jabatan"
-                    className="h-10 border border-input bg-muted/30 !shadow-none hover:border-foreground/15 focus:border-primary focus-visible:border-primary focus:ring-0 focus-visible:ring-0"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="pangkat" className="text-xs font-medium">
-                    Pangkat
-                  </Label>
-                  <Input
-                    id="pangkat"
-                    value={pangkat}
-                    onChange={(event) => setPangkat(event.target.value)}
-                    placeholder="Pangkat"
-                    className="h-10 border border-input bg-muted/30 !shadow-none hover:border-foreground/15 focus:border-primary focus-visible:border-primary focus:ring-0 focus-visible:ring-0"
-                  />
-                </div>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="password" className="text-xs font-medium">
-                    Password
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      value={password}
-                      onChange={(event) => setPassword(event.target.value)}
-                      placeholder="Buat password sendiri"
-                      className="h-10 border border-input bg-muted/30 pr-10 !shadow-none hover:border-foreground/15 focus:border-primary focus-visible:border-primary focus:ring-0 focus-visible:ring-0"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((current) => !current)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                      {showPassword ? (
-                        <EyeOff className="size-4" />
-                      ) : (
-                        <Eye className="size-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label
-                    htmlFor="confirmPassword"
-                    className="text-xs font-medium"
-                  >
-                    Konfirmasi password
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      id="confirmPassword"
-                      type={showConfirmPassword ? "text" : "password"}
-                      value={confirmPassword}
-                      onChange={(event) =>
-                        setConfirmPassword(event.target.value)
-                      }
-                      placeholder="Ulangi password"
-                      className="h-10 border border-input bg-muted/30 pr-10 !shadow-none hover:border-foreground/15 focus:border-primary focus-visible:border-primary focus:ring-0 focus-visible:ring-0"
-                      required
-                    />
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setShowConfirmPassword((current) => !current)
-                      }
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
-                    >
-                      {showConfirmPassword ? (
-                        <EyeOff className="size-4" />
-                      ) : (
-                        <Eye className="size-4" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex flex-col gap-3 pt-1">
-                <Button
-                  type="submit"
-                  className="h-10 gap-2 text-sm font-semibold"
-                  disabled={loading || orgLoading}
-                >
-                  {loading ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <>
-                      Daftar sekarang
-                      <ArrowRight data-icon="inline-end" />
-                    </>
-                  )}
-                </Button>
-              </div>
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="nip">NIP</FieldLabel>
+                  <Input id="nip" value={nip} onChange={(event) => setNip(event.target.value)} placeholder="Nomor induk pegawai" required />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="jabatan">Jabatan</FieldLabel>
+                  <Input id="jabatan" value={jabatan} onChange={(event) => setJabatan(event.target.value)} placeholder="Jabatan" />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="pangkat">Pangkat</FieldLabel>
+                  <Input id="pangkat" value={pangkat} onChange={(event) => setPangkat(event.target.value)} placeholder="Pangkat" />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="password">Password</FieldLabel>
+                  <InputGroup>
+                    <InputGroupInput id="password" type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Buat password sendiri" required />
+                    <InputGroupAddon align="inline-end"><InputGroupButton size="icon-xs" aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"} aria-pressed={showPassword} onClick={() => setShowPassword((current) => !current)}>{showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}</InputGroupButton></InputGroupAddon>
+                  </InputGroup>
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="confirmPassword">Konfirmasi password</FieldLabel>
+                  <InputGroup>
+                    <InputGroupInput id="confirmPassword" type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Ulangi password" required />
+                    <InputGroupAddon align="inline-end"><InputGroupButton size="icon-xs" aria-label={showConfirmPassword ? "Sembunyikan konfirmasi password" : "Tampilkan konfirmasi password"} aria-pressed={showConfirmPassword} onClick={() => setShowConfirmPassword((current) => !current)}>{showConfirmPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}</InputGroupButton></InputGroupAddon>
+                  </InputGroup>
+                </Field>
+              </FieldGroup>
             </form>
-
-            <div className="mt-6 flex items-center justify-center gap-2 text-xs text-muted-foreground">
-              <span>Sudah punya akun?</span>
-              <Link
-                href="/login"
-                className="font-medium text-foreground underline-offset-4 hover:underline"
-              >
-                Masuk
-              </Link>
-            </div>
           </CardContent>
+          <CardFooter className="flex flex-col items-stretch gap-4">
+            <Button type="submit" form="registration-form" disabled={loading || orgLoading}>
+              {loading ? <Spinner data-icon="inline-start" aria-hidden="true" /> : null}
+              {loading ? "Memproses..." : "Daftar sekarang"}
+            </Button>
+            <p className="text-center text-sm text-muted-foreground">Sudah punya akun? <Button asChild variant="link"><Link href="/login">Masuk</Link></Button></p>
+          </CardFooter>
         </Card>
       </div>
     </div>

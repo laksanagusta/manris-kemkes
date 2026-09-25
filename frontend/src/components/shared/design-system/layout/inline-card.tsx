@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 
 import { Card, CardContent } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 
 export function InlineCard({
   children,
@@ -13,13 +12,8 @@ export function InlineCard({
   contentClassName?: string;
 }) {
   return (
-    <Card
-      className={cn(
-        "rounded-[12px] bg-card",
-        className,
-      )}
-    >
-      <CardContent className={cn("p-4", contentClassName)}>
+    <Card className={className}>
+      <CardContent className={contentClassName}>
         {children}
       </CardContent>
     </Card>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { MoreHorizontal } from "@/components/ui/icons";
+import { MoreHorizontal } from "@/components/shared/icons";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ import {
 } from "@/lib/working-paper-monitoring-table";
 import { formatRiskScore } from "@/lib/risk";
 import type { WorkingPaperRiskLink } from "@/types/working-paper";
+import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 
 type MonitoringRow = ReturnType<typeof buildWorkingPaperMonitoringRowFromLink>;
 
@@ -56,7 +57,7 @@ function MonitoringActionMenu({
         <Button
           variant="ghost"
           size="icon-xs"
-          className="text-muted-foreground"
+          className=""
           aria-label={`Aksi risiko ${row.code}`}
         >
           <MoreHorizontal className="size-3.5" />
@@ -98,12 +99,14 @@ export function WorkingPaperMonitoringTable({
       </colgroup>
       <CollectionTableHeader density="compact">
         <CollectionTableHeaderRow>
-          <CollectionTableHead className="pl-4 pr-3">Kode</CollectionTableHead>
-          <CollectionTableHead className="px-3">Versi</CollectionTableHead>
-          <CollectionTableHead className="px-3">Risiko</CollectionTableHead>
-          <CollectionTableHead className="px-3">Perubahan Skor</CollectionTableHead>
-          <CollectionTableHead className="px-3">Status</CollectionTableHead>
-          <CollectionTableHead className="px-3 text-center">Aksi</CollectionTableHead>
+          <CollectionTableHead >Kode</CollectionTableHead>
+          <CollectionTableHead >Versi</CollectionTableHead>
+          <CollectionTableHead className="px-24">Risiko</CollectionTableHead>
+          <CollectionTableHead >Perubahan Skor</CollectionTableHead>
+          <CollectionTableHead >Status</CollectionTableHead>
+          <CollectionTableHead className="text-center">
+            <span className="sr-only">Aksi</span>
+          </CollectionTableHead>
         </CollectionTableHeaderRow>
       </CollectionTableHeader>
       <TableBody>
@@ -111,7 +114,7 @@ export function WorkingPaperMonitoringTable({
           <TableRow>
             <TableCell
               colSpan={WORKING_PAPER_MONITORING_COLUMNS.length}
-              className="h-24 px-4"
+              className="h-24"
             >
               <CollectionEmptyState
                 title="Belum ada risiko"
@@ -123,15 +126,15 @@ export function WorkingPaperMonitoringTable({
           rows.map((row) => (
             <TableRow
               key={row.id}
-              className="group h-10 border-0 hover:bg-muted/50"
+              className="group h-10 hover:bg-muted/50"
             >
-              <TableCell className="py-2 pl-4 pr-3 font-mono text-sm text-foreground">
+              <TableCell className="">
                 {row.code}
               </TableCell>
-              <TableCell className="truncate px-3 py-2 font-mono text-xs text-muted-foreground">
+              <TableCell className="truncate">
                 {row.versionNumber != null ? `v${row.versionNumber}` : "-"}
               </TableCell>
-              <TableCell className="max-w-0 px-3 py-2">
+              <TableCell className="max-w-0 px-24">
                 <span
                   className="block truncate text-sm font-medium leading-relaxed text-foreground"
                   title={row.title}
@@ -139,7 +142,7 @@ export function WorkingPaperMonitoringTable({
                   {row.title}
                 </span>
               </TableCell>
-              <TableCell className="px-3 py-2">
+              <TableCell className="">
                 <div className="flex items-center gap-1.5 whitespace-nowrap">
                   <span className="font-mono text-sm font-medium tabular-nums text-foreground">
                     {formatRiskScore(row.sourceScore)}
@@ -154,17 +157,15 @@ export function WorkingPaperMonitoringTable({
                   ) : null}
                 </div>
               </TableCell>
-              <TableCell className="max-w-0 px-3 py-2">
-                <Badge
-                  size="compact"
-                  tone={getMonitoringStatusTone(row)}
-                  className="max-w-full truncate"
+              <TableCell className="max-w-0">
+                <Badge variant={toBadgeVariant(getMonitoringStatusTone(row))}
+                  className={`max-w-full truncate ${getStatusBadgeClassName(getMonitoringStatusTone(row))}`}
                   title={row.statusLabel}
                 >
                   {row.statusLabel}
                 </Badge>
               </TableCell>
-              <TableCell className="px-3 py-2 text-center">
+              <TableCell className="text-center">
                 <MonitoringActionMenu row={row} />
               </TableCell>
             </TableRow>

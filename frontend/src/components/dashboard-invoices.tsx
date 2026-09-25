@@ -17,7 +17,7 @@ import {
 	TableRow,
 } from "@/components/ui/table";
 import { DashboardCard } from "@/components/dashboard-card";
-import { ArrowRightIcon } from "@/components/ui/icons";
+import { ArrowRightIcon } from "@/components/shared/icons";
 import Link from "next/link";
 
 const invoices = [
@@ -50,18 +50,18 @@ const invoices = [
 export function DashboardInvoices() {
 	return (
 		<DashboardCard className="relative gap-0 md:col-span-2">
-			<CardHeader className="border-b">
-				<CardTitle className="text-sm font-medium normal-case">Recent invoices</CardTitle>
+			<CardHeader className="">
+				<CardTitle className="">Recent invoices</CardTitle>
 				<CardDescription>Open amounts and payment status.</CardDescription>
 			</CardHeader>
-			<CardContent className="mask-b-from-50% mask-b-to-100% px-0">
+			<CardContent className="mask-b-from-50% mask-b-to-100%">
 				<Table>
 					<TableCaption className="sr-only">
 						Recent invoices with customer, amount, and status.
 					</TableCaption>
 					<TableHeader>
 						<TableRow>
-							<TableHead className="ps-6">Customer</TableHead>
+							<TableHead className="px-24">Customer</TableHead>
 							<TableHead>Invoice</TableHead>
 							<TableHead className="pe-6 text-right tabular-nums">
 								Amount
@@ -71,10 +71,10 @@ export function DashboardInvoices() {
 					<TableBody>
 						{invoices.map((inv) => (
 							<TableRow key={inv.id}>
-								<TableCell className="max-w-40 truncate ps-6 font-medium">
+								<TableCell className="max-w-40 truncate px-24">
 									<span className="text-foreground">{inv.customer}</span>
 								</TableCell>
-								<TableCell className="text-muted-foreground tabular-nums">
+								<TableCell className="tabular-nums">
 									#{inv.id}
 								</TableCell>
 								<TableCell className="pe-6 text-right tabular-nums">

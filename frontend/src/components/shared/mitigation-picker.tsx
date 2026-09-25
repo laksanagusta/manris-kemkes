@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Sparkles, Loader2 } from "@/components/ui/icons";
+import { Sparkles, Loader2 } from "@/components/shared/icons";
 import { useState } from "react";
 import { api } from "@/lib/api";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
@@ -73,7 +73,7 @@ export function MitigationPicker({ title, description, cause, impactDescription,
           !description.trim() ||
           !title.trim()
         }
-        className="h-7 gap-2 border-border/60 bg-muted/40 px-2.5 text-xs text-muted-foreground hover:bg-muted/60 hover:text-foreground"
+        className=""
       >
         {loading ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
         {loading ? "Memproses..." : "Minta rekomendasi mitigasi"}

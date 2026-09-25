@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "@/components/ui/icons";
+import { ChevronLeft, ChevronRight } from "@/components/shared/icons";
 
 import { Button } from "@/components/ui/button";
 import { CardFooter } from "@/components/ui/card";
@@ -40,7 +40,7 @@ export function CollectionPagination({
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
-    <CardFooter className="flex-col items-stretch gap-3 border-border/60 bg-white px-4 py-3 text-sm text-muted-foreground md:flex-row md:items-center md:justify-between">
+    <CardFooter className="flex-col items-stretch gap-3 md:flex-row md:items-center md:justify-between">
       <p>
         Menampilkan {total === 0 ? 0 : (page - 1) * pageSize + 1} sampai{" "}
         {Math.min(page * pageSize, total)} dari {total} {itemLabel}
@@ -50,7 +50,7 @@ export function CollectionPagination({
           <Button
             variant="outline"
             size="icon-xs"
-            className="rounded-lg border-border/60 bg-white shadow-none"
+            className=""
             disabled={page === 1 || disabled}
             onClick={() => onPageChange(Math.max(1, page - 1))}
             aria-label="Halaman sebelumnya"
@@ -63,10 +63,10 @@ export function CollectionPagination({
               variant="outline"
               size="xs"
               className={cn(
-                "min-w-10 rounded-lg border bg-white px-3 shadow-none",
+                "min-w-10",
                 pageNumber === page
-                  ? "border-primary text-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-                  : "border-border/60 text-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                  ? ""
+                  : "",
               )}
               disabled={pageNumber === page || disabled}
               onClick={() => onPageChange(pageNumber)}
@@ -78,7 +78,7 @@ export function CollectionPagination({
           <Button
             variant="outline"
             size="icon-xs"
-            className="rounded-lg border-border/60 bg-white shadow-none"
+            className=""
             disabled={page === totalPages || total === 0 || disabled}
             onClick={() => onPageChange(Math.min(totalPages, page + 1))}
             aria-label="Halaman berikutnya"
@@ -93,7 +93,7 @@ export function CollectionPagination({
             onValueChange={(value) => onPageSizeChange(Number(value))}
           >
             <SelectTrigger
-              className="h-9 w-[72px] rounded-lg bg-white px-3 text-sm"
+              className="w-[72px]"
               aria-label="Items per page"
             >
               <SelectValue />

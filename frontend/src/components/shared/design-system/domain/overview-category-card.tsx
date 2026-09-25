@@ -36,7 +36,7 @@ export function OverviewCategoryCard({
     .stops.join(", ");
 
   return (
-    <StandardCard title={title} className="h-full" contentClassName="p-4 pt-6">
+    <StandardCard title={title} className="h-full">
       <div className="grid gap-4 lg:grid-cols-[auto_1fr] lg:items-center">
         <div className="flex justify-center">
           <div

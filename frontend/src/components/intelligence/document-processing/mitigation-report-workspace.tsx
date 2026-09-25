@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Loader2, Send } from "@/components/ui/icons";
+import { Loader2, Send } from "@/components/shared/icons";
 import {
   AccentButton,
   MitigationProgressDialog,

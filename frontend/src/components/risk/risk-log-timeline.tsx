@@ -9,10 +9,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Plus } from "@/components/ui/icons";
+import { Loader2, Plus } from "@/components/shared/icons";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -408,7 +409,7 @@ export function RiskLogTimeline({
             type="button"
             variant="ghost"
             size="sm"
-            className="h-8 px-0 text-xs text-muted-foreground hover:bg-transparent hover:text-foreground"
+            className=""
             onClick={() => setShowAllLogsDialog(true)}
           >
             Lihat semua catatan ({timelineItems.length})
@@ -437,6 +438,9 @@ export function RiskLogTimeline({
           <div className="flex min-h-0 flex-col gap-5">
             <DialogHeader>
               <DialogTitle className="text-base">Semua Catatan</DialogTitle>
+              <DialogDescription>
+                Lihat seluruh aktivitas dan riwayat risiko ini.
+              </DialogDescription>
             </DialogHeader>
             <div className="max-h-[calc(100dvh-14rem)] overflow-y-auto pr-1">
               <div className="space-y-1">
@@ -478,6 +482,9 @@ export function RiskLogTimeline({
               <DialogTitle className="text-base">
                 Detail Aktivitas Catatan
               </DialogTitle>
+              <DialogDescription>
+                Tinjau detail aktivitas yang dipilih.
+              </DialogDescription>
             </DialogHeader>
 
             {selectedItem && (
@@ -492,7 +499,7 @@ export function RiskLogTimeline({
                         selectedItem.metadata?.tanggal ||
                         formatDateTime(selectedItem.date)
                       }
-                      className="text-base sm:text-sm"
+                      className=""
                     />
                   </div>
 
@@ -502,7 +509,7 @@ export function RiskLogTimeline({
                       id="log-detail-actor"
                       disabled
                       value={getActorName(selectedItem)}
-                      className="text-base sm:text-sm"
+                      className=""
                     />
                   </div>
 
@@ -514,7 +521,7 @@ export function RiskLogTimeline({
                           id="log-detail-method"
                           disabled
                           value={selectedItem.metadata?.method || "-"}
-                          className="text-base sm:text-sm"
+                          className=""
                         />
                       </div>
 
@@ -526,7 +533,7 @@ export function RiskLogTimeline({
                           id="log-detail-stakeholder"
                           disabled
                           value={selectedItem.metadata?.stakeholder || "-"}
-                          className="text-base sm:text-sm"
+                          className=""
                         />
                       </div>
 
@@ -536,7 +543,7 @@ export function RiskLogTimeline({
                           id="log-detail-notes"
                           disabled
                           value={selectedItem.description || "-"}
-                          className="min-h-[100px] resize-none text-base sm:text-sm"
+                          className="resize-none"
                         />
                       </div>
                     </>
@@ -552,7 +559,7 @@ export function RiskLogTimeline({
                               ? "Approval"
                               : "Notulen rapat"
                           }
-                          className="text-base sm:text-sm"
+                          className=""
                         />
                       </div>
 
@@ -563,7 +570,7 @@ export function RiskLogTimeline({
                             id="log-detail-role"
                             disabled
                             value={selectedItem.metadata.role}
-                            className="text-base sm:text-sm"
+                            className=""
                           />
                         </div>
                       )}
@@ -574,7 +581,7 @@ export function RiskLogTimeline({
                           id="log-detail-description"
                           disabled
                           value={selectedItem.description || "-"}
-                          className="min-h-[100px] resize-none text-base sm:text-sm"
+                          className="resize-none"
                         />
                       </div>
                     </>

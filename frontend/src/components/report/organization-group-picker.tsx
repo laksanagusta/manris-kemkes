@@ -1,12 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronsUpDown, Search, Users } from "@/components/ui/icons";
+import { Check, ChevronsUpDown, Search, Users } from "@/components/shared/icons";
 
 import type { OrganizationGroupListItem } from "@/lib/api/organization-groups";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { SearchInput } from "@/components/ui/search-input";
+import { SearchInput } from "@/components/shared/search-input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
@@ -114,7 +114,7 @@ export function OrganizationGroupPicker({
           disabled={disabled}
           className={cn(
             controlHeight,
-            "w-full min-w-0 justify-between overflow-hidden border-0 border-shadow bg-background/80 px-3 text-xs font-normal",
+            "w-full min-w-0 justify-between overflow-hidden",
             className,
           )}
         >
@@ -127,7 +127,7 @@ export function OrganizationGroupPicker({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[min(var(--radix-popover-trigger-width),620px)] gap-0 overflow-hidden rounded-lg p-0"
+        className="w-[min(var(--radix-popover-trigger-width),620px)] overflow-hidden"
         align="start"
       >
         <div className="flex items-center border-b px-3">

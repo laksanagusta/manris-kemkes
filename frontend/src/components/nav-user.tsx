@@ -14,7 +14,7 @@ import {
 	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { UserIcon, SettingsIcon, CreditCardIcon, LogOutIcon } from "@/components/ui/icons";
+import { UserIcon, SettingsIcon, CreditCardIcon, LogOutIcon } from "@/components/shared/icons";
 
 const user = {
 	name: "Shaban Haider",

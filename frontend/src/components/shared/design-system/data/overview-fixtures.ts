@@ -50,7 +50,7 @@ export const designSystemOverviewTopRisks = [
     probability: 4,
     impact: 4,
     score: 18,
-    levelClass: "bg-risk-high/15 text-risk-high border-risk-high/20",
+    levelVariant: "destructive",
     href: "/risk/register/risk-example-018",
   },
   {
@@ -61,7 +61,7 @@ export const designSystemOverviewTopRisks = [
     probability: 5,
     impact: 4,
     score: 20,
-    levelClass: "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
+    levelVariant: "destructive",
     href: "/risk/register/risk-example-024",
   },
   {
@@ -72,7 +72,7 @@ export const designSystemOverviewTopRisks = [
     probability: 2,
     impact: 4,
     score: 14,
-    levelClass: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
+    levelVariant: "outline",
     href: "/risk/register/risk-example-031",
   },
 ] as const;

@@ -1,6 +1,6 @@
 "use client";
 
-import { Server } from "@/components/ui/icons";
+import { Server } from "@/components/shared/icons";
 
 import {
   CollectionTableCard,
@@ -32,7 +32,7 @@ export function TableExample() {
           <CollectionTableHeaderRow>
             <CollectionTableHead
               density="compact"
-              className="text-left"
+              className="px-24 text-left"
             >
               Name
             </CollectionTableHead>
@@ -64,13 +64,13 @@ export function TableExample() {
               density="compact"
               className="text-right"
             >
-              Actions
+              <span className="sr-only">Actions</span>
             </CollectionTableHead>
           </CollectionTableHeaderRow>
         </CollectionTableHeader>
         <TableBody>
           <TableRow>
-            <TableCell>
+            <TableCell className="px-24">
               <div className="flex h-10 items-center gap-3">
                 <div
                   aria-hidden="true"
@@ -82,17 +82,15 @@ export function TableExample() {
                   <span className="truncate text-sm font-normal leading-5 text-foreground">
                     Rencana Penanganan
                   </span>
-                  <span className="truncate font-mono text-[11px] leading-4 text-muted-foreground">
+                  <span className="truncate font-mono text-sm leading-5 text-muted-foreground">
                     R-151
                   </span>
                 </div>
               </div>
             </TableCell>
             <TableCell>
-              <Badge
-                size="compact"
-                tone="success"
-                className="h-5 px-2 text-xs font-normal leading-5"
+              <Badge variant="default"
+                className="border-transparent bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
               >
                 active
               </Badge>
@@ -123,7 +121,7 @@ export function TableExample() {
               <Button
                 variant="ghost"
                 size="xs"
-                className="bg-muted px-3 text-xs font-normal text-foreground shadow-none hover:bg-accent hover:text-foreground"
+                className=""
               >
                 Manage
               </Button>

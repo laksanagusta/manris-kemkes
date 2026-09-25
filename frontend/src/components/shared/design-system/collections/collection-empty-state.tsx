@@ -1,32 +1,42 @@
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 
 export function CollectionEmptyState({
   title = "Belum ada data",
   description,
   action,
   align = "left",
+  className,
 }: {
   title?: string;
   description?: string;
   action?: ReactNode;
   align?: "left" | "center";
+  className?: string;
 }) {
   return (
-    <div className="p-4">
-      <div
+    <Empty
+      className={cn(
+        align === "left" ? "items-start text-left" : undefined,
+        className,
+      )}
+    >
+      <EmptyHeader
         className={cn(
-          "rounded-[12px] bg-state-surface px-4 py-8 text-state-foreground",
-          align === "center" ? "text-center" : "text-left",
+          "gap-1",
+          align === "left" ? "items-start text-left" : undefined,
         )}
       >
-        <p className="text-sm font-medium text-state-foreground">{title}</p>
-        {description && (
-          <p className="mt-1 text-xs text-state-foreground">{description}</p>
-        )}
-        {action ? <div className="mt-4">{action}</div> : null}
-      </div>
-    </div>
+        <EmptyTitle>{title}</EmptyTitle>
+        {description ? (
+          <EmptyDescription className="text-xs leading-5">
+            {description}
+          </EmptyDescription>
+        ) : null}
+      </EmptyHeader>
+      {action ? <EmptyContent>{action}</EmptyContent> : null}
+    </Empty>
   );
 }

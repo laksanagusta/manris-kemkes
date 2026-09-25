@@ -120,46 +120,44 @@ export function MultiPhaseHeatmapCompareCard({
         />
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 2xl:grid-cols-6">
-            {(Object.keys(labelMap) as PhaseKey[]).map((phase) => {
-              const gridData = data?.[phase];
-              return (
-                <div
-                  key={phase}
-                  role="group"
-                  aria-label={`Heatmap ${labelMap[phase]}`}
-                  className="space-y-2"
-                >
-                  <p className="text-xs font-normal uppercase tracking-[0.6px] text-muted-foreground">
-                    {labelMap[phase]}
-                  </p>
-                  {gridData ? (
-                    <RiskHeatmapGrid
-                      matrix={gridData}
-                      label={`Heatmap ${labelMap[phase]}`}
-                      mode={heatmapMode}
-                    />
-                  ) : (
-                    <div
-                      role="status"
-                      className="flex min-h-32 items-center justify-center rounded-md bg-state-surface px-3 text-center text-xs text-state-foreground"
-                    >
-                      Data fase belum tersedia.
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+          <div role="region" aria-label="Perbandingan enam fase; geser mendatar untuk melihat fase berikutnya" tabIndex={0} className="min-w-0 overflow-x-auto pb-2">
+            <div className="grid min-w-[1360px] grid-cols-6 gap-4">
+              {(Object.keys(labelMap) as PhaseKey[]).map((phase) => {
+                const gridData = data?.[phase];
+                return (
+                  <div
+                    key={phase}
+                    role="group"
+                    aria-label={`Heatmap ${labelMap[phase]}`}
+                    className="min-w-0 space-y-3 text-center"
+                  >
+                    <p className="text-sm font-medium text-foreground">
+                      {labelMap[phase]}
+                    </p>
+                    {gridData ? (
+                      <RiskHeatmapGrid
+                        matrix={gridData}
+                        label={`Heatmap ${labelMap[phase]}`}
+                        mode={heatmapMode}
+                        className="mx-auto w-full max-w-56"
+                      />
+                    ) : (
+                      <div
+                        role="status"
+                        className="mx-auto flex min-h-32 w-full max-w-56 items-center justify-center rounded-md bg-state-surface px-3 text-center text-xs text-state-foreground"
+                      >
+                        Data fase belum tersedia.
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
           <div
             role="list"
             aria-label="Legenda level risiko"
-            className={cn(
-              surface === "plain"
-                ? "-mx-5 -mb-5 px-5"
-                : "-mx-4 -mb-4 px-4",
-              "mt-4 flex flex-wrap gap-x-4 gap-y-2 border-t border-border/60 bg-table-header py-3 text-[11px] text-muted-foreground",
-            )}
+            className="mt-1 flex flex-wrap justify-center gap-x-5 gap-y-2 border-t border-border pt-4 text-xs text-muted-foreground"
           >
             {riskLevelLegend.map((item) => (
               <span
@@ -181,14 +179,14 @@ export function MultiPhaseHeatmapCompareCard({
   );
 
   if (surface === "plain") {
-    return <div className="min-h-0">{content}</div>;
+    return <div className="min-h-0 min-w-0">{content}</div>;
   }
 
   return (
     <StandardCard
       title="Perbandingan Heatmap Multi-Fase"
+      subtitle="Bandingkan distribusi risiko dari skor awal, setiap kuartal, hingga target skor."
       className="w-full"
-      contentClassName="p-4 pt-2"
     >
       {content}
     </StandardCard>

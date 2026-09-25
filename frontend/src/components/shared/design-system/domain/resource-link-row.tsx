@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -41,7 +42,7 @@ import {
   MoreHorizontal,
   Pencil,
   Trash2,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 import { cn } from "@/lib/utils";
 import { FieldErrorMessage } from "../fields/field-error-message";
 
@@ -186,7 +187,7 @@ export function ResourceLinkRow({
               variant="ghost"
               size="icon-xs"
               aria-label={`Options for ${name}`}
-              className="group/options-trigger relative shrink-0 translate-x-0 bg-transparent text-muted-foreground opacity-100 shadow-none transition-[opacity,transform] duration-150 hover:bg-transparent hover:text-muted-foreground hover:shadow-none data-[state=open]:bg-transparent focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:shadow-none active:translate-y-0 motion-reduce:transition-none"
+              className="group/options-trigger relative shrink-0 translate-x-0 transition-[opacity,transform] duration-150 data-[state=open]:bg-transparent focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:shadow-none active:translate-y-0 motion-reduce:transition-none"
             >
               <ArrowUpRight
                 aria-hidden="true"
@@ -223,6 +224,9 @@ export function ResourceLinkRow({
           <form onSubmit={saveEdit} className="flex flex-col gap-5">
             <DialogHeader>
               <DialogTitle>Edit Link</DialogTitle>
+              <DialogDescription>
+                Perbarui nama dan URL sumber daya.
+              </DialogDescription>
             </DialogHeader>
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-2">

@@ -12,8 +12,8 @@ export function ArchivedBanner({
   action?: ReactNode;
 }) {
   return (
-    <Card className="rounded-lg bg-amber-50/80">
-      <CardContent className="space-y-1 p-4 text-sm text-amber-900">
+    <Card className="">
+      <CardContent className="space-y-1">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
             <p className="font-semibold">{title}</p>

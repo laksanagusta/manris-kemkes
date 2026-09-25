@@ -26,7 +26,7 @@ export function DropdownMenuExample() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="md" className="min-w-44 justify-between">
+        <Button variant="outline" size="default" className="min-w-44 justify-between">
           {selectedView.label}
         </Button>
       </DropdownMenuTrigger>

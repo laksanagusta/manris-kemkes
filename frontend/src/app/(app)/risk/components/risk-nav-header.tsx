@@ -16,7 +16,7 @@ import {
   GitBranch,
   History,
   Info
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -34,8 +34,8 @@ export function RiskNavHeader({ title, description, badge }: { title: string, de
     <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between animate-fade-in">
       <div>
         <div className="flex items-center gap-3">
-          <h1 className="page-title">{title}</h1>
-          {badge && <Badge variant="outline" className="text-xs bg-primary/10 text-primary uppercase font-bold tracking-wider">{badge}</Badge>}
+          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+          {badge && <Badge variant="outline" className="">{badge}</Badge>}
         </div>
         <p className="mt-1 text-sm text-secondary-foreground">
           {description}

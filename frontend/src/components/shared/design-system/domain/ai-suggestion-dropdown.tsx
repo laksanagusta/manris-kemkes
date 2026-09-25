@@ -1,5 +1,8 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+
 export type AiSuggestion = {
   id: string;
   title: string;
@@ -16,29 +19,24 @@ export function AiSuggestionDropdown({
   onSelect: (suggestion: AiSuggestion) => void;
 }) {
   return (
-    <div className="w-full max-w-md overflow-hidden rounded-[12px] bg-background/95 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 backdrop-blur-md">
-      <div className="flex items-center border-b border-border/60 px-4 py-6">
-        <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-          {label}
-        </p>
-      </div>
-      <div className="max-h-[300px] divide-y divide-border/40 overflow-y-auto">
+    <Card className="w-full max-w-md">
+      <CardHeader><CardTitle>{label}</CardTitle></CardHeader>
+      <CardContent className="flex max-h-[300px] flex-col gap-1 overflow-y-auto">
         {suggestions.map((suggestion) => (
-          <button
+          <Button
             key={suggestion.id}
             type="button"
             onClick={() => onSelect(suggestion)}
-            className="w-full p-3 text-left transition-colors hover:bg-muted/30"
+            variant="ghost"
+            className="h-auto w-full flex-col items-start whitespace-normal text-left"
           >
-            <p className="text-sm font-medium text-foreground">
-              {suggestion.title}
-            </p>
-            <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-secondary-foreground">
+            <span>{suggestion.title}</span>
+            <CardDescription className="line-clamp-2">
               {suggestion.description}
-            </p>
-          </button>
+            </CardDescription>
+          </Button>
         ))}
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

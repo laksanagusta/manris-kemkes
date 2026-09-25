@@ -7,7 +7,7 @@ import {
   Clock,
   FileSignature,
   FileText,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 
 import { Badge } from "@/components/ui/badge";
 import {
@@ -21,8 +21,6 @@ import {
   CollectionTableHead,
   CollectionTableHeader,
   CollectionTableHeaderRow,
-  CollectionTabsList,
-  CollectionTabsTrigger,
   CollectionToolbar,
   KpiCard,
 } from "@/components/shared/design-system";
@@ -36,10 +34,14 @@ import {
   TableCell,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs } from "@/components/ui/tabs";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from "@/components/shared/animated-tabs";
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
-import { cn } from "@/lib/utils";
+import { getLinearStatusBadgeClassName, getLinearStatusBadgeTone } from "@/lib/linear-status-badge";
 
 interface ApprovalRequest {
   id: string;
@@ -71,15 +73,6 @@ interface WorkingPaperSigningItem {
 }
 
 type InboxItem = ApprovalRequest | WorkingPaperSigningItem;
-
-const statusVariant: Record<string, string> = {
-  pending: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
-  approved: "bg-success/15 text-success border-success/20",
-  rejected: "bg-destructive/15 text-destructive border-destructive/20",
-  submitted: "bg-amber-100 text-amber-700 border-amber-200",
-  revision_requested: "bg-orange-100 text-orange-700 border-orange-200",
-  pending_signing: "bg-blue-100 text-blue-700 border-blue-200",
-};
 
 const statusLabel: Record<string, string> = {
   pending: "Menunggu",
@@ -518,25 +511,25 @@ export default function InboxPage() {
           setPage(1);
         }}
       >
-        <CollectionTabsList>
-          <CollectionTabsTrigger value="all">
+        <TabsList className="h-auto items-start gap-1">
+          <TabsTrigger value="all" className="flex-none px-3">
             Semua
-          </CollectionTabsTrigger>
-          <CollectionTabsTrigger value="my_approvals">
+          </TabsTrigger>
+          <TabsTrigger value="my_approvals" className="flex-none px-3">
             Persetujuan Saya
             {counts.myApprovals > 0 && (
-              <Badge className="ml-1 h-4 bg-primary/20 px-1 text-[9px] text-primary">
+              <Badge className="ml-1">
                 {counts.myApprovals}
               </Badge>
             )}
-          </CollectionTabsTrigger>
-          <CollectionTabsTrigger value="approved">
+          </TabsTrigger>
+          <TabsTrigger value="approved" className="flex-none px-3">
             Disetujui
-          </CollectionTabsTrigger>
-          <CollectionTabsTrigger value="rejected">
+          </TabsTrigger>
+          <TabsTrigger value="rejected" className="flex-none px-3">
             Ditolak
-          </CollectionTabsTrigger>
-        </CollectionTabsList>
+          </TabsTrigger>
+        </TabsList>
       </Tabs>
 
       <MetricGrid>
@@ -581,19 +574,19 @@ export default function InboxPage() {
             </colgroup>
             <CollectionTableHeader>
               <CollectionTableHeaderRow>
-                <CollectionTableHead className="pl-4 pr-3">
+                <CollectionTableHead>
                   Kode
                 </CollectionTableHead>
-                <CollectionTableHead className="px-3">
+                <CollectionTableHead className="px-24">
                   Entitas
                 </CollectionTableHead>
-                <CollectionTableHead className="px-3">
+                <CollectionTableHead >
                   Jenis
                 </CollectionTableHead>
-                <CollectionTableHead className="px-3">
+                <CollectionTableHead >
                   Tanggal
                 </CollectionTableHead>
-                <CollectionTableHead className="px-3">
+                <CollectionTableHead >
                   Status
                 </CollectionTableHead>
               </CollectionTableHeaderRow>
@@ -634,12 +627,12 @@ export default function InboxPage() {
                 return (
                   <TableRow
                     key={item.id}
-                    className="border-b border-border hover:bg-muted/50"
+                    className="hover:bg-muted/50"
                   >
-                    <TableCell className="py-2 pl-4 pr-3 text-foreground">
+                    <TableCell className="">
                       {displayCode || `REQ-${item.id.slice(0, 8)}`}
                     </TableCell>
-                    <TableCell className="px-3 py-2">
+                    <TableCell className="px-24">
                       <div className="min-w-0">
                         <Link
                           href={typeConfig.href(entityId)}
@@ -652,27 +645,22 @@ export default function InboxPage() {
                         </p>
                       </div>
                     </TableCell>
-                    <TableCell className="px-3 py-2">
-                      <Badge variant="outline" className="h-5 px-1.5 text-xs">
+                    <TableCell className="">
+                      <Badge variant="outline" className="">
                         <span className="inline-flex items-center gap-1">
                           <Icon className="size-3" />
                           {typeConfig.label}
                         </span>
                       </Badge>
                     </TableCell>
-                    <TableCell className="px-3 py-2 text-muted-foreground">
+                    <TableCell className="">
                       <span className="inline-flex items-center gap-1.5">
                         <Clock className="size-3" />
                         {formatDate(displayDate)}
                       </span>
                     </TableCell>
-                    <TableCell className="px-3 py-2">
-                      <Badge
-                        className={cn(
-                          "h-5 px-1.5 text-[10px] font-medium",
-                          statusVariant[status],
-                        )}
-                      >
+                    <TableCell className="">
+                      <Badge variant={getLinearStatusBadgeTone(status)} className={getLinearStatusBadgeClassName(status)}>
                         {statusLabel[status]}
                       </Badge>
                     </TableCell>

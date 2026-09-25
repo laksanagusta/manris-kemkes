@@ -36,10 +36,8 @@ test("risk register table exposes accessible sorting and monitoring progress", (
 test("risk register table uses the approved column proportions", () => {
   assert.match(
     registerSource,
-    /<colgroup>\s*<col style=\{\{ width: "42%" \}\} \/>\s*<col style=\{\{ width: "15%" \}\} \/>\s*<col style=\{\{ width: "8%" \}\} \/>\s*<col style=\{\{ width: "11%" \}\} \/>\s*<col style=\{\{ width: "18%" \}\} \/>\s*<col style=\{\{ width: "6%" \}\} \/>\s*<\/colgroup>/,
+    /<colgroup>\s*<col style=\{\{ width: "38%" \}\} \/>\s*<col style=\{\{ width: "17%" \}\} \/>\s*<col style=\{\{ width: "9%" \}\} \/>\s*<col style=\{\{ width: "11%" \}\} \/>\s*<col style=\{\{ width: "17%" \}\} \/>\s*<col style=\{\{ width: "8%" \}\} \/>\s*<\/colgroup>/,
   );
-  assert.match(registerSource, /sticky right-0 z-10 w-\[6%\]/);
-  assert.match(registerSource, /sticky right-0 w-\[6%\] bg-card/);
 });
 
 test("risk register data rows use the shared two-line ledger rhythm", () => {
@@ -49,6 +47,24 @@ test("risk register data rows use the shared two-line ledger rhythm", () => {
   );
   assert.match(registerSource, /className="flex min-w-0 flex-col items-start gap-1"/);
   assert.match(registerSource, /font-mono text-\[11px\] leading-4 text-muted-foreground/);
+});
+
+test("risk register keeps supporting category cells muted", () => {
+  assert.match(
+    registerSource,
+    /<TableCell className="whitespace-nowrap">\s*<RiskCategoryIndicator category=\{risk\.category\} \/>/,
+  );
+});
+
+test("risk register empty results point to a next step", () => {
+  assert.match(registerSource, /<p className="font-normal">/);
+  assert.match(registerSource, /<p className="max-w-lg text-xs">/);
+  assert.match(registerSource, /Tidak ada risiko yang sesuai/);
+  assert.match(
+    registerSource,
+    /Coba ubah kata kunci atau sesuaikan filter untuk menampilkan risiko lain\./,
+  );
+  assert.match(registerSource, /Tambahkan risiko baru untuk memulai daftar risiko\./);
 });
 
 test("risk register gives the sticky action cell the same row hover surface", () => {

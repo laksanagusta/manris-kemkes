@@ -1,8 +1,8 @@
 import type { ComponentProps, KeyboardEvent } from "react";
-import { Search } from "@/components/ui/icons";
+import { Search } from "@/components/shared/icons";
 import { Kbd } from "@/components/ui/kbd";
 
-import { SearchInput } from "@/components/ui/search-input";
+import { SearchInput } from "@/components/shared/search-input";
 import { cn } from "@/lib/utils";
 
 export function CollectionSearchField({
@@ -44,7 +44,7 @@ export function CollectionSearchField({
         placeholder={props.placeholder ?? " "}
         onKeyDown={handleKeyDown}
         className={cn(
-          "peer h-9 bg-card pl-10 pr-12 text-sm peer-placeholder-shown:pr-3",
+          "peer h-8 bg-card pl-10 pr-12 text-sm peer-placeholder-shown:pr-3",
           className,
         )}
       />

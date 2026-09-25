@@ -3,7 +3,7 @@
 import { toast } from "sonner";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Save } from "@/components/ui/icons";
+import { Save } from "@/components/shared/icons";
 
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
@@ -66,12 +66,12 @@ export default function NewControlPage() {
       <FormHeader
         title="Tambah kontrol"
         badges={
-          <Badge variant="outline" className="-primary/15 bg-primary/[0.04] text-primary">
+          <Badge variant="secondary">
             Pustaka kontrol
           </Badge>
         }
         actions={
-          <Button className="gap-2 text-xs" onClick={handleSave} disabled={saving}>
+          <Button className="" onClick={handleSave} disabled={saving}>
             <Save className="size-3.5" />
             {saving ? "Menyimpan..." : "Simpan kontrol"}
           </Button>
@@ -91,7 +91,7 @@ export default function NewControlPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Contoh: Pengecekan suhu cold chain harian"
-            className="h-10 text-sm"
+            className=""
           />
         </div>
 
@@ -101,7 +101,7 @@ export default function NewControlPage() {
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             placeholder="Jelaskan bagaimana kontrol ini dijalankan."
-            className="min-h-28 text-sm leading-6"
+            className=""
           />
         </div>
 
@@ -114,13 +114,13 @@ export default function NewControlPage() {
               value={owner}
               onChange={(e) => setOwner(e.target.value)}
               placeholder="Contoh: Tim logistik vaksin"
-              className="h-10 text-sm"
+              className=""
             />
           </div>
           <div className="space-y-1.5">
             <Label className="text-sm font-medium">Tipe kontrol</Label>
             <Select value={type} onValueChange={setType}>
-              <SelectTrigger className="h-10 text-sm">
+              <SelectTrigger className="">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -141,7 +141,7 @@ export default function NewControlPage() {
         <div className="space-y-1.5 md:max-w-sm">
           <Label className="text-sm font-medium">Frekuensi</Label>
           <Select value={frequency} onValueChange={setFrequency}>
-            <SelectTrigger className="h-10 text-sm">
+            <SelectTrigger className="">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

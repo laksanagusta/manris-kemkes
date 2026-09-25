@@ -5,8 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export function TypographyExample() {
   return (
-      <Card className="overflow-hidden rounded-[12px] bg-card">
-      <CardContent className="space-y-5 p-6">
+      <Card className="overflow-hidden">
+      <CardContent className="space-y-5">
         <div className="space-y-1.5">
           <p className="font-mono text-[11px] text-muted-foreground">
             --font-sans: Inter
@@ -73,9 +73,9 @@ export function TypographyExample() {
             </p>
           </div>
           <div>
-            <p className="text-xs text-muted-foreground">Helper / Caption</p>
-            <p className="font-mono text-[11px] text-muted-foreground">
-              text-xs text-muted-foreground
+            <p className="text-xs text-tertiary-foreground">Helper / Caption</p>
+            <p className="font-mono text-[11px] text-tertiary-foreground">
+              text-xs text-tertiary-foreground
             </p>
           </div>
           <div>

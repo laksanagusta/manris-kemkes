@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowDown, ArrowUp, Minus, Plus, Trash2 } from "@/components/ui/icons";
+import { ArrowDown, ArrowUp, Minus, Plus, Trash2 } from "@/components/shared/icons";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { MovementSnapshotDatum } from "@/lib/dashboard-insights";
@@ -64,10 +64,10 @@ export function RiskMovementSnapshot({
   if (loading) {
     return (
       <Card
-        className="bg-card/80 backdrop-blur-sm"
+        className=""
         data-testid="movement-snapshot"
       >
-        <CardHeader className="pb-4">
+        <CardHeader className="">
           <div className="h-5 w-36 animate-pulse rounded-md bg-muted/60" />
           <div className="mt-2 h-3 w-52 animate-pulse rounded bg-muted/40" />
         </CardHeader>
@@ -93,11 +93,11 @@ export function RiskMovementSnapshot({
 
   return (
     <Card
-      className="bg-card/80 backdrop-blur-sm"
+      className=""
       data-testid="movement-snapshot"
     >
-      <CardHeader className="pb-4">
-        <CardTitle className="text-sm font-medium normal-case">
+      <CardHeader className="">
+        <CardTitle className="">
           Perubahan Risiko
         </CardTitle>
         <p className="mt-1 text-xs text-secondary-foreground">

@@ -1,47 +1,64 @@
-export type BadgeTone =
-  | "neutral"
-  | "progress"
-  | "success"
-  | "warning"
-  | "danger"
-  | "info";
+import type { BadgeVariant } from "@/components/ui/badge";
+import { getStatusBadgeClassName } from "@/lib/badge-variant";
 
-const STATUS_TO_TONE: Record<string, BadgeTone> = {
-  draft: "neutral",
-  signing: "progress",
-  completed: "success",
-  cancelled: "danger",
-  final: "success",
-  reviewed: "progress",
-  pending_review: "warning",
-  archived: "neutral",
-  ongoing: "progress",
-  pending: "warning",
-  done: "success",
-  overdue: "danger",
-  skipped: "neutral",
-  not_reported: "danger",
+const STATUS_TO_VARIANT: Record<string, BadgeVariant> = {
+  draft: "secondary",
+  signing: "default",
+  completed: "default",
+  cancelled: "destructive",
+  final: "default",
+  generated: "default",
+  submitted: "default",
+  approved: "default",
+  revision_requested: "default",
+  pending_signing: "default",
+  reviewed: "default",
+  pending_review: "default",
+  in_progress: "default",
+  "in-progress": "default",
+  "in progress": "default",
+  on_progress: "default",
+  "on-progress": "default",
+  "on progress": "default",
+  progress: "default",
+  finalized: "default",
+  success: "default",
+  archived: "secondary",
+  ongoing: "default",
+  pending: "default",
+  done: "default",
+  overdue: "destructive",
+  cancel: "destructive",
+  canceled: "destructive",
+  skipped: "secondary",
+  not_reported: "destructive",
+  active: "default",
+  inactive: "secondary",
 };
 
-export function getLinearStatusBadgeTone(status?: string | null): BadgeTone {
+export function getLinearStatusBadgeTone(status?: string | null): BadgeVariant {
   const normalized = (status ?? "").trim().toLowerCase();
-  return STATUS_TO_TONE[normalized] ?? "neutral";
+  return STATUS_TO_VARIANT[normalized] ?? "secondary";
 }
 
-export function getLinearRiskLevelBadgeTone(level?: string | null): BadgeTone {
+export function getLinearStatusBadgeClassName(status?: string | null): string {
+  return getStatusBadgeClassName(status);
+}
+
+export function getLinearRiskLevelBadgeTone(level?: string | null): BadgeVariant {
   const normalized = (level ?? "").trim().toLowerCase();
 
   switch (normalized) {
     case "sangat rendah":
-      return "success";
+      return "default";
     case "rendah":
-      return "info";
+      return "outline";
     case "sedang":
-      return "warning";
+      return "outline";
     case "tinggi":
     case "sangat tinggi":
-      return "danger";
+      return "destructive";
     default:
-      return "neutral";
+      return "secondary";
   }
 }

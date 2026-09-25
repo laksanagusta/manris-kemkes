@@ -1,6 +1,7 @@
 import { useId, type ComponentProps, type ReactNode } from "react";
 
-import { ListGroup } from "@/components/ui/list-group";
+import { ListGroup } from "@/components/shared/list-group";
+import { CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
 export type LabeledListProps = Omit<ComponentProps<"section">, "title"> & {
@@ -40,18 +41,15 @@ export function LabeledList({
       >
         {label}
       </h2>
-      <ListGroup
-        className={cn(
-          "surface-hairline rounded-[12px] bg-card",
-          surfaceClassName,
-        )}
-      >
+      <ListGroup className={surfaceClassName}>
+        <CardContent>
         <ul
           aria-labelledby={labelId}
           className={cn("m-0 list-none p-0", listClassName)}
         >
           {children}
         </ul>
+        </CardContent>
       </ListGroup>
     </section>
   );

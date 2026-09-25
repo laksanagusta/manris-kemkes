@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Plus } from "@/components/ui/icons";
+import { ChevronDown, Plus } from "@/components/shared/icons";
 import { motion, useReducedMotion } from "motion/react";
-import { Badge } from "@/components/shared/design-system";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 import type { Finding, ProcessingJob } from "@/types/document-processing";
 
 function severityMeta(severity: Finding["severity"]) {
@@ -48,7 +49,7 @@ export function FindingsReviewPanel({
             Buka rincian sumber dan tindakan sebelum membuat draf risiko.
           </p>
         </div>
-        <Button type="button" variant="outline" size="sm" className="gap-2 border-0 border-shadow" onClick={onStartNew}>
+        <Button type="button" variant="outline" size="sm" className="" onClick={onStartNew}>
           <Plus className="size-3.5" />
           Mulai proses baru
         </Button>
@@ -68,7 +69,7 @@ export function FindingsReviewPanel({
           return (
             <article
               key={finding.id}
-              className="group rounded-lg border border-border/80 bg-card p-4 transition-[border-color,box-shadow] duration-150 hover:border-foreground/20 hover:shadow-sm"
+              className="group overflow-hidden rounded-lg border border-border/80 bg-card p-4 transition-[border-color,box-shadow] duration-150 hover:border-foreground/20 hover:shadow-sm"
             >
               <div className="w-full text-left">
                 <div className="flex items-start gap-3">
@@ -76,7 +77,7 @@ export function FindingsReviewPanel({
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h4 className="text-sm font-medium text-foreground">{finding.title}</h4>
-                      <Badge tone={meta.tone} size="micro">
+                      <Badge variant={toBadgeVariant(meta.tone)} className={getStatusBadgeClassName(meta.tone)}>
                         {meta.label}
                       </Badge>
                     </div>
@@ -94,7 +95,7 @@ export function FindingsReviewPanel({
                     type="button"
                     variant="outline"
                     size="xs"
-                    className="gap-1.5"
+                    className=""
                     disabled={isReported}
                     onClick={() => onUseMitigationReport(finding)}
                   >
@@ -105,7 +106,7 @@ export function FindingsReviewPanel({
                     type="button"
                     variant="outline"
                     size="xs"
-                    className="gap-1.5"
+                    className=""
                     disabled={isReported}
                     onClick={() => onUseRiskDraft(finding)}
                   >

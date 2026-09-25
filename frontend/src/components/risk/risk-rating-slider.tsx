@@ -83,7 +83,7 @@ export function RiskRatingSlider({
               </button>
             </TooltipTrigger>
             {labels?.[val] && (
-              <TooltipContent side="top" className="text-xs">
+              <TooltipContent side="top" className="">
                 {labels[val]}
               </TooltipContent>
             )}

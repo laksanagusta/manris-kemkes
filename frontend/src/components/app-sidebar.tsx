@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import { LayoutGroup } from "motion/react";
-import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
   Inbox,
@@ -28,8 +27,10 @@ import {
   LogOut,
   HelpCircle,
   User as UserIcon,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -56,7 +57,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { SidebarNavItem } from "@/components/ui/sidebar-nav-item";
+import { SidebarNavItem } from "@/components/shared/sidebar-nav-item";
 import { useEffect, useMemo, useState } from "react";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { useAuth } from "@/contexts/auth-context";
@@ -279,14 +280,11 @@ function NavLink({
     <SidebarNavItem
       badge={
         displayBadge !== undefined && displayBadge > 0 ? (
-          <span
-            className="relative z-10 ml-auto min-w-4 text-center text-[11px] font-normal tabular-nums text-sidebar-foreground/60 group-data-[collapsible=icon]:hidden"
-          >
+          <Badge variant="secondary" className="ml-auto tabular-nums group-data-[collapsible=icon]:hidden">
             {displayBadge}
-          </span>
+          </Badge>
         ) : undefined
       }
-      className="hover:bg-sidebar-accent active:bg-sidebar-accent"
       href={item.href}
       icon={item.icon}
       isActive={isActive}
@@ -346,10 +344,7 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
 
   return (
     <Sidebar
-      className={cn(
-        "md:top-14 md:h-[calc(100svh-3.5rem)]",
-        "*:data-[slot=sidebar-inner]:bg-sidebar",
-      )}
+      className="md:top-14 md:h-[calc(100svh-3.5rem)] md:border-sidebar-border"
       collapsible="icon"
       variant="sidebar"
     >
@@ -378,14 +373,14 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
       <LayoutGroup id="sidebar-navigation">
         <SidebarContent>
           <ScrollArea className="min-h-0 flex-1">
-            <div className="flex flex-col gap-5 pt-2">
+            <div className="flex flex-col gap-1 pt-2">
               {visibleNavigation.map((group) => (
                 <SidebarGroup key={group.title ?? group.items?.[0]?.href}>
                   {group.title ? (
                     <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
                   ) : null}
 
-                  <SidebarMenu>
+                  <SidebarMenu className="gap-1">
                     {group.items?.map((item) => (
                       <NavLink
                         key={item.href}
@@ -403,33 +398,25 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
           </ScrollArea>
         </SidebarContent>
 
-        <SidebarFooter className="relative isolate space-y-2 px-3 group-data-[collapsible=icon]:px-2">
+        <SidebarFooter className="relative isolate gap-2 px-2 py-3">
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-x-0 -top-10 z-10 h-10 bg-gradient-to-b from-transparent via-sidebar/75 to-sidebar backdrop-blur-md"
           />
           {user && (
-            <div className="flex min-w-0 items-center justify-center gap-1">
+            <div className="flex min-w-0 items-center justify-center gap-2">
               <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
-                  <button
-                    type="button"
-                    className="group flex min-w-0 flex-1 items-center gap-3 rounded-md px-2 py-2 text-left transition-colors duration-150 hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 group-data-[collapsible=icon]:size-8 group-data-[collapsible=icon]:flex-none group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0"
-                    aria-label="Open user menu"
-                  >
+                  <SidebarMenuButton className="min-w-0 flex-1" aria-label="Open user menu">
                     <span className="inline-flex shrink-0 items-center justify-center">
-                      <Avatar size="sm">
-                        <AvatarFallback className="overflow-hidden bg-muted text-foreground">
-                          <span className="sr-only">{user?.name || "User"}</span>
-                        </AvatarFallback>
-                      </Avatar>
+                      <Avatar size="sm"><AvatarFallback>{user?.name?.slice(0, 2).toUpperCase() || "U"}</AvatarFallback></Avatar>
                     </span>
                     <span className="min-w-0 flex-1 truncate text-sm font-normal text-sidebar-foreground group-data-[collapsible=icon]:hidden">
                       {user?.name || "User"}
                     </span>
-                  </button>
+                  </SidebarMenuButton>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="font-display w-56 pl-2">
+                <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuLabel className="space-y-1 px-2 py-1.5">
                     <div className="truncate text-sm font-normal text-foreground">
                       {user?.name || "User"}
@@ -464,37 +451,23 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
 
               <Popover>
                 <PopoverTrigger asChild>
-                  <button
-                    type="button"
-                    className="inline-flex size-8 shrink-0 items-center justify-center rounded-md text-sidebar-muted-foreground transition-colors duration-150 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 group-data-[collapsible=icon]:hidden"
-                    aria-label="Buka panduan"
-                    title="Panduan"
-                  >
-                    <HelpCircle className="size-4" aria-hidden="true" />
-                  </button>
+                  <Button variant="ghost" size="icon" className="group-data-[collapsible=icon]:hidden" aria-label="Buka panduan" title="Panduan">
+                    <HelpCircle aria-hidden="true" />
+                  </Button>
                 </PopoverTrigger>
                 <PopoverContent
                   side="top"
                   align="end"
                   sideOffset={8}
-                  variant="dropdown"
                   className="w-52"
                 >
                   <div className="px-2 py-1.5 text-xs font-normal text-muted-foreground">
                     Bantuan
                   </div>
                   {utilityLinks.map(({ label, href, icon: Icon }) => (
-                    <Link
-                      key={href}
-                      href={href}
-                      className="flex h-8 items-center gap-2 rounded-md px-2 text-sm text-foreground transition-colors hover:bg-sidebar-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
-                    >
-                      <Icon
-                        className="size-4 text-muted-foreground"
-                        aria-hidden="true"
-                      />
-                      <span>{label}</span>
-                    </Link>
+                    <Button key={href} asChild variant="ghost" className="w-full justify-start">
+                      <Link href={href}><Icon data-icon="inline-start" aria-hidden="true" />{label}</Link>
+                    </Button>
                   ))}
                 </PopoverContent>
               </Popover>

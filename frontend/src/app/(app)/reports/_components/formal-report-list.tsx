@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Download, FileText, Loader2 } from "@/components/ui/icons";
+import { Download, FileText, Loader2 } from "@/components/shared/icons";
 import { toast } from "sonner";
 
 import { useAuth } from "@/contexts/auth-context";
@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/table";
 import { downloadFormalReport } from "@/lib/api/formal-reports";
 import { formalReportTypeLabels } from "@/lib/formal-report-definitions";
-import { cn } from "@/lib/utils";
+import { getLinearStatusBadgeClassName, getLinearStatusBadgeTone } from "@/lib/linear-status-badge";
 import { parseFormalReportSummary } from "@/types/formal-report";
 import type { FormalReport } from "@/types/formal-report";
 
@@ -27,13 +27,11 @@ type FormalReportListProps = {
   organizationNameById: Map<string, string>;
 };
 
-const reportStatusStyles: Record<FormalReport["status"], string> = {
-  draft: "border-border/60 bg-muted/40 text-muted-foreground",
-  generated: "border-primary/20 bg-primary/5 text-primary",
-  submitted:
-    "border-amber-500/20 bg-amber-500/10 text-amber-700",
-  approved:
-    "border-emerald-500/20 bg-emerald-500/10 text-emerald-700",
+const reportStatusTones: Record<FormalReport["status"], ReturnType<typeof getLinearStatusBadgeTone>> = {
+  draft: getLinearStatusBadgeTone("draft"),
+  generated: getLinearStatusBadgeTone("generated"),
+  submitted: getLinearStatusBadgeTone("submitted"),
+  approved: getLinearStatusBadgeTone("approved"),
 };
 
 function formatDateTime(value?: string | null) {
@@ -80,7 +78,7 @@ export function FormalReportList({
   };
 
   return (
-    <Card className="rounded-lg bg-card">
+    <Card className="">
       <div className="flex items-center justify-between gap-3 border-b border-border/40 px-6 py-4">
         <div className="space-y-1">
           <p className="text-xs text-secondary-foreground">
@@ -90,23 +88,23 @@ export function FormalReportList({
         </div>
         <Badge
           variant="outline"
-          className="gap-1.5 border-primary/20 bg-primary/[0.06] text-[10px] text-primary"
+          className=""
         >
           <FileText className="size-3.5" />
           PDF
         </Badge>
       </div>
-      <CardContent className="p-0">
+      <CardContent className="">
         <Table>
-          <TableHeader className="bg-table-header">
+          <TableHeader>
             <TableRow>
               <TableHead className="whitespace-nowrap">Periode</TableHead>
               <TableHead className="whitespace-nowrap">Organisasi</TableHead>
-              <TableHead className="whitespace-nowrap">Jenis Laporan</TableHead>
+              <TableHead className="px-24 whitespace-nowrap">Jenis Laporan</TableHead>
               <TableHead className="whitespace-nowrap">Status</TableHead>
               <TableHead className="whitespace-nowrap">Generated At</TableHead>
               <TableHead className="text-right whitespace-nowrap">
-                Aksi
+                <span className="sr-only">Aksi</span>
               </TableHead>
             </TableRow>
           </TableHeader>
@@ -115,7 +113,7 @@ export function FormalReportList({
               <TableRow>
                 <TableCell
                   colSpan={6}
-                  className="bg-state-surface py-10 text-center text-sm text-state-foreground"
+                  className="text-center"
                 >
                   Belum ada laporan Monitoring & Evaluasi yang digenerate.
                 </TableCell>
@@ -132,13 +130,13 @@ export function FormalReportList({
                     key={report.id}
                     className="transition-colors hover:bg-muted/25"
                   >
-                    <TableCell className="whitespace-nowrap font-medium">
+                    <TableCell className="whitespace-nowrap">
                       {report.period}
                     </TableCell>
                     <TableCell className="max-w-[240px] truncate">
                       {orgName}
                     </TableCell>
-                    <TableCell className="max-w-[280px] truncate">
+                    <TableCell className="max-w-[280px] px-24 truncate">
                       <span className="text-foreground">
                         {(() => {
                           const summary = parseFormalReportSummary(
@@ -152,17 +150,11 @@ export function FormalReportList({
                       </span>
                     </TableCell>
                     <TableCell>
-                      <Badge
-                        variant="outline"
-                        className={cn(
-                          "whitespace-nowrap",
-                          reportStatusStyles[report.status],
-                        )}
-                      >
+                      <Badge variant={reportStatusTones[report.status]} className={`whitespace-nowrap ${getLinearStatusBadgeClassName(report.status)}`}>
                         {report.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="whitespace-nowrap text-muted-foreground">
+                    <TableCell className="whitespace-nowrap">
                       {formatDateTime(report.generatedAt ?? report.updatedAt)}
                     </TableCell>
                     <TableCell className="text-right">
@@ -170,7 +162,7 @@ export function FormalReportList({
                         type="button"
                         variant="ghost"
                         size="sm"
-                        className="gap-1.5"
+                        className=""
                         onClick={() => void handleDownload(report)}
                         disabled={isDownloading}
                       >

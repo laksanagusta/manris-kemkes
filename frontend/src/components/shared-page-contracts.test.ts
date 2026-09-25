@@ -47,7 +47,7 @@ const mainMenuSource =
   appNavigation.match(/export const mainMenuItems[\s\S]*?export const adminMenuGroup/)?.[0] ??
   "";
 const sidebarPrimitive = readSource("../components/ui/sidebar.tsx");
-const sidebarNavItem = readSource("../components/ui/sidebar-nav-item.tsx");
+const sidebarNavItem = readSource("../components/shared/sidebar-nav-item.tsx");
 const sidebarMotionExample = readSource(
   "../components/shared/design-system/examples/sidebar-motion-example.tsx",
 );
@@ -58,12 +58,15 @@ const formContainer = readSource(
 const collapsibleCard = readSource(
   "../components/shared/design-system/layout/collapsible-card.tsx",
 );
-const kpiCard = readSource("../components/ui/kpi-card.tsx");
+const kpiCard = readSource("../components/shared/kpi-card.tsx");
 const expandableSearchField = readSource(
   "../components/shared/design-system/collections/expandable-search-field.tsx",
 );
 const mitigationPanel = readSource(
   "../app/(app)/compliance/_components/mitigation-monitoring-panel.tsx",
+);
+const mitigationProgressFlowDialog = readSource(
+  "../components/shared/design-system/domain/mitigation-progress-flow-dialog.tsx",
 );
 const monitoringWorkspace = readSource(
   "../app/(app)/compliance/_components/monitoring-read-only-workspace.tsx",
@@ -210,7 +213,7 @@ test("monitoring read-only toolbar matches collection control height", () => {
   );
   assert.match(
     monitoringWorkspace,
-    /tone=\{row\.status === "finalized" \? "success" : "progress"\}/,
+    /variant=\{row\.status === "finalized" \? "default" : "outline"\}/,
   );
   assert.match(monitoringWorkspace, /getMonitoringStatusLabel\(row\.status\)/);
 });
@@ -232,7 +235,7 @@ test("risk monitoring keeps header actions in the trailing local slot", () => {
 test("mitigation monitoring uses the shared expandable search and compact status badge", () => {
   assert.match(expandableSearchField, /absolute right-2 size-4/);
   assert.match(mitigationPanel, /<ExpandableSearchField[\s>]/);
-  assert.match(mitigationPanel, /<Badge\s+size="compact"\s+tone=/);
+  assert.match(mitigationPanel, /<Badge\s+variant=\{toBadgeVariant\(/);
   assert.doesNotMatch(mitigationPanel, /bg-muted\/60 px-2 py-1 font-mono/);
   assert.doesNotMatch(mitigationPanel, /Daftar mitigasi/);
   assert.doesNotMatch(
@@ -253,24 +256,36 @@ test("mitigation monitoring uses the shared expandable search and compact status
   );
 });
 
-test("mitigation detail-to-report handoff follows the dialog exit lifecycle", () => {
-  assert.match(mitigationPanel, /useReducedMotion/);
-  assert.match(mitigationPanel, /pendingReportTaskRef/);
+test("mitigation import keeps the visible outline action treatment", () => {
+  assert.match(
+    mitigationPanel,
+    /<ActionButton asChild variant="outline" className="sm:ml-auto">[\s\S]*Import/,
+  );
+  assert.doesNotMatch(
+    mitigationPanel,
+    /<ActionButton asChild variant="outline" className="border-0 sm:ml-auto">[\s\S]*Import/,
+  );
+});
+
+test("mitigation detail-to-report handoff keeps one dialog and animates its layout", () => {
+  assert.match(mitigationPanel, /MitigationProgressFlowDialog/);
+  assert.match(mitigationPanel, /view=\{dialogView\}/);
+  assert.match(mitigationPanel, /setDialogView\("form"\)/);
   assert.equal(
     mitigationPanel.match(/handleOpenSubmitFromDetail\(detailTask\)/g)?.length,
     2,
   );
   assert.doesNotMatch(
     mitigationPanel,
-    /setShowDetailDialog\(false\);\s*handleOpenSubmit\(detailTask\)/,
+    /setShowDetailDialog\(false\)/,
   );
-  assert.match(mitigationPanel, /onAnimationEnd=\{\(event\) =>/);
-  assert.match(mitigationPanel, /event\.currentTarget !== event\.target/);
-  assert.match(mitigationPanel, /event\.animationName !== "exit"/);
-  assert.match(mitigationPanel, /window\.requestAnimationFrame\(flushPendingReport\)/);
-  assert.match(mitigationPanel, /className="max-w-2xl no-scrollbar"/);
-  assert.match(mitigationPanel, /showCloseButton=\{false\}/);
-  assert.doesNotMatch(mitigationPanel, /DialogDescription/);
+  assert.match(mitigationPanel, /onFormCancel=\{\(\) => setDialogView\("detail"\)\}/);
+  assert.match(mitigationPanel, /detailTitle="Detail Laporan Penanganan"/);
+  assert.match(mitigationPanel, /formTitle="Lapor Progress Penanganan"/);
+  assert.match(
+    mitigationPanel,
+    /detailDescription="Tinjau status, bukti, dan catatan penanganan\."/,
+  );
   assert.match(mitigationPanel, /className="space-y-6"/);
   assert.match(
     mitigationPanel,
@@ -282,21 +297,17 @@ test("mitigation detail-to-report handoff follows the dialog exit lifecycle", ()
   assert.match(mitigationPanel, /CalendarClock/);
   assert.match(mitigationPanel, /Link2/);
   assert.match(mitigationPanel, /MessageSquare/);
-  assert.match(mitigationPanel, /DialogFooter className="gap-2 sm:justify-between/);
-  assert.match(
-    mitigationPanel,
-    /<CollectionDialogCancel[\s\S]*>\s*Tutup\s*<\/CollectionDialogCancel>[\s\S]*detailTask\.status === "pending"/,
-  );
-  assert.doesNotMatch(
-    mitigationPanel,
-    /h-9 items-center rounded-lg border border-border bg-card/,
-  );
-  assert.match(
-    mitigationPanel,
-    /className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300\/30"/,
-  );
-  assert.doesNotMatch(mitigationPanel, /motion-safe:animate-in/);
-  assert.doesNotMatch(mitigationPanel, /motion-safe:delay-\[(?:40|80)ms\]/);
+  assert.match(mitigationProgressFlowDialog, /data-dynamic-height="true"/);
+  assert.match(mitigationProgressFlowDialog, /modal\.style\.height = `\$\{targetHeight\}px`/);
+  assert.match(mitigationProgressFlowDialog, /onViewChange\("detail"\)/);
+  assert.match(mitigationProgressFlowDialog, /onFormCancel\?: \(\) => void/);
+  assert.match(mitigationProgressFlowDialog, /view === "form" && onFormCancel/);
+  assert.match(mitigationProgressFlowDialog, /view === "form"[\s\S]*?overflow-y-auto/);
+  assert.match(mitigationProgressFlowDialog, /: "overflow-visible"/);
+  assert.match(mitigationProgressFlowDialog, /const naturalHeight = modal\.offsetHeight/);
+  assert.match(mitigationProgressFlowDialog, /Let the first render keep its natural height/);
+  assert.match(globals, /\[data-slot="dialog-content"\]\[data-dynamic-height="true"\]/);
+  assert.match(globals, /@media \(prefers-reduced-motion: reduce\)/);
 });
 
 test("working papers consumes the shared create dialog instead of a local duplicate", () => {
@@ -411,7 +422,7 @@ test("working paper detail keeps the ledger wide and context in the right rail",
   assert.match(workingPaperDetail, /<FormPage className="space-y-6 pb-0">/);
   assert.match(
     workingPaperDetail,
-    /<Badge\s+size="compact"\s+tone=\{isAllMonitoringFinal \? "success" : "progress"\}/,
+    /<Badge\s+variant=\{isAllMonitoringFinal \? "default" : "outline"\}/,
   );
   assert.match(workingPaperDetail, /Risiko[\s\S]*Selesai Dipantau/);
   assert.match(workingPaperDetail, /<AccentButton[\s\S]*Mulai Proses TTE/);
@@ -452,7 +463,7 @@ test("working paper detail keeps the ledger wide and context in the right rail",
   );
   assert.match(
     workingPaperDetail,
-    /label === "Status"[\s\S]*<Badge size="compact" tone=\{statusTone\[status\]\}>/,
+    /label === "Status"[\s\S]*<Badge variant=\{toBadgeVariant\(statusTone\[status\]\)\}>/,
   );
   assert.doesNotMatch(
     workingPaperDetail,
@@ -479,7 +490,7 @@ test("working paper progress uses the embedded collection table surface", () => 
 test("working paper monitoring ledger uses semantic status badges", () => {
   assert.match(
     workingPaperMonitoringTable,
-    /<Badge\s+size="compact"\s+tone=\{getMonitoringStatusTone\(row\)\}/,
+    /<Badge\s+variant=\{toBadgeVariant\(getMonitoringStatusTone\(row\)\)\}/,
   );
   assert.doesNotMatch(workingPaperMonitoringTable, /CollectionStatusBadge/);
   assert.doesNotMatch(workingPaperMonitoringTable, /Sumber v|Hasil v/);
@@ -579,8 +590,9 @@ test("sidebar frame uses the same subtle divider as the topbar", () => {
   );
   assert.match(
     readSource("../components/app-topbar.tsx"),
-    /border-e border-border\/60/,
+    /border-e border-sidebar-border/,
   );
+  assert.match(appSidebar, /md:border-sidebar-border/);
 });
 
 test("sidebar hierarchy prioritizes operations and consolidates administration", () => {
@@ -594,11 +606,11 @@ test("sidebar hierarchy prioritizes operations and consolidates administration",
   assert.match(appNavigation, /title: "TATA KELOLA RISIKO"/);
   assert.match(
     appNavigation,
-    /label: "Risiko"[\s\S]*icon: "Folder01"[\s\S]*label: "Kejadian Risiko"[\s\S]*icon: "Alert02"[\s\S]*label: "Penanganan"[\s\S]*label: "Pemantauan"[\s\S]*label: "Kertas Kerja"[\s\S]*label: "Persetujuan & TTE"[\s\S]*label: "Laporan"/,
+    /label: "Risiko"[\s\S]*icon: "Folder01"[\s\S]*label: "Kejadian Risiko"[\s\S]*icon: "Alert02"[\s\S]*label: "Penanganan"[\s\S]*label: "Pemantauan"[\s\S]*label: "Kertas Kerja"[\s\S]*label: "Tanda tangan"[\s\S]*label: "Laporan"/,
   );
   assert.match(
     appNavigation,
-    /label: "Penanganan"[\s\S]*icon: "ClipboardCheck"[\s\S]*label: "Pemantauan"[\s\S]*icon: "MonitorDot"[\s\S]*label: "Kertas Kerja"[\s\S]*icon: "Agreement03"[\s\S]*label: "Persetujuan & TTE"[\s\S]*icon: "FileSignature"/,
+    /label: "Penanganan"[\s\S]*icon: "ClipboardCheck"[\s\S]*label: "Pemantauan"[\s\S]*icon: "MonitorDot"[\s\S]*label: "Kertas Kerja"[\s\S]*icon: "Agreement03"[\s\S]*label: "Tanda tangan"[\s\S]*icon: "FileSignature"/,
   );
   assert.match(appSidebar, /MonitorDot/);
   assert.match(
@@ -971,27 +983,24 @@ test("mitigation examples are built from shared dialog and form components", () 
     /smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300\/30/,
   );
   assert.match(mitigationDialog, /DialogTitle className="text-base"/);
-  assert.doesNotMatch(mitigationDialog, /DialogDescription/);
+  assert.match(
+    mitigationDialog,
+    /<DialogDescription>\s*Masukkan bukti dan catatan untuk melaporkan progres penanganan\.\s*<\/DialogDescription>/,
+  );
   assert.doesNotMatch(mitigationDialog, /motion-safe:animate-in/);
   assert.doesNotMatch(mitigationDialog, /motion-safe:delay-\[(?:40|80)ms\]/);
   assert.doesNotMatch(mitigationDialog, /transition-all/);
-  assert.match(mitigationDialog, /onEscapeKeyDown=\{\(event\) => \{/);
-  assert.match(mitigationDialog, /event\.preventDefault\(\)/);
-  assert.match(mitigationDialog, /cancelEvidenceEditor\(\)/);
-  assert.match(mitigationForm, /Tambahkan Link/);
-  assert.match(mitigationForm, /event\.stopPropagation\(\)/);
+  assert.doesNotMatch(mitigationDialog, /cancelEvidenceEditor/);
+  assert.doesNotMatch(mitigationForm, /Tambahkan Link|ResourceLinkList|ResourceLinkRow/);
   assert.match(
     mitigationForm,
-    /<Kbd aria-label="Escape">Esc<\/Kbd>[\s\S]*?Batal/,
+    /<Label className="text-sm" htmlFor=\{evidenceId\}>\s*Link Bukti[\s\S]*?<Input[\s\S]*type="text"[\s\S]*value=\{evidenceUrl\}[\s\S]*onChange=\{\(event\) => onEvidenceUrlChange\(event\.target\.value\)\}/,
   );
-  assert.doesNotMatch(
-    mitigationForm,
-    /Link Bukti[\s\S]*?<Input[\s\S]*required/,
-  );
+  assert.doesNotMatch(mitigationForm, /onKeyDown=/);
   assert.match(mitigationForm, /<Textarea[\s\S]*required[\s\S]*aria-required="true"/);
   assert.match(mitigationForm, /Catatan Pelaksanaan/);
   assert.match(mitigationForm, /aria-label="Link Bukti"/);
-  assert.equal((mitigationForm.match(/<FieldErrorMessage/g) ?? []).length, 3);
+  assert.equal((mitigationForm.match(/<FieldErrorMessage/g) ?? []).length, 2);
   assert.doesNotMatch(mitigationForm, /motion-safe:animate-in/);
   assert.doesNotMatch(mitigationForm, /motion-safe:duration-150/);
   assert.match(mitigationForm, /<Label className="text-sm"/);

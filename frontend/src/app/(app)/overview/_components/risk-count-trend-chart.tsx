@@ -7,15 +7,16 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { StandardCard } from "@/components/shared/design-system";
-import { OverviewPanelState } from "@/components/shared/design-system";
+import {
+  OverviewPanelState,
+  OverviewTrendCard,
+} from "@/components/shared/design-system";
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
-import { RISK_CHART_COLORS } from "@/lib/chart-colors";
 import { buildRiskCountTrendData } from "@/lib/dashboard-insights";
 import { shiftAssessmentCycle } from "@/lib/risk-cycle-options";
 import type { Risk } from "@/types/risk";
@@ -37,36 +38,36 @@ function getLastNQuarters(currentCycle: string, n: number): string[] {
 const chartConfig = {
   totalRisks: {
     label: "Total Risiko",
-    color: "var(--foreground)",
+    color: "var(--color-blue-600)",
   },
   sangatRendah: {
     label: "Sangat Rendah",
-    color: RISK_CHART_COLORS.veryLow,
+    color: "var(--color-cyan-600)",
   },
   rendah: {
     label: "Rendah",
-    color: RISK_CHART_COLORS.low,
+    color: "var(--color-green-600)",
   },
   sedang: {
     label: "Sedang",
-    color: RISK_CHART_COLORS.medium,
+    color: "var(--color-yellow-600)",
   },
   tinggi: {
     label: "Tinggi",
-    color: RISK_CHART_COLORS.high,
+    color: "var(--color-orange-600)",
   },
   sangatTinggi: {
     label: "Sangat Tinggi",
-    color: RISK_CHART_COLORS.extreme,
+    color: "var(--color-red-600)",
   },
 } satisfies ChartConfig;
 
 const riskLevelSeries = [
-  { key: "sangatRendah", label: "Sangat Rendah", color: RISK_CHART_COLORS.veryLow },
-  { key: "rendah", label: "Rendah", color: RISK_CHART_COLORS.low },
-  { key: "sedang", label: "Sedang", color: RISK_CHART_COLORS.medium },
-  { key: "tinggi", label: "Tinggi", color: RISK_CHART_COLORS.high },
-  { key: "sangatTinggi", label: "Sangat Tinggi", color: RISK_CHART_COLORS.extreme },
+  { key: "sangatRendah", label: "Sangat Rendah", colorClassName: "bg-cyan-600" },
+  { key: "rendah", label: "Rendah", colorClassName: "bg-green-600" },
+  { key: "sedang", label: "Sedang", colorClassName: "bg-yellow-600" },
+  { key: "tinggi", label: "Tinggi", colorClassName: "bg-orange-600" },
+  { key: "sangatTinggi", label: "Sangat Tinggi", colorClassName: "bg-red-600" },
 ] as const;
 
 export function RiskCountTrendChart({
@@ -96,12 +97,26 @@ export function RiskCountTrendChart({
   const hasData = chartData.some((d) => d.totalRisks > 0);
 
   return (
-    <StandardCard
+    <OverviewTrendCard
       title="Tren Jumlah Risiko"
       subtitle="Total risiko dan distribusi per level dalam 4 kuartal terakhir."
-      className="rounded-lg"
-      headerClassName="px-5 pb-3 pt-5"
-      contentClassName="px-5 pb-5 pt-0"
+      legend={
+        <>
+          <span role="listitem" className="inline-flex items-center gap-2">
+            <span aria-hidden="true" className="size-2 rounded-full bg-blue-600" />
+            Total risiko
+          </span>
+          {riskLevelSeries.map((series) => (
+            <span key={series.key} role="listitem" className="inline-flex items-center gap-2">
+              <span
+                aria-hidden="true"
+                className={`size-2 rounded-full ${series.colorClassName}`}
+              />
+              {series.label}
+            </span>
+          ))}
+        </>
+      }
     >
       {loading ? (
         <OverviewPanelState
@@ -124,22 +139,6 @@ export function RiskCountTrendChart({
         />
       ) : (
         <div>
-          <div
-            role="list"
-            aria-label="Legenda tren jumlah risiko"
-            className="mb-3 flex flex-wrap items-center justify-end gap-x-5 gap-y-2 text-xs text-muted-foreground"
-          >
-            <span role="listitem" className="inline-flex items-center gap-2">
-              <span aria-hidden="true" className="h-0.5 w-6 rounded bg-foreground" />
-              Total risiko
-            </span>
-            {riskLevelSeries.map((series) => (
-              <span key={series.key} role="listitem" className="inline-flex items-center gap-2">
-                <span aria-hidden="true" className="h-0.5 w-6 rounded" style={{ backgroundColor: series.color }} />
-                {series.label}
-              </span>
-            ))}
-          </div>
           <div
             role="img"
             aria-label={`Grafik total risiko dan jumlah risiko per level dari ${chartData[0]?.period} sampai ${chartData.at(-1)?.period}`}
@@ -166,7 +165,7 @@ export function RiskCountTrendChart({
                   width={32}
                 />
                 <ChartTooltip
-                  cursor={{ stroke: "var(--chart-crosshair)" }}
+                  cursor={{ stroke: "var(--color-slate-400)" }}
                   content={
                     <ChartTooltipContent
                       indicator="line"
@@ -216,6 +215,6 @@ export function RiskCountTrendChart({
           </ul>
         </div>
       )}
-    </StandardCard>
+    </OverviewTrendCard>
   );
 }

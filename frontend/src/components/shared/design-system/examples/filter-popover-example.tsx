@@ -10,8 +10,8 @@ export function FilterPopoverExample() {
     <CollectionFilterPopover
       footer={
         <div className="flex items-center justify-between pt-4">
-          <Button type="button" variant="ghost" size="md" className="shadow-none">Reset</Button>
-          <Button type="button" size="md">Terapkan</Button>
+          <Button type="button" variant="ghost" size="default" className="">Reset</Button>
+          <Button type="button" size="default">Terapkan</Button>
         </div>
       }
     >

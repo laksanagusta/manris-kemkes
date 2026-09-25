@@ -4,8 +4,10 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import type { BadgeVariant } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -21,7 +23,7 @@ import {
   Circle,
   XCircle,
   History,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 import { cn } from "@/lib/utils";
 import {
   shouldRenderReviewSidePanelWorkflow,
@@ -128,11 +130,11 @@ export function ReviewSidePanel({
     return null;
   }
 
-  const stepperStateClassName: Record<StepperNodeState, string> = {
-    completed: "border-success/20 bg-success/10 text-success",
-    current: "border-primary/20 bg-primary/[0.06] text-primary",
-    upcoming: "border-border bg-muted/40 text-muted-foreground",
-    rejected: "border-destructive/20 bg-destructive/10 text-destructive",
+  const stepperStateVariant: Record<StepperNodeState, BadgeVariant> = {
+    completed: "default",
+    current: "default",
+    upcoming: "secondary",
+    rejected: "destructive",
   };
 
   const stepperNodes = approvalWorkflow
@@ -203,14 +205,14 @@ export function ReviewSidePanel({
             value={reviewMessage}
             onChange={(e) => setReviewMessage(e.target.value)}
             disabled={submittingStage === "review"}
-            className="min-h-[80px] resize-none"
+            className="resize-none"
           />
           <div className="flex justify-end gap-2 pt-2">
             <Button
               variant="outline"
               onClick={() => handleAction("reject", "review")}
               disabled={submittingStage === "review"}
-              className="flex-1 border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive/20"
+              className="flex-1"
             >
               {submittingStage === "review" ? (
                 <Loader2 className="size-4 animate-spin" />
@@ -252,14 +254,14 @@ export function ReviewSidePanel({
             value={approvalMessage}
             onChange={(e) => setApprovalMessage(e.target.value)}
             disabled={submittingStage === "approval"}
-            className="min-h-[80px] resize-none"
+            className="resize-none"
           />
           <div className="flex gap-2 pt-2">
             <Button
               variant="outline"
               onClick={() => handleAction("reject", "approval")}
               disabled={submittingStage === "approval"}
-              className="flex-1 border-destructive/20 bg-destructive/10 text-destructive hover:bg-destructive/20"
+              className="flex-1"
             >
               {submittingStage === "approval" ? (
                 <Loader2 className="size-4 animate-spin" />
@@ -289,8 +291,8 @@ export function ReviewSidePanel({
   return (
     <div className="space-y-4">
       {stepperNodes.length > 0 && (
-        <div className="rounded-lg bg-card p-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
-          <div className="space-y-0">
+        <Card>
+          <CardContent className="space-y-0">
             {stepperNodes.map((node, index) => {
               const isLast = index === stepperNodes.length - 1;
               const isCompleted = node.state === "completed";
@@ -355,11 +357,7 @@ export function ReviewSidePanel({
                             {node.actorName}
                           </p>
                           <Badge
-                            variant="outline"
-                            className={cn(
-                              "h-5 px-2 text-[10px] font-semibold",
-                              stepperStateClassName[node.state],
-                            )}
+                            variant={stepperStateVariant[node.state]}
                           >
                             {node.state === "completed"
                               ? "Selesai"
@@ -391,7 +389,7 @@ export function ReviewSidePanel({
                                 }
                               }}
                               disabled={submittingStage !== null}
-                              className="text-xs"
+                              className=""
                             >
                               {node.label === "Ditinjau"
                                 ? "Tinjau"
@@ -404,8 +402,6 @@ export function ReviewSidePanel({
                 </div>
               );
             })}
-          </div>
-
           {onNavigateToLog && (
             <div className="mt-3 flex justify-end border-t border-border/10 pt-3">
               <Button
@@ -413,14 +409,15 @@ export function ReviewSidePanel({
                 variant="ghost"
                 size="sm"
                 onClick={onNavigateToLog}
-                className="h-auto gap-1.5 px-0 text-xs text-primary hover:bg-transparent hover:text-primary"
+                className=""
               >
                 <History className="size-3" />
                 Lihat riwayat →
               </Button>
             </div>
           )}
-        </div>
+          </CardContent>
+        </Card>
       )}
 
       {renderReviewModal()}

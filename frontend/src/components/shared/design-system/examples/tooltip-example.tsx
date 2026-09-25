@@ -7,7 +7,7 @@ export function TooltipExample() {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Button variant="outline" size="sm" className="shadow-none">
+        <Button variant="outline" size="sm" className="">
           Hover me
         </Button>
       </TooltipTrigger>

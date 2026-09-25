@@ -66,7 +66,7 @@ export const mainMenuItems: MainMenuGroup[] = [
         href: "/risk/working-papers",
         icon: "Agreement03",
       },
-      { label: "Persetujuan & TTE", href: "/inbox", icon: "FileSignature" },
+      { label: "Tanda tangan", href: "/inbox", icon: "FileSignature" },
       { label: "Laporan", href: "/reports", icon: "FileBarChart" },
     ],
   },

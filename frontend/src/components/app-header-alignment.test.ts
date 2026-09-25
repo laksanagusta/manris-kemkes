@@ -50,7 +50,7 @@ test("uses the compact 56px global topbar geometry", () => {
   assert.doesNotMatch(appTopbarSource, /src="\/logo\.svg"/);
   assert.match(
     appTopbarSource,
-    /border-e border-border\/60 px-2[\s\S]*font-logo[\s\S]*text-\[20px\][\s\S]*font-semibold/,
+    /border-e border-sidebar-border px-2[\s\S]*font-logo[\s\S]*text-\[20px\][\s\S]*font-semibold/,
   );
   assert.match(
     appTopbarSource,
@@ -59,6 +59,15 @@ test("uses the compact 56px global topbar geometry", () => {
   assert.doesNotMatch(appTopbarSource, /accessibleOrgIds/);
   assert.doesNotMatch(appTopbarSource, /Pilih organisasi/);
   assert.doesNotMatch(appTopbarSource, /<DropdownMenu/);
+});
+
+test("uses the sidebar border token for topbar dividers", () => {
+  assert.match(appTopbarSource, /border-e border-sidebar-border/);
+  assert.match(
+    appTopbarSource,
+    /items-center gap-3 border-b border-sidebar-border px-3 md:px-5/,
+  );
+  assert.match(appSidebarSource, /md:border-sidebar-border/);
 });
 
 test("keeps the application canvas painted through viewport overscroll", () => {

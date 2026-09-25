@@ -1,11 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 
+import { CollectionTableHead } from "../collections/collection-table-head";
+import { CollectionTableHeader } from "../collections/collection-table-header";
+import { CollectionTableHeaderRow } from "../collections/collection-table-header-row";
 import { StandardCard } from "../layout/standard-card";
-import { cn } from "@/lib/utils";
-import { formatRiskScore, riskCategoryLabels } from "@/lib/risk";
+import { formatRiskScore } from "@/lib/risk";
+import { RiskCategoryIndicator } from "./risk-category-indicator";
 
 export function OverviewTopRisksCard({
   risks,
@@ -18,7 +22,7 @@ export function OverviewTopRisksCard({
     probability: number;
     impact: number;
     score: number;
-    levelClass: string;
+    levelVariant: BadgeVariant;
     href: string;
   }>;
 }) {
@@ -27,76 +31,86 @@ export function OverviewTopRisksCard({
   return (
     <StandardCard
       title="Risiko yang Perlu Perhatian"
-      className="rounded-lg xl:h-full xl:min-h-[377px]"
-      headerClassName="px-5 pb-4 pt-5"
-      contentClassName="p-0 xl:flex xl:flex-1 xl:flex-col"
+      subtitle="Prioritas berdasarkan skor risiko tertinggi."
+      className="xl:h-full xl:min-h-[377px]"
+      contentClassName="xl:flex xl:flex-1 xl:flex-col"
     >
-      <div className="border-t border-border/60 xl:flex xl:flex-1 xl:flex-col">
-        <div
-          aria-hidden="true"
-          className="grid min-h-10 w-full grid-cols-[1fr_1fr_1fr_1fr] items-center gap-x-3 border-b border-border/60 bg-table-header px-6 py-1.5 text-[13px] font-medium capitalize tracking-[0.02em] text-secondary-foreground sm:grid-cols-[5fr_7fr_7fr_10fr_5fr]"
+      <div className="-mx-(--card-spacing) -mb-(--card-spacing) min-w-0 xl:flex xl:flex-1 xl:flex-col">
+        <Table
+          aria-label="Contoh risiko yang perlu perhatian"
+          className="min-w-[680px] table-fixed"
         >
-          <span>Kode</span>
-          <span>Probabilitas</span>
-          <span>Dampak</span>
-          <span className="hidden sm:block">Kategori</span>
-          <span className="text-right">Skor</span>
-        </div>
-        <div className="divide-y divide-border/40">
+          <colgroup>
+            <col className="w-[40%]" />
+            <col className="w-[24%]" />
+            <col className="w-[12%]" />
+            <col className="w-[12%]" />
+            <col className="w-[12%]" />
+          </colgroup>
+          <CollectionTableHeader>
+            <CollectionTableHeaderRow className="border-t border-border/60">
+              <CollectionTableHead className="px-24">Risiko</CollectionTableHead>
+              <CollectionTableHead>Kategori</CollectionTableHead>
+              <CollectionTableHead>Probabilitas</CollectionTableHead>
+              <CollectionTableHead>Dampak</CollectionTableHead>
+              <CollectionTableHead className="text-right">
+                Skor
+              </CollectionTableHead>
+            </CollectionTableHeaderRow>
+          </CollectionTableHeader>
+          <TableBody>
           {visibleRisks.map((risk) => {
-            const categoryLabel =
-              riskCategoryLabels[risk.category as keyof typeof riskCategoryLabels] ??
-              (risk.category || "Belum dikategorikan");
-
             return (
-              <Link
-                key={risk.id}
-                href={risk.href}
-                className="group/risk grid min-h-14 w-full grid-cols-[1fr_1fr_1fr_1fr] items-center gap-x-3 px-6 py-4 outline-none transition-[background-color,transform] duration-150 hover:bg-muted/30 active:scale-[0.995] focus-visible:bg-muted/30 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:grid-cols-[5fr_7fr_7fr_10fr_5fr] motion-reduce:transform-none motion-reduce:transition-none"
-              >
-                <div className="min-w-0 font-normal">
+              <TableRow key={risk.id}>
+                <TableCell className="whitespace-normal px-24">
+                  <div className="flex min-w-0 flex-col items-start gap-1">
+                    <Link
+                      href={risk.href}
+                      className="min-w-0 max-w-full truncate rounded-sm text-sm font-medium leading-5 text-foreground transition-colors duration-150 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+                      title={risk.title}
+                    >
+                      {risk.title}
+                    </Link>
+                    <span
+                      className="font-mono text-[11px] leading-4 text-muted-foreground"
+                      title={risk.code}
+                    >
+                      {risk.code}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell className="whitespace-normal text-muted-foreground">
+                  <RiskCategoryIndicator category={risk.category} />
+                </TableCell>
+                <TableCell>
                   <span
-                    className="block truncate font-mono text-sm font-normal text-muted-foreground"
-                    title={risk.code}
+                    className="font-mono text-sm tabular-nums text-foreground"
+                    title={`Probabilitas ${risk.probability}`}
                   >
-                    {risk.code}
+                    {risk.probability}
                   </span>
-                </div>
-                <p
-                  className="min-w-0 truncate font-mono text-sm font-normal text-foreground tabular-nums"
-                  title={`Probabilitas ${risk.probability}`}
-                >
-                  {risk.probability}
-                </p>
-                <p
-                  className="min-w-0 truncate font-mono text-sm font-normal text-foreground tabular-nums"
-                  title={`Dampak ${risk.impact}`}
-                >
-                  {risk.impact}
-                </p>
-                <p
-                  className="hidden min-w-0 truncate text-sm font-normal text-muted-foreground sm:block"
-                  title={categoryLabel}
-                >
-                  {categoryLabel}
-                </p>
-                <Badge
-                  variant="outline"
-                  size="micro"
-                  className={cn(
-                    "justify-self-end font-mono font-normal tabular-nums",
-                    risk.levelClass,
-                  )}
-                >
-                  {formatRiskScore(risk.score)}
-                </Badge>
-              </Link>
+                </TableCell>
+                <TableCell>
+                  <span
+                    className="font-mono text-sm tabular-nums text-foreground"
+                    title={`Dampak ${risk.impact}`}
+                  >
+                    {risk.impact}
+                  </span>
+                </TableCell>
+                <TableCell className="text-right">
+                  <Badge
+                    variant={risk.levelVariant}
+                    className="tabular-nums"
+                  >
+                    {formatRiskScore(risk.score)}
+                  </Badge>
+                </TableCell>
+              </TableRow>
             );
           })}
-          {Array.from({ length: 5 - visibleRisks.length }, (_, index) => (
-            <div key={`empty-risk-slot-${index}`} aria-hidden="true" className="hidden h-14 xl:block" />
-          ))}
-        </div>
+          </TableBody>
+        </Table>
       </div>
     </StandardCard>
   );

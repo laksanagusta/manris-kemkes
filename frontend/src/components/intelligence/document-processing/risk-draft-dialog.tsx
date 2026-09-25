@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
-import { Loader2, Save } from "@/components/ui/icons";
+import { Loader2, Save } from "@/components/shared/icons";
 import {
   AccentButton,
   CollectionDialogCancel,
@@ -215,7 +215,7 @@ export function RiskDraftDialog({
                 onBlur={() => setShowValidationErrors(true)}
                 aria-invalid={showValidationErrors && Boolean(errors.description)}
                 placeholder="Jelaskan kondisi risiko yang ditemukan."
-                className="min-h-28 resize-y"
+                className="resize-y"
               />
               {showValidationErrors ? (
                 <FieldErrorMessage>{errors.description}</FieldErrorMessage>
@@ -244,8 +244,8 @@ export function RiskDraftDialog({
             <CollectionDialogCancel
               type="button"
               variant="outline"
-              size="md"
-              className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
+              size="default"
+              className="border-0 shadow-black"
               onClick={() => onOpenChange(false)}
             >
               Batal

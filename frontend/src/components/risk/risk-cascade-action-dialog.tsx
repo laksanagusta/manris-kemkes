@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Search, GitBranch, CheckCircle2 } from "@/components/ui/icons";
+import { Loader2, Search, GitBranch, CheckCircle2 } from "@/components/shared/icons";
 
 import { useAuth } from "@/contexts/auth-context";
 import {
@@ -33,7 +33,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { SearchInput } from "@/components/ui/search-input";
+import { SearchInput } from "@/components/shared/search-input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Popover,
@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 import { toast } from "sonner";
 
 type Mode = "create" | "decision";
@@ -169,7 +170,7 @@ function CascadeRiskSelect({
         <Button
           id="cascade-source-risk"
           variant="outline"
-          className="h-10 w-full justify-between gap-2 font-normal"
+          className="w-full justify-between"
         >
           <span className="truncate">
             {selected ? `${selected.code || "Risk"} · ${selected.title || "-"}` : "Pilih risiko asal"}
@@ -178,7 +179,7 @@ function CascadeRiskSelect({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[var(--radix-popover-trigger-width)] p-0"
+        className="w-[var(--radix-popover-trigger-width)]"
         align="start"
       >
         <div className="flex items-center border-b px-3">
@@ -297,14 +298,14 @@ function CascadeOrgSelect({
         <Button
           id="cascade-target-organization"
           variant="outline"
-          className="h-10 w-full justify-between gap-2 font-normal"
+          className="w-full justify-between"
         >
           <span className="truncate">{selected?.name || triggerLabel}</span>
           <Search className="size-4 shrink-0 opacity-60" />
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[var(--radix-popover-trigger-width)] p-0"
+        className="w-[var(--radix-popover-trigger-width)]"
         align="start"
       >
         <div className="flex items-center border-b px-3">
@@ -518,7 +519,7 @@ export function RiskCascadeActionDialog({
                   value={analysisNote}
                   onChange={(event) => setAnalysisNote(event.target.value)}
                   placeholder="Contoh: risiko ini perlu diteruskan ke unit tujuan karena temuan SPI..."
-                  className="min-h-28"
+                  className=""
                 />
               </div>
             </>
@@ -526,12 +527,11 @@ export function RiskCascadeActionDialog({
             <div className="space-y-5">
               <div className="rounded-lg bg-muted/20 p-4 ring-1 ring-inset ring-border/60">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge size="compact" tone="neutral">
+                  <Badge variant="secondary">
                     {cascade?.cascadeType ? cascadeTypeLabels[cascade.cascadeType] : "Eskalasi"}
                   </Badge>
-                  <Badge
-                    size="compact"
-                    tone={statusBadgeTones[cascade?.status || "proposed"] ?? "neutral"}
+                  <Badge variant={toBadgeVariant(statusBadgeTones[cascade?.status || "proposed"] ?? "neutral")}
+                    className={getStatusBadgeClassName(statusBadgeTones[cascade?.status || "proposed"] ?? "neutral")}
                   >
                     {statusLabels[cascade?.status || "proposed"] || cascade?.status || "proposed"}
                   </Badge>
@@ -587,7 +587,7 @@ export function RiskCascadeActionDialog({
                   value={decisionNote}
                   onChange={(event) => setDecisionNote(event.target.value)}
                   placeholder="Tuliskan alasan setuju atau tolak secara singkat dan jelas."
-                  className="min-h-28"
+                  className=""
                   aria-required="true"
                 />
               </div>

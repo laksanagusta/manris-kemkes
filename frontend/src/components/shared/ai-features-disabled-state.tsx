@@ -1,6 +1,6 @@
 "use client";
 
-import { BotOff } from "@/components/ui/icons";
+import { BotOff } from "@/components/shared/icons";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface AIFeaturesDisabledStateProps {
@@ -20,7 +20,7 @@ export function AIFeaturesDisabledState({
             <BotOff className="size-5" />
           </div>
           <div className="space-y-2">
-            <CardTitle className="text-xl">{title}</CardTitle>
+            <CardTitle className="">{title}</CardTitle>
             <p className="text-sm leading-6 text-secondary-foreground">
               {description}
             </p>

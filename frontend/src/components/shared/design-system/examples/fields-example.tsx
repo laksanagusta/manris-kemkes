@@ -18,7 +18,7 @@ export function FieldsExample() {
     riskNameTouched && !riskName.trim() ? "Nama risiko wajib diisi." : undefined;
 
   return (
-    <div className="grid gap-4 rounded-[12px] bg-card p-4 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30 md:grid-cols-3">
+    <div className="grid gap-4 rounded-[12px] bg-card p-4 shadow-black md:grid-cols-3">
       <div className="space-y-2">
         <Label htmlFor="design-system-field-input">
           Input
@@ -65,7 +65,7 @@ export function FieldsExample() {
         <Label htmlFor="design-system-field-textarea">Textarea</Label>
         <Textarea
           id="design-system-field-textarea"
-          className="min-h-20"
+          className=""
           placeholder="Catatan tambahan"
         />
         <p className="text-xs text-muted-foreground">

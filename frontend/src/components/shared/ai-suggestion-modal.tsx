@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
-import { Check, Sparkles, Plus, Loader2 } from "@/components/ui/icons";
+import { Check, Sparkles, Plus, Loader2 } from "@/components/shared/icons";
 import { cn } from "@/lib/utils";
 import {
   AccentButton,
@@ -226,7 +226,7 @@ export function AiSuggestionModal({
         className={cn(
           "overflow-hidden no-scrollbar sm:max-w-2xl",
           isCleanList && "sm:max-w-xl",
-          isStructuredList && "gap-0",
+          isStructuredList && "",
         )}
         style={
           isStructuredList
@@ -240,7 +240,12 @@ export function AiSuggestionModal({
       >
         <DialogHeader className="shrink-0">
           {isCompactHeader ? (
-            <DialogTitle className="text-base">{title}</DialogTitle>
+            <div>
+              <DialogTitle className="text-base">{title}</DialogTitle>
+              <DialogDescription className="mt-1.5">
+                {description}
+              </DialogDescription>
+            </div>
           ) : (
             <div className="flex items-center gap-2.5">
               <div className="flex size-8 items-center justify-center rounded-full bg-primary/10 text-primary">

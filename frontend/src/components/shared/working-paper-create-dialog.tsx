@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ChevronDown, Plus } from "@/components/ui/icons";
+import { Check, ChevronDown, Plus } from "@/components/shared/icons";
 
 import {
   AccentButton,
@@ -53,7 +53,7 @@ function WorkingPaperPeriodPicker({
           aria-expanded={open}
           aria-controls="working-paper-period-options"
           aria-required="true"
-          className="group/risk-select h-10 w-full justify-between gap-2 rounded-lg border-0 border-shadow bg-card px-3 text-sm font-normal transition-[background-color,box-shadow] active:translate-y-0 active:scale-100 aria-expanded:bg-card aria-expanded:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
+          className="group/risk-select w-full justify-between transition-[background-color,box-shadow] active:translate-y-0 active:scale-100 aria-expanded:bg-card aria-expanded:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
         >
           <span
             className={cn(
@@ -69,7 +69,7 @@ function WorkingPaperPeriodPicker({
       <PopoverContent
         id="working-paper-period-options"
         align="start"
-        className="w-[var(--radix-popover-trigger-width)] p-1"
+        className="w-[var(--radix-popover-trigger-width)]"
       >
         <div
           role="listbox"
@@ -119,7 +119,7 @@ export function WorkingPaperCreateButton({
 }) {
   return (
     <AccentButton
-      size="md"
+      size="default"
       onClick={onClick}
       icon={<Plus className="size-3.5" strokeWidth={2.5} />}
     >

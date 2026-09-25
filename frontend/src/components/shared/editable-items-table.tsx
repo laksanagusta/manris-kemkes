@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, GripVertical } from "@/components/ui/icons";
+import { Plus, Trash2, GripVertical } from "@/components/shared/icons";
 import { Input } from "@/components/shared/design-system";
 import { cn } from "@/lib/utils";
 
@@ -26,7 +26,7 @@ interface EditableItemsTableProps {
 export function EditableItemsTable({
   items,
   onChange,
-  placeholder = "Tulis item...",
+  placeholder,
   disabled = false,
   addItemLabel = "Tambah Item",
   emptyMessage = "Belum ada item",
@@ -123,32 +123,32 @@ export function EditableItemsTable({
                       "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-2 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-reduce:animate-none",
                   )}
                 >
-                  <TableCell className="w-8 px-2 py-2">
+                  <TableCell className="w-8">
                     <div className="flex items-center justify-center text-muted-foreground">
                       <GripVertical className="size-3.5" />
                     </div>
                   </TableCell>
-                  <TableCell className="w-8 px-2 py-2">
+                  <TableCell className="w-8">
                     <span className="text-[10px] font-medium text-muted-foreground bg-muted/50 rounded-full w-5 h-5 flex items-center justify-center">
                       {index + 1}
                     </span>
                   </TableCell>
-                  <TableCell className="flex-1 px-2 py-2">
+                  <TableCell className="flex-1">
                     <Input
                       aria-label={`${itemLabel} ${index + 1}`}
                       value={item.text}
                       onChange={(e) => updateItem(item.id, e.target.value)}
                       placeholder={placeholder}
-                      className="text-xs bg-background h-10"
+                      className=""
                       disabled={disabled}
                     />
                   </TableCell>
-                  <TableCell className="w-10 px-2 py-2">
+                  <TableCell className="w-10">
                     <Button
                       variant="ghost"
                       size="icon"
                       aria-label={`Hapus ${itemLabel.toLowerCase()} ${index + 1}`}
-                      className="h-8 w-8 text-destructive/50 hover:text-destructive hover:bg-destructive/10"
+                      className="w-8"
                       onClick={() => removeItem(item.id)}
                       disabled={disabled}
                     >
@@ -168,7 +168,7 @@ export function EditableItemsTable({
         size="sm"
         onClick={addItem}
         disabled={disabled}
-        className="w-full border-dashed gap-2 text-xs text-muted-foreground hover:text-primary hover:border-primary/50"
+        className="w-full"
       >
         <Plus className="size-3.5" />
         {addItemLabel}

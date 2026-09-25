@@ -3,7 +3,7 @@
 import type { ComponentProps, ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { buttonChildWithIcon, buttonContent } from "./button-content";
 
 export function ActionButton({
   children,
@@ -12,34 +12,23 @@ export function ActionButton({
   asChild = false,
   className,
   variant = "outline",
-  size = "md",
+  size = "default",
   ...props
 }: ComponentProps<typeof Button> & {
-  /** @deprecated Labeled buttons are text-only in the design system. */
   icon?: ReactNode;
   loading?: boolean;
 }) {
-  const hasSmoothElevation = className?.includes("smooth-shadow-") ?? false;
-  // Keep the prop for backwards-compatible call sites while intentionally
-  // omitting decorative icons from rendered labeled buttons.
-  void icon;
-  const buttonClassName = cn(
-    "gap-0 rounded-[8px]",
-    !hasSmoothElevation && "shadow-none",
-    className,
-  );
-
   if (asChild) {
     return (
       <Button
         aria-busy={loading || undefined}
         variant={variant}
         size={size}
-        className={buttonClassName}
+        className={className}
         {...props}
         asChild
       >
-        {children}
+        {buttonChildWithIcon(children, icon)}
       </Button>
     );
   }
@@ -49,10 +38,10 @@ export function ActionButton({
       aria-busy={loading || undefined}
       variant={variant}
       size={size}
-      className={buttonClassName}
+      className={className}
       {...props}
     >
-      {children}
+      {buttonContent(children, icon)}
     </Button>
   );
 }

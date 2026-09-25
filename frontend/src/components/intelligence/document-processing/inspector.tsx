@@ -7,9 +7,10 @@ import {
   FileSearch,
   PanelLeftIcon,
   X,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 import type { Finding, ProcessingJob } from "@/types/document-processing";
 import { DocumentThumbnail } from "./upload-panel";
 import { formatFileSize } from "./upload-utils";
@@ -60,9 +61,17 @@ export function Inspector({
           <PanelLeftIcon className="size-3.5 text-muted-foreground" />
           <span className="font-display truncate text-xs font-semibold uppercase tracking-[0.13em] text-muted-foreground">Pemeriksa</span>
         </div>
-        <button type="button" aria-label="Tutup inspector" title="Tutup inspector" onClick={onClose} className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-[background-color,color] duration-150 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 active:scale-[0.96]">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon-sm"
+          aria-label="Tutup inspector"
+          title="Tutup inspector"
+          onClick={onClose}
+          className="rounded-lg"
+        >
           <X className="size-4" />
-        </button>
+        </Button>
       </div>
       <div className="max-h-[calc(100vh-210px)] overflow-auto p-4">
         {selectedFinding ? (
@@ -99,7 +108,7 @@ function DocumentInspector({
         <DocumentThumbnail document={document} />
         <div className="min-w-0 flex-1">
           <h2 className="break-words text-sm font-semibold leading-5 text-foreground">{document.name}</h2>
-          <div className="mt-1 flex flex-wrap gap-1.5"><Badge variant="outline" tone={status.tone} size="micro">{status.label}</Badge><Badge variant="secondary" size="micro">{document.extension.toUpperCase()}</Badge></div>
+          <div className="mt-1 flex flex-wrap gap-1.5"><Badge variant={toBadgeVariant(status.tone)} className={getStatusBadgeClassName(status.tone)}>{status.label}</Badge><Badge variant="secondary">{document.extension.toUpperCase()}</Badge></div>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-x-4 gap-y-3 border-y border-border/70 py-4">
@@ -129,7 +138,7 @@ function FindingInspector({
   return (
     <div className="space-y-5">
       <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2"><Badge variant="outline" tone={severity.tone} size="compact">{severity.label}</Badge><Badge variant="secondary" size="compact">{finding.category}</Badge></div>
+        <div className="flex flex-wrap items-center gap-2"><Badge variant="outline">{severity.label}</Badge><Badge variant="secondary">{finding.category}</Badge></div>
         <h2 className="text-base font-semibold leading-6 tracking-[-0.01em] text-foreground text-balance">{finding.title}</h2>
         <p className="text-sm leading-6 text-secondary-foreground">{finding.summary}</p>
       </div>
@@ -146,8 +155,8 @@ function FindingInspector({
       </div>
       <div className="space-y-2"><div className="font-display text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Tindakan yang disarankan</div><p className="text-sm leading-6 text-foreground">{finding.recommendedAction}</p></div>
       <div className="space-y-2 border-t border-border/70 pt-4">
-        <Button type="button" variant="outline" className="w-full justify-between gap-2 active:scale-[0.96]" onClick={() => onOpenSource(finding)}>Buka sumber <ExternalLink className="size-3.5" /></Button>
-        <Button type="button" variant="secondary" className="w-full justify-between gap-2 active:scale-[0.96]" onClick={() => onUseRiskDraft(finding)}>Gunakan sebagai draf risiko <ArrowRight className="size-3.5" /></Button>
+        <Button type="button" variant="outline" className="w-full justify-between active:scale-[0.96]" onClick={() => onOpenSource(finding)}>Buka sumber <ExternalLink className="size-3.5" /></Button>
+        <Button type="button" variant="secondary" className="w-full justify-between active:scale-[0.96]" onClick={() => onUseRiskDraft(finding)}>Gunakan sebagai draf risiko <ArrowRight className="size-3.5" /></Button>
       </div>
     </div>
   );

@@ -1,22 +1,26 @@
 "use client";
 
 import Link from "next/link";
+import { Badge } from "@/components/ui/badge";
 
 import {
-  Badge,
+  CollectionTableHead,
+  CollectionTableHeader,
+  CollectionTableHeaderRow,
   OverviewPanelState,
+  RiskCategoryIndicator,
   StandardCard,
 } from "@/components/shared/design-system";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import {
   formatRiskScore,
   getBobot,
   getRiskLevelFromNilai,
   getRiskLevelLabel,
-  levelToColor,
-  riskCategoryLabels,
   resolveRiskScoreSemantics,
 } from "@/lib/risk";
 import { cn } from "@/lib/utils";
+import { getLinearRiskLevelBadgeTone } from "@/lib/linear-status-badge";
 import type { TopRiskItem } from "@/types/risk";
 
 interface TopRisksPanelProps {
@@ -39,43 +43,57 @@ export function TopRisksPanel({
   return (
     <StandardCard
       title="Risiko yang Perlu Perhatian"
-      className={cn("rounded-lg xl:h-full xl:min-h-[377px]", className)}
-      headerClassName="px-5 pb-4 pt-5"
-      contentClassName="p-0 xl:flex xl:flex-1 xl:flex-col"
+      subtitle="Prioritas berdasarkan skor risiko tertinggi."
+      className={cn("xl:h-full xl:min-h-[377px]", className)}
+      contentClassName="xl:flex xl:flex-1 xl:flex-col"
     >
       {loading ? (
         <OverviewPanelState
           state="loading"
           message="Memuat risiko teratas..."
-          className="mx-5 mb-5 xl:flex-1"
+          className="xl:flex-1"
         />
       ) : error ? (
         <OverviewPanelState
           state="error"
           message="Risiko teratas tidak dapat dimuat."
           onRetry={onRetry}
-          className="mx-5 mb-5 xl:flex-1"
+          className="xl:flex-1"
         />
       ) : risks.length === 0 ? (
         <OverviewPanelState
           state="empty"
           message="Belum ada data risiko."
-          className="mx-5 mb-5 xl:flex-1"
+          className="xl:flex-1"
         />
       ) : (
-        <div className="border-t border-border/60 xl:flex xl:flex-1 xl:flex-col">
-          <div
-            aria-hidden="true"
-            data-testid="risk-list-header"
-            className="grid min-h-10 w-full grid-cols-[1fr_1fr_1fr_1fr] items-center gap-x-3 border-b border-border/60 bg-card px-6 py-1.5 text-[13px] font-medium capitalize tracking-[0.02em] text-secondary-foreground sm:grid-cols-[5fr_7fr_7fr_10fr_5fr]"
+        <div className="-mx-(--card-spacing) -mb-(--card-spacing) min-w-0 xl:flex xl:flex-1 xl:flex-col">
+          <Table
+            aria-label="Risiko yang perlu perhatian"
+            className="min-w-[680px] table-fixed"
           >
-            <span>Kode</span>
-            <span>Probabilitas</span>
-            <span>Dampak</span>
-            <span className="hidden sm:block">Kategori</span>
-            <span className="text-right">Skor</span>
-          </div>
-          <div className="divide-y divide-border/40">
+            <colgroup>
+              <col className="w-[40%]" />
+              <col className="w-[24%]" />
+              <col className="w-[12%]" />
+              <col className="w-[12%]" />
+              <col className="w-[12%]" />
+            </colgroup>
+            <CollectionTableHeader>
+              <CollectionTableHeaderRow
+                data-testid="risk-list-header"
+                className="border-t border-border/60"
+              >
+                <CollectionTableHead className="px-24">Risiko</CollectionTableHead>
+                <CollectionTableHead>Kategori</CollectionTableHead>
+                <CollectionTableHead>Probabilitas</CollectionTableHead>
+                <CollectionTableHead>Dampak</CollectionTableHead>
+                <CollectionTableHead className="text-right">
+                  Skor
+                </CollectionTableHead>
+              </CollectionTableHeaderRow>
+            </CollectionTableHeader>
+            <TableBody>
             {visibleRisks.map((risk) => {
               const scoreSemantics = resolveRiskScoreSemantics({
                 status: risk.status,
@@ -88,64 +106,61 @@ export function TopRisksPanel({
 
               const score = scoreSemantics.primary.score;
               const level = getRiskLevelFromNilai(scoreSemantics.primary.nilai);
-              const categoryLabel =
-                riskCategoryLabels[risk.category] ??
-                (risk.category || "Belum dikategorikan");
-
               return (
-                <Link
-                  key={risk.id}
-                  href={`/risk/register/${risk.id}`}
-                  data-testid="risk-row"
-                  className="group/risk grid min-h-14 w-full grid-cols-[1fr_1fr_1fr_1fr] items-center gap-x-3 px-6 py-4 outline-none transition-[background-color,transform] duration-150 hover:bg-muted/30 active:scale-[0.995] focus-visible:bg-muted/30 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring sm:grid-cols-[5fr_7fr_7fr_10fr_5fr] motion-reduce:transform-none motion-reduce:transition-none"
-                >
-                  <div className="min-w-0 font-normal">
+                <TableRow key={risk.id} data-testid="risk-row">
+                  <TableCell className="whitespace-normal px-24">
+                    <div className="flex min-w-0 flex-col items-start gap-1">
+                      <Link
+                        href={`/risk/register/${risk.id}`}
+                        className="min-w-0 max-w-full truncate rounded-sm text-sm font-medium leading-5 text-foreground transition-colors duration-150 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
+                        title={risk.title || "Risiko tanpa judul"}
+                      >
+                        {risk.title || "Risiko tanpa judul"}
+                      </Link>
+                      <span
+                        className="font-mono text-[11px] leading-4 text-muted-foreground"
+                        title={risk.code}
+                      >
+                        {risk.code}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="whitespace-normal text-muted-foreground">
+                    <RiskCategoryIndicator category={risk.category} />
+                  </TableCell>
+                  <TableCell>
                     <span
-                      className="block truncate font-mono text-sm font-normal text-foreground"
-                      title={risk.code}
+                      className="font-mono text-sm tabular-nums text-foreground"
+                      title={`Probabilitas ${risk.probability}`}
                     >
-                      {risk.code}
+                      {risk.probability}
                     </span>
-                  </div>
-                  <p
-                    className="min-w-0 truncate font-mono text-sm font-normal text-foreground tabular-nums"
-                    title={`Probabilitas ${risk.probability}`}
-                  >
-                    {risk.probability}
-                  </p>
-                  <p
-                    className="min-w-0 truncate font-mono text-sm font-normal text-foreground tabular-nums"
-                    title={`Dampak ${risk.impact}`}
-                  >
-                    {risk.impact}
-                  </p>
-                  <p
-                    className="hidden min-w-0 truncate text-sm font-normal text-muted-foreground sm:block"
-                    title={categoryLabel}
-                  >
-                    {categoryLabel}
-                  </p>
-                  <Badge
-                    variant="outline"
-                    size="micro"
-                    title={`Skor ${formatRiskScore(score)} — ${getRiskLevelLabel(level)}`}
-                    className={cn(
-                      "justify-self-end font-mono font-normal tabular-nums",
-                      levelToColor(level),
-                    )}
-                  >
-                    {formatRiskScore(score)}
-                    <span className="sr-only">
-                      ({getRiskLevelLabel(level)})
+                  </TableCell>
+                  <TableCell>
+                    <span
+                      className="font-mono text-sm tabular-nums text-foreground"
+                      title={`Dampak ${risk.impact}`}
+                    >
+                      {risk.impact}
                     </span>
-                  </Badge>
-                </Link>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Badge
+                      variant={getLinearRiskLevelBadgeTone(getRiskLevelLabel(level))}
+                      title={`Skor ${formatRiskScore(score)} — ${getRiskLevelLabel(level)}`}
+                      className="tabular-nums"
+                    >
+                      {formatRiskScore(score)}
+                      <span className="sr-only">
+                        ({getRiskLevelLabel(level)})
+                      </span>
+                    </Badge>
+                  </TableCell>
+                </TableRow>
               );
             })}
-            {Array.from({ length: 5 - visibleRisks.length }, (_, index) => (
-              <div key={`empty-risk-slot-${index}`} aria-hidden="true" className="hidden h-14 xl:block" />
-            ))}
-          </div>
+            </TableBody>
+          </Table>
         </div>
       )}
     </StandardCard>

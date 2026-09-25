@@ -32,7 +32,7 @@ export function CollectionFilterPopover({
         align="start"
         sideOffset={8}
         className={cn(
-          "w-[22rem] rounded-[12px] bg-popover p-4",
+          "w-[22rem]",
           contentClassName,
         )}
       >

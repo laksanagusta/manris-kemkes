@@ -1,4 +1,4 @@
-import { ShieldCheck } from "@/components/ui/icons";
+import { ShieldCheck } from "@/components/shared/icons";
 
 import {
   AccentButton,

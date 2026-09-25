@@ -35,6 +35,7 @@ export { ProgressMeterExample } from "./progress-meter-example";
 export { RadiusScaleExample } from "./radius-scale-example";
 export { ReportPrimitivesExample } from "./report-primitives-example";
 export { RiskAssessmentSummaryExample } from "./risk-assessment-summary-example";
+export { RiskDetailDrawerExample } from "./risk-detail-drawer-example";
 export { RiskSummaryStripExample } from "./risk-summary-strip-example";
 export { SearchInputExample } from "./search-input-example";
 export { SemesterIndicatorExample } from "./semester-indicator-example";

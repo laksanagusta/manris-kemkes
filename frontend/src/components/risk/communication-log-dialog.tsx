@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -20,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2 } from "@/components/ui/icons";
+import { Loader2 } from "@/components/shared/icons";
 import {
   AccentButton,
   CollectionDialogCancel,
@@ -103,6 +104,9 @@ export function CommunicationLogDialog({
             <DialogTitle className="text-base">
               Tambah Catatan Komunikasi
             </DialogTitle>
+            <DialogDescription>
+              Catat komunikasi yang berkaitan dengan risiko ini.
+            </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-5">
@@ -115,7 +119,7 @@ export function CommunicationLogDialog({
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="text-base sm:text-sm"
+                className=""
               />
             </div>
 
@@ -129,7 +133,7 @@ export function CommunicationLogDialog({
               >
                 <SelectTrigger
                   id="log-method"
-                  className="text-base sm:text-sm"
+                  className=""
                 >
                   <SelectValue />
                 </SelectTrigger>
@@ -155,7 +159,7 @@ export function CommunicationLogDialog({
                 value={stakeholder}
                 onChange={(e) => setStakeholder(e.target.value)}
                 placeholder="Nama stakeholder atau unit"
-                className="text-base sm:text-sm"
+                className=""
               />
             </div>
 
@@ -167,7 +171,7 @@ export function CommunicationLogDialog({
                 id="log-notes"
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="min-h-[100px] text-base sm:text-sm"
+                className=""
                 placeholder="Ringkasan komunikasi atau hasil diskusi..."
               />
             </div>

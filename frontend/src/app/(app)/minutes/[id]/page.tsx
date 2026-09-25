@@ -39,7 +39,7 @@ import {
   Download,
   Loader2,
   Trash2,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -268,7 +268,7 @@ function MeetingMinuteDetailContent() {
         }
       />
 
-      <Card className="gap-0 overflow-hidden p-0">
+      <Card className="overflow-hidden">
         <header className="px-6 py-8 md:px-8">
           <h2 className="text-lg font-medium tracking-tight text-foreground">Properti</h2>
 

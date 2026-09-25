@@ -129,7 +129,7 @@ export function HasilPemantauanCard({
                             {val}
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent side="top" className="text-xs">
+                        <TooltipContent side="top" className="">
                           {PROBABILITY_LABELS[val]}
                         </TooltipContent>
                       </Tooltip>
@@ -170,7 +170,7 @@ export function HasilPemantauanCard({
                             {val}
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent side="top" className="text-xs">
+                        <TooltipContent side="top" className="">
                           {IMPACT_LABELS[val]}
                         </TooltipContent>
                       </Tooltip>
@@ -196,7 +196,7 @@ export function HasilPemantauanCard({
               <Textarea
                 {...field}
                 placeholder="Tuliskan alasan mengapa skor probabilitas/dampak diubah..."
-                className="min-h-[100px]"
+                className=""
               />
             )}
           />
@@ -211,7 +211,7 @@ export function HasilPemantauanCard({
               <Textarea
                 {...field}
                 placeholder="Tuliskan ringkasan dari hasil review dan rekomendasi tindakan..."
-                className="min-h-[100px]"
+                className=""
               />
             )}
           />

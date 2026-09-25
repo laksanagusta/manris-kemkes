@@ -51,7 +51,7 @@ const STATUS_ORDER: Record<MonitoringRosterStatus, number> = {
 };
 
 const STATUS_LABELS: Record<MonitoringRosterStatus, string> = {
-  in_progress: "Berlangsung",
+  in_progress: "Draf",
   finalized: "Final",
 };
 

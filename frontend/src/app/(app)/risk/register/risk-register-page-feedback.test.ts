@@ -70,6 +70,25 @@ test("risk register titles use medium-weight detail links", () => {
   );
 });
 
+test("risk archive confirmation separates title and code hierarchy", () => {
+  const archiveDialogStart = page.indexOf(
+    '<DialogTitle>Arsipkan Risiko?</DialogTitle>',
+  );
+  const archiveDialog = page.slice(
+    archiveDialogStart,
+    page.indexOf("</DialogContent>", archiveDialogStart),
+  );
+
+  assert.match(
+    archiveDialog,
+    /<p className="text-sm font-medium text-foreground">\s*\{riskToArchive\?\.title \|\| "Tanpa judul"\}\s*<\/p>/,
+  );
+  assert.match(
+    archiveDialog,
+    /<p className="font-mono text-xs text-tertiary-foreground">\s*\{riskToArchive\?\.code \|\| riskToArchive\?\.id\}\s*<\/p>/,
+  );
+});
+
 test("risk form context card uses the shared default border shadow", () => {
   assert.match(
     riskFormPage,
@@ -88,6 +107,13 @@ test("risk AI assist buttons use the outlined treatment without decorative icons
   assert.match(aiButton, /size="xs"/);
   assert.doesNotMatch(aiButton, /border-0/);
   assert.doesNotMatch(aiButton, /WandSparkles|risk-ai-idle-icon|risk-ai-spinner/);
+});
+
+test("risk context icon actions stay muted without a border", () => {
+  assert.match(actionIconButton, /variant = "ghost"/);
+  assert.match(actionIconButton, /variant=\{variant\}/);
+  assert.match(actionIconButton, /border-0 text-muted-foreground/);
+  assert.doesNotMatch(actionIconButton, /variant = "outline"/);
 });
 
 test("risk cause and impact suggestions share the structured-list modal", () => {
@@ -236,17 +262,17 @@ test("risk form uses concise finalization copy and medium-weight field labels", 
   assert.match(riskFormPage, /\[&_\[data-slot=label\]\]:font-medium/);
 });
 
-test("risk form section headings use the medium weight", () => {
+test("risk form section headings use stock Card title and description slots", () => {
   const sectionHeadingClass =
-    /<p className="text-sm font-medium tracking-tight text-foreground transition-colors">/g;
+    /<CardTitle className="transition-colors">/g;
   const sectionSubtitleClass =
-    /<p className="text-xs leading-relaxed text-secondary-foreground">/g;
+    /<CardDescription>/g;
 
   assert.equal(riskFormPage.match(sectionHeadingClass)?.length, 6);
   assert.equal(riskFormPage.match(sectionSubtitleClass)?.length, 6);
   assert.match(
     riskFormPage,
-    /<p className="text-sm font-medium tracking-tight text-foreground transition-colors">\s*Identifikasi Risiko\s*<\/p>/,
+    /<CardTitle className="transition-colors">Identifikasi Risiko<\/CardTitle>/,
   );
 });
 
@@ -317,6 +343,21 @@ test("register tools sit above the single risk collection", () => {
   assert.doesNotMatch(page, /Muat ulang daftar risiko|handleRefreshRegister/);
 });
 
+test("register filter toolbar uses the shared collection composition", () => {
+  const toolbar = page.slice(
+    page.indexOf("function RiskRegisterFilterToolbar"),
+    page.indexOf("type RiskRegisterFiltersSidebarProps"),
+  );
+
+  assert.match(
+    toolbar,
+    /className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center"/,
+  );
+  assert.match(page, /<CollectionFilterPopover/);
+  assert.doesNotMatch(page, /from "@\/components\/ui\/popover"/);
+  assert.doesNotMatch(page, /<Popover open=\{open\}/);
+});
+
 test("risk register import action shares the card shadow boundary", () => {
   assert.match(
     page,
@@ -337,7 +378,7 @@ test("scores and compact badges follow the table density", () => {
     page,
     /className="text-sm font-medium tabular-nums text-foreground"/,
   );
-  assert.match(page, /<Badge\s+size="compact"\s+tone=/);
+  assert.match(page, /<Badge\s+variant=/);
   assert.match(page, /<CollectionTableHead className="sticky right-0/);
 });
 
@@ -347,6 +388,7 @@ test("active register surfaces use shared design-system components", () => {
   assert.equal(page.match(/<CollectionPagination/g)?.length, 1);
   assert.doesNotMatch(page, /RegisterTabsList|RegisterTableCard|RegisterPagination|<Tabs/);
   assert.match(page, /<CollectionSearchField/);
+  assert.match(page, /<CollectionSearchField[\s\S]*?className="placeholder:text-tertiary-foreground"/);
   assert.match(page, /<CollectionFilterTrigger/);
   assert.match(page, /from "@\/components\/ui\/badge"/);
   assert.match(page, /<CollectionDialogCancel/);

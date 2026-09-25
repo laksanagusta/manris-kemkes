@@ -60,7 +60,7 @@ export function RiskMovementByOrg({
             value={currentSort}
             onValueChange={(value) => onSortChange?.(value as MovementByOrgSortKey)}
           >
-            <SelectTrigger className="h-9 w-[120px] text-xs">
+            <SelectTrigger className="w-[120px]">
               <SelectValue placeholder="Urutkan" />
             </SelectTrigger>
             <SelectContent>

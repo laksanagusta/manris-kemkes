@@ -130,7 +130,7 @@ export function ReportScopePicker({
           <div className="flex items-center justify-between gap-3">
             <p className="text-sm font-medium text-foreground">Group</p>
             {hasRealGroup ? (
-              <Badge variant="outline" className="gap-1">
+              <Badge variant="outline" className="">
                 {selectedGroupMembers.length}
               </Badge>
             ) : null}

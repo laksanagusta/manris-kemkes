@@ -25,7 +25,6 @@ export { CollectionNotice } from "./collections/collection-notice";
 export { CollectionPagination } from "./collections/collection-pagination";
 export { shouldShowCollectionPagination } from "./collections/collection-pagination-visibility";
 export { CollectionSearchField } from "./collections/collection-search-field";
-export { CollectionStatusBadge } from "./collections/collection-status-badge";
 export { CollectionTableCard } from "./collections/collection-table-card";
 export {
   CollectionTableSurface,
@@ -70,7 +69,7 @@ export {
   type LabeledListProps,
 } from "./layout/labeled-list";
 export { MetricGrid } from "./layout/metric-grid";
-export { KpiCard, type KpiCardTone } from "@/components/ui/kpi-card";
+export { KpiCard, type KpiCardTone } from "@/components/shared/kpi-card";
 export { PageHeader } from "./layout/page-header";
 export {
   PageHeaderActionsPortal,
@@ -88,7 +87,6 @@ export {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-export { Badge } from "@/components/ui/badge";
 export { Input } from "@/components/ui/input";
 export { Label } from "@/components/ui/label";
 export { Textarea } from "@/components/ui/textarea";
@@ -131,6 +129,7 @@ export {
   SheetTrigger,
 } from "@/components/ui/sheet";
 export {
+  bottomFormDrawerClassName,
   Drawer,
   DrawerBody,
   DrawerClose,
@@ -143,7 +142,7 @@ export {
   DrawerPortal,
   DrawerTitle,
   DrawerTrigger,
-} from "@/components/ui/drawer";
+} from "@/components/shared/app-drawer";
 export {
   PopoverSelectField,
   type PopoverSelectFieldProps,
@@ -172,6 +171,10 @@ export {
 } from "./domain/ai-suggestion-dropdown";
 export { MitigationProgressDialog } from "./domain/mitigation-progress-dialog";
 export {
+  MitigationProgressFlowDialog,
+  type MitigationProgressFlowView,
+} from "./domain/mitigation-progress-flow-dialog";
+export {
   MitigationProgressForm,
   type MitigationProgressFormProps,
 } from "./domain/mitigation-progress-form";
@@ -186,6 +189,11 @@ export { OverviewCategoryCard, type OverviewCategorySegment } from "./domain/ove
 export { OverviewPanelState } from "./domain/overview-panel-state";
 export { OverviewTopRisksCard } from "./domain/overview-top-risks-card";
 export { OverviewTrendCard } from "./domain/overview-trend-card";
+export { RiskCategoryIndicator } from "./domain/risk-category-indicator";
+export {
+  RiskDetailDrawer,
+  type RiskDetailDrawerProps,
+} from "./domain/risk-detail-drawer";
 export { RiskHeatmapGrid } from "./domain/risk-heatmap-grid";
 export {
   RiskAssessmentSummaryStrip,

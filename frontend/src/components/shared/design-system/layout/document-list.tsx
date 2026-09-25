@@ -1,8 +1,9 @@
 import { useId, type ReactNode } from "react";
 
-import { Plus } from "@/components/ui/icons";
+import { Plus } from "@/components/shared/icons";
 import { Button } from "@/components/ui/button";
-import { ListGroup } from "@/components/ui/list-group";
+import { CardContent } from "@/components/ui/card";
+import { ListGroup } from "@/components/shared/list-group";
 import { cn } from "@/lib/utils";
 
 export type DocumentListItem = {
@@ -53,17 +54,14 @@ export function DocumentListSection({
             aria-label={addLabel}
             title={addLabel}
             onClick={onAdd}
-            className="rounded-full text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
+            className=""
           >
             <Plus className="size-4" aria-hidden="true" />
           </Button>
         ) : null}
       </div>
-      <ListGroup
-        className="surface-hairline rounded-[12px] bg-card px-4 py-1.5"
-        role="region"
-        aria-labelledby={labelId}
-      >
+      <ListGroup role="region" aria-labelledby={labelId}>
+        <CardContent>
         {items.length > 0 ? (
           <div
             className="space-y-1"
@@ -95,6 +93,7 @@ export function DocumentListSection({
             {emptyMessage}
           </p>
         )}
+        </CardContent>
       </ListGroup>
     </div>
   );

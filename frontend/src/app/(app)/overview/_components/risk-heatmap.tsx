@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { ArrowUpRight, TrendingUp, TrendingDown, Minus } from "@/components/ui/icons";
+import { ArrowUpRight, TrendingUp, TrendingDown, Minus } from "@/components/shared/icons";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -66,7 +66,7 @@ export function RiskHeatmap({
     return (
       <Card
         className={cn(
-          "bg-card/80 backdrop-blur-sm",
+          "",
           !compact && "lg:col-span-3",
         )}
         data-testid="heatmap-grid"
@@ -82,7 +82,7 @@ export function RiskHeatmap({
     return (
       <Card
         className={cn(
-          "bg-card/80 backdrop-blur-sm",
+          "",
           !compact && "lg:col-span-3",
         )}
         data-testid="heatmap-grid"
@@ -102,7 +102,7 @@ export function RiskHeatmap({
   return (
     <Card
       className={cn(
-        "bg-card/80 backdrop-blur-sm",
+        "",
         !compact && "lg:col-span-3",
       )}
       data-testid="heatmap-grid"
@@ -110,7 +110,7 @@ export function RiskHeatmap({
       <CardHeader className={cn(compact ? "pb-2" : "pb-4")}>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <CardTitle className="text-sm font-medium normal-case">
+            <CardTitle className="">
               Heatmap Risiko
             </CardTitle>
             <p className={cn("mt-1 text-xs text-secondary-foreground", compact && "max-w-[18rem]")}>
@@ -118,7 +118,7 @@ export function RiskHeatmap({
             </p>
           </div>
           {!compact ? (
-            <Button variant="ghost" size="sm" className="gap-1 text-xs text-muted-foreground">
+            <Button variant="ghost" size="sm" className="">
               Detail
               <ArrowUpRight className="size-3" />
             </Button>

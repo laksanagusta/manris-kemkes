@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
-import { Building2, Layers3, ShieldCheck } from "@/components/ui/icons";
+import { Building2, Layers3, ShieldCheck } from "@/components/shared/icons";
 
 import { useAuth } from "@/contexts/auth-context";
 import {
@@ -93,7 +93,7 @@ export default function PlanningDetailPage() {
   if (!token) {
     return (
       <Card>
-        <CardContent className="py-10 text-sm text-muted-foreground">
+        <CardContent className="">
           Silakan masuk untuk membuka detail struktur kinerja.
         </CardContent>
       </Card>
@@ -103,7 +103,7 @@ export default function PlanningDetailPage() {
   if (loading) {
     return (
       <Card>
-        <CardContent className="py-10 text-sm text-muted-foreground">
+        <CardContent className="">
           Memuat detail struktur...
         </CardContent>
       </Card>
@@ -113,7 +113,7 @@ export default function PlanningDetailPage() {
   if (!item) {
     return (
       <Card>
-        <CardContent className="space-y-4 py-10">
+        <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
             Struktur dengan ID tersebut belum ditemukan di cache kompatibilitas.
           </p>
@@ -135,7 +135,7 @@ export default function PlanningDetailPage() {
         actions={
           <Badge
             variant="outline"
-            className="border-blue-200 bg-blue-50 text-blue-700"
+            className=""
           >
             Kompatibilitas
           </Badge>
@@ -163,13 +163,13 @@ export default function PlanningDetailPage() {
         />
       </MetricGrid>
 
-      <Card className="bg-card/80 backdrop-blur-sm">
-        <CardHeader className="border-b border-border/40 pb-4">
-          <CardTitle className="text-[15px] font-semibold">
+      <Card className="">
+        <CardHeader className="">
+          <CardTitle className="">
             Rantai Hierarki
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-6 pt-6">
+        <CardContent className="space-y-6">
           {infoItem("Tujuan", item.tujuan)}
           <Separator />
           {infoItem("Sasaran", item.sasaran)}

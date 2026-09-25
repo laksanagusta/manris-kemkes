@@ -5,13 +5,13 @@ import { Card, CardContent } from "@/components/ui/card";
 
 export function RiskSummaryStripExample() {
   return (
-      <Card className="flex flex-col rounded-[12px] bg-card">
+      <Card className="flex flex-col">
       <div className="flex items-center border-b border-border/60 px-4 py-6">
         <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.15em] text-muted-foreground">
           Summary Strip
         </p>
       </div>
-      <CardContent className="px-4 pb-4 pt-0">
+      <CardContent className="">
         <RiskAssessmentSummaryStrip
           title="Hasil Penilaian"
           score={18}

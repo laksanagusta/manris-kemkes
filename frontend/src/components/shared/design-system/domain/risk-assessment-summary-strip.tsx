@@ -1,11 +1,14 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { AlertTriangle, CheckCircle2, Info } from "@/components/ui/icons";
+import { AlertTriangle, CheckCircle2, Info } from "@/components/shared/icons";
 
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
-import { formatRiskScore, getRiskLevelLabel, levelToColor } from "@/lib/risk";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
+import { getLinearRiskLevelBadgeTone } from "@/lib/linear-status-badge";
+import { formatRiskScore, getRiskLevelLabel } from "@/lib/risk";
 import type { RiskLevel } from "@/types/risk";
 
 type StatusTone = "neutral" | "success" | "warning";
@@ -31,17 +34,6 @@ export interface RiskAssessmentSummaryStripProps {
   className?: string;
 }
 
-const statusToneClassName: Record<StatusTone, string> = {
-  neutral: "border-border bg-muted text-muted-foreground",
-  success: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  warning: "border-amber-200 bg-amber-50 text-amber-700",
-};
-
-const noteToneClassName: Record<NoteTone, string> = {
-  neutral: "border-border/60 bg-muted/20 text-muted-foreground",
-  warning: "border-amber-200 bg-amber-50 text-amber-700",
-};
-
 const statusIconMap: Record<StatusTone, ReactNode> = {
   neutral: <Info />,
   success: <CheckCircle2 />,
@@ -50,13 +42,9 @@ const statusIconMap: Record<StatusTone, ReactNode> = {
 
 function SummaryMetricTile({ label, value }: RiskAssessmentSummaryMetric) {
   return (
-    <div className="inline-flex h-7 items-center gap-1.5 rounded-lg border border-border/60 bg-background/85 px-2.5 shadow-[0_1px_0_rgba(255,255,255,0.6)_inset]">
-      <span className="text-[10px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-        {label}
-      </span>
-      <span className="text-[11px] font-semibold leading-none text-foreground">
-        {value}
-      </span>
+    <div className="flex items-center gap-2">
+      <span className="text-sm text-muted-foreground">{label}</span>
+      <Badge variant="outline">{value}</Badge>
     </div>
   );
 }
@@ -72,89 +60,36 @@ export function RiskAssessmentSummaryStrip({
   metrics = [],
   note,
   noteTone = "neutral",
-  surface = "elevated",
   className,
 }: RiskAssessmentSummaryStripProps) {
-  const hasMetrics = metrics.length > 0;
-
   return (
-    <section
-      className={cn(
-        "overflow-hidden rounded-[12px] bg-card",
-        surface === "elevated"
-          ? "smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
-          : "border border-border/60 bg-card/80",
-        className,
-      )}
-    >
-      <div className="px-3 py-2.5">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="min-w-0">
-            <p className="text-[11px] font-mono font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              {title}
-            </p>
-            {helperText ? (
-              <p className="mt-1.5 max-w-2xl text-[11px] leading-5 text-secondary-foreground">
-                {helperText}
-              </p>
-            ) : null}
-          </div>
-          {statusLabel ? (
-            <Badge
-              variant="outline"
-              className={cn(
-                "h-5 rounded-full px-2 text-[10px] font-medium",
-                statusToneClassName[statusTone],
-              )}
-            >
-              {statusIconMap[statusTone]}
-              {statusLabel}
-            </Badge>
-          ) : null}
+    <Card className={className}>
+      <CardHeader>
+        <CardTitle>{title}</CardTitle>
+        {helperText ? <CardDescription>{helperText}</CardDescription> : null}
+        {statusLabel ? (
+          <Badge variant={toBadgeVariant(statusTone)} className={getStatusBadgeClassName(statusTone)}>
+            {statusIconMap[statusTone]}
+            {statusLabel}
+          </Badge>
+        ) : null}
+      </CardHeader>
+      <CardContent className="flex flex-wrap gap-4">
+        {metrics.map((metric) => <SummaryMetricTile key={metric.label} {...metric} />)}
+        <SummaryMetricTile label={scoreLabel} value={<span className="tabular-nums">{formatRiskScore(score)}</span>} />
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground">Level</span>
+          <Badge variant={getLinearRiskLevelBadgeTone(getRiskLevelLabel(level))}>{getRiskLevelLabel(level)}</Badge>
         </div>
-      </div>
-
-      <div className="flex flex-wrap gap-1.5 px-3 py-2.5">
-        {hasMetrics
-          ? metrics.map((metric) => (
-              <SummaryMetricTile key={metric.label} {...metric} />
-            ))
-          : null}
-        <SummaryMetricTile
-          label={scoreLabel}
-          value={<span className="tabular-nums">{formatRiskScore(score)}</span>}
-        />
-        <SummaryMetricTile
-          label="Level"
-          value={
-            <Badge
-              variant="outline"
-              className={cn(
-                "h-5 rounded-full px-2.5 text-[10px] font-semibold tracking-[0.12em]",
-                levelToColor(level),
-              )}
-            >
-              {getRiskLevelLabel(level)}
-            </Badge>
-          }
-        />
-      </div>
-
+      </CardContent>
       {note ? (
-        <div
-          className={cn(
-            "flex items-start gap-2 border-t px-3 py-1.5 text-[11px] leading-4",
-            noteToneClassName[noteTone],
-          )}
-        >
-          {noteTone === "warning" ? (
-            <AlertTriangle className="mt-0.5 size-3 shrink-0" />
-          ) : (
-            <Info className="mt-0.5 size-3 shrink-0" />
-          )}
-          <p>{note}</p>
-        </div>
+        <CardContent>
+          <Alert variant={noteTone === "warning" ? "destructive" : "default"}>
+            {noteTone === "warning" ? <AlertTriangle /> : <Info />}
+            <AlertDescription>{note}</AlertDescription>
+          </Alert>
+        </CardContent>
       ) : null}
-    </section>
+    </Card>
   );
 }

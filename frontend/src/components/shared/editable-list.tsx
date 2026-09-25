@@ -27,7 +27,7 @@ export function EditableList({
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       disabled={disabled}
-      className="min-h-[80px] text-xs bg-muted/20 resize-none leading-relaxed"
+      className="resize-none"
     />
   );
 }

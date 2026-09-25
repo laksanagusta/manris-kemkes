@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
-import { Check, ChevronsUpDown, Loader2, Search } from "@/components/ui/icons";
+import { Check, ChevronsUpDown, Loader2, Search } from "@/components/shared/icons";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { listOrganizations, type OrganizationListItem } from "@/lib/api/organizations";
@@ -14,13 +14,14 @@ import {
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SearchInput } from "@/components/ui/search-input";
+import { SearchInput } from "@/components/shared/search-input";
 import {
   Select,
   SelectContent,
@@ -226,6 +227,12 @@ export function OrganizationFormDialog({
       <DialogContent className="sm:max-w-md" showCloseButton={!isSubmitting}>
         <DialogHeader>
           <DialogTitle className="text-lg">{title}</DialogTitle>
+          <DialogDescription>
+            {mode === "create"
+              ? "Tambahkan unit organisasi dan tentukan parent unitnya."
+              : "Perbarui nama dan parent unit organisasi."
+            }
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
@@ -259,7 +266,7 @@ export function OrganizationFormDialog({
                 <Button
                   type="button"
                   variant="outline"
-                  className="h-10 w-full justify-between gap-2 font-normal"
+                  className="w-full justify-between"
                   disabled={isSubmitting}
                 >
                   <span className="truncate">
@@ -271,7 +278,7 @@ export function OrganizationFormDialog({
               <PopoverContent
                 align="start"
                 sideOffset={8}
-                className="w-[var(--radix-popover-trigger-width)] overflow-hidden p-0"
+                className="w-[var(--radix-popover-trigger-width)] overflow-hidden"
               >
                 <div className="flex items-center border-b px-3">
                   <Search className="mr-2 size-4 shrink-0 opacity-50" />

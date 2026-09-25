@@ -14,26 +14,26 @@ import {
 	EmptyTitle,
 } from "@/components/ui/empty";
 import { DashboardCard } from "@/components/dashboard-card";
-import { CircleCheckIcon, ArrowRightIcon } from "@/components/ui/icons";
+import { CircleCheckIcon, ArrowRightIcon } from "@/components/shared/icons";
 import Link from "next/link";
 
 export function BillingHealth() {
 	return (
 		<DashboardCard className="gap-0">
-			<CardHeader className="border-b">
-				<CardTitle className="text-balance text-sm font-medium normal-case">Billing health</CardTitle>
+			<CardHeader className="">
+				<CardTitle className="text-balance">Billing health</CardTitle>
 				<CardDescription className="text-pretty">
 					Nothing urgent needs your attention.
 				</CardDescription>
 			</CardHeader>
-			<CardContent className="flex h-full items-center px-0">
+			<CardContent className="flex h-full items-center">
 				<Empty>
 					<EmptyHeader>
 						<EmptyMedia variant="icon">
 							<CircleCheckIcon aria-hidden="true" />
 						</EmptyMedia>
 						<EmptyTitle>You&apos;re caught up.</EmptyTitle>
-						<EmptyDescription className="text-xs">
+						<EmptyDescription className="">
 							Balances and payouts look fine. nothing overdue in this snapshot.
 						</EmptyDescription>
 					</EmptyHeader>

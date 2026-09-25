@@ -21,10 +21,11 @@ import {
   RotateCcw,
   Save,
   Trash2,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 
 import { RemoteUserPicker } from "@/components/risk/remote-user-picker";
 import { FormHeader, FormPage } from "@/components/shared/form-shell";
+import { Badge } from "@/components/ui/badge";
 import {
   ActionButton,
   AlertDialog,
@@ -38,7 +39,6 @@ import {
   CollectionDialogCancel,
   CollectionErrorState,
   CollectionLoadingState,
-  CollectionStatusBadge,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -86,6 +86,7 @@ import type {
   RiskCharterUPRMember,
   RiskCharterUPRRole,
 } from "@/types/risk-charter";
+import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 
 const statusPresentation = {
   draft: { label: "Draf", tone: "neutral" },
@@ -577,9 +578,9 @@ export default function RiskCharterDetailPage() {
           showTitle
           badges={
             <>
-            <CollectionStatusBadge tone={status.tone}>
+            <Badge variant={toBadgeVariant(status.tone)} className={getStatusBadgeClassName(status.tone)}>
               {status.label}
-            </CollectionStatusBadge>
+            </Badge>
           </>
           }
           actionsPlacement="header"
@@ -637,7 +638,7 @@ export default function RiskCharterDetailPage() {
                 <LoadingActionButton
                   type="button"
                   variant="secondary"
-                  size="primary"
+                  size="default"
                   loading={saving}
                   loadingLabel="Menyimpan..."
                   disabled={!isDirty}
@@ -650,8 +651,8 @@ export default function RiskCharterDetailPage() {
               {charter.status === "draft" ? (
                 <ActionButton
                   type="button"
-                  variant="primary"
-                  size="primary"
+                  variant="default"
+                  size="default"
                   icon={<Check className="size-4" />}
                   onClick={() => {
                     if (isDirty) {
@@ -684,7 +685,7 @@ export default function RiskCharterDetailPage() {
                 rows={1}
                 placeholder="Judul Piagam"
                 aria-invalid={Boolean(errors.title)}
-                className="min-h-0 resize-none overflow-hidden rounded-none border-0 bg-transparent px-0 py-1 text-2xl font-semibold leading-tight tracking-tight !shadow-none placeholder:text-muted-foreground/60 hover:border-0 focus:border-0 focus-visible:border-0 focus-visible:ring-0 lg:text-3xl"
+                className="resize-none overflow-hidden focus-visible:border-0 focus-visible:ring-0"
               />
             ) : (
               <h1 className="break-words whitespace-pre-wrap text-2xl font-semibold leading-tight tracking-tight text-foreground lg:text-3xl">
@@ -708,7 +709,7 @@ export default function RiskCharterDetailPage() {
                 aria-labelledby="charter-scope-label"
                 {...form.register("scope")}
                 placeholder="Tuliskan ruang lingkup penerapan manajemen risiko."
-                className="min-h-32 resize-none leading-6"
+                className="resize-none"
               />
             ) : (
               <ReadOnlyValue>{watched.scope}</ReadOnlyValue>
@@ -767,7 +768,7 @@ export default function RiskCharterDetailPage() {
                 aria-labelledby="charter-internal-context-label"
                 {...form.register("internalContext")}
                 placeholder="Tuliskan kondisi internal yang memengaruhi pengelolaan risiko."
-                className="min-h-32 resize-none leading-6"
+                className="resize-none"
               />
             ) : (
               <ReadOnlyValue>{watched.internalContext}</ReadOnlyValue>
@@ -787,7 +788,7 @@ export default function RiskCharterDetailPage() {
                 aria-labelledby="charter-external-context-label"
                 {...form.register("externalContext")}
                 placeholder="Tuliskan kondisi eksternal yang memengaruhi pengelolaan risiko."
-                className="min-h-32 resize-none leading-6"
+                className="resize-none"
               />
             ) : (
               <ReadOnlyValue>{watched.externalContext}</ReadOnlyValue>
@@ -978,7 +979,7 @@ export default function RiskCharterDetailPage() {
                     id="stakeholder-relationship-modal"
                     value={listEditor.values.relationship}
                     placeholder="Kepentingan, ekspektasi, atau peran"
-                    className="min-h-24 resize-none"
+                    className="resize-none"
                     onChange={(event) =>
                       setListEditor((current) =>
                         current?.kind === "stakeholder"
@@ -1073,15 +1074,15 @@ export default function RiskCharterDetailPage() {
               <CollectionDialogCancel
                 type="button"
                 variant="outline"
-                size="md"
+                size="default"
                 onClick={() => closeListEditor(false)}
               >
                 Batal
               </CollectionDialogCancel>
               <LoadingActionButton
                 type="button"
-                variant="primary"
-                size="primary"
+                variant="default"
+                size="default"
                 onClick={saveListEditor}
               >
                 Simpan
@@ -1125,8 +1126,8 @@ export default function RiskCharterDetailPage() {
             <CollectionDialogCancel
               type="button"
               variant="outline"
-              size="md"
-              className="w-full border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
+              size="default"
+              className="w-full border-0 shadow-black"
               onClick={() => setHistoryOpen(false)}
             >
               Batal
@@ -1157,14 +1158,14 @@ export default function RiskCharterDetailPage() {
           <AlertDialogFooter className="gap-2 sm:justify-end">
             <AlertDialogCancel
               variant="outline"
-              size="md"
-              className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
+              size="default"
+              className="border-0 shadow-black"
             >
               Batal
             </AlertDialogCancel>
             <AlertDialogAction
-              variant="primary"
-              size="primary"
+              variant="default"
+              size="default"
               disabled={working || finalizationIssues.length > 0}
               onClick={() => {
                 void runWorkflow(
@@ -1196,7 +1197,7 @@ export default function RiskCharterDetailPage() {
                 value={revisionReason}
                 onChange={(event) => setRevisionReason(event.target.value)}
                 placeholder="Jelaskan perubahan yang mendasari revisi ini."
-                className="min-h-28 resize-none"
+                className="resize-none"
               />
               <p className="text-xs text-secondary-foreground">Minimal 10 karakter.</p>
             </div>
@@ -1204,16 +1205,16 @@ export default function RiskCharterDetailPage() {
               <CollectionDialogCancel
                 type="button"
                 variant="outline"
-                size="md"
-                className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
+                size="default"
+                className="border-0 shadow-black"
                 onClick={() => setRevisionOpen(false)}
               >
                 Batal
               </CollectionDialogCancel>
               <LoadingActionButton
                 type="button"
-                variant="primary"
-                size="primary"
+                variant="default"
+                size="default"
                 loading={working}
                 loadingLabel="Membuat revisi..."
                 disabled={revisionReason.trim().length < 10}
@@ -1263,14 +1264,14 @@ export default function RiskCharterDetailPage() {
           <AlertDialogFooter className="gap-2 sm:justify-end">
             <AlertDialogCancel
               variant="outline"
-              size="md"
-              className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
+              size="default"
+              className="border-0 shadow-black"
             >
               Batal
             </AlertDialogCancel>
             <AlertDialogAction
-              variant="primary"
-              size="primary"
+              variant="default"
+              size="default"
               onClick={() =>
                 void runWorkflow(
                   () => archiveRiskCharter(token!, charter.id),
@@ -1296,14 +1297,14 @@ export default function RiskCharterDetailPage() {
           <AlertDialogFooter className="gap-2 sm:justify-end">
             <AlertDialogCancel
               variant="outline"
-              size="md"
-              className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
+              size="default"
+              className="border-0 shadow-black"
             >
               Batal
             </AlertDialogCancel>
             <AlertDialogAction
-              variant="primary"
-              size="primary"
+              variant="default"
+              size="default"
               onClick={() =>
                 void runWorkflow(
                   () => restoreRiskCharter(token!, charter.id),
@@ -1329,14 +1330,14 @@ export default function RiskCharterDetailPage() {
           <AlertDialogFooter className="gap-2 sm:justify-end">
             <AlertDialogCancel
               variant="outline"
-              size="md"
-              className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
+              size="default"
+              className="border-0 shadow-black"
             >
               Batal
             </AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
-              size="primary"
+              size="default"
               onClick={async () => {
                 if (!token) return;
                 try {
@@ -1370,14 +1371,14 @@ export default function RiskCharterDetailPage() {
           <AlertDialogFooter className="gap-2 sm:justify-end">
             <AlertDialogCancel
               variant="outline"
-              size="md"
-              className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
+              size="default"
+              className="border-0 shadow-black"
             >
               Tetap di halaman
             </AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
-              size="primary"
+              size="default"
               onClick={() => {
                 if (pendingPath) router.push(pendingPath);
               }}

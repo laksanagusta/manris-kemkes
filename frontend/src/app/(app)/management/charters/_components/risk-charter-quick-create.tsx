@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useReducedMotion } from "motion/react";
-import { ArrowRight, FilePlus2 } from "@/components/ui/icons";
+import { ArrowRight, FilePlus2 } from "@/components/shared/icons";
 
 import { useAuth } from "@/contexts/auth-context";
 import { listAllOrganizations } from "@/lib/api/organizations";
@@ -242,8 +242,8 @@ export function RiskCharterQuickCreate({
           title="Buat Piagam"
           subtitle="Beri judul untuk membuat draf Piagam tahun berjalan."
         />
-        <Card className="mx-auto w-full max-w-xl rounded-lg">
-          <CardContent className="space-y-5 p-6">
+        <Card className="mx-auto w-full max-w-xl">
+          <CardContent className="space-y-5">
             <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-foreground">
               <FilePlus2 className="size-5" />
             </div>
@@ -251,8 +251,8 @@ export function RiskCharterQuickCreate({
             {!existing ? (
               <LoadingActionButton
                 className="w-full"
-                variant="primary"
-                size="primary"
+                variant="default"
+                size="default"
                 loading={submitting || loadingContext}
                 loadingLabel={loadingContext ? "Menyiapkan..." : "Membuat draf..."}
                 disabled={!title.trim() || Boolean(error && !uprLevel)}
@@ -296,8 +296,8 @@ export function RiskCharterQuickCreate({
             <CollectionDialogCancel
               type="button"
               variant="outline"
-              size="md"
-              className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
+              size="default"
+              className="border-0 shadow-black"
               onClick={close}
             >
               Batal
@@ -305,8 +305,8 @@ export function RiskCharterQuickCreate({
             {!existing ? (
               <LoadingActionButton
                 type="button"
-                variant="primary"
-                size="primary"
+                variant="default"
+                size="default"
                 loading={submitting || loadingContext}
                 loadingLabel={loadingContext ? "Menyiapkan..." : "Membuat draf..."}
                 disabled={!title.trim() || Boolean(error && !uprLevel)}

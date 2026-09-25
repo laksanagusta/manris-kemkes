@@ -205,7 +205,7 @@ export default function DashboardPage() {
       <section
         data-dashboard-section="priorities"
         aria-label="Prioritas dan distribusi risiko"
-        className="grid items-start gap-4 pb-4 xl:items-stretch xl:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.65fr)]"
+        className="grid items-start gap-4 pb-4 xl:items-stretch xl:grid-cols-[minmax(0,2fr)_minmax(22rem,1fr)]"
       >
         <TopRisksPanel
           risks={topRisks}

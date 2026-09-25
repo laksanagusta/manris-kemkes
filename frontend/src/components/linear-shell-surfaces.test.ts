@@ -13,10 +13,10 @@ const designSystemPage = readFileSync(
 );
 
 test("uses the fixed light shell surfaces", () => {
-  assert.match(styles, /--background: #ffffff;/);
-  assert.match(styles, /--main-content: #ffffff;/);
+  assert.match(styles, /--background: #f1f1f1;/);
+  assert.match(styles, /--color-main-content: var\(--background\);/);
   assert.match(styles, /--table-header-foreground: var\(--secondary-foreground\);/);
-  assert.match(styles, /--sidebar: #fafafa;/);
+  assert.match(styles, /--sidebar: #f1f1f1;/);
   assert.match(styles, /--sidebar-border: var\(--surface-border\);/);
   assert.doesNotMatch(styles, /\bdark\b/);
 });

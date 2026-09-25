@@ -8,7 +8,7 @@ import {
   Loader2,
   Plus,
   Trash2,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 
 import { useAuth } from "@/contexts/auth-context";
 import { AIFeaturesDisabledState } from "@/components/shared/ai-features-disabled-state";
@@ -257,21 +257,23 @@ function MinutesPageContent() {
             </colgroup>
             <CollectionTableHeader>
               <CollectionTableHeaderRow>
-                <CollectionTableHead className="pl-4 pr-3">Kode</CollectionTableHead>
-                <CollectionTableHead className="px-3">Judul Notulen</CollectionTableHead>
-                <CollectionTableHead className="px-3">Tanggal</CollectionTableHead>
-                <CollectionTableHead className="px-3 text-center">Peserta</CollectionTableHead>
-                <CollectionTableHead className="px-3">Dibuat Oleh</CollectionTableHead>
-                <CollectionTableHead className="px-3 text-center">Aksi</CollectionTableHead>
+                <CollectionTableHead >Kode</CollectionTableHead>
+                <CollectionTableHead className="px-24">Judul Notulen</CollectionTableHead>
+                <CollectionTableHead >Tanggal</CollectionTableHead>
+                <CollectionTableHead className="text-center">Peserta</CollectionTableHead>
+                <CollectionTableHead >Dibuat Oleh</CollectionTableHead>
+                <CollectionTableHead className="text-center">
+                  <span className="sr-only">Aksi</span>
+                </CollectionTableHead>
               </CollectionTableHeaderRow>
             </CollectionTableHeader>
             <TableBody>
               {filteredItems.map((minute) => (
-                <TableRow key={minute.id} className="border-b border-border/60 hover:bg-muted/50">
-                  <TableCell className="py-2 pl-4 pr-3 text-sm text-muted-foreground">
+                <TableRow key={minute.id} className="hover:bg-muted/50">
+                  <TableCell className="">
                     {minute.id.slice(0, 8)}
                   </TableCell>
-                  <TableCell className="max-w-[320px] px-3 py-2">
+                  <TableCell className="max-w-[320px] px-24">
                     <Link
                       href={`/minutes/${minute.id}`}
                       className="block truncate text-sm font-normal leading-relaxed text-foreground hover:text-primary"
@@ -282,20 +284,20 @@ function MinutesPageContent() {
                       {minute.summary || "Belum ada ringkasan"}
                     </p>
                   </TableCell>
-                  <TableCell className="whitespace-nowrap px-3 py-2 text-sm text-muted-foreground">
+                  <TableCell className="whitespace-nowrap">
                     {new Date(minute.date).toLocaleDateString("id-ID", {
                       day: "numeric",
                       month: "short",
                       year: "numeric",
                     })}
                   </TableCell>
-                  <TableCell className="px-3 py-2 text-center text-sm tabular-nums text-muted-foreground">
+                  <TableCell className="text-center tabular-nums">
                     {minute.participants?.length || 0}
                   </TableCell>
-                  <TableCell className="truncate px-3 py-2 text-sm text-muted-foreground">
+                  <TableCell className="truncate">
                     {minute.createdByName || "-"}
                   </TableCell>
-                  <TableCell className="sticky right-0 bg-background px-3 py-2">
+                  <TableCell className="sticky right-0">
                     <div className="flex justify-center">
                       {!isReadOnlyForOrg(user, minute.organizationId || "") && (
                         <Button
@@ -303,7 +305,7 @@ function MinutesPageContent() {
                           variant="ghost"
                           size="sm"
                           aria-label={`Hapus notulen ${minute.title || minute.id}`}
-                          className="h-7 w-7 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                          className="w-7"
                           onClick={() => {
                             setDeleteError(null);
                             setMinuteToDelete(minute);

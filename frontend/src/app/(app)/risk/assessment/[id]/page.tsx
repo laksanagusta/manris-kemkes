@@ -15,7 +15,7 @@ import {
   Loader2,
   Save,
   Send,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 import {
   MitigationTable,
   type MitigationItem,
@@ -55,7 +55,6 @@ import {
   AccentButton,
   ActionButton,
   CollapsibleCard,
-  CollectionStatusBadge,
   CollectionPageHeader,
   FieldErrorMessage,
   Textarea,
@@ -1072,35 +1071,24 @@ export default function AssessmentFormPage() {
     : null;
   const monitoringHeaderBadges = (
     <div className="flex flex-wrap items-center gap-2">
-      <CollectionStatusBadge
-        tone={draftRisk.status === "final" ? "success" : "neutral"}
-        className={
-          draftRisk.status === "final"
-            ? undefined
-            : "!bg-[#0000000a] !text-[#8f8e8e]"
-        }
+      <Badge variant={draftRisk.status === "final" ? "default" : "secondary"}
+        className={draftRisk.status === "final" ? "border-transparent bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300" : ""}
       >
         {assessmentStatusLabel[draftRisk.status] ?? draftRisk.status}
-      </CollectionStatusBadge>
-      <Badge
-        size="compact"
-        tone="neutral"
-        className="bg-muted font-mono text-[10px] text-muted-foreground"
+      </Badge>
+      <Badge variant="secondary"
+        className=""
       >
         {sourceRisk.code || sourceRisk.riskCode}
       </Badge>
-      <Badge
-        size="compact"
-        tone="neutral"
-        className="bg-muted text-muted-foreground"
+      <Badge variant="secondary"
+        className=""
       >
         Versi {draftRisk.versionNumber}
       </Badge>
       {monitoringCycle ? (
-        <Badge
-          size="compact"
-          tone="neutral"
-          className="bg-muted font-mono text-[10px] text-muted-foreground"
+        <Badge variant="secondary"
+          className=""
         >
           {monitoringCycle}
         </Badge>
@@ -1164,7 +1152,7 @@ export default function AssessmentFormPage() {
           </div>
         ) : null}
         {hasFinalResult && resultRiskHref ? (
-          <ActionButton asChild variant="outline" size="md">
+          <ActionButton asChild variant="outline" size="default">
             <Link href={resultRiskHref}>Lihat versi hasil</Link>
           </ActionButton>
         ) : null}
@@ -1200,8 +1188,8 @@ export default function AssessmentFormPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <Button
                       variant="outline"
-                      size="md"
-                      className="gap-2 border-primary/20 text-xs font-semibold hover:bg-primary/5 hover:text-primary"
+                      size="default"
+                      className=""
                       onClick={handleSaveDraft}
                       disabled={isSaving || isAssessmentLocked}
                     >
@@ -1213,8 +1201,8 @@ export default function AssessmentFormPage() {
                       Simpan draft
                     </Button>
                     <Button
-                      size="md"
-                      className="gap-2"
+                      size="default"
+                      className=""
                       onClick={openSubmitReviewConfirm}
                       disabled={isSaving || isCheckingFinalize || isAssessmentLocked}
                     >
@@ -1361,7 +1349,7 @@ export default function AssessmentFormPage() {
                               : undefined
                           }
                           placeholder="Jelaskan bukti atau pertimbangan yang mendasari perubahan..."
-                          className="min-h-[100px] text-base sm:text-sm"
+                          className=""
                           disabled={isAssessmentLocked}
                         />
                       )}
@@ -1393,7 +1381,7 @@ export default function AssessmentFormPage() {
                               : undefined
                           }
                           placeholder={isMonitoringRoute ? "Simpulkan kondisi risiko, efektivitas mitigasi, dan keputusan periode berikutnya..." : "Tuliskan ringkasan dari hasil review dan rekomendasi tindakan..."}
-                          className="min-h-[100px] text-base sm:text-sm"
+                          className=""
                           disabled={isAssessmentLocked}
                         />
                       )}
@@ -1430,10 +1418,10 @@ export default function AssessmentFormPage() {
                   <Badge
                     variant="outline"
                     className={cn(
-                      "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
+                      "transition-colors",
                       substanceEditEnabled
-                        ? "bg-amber-500/10 text-amber-700 border-amber-500/20"
-                        : "bg-muted/40 text-muted-foreground",
+                        ? ""
+                        : "",
                     )}
                   >
                     <PencilLine className="size-3.5" />
@@ -1472,7 +1460,7 @@ export default function AssessmentFormPage() {
                       <div className="flex flex-wrap items-center gap-2">
                         <Badge
                           variant="secondary"
-                          className="bg-amber-500/10 text-amber-700"
+                          className=""
                         >
                           {substanceDiffs.length > 0
                             ? `${substanceDiffs.length} bidang berubah`
@@ -1517,10 +1505,10 @@ export default function AssessmentFormPage() {
                       <Badge
                         variant="outline"
                         className={cn(
-                          "gap-1.5 px-2.5 py-0.5 border-border/15 font-medium transition-colors",
+                          "transition-colors",
                           isApprovalLineReady
-                            ? "bg-success/10 text-success border-success/20"
-                            : "bg-muted/40 text-muted-foreground",
+                            ? ""
+                            : "",
                         )}
                       >
                         {isApprovalLineReady ? (
@@ -1599,10 +1587,10 @@ export default function AssessmentFormPage() {
         </div>
 
         {/* Right Column / Side Panel */}
-        <aside className="min-w-0 xl:sticky xl:top-24 xl:self-start">
+        <aside className="min-w-0 xl:sticky xl:top-14 xl:self-start">
           <div className="space-y-6">
-            <Card className="gap-0 overflow-hidden rounded-lg bg-card p-0 transition-colors duration-300">
-              <CardContent className="px-5 py-5 text-sm">
+            <Card className="overflow-hidden transition-colors duration-300">
+              <CardContent className="">
                 <section aria-labelledby="monitoring-side-summary">
                   <h2
                     id="monitoring-side-summary"
@@ -1729,10 +1717,8 @@ export default function AssessmentFormPage() {
               <p>
                 <span className="font-medium">{monitoringValidation.pendingTasks} mitigasi belum dilaporkan.</span>{" "}
                 Jika dilanjutkan, mitigasi tersebut akan berstatus{" "}
-                <Badge
-                  size="compact"
-                  tone="neutral"
-                  className="!bg-[#0000000a] !text-[#8f8e8e]"
+                <Badge variant="secondary"
+                  className=""
                 >
                   Tidak dilaporkan
                 </Badge>.
@@ -1770,12 +1756,12 @@ export default function AssessmentFormPage() {
             </div>
           )}
           <AlertDialogFooter>
-            <AlertDialogCancel variant="outline" size="md">
+            <AlertDialogCancel variant="outline" size="default">
               Batal
             </AlertDialogCancel>
             <AlertDialogAction
-              variant="primary"
-              size="primary"
+              variant="default"
+              size="default"
               onClick={handleSubmitForReview}
               disabled={isSaving || isAssessmentLocked || isCheckingFinalize}
             >
@@ -1805,12 +1791,12 @@ export default function AssessmentFormPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel variant="outline" size="md" disabled={isDeletingDraft}>
+            <AlertDialogCancel variant="outline" size="default" disabled={isDeletingDraft}>
               Batal
             </AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
-              size="md"
+              size="default"
               className="border-0 !bg-destructive !text-white hover:!bg-destructive/90 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 disabled:!opacity-50"
               onClick={(event) => {
                 event.preventDefault();

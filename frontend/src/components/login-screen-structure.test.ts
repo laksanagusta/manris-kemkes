@@ -16,14 +16,14 @@ test("keeps the login surface free of the card wrapper and logo", () => {
   assert.match(source, /<form onSubmit=\{handleSubmit\} className="flex flex-col gap-4">/);
   assert.match(
     source,
-    /id="nip"[\s\S]*?className="h-10 border border-input bg-muted\/30 !shadow-none hover:border-foreground\/15 focus:border-primary focus-visible:border-primary focus:ring-0 focus-visible:ring-0"/,
+    /id="nip"[\s\S]*?className="h-9 bg-white dark:bg-white"/,
   );
   assert.match(
     source,
-    /id="password"[\s\S]*?className="h-10 border border-input bg-muted\/30 pr-10 !shadow-none hover:border-foreground\/15 focus:border-primary focus-visible:border-primary focus:ring-0 focus-visible:ring-0"/,
+    /<InputGroup className="h-9 bg-white dark:bg-white">[\s\S]*?id="password"[\s\S]*?className="h-9 bg-transparent dark:bg-transparent"/,
   );
   assert.doesNotMatch(source, /ArrowRight/);
-  assert.match(source, /className="!h-10 w-full rounded-full"/);
+  assert.match(source, /className="h-9 w-full rounded-full"/);
   assert.match(source, /<div className="flex items-center justify-center">/);
   assert.match(
     source,

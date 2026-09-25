@@ -11,13 +11,13 @@ import {
   RefreshCw,
   Search,
   SlidersHorizontal,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 
 import { useAuth } from "@/contexts/auth-context";
 import { listAllOrganizations, type OrganizationListItem } from "@/lib/api/organizations";
 import { listTMPMRAssessments } from "@/lib/api/tmpmr";
 import type { TMPMRAssessment, TMPMRStatus } from "@/types/tmpmr";
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -37,6 +37,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { getStatusBadgeClassName, toBadgeVariant, type StatusTone } from "@/lib/badge-variant";
 import {
   CollectionPageHeader,
   shouldShowCollectionPagination,
@@ -55,19 +56,19 @@ const statusLabel: Record<TMPMRStatus, string> = {
   approved: "Approved",
 };
 
-const statusStyles: Record<TMPMRStatus, string> = {
-  draft: "border-border/60 bg-muted/40 text-muted-foreground",
-  submitted: "border-primary/20 bg-primary/5 text-primary",
-  reviewed: "border-amber-500/20 bg-amber-500/10 text-amber-700",
-  approved: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700",
+const statusTones: Record<TMPMRStatus, StatusTone> = {
+  draft: "neutral",
+  submitted: "progress",
+  reviewed: "warning",
+  approved: "success",
 };
 
 const maturityStyles = [
-  { match: "Awal", className: "border-border/60 bg-muted/40 text-muted-foreground" },
-  { match: "Berkembang", className: "border-sky-500/20 bg-sky-500/10 text-sky-700" },
-  { match: "Terdefinisi", className: "border-indigo-500/20 bg-indigo-500/10 text-indigo-700" },
-  { match: "Terkelola", className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700" },
-  { match: "Optimum", className: "border-primary/20 bg-primary/5 text-primary" },
+  { match: "Awal", variant: "secondary" as BadgeVariant },
+  { match: "Berkembang", variant: "outline" as BadgeVariant },
+  { match: "Terdefinisi", variant: "outline" as BadgeVariant },
+  { match: "Terkelola", variant: "default" as BadgeVariant },
+  { match: "Optimum", variant: "default" as BadgeVariant },
 ];
 
 function formatDateTime(value: string) {
@@ -80,9 +81,8 @@ function formatDateTime(value: string) {
   }).format(date);
 }
 
-function getMaturityClass(maturityLevel: string) {
-  return maturityStyles.find((item) => maturityLevel.includes(item.match))?.className ??
-    "border-border/60 bg-muted/40 text-muted-foreground";
+function getMaturityVariant(maturityLevel: string): BadgeVariant {
+  return maturityStyles.find((item) => maturityLevel.includes(item.match))?.variant ?? "secondary";
 }
 
 function getFilteredPeriods(items: TMPMRAssessment[]) {
@@ -223,12 +223,12 @@ export default function TMPMRListPage() {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Cari organisasi, skor, maturity level, atau periode"
-                className="h-9 pl-9"
+                className=""
               />
             </div>
 
             <Select value={periodFilter} onValueChange={setPeriodFilter}>
-              <SelectTrigger id="tmpmr-period" className="h-9 w-full sm:w-44">
+              <SelectTrigger id="tmpmr-period" className="w-full sm:w-44">
                 <SelectValue placeholder="Semua periode" />
               </SelectTrigger>
               <SelectContent>
@@ -245,7 +245,7 @@ export default function TMPMRListPage() {
               value={statusFilter}
               onValueChange={(value) => setStatusFilter(value as TMPMRStatus | "all")}
             >
-              <SelectTrigger id="tmpmr-status" className="h-9 w-full sm:w-40">
+              <SelectTrigger id="tmpmr-status" className="w-full sm:w-40">
                 <SelectValue placeholder="Semua status" />
               </SelectTrigger>
               <SelectContent>
@@ -258,7 +258,7 @@ export default function TMPMRListPage() {
             </Select>
 
             <div className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
-              <Badge variant="outline" className="gap-1.5 whitespace-nowrap">
+              <Badge variant="outline" className="whitespace-nowrap">
                 <SlidersHorizontal className="size-3.5" />
                 {filteredItems.length} hasil
               </Badge>
@@ -267,7 +267,7 @@ export default function TMPMRListPage() {
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-6 px-2 text-xs"
+                  className=""
                   onClick={() => {
                     setSearch("");
                     setPeriodFilter("all");
@@ -282,11 +282,11 @@ export default function TMPMRListPage() {
         }
         actions={
           <>
-            <Button variant="outline" size="md" className="gap-2" onClick={loadData}>
+            <Button variant="outline" size="default" className="" onClick={loadData}>
               <RefreshCw className="size-4" />
               Muat Ulang
             </Button>
-            <Button asChild size="md" className="gap-2">
+            <Button asChild size="default" className="">
               <Link href="/management/tmpmr/new">
                 <Plus className="size-4" />
                 Buat Assessment
@@ -296,7 +296,7 @@ export default function TMPMRListPage() {
         }
       />
 
-      <Card className="overflow-hidden bg-card/80 backdrop-blur-sm">
+      <Card className="overflow-hidden">
         <CardContent className="space-y-5">
 
           {loading ? (
@@ -314,18 +314,20 @@ export default function TMPMRListPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="whitespace-nowrap">Periode</TableHead>
-                    <TableHead className="whitespace-nowrap">Organisasi</TableHead>
+                    <TableHead className="px-24 whitespace-nowrap">Organisasi</TableHead>
                     <TableHead className="whitespace-nowrap">Skor</TableHead>
                     <TableHead className="whitespace-nowrap">Maturity</TableHead>
                     <TableHead className="whitespace-nowrap">Status</TableHead>
                     <TableHead className="whitespace-nowrap">Diperbarui</TableHead>
-                    <TableHead className="text-right whitespace-nowrap">Aksi</TableHead>
+                    <TableHead className="text-right whitespace-nowrap">
+                      <span className="sr-only">Aksi</span>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {paginatedItems.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="bg-state-surface !py-10 text-center text-sm text-state-foreground">
+                      <TableCell colSpan={7} className="text-center">
                         Belum ada assessment yang cocok dengan filter ini.
                       </TableCell>
                     </TableRow>
@@ -335,28 +337,28 @@ export default function TMPMRListPage() {
                         organizationMap.get(item.organizationId) ?? item.organizationId;
                       return (
                         <TableRow key={item.id}>
-                          <TableCell className="whitespace-nowrap font-medium">{item.period}</TableCell>
-                          <TableCell className="max-w-[240px] truncate">
+                          <TableCell className="whitespace-nowrap">{item.period}</TableCell>
+                          <TableCell className="max-w-[240px] px-24 truncate">
                             <span className="text-foreground">{orgName}</span>
                           </TableCell>
-                          <TableCell className="whitespace-nowrap font-medium">
+                          <TableCell className="whitespace-nowrap">
                             {item.score.toFixed(2)}
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline" className={cn("whitespace-nowrap", getMaturityClass(item.maturityLevel))}>
+                            <Badge variant={getMaturityVariant(item.maturityLevel)} className="whitespace-nowrap">
                               {item.maturityLevel}
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline" className={cn("whitespace-nowrap", statusStyles[item.status])}>
+                            <Badge variant={toBadgeVariant(statusTones[item.status])} className={`whitespace-nowrap ${getStatusBadgeClassName(statusTones[item.status])}`}>
                               {statusLabel[item.status]}
                             </Badge>
                           </TableCell>
-                          <TableCell className="whitespace-nowrap text-muted-foreground">
+                          <TableCell className="whitespace-nowrap">
                             {formatDateTime(item.updatedAt)}
                           </TableCell>
                           <TableCell className="text-right">
-                            <Button asChild variant="ghost" size="sm" className="gap-1.5">
+                            <Button asChild variant="ghost" size="sm" className="">
                               <Link href={`/management/tmpmr/${item.id}`}>
                                 Buka
                                 <ArrowUpRight className="size-4" />
@@ -386,7 +388,7 @@ export default function TMPMRListPage() {
                     >
                       Sebelumnya
                     </Button>
-                    <Badge variant="outline" className="h-8 px-3">
+                    <Badge variant="outline" className="">
                       {page} / {totalPages}
                     </Badge>
                     <Button

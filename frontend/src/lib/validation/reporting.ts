@@ -23,12 +23,6 @@ export function parseEvidenceUrls(value: string): string[] {
     .filter(Boolean);
 }
 
-export function serializeEvidenceUrls(values: string[]): string {
-  return Array.from(new Set(values.map((url) => url.trim()).filter(Boolean))).join(
-    "\n",
-  );
-}
-
 export function isValidEvidenceUrl(value: string): boolean {
   return isValidHttpUrl(value.trim());
 }
@@ -38,9 +32,13 @@ export function validateMitigationReportForm(
 ): FieldErrors<keyof MitigationReportFormValues> {
   const errors: FieldErrors<keyof MitigationReportFormValues> = {};
 
-  const evidenceUrls = parseEvidenceUrls(values.evidenceUrl);
-  if (evidenceUrls.some((evidenceUrl) => !isValidHttpUrl(evidenceUrl))) {
-    errors.evidenceUrl = "Link bukti harus berupa URL http:// atau https:// yang valid.";
+  const evidenceUrl = values.evidenceUrl.trim();
+  if (
+    evidenceUrl &&
+    (!isValidEvidenceUrl(evidenceUrl) || /[\r\n]/.test(values.evidenceUrl))
+  ) {
+    errors.evidenceUrl =
+      "Link bukti harus berupa satu URL http:// atau https:// yang valid.";
   }
 
   const notes = values.notes.trim();
@@ -57,7 +55,7 @@ export function validateMitigationReportForm(
 
 export function normalizeMitigationReportPayload(values: MitigationReportFormValues) {
   return {
-    evidenceUrl: serializeEvidenceUrls(parseEvidenceUrls(values.evidenceUrl)),
+    evidenceUrl: values.evidenceUrl.trim(),
     notes: values.notes.trim(),
   };
 }
