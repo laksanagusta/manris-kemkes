@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronsUpDown, Search } from "@/components/ui/icons";
+import { Check, ChevronsUpDown, Search } from "@/components/shared/icons";
 
 import type { OrganizationListItem } from "@/lib/api/organizations";
 import { Button } from "@/components/ui/button";
@@ -18,8 +18,9 @@ import {
   useComboboxAnchor,
 } from "@/components/ui/combobox";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { SearchInput } from "@/components/ui/search-input";
+import { SearchInput } from "@/components/shared/search-input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { IllustratedEmptyState } from "@/components/shared/design-system/feedback/illustrated-empty-state";
 import { cn } from "@/lib/utils";
 
 type PickerOption = {
@@ -152,21 +153,28 @@ export function OrganizationPicker({
           ref={comboboxAnchor}
           className={cn(
             controlHeight,
-            "w-full min-w-0 border-input bg-background/80 text-xs shadow-none",
+            "w-full min-w-0 flex-nowrap overflow-hidden border-0 bg-card text-sm",
             className,
           )}
         >
           <ComboboxValue>
             {(values) => (
               <Fragment>
-                {values.map((selectedId: string) => (
-                  <ComboboxChip key={selectedId}>
-                    {optionNameById.get(selectedId) ?? selectedId}
+                {values.length > 0 ? (
+                  <ComboboxChip
+                    showRemove={values.length === 1}
+                    className="max-w-[62%] shrink-0"
+                  >
+                    <span className="truncate">
+                      {values.length === 1
+                        ? optionNameById.get(values[0]) ?? values[0]
+                        : `${values.length} unit dipilih`}
+                    </span>
                   </ComboboxChip>
-                ))}
+                ) : null}
                 <ComboboxChipsInput
                   placeholder={values.length === 0 ? placeholder : searchPlaceholder}
-                  className="min-w-32 text-xs"
+                  className="min-w-0 flex-1 text-sm"
                 />
               </Fragment>
             )}
@@ -174,7 +182,11 @@ export function OrganizationPicker({
         </ComboboxChips>
         <ComboboxContent anchor={comboboxAnchor} className="min-w-[420px]">
           <ComboboxEmpty>
-            {search.trim() ? emptyMessage : "Ketik untuk mencari unit."}
+            <IllustratedEmptyState
+              title={search.trim() ? emptyMessage : "Ketik untuk mencari unit."}
+              size="compact"
+              className="py-2"
+            />
           </ComboboxEmpty>
           <ComboboxList>
             {(optionId: string) => (
@@ -212,7 +224,7 @@ export function OrganizationPicker({
           disabled={disabled}
           className={cn(
             controlHeight,
-            "w-full min-w-0 justify-between overflow-hidden border-input bg-background/80 px-3 text-xs font-normal shadow-none",
+            "w-full min-w-0 justify-between overflow-hidden",
             className,
           )}
         >
@@ -223,7 +235,7 @@ export function OrganizationPicker({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[min(var(--radix-popover-trigger-width),680px)] gap-0 overflow-hidden rounded-xl p-0"
+        className="w-[min(var(--radix-popover-trigger-width),680px)] overflow-hidden"
         align="start"
       >
         <div className="flex items-center border-b px-3">
@@ -236,16 +248,18 @@ export function OrganizationPicker({
             placeholder={searchPlaceholder}
             className={cn(
               controlHeight,
-              "rounded-none border-0 bg-transparent px-0 py-2 text-xs shadow-none",
+              "rounded-none border-0 bg-transparent px-0 py-2 text-xs !shadow-none",
             )}
           />
         </div>
         <ScrollArea className="h-44">
           <div className="p-1">
             {filteredOptions.length === 0 ? (
-              <div className="px-3 py-5 text-center text-xs text-muted-foreground">
-                {emptyMessage}
-              </div>
+              <IllustratedEmptyState
+                title={emptyMessage}
+                size="compact"
+                className="py-2"
+              />
             ) : (
               filteredOptions.map((option) => {
                 const isSelected = option.id === value;

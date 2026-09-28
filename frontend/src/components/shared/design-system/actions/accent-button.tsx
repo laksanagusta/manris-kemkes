@@ -3,7 +3,7 @@
 import type { ComponentProps, ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { buttonChildWithIcon, buttonContent } from "./button-content";
 
 export function AccentButton({
   children,
@@ -14,24 +14,23 @@ export function AccentButton({
   ...props
 }: ComponentProps<typeof Button> & { icon?: ReactNode }) {
   const sharedProps = {
-    variant: "primary" as const,
-    size: "primary" as const,
-    className: cn(className),
+    variant: "default" as const,
+    size: "default" as const,
+    className,
     style,
   };
 
   if (asChild) {
     return (
       <Button {...sharedProps} {...props} asChild>
-        {children}
+        {buttonChildWithIcon(children, icon)}
       </Button>
     );
   }
 
   return (
     <Button {...sharedProps} {...props}>
-      {icon}
-      {children}
+      {buttonContent(children, icon)}
     </Button>
   );
 }

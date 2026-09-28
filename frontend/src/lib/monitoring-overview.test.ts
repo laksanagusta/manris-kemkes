@@ -34,7 +34,7 @@ function makeMonitoring(
     observedLevel: status === "final" ? "rendah" : "sedang",
     conclusion: "",
     mitigationProgressSummary: "",
-    mitigationCompletionPercent: 0,
+    mitigationCompletionPercent: status === "final" ? 75 : 25,
     draftTitle: `Risk ${id}`,
     draftDescription: "",
     draftCategory: "operasional",
@@ -47,10 +47,10 @@ function makeMonitoring(
     draftTreatmentOption: "mitigasi",
     profileChangeSummary: [],
     changeReason: "",
-    startedAt: "",
+    startedAt: "2026-09-01T03:00:00Z",
     finalizedAt: status === "final" ? "2026-09-02T03:00:00Z" : null,
-    createdAt: "",
-    updatedAt: "",
+    createdAt: status === "final" ? "2026-08-31T03:00:00Z" : "",
+    updatedAt: status === "final" ? "2026-09-03T03:00:00Z" : "",
     sourceRisk: {
       id: `risk-${id}`,
       code: `R-${id}`,
@@ -77,7 +77,12 @@ test("buildMonitoringTransactionRows maps draft and final transactions directly"
   assert.equal(rows[0].code, "R-235");
   assert.equal(rows[0].organizationId, "child-a");
   assert.equal(rows[0].observedScore, 4);
+  assert.equal(rows[0].mitigationCompletionPercent, 25);
+  assert.equal(rows[0].createdAt, "2026-09-01T03:00:00Z");
+  assert.equal(rows[0].updatedAt, "2026-09-01T03:00:00Z");
+  assert.equal(rows[1].createdAt, "2026-08-31T03:00:00Z");
   assert.equal(rows[1].finalizedAt, "2026-09-02T03:00:00Z");
+  assert.equal(rows[1].updatedAt, "2026-09-03T03:00:00Z");
 });
 
 test("filter and organization summaries include descendants for a parent scope", () => {
@@ -124,5 +129,17 @@ test("filter and organization summaries include descendants for a parent scope",
       { id: "child-b", total: 1, finalized: 1 },
       { id: "parent", total: 0, finalized: 0 },
     ],
+  );
+});
+
+test("monitoring defaults to all cycles and keeps that default out of the URL", () => {
+  const state = overview.parseMonitoringQueryState(
+    new URLSearchParams(),
+  );
+
+  assert.equal(state.cycle, "all");
+  assert.equal(
+    overview.buildMonitoringQueryString(state),
+    "",
   );
 });

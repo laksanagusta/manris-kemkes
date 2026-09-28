@@ -9,6 +9,7 @@ const pages = {
   overview: readSource("../app/(app)/overview/page.tsx"),
   reports: readSource("../app/(app)/reports/page.tsx"),
   riskRegister: readSource("../app/(app)/risk/register/page.tsx"),
+  riskMonitoringForm: readSource("../app/(app)/risk/assessment/[id]/page.tsx"),
   workingPapers: readSource("../app/(app)/risk/working-papers/page.tsx"),
   inbox: readSource("../app/(app)/inbox/page.tsx"),
   mitigation: readSource("../app/(app)/compliance/penanganan/page.tsx"),
@@ -19,6 +20,9 @@ const pages = {
 const designSystemPage = readSource("../app/(app)/design-system/page.tsx");
 const designSystemDocument = readSource("../../../DESIGN.md");
 const designSystemBarrel = readSource("../components/shared/design-system/index.ts");
+const collectionFilterPopover = readSource(
+  "../components/shared/design-system/collections/collection-filter-popover.tsx",
+);
 const globals = readSource("../app/globals.css");
 const buttonPrimitive = readSource("../components/ui/button.tsx");
 const selectPrimitive = readSource("../components/ui/select.tsx");
@@ -28,6 +32,9 @@ const dropdownMenuPrimitive = readSource(
 const dialogPrimitive = readSource("../components/ui/dialog.tsx");
 const alertDialogPrimitive = readSource("../components/ui/alert-dialog.tsx");
 const sheetPrimitive = readSource("../components/ui/sheet.tsx");
+const meetingIntelligenceWorkspace = readSource(
+  "../components/meeting-intelligence-workspace.tsx",
+);
 const collectionDialogCancel = readSource(
   "../components/shared/design-system/collections/collection-dialog-cancel.tsx",
 );
@@ -40,7 +47,7 @@ const mainMenuSource =
   appNavigation.match(/export const mainMenuItems[\s\S]*?export const adminMenuGroup/)?.[0] ??
   "";
 const sidebarPrimitive = readSource("../components/ui/sidebar.tsx");
-const sidebarNavItem = readSource("../components/ui/sidebar-nav-item.tsx");
+const sidebarNavItem = readSource("../components/shared/sidebar-nav-item.tsx");
 const sidebarMotionExample = readSource(
   "../components/shared/design-system/examples/sidebar-motion-example.tsx",
 );
@@ -51,12 +58,15 @@ const formContainer = readSource(
 const collapsibleCard = readSource(
   "../components/shared/design-system/layout/collapsible-card.tsx",
 );
-const kpiCard = readSource("../components/ui/kpi-card.tsx");
+const kpiCard = readSource("../components/shared/kpi-card.tsx");
 const expandableSearchField = readSource(
   "../components/shared/design-system/collections/expandable-search-field.tsx",
 );
 const mitigationPanel = readSource(
   "../app/(app)/compliance/_components/mitigation-monitoring-panel.tsx",
+);
+const mitigationProgressFlowDialog = readSource(
+  "../components/shared/design-system/domain/mitigation-progress-flow-dialog.tsx",
 );
 const monitoringWorkspace = readSource(
   "../app/(app)/compliance/_components/monitoring-read-only-workspace.tsx",
@@ -75,6 +85,12 @@ const workingPaperCreateDialog = readSource(
 );
 const riskRegisterForm = readSource(
   "../app/(app)/risk/register/new/page.tsx",
+);
+const riskLogTimeline = readSource(
+  "../components/risk/risk-log-timeline.tsx",
+);
+const communicationLogDialog = readSource(
+  "../components/risk/communication-log-dialog.tsx",
 );
 const workingPaperCreate = readSource(
   "../app/(app)/risk/working-papers/new/page.tsx",
@@ -101,7 +117,7 @@ const workingPaperMonitoringTableModel = readSource(
   "../lib/working-paper-monitoring-table.ts",
 );
 const riskCategoryPieChart = readSource(
-  "../app/(app)/reports/_components/risk-category-pie-chart.tsx",
+  "../app/(app)/overview/_components/risk-category-pie-chart.tsx",
 );
 const orderedUserSelectionTable = readSource(
   "../components/risk/ordered-user-selection-table.tsx",
@@ -145,6 +161,21 @@ test("card subtitles use the secondary foreground hierarchy", () => {
   );
 });
 
+test("modal subtitles use the secondary foreground hierarchy", () => {
+  assert.match(dialogPrimitive, /data-slot="dialog-description"[\s\S]*text-secondary-foreground/);
+  assert.match(
+    alertDialogPrimitive,
+    /data-slot="alert-dialog-description"[\s\S]*text-secondary-foreground/,
+  );
+  assert.match(sheetPrimitive, /data-slot="sheet-description"[\s\S]*text-secondary-foreground/);
+  assert.match(
+    meetingIntelligenceWorkspace,
+    /text-secondary-foreground[\s\S]*reviewSuggestion\.reasoning/,
+  );
+  assert.match(designSystemPage, /Semua subtitle atau deskripsi[\s\S]*text-secondary-foreground/i);
+  assert.match(designSystemDocument, /Subtitle or description text[\s\S]*text-secondary-foreground/i);
+});
+
 test("collection routes use the shared CollectionToolbar", () => {
   for (const name of [
     "riskRegister",
@@ -163,13 +194,44 @@ test("collection routes use the shared CollectionToolbar", () => {
 test("monitoring read-only toolbar matches collection control height", () => {
   assert.match(monitoringWorkspace, /<CollectionSearchField[\s\S]*?h-9/);
   assert.match(monitoringWorkspace, /className="h-9 w-full rounded-lg/);
-  assert.match(monitoringWorkspace, /size="icon-xs"[\s\S]*?className="size-9"/);
+  assert.equal(
+    monitoringWorkspace.match(/<SelectItem[\s\S]*?className="h-9"/g)?.length,
+    2,
+  );
+  assert.doesNotMatch(monitoringWorkspace, /Muat ulang pemantauan|RefreshCcw/);
+  assert.match(
+    monitoringWorkspace,
+    /<CollectionTableHead className="px-3">Progres Penanganan<\/CollectionTableHead>/,
+  );
+  assert.match(
+    monitoringWorkspace,
+    /<CollectionTableHead className="px-3">Status<\/CollectionTableHead>/,
+  );
+  assert.match(
+    monitoringWorkspace,
+    /variant=\{row\.status === "finalized" \? "default" : "outline"\}/,
+  );
+  assert.match(monitoringWorkspace, /getMonitoringStatusLabel\(row\.status\)/);
+});
+
+test("collection filter popovers open below and toward the trailing side", () => {
+  assert.match(
+    collectionFilterPopover,
+    /<PopoverContent\s+side="bottom"\s+align="start"\s+sideOffset=\{8\}/,
+  );
+});
+
+test("risk monitoring keeps header actions in the trailing local slot", () => {
+  assert.match(
+    pages.riskMonitoringForm,
+    /<CollectionPageHeader[\s\S]*actionsPlacement="top"[\s\S]*actions=\{monitoringHeaderActions\}/,
+  );
 });
 
 test("mitigation monitoring uses the shared expandable search and compact status badge", () => {
   assert.match(expandableSearchField, /absolute right-2 size-4/);
   assert.match(mitigationPanel, /<ExpandableSearchField[\s>]/);
-  assert.match(mitigationPanel, /<Badge\s+size="compact"\s+tone=/);
+  assert.match(mitigationPanel, /<Badge\s+variant=\{toBadgeVariant\(/);
   assert.doesNotMatch(mitigationPanel, /bg-muted\/60 px-2 py-1 font-mono/);
   assert.doesNotMatch(mitigationPanel, /Daftar mitigasi/);
   assert.doesNotMatch(
@@ -190,24 +252,36 @@ test("mitigation monitoring uses the shared expandable search and compact status
   );
 });
 
-test("mitigation detail-to-report handoff follows the dialog exit lifecycle", () => {
-  assert.match(mitigationPanel, /useReducedMotion/);
-  assert.match(mitigationPanel, /pendingReportTaskRef/);
+test("mitigation import keeps the visible outline action treatment", () => {
+  assert.match(
+    mitigationPanel,
+    /<ActionButton asChild variant="outline" className="sm:ml-auto">[\s\S]*Import/,
+  );
+  assert.doesNotMatch(
+    mitigationPanel,
+    /<ActionButton asChild variant="outline" className="border-0 sm:ml-auto">[\s\S]*Import/,
+  );
+});
+
+test("mitigation detail-to-report handoff keeps one dialog and animates its layout", () => {
+  assert.match(mitigationPanel, /MitigationProgressFlowDialog/);
+  assert.match(mitigationPanel, /view=\{dialogView\}/);
+  assert.match(mitigationPanel, /setDialogView\("form"\)/);
   assert.equal(
     mitigationPanel.match(/handleOpenSubmitFromDetail\(detailTask\)/g)?.length,
     2,
   );
   assert.doesNotMatch(
     mitigationPanel,
-    /setShowDetailDialog\(false\);\s*handleOpenSubmit\(detailTask\)/,
+    /setShowDetailDialog\(false\)/,
   );
-  assert.match(mitigationPanel, /onAnimationEnd=\{\(event\) =>/);
-  assert.match(mitigationPanel, /event\.currentTarget !== event\.target/);
-  assert.match(mitigationPanel, /event\.animationName !== "exit"/);
-  assert.match(mitigationPanel, /window\.requestAnimationFrame\(flushPendingReport\)/);
-  assert.match(mitigationPanel, /className="max-w-2xl no-scrollbar"/);
-  assert.match(mitigationPanel, /showCloseButton=\{false\}/);
-  assert.doesNotMatch(mitigationPanel, /DialogDescription/);
+  assert.match(mitigationPanel, /onFormCancel=\{\(\) => setDialogView\("detail"\)\}/);
+  assert.match(mitigationPanel, /detailTitle="Detail Laporan Penanganan"/);
+  assert.match(mitigationPanel, /formTitle="Lapor Progress Penanganan"/);
+  assert.match(
+    mitigationPanel,
+    /detailDescription="Tinjau status, bukti, dan catatan penanganan\."/,
+  );
   assert.match(mitigationPanel, /className="space-y-6"/);
   assert.match(
     mitigationPanel,
@@ -219,21 +293,17 @@ test("mitigation detail-to-report handoff follows the dialog exit lifecycle", ()
   assert.match(mitigationPanel, /CalendarClock/);
   assert.match(mitigationPanel, /Link2/);
   assert.match(mitigationPanel, /MessageSquare/);
-  assert.match(mitigationPanel, /DialogFooter className="gap-2 sm:justify-between/);
-  assert.match(
-    mitigationPanel,
-    /<CollectionDialogCancel[\s\S]*>\s*Tutup\s*<\/CollectionDialogCancel>[\s\S]*detailTask\.status === "pending"/,
-  );
-  assert.doesNotMatch(
-    mitigationPanel,
-    /h-9 items-center rounded-lg border border-border bg-card/,
-  );
-  assert.match(
-    mitigationPanel,
-    /className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300\/30"/,
-  );
-  assert.doesNotMatch(mitigationPanel, /motion-safe:animate-in/);
-  assert.doesNotMatch(mitigationPanel, /motion-safe:delay-\[(?:40|80)ms\]/);
+  assert.match(mitigationProgressFlowDialog, /data-dynamic-height="true"/);
+  assert.match(mitigationProgressFlowDialog, /modal\.style\.height = `\$\{targetHeight\}px`/);
+  assert.match(mitigationProgressFlowDialog, /onViewChange\("detail"\)/);
+  assert.match(mitigationProgressFlowDialog, /onFormCancel\?: \(\) => void/);
+  assert.match(mitigationProgressFlowDialog, /view === "form" && onFormCancel/);
+  assert.match(mitigationProgressFlowDialog, /view === "form"[\s\S]*?overflow-y-auto/);
+  assert.match(mitigationProgressFlowDialog, /: "overflow-visible"/);
+  assert.match(mitigationProgressFlowDialog, /const naturalHeight = modal\.offsetHeight/);
+  assert.match(mitigationProgressFlowDialog, /Let the first render keep its natural height/);
+  assert.match(globals, /\[data-slot="dialog-content"\]\[data-dynamic-height="true"\]/);
+  assert.match(globals, /@media \(prefers-reduced-motion: reduce\)/);
 });
 
 test("working papers consumes the shared create dialog instead of a local duplicate", () => {
@@ -245,6 +315,14 @@ test("working papers consumes the shared create dialog instead of a local duplic
     pages.workingPapers,
     /function WorkingPaperCreateDialog\(/,
   );
+});
+
+test("working paper desktop signing progress hides the redundant count", () => {
+  assert.match(
+    pages.workingPapers,
+    /<MonitoringTransactionProgress[\s\S]*?showCount=\{false\}[\s\S]*?ariaLabelOverride=\{`Progres TTE:/,
+  );
+  assert.doesNotMatch(pages.workingPapers, /countLabel="TTE"/);
 });
 
 test("working paper mobile card list uses the solid card surface", () => {
@@ -285,7 +363,7 @@ test("working paper create dialog follows the shared mitigation modal shell", ()
 test("working paper creation follows the canonical form header and roster alignment", () => {
   assert.match(workingPaperCreate, /<CollectionPageHeader/);
   assert.match(workingPaperCreate, /actionsPlacement="title"/);
-  assert.match(workingPaperCreate, /Kembali ke daftar kertas kerja/);
+  assert.doesNotMatch(workingPaperCreate, /FormBackAction|backAction=|backActionPlacement=/);
   assert.match(
     workingPaperCreate,
     /<CollectionTableCard>[\s\S]*<Table className="w-full table-fixed">[\s\S]*<\/CollectionTableCard>/,
@@ -330,17 +408,25 @@ test("working paper creation follows the canonical form header and roster alignm
 });
 
 test("working paper detail keeps the ledger wide and context in the right rail", () => {
-  assert.match(workingPaperDetail, /<CollectionPageHeader[\s\S]*title="Detail Kertas Kerja"/);
+  assert.match(
+    workingPaperDetail,
+    /<CollectionPageHeader[\s\S]*title=\{data\.code \|\| "Detail Kertas Kerja"\}/,
+  );
   assert.doesNotMatch(workingPaperDetail, /useSetHeaderActions/);
   assert.doesNotMatch(workingPaperDetail, /actionsPlacement="title"/);
   assert.match(workingPaperDetail, /const headerActions = \(\s*<>/);
   assert.match(workingPaperDetail, /<FormPage className="space-y-6 pb-0">/);
-  assert.doesNotMatch(workingPaperDetail, /<Badge/);
+  assert.match(
+    workingPaperDetail,
+    /<Badge\s+variant=\{isAllMonitoringFinal \? "default" : "outline"\}/,
+  );
+  assert.match(workingPaperDetail, /Risiko[\s\S]*Selesai Dipantau/);
   assert.match(workingPaperDetail, /<AccentButton[\s\S]*Mulai Proses TTE/);
   assert.match(workingPaperDetail, /<WorkingPaperStatusActions[\s\S]*onExport=\{handleExport\}/);
   assert.doesNotMatch(workingPaperDetail, /<ActionButton[\s\S]*Ekspor Excel/);
   assert.match(workingPaperStatusActions, /<Download className="size-3\.5" \/>/);
   assert.match(workingPaperStatusActions, /Ekspor Excel/);
+  assert.doesNotMatch(workingPaperStatusActions, /DropdownMenuLabel|Pilih tindakan/);
   assert.doesNotMatch(workingPaperDetail, /<Button[\s>]/);
   assert.doesNotMatch(workingPaperDetail, /AlertDialogTitle className=/);
   assert.match(
@@ -361,7 +447,23 @@ test("working paper detail keeps the ledger wide and context in the right rail",
   assert.doesNotMatch(workingPaperMonitoringTable, /min-w-\[/);
   assert.match(
     workingPaperDetail,
-    /<div className="min-w-0 space-y-4 lg:sticky lg:top-6 lg:self-start">[\s\S]*title="Ringkasan dokumen"[\s\S]*contentClassName="px-4 pb-4 pt-2"[\s\S]*flex flex-col gap-4[\s\S]*<StandardCard title="Monitoring Final">[\s\S]*title="Status Tanda Tangan"/,
+    /<div className="min-w-0 space-y-4 lg:sticky lg:top-6 lg:self-start">[\s\S]*<Card className="gap-0 overflow-hidden rounded-lg bg-card p-0 transition-colors duration-300">[\s\S]*<CardContent className="px-5 py-5 text-sm">[\s\S]*className="space-y-4">[\s\S]*id="working-paper-monitoring-progress"[\s\S]*Progres Pemantauan[\s\S]*id="working-paper-signature-history"[\s\S]*Histori Tanda Tangan/,
+  );
+  assert.match(
+    workingPaperDetail,
+    /id="working-paper-summary-properties"[\s\S]*className="text-xs font-semibold uppercase tracking-\[0\.6px\] text-muted-foreground\/70"[\s\S]*Ringkasan dokumen/,
+  );
+  assert.match(
+    workingPaperDetail,
+    /<dl className="mt-3 space-y-3">[\s\S]*className="flex items-center justify-between gap-4"[\s\S]*<dt className="text-\[13px\] text-muted-foreground">\{label\}<\/dt>/,
+  );
+  assert.match(
+    workingPaperDetail,
+    /label === "Status"[\s\S]*<Badge variant=\{toBadgeVariant\(statusTone\[status\]\)\}>/,
+  );
+  assert.doesNotMatch(
+    workingPaperDetail,
+    /summaryItems\.map\(\(\{ icon: Icon/,
   );
 });
 
@@ -384,7 +486,7 @@ test("working paper progress uses the embedded collection table surface", () => 
 test("working paper monitoring ledger uses semantic status badges", () => {
   assert.match(
     workingPaperMonitoringTable,
-    /<Badge\s+size="compact"\s+tone=\{getMonitoringStatusTone\(row\)\}/,
+    /<Badge\s+variant=\{toBadgeVariant\(getMonitoringStatusTone\(row\)\)\}/,
   );
   assert.doesNotMatch(workingPaperMonitoringTable, /CollectionStatusBadge/);
   assert.doesNotMatch(workingPaperMonitoringTable, /Sumber v|Hasil v/);
@@ -397,18 +499,21 @@ test("working paper signature timeline connectors reach the next marker", () => 
   assert.match(workingPaperSignatureTimeline, /w-0\.5 flex-1 min-h-4 -mb-1/);
 });
 
-test("report risk category legend sits below the chart", () => {
+test("dashboard risk-category donut uses selectable sectors and percentage tiles", () => {
   assert.match(
     riskCategoryPieChart,
-    /flex h-full flex-col items-center gap-4[\s\S]*w-full flex-1 items-center justify-center[\s\S]*grid w-full shrink-0 grid-cols-2[\s\S]*border-t border-surface-border\/60 pt-3/,
+    /PieChart accessibilityLayer[\s\S]*paddingAngle=\{2\}[\s\S]*shape=\{\(props: PieSectorShapeProps\)/,
   );
+  assert.match(riskCategoryPieChart, /aria-pressed=\{isSelected\}/);
+  assert.match(riskCategoryPieChart, /item\.percentage\.toLocaleString/);
+  assert.match(riskCategoryPieChart, /border-t border-surface-border\/60 pt-3/);
   assert.doesNotMatch(riskCategoryPieChart, /sm:flex-row/);
 });
 
-test("risk category distribution belongs to the scoped reports page", () => {
-  assert.doesNotMatch(pages.overview, /RiskCategoryPieChart|risk-categories/);
-  assert.match(pages.reports, /RiskCategoryPieChart/);
-  assert.match(pages.reports, /dashboard\/risk-categories/);
+test("risk category distribution belongs to the dashboard", () => {
+  assert.match(pages.overview, /RiskCategoryPieChart/);
+  assert.match(pages.overview, /dashboard\/risk-categories/);
+  assert.doesNotMatch(pages.reports, /RiskCategoryPieChart|dashboard\/risk-categories/);
 });
 
 test("risk movement report omits the snapshot metric grid", () => {
@@ -442,27 +547,32 @@ test("the design-system catalogue documents shared page and collection layout pr
   assert.match(designSystemDocument, /Sidebar icon motion/);
 });
 
-test("sidebar navigation uses reusable, reduced-motion-safe icon micro-interactions", () => {
-  assert.match(sidebarNavItem, /whileHover=\{reducedMotion \? undefined : "hover"\}/);
-  assert.match(sidebarNavItem, /whileTap=\{reducedMotion \? undefined : "tap"\}/);
-  assert.match(sidebarNavItem, /scale: 1\.08/);
-  assert.match(sidebarNavItem, /scale: 0\.92/);
-  assert.match(sidebarNavItem, /duration: 0\.18/);
-  assert.match(sidebarNavItem, /duration: 0\.35/);
+test("sidebar navigation keeps inactive labels normal and icons static", () => {
+  assert.doesNotMatch(sidebarNavItem, /whileHover=/);
+  assert.doesNotMatch(sidebarNavItem, /whileTap=/);
+  assert.doesNotMatch(sidebarNavItem, /sidebarIconVariants/);
+  assert.doesNotMatch(sidebarNavItem, /scale: 1\.08|scale: 0\.92/);
+  assert.doesNotMatch(
+    sidebarNavItem,
+    /transition-\[color\]|transition-\[stroke-width,color\]/,
+  );
   assert.match(sidebarNavItem, /layoutId="sidebar-active-background"/);
   assert.doesNotMatch(sidebarNavItem, /sidebar-active-indicator/);
   assert.match(
     sidebarNavItem,
-    /isActive\s*\?\s*"!text-sidebar-accent-foreground"\s*:\s*"!text-sidebar-muted-foreground"/,
+    /isActive\s*\?\s*"!text-sidebar-accent-foreground"\s*:\s*"!text-secondary-foreground"/,
   );
-  assert.match(sidebarPrimitive, /text-sm font-medium text-sidebar-muted-foreground/);
+  assert.match(sidebarPrimitive, /text-sm font-normal text-secondary-foreground/);
   assert.match(globals, /--sidebar-muted-foreground:\s*var\(--muted-foreground\);/);
   assert.match(sidebarPrimitive, /overflow-hidden rounded-md p-2 text-left/);
+  assert.match(sidebarPrimitive, /default: "h-9 text-sm"/);
   assert.match(sidebarNavItem, /rounded-md bg-sidebar-accent/);
   assert.match(sidebarNavItem, /\[&>svg\]:\[stroke-width:1\.8\]/);
   assert.match(sidebarNavItem, /MotionConfig reducedMotion="user"/);
   assert.doesNotMatch(sidebarNavItem, /transition: all/);
-  assert.match(sidebarPrimitive, /data-slot="sidebar-menu"[\s\S]*flex-col gap-1/);
+  assert.match(sidebarPrimitive, /data-slot="sidebar-menu"[\s\S]*flex-col gap-0\.5/);
+  assert.match(appSidebar, /<div className="flex flex-col gap-5 pt-2">/);
+  assert.match(sidebarPrimitive, /const SIDEBAR_WIDTH = "16\.25rem"/);
   assert.match(sidebarMotionExample, /Dashboard/);
   assert.match(sidebarMotionExample, /Library/);
   assert.match(sidebarMotionExample, /Search/);
@@ -479,22 +589,27 @@ test("sidebar frame uses the same subtle divider as the topbar", () => {
   );
   assert.match(
     readSource("../components/app-topbar.tsx"),
-    /border-e border-border\/60/,
+    /border-e border-sidebar-border/,
   );
+  assert.match(appSidebar, /md:border-sidebar-border/);
 });
 
 test("sidebar hierarchy prioritizes operations and consolidates administration", () => {
   assert.match(appSidebar, /title: "OPERASIONAL"/);
+  assert.match(
+    appSidebar,
+    /items: \[dashboardNavigation, \.\.\.approvalNavigation\][\s\S]*title: "OPERASIONAL"/,
+  );
   assert.match(appSidebar, /title: "LAPORAN"[\s\S]*label: "Laporan"/);
   assert.match(appSidebar, /title: "AI & OTOMASI"/);
   assert.match(appNavigation, /title: "TATA KELOLA RISIKO"/);
   assert.match(
     appNavigation,
-    /label: "Risiko"[\s\S]*icon: "ClipboardList"[\s\S]*label: "Penanganan"[\s\S]*label: "Pemantauan"[\s\S]*label: "Kertas Kerja"[\s\S]*label: "Persetujuan & TTE"[\s\S]*label: "Laporan"/,
+    /label: "Risiko"[\s\S]*icon: "Folder01"[\s\S]*label: "Kejadian Risiko"[\s\S]*icon: "Alert02"[\s\S]*label: "Penanganan"[\s\S]*label: "Pemantauan"[\s\S]*label: "Kertas Kerja"[\s\S]*label: "Tanda tangan"[\s\S]*label: "Laporan"/,
   );
   assert.match(
     appNavigation,
-    /label: "Penanganan"[\s\S]*icon: "ClipboardCheck"[\s\S]*label: "Pemantauan"[\s\S]*icon: "MonitorDot"[\s\S]*label: "Kertas Kerja"[\s\S]*icon: "FileText"[\s\S]*label: "Persetujuan & TTE"[\s\S]*icon: "FileSignature"/,
+    /label: "Penanganan"[\s\S]*icon: "ClipboardCheck"[\s\S]*label: "Pemantauan"[\s\S]*icon: "MonitorDot"[\s\S]*label: "Kertas Kerja"[\s\S]*icon: "Agreement03"[\s\S]*label: "Tanda tangan"[\s\S]*icon: "FileSignature"/,
   );
   assert.match(appSidebar, /MonitorDot/);
   assert.match(
@@ -721,7 +836,7 @@ test("risk score selection uses the shared accessible heatmap picker", () => {
   assert.match(riskScoreHeatmapPicker, /inline-flex items-baseline tabular-nums/);
   assert.doesNotMatch(riskScoreHeatmapPicker, /bg-muted\/\[0\.18\]/);
   assert.equal(
-    (riskScoreHeatmapPicker.match(/rounded-xl border border-border\/60 bg-card px-3 py-2\.5/g) ?? [])
+    (riskScoreHeatmapPicker.match(/rounded-lg border border-border\/60 bg-card px-3 py-2\.5/g) ?? [])
       .length,
     1,
   );
@@ -732,6 +847,64 @@ test("risk score selection uses the shared accessible heatmap picker", () => {
   assert.doesNotMatch(riskScoreHeatmapPicker, /bg-muted px-2\.5 py-1 font-mono/);
 });
 
+test("risk property metadata labels the cycle as monitoring period", () => {
+  assert.match(
+    riskRegisterForm,
+    /<dt className="text-\[13px\] text-muted-foreground">Periode pemantauan<\/dt>/,
+  );
+  assert.doesNotMatch(riskRegisterForm, />Periode asesmen<\/dt>/);
+});
+
+test("risk activity surfaces use catatan terminology", () => {
+  assert.match(riskRegisterForm, />\s*Catatan\s*</);
+  assert.match(riskRegisterForm, /menambahkan catatan komunikasi/);
+  assert.match(riskLogTimeline, /Tambah catatan/);
+  assert.match(riskLogTimeline, /<ActionIconButton/);
+  assert.match(riskLogTimeline, /icon=\{<Plus className="size-3\.5" \/>\}/);
+  assert.match(riskLogTimeline, /\{timelineItems\.length\}/);
+  assert.match(riskRegisterForm, /canAdd=\{riskStatus !== "draft"\}/);
+  assert.match(
+    riskLogTimeline,
+    /\{canAdd \? \([\s\S]*?<CommunicationLogDialog/,
+  );
+  assert.match(riskLogTimeline, /Semua Catatan/);
+  assert.match(communicationLogDialog, /Tambah Catatan Komunikasi/);
+  assert.doesNotMatch(riskLogTimeline, /> Tambah log/);
+  assert.doesNotMatch(riskLogTimeline, /<Plus className="size-3\.5" \/> Tambah catatan/);
+});
+
+test("risk data reload does not toggle the submit state during draft save", () => {
+  const loadRiskDataBody = riskRegisterForm.match(
+    /const loadRiskData = useCallback\(([\s\S]*?)\n  \);\n\n  const reloadRiskData/,
+  )?.[1];
+
+  assert.ok(loadRiskDataBody, "loadRiskData body must be present");
+  assert.doesNotMatch(loadRiskDataBody, /setIsSubmitting\(/);
+});
+
+test("draft save keeps the finalization action visually stable", () => {
+  assert.match(
+    riskRegisterForm,
+    /const isDraftSubmitting\s*=\s*isSubmitting\s*&&\s*submitTarget\.current === "draft"/,
+  );
+  assert.match(
+    riskRegisterForm,
+    /const isReviewSubmitting\s*=\s*isSubmitting\s*&&\s*submitTarget\.current === "review"/,
+  );
+  assert.match(
+    riskRegisterForm,
+    /<AccentButton[\s\S]*?aria-disabled=\{isSubmitting \|\| undefined\}[\s\S]*?disabled=\{isReviewSubmitting\}[\s\S]*?>\s*\{submitActionLabel\}/,
+  );
+  assert.match(
+    riskRegisterForm,
+    /className=\{\s*isDraftSubmitting \? "pointer-events-none" : undefined\s*\}/,
+  );
+  assert.match(
+    riskRegisterForm,
+    /const openSubmitReviewConfirm = \(\) => \{\s*if \(isSubmitting\) return;/,
+  );
+});
+
 test("modal headers keep bottom breathing room", () => {
   assert.match(dialogPrimitive, /px-5 pt-5 pb-3 text-left/);
   assert.match(alertDialogPrimitive, /px-5 pt-5 pb-3 text-left/);
@@ -739,16 +912,28 @@ test("modal headers keep bottom breathing room", () => {
 });
 
 test("sidebar footer fades into the help and account chrome", () => {
-  assert.match(appSidebar, /<SidebarFooter className="relative isolate space-y-2">/);
+  assert.match(
+    appSidebar,
+    /<SidebarFooter className="relative isolate space-y-2 px-3[^"]*">/,
+  );
   assert.match(
     appSidebar,
     /aria-hidden="true"[\s\S]*-top-10 z-10 h-10 bg-gradient-to-b from-transparent via-sidebar\/75 to-sidebar backdrop-blur-md/,
   );
+  assert.match(appSidebar, /<Popover>/);
+  assert.match(appSidebar, /<HelpCircle[\s\S]*aria-hidden="true"/);
+  assert.match(appSidebar, /aria-label="Buka panduan"/);
+  assert.match(appSidebar, /utilityLinks\.map/);
+  assert.doesNotMatch(appSidebar, /border-shadow bg-white p-3 text-left/);
 });
 
-test("sidebar navigation uses medium weight while supporting chrome stays normal", () => {
-  assert.match(sidebarPrimitive, /text-xs font-medium uppercase tracking-\[0\.6px\]/);
-  assert.match(sidebarPrimitive, /text-sm font-medium text-sidebar-muted-foreground/);
+test("sidebar navigation uses normal inactive weight and medium active weight", () => {
+  assert.match(
+    sidebarPrimitive,
+    /text-\[11px\] font-medium uppercase tracking-normal/,
+  );
+  assert.doesNotMatch(sidebarPrimitive, /tracking-\[0\.6px\]/);
+  assert.match(sidebarPrimitive, /text-sm font-normal text-secondary-foreground/);
   assert.match(sidebarPrimitive, /data-active:font-medium/);
   assert.match(sidebarPrimitive, /text-xs font-normal text-sidebar-foreground/);
   assert.doesNotMatch(sidebarPrimitive, /data-active:font-normal/);
@@ -759,10 +944,12 @@ test("dialog examples keep the header border removed", () => {
   assert.doesNotMatch(dialogExample, /border-b border-border\/60/);
 });
 
-test("shared button labels use semibold weight", () => {
-  assert.match(buttonPrimitive, /font-semibold/);
-  assert.doesNotMatch(buttonPrimitive, /text-\[13px\] font-medium/);
-  assert.doesNotMatch(buttonPrimitive, /text-\[14px\]\/\[21px\][^\n]*font-medium/);
+test("shared button labels use medium weight", () => {
+  assert.match(buttonPrimitive, /!font-medium/);
+  assert.match(buttonPrimitive, /!text-\[14px\]/);
+  assert.doesNotMatch(buttonPrimitive, /font-semibold/);
+  assert.doesNotMatch(buttonPrimitive, /text-\[13px\] font-normal/);
+  assert.doesNotMatch(buttonPrimitive, /text-\[14px\]\/\[21px\][^\n]*font-normal/);
 });
 
 test("mitigation examples are built from shared dialog and form components", () => {
@@ -795,27 +982,24 @@ test("mitigation examples are built from shared dialog and form components", () 
     /smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300\/30/,
   );
   assert.match(mitigationDialog, /DialogTitle className="text-base"/);
-  assert.doesNotMatch(mitigationDialog, /DialogDescription/);
+  assert.match(
+    mitigationDialog,
+    /<DialogDescription>\s*Masukkan bukti dan catatan untuk melaporkan progres penanganan\.\s*<\/DialogDescription>/,
+  );
   assert.doesNotMatch(mitigationDialog, /motion-safe:animate-in/);
   assert.doesNotMatch(mitigationDialog, /motion-safe:delay-\[(?:40|80)ms\]/);
   assert.doesNotMatch(mitigationDialog, /transition-all/);
-  assert.match(mitigationDialog, /onEscapeKeyDown=\{\(event\) => \{/);
-  assert.match(mitigationDialog, /event\.preventDefault\(\)/);
-  assert.match(mitigationDialog, /cancelEvidenceEditor\(\)/);
-  assert.match(mitigationForm, /Tambahkan Link/);
-  assert.match(mitigationForm, /event\.stopPropagation\(\)/);
+  assert.doesNotMatch(mitigationDialog, /cancelEvidenceEditor/);
+  assert.doesNotMatch(mitigationForm, /Tambahkan Link|ResourceLinkList|ResourceLinkRow/);
   assert.match(
     mitigationForm,
-    /<Kbd aria-label="Escape">Esc<\/Kbd>[\s\S]*?Batal/,
+    /<Label className="text-sm" htmlFor=\{evidenceId\}>\s*Link Bukti[\s\S]*?<Input[\s\S]*type="text"[\s\S]*value=\{evidenceUrl\}[\s\S]*onChange=\{\(event\) => onEvidenceUrlChange\(event\.target\.value\)\}/,
   );
-  assert.doesNotMatch(
-    mitigationForm,
-    /Link Bukti[\s\S]*?<Input[\s\S]*required/,
-  );
+  assert.doesNotMatch(mitigationForm, /onKeyDown=/);
   assert.match(mitigationForm, /<Textarea[\s\S]*required[\s\S]*aria-required="true"/);
   assert.match(mitigationForm, /Catatan Pelaksanaan/);
   assert.match(mitigationForm, /aria-label="Link Bukti"/);
-  assert.equal((mitigationForm.match(/role="alert"/g) ?? []).length, 3);
+  assert.equal((mitigationForm.match(/<FieldErrorMessage/g) ?? []).length, 2);
   assert.doesNotMatch(mitigationForm, /motion-safe:animate-in/);
   assert.doesNotMatch(mitigationForm, /motion-safe:duration-150/);
   assert.match(mitigationForm, /<Label className="text-sm"/);
@@ -835,6 +1019,21 @@ test("risk and monitoring field triggers reuse the subtle existing-border hover"
     readSource("../app/(app)/risk/assessment/[id]/page.tsx"),
     /<RiskScorePickerTrigger[\s\S]*id="risk-score-picker"/,
   );
+});
+
+test("remote user picker keeps user options compact and gives the popover a readable width", () => {
+  assert.match(
+    remoteUserPicker,
+    /width: iconOnly[\s\S]*?"min\(24rem, calc\(100vw - 2rem\)\)"/,
+  );
+  assert.match(
+    remoteUserPicker,
+    /<UserRound[\s\S]*?className="size-4 shrink-0 text-muted-foreground"[\s\S]*?fill="currentColor"[\s\S]*?\/>[\s\S]*?<span className="truncate font-normal">\{option\.name\}<\/span>/,
+  );
+  assert.match(remoteUserPicker, /className="h-9 rounded-none border-0 bg-transparent px-0 py-2\.5 shadow-none"/);
+  assert.match(remoteUserPicker, /<ScrollArea className="mt-1 max-h-\[300px\] overflow-y-auto">/);
+  assert.doesNotMatch(remoteUserPicker, /<Avatar|AvatarFallback|getUserInitials/);
+  assert.doesNotMatch(remoteUserPicker, /option\.subtitle/);
 });
 
 test("risk form text fields consume the shared design-system exports", () => {

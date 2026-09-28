@@ -73,6 +73,15 @@ export const riskCategoryLabels: Record<RiskCategory, string> = {
   operasional: "Operasional",
 };
 
+export const riskCategoryColors: Record<Exclude<RiskCategory, "">, string> = {
+  kebijakan: "var(--risk-category-policy)",
+  operasional: "var(--risk-category-operational)",
+  kepatuhan: "var(--risk-category-compliance)",
+  fraud_korupsi: "var(--risk-category-fraud)",
+  reputasi: "var(--risk-category-reputation)",
+  legal: "var(--risk-category-legal)",
+};
+
 export const dashboardCategoryLabels: Record<string, string> = {
   kebijakan: "Kebijakan",
   reputasi: "Reputasi",

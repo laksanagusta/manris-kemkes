@@ -3,6 +3,8 @@
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 export type DialogActionItem = {
   id: string;
@@ -21,27 +23,22 @@ export function DialogActionList({
   className?: string;
 }) {
   return (
-    <div
-      className={cn(
-        "w-52 rounded-[12px] bg-popover p-1 border-shadow",
-        className,
-      )}
-    >
+    <Card className={cn("w-52", className)}>
+      <CardContent className="flex flex-col gap-1">
       {items.map((item) => (
-        <button
+        <Button
           key={item.id}
           type="button"
           disabled={item.disabled}
           onClick={item.onSelect}
-          className={cn(
-            "flex h-8 w-full items-center gap-2 rounded-lg px-2 py-0 text-left text-sm font-semibold disabled:opacity-50",
-            item.tone === "danger" ? "text-destructive" : "text-foreground",
-          )}
+          variant={item.tone === "danger" ? "destructive" : "ghost"}
+          className="w-full justify-start"
         >
           {item.icon}
           {item.label}
-        </button>
+        </Button>
       ))}
-    </div>
+      </CardContent>
+    </Card>
   );
 }

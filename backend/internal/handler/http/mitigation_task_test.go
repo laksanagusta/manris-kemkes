@@ -61,7 +61,7 @@ func (r *mitigationTaskRepoStub) ListAll(_ context.Context, orgIDs []uuid.UUID) 
 	return []*entity.MitigationTask{}, nil
 }
 
-func (r *mitigationTaskRepoStub) ListAllPaginated(_ context.Context, orgIDs []uuid.UUID, query string, _, _ int) ([]*entity.MitigationTask, int, error) {
+func (r *mitigationTaskRepoStub) ListAllPaginated(_ context.Context, orgIDs []uuid.UUID, query, _, _ string, _, _ int) ([]*entity.MitigationTask, int, error) {
 	r.lastAllOrgIDs = append([]uuid.UUID(nil), orgIDs...)
 	r.lastAllQuery = query
 	return []*entity.MitigationTask{}, 0, nil

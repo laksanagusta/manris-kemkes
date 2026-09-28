@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Info } from "@/components/ui/icons";
+import { Info } from "@/components/shared/icons";
+import { Button } from "@/components/ui/button";
+import { IllustratedEmptyState } from "@/components/shared/design-system/feedback/illustrated-empty-state";
 
 import { cn } from "@/lib/utils";
 import {
@@ -72,18 +74,14 @@ export function ImpactCriteriaTooltip({
       <span>{label}</span>
       <Tooltip>
         <TooltipTrigger asChild>
-          <button
-            type="button"
-            className="inline-flex size-5 items-center justify-center rounded-full border border-border/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            aria-label="Lihat kriteria dampak"
-          >
-            <Info className="size-3.5" />
-          </button>
+          <Button type="button" variant="ghost" size="icon-xs" aria-label="Lihat kriteria dampak">
+            <Info />
+          </Button>
         </TooltipTrigger>
         <TooltipContent
           side="top"
           align="start"
-          className="w-[min(92vw,44rem)] max-w-[44rem] rounded-xl bg-background p-0 text-foreground"
+          className="w-[min(92vw,44rem)] max-w-[44rem]"
         >
           <div className="max-h-[70vh] overflow-auto">
             <div className="border-b border-border/60 px-4 py-3">
@@ -98,28 +96,30 @@ export function ImpactCriteriaTooltip({
                 Memuat...
               </div>
             ) : criteria.length === 0 ? (
-              <div className="px-4 py-6 text-xs text-muted-foreground">
-                Tidak ada data kriteria.
-              </div>
+              <IllustratedEmptyState
+                title="Tidak ada data kriteria."
+                size="compact"
+                className="py-2"
+              />
             ) : (
-              <Table className="w-full border-collapse text-left text-xs">
-                <TableHeader className="bg-table-header text-[11px] uppercase tracking-wide text-muted-foreground">
+              <Table className="w-full text-left">
+                <TableHeader>
                   <TableRow className="h-auto">
-                    <TableHead className="w-10 border-b border-r border-border/60 px-3 py-2 font-semibold">
+                    <TableHead className="w-10">
                       Level
                     </TableHead>
-                    <TableHead className="border-b border-border/60 px-3 py-2 font-semibold">
+                    <TableHead className="">
                       Kriteria &amp; Deskripsi
                     </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {criteria.map((c) => (
-                    <TableRow key={c.id} className="h-auto border-t-0 align-top">
-                      <TableCell className="border-b border-r border-border/60 px-3 py-3 text-center font-bold">
+                    <TableRow key={c.id} className="h-auto align-top">
+                      <TableCell className="text-center">
                         {c.impactLevel}
                       </TableCell>
-                      <TableCell className="border-b border-border/60 px-3 py-3">
+                      <TableCell className="">
                         <span className="font-medium">
                           {impactLevelLabels[c.impactLevel] || c.impactLabel}
                         </span>

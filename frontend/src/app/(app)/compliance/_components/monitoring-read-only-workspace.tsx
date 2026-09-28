@@ -24,10 +24,9 @@ import {
   currentMonitoringCycle,
   getSelectableMonitoringCycles,
 } from "@/lib/risk-cycle-options";
-import {
-  getLinearRiskLevelBadgeTone,
-  getLinearStatusBadgeTone,
-} from "@/lib/linear-status-badge";
+import { getLinearRiskLevelBadgeTone } from "@/lib/linear-status-badge";
+import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
+import { getRiskLevelFromNilai, levelToColor } from "@/lib/risk";
 import { formatMonitoringNilai } from "@/lib/risk-register-monitoring";
 import {
   ActionButton,
@@ -45,27 +44,16 @@ import {
   CollectionToolbar,
   KpiCard,
   MetricGrid,
-  StandardCard,
+  PopoverSelectField,
 } from "@/components/shared/design-system";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  ArrowRight,
-  RefreshCcw,
-} from "@/components/ui/icons";
+import { ArrowRight } from "@/components/shared/icons";
 import {
   Table,
   TableBody,
@@ -80,13 +68,13 @@ const STATUS_OPTIONS: Array<{
   label: string;
 }> = [
   { value: "all", label: "Semua status" },
-  { value: "in_progress", label: "Berlangsung" },
+  { value: "in_progress", label: "Draf" },
   { value: "finalized", label: "Final" },
 ];
 
 async function listAllRiskMonitoringsForCycle(token: string, cycle: string) {
   const firstPage = await listRiskMonitorings(token, {
-    assessment_cycle: cycle,
+    assessment_cycle: cycle === "all" ? undefined : cycle,
     page: 1,
     limit: MONITORING_PAGE_SIZE,
   });
@@ -102,7 +90,7 @@ async function listAllRiskMonitoringsForCycle(token: string, cycle: string) {
   const remainingPages = await Promise.all(
     Array.from({ length: totalPages - 1 }, (_, index) =>
       listRiskMonitorings(token, {
-        assessment_cycle: cycle,
+        assessment_cycle: cycle === "all" ? undefined : cycle,
         page: index + 2,
         limit: pageSize,
       }),
@@ -115,7 +103,7 @@ async function listAllRiskMonitoringsForCycle(token: string, cycle: string) {
   ];
 }
 
-function formatFinalizedAt(value: string | null) {
+function formatMonitoringDate(value: string | null) {
   if (!value) return "-";
 
   const date = new Date(value);
@@ -136,13 +124,17 @@ function getActionHref(row: MonitoringOverviewRow) {
 
 function ScoreComparison({ row }: { row: MonitoringOverviewRow }) {
   const observedLabel = row.observedLevel !== "-" ? row.observedLevel : null;
+  const observedRiskLevel =
+    row.observedScore !== null
+      ? getRiskLevelFromNilai(row.observedScore)
+      : null;
   const observedTone = observedLabel
     ? getLinearRiskLevelBadgeTone(observedLabel)
     : "neutral";
 
   return (
     <div
-      className="flex min-w-0 items-center gap-1.5 whitespace-nowrap"
+      className="flex min-w-0 max-w-full items-center gap-1.5 overflow-hidden whitespace-nowrap"
       aria-label={`Skor awal ${formatMonitoringNilai(row.sourceScore)}; skor hasil pemantauan ${formatMonitoringNilai(row.observedScore)}${observedLabel ? `, ${observedLabel}` : ""}`}
     >
       <span className="font-mono text-sm tabular-nums text-muted-foreground/70 line-through decoration-border">
@@ -158,7 +150,14 @@ function ScoreComparison({ row }: { row: MonitoringOverviewRow }) {
             {formatMonitoringNilai(row.observedScore)}
           </span>
           {observedLabel ? (
-            <Badge size="micro" tone={observedTone}>
+            <Badge
+              variant={observedRiskLevel ? "outline" : toBadgeVariant(observedTone)}
+              className={
+                observedRiskLevel
+                  ? levelToColor(observedRiskLevel)
+                  : getStatusBadgeClassName(observedTone)
+              }
+            >
               {observedLabel}
             </Badge>
           ) : null}
@@ -172,6 +171,59 @@ function ScoreComparison({ row }: { row: MonitoringOverviewRow }) {
   );
 }
 
+function MitigationProgressIndicator({
+  riskTitle,
+  value,
+}: {
+  riskTitle: string;
+  value: number;
+}) {
+  const normalizedValue = Number.isFinite(value) ? value : 0;
+  const percent = Math.min(100, Math.max(0, Math.round(normalizedValue)));
+  const radius = 7.5;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference * (1 - percent / 100);
+
+  return (
+    <div
+      className="flex min-w-0 items-center gap-2"
+      role="img"
+      aria-label={`Progres penanganan ${riskTitle}: ${percent}%`}
+    >
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 18 18"
+        className="size-[18px] shrink-0"
+      >
+        <circle
+          cx="9"
+          cy="9"
+          r={radius}
+          fill="none"
+          stroke="var(--muted)"
+          strokeWidth="2"
+        />
+        <circle
+          cx="9"
+          cy="9"
+          r={radius}
+          fill="none"
+          stroke="currentColor"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          strokeWidth="2"
+          transform="rotate(-90 9 9)"
+          className="text-violet-400"
+        />
+      </svg>
+      <span className="text-sm leading-5 font-medium tabular-nums text-foreground">
+        {percent}%
+      </span>
+    </div>
+  );
+}
+
 function OrganizationSummaryTable({
   summaries,
 }: {
@@ -179,7 +231,7 @@ function OrganizationSummaryTable({
 }) {
   return (
     <div className="overflow-x-auto">
-      <Table className="min-w-[680px] table-fixed">
+      <Table className="w-full min-w-0 table-fixed">
         <colgroup>
           <col className="w-[42%]" />
           <col className="w-[18%]" />
@@ -188,24 +240,24 @@ function OrganizationSummaryTable({
         </colgroup>
         <CollectionTableHeader density="compact">
           <CollectionTableHeaderRow>
-            <CollectionTableHead className="pl-4 pr-3">
+            <CollectionTableHead className="px-24">
               Organisasi
             </CollectionTableHead>
-            <CollectionTableHead className="px-3 text-right">
+            <CollectionTableHead className="text-right">
               Total
             </CollectionTableHead>
-            <CollectionTableHead className="px-3 text-right">
-              Berlangsung
+            <CollectionTableHead className="text-right">
+              Draf
             </CollectionTableHead>
-            <CollectionTableHead className="px-3 text-right">
+            <CollectionTableHead className="text-right">
               Final
             </CollectionTableHead>
           </CollectionTableHeaderRow>
         </CollectionTableHeader>
         <TableBody>
           {summaries.map((summary) => (
-            <TableRow key={summary.id} className="h-12">
-              <TableCell className="py-2 pl-4 pr-3">
+            <TableRow key={summary.id}>
+              <TableCell className="px-24">
                 <div className="flex items-center gap-2">
                   <span
                     className="truncate text-sm font-medium text-foreground"
@@ -214,23 +266,21 @@ function OrganizationSummaryTable({
                     {summary.name}
                   </span>
                   {summary.total === 0 ? (
-                    <Badge
-                      size="compact"
-                      tone="neutral"
-                      className="!bg-[#0000000a] !text-[#8f8e8e]"
+                    <Badge variant="secondary"
+                      className=""
                     >
                       Belum Ada Data
                     </Badge>
                   ) : null}
                 </div>
               </TableCell>
-              <TableCell className="px-3 py-2 text-right font-mono text-sm tabular-nums text-foreground">
+              <TableCell className="text-right tabular-nums">
                 {summary.total}
               </TableCell>
-              <TableCell className="px-3 py-2 text-right font-mono text-sm tabular-nums text-muted-foreground">
+              <TableCell className="text-right tabular-nums">
                 {summary.inProgress}
               </TableCell>
-              <TableCell className="px-3 py-2 text-right font-mono text-sm tabular-nums text-foreground">
+              <TableCell className="text-right tabular-nums">
                 {summary.finalized}
               </TableCell>
             </TableRow>
@@ -260,10 +310,8 @@ function MonitoringOrganizationSummaryCollapsible({
           </CollapsibleCard.Title>
         </CollapsibleCard.Header>
         <CollapsibleCard.Actions>
-          <Badge
-            size="compact"
-            tone="neutral"
-            className="bg-muted text-muted-foreground"
+          <Badge variant="secondary"
+            className=""
           >
             {cycle}
           </Badge>
@@ -295,16 +343,15 @@ export function MonitoringReadOnlyWorkspace() {
   const { token, user } = useAuth();
   const currentCycle = useMemo(() => currentMonitoringCycle(), []);
   const cycleOptions = useMemo(
-    () => getSelectableMonitoringCycles(currentCycle),
+    () => [
+      { value: "all", label: "Semua" },
+      ...getSelectableMonitoringCycles(currentCycle),
+    ],
     [currentCycle],
   );
   const initialQuery = useMemo(
-    () =>
-      parseMonitoringQueryState(
-        new URLSearchParams(searchParams.toString()),
-        currentCycle,
-      ),
-    [searchParams, currentCycle],
+    () => parseMonitoringQueryState(new URLSearchParams(searchParams.toString())),
+    [searchParams],
   );
 
   const [search, setSearch] = useState(initialQuery.search);
@@ -405,7 +452,6 @@ export function MonitoringReadOnlyWorkspace() {
   useEffect(() => {
     const nextQuery = buildMonitoringQueryString(
       { search, status, cycle, organizationId, page, limit },
-      currentCycle,
     );
     const nextUrl = nextQuery ? `${pathname}?${nextQuery}` : pathname;
     const currentUrl = `${pathname}${searchParams.toString() ? `?${searchParams.toString()}` : ""}`;
@@ -414,7 +460,6 @@ export function MonitoringReadOnlyWorkspace() {
       router.replace(nextUrl, { scroll: false });
     }
   }, [
-    currentCycle,
     cycle,
     limit,
     organizationId,
@@ -470,9 +515,6 @@ export function MonitoringReadOnlyWorkspace() {
     currentPage * limit,
   );
   const finalizedCount = scopedRows.filter((row) => row.status === "finalized").length;
-  const progressPercent = scopedRows.length
-    ? Math.round((finalizedCount / scopedRows.length) * 100)
-    : 0;
 
   useEffect(() => {
     if (page !== currentPage) setPage(currentPage);
@@ -481,6 +523,7 @@ export function MonitoringReadOnlyWorkspace() {
   const resetFilters = () => {
     setSearch("");
     setStatus("all");
+    setCycle("all");
     setOrganizationId("all");
     setPage(1);
     setFilterOpen(false);
@@ -500,7 +543,7 @@ export function MonitoringReadOnlyWorkspace() {
       <section className="space-y-6" aria-label="Ringkasan pemantauan">
         <MetricGrid className="md:grid-cols-2 xl:grid-cols-2">
           <KpiCard
-            label="Berlangsung"
+            label="Draf"
             value={error ? "—" : scopedRows.filter((row) => row.status === "in_progress").length}
             tone="white"
           />
@@ -510,32 +553,9 @@ export function MonitoringReadOnlyWorkspace() {
             tone="white"
           />
         </MetricGrid>
-
-        <StandardCard title="Progress keseluruhan">
-          <div className="space-y-3">
-            <div className="flex items-end justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium text-foreground">
-                  {finalizedCount} dari {scopedRows.length} risiko sudah Final
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Berdasarkan transaksi pemantauan {cycle}.
-                </p>
-              </div>
-              <span className="font-mono text-lg font-semibold tabular-nums text-foreground">
-                {error ? "—" : `${progressPercent}%`}
-              </span>
-            </div>
-            <Progress
-              value={error ? 0 : progressPercent}
-              aria-label={`Progress pemantauan ${progressPercent}%`}
-              className="h-2"
-            />
-          </div>
-        </StandardCard>
       </section>
 
-      <section className="space-y-6" aria-label="Daftar status pemantauan">
+      <section className="space-y-4" aria-label="Daftar status pemantauan">
         <CollectionToolbar
           className="w-full"
           leading={
@@ -552,62 +572,45 @@ export function MonitoringReadOnlyWorkspace() {
               />
 
               <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
-                <Select
+                <PopoverSelectField
                   value={cycle}
                   onValueChange={(value) => {
                     setCycle(value);
                     setPage(1);
                   }}
-                >
-                  <SelectTrigger
-                    className="h-9 w-full rounded-lg border border-input bg-card text-sm sm:w-36"
-                    aria-label="Pilih siklus pemantauan"
-                  >
-                    <SelectValue placeholder="Siklus" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {cycleOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  options={cycleOptions}
+                  placeholder="Siklus"
+                  ariaLabel="Pilih siklus pemantauan"
+                  triggerClassName="w-full sm:w-36"
+                />
 
                 <Popover open={filterOpen} onOpenChange={setFilterOpen}>
                   <PopoverTrigger asChild>
                     <CollectionFilterTrigger />
                   </PopoverTrigger>
-                  <PopoverContent align="end" sideOffset={8} className="w-72 rounded-xl p-4">
+                  <PopoverContent align="end" sideOffset={8} className="w-72">
                     <div className="space-y-4">
                       <div>
                         <h3 className="text-sm font-medium text-foreground">
                           Filter Pemantauan
                         </h3>
-                        <p className="mt-1 text-xs text-muted-foreground">
+                        <p className="mt-1 text-xs text-secondary-foreground">
                           Saring berdasarkan status transaksi.
                         </p>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="monitoring-status-filter">Status</Label>
-                        <Select
+                        <PopoverSelectField
+                          id="monitoring-status-filter"
                           value={status}
                           onValueChange={(value) => {
                             setStatus(value as MonitoringStatusFilter);
                             setPage(1);
                           }}
-                        >
-                          <SelectTrigger id="monitoring-status-filter" className="h-9 rounded-lg border border-input bg-card text-sm">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {STATUS_OPTIONS.map((option) => (
-                              <SelectItem key={option.value} value={option.value}>
-                                {option.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                          options={STATUS_OPTIONS}
+                          placeholder="Semua status"
+                          triggerClassName="w-full"
+                        />
                       </div>
                       <div className="flex items-center justify-between gap-3 pt-1">
                         <ActionButton size="sm" variant="ghost" onClick={resetFilters}>
@@ -623,17 +626,6 @@ export function MonitoringReadOnlyWorkspace() {
               </div>
             </div>
           }
-          actions={
-            <ActionButton
-              aria-label="Muat ulang pemantauan"
-              disabled={loading || refreshing}
-              loading={refreshing}
-              icon={<RefreshCcw className="size-3.5" strokeWidth={2.25} />}
-              size="icon-xs"
-              className="size-9"
-              onClick={() => void loadData(false)}
-            />
-          }
         />
 
         {error ? (
@@ -648,29 +640,31 @@ export function MonitoringReadOnlyWorkspace() {
           </CollectionTableCard>
         ) : (
           <CollectionTableCard>
-            <Table className="w-full table-fixed">
+            <Table className="w-full min-w-0 table-fixed">
               <colgroup>
+                <col className="w-[33%]" />
+                <col className="w-[9%]" />
+                <col className="w-[10%]" />
+                <col className="w-[15%]" />
+                <col className="w-[11%]" />
                 <col className="w-[12%]" />
-                <col className="w-[36%]" />
-                <col className="w-[14%]" />
-                <col className="w-[24%]" />
-                <col className="w-[14%]" />
+                <col className="w-[10%]" />
               </colgroup>
               <CollectionTableHeader density="compact">
                 <CollectionTableHeaderRow>
-                  <CollectionTableHead className="pl-4 pr-3">Kode</CollectionTableHead>
-                  <CollectionTableHead className="px-3">Risiko</CollectionTableHead>
-                  <CollectionTableHead className="px-3">Status</CollectionTableHead>
-                  <CollectionTableHead className="px-3">
-                    Skor Awal → Pemantauan
-                  </CollectionTableHead>
-                  <CollectionTableHead className="px-3">Finalisasi</CollectionTableHead>
+                  <CollectionTableHead className="px-24">Risiko</CollectionTableHead>
+                  <CollectionTableHead >Periode</CollectionTableHead>
+                  <CollectionTableHead >Status</CollectionTableHead>
+                  <CollectionTableHead >Perubahan Skor</CollectionTableHead>
+                  <CollectionTableHead >Tanggal Dibuat</CollectionTableHead>
+                  <CollectionTableHead >Progres Penanganan</CollectionTableHead>
+                  <CollectionTableHead >Update Terakhir</CollectionTableHead>
                 </CollectionTableHeaderRow>
               </CollectionTableHeader>
               <TableBody>
                 {pageRows.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={5} className="p-0">
+                    <TableCell colSpan={7} className="">
                       <CollectionEmptyState
                         title="Belum ada transaksi pemantauan"
                         description="Belum ada transaksi pemantauan untuk siklus atau filter yang dipilih."
@@ -680,18 +674,12 @@ export function MonitoringReadOnlyWorkspace() {
                 ) : (
                   pageRows.map((row) => {
                     const actionHref = getActionHref(row);
-                    const statusTone =
-                      row.status === "finalized"
-                        ? "success"
-                        : getLinearStatusBadgeTone(
-                            row.status === "in_progress" ? "draft" : "pending",
-                          );
 
                     return (
                       <TableRow
                         key={row.id}
                         tabIndex={0}
-                        className="group h-16 cursor-pointer outline-none hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/30"
+                        className="group h-16 cursor-pointer hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/30"
                         aria-label={`${row.code} ${row.title}, status ${getMonitoringStatusLabel(row.status)}`}
                         onClick={(event) => {
                           if ((event.target as Element).closest("a,button")) return;
@@ -699,33 +687,44 @@ export function MonitoringReadOnlyWorkspace() {
                         }}
                         onKeyDown={(event) => handleRowKeyDown(event, row)}
                       >
-                        <TableCell className="py-2 pl-4 pr-3 font-mono text-xs text-muted-foreground">
-                          {row.code}
-                        </TableCell>
-                        <TableCell className="min-w-0 px-3 py-2">
+                        <TableCell className="min-w-0 max-w-0 overflow-hidden px-24">
                           <div className="min-w-0">
                             <Link
                               href={actionHref}
-                              className="block truncate text-sm font-semibold text-foreground hover:text-primary focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+                              className="block truncate text-sm font-medium text-foreground hover:text-primary focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
                               title={row.title}
                             >
                               {row.title}
                             </Link>
-                            <p className="mt-0.5 truncate text-[11px] text-muted-foreground">
-                              Siklus {row.assessmentCycle}
-                            </p>
+                            <span className="mt-0.5 block truncate font-mono text-sm leading-5 text-muted-foreground">
+                              {row.code}
+                            </span>
                           </div>
                         </TableCell>
-                        <TableCell className="px-3 py-2">
-                          <Badge size="compact" tone={statusTone}>
+                        <TableCell className="max-w-0 truncate">
+                          {row.assessmentCycle || "-"}
+                        </TableCell>
+                        <TableCell className="max-w-0">
+                          <Badge variant={row.status === "finalized" ? "default" : "secondary"}
+                            className={row.status === "finalized" ? "max-w-full truncate border-transparent bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300" : "max-w-full truncate"}
+                          >
                             {getMonitoringStatusLabel(row.status)}
                           </Badge>
                         </TableCell>
-                        <TableCell className="px-3 py-2">
+                        <TableCell className="max-w-0 overflow-hidden">
                           <ScoreComparison row={row} />
                         </TableCell>
-                        <TableCell className="px-3 py-2 text-sm text-muted-foreground">
-                          {formatFinalizedAt(row.finalizedAt)}
+                        <TableCell className="max-w-0">
+                          {formatMonitoringDate(row.createdAt)}
+                        </TableCell>
+                        <TableCell className="max-w-0 overflow-hidden">
+                          <MitigationProgressIndicator
+                            riskTitle={row.title}
+                            value={row.mitigationCompletionPercent}
+                          />
+                        </TableCell>
+                        <TableCell className="max-w-0">
+                          {formatMonitoringDate(row.updatedAt)}
                         </TableCell>
                       </TableRow>
                     );

@@ -1,7 +1,7 @@
 "use client";
 
 import type { ComponentProps, ReactNode } from "react";
-import { MoreHorizontal } from "@/components/ui/icons";
+import { MoreHorizontal } from "@/components/shared/icons";
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -10,17 +10,18 @@ export function ActionIconButton({
   icon,
   "aria-label": ariaLabel,
   className,
+  variant = "ghost",
   ...props
-}: Omit<ComponentProps<typeof Button>, "variant"> & {
+}: ComponentProps<typeof Button> & {
   icon?: ReactNode;
   "aria-label": string;
 }) {
   return (
     <Button
-      variant="ghost"
+      variant={variant}
       size="icon-xs"
       className={cn(
-        "border border-border/60 bg-card text-muted-foreground shadow-none",
+        "border-0 text-muted-foreground",
         className,
       )}
       aria-label={ariaLabel}

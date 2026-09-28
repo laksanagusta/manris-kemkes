@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Check, ChevronsUpDown, Loader2, Search } from "@/components/ui/icons";
+import { Check, ChevronsUpDown, Loader2, Search } from "@/components/shared/icons";
 
 import { useAuth } from "@/contexts/auth-context";
 import {
@@ -19,7 +19,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { PopoverSelectField } from "@/components/shared/design-system";
-import { SearchInput } from "@/components/ui/search-input";
+import { IllustratedEmptyState } from "@/components/shared/design-system/feedback/illustrated-empty-state";
+import { SearchInput } from "@/components/shared/search-input";
 import { cn } from "@/lib/utils";
 
 export type ROSelectionSummary = PlanningROOption;
@@ -167,11 +168,11 @@ export function ROPicker({
       <PopoverTrigger asChild>
         <Button
           variant="outline"
-          size="md"
+          size="default"
           role="combobox"
           aria-expanded={open}
           disabled={disabled}
-          className="group/ro-picker h-10 w-full justify-between overflow-hidden rounded-lg border-input bg-card px-2.5 text-sm font-normal shadow-none transition-[background-color,border-color] active:translate-y-0 active:scale-100 aria-expanded:bg-card aria-expanded:text-foreground hover:border-foreground/15 disabled:hover:border-input focus:border-input focus-visible:border-input focus:ring-0 focus-visible:ring-0"
+          className="group/ro-picker w-full justify-between overflow-hidden transition-[background-color,box-shadow] active:translate-y-0 active:scale-100 aria-expanded:bg-card aria-expanded:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
         >
           {selected ? (
             <span className="min-w-0 flex-1 truncate text-left">
@@ -187,7 +188,6 @@ export function ROPicker({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        variant="dropdown"
         className="w-[var(--radix-popover-trigger-width)]"
         align="start"
         sideOffset={8}
@@ -217,7 +217,7 @@ export function ROPicker({
           <Search className="mr-2 size-4 shrink-0 opacity-50" />
           <SearchInput
             type="search"
-            className="h-10 rounded-none border-0 bg-transparent px-0 py-3 shadow-none"
+            className="h-10 rounded-none border-0 bg-transparent px-0 py-3 !shadow-none"
             disabled={disabled}
             placeholder="Cari RO, kegiatan, program, IKU, atau sasaran..."
             value={query}
@@ -232,9 +232,11 @@ export function ROPicker({
               Memuat...
             </div>
           ) : filtered.length === 0 ? (
-            <div className="py-6 text-center text-sm text-muted-foreground">
-              Tidak ada RO ditemukan.
-            </div>
+            <IllustratedEmptyState
+              title="Tidak ada RO ditemukan."
+              size="compact"
+              className="py-2"
+            />
           ) : (
             filtered.map((item) => (
               <button

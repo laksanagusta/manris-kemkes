@@ -1,7 +1,7 @@
 "use client";
 
-import { AlertCircle, ArrowUpRight } from "@/components/ui/icons";
-
+import { AlertCircle, ArrowUpRight } from "@/components/shared/icons";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 
 export function CollectionErrorState({
@@ -14,24 +14,16 @@ export function CollectionErrorState({
   onReload?: () => void;
 }) {
   return (
-    <div className="rounded-lg bg-state-surface px-4 py-4 text-sm text-state-foreground">
-      <div className="flex items-start gap-3">
-        <AlertCircle className="mt-0.5 size-4 shrink-0 text-destructive" />
-        <div className="space-y-1">
-          <p className="font-semibold text-destructive">{title}</p>
-          {message && <p className="text-sm text-state-foreground">{message}</p>}
-          {onReload && (
-            <Button
-              onClick={onReload}
-              variant="outline"
-              className="mt-2 gap-2 border-destructive/20 bg-background text-destructive shadow-none hover:bg-destructive/5"
-            >
-              <ArrowUpRight className="size-4" />
-              Muat Ulang Halaman
-            </Button>
-          )}
-        </div>
-      </div>
-    </div>
+    <Alert variant="destructive">
+      <AlertCircle />
+      <AlertTitle>{title}</AlertTitle>
+      {message ? <AlertDescription>{message}</AlertDescription> : null}
+      {onReload ? (
+        <Button onClick={onReload} variant="outline" size="sm">
+          <ArrowUpRight data-icon="inline-start" />
+          Coba lagi
+        </Button>
+      ) : null}
+    </Alert>
   );
 }

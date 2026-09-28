@@ -101,6 +101,26 @@ export type SemesterScoreTargetDatum = {
   targetCount: number;
 };
 
+export type RiskCountTrendDatum = {
+  period: string;
+  totalRisks: number;
+  sangatRendah: number;
+  rendah: number;
+  sedang: number;
+  tinggi: number;
+  sangatTinggi: number;
+};
+
+type RiskCountLevelKey = Exclude<keyof RiskCountTrendDatum, "period" | "totalRisks">;
+
+const riskCountLevelKeys: Record<Severity, RiskCountLevelKey> = {
+  "Sangat Rendah": "sangatRendah",
+  Rendah: "rendah",
+  Sedang: "sedang",
+  Tinggi: "tinggi",
+  "Sangat Tinggi": "sangatTinggi",
+};
+
 function normalizeQuarterKey(value?: string) {
   if (!value) return null;
   const match = value.trim().match(/^(\d{4})-(Q[1-4]|H[12])$/i);
@@ -178,16 +198,13 @@ export function levelFromScore(inherentScore?: number): Severity {
 }
 
 function effectiveScoreSemantics(risk: RiskLike) {
-  const probability = risk.monitoringObservedProbability ?? risk.probability ?? 1;
-  const impact = risk.monitoringObservedImpact ?? risk.impact ?? 1;
-  const weight =
-    risk.monitoringObservedWeight ?? risk.weight ?? getBobot(probability, impact);
-  const nilai = risk.monitoringObservedNilai ?? risk.nilai;
-  const inherentScore =
-    risk.monitoringObservedNilai !== null &&
-    risk.monitoringObservedNilai !== undefined
-      ? roundRiskScore(risk.monitoringObservedNilai) ?? 0
-      : risk.inherentScore ?? 0;
+  // Monitoring is an observation of this quarter; its score becomes the
+  // profile of the next quarter only after finalization.
+  const probability = risk.probability ?? 1;
+  const impact = risk.impact ?? 1;
+  const weight = risk.weight ?? getBobot(probability, impact);
+  const nilai = risk.nilai;
+  const inherentScore = risk.inherentScore ?? 0;
 
   return resolveRiskScoreSemantics({
     status: risk.status === "final" ? "final" : "draft",
@@ -253,8 +270,8 @@ export function buildCurrentRiskHeatmapMatrix(
   const matrix = Array.from({ length: 5 }, () => Array<number>(5).fill(0));
 
   for (const risk of selectEffectiveRiskVersions(risks, targetCycle)) {
-    const probability = risk.monitoringObservedProbability ?? risk.probability;
-    const impact = risk.monitoringObservedImpact ?? risk.impact;
+    const probability = risk.probability;
+    const impact = risk.impact;
 
     if (
       probability === undefined ||
@@ -734,6 +751,47 @@ export function buildSemesterScoreTargetTrendData(
         riskCount,
         targetCount,
       };
+    });
+}
+
+export function buildRiskCountTrendData(risks: RiskLike[]): RiskCountTrendDatum[] {
+  const groupedByPeriod = new Map<string, Map<string, RiskLike>>();
+
+  for (const risk of risks) {
+    const period = normalizeQuarterKey(risk.assessmentCycle) || deriveQuarter(risk.createdAt);
+    if (!period) continue;
+
+    const key = riskGroupingKey(risk);
+    if (!key) continue;
+
+    const periodBucket = groupedByPeriod.get(period) ?? new Map<string, RiskLike>();
+    const existing = periodBucket.get(key);
+    if (!existing || compareRiskVersion(existing, risk) < 0) {
+      periodBucket.set(key, risk);
+    }
+    groupedByPeriod.set(period, periodBucket);
+  }
+
+  return [...groupedByPeriod.entries()]
+    .sort(([left], [right]) => quarterSortValue(left) - quarterSortValue(right))
+    .map(([period, bucket]) => {
+      const row: RiskCountTrendDatum = {
+        period,
+        totalRisks: 0,
+        sangatRendah: 0,
+        rendah: 0,
+        sedang: 0,
+        tinggi: 0,
+        sangatTinggi: 0,
+      };
+
+      for (const risk of bucket.values()) {
+        const level = levelFromScore(effectiveScoreSemantics(risk).effective.score);
+        row.totalRisks += 1;
+        row[riskCountLevelKeys[level]] += 1;
+      }
+
+      return row;
     });
 }
 

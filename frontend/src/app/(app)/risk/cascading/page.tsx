@@ -2,7 +2,7 @@
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Plus } from "@/components/ui/icons";
+import { Plus } from "@/components/shared/icons";
 import { toast } from "sonner";
 
 import { useAuth } from "@/contexts/auth-context";
@@ -19,10 +19,10 @@ import {
   TableCell,
   TableRow,
 } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
 import { RiskCascadeActionDialog } from "@/components/risk/risk-cascade-action-dialog";
 import {
   CollectionPagination,
+  CollectionEmptyState,
   CollectionErrorState,
   CollectionTableCard,
   CollectionTableHead,
@@ -30,8 +30,8 @@ import {
   CollectionTableHeaderRow,
   CollectionPageHeader,
   CollectionToolbar,
-  DashboardKpiCard,
-  ExpandableSearchField,
+  CollectionSearchField,
+  KpiCard,
   MetricGrid,
 } from "@/components/shared/design-system";
 import {
@@ -39,6 +39,7 @@ import {
   PageStack,
 } from "@/components/shared/design-system";
 import { RiskCascadeRowActions } from "@/components/shared/risk-cascade-row-actions";
+import { getStatusBadgeClassName, toBadgeVariant, type StatusTone } from "@/lib/badge-variant";
 
 const cascadeTypeLabels: Record<RiskCascadeType, string> = {
   mandatory_top_down: "Top-down",
@@ -54,12 +55,12 @@ const statusLabels: Record<string, string> = {
   implemented: "Selesai",
 };
 
-const statusTone: Record<string, string> = {
-  proposed: "bg-amber-500/10 text-amber-700 border-amber-500/20",
-  analyzed: "bg-sky-500/10 text-sky-700 border-sky-500/20",
-  accepted: "bg-blue-500/10 text-blue-700 border-blue-500/20",
-  rejected: "bg-destructive/10 text-destructive border-destructive/20",
-  implemented: "bg-emerald-500/10 text-emerald-700 border-emerald-500/20",
+const statusTone: Record<string, StatusTone> = {
+  proposed: "warning",
+  analyzed: "progress",
+  accepted: "success",
+  rejected: "danger",
+  implemented: "success",
 };
 
 function formatCascadeTitle(item: RiskCascadeRecord) {
@@ -79,7 +80,7 @@ export default function RiskCascadingPage() {
   const [pageSize, setPageSize] = useState(10);
   const [createOpen, setCreateOpen] = useState(false);
   const [createCascadeType, setCreateCascadeType] =
-    useState<RiskCascadeType>("mandatory_top_down");
+    useState<RiskCascadeType>("bottom_up_escalation");
   const [decisionItem, setDecisionItem] = useState<RiskCascadeRecord | null>(
     null,
   );
@@ -187,19 +188,19 @@ export default function RiskCascadingPage() {
   const kpiCards = useMemo(
     () => [
       {
-        title: "Total Eskalasi",
+        label: "Total Eskalasi",
         value: String(summary.total),
       },
       {
-        title: "Menunggu Tinjauan",
+        label: "Menunggu Tinjauan",
         value: String(summary.pending),
       },
       {
-        title: "Sudah Disetujui",
+        label: "Sudah Disetujui",
         value: String(summary.approved),
       },
       {
-        title: "Bottom-up",
+        label: "Bottom-up",
         value: String(summary.bottomUp),
       },
     ],
@@ -240,71 +241,75 @@ export default function RiskCascadingPage() {
 
       <MetricGrid>
         {kpiCards.map((card) => (
-          <DashboardKpiCard key={card.title} {...card} />
+          <KpiCard
+            key={card.label}
+            label={card.label}
+            value={card.value}
+            tone="white"
+          />
         ))}
       </MetricGrid>
 
-      <div className="space-y-6">
-          <CollectionToolbar
-            className="w-full"
-            leading={
-              <div className="min-w-0 flex-1">
-            <ExpandableSearchField
+      <div className="space-y-4">
+        <CollectionToolbar
+          className="w-full"
+          leading={
+            <CollectionSearchField
+              containerClassName="w-full sm:w-80 sm:flex-none"
               value={search}
-              onChange={setSearch}
+              onChange={(event) => setSearch(event.target.value)}
               placeholder="Cari kode risiko, organisasi, status, atau catatan..."
-              ariaLabel="Cari eskalasi"
+              aria-label="Cari eskalasi"
             />
-              </div>
-            }
-            actions={
-              <AccentButton
-                icon={<Plus className="size-4" />}
-                onClick={() => {
-                  setCreateCascadeType("mandatory_top_down");
-                  setCreateOpen(true);
-                }}
-              >
-                Eskalasi
-              </AccentButton>
-            }
-          />
+          }
+          actions={
+            <AccentButton
+              icon={<Plus className="size-4" />}
+              onClick={() => {
+                setCreateCascadeType("bottom_up_escalation");
+                setCreateOpen(true);
+              }}
+            >
+              Eskalasi
+            </AccentButton>
+          }
+        />
 
-          {error ? <CollectionErrorState message={error} /> : null}
+        {error ? <CollectionErrorState message={error} /> : null}
 
-          <CollectionTableCard>
-            <Table className="min-w-[1120px] table-fixed">
-              <colgroup>
-                <col className="w-[22%]" />
-                <col className="w-[18%]" />
-                <col className="w-[11%]" />
-                <col className="w-[12%]" />
-                <col className="w-[11%]" />
-                <col className="w-[20%]" />
-                <col className="w-[6%]" />
-              </colgroup>
-              <CollectionTableHeader>
-                <CollectionTableHeaderRow>
-                  <CollectionTableHead className="pl-4 pr-3">
+        <CollectionTableCard>
+          <Table className="min-w-[1120px] table-fixed">
+            <colgroup>
+              <col className="w-[22%]" />
+              <col className="w-[18%]" />
+              <col className="w-[11%]" />
+              <col className="w-[12%]" />
+              <col className="w-[11%]" />
+              <col className="w-[20%]" />
+              <col className="w-[6%]" />
+            </colgroup>
+            <CollectionTableHeader>
+              <CollectionTableHeaderRow>
+                  <CollectionTableHead className="px-24">
                     Risiko
                   </CollectionTableHead>
-                  <CollectionTableHead className="px-3">
+                  <CollectionTableHead >
                     Organisasi
                   </CollectionTableHead>
-                  <CollectionTableHead className="px-3">
+                  <CollectionTableHead >
                     Jenis
                   </CollectionTableHead>
-                  <CollectionTableHead className="px-3">
+                  <CollectionTableHead >
                     Status
                   </CollectionTableHead>
-                  <CollectionTableHead className="px-3">
+                  <CollectionTableHead >
                     Adopsi
                   </CollectionTableHead>
-                  <CollectionTableHead className="px-3">
+                  <CollectionTableHead >
                     Catatan
                   </CollectionTableHead>
-                  <CollectionTableHead className="px-3 text-right">
-                    Aksi
+                  <CollectionTableHead className="text-right">
+                    <span className="sr-only">Aksi</span>
                   </CollectionTableHead>
                 </CollectionTableHeaderRow>
               </CollectionTableHeader>
@@ -313,9 +318,12 @@ export default function RiskCascadingPage() {
                   <TableRow>
                     <TableCell
                       colSpan={7}
-                      className="bg-state-surface py-10 text-center text-sm text-state-foreground"
+                      className="text-center"
                     >
-                      Belum ada eskalasi yang cocok.
+                      <CollectionEmptyState
+                        title="Belum ada eskalasi yang cocok"
+                        description="Coba ubah kata kunci atau sesuaikan filter."
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -326,7 +334,7 @@ export default function RiskCascadingPage() {
                       statusLabels[item.status] || item.status;
                     return (
                       <TableRow key={item.id}>
-                        <TableCell>
+                        <TableCell className="px-24">
                           <div className="space-y-1">
                             <p className="font-medium text-foreground">
                               {formatCascadeTitle(item)}
@@ -352,17 +360,11 @@ export default function RiskCascadingPage() {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "capitalize",
-                              statusTone[item.status],
-                            )}
-                          >
+                          <Badge variant={toBadgeVariant(statusTone[item.status])} className={`capitalize ${getStatusBadgeClassName(statusTone[item.status])}`}>
                             {statusLabel}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-sm capitalize">
+                        <TableCell className="">
                           {item.adoptionType || "-"}
                         </TableCell>
                         <TableCell className="max-w-[320px]">

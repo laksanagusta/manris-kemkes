@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Send } from "@/components/ui/icons";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -28,9 +27,7 @@ export function MitigationProgressDialogExample() {
         notes={notes}
         onNotesChange={setNotes}
         footerActions={
-          <AccentButton icon={<Send className="size-3" />}>
-            Kirim Laporan
-          </AccentButton>
+          <AccentButton>Kirim Laporan</AccentButton>
         }
         evidenceId="example-evidence-url"
         notesId="example-notes"

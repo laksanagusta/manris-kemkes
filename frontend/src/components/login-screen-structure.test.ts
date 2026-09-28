@@ -14,8 +14,16 @@ test("keeps the login surface free of the card wrapper and logo", () => {
     /<span className="font-logo text-\[20px\] leading-5 font-semibold lowercase tracking-\[-0\.4px\] text-foreground">\s*Manris\s*<\/span>/,
   );
   assert.match(source, /<form onSubmit=\{handleSubmit\} className="flex flex-col gap-4">/);
+  assert.match(
+    source,
+    /id="nip"[\s\S]*?className="h-9 bg-white dark:bg-white"/,
+  );
+  assert.match(
+    source,
+    /<InputGroup className="h-9 bg-white dark:bg-white">[\s\S]*?id="password"[\s\S]*?className="h-9 bg-transparent dark:bg-transparent"/,
+  );
   assert.doesNotMatch(source, /ArrowRight/);
-  assert.match(source, /className="!h-10 w-full rounded-full"/);
+  assert.match(source, /className="h-9 w-full rounded-full"/);
   assert.match(source, /<div className="flex items-center justify-center">/);
   assert.match(
     source,

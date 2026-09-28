@@ -210,7 +210,7 @@ export function RiskSubstanceFields({
             }
             placeholder="Judul risiko"
             disabled={disabled}
-            className="h-10 text-sm"
+            className=""
           />
         </div>
 
@@ -231,7 +231,7 @@ export function RiskSubstanceFields({
             }
             placeholder="Uraikan substansi risiko secara singkat dan operasional"
             disabled={disabled}
-            className="min-h-[110px] text-sm"
+            className=""
           />
         </div>
 
@@ -337,7 +337,7 @@ export function RiskSubstanceFields({
                         <Label className="text-sm font-medium">Penyebab Risiko</Label>
             <Badge
               variant="outline"
-              className="border-border/50 bg-muted/30 text-[10px] uppercase tracking-[0.14em]"
+              className=""
             >
               Editable list
             </Badge>
@@ -358,7 +358,7 @@ export function RiskSubstanceFields({
             <Label className="text-sm font-medium">Dampak Risiko</Label>
             <Badge
               variant="outline"
-              className="border-border/50 bg-muted/30 text-[10px] uppercase tracking-[0.14em]"
+              className=""
             >
               Editable list
             </Badge>

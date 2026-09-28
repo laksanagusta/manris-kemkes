@@ -1,6 +1,7 @@
-import { TrendingUp, TrendingDown, Minus } from "@/components/ui/icons";
+import { memo } from "react";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/shared/design-system";
+import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
+import { Badge } from "@/components/ui/badge";
 import {
   getBobot,
   getSimpulanEfektifitas,
@@ -17,7 +18,7 @@ export interface SimpulanCardProps {
   impact?: number;
 }
 
-export function SimpulanCard({
+export const SimpulanCard = memo(function SimpulanCard({
   nilaiCurrent,
   nilaiBaru,
   currentInherentScore,
@@ -28,7 +29,7 @@ export function SimpulanCard({
 
   if (isInvalid) {
     return (
-      <div className="rounded-xl border border-dashed border-border/60 bg-muted/10 px-3 py-4">
+      <div className="rounded-lg border border-dashed border-border/60 bg-muted/10 px-3 py-4">
         <p className="text-sm leading-6 text-muted-foreground">
           Pilih probabilitas dan dampak terlebih dahulu untuk melihat simpulan
           tingkat risiko dan efektifitas mitigasi.
@@ -40,19 +41,12 @@ export function SimpulanCard({
   const scoreClassification = resolveRiskAssessmentClassification(nilaiBaru);
   const levelBaru = scoreClassification.level;
   const bobot = getBobot(probability, impact);
-  const { currentScore, newScore, delta, isStable, isDecrease } =
+  const { currentScore, newScore, isStable, isDecrease } =
     resolveAssessmentScoreComparison({
       currentInherentScore,
       currentNilai: nilaiCurrent,
       newNilai: nilaiBaru,
     });
-
-  const TrendIcon = isStable ? Minus : isDecrease ? TrendingDown : TrendingUp;
-  const trendColorClass = isStable
-    ? "text-muted-foreground"
-    : isDecrease
-      ? "text-success"
-      : "text-risk-extreme";
 
   const efektifitasLabel = getSimpulanEfektifitas(currentScore, newScore);
   const riskLevelTone =
@@ -67,41 +61,37 @@ export function SimpulanCard({
       <section aria-label="Hasil Pemantauan">
         <dl>
           <div className="flex items-center justify-between gap-3 py-2">
-            <dt className="text-sm text-muted-foreground">Skor risiko</dt>
+            <dt className="text-[13px] text-muted-foreground">Skor risiko</dt>
             <dd className="flex items-center gap-2 text-right">
               <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
                 {newScore}
               </span>
-              <Badge
-                tone={riskLevelTone}
-                size="compact"
+              <Badge variant={toBadgeVariant(riskLevelTone)} className={getStatusBadgeClassName(riskLevelTone)}
               >
                 {getRiskLevelLabel(levelBaru)}
               </Badge>
             </dd>
           </div>
           <div className="flex items-center justify-between gap-3 py-2">
-            <dt className="text-sm text-muted-foreground">Bobot</dt>
+            <dt className="text-[13px] text-muted-foreground">Bobot</dt>
             <dd className="font-mono text-sm font-semibold tabular-nums text-foreground">
               {bobot.toFixed(2)}
             </dd>
           </div>
           <div className="flex items-center justify-between gap-3 py-2">
-            <dt className="text-sm text-muted-foreground">Prioritas</dt>
+            <dt className="text-[13px] text-muted-foreground">Prioritas</dt>
             <dd className="text-sm font-semibold tabular-nums text-foreground">
               {scoreClassification.priority}
             </dd>
           </div>
           <div className="flex items-center justify-between gap-3 py-2">
-            <dt className="text-sm text-muted-foreground">Selera risiko</dt>
+            <dt className="text-[13px] text-muted-foreground">Selera risiko</dt>
             <dd>
-              <Badge
-                tone={
+              <Badge variant={
                   scoreClassification.appetite === "di_atas_batas"
-                    ? "warning"
-                    : "success"
+                    ? "outline"
+                    : "default"
                 }
-                size="compact"
               >
                 {scoreClassification.appetite === "di_atas_batas"
                   ? "Di Atas Batas"
@@ -116,24 +106,12 @@ export function SimpulanCard({
         aria-labelledby="monitoring-score-change"
         className="border-t border-dashed border-border/50 pt-3.5"
       >
-        <div className="flex items-center justify-between gap-3">
-          <h3
-            id="monitoring-score-change"
-            className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70"
-          >
-            Perubahan Skor
-          </h3>
-          <span
-            className={cn(
-              "flex items-center gap-1 text-sm font-medium",
-              trendColorClass,
-            )}
-          >
-            <TrendIcon className="size-3.5" />
-            {delta > 0 ? "+" : ""}
-            {Math.round(delta)}
-          </span>
-        </div>
+        <h3
+          id="monitoring-score-change"
+          className="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground/70"
+        >
+          Perubahan Skor
+        </h3>
         <div className="mt-3 flex items-center justify-between gap-3">
           <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
             {currentScore} &rarr; {newScore}
@@ -147,16 +125,16 @@ export function SimpulanCard({
       >
         <h3
           id="monitoring-risk-evaluation"
-          className="text-[10px] font-semibold uppercase tracking-[0.16em] text-muted-foreground/70"
+          className="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground/70"
         >
           Evaluasi
         </h3>
         <dl className="mt-3">
           <div className="flex items-start justify-between gap-3 py-2">
-            <dt className="text-sm text-muted-foreground">Tingkat risiko</dt>
+            <dt className="text-[13px] text-muted-foreground">Tingkat risiko</dt>
             <dd
               className={cn(
-                "whitespace-nowrap text-right text-sm font-medium",
+                "min-w-0 max-w-[70%] whitespace-normal break-words text-right text-sm font-medium",
                 isStable
                   ? "text-muted-foreground"
                   : isDecrease
@@ -172,11 +150,10 @@ export function SimpulanCard({
             </dd>
           </div>
           <div className="flex items-center justify-between gap-3 py-2">
-            <dt className="text-sm text-muted-foreground">Efektivitas</dt>
+            <dt className="text-[13px] text-muted-foreground">Efektivitas</dt>
             <dd>
-              <Badge
-                tone={efektifitasLabel === "Efektif" ? "success" : "danger"}
-                size="compact"
+              <Badge variant={efektifitasLabel === "Efektif" ? "default" : "destructive"}
+                className={efektifitasLabel === "Efektif" ? "border-transparent bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300" : "border-transparent bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300"}
               >
                 {efektifitasLabel}
               </Badge>
@@ -186,4 +163,4 @@ export function SimpulanCard({
       </section>
     </div>
   );
-}
+});

@@ -1,5 +1,6 @@
+"use client";
+
 import Link from "next/link";
-import { ArrowUpRight } from "@/components/ui/icons";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Risk } from "@/types/risk";
@@ -7,16 +8,15 @@ import {
   formatRiskScore,
   getRiskLevelFromNilai,
   getRiskLevelLabel,
-  levelToColor,
   roundRiskScore,
 } from "@/lib/risk";
 import { cn } from "@/lib/utils";
+import { getLinearRiskLevelBadgeTone } from "@/lib/linear-status-badge";
 
 interface ProfilRisikoCardProps {
   risk: Risk;
   detailHref?: string;
   compact?: boolean;
-  floating?: boolean;
 }
 
 function scoreCardTone(level?: ReturnType<typeof getRiskLevelFromNilai>) {
@@ -70,7 +70,6 @@ export function ProfilRisikoCard({
   risk,
   detailHref,
   compact = false,
-  floating = false,
 }: ProfilRisikoCardProps) {
   const code = risk.riskCode || risk.code || "-";
   const inherentScore = roundRiskScore(risk.inherentScore ?? risk.nilai);
@@ -91,72 +90,13 @@ export function ProfilRisikoCard({
   const targetScoreTitle = "Target Penurunan";
   const targetLevelLabel = targetLevel ? getRiskLevelLabel(targetLevel) : null;
 
-  if (compact && floating) {
-    return (
-      <div
-        data-testid="profil-risiko-card"
-        data-component="monitoring-baseline-floating"
-        className="pointer-events-none fixed inset-x-0 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-40 flex w-full justify-center px-3 sm:bottom-[calc(1.5rem+env(safe-area-inset-bottom))] sm:px-6"
-      >
-        <div
-          role="group"
-          aria-label={`Baseline risiko ${code}, versi ${risk.versionNumber ?? "-"}. Skor sumber ${formatRiskScore(inherentScore)}, probabilitas ${risk.probability ?? "-"}, dampak ${risk.impact ?? "-"}, target ${formatRiskScore(targetScore, "-")}, level ${currentLevelLabel || "-"}.`}
-          title={risk.title || undefined}
-          className="surface-hairline pointer-events-auto flex max-w-full items-center overflow-hidden rounded-xl bg-card text-foreground"
-        >
-          <div className="relative min-w-0 max-w-[calc(100vw-5rem)] sm:max-w-none">
-            <div
-              tabIndex={0}
-              aria-label="Detail baseline risiko. Geser secara horizontal untuk melihat semua informasi."
-              className="flex min-h-11 min-w-0 items-center gap-2 overflow-x-auto px-3 text-xs font-normal outline-none [scrollbar-width:thin] focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/30 sm:gap-2.5 sm:px-3.5"
-            >
-              <span className="shrink-0 font-mono text-xs font-medium text-foreground">
-                {code}
-              </span>
-              <span className="shrink-0 text-xs text-muted-foreground">
-                v{risk.versionNumber ?? "-"}
-              </span>
-              <span className="h-3.5 w-px shrink-0 bg-border" aria-hidden="true" />
-              <span className="shrink-0 text-xs text-muted-foreground">Sumber</span>
-              <span className="shrink-0 text-xs font-medium tabular-nums text-foreground">
-                {formatRiskScore(inherentScore)}
-              </span>
-              <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
-                P {risk.probability ?? "-"} · D {risk.impact ?? "-"}
-              </span>
-              <span className="h-3.5 w-px shrink-0 bg-border" aria-hidden="true" />
-              <span className="shrink-0 text-xs text-muted-foreground">Target</span>
-              <span className="shrink-0 text-xs font-medium tabular-nums text-foreground">
-                {formatRiskScore(targetScore, "-")}
-              </span>
-              {currentLevelLabel ? (
-                <span className="shrink-0 text-xs text-muted-foreground">
-                  {currentLevelLabel}
-                </span>
-              ) : null}
-            </div>
-          </div>
-          {detailHref ? (
-            <Link
-              href={detailHref}
-              aria-label={`Lihat detail risiko ${code}`}
-              className="mr-1 inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg text-muted-foreground outline-none transition-[background-color,color,transform] duration-150 hover:bg-sidebar-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30 active:scale-[0.96]"
-            >
-              <ArrowUpRight className="size-4" aria-hidden="true" />
-            </Link>
-          ) : null}
-        </div>
-      </div>
-    );
-  }
-
   if (compact) {
     return (
       <Card data-testid="profil-risiko-card" className="overflow-hidden">
-        <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0 space-y-1">
             <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline" className="font-mono text-[11px]">
+              <Badge variant="outline" className="">
                 {code}
               </Badge>
               <span className="text-xs text-muted-foreground">Versi sumber {risk.versionNumber ?? "-"}</span>
@@ -189,16 +129,16 @@ export function ProfilRisikoCard({
       data-testid="profil-risiko-card"
       className="overflow-hidden"
     >
-      <CardHeader className="gap-3 border-b border-border/40 pb-4">
+      <CardHeader className="gap-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
-            <CardTitle className="text-base">Profil Risiko Saat Ini</CardTitle>
+            <CardTitle className="">Profil Risiko Saat Ini</CardTitle>
             <p className="text-sm leading-6 text-secondary-foreground">
               Ringkasan versi terakhir yang menjadi acuan pemantauan saat ini.
             </p>
           </div>
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <Badge variant="outline" className="font-mono">
+            <Badge variant="outline" className="">
               {code}
             </Badge>
             {detailHref ? (
@@ -221,7 +161,7 @@ export function ProfilRisikoCard({
         <div className="grid gap-4 xl:grid-cols-2">
           <div
             className={cn(
-              "rounded-xl p-4 shadow-inner ring-1 ring-inset",
+              "rounded-lg p-4 shadow-inner ring-1 ring-inset",
               currentScoreTone.shell,
             )}
           >
@@ -244,11 +184,8 @@ export function ProfilRisikoCard({
               </p>
               {currentLevelLabel ? (
                 <Badge
-                  variant="outline"
-                  className={cn(
-                    "h-6 rounded-full px-2.5 text-[10px] font-semibold uppercase tracking-[0.14em]",
-                    level ? levelToColor(level) : "",
-                  )}
+                  variant={level ? getLinearRiskLevelBadgeTone(getRiskLevelLabel(level)) : "secondary"}
+                  className="uppercase"
                 >
                   {currentLevelLabel}
                 </Badge>
@@ -257,7 +194,7 @@ export function ProfilRisikoCard({
             <div className="mt-3 grid gap-2 text-sm text-secondary-foreground sm:grid-cols-2">
               <div
                 className={cn(
-                  "rounded-xl bg-white/70 px-3 py-2 ring-1 ring-inset",
+                  "rounded-lg bg-white/70 px-3 py-2 ring-1 ring-inset",
                   currentScoreTone.subcard,
                 )}
               >
@@ -270,7 +207,7 @@ export function ProfilRisikoCard({
               </div>
               <div
                 className={cn(
-                  "rounded-xl bg-white/70 px-3 py-2 ring-1 ring-inset",
+                  "rounded-lg bg-white/70 px-3 py-2 ring-1 ring-inset",
                   currentScoreTone.subcard,
                 )}
               >
@@ -286,7 +223,7 @@ export function ProfilRisikoCard({
 
           <div
             className={cn(
-              "rounded-xl p-4 shadow-inner ring-1 ring-inset",
+              "rounded-lg p-4 shadow-inner ring-1 ring-inset",
               targetScoreTone.shell,
             )}
           >
@@ -309,11 +246,8 @@ export function ProfilRisikoCard({
               </p>
               {targetLevelLabel ? (
                 <Badge
-                  variant="outline"
-                  className={cn(
-                    "h-6 rounded-full px-2.5 text-[10px] font-semibold uppercase tracking-[0.14em]",
-                    targetLevel ? levelToColor(targetLevel) : "",
-                  )}
+                  variant={targetLevel ? getLinearRiskLevelBadgeTone(getRiskLevelLabel(targetLevel)) : "secondary"}
+                  className="uppercase"
                 >
                   {targetLevelLabel}
                 </Badge>
@@ -322,7 +256,7 @@ export function ProfilRisikoCard({
             <div className="mt-3 grid gap-2 text-sm text-secondary-foreground sm:grid-cols-2">
               <div
                 className={cn(
-                  "rounded-xl bg-white/70 px-3 py-2 ring-1 ring-inset",
+                  "rounded-lg bg-white/70 px-3 py-2 ring-1 ring-inset",
                   targetScoreTone.subcard,
                 )}
               >
@@ -335,7 +269,7 @@ export function ProfilRisikoCard({
               </div>
               <div
                 className={cn(
-                  "rounded-xl bg-white/70 px-3 py-2 ring-1 ring-inset",
+                  "rounded-lg bg-white/70 px-3 py-2 ring-1 ring-inset",
                   targetScoreTone.subcard,
                 )}
               >

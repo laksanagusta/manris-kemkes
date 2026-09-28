@@ -1,11 +1,12 @@
 "use client";
 
-import { useRef, useState, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { CollectionDialogCancel } from "../collections/collection-dialog-cancel";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -14,7 +15,6 @@ import { cn } from "@/lib/utils";
 
 import {
   MitigationProgressForm,
-  type MitigationProgressFormHandle,
   type MitigationProgressFormProps,
 } from "./mitigation-progress-form";
 
@@ -34,45 +34,29 @@ export function MitigationProgressDialog({
   className,
   ...formProps
 }: MitigationProgressDialogProps) {
-  const [evidenceEditorOpen, setEvidenceEditorOpen] = useState(false);
-  const evidenceEditorControlRef = useRef<MitigationProgressFormHandle>(null);
-
-  const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen) setEvidenceEditorOpen(false);
-    onOpenChange(nextOpen);
-  };
-
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className={cn("max-w-2xl no-scrollbar", className)}
         showCloseButton={false}
-        onEscapeKeyDown={(event) => {
-          if (!evidenceEditorOpen) return;
-
-          event.preventDefault();
-          evidenceEditorControlRef.current?.cancelEvidenceEditor();
-        }}
       >
         <div className="flex min-h-0 flex-col gap-5">
           <DialogHeader>
             <DialogTitle className="text-base">{title}</DialogTitle>
+            <DialogDescription>
+              Masukkan bukti dan catatan untuk melaporkan progres penanganan.
+            </DialogDescription>
           </DialogHeader>
           <div>
-            <MitigationProgressForm
-              {...formProps}
-              evidenceEditorOpen={evidenceEditorOpen}
-              onEvidenceEditorOpenChange={setEvidenceEditorOpen}
-              evidenceEditorControlRef={evidenceEditorControlRef}
-            />
+            <MitigationProgressForm {...formProps} />
           </div>
           <DialogFooter>
             <CollectionDialogCancel
               type="button"
               variant="outline"
-              size="md"
-              className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
-              onClick={() => handleOpenChange(false)}
+              size="default"
+              className="border-0 shadow-black"
+              onClick={() => onOpenChange(false)}
             >
               Batal
             </CollectionDialogCancel>

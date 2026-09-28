@@ -42,9 +42,6 @@ type ControlTest struct {
 
 // Validate performs domain validation on Control
 func (c *Control) Validate() error {
-	if c.Code == "" {
-		return errors.ErrInvalidCode
-	}
 	if c.Name == "" {
 		return errors.ErrInvalidName
 	}

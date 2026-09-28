@@ -12,7 +12,7 @@ import {
   Save,
   Send,
   ShieldCheck,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 
 import { useAuth } from "@/contexts/auth-context";
 import { listAllOrganizations, type OrganizationListItem } from "@/lib/api/organizations";
@@ -31,7 +31,7 @@ import type {
   TMPMRStatus,
 } from "@/types/tmpmr";
 import { FormHeader, FormPage, FormSection } from "@/components/shared/form-shell";
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -45,6 +45,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { getStatusBadgeClassName, toBadgeVariant, type StatusTone } from "@/lib/badge-variant";
 
 type TMPMRDimensionTemplate = {
   key: TMPMRDimension;
@@ -99,19 +100,19 @@ const statusLabel: Record<TMPMRStatus, string> = {
   approved: "Approved",
 };
 
-const statusStyles: Record<TMPMRStatus, string> = {
-  draft: "border-border/60 bg-muted/40 text-muted-foreground",
-  submitted: "border-primary/20 bg-primary/5 text-primary",
-  reviewed: "border-amber-500/20 bg-amber-500/10 text-amber-700",
-  approved: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700",
+const statusTones: Record<TMPMRStatus, StatusTone> = {
+  draft: "neutral",
+  submitted: "progress",
+  reviewed: "warning",
+  approved: "success",
 };
 
 const maturityStyles = [
-  { match: "Awal", className: "border-border/60 bg-muted/40 text-muted-foreground" },
-  { match: "Berkembang", className: "border-sky-500/20 bg-sky-500/10 text-sky-700" },
-  { match: "Terdefinisi", className: "border-indigo-500/20 bg-indigo-500/10 text-indigo-700" },
-  { match: "Terkelola", className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-700" },
-  { match: "Optimum", className: "border-primary/20 bg-primary/5 text-primary" },
+  { match: "Awal", variant: "secondary" as BadgeVariant },
+  { match: "Berkembang", variant: "outline" as BadgeVariant },
+  { match: "Terdefinisi", variant: "outline" as BadgeVariant },
+  { match: "Terkelola", variant: "default" as BadgeVariant },
+  { match: "Optimum", variant: "default" as BadgeVariant },
 ];
 
 function currentPeriod() {
@@ -136,9 +137,8 @@ function calculateMaturityLevel(score: number) {
   return "Optimum";
 }
 
-function getMaturityClass(maturityLevel: string) {
-  return maturityStyles.find((item) => maturityLevel.includes(item.match))?.className ??
-    "border-border/60 bg-muted/40 text-muted-foreground";
+function getMaturityVariant(maturityLevel: string): BadgeVariant {
+  return maturityStyles.find((item) => maturityLevel.includes(item.match))?.variant ?? "secondary";
 }
 
 function cloneDefaultItems(): TMPMRItem[] {
@@ -397,15 +397,15 @@ export default function TMPMRDetailPage() {
 
   const statusBadges = (
     <>
-      <Badge className="gap-2 -primary/15 bg-primary/[0.06] px-2.5 py-0.5 text-primary">
+      <Badge variant="secondary">
         <ClipboardList className="size-3.5" />
         Risk Governance
       </Badge>
-      <Badge variant="outline" className={cn("px-2.5 py-0.5", status ? statusStyles[status] : statusStyles.draft)}>
+      <Badge variant={toBadgeVariant(status ? statusTones[status] : "neutral")} className={getStatusBadgeClassName(status ? statusTones[status] : "neutral")}>
         {status ? statusLabel[status] : "Draft"}
       </Badge>
       {isApproved ? (
-        <Badge variant="outline" className="gap-1.5 -emerald-500/20 bg-emerald-500/10 text-emerald-700">
+        <Badge variant="default" className="border-transparent bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300">
           <CheckCircle2 className="size-3.5" />
           Read-only
         </Badge>
@@ -417,7 +417,7 @@ export default function TMPMRDetailPage() {
     return (
       <FormPage>
         <Card>
-          <CardContent className="flex min-h-[360px] items-center justify-center gap-3 text-sm text-muted-foreground">
+          <CardContent className="flex min-h-[360px] items-center justify-center gap-3">
             <Loader2 className="size-5 animate-spin" />
             Memuat detail TMPMR...
           </CardContent>
@@ -430,35 +430,33 @@ export default function TMPMRDetailPage() {
     <FormPage>
       <FormHeader
         title={isCreateMode ? "Buat TMPMR" : "Detail TMPMR"}
-        onBack={() => router.push("/management/tmpmr")}
-        backLabel="Kembali ke TMPMR"
         badges={statusBadges}
         actions={
           <>
-            <Button variant="outline" size="sm" className="gap-2" onClick={loadData} disabled={saving}>
+            <Button variant="outline" size="sm" className="" onClick={loadData} disabled={saving}>
               <RefreshCw className="size-4" />
               Muat Ulang
             </Button>
             {canSave ? (
-              <Button onClick={handleSave} disabled={saving} className="gap-2">
+              <Button onClick={handleSave} disabled={saving} className="">
                 {saving ? <Loader2 className="size-4 animate-spin" /> : <Save className="size-4" />}
                 {isCreateMode ? "Simpan Draft" : "Simpan"}
               </Button>
             ) : null}
             {canSubmit ? (
-              <Button variant="secondary" onClick={handleSubmit} disabled={saving || !summary.readyToSubmit} className="gap-2">
+              <Button variant="secondary" onClick={handleSubmit} disabled={saving || !summary.readyToSubmit} className="">
                 <Send className="size-4" />
                 Submit
               </Button>
             ) : null}
             {canReview ? (
-              <Button variant="secondary" onClick={handleReview} disabled={saving || !reviewNote.trim()} className="gap-2">
+              <Button variant="secondary" onClick={handleReview} disabled={saving || !reviewNote.trim()} className="">
                 <ShieldCheck className="size-4" />
                 Review
               </Button>
             ) : null}
             {canApprove ? (
-              <Button variant="success" onClick={handleApprove} disabled={saving} className="gap-2">
+              <Button variant="default" onClick={handleApprove} disabled={saving} className="">
                 <CheckCircle2 className="size-4" />
                 Approve
               </Button>
@@ -513,13 +511,13 @@ export default function TMPMRDetailPage() {
                 <Input
                   value={assessorId || user?.id || "-"}
                   disabled
-                  className="bg-muted/30"
+                  className=""
                 />
               </div>
               <div className="space-y-2">
                 <Label>Status Terkini</Label>
                 <div className="flex h-8 items-center">
-                  <Badge variant="outline" className={cn("px-2.5 py-0.5", status ? statusStyles[status] : statusStyles.draft)}>
+                  <Badge variant={toBadgeVariant(status ? statusTones[status] : "neutral")} className={getStatusBadgeClassName(status ? statusTones[status] : "neutral")}>
                     {status ? statusLabel[status] : "Draft"}
                   </Badge>
                 </div>
@@ -619,8 +617,8 @@ export default function TMPMRDetailPage() {
         </div>
 
         <aside className="space-y-4 xl:sticky xl:top-6 xl:self-start">
-          <Card className="bg-card/80 backdrop-blur-sm">
-            <CardContent className="space-y-4 px-4 py-4">
+          <Card className="">
+            <CardContent className="space-y-4">
               <div className="space-y-2">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-muted-foreground/80">
                   Ringkasan
@@ -634,7 +632,7 @@ export default function TMPMRDetailPage() {
               </div>
 
               <div className="grid gap-3">
-                <div className="rounded-xl border border-border/50 bg-muted/20 p-3">
+                <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
                   <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                     Skor Rata-rata
                   </p>
@@ -643,18 +641,18 @@ export default function TMPMRDetailPage() {
                   </p>
                 </div>
 
-                <div className="rounded-xl border border-border/50 bg-muted/20 p-3">
+                <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
                   <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                     Maturity Level
                   </p>
                   <div className="mt-2">
-                    <Badge variant="outline" className={cn("px-2.5 py-0.5", getMaturityClass(summary.maturityLevel))}>
+                    <Badge variant={getMaturityVariant(summary.maturityLevel)}>
                       {summary.maturityLevel}
                     </Badge>
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-border/50 bg-muted/20 p-3">
+                <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
                   <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                     Kelengkapan Item
                   </p>
@@ -674,11 +672,11 @@ export default function TMPMRDetailPage() {
                   Status Alur
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  <Badge variant="outline" className={cn("px-2.5 py-0.5", status ? statusStyles[status] : statusStyles.draft)}>
+                  <Badge variant={toBadgeVariant(status ? statusTones[status] : "neutral")} className={getStatusBadgeClassName(status ? statusTones[status] : "neutral")}>
                     {status ? statusLabel[status] : "Draft"}
                   </Badge>
                   {isApproved ? (
-                    <Badge variant="outline" className="-emerald-500/20 bg-emerald-500/10 text-emerald-700">
+                    <Badge variant="default" className="border-transparent bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300">
                       Selesai
                     </Badge>
                   ) : null}
@@ -692,14 +690,14 @@ export default function TMPMRDetailPage() {
             </CardContent>
           </Card>
 
-          <Card className="bg-muted/20">
-            <CardContent className="space-y-3 px-4 py-4">
+          <Card className="">
+            <CardContent className="space-y-3">
               <p className="text-sm font-medium">Panduan singkat</p>
               <p className="text-sm leading-6 text-secondary-foreground">
                 Isi skor dari 1 sampai 5 untuk semua dimensi sebelum submit. Setelah masuk review, item dikunci dan hanya catatan review yang bisa diperbarui.
               </p>
               {!isCreateMode ? (
-                <Button variant="outline" size="sm" asChild className="gap-2">
+                <Button variant="outline" size="sm" asChild className="">
                   <Link href="/reports">
                     Lihat Reports
                     <RefreshCw className="size-4" />

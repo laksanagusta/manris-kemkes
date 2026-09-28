@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
+import { Card } from "@/components/ui/card";
 
 export function DocumentForm({
   children,
@@ -10,14 +11,9 @@ export function DocumentForm({
   className?: string;
 }) {
   return (
-    <div
-      className={cn(
-        "overflow-hidden rounded-xl bg-card smooth-shadow-ring-sm shadow-black smooth-ring-neutral-300/30",
-        className,
-      )}
-    >
+    <Card className={cn("overflow-hidden", className)}>
       {children}
-    </div>
+    </Card>
   );
 }
 
@@ -55,14 +51,14 @@ export function DocumentFormSection({
         <div className="flex items-start justify-between gap-3">
           <h2
             id={titleId}
-            className="text-sm font-semibold leading-5 text-foreground"
+            className="text-sm font-semibold leading-5 text-muted-foreground"
           >
             {title}
           </h2>
           {action ? <div className="shrink-0 lg:hidden">{action}</div> : null}
         </div>
         {description ? (
-          <p className="text-sm leading-6 text-muted-foreground">
+          <p className="text-sm leading-6 text-secondary-foreground">
             {description}
           </p>
         ) : null}

@@ -43,3 +43,36 @@ test("uses MoM for the meeting module's user-facing labels", () => {
     assert.doesNotMatch(source, /meeting intelligence/);
   }
 });
+
+test("keeps the MoM create action in the collection toolbar", () => {
+  const toolbarStart = minutesPage.indexOf("<CollectionToolbar");
+  const tableStart = minutesPage.indexOf("<CollectionTableCard", toolbarStart);
+  const toolbar =
+    toolbarStart >= 0 && tableStart > toolbarStart
+      ? minutesPage.slice(toolbarStart, tableStart)
+      : "";
+
+  assert.ok(toolbar.length > 0);
+  assert.match(toolbar, /actions=/);
+  assert.match(toolbar, /router\.push\("\/minutes\/new"\)/);
+  assert.match(toolbar, /Buat Notulen/);
+});
+
+test("keeps transcript action controls icon-free", () => {
+  const actionRowStart = meetingWorkspace.indexOf(
+    '<div className="flex flex-wrap justify-end gap-2">',
+  );
+  const cardContentEnd = meetingWorkspace.indexOf(
+    "</CardContent>",
+    actionRowStart,
+  );
+  const actionRow =
+    actionRowStart >= 0 && cardContentEnd > actionRowStart
+      ? meetingWorkspace.slice(actionRowStart, cardContentEnd)
+      : "";
+
+  assert.ok(actionRow.length > 0);
+  assert.doesNotMatch(actionRow, /Sparkles|RefreshCw/);
+  assert.match(actionRow, /selectedMode\.runningLabel/);
+  assert.match(actionRow, /selectedMode\.actionLabel/);
+});

@@ -17,6 +17,13 @@ function isExistingCurrentCycleReassessmentError(message: string): boolean {
 export function getWorkingPaperCreateErrorMessage(error: unknown): string {
   const message = getErrorMessage(error);
 
+  const existingQuarterMatch = message.match(
+    /kertas kerja untuk kuartal\s+([^\s]+)\s+sudah ada/i,
+  );
+  if (existingQuarterMatch) {
+    return `Kertas kerja untuk kuartal ${existingQuarterMatch[1]} sudah ada. Batalkan kertas kerja tersebut atau gunakan kuartal lain.`;
+  }
+
   if (/ROSTER_STALE|roster.*berubah|refresh/i.test(message)) {
     return "Daftar risiko atau status monitoring berubah. Muat ulang roster sebelum membuat kertas kerja.";
   }

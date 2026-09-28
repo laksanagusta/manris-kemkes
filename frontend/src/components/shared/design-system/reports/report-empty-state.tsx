@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
+import { IllustratedEmptyState } from "../feedback/illustrated-empty-state";
 
 export function ReportEmptyState({
   title,
@@ -12,16 +13,10 @@ export function ReportEmptyState({
   className?: string;
 }) {
   return (
-    <div
-      className={cn(
-        "flex min-h-40 items-center justify-center rounded-lg bg-state-surface px-6 py-8 text-center text-state-foreground",
-        className,
-      )}
-    >
-      <div className="max-w-sm space-y-2">
-        {title ? <p className="text-sm font-medium text-state-foreground">{title}</p> : null}
-        <p className="text-sm text-state-foreground">{description}</p>
-      </div>
-    </div>
+    <IllustratedEmptyState
+      title={title ?? "Belum ada data"}
+      description={description}
+      className={cn("min-h-40", className)}
+    />
   );
 }

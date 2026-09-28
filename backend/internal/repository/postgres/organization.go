@@ -94,14 +94,27 @@ func (r *organizationRepository) List(ctx context.Context) ([]*entity.Organizati
 }
 
 func (r *organizationRepository) ListWithFilter(ctx context.Context, filter repository.OrganizationListFilter) ([]*entity.Organization, int, error) {
-	countQuery := `SELECT COUNT(*) FROM organizations WHERE 1=1`
-	dataQuery := `SELECT id, name, parent_id, COALESCE(upr_level, '') as upr_level, COALESCE(location, '') as location, COALESCE(address, '') as address, created_at FROM organizations WHERE 1=1`
+	countQuery := `SELECT COUNT(*) FROM organizations o WHERE 1=1`
+	dataQuery := `SELECT o.id, o.name, o.parent_id, COALESCE(o.upr_level, '') as upr_level, COALESCE(o.location, '') as location, COALESCE(o.address, '') as address, o.created_at FROM organizations o WHERE 1=1`
 
 	var args []interface{}
 	argIdx := 1
+	if filter.AncestorID != nil {
+		const descendantsCTE = `WITH RECURSIVE descendant_orgs(id) AS (
+			SELECT id FROM organizations WHERE parent_id = $1
+			UNION
+			SELECT child.id
+			FROM organizations child
+			INNER JOIN descendant_orgs parent ON child.parent_id = parent.id
+		)`
+		countQuery = descendantsCTE + ` SELECT COUNT(*) FROM organizations o WHERE o.id IN (SELECT id FROM descendant_orgs)`
+		dataQuery = descendantsCTE + ` SELECT o.id, o.name, o.parent_id, COALESCE(o.upr_level, '') as upr_level, COALESCE(o.location, '') as location, COALESCE(o.address, '') as address, o.created_at FROM organizations o WHERE o.id IN (SELECT id FROM descendant_orgs)`
+		args = append(args, *filter.AncestorID)
+		argIdx++
+	}
 
 	if filter.Q != "" {
-		f := fmt.Sprintf(" AND name ILIKE $%d", argIdx)
+		f := fmt.Sprintf(" AND (o.name ILIKE $%d OR COALESCE(o.location, '') ILIKE $%d OR COALESCE(o.upr_level, '') ILIKE $%d)", argIdx, argIdx, argIdx)
 		countQuery += f
 		dataQuery += f
 		args = append(args, "%"+filter.Q+"%")

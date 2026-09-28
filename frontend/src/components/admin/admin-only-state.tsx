@@ -1,9 +1,7 @@
-import { ShieldX } from "@/components/ui/icons";
+import { ShieldX } from "@/components/shared/icons";
 
-import { FormBackAction } from "@/components/shared/design-system";
 import {
   Card,
-  CardContent,
   CardDescription,
   CardHeader,
   CardTitle,
@@ -20,21 +18,18 @@ export function AdminOnlyState({
 }: AdminOnlyStateProps) {
   return (
     <div className="mx-auto flex min-h-[calc(100vh-10rem)] max-w-xl items-center justify-center">
-      <Card className="w-full bg-card/95">
+      <Card className="w-full">
         <CardHeader className="items-start gap-4 text-left">
           <div className="flex size-12 items-center justify-center rounded-full bg-destructive/10 text-destructive">
             <ShieldX />
           </div>
           <div className="space-y-2">
             <CardTitle>{title}</CardTitle>
-            <CardDescription className="text-sm leading-6">
+            <CardDescription className="">
               {description}
             </CardDescription>
           </div>
         </CardHeader>
-        <CardContent>
-          <FormBackAction href="/overview" label="Kembali ke dashboard" />
-        </CardContent>
       </Card>
     </div>
   );

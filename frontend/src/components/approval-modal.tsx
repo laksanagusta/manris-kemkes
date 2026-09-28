@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Check, X, Loader2 } from "@/components/ui/icons";
+import { Check, X, Loader2 } from "@/components/shared/icons";
 import { cn } from "@/lib/utils";
 
 interface ApprovalModalProps {
@@ -165,7 +165,7 @@ export function ApprovalModal({
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               disabled={isSubmitting}
-              className="min-h-[80px] resize-none"
+              className="resize-none"
             />
             <p className="text-[11px] text-muted-foreground">
               Pesan ini akan dicatat dalam riwayat persetujuan.
@@ -187,7 +187,7 @@ export function ApprovalModal({
             type="button"
             onClick={handleSubmit}
             disabled={isSubmitting}
-            className={isApprove ? "" : "bg-destructive text-destructive-foreground hover:bg-destructive/90"}
+            className={isApprove ? "" : ""}
           >
             {isSubmitting ? (
               <>

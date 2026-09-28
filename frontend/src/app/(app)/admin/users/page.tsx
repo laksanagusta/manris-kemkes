@@ -23,7 +23,7 @@ import {
   ShieldCheck,
   ShieldX,
   Users,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 import { toast } from "sonner";
 
 import { AdminOnlyState } from "@/components/admin/admin-only-state";
@@ -31,11 +31,12 @@ import {
   CollectionPageHeader,
   CollectionPagination,
   CollectionToolbar,
+  CollectionEmptyState,
   KpiCard,
   MetricGrid,
   PageStack,
 } from "@/components/shared/design-system";
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -69,43 +70,44 @@ import {
   type UserListItem,
 } from "@/lib/api/users";
 import { cn } from "@/lib/utils";
+import { getStatusBadgeClassName, toBadgeVariant, type StatusTone } from "@/lib/badge-variant";
 
-const roleMeta: Record<string, { label: string; badgeClassName: string }> = {
+const roleMeta: Record<string, { label: string; variant: BadgeVariant }> = {
   superadmin: {
     label: "Super Admin",
-    badgeClassName: "border-primary/20 bg-primary/15 text-primary",
+    variant: "default",
   },
   unit: {
     label: "Unit Kerja",
-    badgeClassName: "border-chart-2/20 bg-chart-2/15 text-chart-2",
+    variant: "secondary",
   },
   reviewer: {
     label: "Reviewer",
-    badgeClassName: "border-risk-medium/20 bg-risk-medium/15 text-risk-medium",
+    variant: "outline",
   },
   pimpinan: {
     label: "Pimpinan",
-    badgeClassName: "border-chart-4/20 bg-chart-4/15 text-chart-4",
+    variant: "ghost",
   },
 };
 
 const statusMeta: Record<
   string,
-  { label: string; badgeClassName: string; dotClassName: string }
+  { label: string; tone: StatusTone; dotClassName: string }
 > = {
   pending_activation: {
     label: "Menunggu aktivasi",
-    badgeClassName: "border-warning/25 bg-warning/10 text-warning",
+    tone: "warning",
     dotClassName: "bg-warning",
   },
   active: {
     label: "Aktif",
-    badgeClassName: "border-success/25 bg-success/10 text-success",
+    tone: "success",
     dotClassName: "bg-success",
   },
   inactive: {
     label: "Nonaktif",
-    badgeClassName: "border-border bg-muted text-muted-foreground",
+    tone: "neutral",
     dotClassName: "bg-muted-foreground",
   },
 };
@@ -398,6 +400,7 @@ export default function UsersManagementPage() {
         ))}
       </MetricGrid>
 
+      <div className="space-y-4">
       <CollectionToolbar
         className="w-full"
         leading={
@@ -411,7 +414,7 @@ export default function UsersManagementPage() {
                   setSearch(event.target.value);
                   setPage(1);
                 }}
-                className="h-9 border-input bg-card pl-8 text-xs"
+                className=""
               />
             </div>
             <Select
@@ -421,7 +424,7 @@ export default function UsersManagementPage() {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="h-9 w-full bg-card text-xs sm:w-40">
+              <SelectTrigger className="w-full sm:w-40">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -438,7 +441,7 @@ export default function UsersManagementPage() {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="h-9 w-full bg-card text-xs sm:w-36">
+              <SelectTrigger className="w-full sm:w-36">
                 <SelectValue placeholder="Role" />
               </SelectTrigger>
               <SelectContent>
@@ -452,7 +455,7 @@ export default function UsersManagementPage() {
           </div>
         }
         actions={
-          <Button asChild size="md" className="w-full sm:w-auto">
+          <Button asChild size="default" className="w-full sm:w-auto">
             <Link href="/admin/users/new">
               <Plus data-icon="inline-start" />
               Tambah pengguna
@@ -461,30 +464,32 @@ export default function UsersManagementPage() {
         }
       />
 
-      <Card className="overflow-hidden bg-card/80">
-        <CardContent className="p-0">
+      <Card className="overflow-hidden">
+        <CardContent className="">
           <Table>
             <TableHeader>
-              <TableRow className="border-border/50 hover:bg-transparent">
-                <TableHead className="text-sm whitespace-nowrap">User</TableHead>
-                <TableHead className="w-32 text-sm whitespace-nowrap">Phone</TableHead>
-                <TableHead className="w-32 text-sm whitespace-nowrap">NIP</TableHead>
-                <TableHead className="w-28 text-sm whitespace-nowrap">Role</TableHead>
-                <TableHead className="w-36 text-sm whitespace-nowrap">Jabatan</TableHead>
-                <TableHead className="w-28 text-sm whitespace-nowrap">Pangkat</TableHead>
-                <TableHead className="w-40 text-sm whitespace-nowrap">Organisasi</TableHead>
-                <TableHead className="w-40 text-sm whitespace-nowrap">Status</TableHead>
-                <TableHead className="w-16 text-sm whitespace-nowrap">Aksi</TableHead>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="px-24 whitespace-nowrap">User</TableHead>
+                <TableHead className="w-32 whitespace-nowrap">Phone</TableHead>
+                <TableHead className="w-32 whitespace-nowrap">NIP</TableHead>
+                <TableHead className="w-28 whitespace-nowrap">Role</TableHead>
+                <TableHead className="w-36 whitespace-nowrap">Jabatan</TableHead>
+                <TableHead className="w-28 whitespace-nowrap">Pangkat</TableHead>
+                <TableHead className="w-40 whitespace-nowrap">Organisasi</TableHead>
+                <TableHead className="w-40 whitespace-nowrap">Status</TableHead>
+                <TableHead className="w-16 whitespace-nowrap">
+                  <span className="sr-only">Aksi</span>
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {users.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={9} className="h-24">
-                    <div className="flex flex-col gap-1 text-left">
-                      <p className="text-sm font-medium text-muted-foreground">Belum ada data pengguna</p>
-                      <p className="text-xs text-muted-foreground/70">Tambahkan pengguna baru untuk memulai</p>
-                    </div>
+                    <CollectionEmptyState
+                      title="Belum ada data pengguna"
+                      description="Tambahkan pengguna baru untuk memulai."
+                    />
                   </TableCell>
                 </TableRow>
               ) : (
@@ -496,11 +501,11 @@ export default function UsersManagementPage() {
                   return (
                     <TableRow
                       key={managedUser.id}
-                      className="border-border/30 transition-colors hover:bg-muted/30"
+                      className="transition-colors hover:bg-muted/30"
                     >
-                      <TableCell className="max-w-[250px]">
+                      <TableCell className="max-w-[250px] px-24">
                         <div className="flex items-center gap-3">
-                          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-bold text-primary">
+                          <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-medium text-primary">
                             {getInitials(managedUser.name)}
                           </div>
                           <div className="min-w-0">
@@ -513,31 +518,26 @@ export default function UsersManagementPage() {
                           </div>
                         </div>
                       </TableCell>
-                       <TableCell className="text-sm text-muted-foreground">
+                       <TableCell className="">
                          {managedUser.phoneNumber || "\u2014"}
                        </TableCell>
-                       <TableCell className="text-sm text-muted-foreground">
+                       <TableCell className="">
                          {managedUser.nip || "\u2014"}
                        </TableCell>
                       <TableCell>
                         <Badge
-                          variant="outline"
-                          className={cn(
-                            "h-5 border px-1.5 text-[10px] font-semibold",
-                            role?.badgeClassName ??
-                              "border-border bg-muted text-muted-foreground",
-                          )}
+                          variant={role?.variant ?? "secondary"}
                         >
                           {role?.label ?? managedUser.role}
                         </Badge>
                       </TableCell>
-                       <TableCell className="text-sm text-muted-foreground">
+                       <TableCell className="">
                          {managedUser.jabatan || "\u2014"}
                        </TableCell>
-                       <TableCell className="text-sm text-muted-foreground">
+                       <TableCell className="">
                          {managedUser.pangkat || "\u2014"}
                        </TableCell>
-                       <TableCell className="max-w-[200px] text-sm text-muted-foreground">
+                       <TableCell className="max-w-[200px]">
                          <span className="block truncate">
                            {managedUser.role === "superadmin"
                              ? "Semua organisasi"
@@ -545,13 +545,7 @@ export default function UsersManagementPage() {
                          </span>
                        </TableCell>
                       <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={cn(
-                            "h-5 border px-1.5 text-[10px]",
-                            status.badgeClassName,
-                          )}
-                        >
+                        <Badge variant={toBadgeVariant(status.tone)} className={getStatusBadgeClassName(status.tone)}>
                           <span
                             className={cn(
                               "mr-1 size-1.5 rounded-full",
@@ -567,7 +561,7 @@ export default function UsersManagementPage() {
                             <Button
                               variant="ghost"
                               size="icon-xs"
-                              className="text-muted-foreground"
+                              className=""
                               aria-label={`Aksi untuk ${managedUser.name}`}
                             >
                               <MoreHorizontal className="size-3.5" />
@@ -631,8 +625,9 @@ export default function UsersManagementPage() {
               setPage(1);
             }}
           />
-        </CardContent>
+      </CardContent>
       </Card>
+      </div>
     </PageStack>
   );
 }

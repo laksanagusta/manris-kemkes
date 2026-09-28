@@ -57,7 +57,7 @@ export function getRiskRegisterMonitoringStatusTone(
 
   switch ((status ?? "").trim().toLowerCase()) {
     case "draft":
-      return "warning";
+      return "progress";
     case "final":
     case "finalized": // legacy API payloads
       return "success";

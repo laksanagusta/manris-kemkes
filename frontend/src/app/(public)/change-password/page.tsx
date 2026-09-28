@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ArrowRight, KeyRound } from "@/components/ui/icons";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -13,7 +13,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import { Spinner } from "@/components/ui/spinner";
 import { useAuth } from "@/contexts/auth-context";
 
 export default function ChangePasswordPage() {
@@ -82,7 +83,7 @@ export default function ChangePasswordPage() {
   if (loading || !isAuthenticated) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <Spinner />
       </div>
     );
   }
@@ -106,25 +107,18 @@ export default function ChangePasswordPage() {
 
       <div className="relative z-10 w-full max-w-md px-4 animate-fade-in">
         <div className="mb-8 text-center">
-          <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-xl bg-primary/10 p-2.5">
-            <Image src="/logo.svg" alt="MANRIS logo" width={44} height={44} className="object-contain" />
-          </div>
-          <h1 className="page-title">
-            <span className="gradient-text">MANRIS</span>
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <Image src="/logo.svg" alt="MANRIS logo" width={44} height={44} className="mx-auto" />
+          <h1 className="text-xl font-semibold">MANRIS</h1>
+          <p className="text-muted-foreground">
             {isSetupFlow
               ? "Aktivasi akun pada login pertama"
               : "Kelola keamanan akun Anda"}
           </p>
         </div>
 
-        <Card className="bg-card/80 backdrop-blur-xl">
-          <CardHeader className="pb-4">
-            <CardTitle className="flex items-center gap-2">
-              <KeyRound className="size-4 text-primary" />
-              {isSetupFlow ? "Ubah Password Sementara" : "Ubah Password"}
-            </CardTitle>
+        <Card>
+          <CardHeader>
+            <CardTitle>{isSetupFlow ? "Ubah Password Sementara" : "Ubah Password"}</CardTitle>
             <CardDescription>
               {isSetupFlow
                 ? "Password baru wajib dibuat sebelum Anda dapat mengakses dashboard dan menu aplikasi."
@@ -132,73 +126,63 @@ export default function ChangePasswordPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <form onSubmit={handleSubmit}>
+              <FieldGroup>
               {error && (
-                <div aria-live="polite" className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                  {error}
-                </div>
+                <Alert variant="destructive" aria-live="polite"><AlertDescription>{error}</AlertDescription></Alert>
               )}
 
               {!isSetupFlow && (
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="current-password" className="text-xs font-medium">
+                <Field>
+                  <FieldLabel htmlFor="current-password">
                     Password Saat Ini
-                  </Label>
+                  </FieldLabel>
                   <Input
                     id="current-password"
                     type="password"
                     placeholder="masukkan password saat ini"
-                    className="h-10 border-input bg-muted/30 focus-visible:ring-primary/30"
                     value={currentPassword}
                     onChange={(event) => setCurrentPassword(event.target.value)}
                     required
                   />
-                </div>
+                </Field>
               )}
 
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="new-password" className="text-xs font-medium">
+              <Field>
+                <FieldLabel htmlFor="new-password">
                   Password Baru
-                </Label>
+                </FieldLabel>
                 <Input
                   id="new-password"
                   type="password"
                   placeholder="minimal 8 karakter"
-                  className="h-10 border-input bg-muted/30 focus-visible:ring-primary/30"
                   value={newPassword}
                   onChange={(event) => setNewPassword(event.target.value)}
                   required
                 />
-              </div>
+              </Field>
 
-              <div className="flex flex-col gap-2">
-                <Label htmlFor="confirm-password" className="text-xs font-medium">
+              <Field>
+                <FieldLabel htmlFor="confirm-password">
                   Konfirmasi Password Baru
-                </Label>
+                </FieldLabel>
                 <Input
                   id="confirm-password"
                   type="password"
                   placeholder="ulangi password baru"
-                  className="h-10 border-input bg-muted/30 focus-visible:ring-primary/30"
                   value={confirmPassword}
                   onChange={(event) => setConfirmPassword(event.target.value)}
                   required
                 />
-              </div>
+              </Field>
 
               <Button
                 type="submit"
-                className="h-10 w-full gap-2 text-sm font-semibold"
+                className="w-full"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? (
-                  <div className="size-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-                ) : (
-                  <>
-                    Simpan Password Baru
-                    <ArrowRight data-icon="inline-end" />
-                  </>
-                )}
+                {isSubmitting ? <Spinner data-icon="inline-start" aria-hidden="true" /> : null}
+                {isSubmitting ? "Memproses..." : "Simpan Password Baru"}
               </Button>
 
               <p className="text-center text-xs text-muted-foreground">
@@ -206,6 +190,7 @@ export default function ChangePasswordPage() {
                   ? "Setelah berhasil, sesi setup akan ditukar menjadi sesi penuh dan Anda akan diarahkan ke overview."
                   : "Setelah berhasil, Anda akan kembali ke halaman account."}
               </p>
+              </FieldGroup>
             </form>
           </CardContent>
         </Card>

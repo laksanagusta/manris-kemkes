@@ -21,6 +21,7 @@ import {
   CollectionPageHeader,
   CollectionPagination,
   CollectionToolbar,
+  CollectionEmptyState,
   KpiCard,
   MetricGrid,
   PageStack,
@@ -39,7 +40,7 @@ import {
   Search,
   Building2,
   Loader2,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 import { useAuth } from "@/contexts/auth-context";
 import {
   type Organization,
@@ -120,8 +121,8 @@ function OrgRow({
     : createdAt.toLocaleDateString("id-ID");
 
   return (
-    <TableRow className="border-border/30 hover:bg-muted/30 transition-colors">
-      <TableCell className="max-w-[220px]">
+    <TableRow className="hover:bg-muted/30 transition-colors">
+      <TableCell className="max-w-[220px] px-24">
         <div className="flex items-center gap-2">
           <Building2 className="size-4 shrink-0 text-muted-foreground" />
           <span className="truncate text-xs font-medium text-foreground">
@@ -129,15 +130,15 @@ function OrgRow({
           </span>
         </div>
       </TableCell>
-      <TableCell className="text-sm text-muted-foreground">
+      <TableCell className="">
         {org.parentId
           ? parentNameMap.get(org.parentId) || "—"
           : "—"}
       </TableCell>
-      <TableCell className="text-sm text-muted-foreground">
+      <TableCell className="">
         {uprLevelLabel[org.uprLevel || ""] || org.uprLevel || "—"}
       </TableCell>
-      <TableCell className="text-sm text-muted-foreground">
+      <TableCell className="">
         {createdAtLabel}
       </TableCell>
       <TableCell>
@@ -354,6 +355,7 @@ export default function OrganizationsManagementPage() {
           <KpiCard label="Sub Unit" value={subUnits} tone="white" />
         </MetricGrid>
 
+        <div className="space-y-4">
         <CollectionToolbar
           className="w-full"
           leading={
@@ -366,14 +368,14 @@ export default function OrganizationsManagementPage() {
                   setSearch(event.target.value);
                   setPage(1);
                 }}
-                className="h-9 bg-card pl-8 text-xs"
+                className=""
               />
             </div>
           }
           actions={
             <Button
-              size="md"
-              className="w-full gap-2 sm:w-auto"
+              size="default"
+              className="w-full sm:w-auto"
               onClick={handleCreateClick}
               aria-label="Tambah Organisasi"
             >
@@ -383,15 +385,15 @@ export default function OrganizationsManagementPage() {
           }
         />
 
-        <Card className="bg-card/80 backdrop-blur-sm overflow-hidden">
+        <Card className="overflow-hidden">
           <Table>
             <TableHeader>
-              <TableRow className="border-border/50 hover:bg-transparent">
-                <TableHead className="text-sm w-[220px] whitespace-nowrap">Nama Organisasi</TableHead>
-                <TableHead className="text-sm w-40 whitespace-nowrap">Parent Unit</TableHead>
-                <TableHead className="text-sm w-28 whitespace-nowrap">UPR Level</TableHead>
-                <TableHead className="text-sm w-32 whitespace-nowrap">Dibuat</TableHead>
-                <TableHead className="text-sm w-10 whitespace-nowrap">
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="w-[220px] px-24 whitespace-nowrap">Nama Organisasi</TableHead>
+                <TableHead className="w-40 whitespace-nowrap">Parent Unit</TableHead>
+                <TableHead className="w-28 whitespace-nowrap">UPR Level</TableHead>
+                <TableHead className="w-32 whitespace-nowrap">Dibuat</TableHead>
+                <TableHead className="w-10 whitespace-nowrap">
                   <span className="sr-only">Aksi</span>
                 </TableHead>
               </TableRow>
@@ -399,17 +401,17 @@ export default function OrganizationsManagementPage() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 bg-state-surface text-center text-state-foreground">
+                  <TableCell colSpan={5} className="h-24 text-center">
                     <Loader2 className="size-5 animate-spin mx-auto text-muted-foreground" />
                   </TableCell>
                 </TableRow>
               ) : organizations.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 bg-state-surface">
-                    <div className="flex flex-col gap-1 text-left">
-                      <p className="text-sm font-medium text-state-foreground">Belum ada data organisasi</p>
-                      <p className="text-xs text-state-foreground/70">Tambahkan organisasi baru untuk memulai</p>
-                    </div>
+                  <TableCell colSpan={5} className="h-24">
+                    <CollectionEmptyState
+                      title="Belum ada data organisasi"
+                      description="Tambahkan organisasi baru untuk memulai."
+                    />
                   </TableCell>
                 </TableRow>
               ) : (
@@ -439,6 +441,7 @@ export default function OrganizationsManagementPage() {
             }}
           />
         </Card>
+        </div>
 
         <OrganizationFormDialog
           mode={dialogMode}

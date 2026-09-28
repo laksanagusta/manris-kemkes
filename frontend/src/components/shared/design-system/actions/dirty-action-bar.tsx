@@ -3,6 +3,7 @@
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
+import { Card, CardContent } from "@/components/ui/card";
 
 export function DirtyActionBar({
   visible,
@@ -27,10 +28,12 @@ export function DirtyActionBar({
         className,
       )}
     >
-      <div className="pointer-events-auto mx-auto flex w-full max-w-7xl items-center justify-between gap-4 rounded-xl bg-card px-4 py-3 smooth-shadow-ring-lg shadow-black smooth-ring-neutral-300/30">
-        <div className="min-w-0 text-sm text-muted-foreground">{status}</div>
-        <div className="flex shrink-0 items-center gap-2">{actions}</div>
-      </div>
+      <Card className="pointer-events-auto mx-auto w-full max-w-7xl">
+        <CardContent className="flex items-center justify-between gap-4">
+          <div className="min-w-0 text-sm text-muted-foreground">{status}</div>
+          <div className="flex shrink-0 items-center gap-2">{actions}</div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

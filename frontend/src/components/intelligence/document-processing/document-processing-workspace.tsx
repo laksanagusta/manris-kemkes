@@ -6,12 +6,12 @@ import { toast } from "sonner";
 import {
   AlertTriangle,
   XCircle,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
+import { Card, CardContent } from "@/components/ui/card";
 import { PageStack } from "@/components/shared/design-system";
-import { cn } from "@/lib/utils";
 import { currentAssessmentCycle } from "@/lib/risk-cycle-options";
 import type { DocumentAnalysisMode } from "@/types/document-intelligence";
 import type {
@@ -23,29 +23,14 @@ import type {
 } from "@/types/document-processing";
 import { FindingsReviewPanel } from "./completed-results";
 import { createDocumentProcessingApiAdapter } from "@/lib/document-processing/api-adapter";
-import { saveProcessingJob } from "@/lib/document-processing/storage";
+import {
+  clearProcessingJobs,
+  loadLatestProcessingJob,
+  saveProcessingJob,
+} from "@/lib/document-processing/storage";
 import { UploadPanel } from "./upload-panel";
 import { revokeDocumentPreview, validateFiles } from "./upload-utils";
 import type { FileIssue } from "./types";
-
-type ModeOption = {
-  value: DocumentAnalysisMode;
-  title: string;
-  description: string;
-};
-
-const modeOptions: ModeOption[] = [
-  {
-    value: "sop_risk_universe",
-    title: "SOP",
-    description: "Temukan risiko, kontrol, dan langkah proses dari SOP.",
-  },
-  {
-    value: "mitigation_report_mapper",
-    title: "Laporan Mitigasi",
-    description: "Petakan realisasi mitigasi, bukti, dan status tindak lanjut.",
-  },
-];
 
 function isTerminal(status?: ProcessingStatus) {
   return status === "completed" || status === "partial" || status === "failed" || status === "cancelled";
@@ -55,9 +40,9 @@ function statusMeta(status: ProcessingStatus) {
   if (status === "completed") return { label: "Selesai", tone: "success" as const };
   if (status === "partial") return { label: "Sebagian selesai", tone: "warning" as const };
   if (status === "failed") return { label: "Gagal", tone: "danger" as const };
-  if (status === "cancelled") return { label: "Dibatalkan", tone: "neutral" as const };
+  if (status === "cancelled") return { label: "Dibatalkan", tone: "danger" as const };
   if (status === "processing") return { label: "Diproses", tone: "progress" as const };
-  return { label: "Dalam antrean", tone: "neutral" as const };
+  return { label: "Dalam antrean", tone: "progress" as const };
 }
 
 function relativeStart(date?: string) {
@@ -70,15 +55,24 @@ export function DocumentProcessingWorkspace({
   authToken,
   organizationId,
   onUseRiskDraft,
+  onUseMitigationReport,
+  reportedFindingIds,
+  analysisMode,
+  heading = "Analisis dokumen menjadi temuan risiko",
+  description = "Unggah satu dokumen. Manris akan mengelompokkan halaman dan menghubungkan temuan dengan sumbernya.",
 }: {
   authToken?: string;
   organizationId?: string;
-  onUseRiskDraft: (finding: Finding) => void;
+  onUseRiskDraft?: (finding: Finding) => void;
+  onUseMitigationReport?: (finding: Finding) => void;
+  reportedFindingIds?: ReadonlySet<string>;
+  analysisMode: DocumentAnalysisMode;
+  heading?: string;
+  description?: string;
 }) {
   const [documents, setDocuments] = useState<UploadedDocument[]>([]);
   const [issues, setIssues] = useState<FileIssue[]>([]);
   const [currentJob, setCurrentJob] = useState<ProcessingJob>();
-  const [mode, setMode] = useState<DocumentAnalysisMode>("sop_risk_universe");
   const [period, setPeriod] = useState(currentAssessmentCycle());
   const [dragActive, setDragActive] = useState(false);
   const [offline, setOffline] = useState(false);
@@ -93,6 +87,10 @@ export function DocumentProcessingWorkspace({
   const statusByJobRef = useRef(new Map<string, ProcessingStatus>());
   const findingsRef = useRef<HTMLDivElement | null>(null);
   const previousJobStatusRef = useRef<ProcessingStatus | undefined>(undefined);
+
+  useEffect(() => {
+    setCurrentJob(loadLatestProcessingJob(analysisMode));
+  }, [analysisMode]);
 
   const updateJob = useCallback(
     (nextJob: ProcessingJob) => {
@@ -172,7 +170,7 @@ export function DocumentProcessingWorkspace({
     }
     const job = adapter.createJob({
       documents: validDocuments,
-      mode,
+      mode: analysisMode,
       period: period.trim() || undefined,
     });
     activeJobIdRef.current = job.id;
@@ -208,6 +206,7 @@ export function DocumentProcessingWorkspace({
     }
     activeJobIdRef.current = undefined;
     setCurrentJob(undefined);
+    clearProcessingJobs(analysisMode);
     setDocuments((previous) => {
       previous.forEach(revokeDocumentPreview);
       return [];
@@ -233,7 +232,7 @@ export function DocumentProcessingWorkspace({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: reduceMotion ? 0.12 : 0.15, ease: [0.23, 1, 0.32, 1] }}
-              className="flex items-start gap-2 rounded-xl border border-warning/30 bg-warning/10 px-3 py-2.5 text-xs leading-5 text-foreground"
+              className="flex items-start gap-2 rounded-lg border border-warning/30 bg-warning/10 px-3 py-2.5 text-xs leading-5 text-foreground"
               role="alert"
             >
               <AlertTriangle className="mt-0.5 size-3.5 shrink-0 text-warning" />
@@ -244,53 +243,12 @@ export function DocumentProcessingWorkspace({
 
         <div className="mb-8 max-w-2xl space-y-2 sm:mb-10">
           <h2 className="text-base font-medium tracking-[-0.015em] text-foreground">
-            Analisis dokumen menjadi temuan risiko
+            {heading}
           </h2>
           <p className="text-sm leading-6 text-secondary-foreground">
-            Unggah satu dokumen. Manris akan mengelompokkan halaman dan menghubungkan temuan dengan sumbernya.
+            {description}
           </p>
         </div>
-
-        <fieldset className="space-y-3" aria-labelledby="analysis-mode-label" disabled={Boolean(currentJob && !terminalState)}>
-          <legend id="analysis-mode-label" className="text-sm font-medium text-foreground">
-            Mode analisis
-          </legend>
-          <RadioGroup
-            value={mode}
-            onValueChange={(value) => setMode(value as DocumentAnalysisMode)}
-            aria-labelledby="analysis-mode-label"
-            className="grid gap-3 sm:grid-cols-2"
-          >
-            {modeOptions.map((option) => {
-              const selected = mode === option.value;
-
-              return (
-                <label
-                  key={option.value}
-                  htmlFor={`analysis-mode-${option.value}`}
-                  className={cn(
-                    "group relative flex min-h-[88px] cursor-pointer items-start rounded-xl border bg-card px-4 py-4 pr-12 text-left transition-[background-color,border-color] duration-200 ease-(--ease-out) motion-reduce:transition-none sm:px-5 sm:pr-14",
-                    selected
-                      ? "border-primary"
-                      : "border-border bg-card hover:border-foreground/20 hover:bg-state-surface",
-                    currentJob && !terminalState && "cursor-not-allowed opacity-60",
-                  )}
-                >
-                  <span className="min-w-0">
-                    <span className="block text-sm font-medium leading-5 text-foreground">{option.title}</span>
-                    <span className="mt-1 block text-sm leading-5 text-muted-foreground">{option.description}</span>
-                  </span>
-                  <RadioGroupItem
-                    id={`analysis-mode-${option.value}`}
-                    value={option.value}
-                    aria-label={option.title}
-                    className="absolute right-4 top-4 size-5 border-2 border-border bg-transparent text-primary after:-inset-3 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30 data-checked:border-primary data-checked:bg-primary sm:right-5 sm:top-5"
-                  />
-                </label>
-              );
-            })}
-          </RadioGroup>
-        </fieldset>
 
         <div className="pt-2">
           <UploadPanel
@@ -311,6 +269,8 @@ export function DocumentProcessingWorkspace({
             <FindingsReviewPanel
               job={currentJob}
               onUseRiskDraft={onUseRiskDraft}
+              onUseMitigationReport={onUseMitigationReport}
+              reportedFindingIds={reportedFindingIds}
               onStartNew={startNewProcess}
             />
           </div>
@@ -331,7 +291,8 @@ function ProcessingStatus({
 }) {
   const completedTasks = job.tasks.filter((task) => task.status === "completed" || task.status === "warning").length;
   return (
-    <section className="document-processing-status-enter rounded-xl border border-border/80 bg-card p-4" aria-labelledby="processing-status-title" aria-busy="true">
+    <Card className="document-processing-status-enter" aria-labelledby="processing-status-title" aria-busy="true">
+      <CardContent>
       <p className="sr-only" role="status" aria-live="polite">
         {status?.label ?? "Diproses"}. {completedTasks} dari {job.tasks.length} tugas selesai. Progres {job.progress} persen.
       </p>
@@ -339,13 +300,13 @@ function ProcessingStatus({
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <h2 id="processing-status-title" className="text-sm font-semibold text-foreground">Analisis sedang diproses</h2>
-            <Badge variant="outline" tone={status?.tone ?? "progress"} className="text-xs">{status?.label ?? "Diproses"}</Badge>
+            <Badge variant={toBadgeVariant(status?.tone ?? "progress")} className={getStatusBadgeClassName(status?.tone ?? "progress")}>{status?.label ?? "Diproses"}</Badge>
           </div>
-          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+          <p className="mt-1 text-xs leading-5 text-secondary-foreground">
             {processStage(job)} · {completedTasks}/{job.tasks.length} tugas selesai · dimulai {relativeStart(job.startedAt)}
           </p>
         </div>
-        <Button type="button" variant="outline" size="sm" className="gap-2" onClick={onCancel}>
+        <Button type="button" variant="outline" size="sm" className="" onClick={onCancel}>
           <XCircle className="size-3.5" />
           Batalkan proses
         </Button>
@@ -356,7 +317,8 @@ function ProcessingStatus({
           style={{ transform: `scaleX(${job.progress / 100})`, transformOrigin: "left" }}
         />
       </div>
-    </section>
+      </CardContent>
+    </Card>
   );
 }
 

@@ -8,12 +8,13 @@ import {
   Loader2,
   Plus,
   Trash2,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 
 import { useAuth } from "@/contexts/auth-context";
 import { AIFeaturesDisabledState } from "@/components/shared/ai-features-disabled-state";
 import {
   AccentButton,
+  ActionIconButton,
   CollectionPageHeader,
   CollectionEmptyState,
   CollectionSearchField,
@@ -24,13 +25,14 @@ import {
   CollectionTableHeader,
   CollectionTableHeaderRow,
   CollectionToolbar,
+  CollectionDialogCancel,
+  DestructiveButton,
   PageStack,
 } from "@/components/shared/design-system";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { deleteMeetingMinute, listMeetingMinutes } from "@/lib/meeting-minutes";
 import type { MeetingMinute } from "@/types/meeting-minute";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -39,6 +41,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -90,6 +98,7 @@ function MinutesPageContent() {
     null,
   );
   const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const filteredItems = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -184,6 +193,7 @@ function MinutesPageContent() {
     if (!token || !minuteToDelete) return;
 
     setIsDeleting(true);
+    setDeleteError(null);
     try {
       await deleteMeetingMinute(minuteToDelete.id, token);
       setItems((current) =>
@@ -194,9 +204,11 @@ function MinutesPageContent() {
       setMinuteToDelete(null);
     } catch (error) {
       console.error(error);
-      toast.error(
-        error instanceof Error ? error.message : "Gagal menghapus notulen.",
-      );
+      const message =
+        error instanceof Error ? error.message : "Notulen belum berhasil dihapus.";
+      const actionableMessage = `${message} Coba lagi.`;
+      setDeleteError(actionableMessage);
+      toast.error(actionableMessage);
     } finally {
       setIsDeleting(false);
     }
@@ -206,6 +218,7 @@ function MinutesPageContent() {
     <PageStack>
       <CollectionPageHeader title="MoM" />
 
+      <div className="space-y-4">
       <CollectionToolbar
         leading={
           <CollectionSearchField
@@ -215,26 +228,24 @@ function MinutesPageContent() {
             aria-label="Cari notulen"
           />
         }
+        actions={
+          <AccentButton
+            icon={<Plus className="size-3.5" />}
+            onClick={() => router.push("/minutes/new")}
+          >
+            Buat Notulen
+          </AccentButton>
+        }
       />
 
       <CollectionTableCard>
         {loading ? (
           <CollectionLoadingState message="Memuat daftar notulen..." />
         ) : total === 0 && !query.trim() ? (
-          <>
-            <CollectionEmptyState
-              title="Belum ada notulen tersimpan"
-              description="Mulai dari transkrip rapat lalu simpan hasil notulennya agar muncul di daftar ini."
-            />
-            <div className="px-4 pb-4">
-              <AccentButton
-                icon={<Plus className="size-3.5" />}
-                onClick={() => router.push("/minutes/new")}
-              >
-                Buat Notulen
-              </AccentButton>
-            </div>
-          </>
+          <CollectionEmptyState
+            title="Belum ada notulen tersimpan"
+            description="Mulai dari transkrip rapat lalu simpan hasil notulennya agar muncul di daftar ini."
+          />
         ) : filteredItems.length === 0 ? (
           <CollectionEmptyState
             title="Tidak ada notulen yang cocok"
@@ -243,8 +254,7 @@ function MinutesPageContent() {
         ) : (
           <Table className="min-w-[760px] table-fixed">
             <colgroup>
-              <col className="w-[12%]" />
-              <col className="w-[37%]" />
+              <col className="w-[49%]" />
               <col className="w-[15%]" />
               <col className="w-[10%]" />
               <col className="w-[18%]" />
@@ -252,57 +262,65 @@ function MinutesPageContent() {
             </colgroup>
             <CollectionTableHeader>
               <CollectionTableHeaderRow>
-                <CollectionTableHead className="pl-4 pr-3">Kode</CollectionTableHead>
-                <CollectionTableHead className="px-3">Judul Notulen</CollectionTableHead>
-                <CollectionTableHead className="px-3">Tanggal</CollectionTableHead>
-                <CollectionTableHead className="px-3 text-center">Peserta</CollectionTableHead>
-                <CollectionTableHead className="px-3">Dibuat Oleh</CollectionTableHead>
-                <CollectionTableHead className="px-3 text-center">Aksi</CollectionTableHead>
+                <CollectionTableHead className="px-24">Judul Notulen</CollectionTableHead>
+                <CollectionTableHead >Tanggal</CollectionTableHead>
+                <CollectionTableHead className="text-center">Peserta</CollectionTableHead>
+                <CollectionTableHead >Dibuat Oleh</CollectionTableHead>
+                <CollectionTableHead className="text-center">
+                  <span className="sr-only">Aksi</span>
+                </CollectionTableHead>
               </CollectionTableHeaderRow>
             </CollectionTableHeader>
             <TableBody>
               {filteredItems.map((minute) => (
-                <TableRow key={minute.id} className="border-0 hover:bg-muted/50">
-                  <TableCell className="py-2 pl-4 pr-3 text-sm text-muted-foreground">
-                    {minute.id.slice(0, 8)}
-                  </TableCell>
-                  <TableCell className="max-w-[320px] px-3 py-2">
+                <TableRow key={minute.id} className="hover:bg-muted/50">
+                  <TableCell className="max-w-[320px] px-24">
                     <Link
                       href={`/minutes/${minute.id}`}
                       className="block truncate text-sm font-normal leading-relaxed text-foreground hover:text-primary"
                     >
                       {minute.title || "-"}
                     </Link>
-                    <p className="mt-0.5 truncate text-sm text-muted-foreground">
-                      {minute.summary || "Belum ada ringkasan"}
+                    <p className="mt-0.5 truncate font-mono text-xs text-tertiary-foreground">
+                      {minute.id.slice(0, 8)}
                     </p>
                   </TableCell>
-                  <TableCell className="whitespace-nowrap px-3 py-2 text-sm text-muted-foreground">
+                  <TableCell className="whitespace-nowrap">
                     {new Date(minute.date).toLocaleDateString("id-ID", {
                       day: "numeric",
                       month: "short",
                       year: "numeric",
                     })}
                   </TableCell>
-                  <TableCell className="px-3 py-2 text-center text-sm tabular-nums text-muted-foreground">
+                  <TableCell className="text-center tabular-nums">
                     {minute.participants?.length || 0}
                   </TableCell>
-                  <TableCell className="truncate px-3 py-2 text-sm text-muted-foreground">
+                  <TableCell className="truncate">
                     {minute.createdByName || "-"}
                   </TableCell>
-                  <TableCell className="sticky right-0 bg-background px-3 py-2">
+                  <TableCell className="sticky right-0">
                     <div className="flex justify-center">
                       {!isReadOnlyForOrg(user, minute.organizationId || "") && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          aria-label={`Hapus notulen ${minute.title || minute.id}`}
-                          className="h-7 w-7 p-0 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                          onClick={() => setMinuteToDelete(minute)}
-                        >
-                          <Trash2 className="size-3.5" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <ActionIconButton
+                              className="text-muted-foreground"
+                              aria-label={`Opsi notulen ${minute.title || minute.id}`}
+                            />
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-52">
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onClick={() => {
+                                setDeleteError(null);
+                                setMinuteToDelete(minute);
+                              }}
+                            >
+                              <Trash2 className="size-3.5" />
+                              Hapus Notulen
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       )}
                     </div>
                   </TableCell>
@@ -327,47 +345,54 @@ function MinutesPageContent() {
           />
         )}
       </CollectionTableCard>
+      </div>
 
       <Dialog
         open={!!minuteToDelete}
-        onOpenChange={(open) => !open && setMinuteToDelete(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setMinuteToDelete(null);
+            setDeleteError(null);
+          }
+        }}
       >
-        <DialogContent>
+        <DialogContent showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>Hapus Notulen?</DialogTitle>
             <DialogDescription>
-              Notulen yang dihapus tidak bisa dikembalikan. Tindakan ini juga
-              akan menghapus relasinya dari log risiko terkait.
+              Notulen ini akan dihapus permanen beserta relasinya dengan risiko terkait.
             </DialogDescription>
           </DialogHeader>
-          <div className="rounded-lg border bg-muted/30 px-3 py-2 text-sm">
-            <p className="font-medium">
-              {minuteToDelete?.title || "Tanpa judul"}
-            </p>
-            <p className="text-xs text-muted-foreground">
+          <div className="space-y-0.5 py-1 text-sm">
+            <p className="font-medium">{minuteToDelete?.title || "Tanpa judul"}</p>
+            <p className="font-mono text-xs text-muted-foreground">
               {minuteToDelete?.id || "-"}
             </p>
           </div>
+          {deleteError ? (
+            <p
+              role="alert"
+              className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            >
+              {deleteError}
+            </p>
+          ) : null}
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setMinuteToDelete(null)}
+            <CollectionDialogCancel
+              onClick={() => {
+                setDeleteError(null);
+                setMinuteToDelete(null);
+              }}
               disabled={isDeleting}
             >
               Batal
-            </Button>
-            <Button
-              variant="destructive"
-              onClick={handleDelete}
-              disabled={isDeleting}
-            >
+            </CollectionDialogCancel>
+            <DestructiveButton onClick={handleDelete} disabled={isDeleting}>
               {isDeleting ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Trash2 className="size-4" />
-              )}{" "}
-              Hapus
-            </Button>
+                <Loader2 aria-hidden="true" className="size-4 motion-safe:animate-spin" />
+              ) : null}
+              {isDeleting ? "Menghapus..." : "Hapus"}
+            </DestructiveButton>
           </DialogFooter>
         </DialogContent>
       </Dialog>

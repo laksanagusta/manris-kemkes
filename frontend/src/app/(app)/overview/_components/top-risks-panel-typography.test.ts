@@ -14,36 +14,77 @@ const catalogueSource = readFileSync(
   "utf8",
 );
 
-test("uses normal typography throughout each top-risk row", () => {
+test("uses the same primary-and-metadata hierarchy as collection tables", () => {
   assert.match(
     source,
-    /<div className="min-w-0 font-normal">[\s\S]*?<span[\s\S]*?className="block truncate font-mono text-sm font-normal/,
+    /className="min-w-0 max-w-full truncate rounded-sm text-sm font-medium leading-5 text-foreground/,
   );
-  assert.match(source, /className=\{cn\([\s\S]*?"[^"]*font-normal[^"]*",/);
   assert.match(
     source,
-    /className="min-w-0 truncate text-sm font-normal text-foreground"/,
+    /className="font-mono text-\[11px\] leading-4 text-muted-foreground"/,
   );
-  assert.match(source, /text-sm font-normal text-muted-foreground sm:block/);
-  assert.match(source, /text-sm font-normal text-muted-foreground sm:hidden/);
-  assert.doesNotMatch(source, /className="[^"]*font-(medium|semibold|bold)[^"]*"/);
+  assert.match(
+    source,
+    /className="whitespace-normal text-muted-foreground"/,
+  );
+  assert.match(
+    source,
+    /font-mono text-sm tabular-nums text-foreground/,
+  );
 });
 
-test("renders the compact attention list as a checkbox-free category ledger", () => {
+test("renders the compact attention list as a checkbox-free probability ledger", () => {
   for (const componentSource of [source, catalogueSource]) {
-    assert.match(componentSource, />Kode<\/span>/);
-    assert.match(componentSource, />Judul<\/span>/);
-    assert.match(componentSource, />Kategori<\/span>/);
-    assert.match(componentSource, />Skor<\/span>/);
-    assert.match(componentSource, /bg-table-header/);
-    assert.match(componentSource, /text-xs font-normal capitalize/);
-    assert.match(componentSource, /grid-cols-\[1fr_8fr_1fr\]/);
-    assert.match(componentSource, /sm:grid-cols-\[5fr_32fr_8fr_5fr\]/);
-    assert.doesNotMatch(componentSource, /justify-start/);
-    assert.match(componentSource, /min-h-14/);
-    assert.match(componentSource, /capitalize/);
+    assert.match(componentSource, /<Table[\s\S]*table-fixed/);
+    assert.match(componentSource, /<CollectionTableHead[^>]*className="px-24"[^>]*>Risiko<\/CollectionTableHead>/);
+    assert.match(componentSource, />Kategori<\/CollectionTableHead>/);
+    assert.match(componentSource, />Probabilitas<\/CollectionTableHead>/);
+    assert.match(componentSource, />Dampak<\/CollectionTableHead>/);
+    assert.match(componentSource, /Skor[\s\S]*<\/CollectionTableHead>/);
+    assert.match(componentSource, /<TableBody>/);
+    assert.match(componentSource, /<TableRow/);
+    assert.match(componentSource, /<TableCell/);
     assert.doesNotMatch(componentSource, /Unit kerja/);
     assert.doesNotMatch(componentSource, /Checkbox|type="checkbox"/);
-    assert.doesNotMatch(componentSource, /ChevronRight|translate-x/);
+    assert.doesNotMatch(componentSource, /grid-cols-|px-6 py-1\.5/);
+  }
+});
+
+test("limits the ledger to five rows and uses stable table columns", () => {
+  for (const componentSource of [source, catalogueSource]) {
+    assert.match(componentSource, /xl:min-h-\[377px\]/);
+    assert.match(componentSource, /const visibleRisks = risks\.slice\(0, 5\)/);
+    assert.match(componentSource, /min-w-\[680px\] table-fixed/);
+    assert.match(componentSource, /<col className="w-\[40%\]"/);
+    assert.doesNotMatch(componentSource, /Array\.from\(\{ length: 5 - visibleRisks\.length \}/);
+  }
+});
+
+test("keeps breathing room below the CardHeader while the table reaches the edges", () => {
+  for (const componentSource of [source, catalogueSource]) {
+    assert.match(
+      componentSource,
+      /className="-mx-\(--card-spacing\) -mb-\(--card-spacing\) min-w-0/,
+    );
+    assert.doesNotMatch(
+      componentSource,
+      /className="-m-\(--card-spacing\) min-w-0/,
+    );
+  }
+});
+
+test("separates the table header from the CardHeader with a top border", () => {
+  for (const componentSource of [source, catalogueSource]) {
+    assert.match(
+      componentSource,
+      /CollectionTableHeaderRow(?: data-testid="risk-list-header")?[^>]*className="border-t border-border\/60"/,
+    );
+  }
+});
+
+test("uses the canonical table header surface for attention table headers", () => {
+  for (const componentSource of [source, catalogueSource]) {
+    assert.match(componentSource, /<CollectionTableHeader>/);
+    assert.doesNotMatch(componentSource, /\[&_th\]:bg-card/);
   }
 });

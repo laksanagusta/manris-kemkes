@@ -17,6 +17,10 @@ const mitigationStatusSource = readFileSync(
   ),
   "utf8",
 );
+const monitoringSummarySource = readFileSync(
+  new URL("../assessment/components/simpulan-card.tsx", import.meta.url),
+  "utf8",
+);
 
 for (const [name, source] of [
   ["registration", registrationSource],
@@ -28,9 +32,11 @@ for (const [name, source] of [
       /<FormPage[\s\S]{0,180}risk-form-filter-controls space-y-6/,
     );
     if (name === "registration") {
-      assert.match(source, /<CollectionPageHeader/);
-      assert.match(source, /backAction=/);
-      assert.match(source, /actionsPlacement="title"/);
+      assert.doesNotMatch(source, /<CollectionPageHeader/);
+      assert.match(
+        source,
+        /<FormPage className="risk-form-filter-controls space-y-6">\s*<div className="flex flex-wrap items-center justify-end gap-2">/,
+      );
       assert.doesNotMatch(source, /<FormHeader/);
       assert.match(source, /Simpan draft/);
       assert.match(source, /Finalisasi/);
@@ -54,18 +60,19 @@ for (const [name, source] of [
   });
 
   if (name === "registration") {
-    test(`${name} uses the risk register section geometry`, () => {
+    test(`${name} retains the stock Card spacing for risk sections`, () => {
       assert.match(
         source,
-        /const RISK_FORM_CARD_CLASS[\s\S]{0,140}gap-0 p-0/,
+        /const RISK_FORM_CARD_CLASS[\s\S]{0,140}scroll-mt-28 transition-colors/,
       );
+      assert.doesNotMatch(source, /const RISK_FORM_CARD_CLASS[^;]*gap-0|const RISK_FORM_CARD_CLASS[^;]*p-0/);
       assert.doesNotMatch(
         source,
         /RISK_FORM_SURFACE_CLASS/,
       );
       assert.doesNotMatch(source, /Accordion/);
-      assert.match(source, /px-5 py-4/);
-      assert.match(source, /space-y-5 px-5 pb-6 pt-2/);
+      assert.match(source, /<CardTitle className="transition-colors">Identifikasi Risiko<\/CardTitle>/);
+      assert.match(source, /<CardDescription>\{sectionStatuses\[0\]\.description\}<\/CardDescription>/);
     });
   }
 }
@@ -73,10 +80,9 @@ for (const [name, source] of [
 test("registration behavior entry points remain intact", () => {
   assert.match(registrationSource, /handleSaveDraft/);
   assert.match(registrationSource, /openSubmitReviewConfirm/);
-  assert.match(registrationSource, /<CollectionPageHeader/);
   assert.match(
     registrationSource,
-    /<FormPage className="risk-form-filter-controls space-y-6 \[&>header\+\*\]:!mt-6">\s*<CollectionPageHeader/,
+    /<FormPage className="risk-form-filter-controls space-y-6">\s*<div className="flex flex-wrap items-center justify-end gap-2">/,
   );
   assert.match(
     registrationSource,
@@ -92,13 +98,75 @@ test("registration behavior entry points remain intact", () => {
   );
 });
 
+test("registration detail omits the duplicate local page header", () => {
+  assert.doesNotMatch(registrationSource, /<CollectionPageHeader/);
+  assert.doesNotMatch(
+    registrationSource,
+    /title=\{riskId \? riskCode \|\| "Edit Risiko" : "Tambah Risiko"\}/,
+  );
+});
+
+test("registration context panel previews linked risk events", () => {
+  assert.match(registrationSource, /listRiskEvents\(token, id\)/);
+  assert.doesNotMatch(registrationSource, />Catat Kejadian<\/Link>/);
+  assert.match(
+    registrationSource,
+    /<section[\s\S]*aria-labelledby="risk-side-events"/,
+  );
+  assert.match(registrationSource, />\s*Kejadian\s*</);
+  assert.match(
+    registrationSource,
+    /<ActionIconButton[\s\S]*icon=\{<Plus className="size-3\.5" \/>\}[\s\S]*aria-label="Catat kejadian"[\s\S]*onClick=\{handleCreateRiskEvent\}/,
+  );
+  assert.match(
+    registrationSource,
+    /const canCreateRiskEvent = Boolean\(riskId\) && riskStatus === "final";/,
+  );
+  assert.match(
+    registrationSource,
+    /\{canCreateRiskEvent \? \(\s*<ActionIconButton/,
+  );
+  assert.match(
+    registrationSource,
+    /const handleCreateRiskEvent = useCallback\(\(\) => \{\s*if \(canCreateRiskEvent\) setRiskEventDrawerOpen\(true\);/,
+  );
+  assert.match(
+    registrationSource,
+    /\{token && riskId && canCreateRiskEvent \? \(\s*<RiskEventFormDialog/,
+  );
+  assert.match(
+    registrationSource,
+    /Finalisasi risiko sebelum mencatat dan menautkan kejadian\./,
+  );
+  assert.match(
+    registrationSource,
+    /<RiskEventFormDialog[\s\S]*open=\{riskEventDrawerOpen\}[\s\S]*initialRiskId=\{riskId\}[\s\S]*onCreated=\{handleRiskEventCreated\}/,
+  );
+  assert.match(
+    registrationSource,
+    /visibleRiskEvents\.map\(\(event\) =>/,
+  );
+  assert.match(
+    registrationSource,
+    /href=\{`\/risk-events\/\$\{event\.id\}`\}/,
+  );
+  assert.match(
+    registrationSource,
+    /<Link href="\/risk-events">\s*Lihat semua kejadian/,
+  );
+});
+
 test("registration uses the correct finalized-risk monitoring shortcut state", () => {
   assert.match(registrationSource, /const canStartMonitoring =/);
   assert.match(registrationSource, /const canContinueMonitoring =/);
   assert.match(registrationSource, /listRiskMonitorings\(/);
   assert.match(registrationSource, /ongoingMonitoring/);
   assert.match(registrationSource, /Lanjutkan Pemantauan/);
-  assert.match(registrationSource, /variant="secondary"/);
+  assert.match(
+    registrationSource,
+    /<ActionButton\s+asChild\s+variant="outline"\s+className="px-4"[\s\S]*?Lanjutkan Pemantauan/,
+  );
+  assert.doesNotMatch(registrationSource, /ArrowRight/);
   assert.match(registrationSource, /Mulai Pemantauan/);
   assert.match(registrationSource, /startMonitoring\(/);
   assert.match(registrationSource, /getSelectableMonitoringCycles/);
@@ -114,6 +182,18 @@ test("assessment behavior entry points remain intact", () => {
   assert.match(assessmentSource, /router\.push\(backTarget\)/);
 });
 
+test("monitoring draft save keeps the form mounted and action layout stable", () => {
+  assert.match(
+    assessmentSource,
+    /setMonitoringDraft\(updatedMonitoring\);[\s\S]*?setDraftRisk\(buildRiskFromMonitoring\(updatedMonitoring, sourceRisk\)\);/,
+  );
+  assert.doesNotMatch(assessmentSource, /await loadRiskData\(\);/);
+  assert.match(
+    assessmentSource,
+    /min-w-\[7rem\] items-center justify-end text-\[11px\]/,
+  );
+});
+
 test("monitoring workspace does not render a separate finalized success banner", () => {
   assert.doesNotMatch(assessmentSource, /showFinalizeSuccess/);
   assert.doesNotMatch(assessmentSource, /Pemantauan \{monitoringCycle\} berhasil difinalisasi/);
@@ -121,10 +201,10 @@ test("monitoring workspace does not render a separate finalized success banner",
 });
 
 test("monitoring status uses the shared collection state component", () => {
-  assert.match(assessmentSource, /CollectionStatusBadge/);
+  assert.match(assessmentSource, /<Badge/);
   assert.match(
     assessmentSource,
-    /<CollectionStatusBadge[\s\S]*?assessmentStatusLabel\[draftRisk\.status\]/,
+    /<Badge[\s\S]*?assessmentStatusLabel\[draftRisk\.status\]/,
   );
 });
 
@@ -148,6 +228,19 @@ test("monitoring mitigation status lives in the compact right panel", () => {
   assert.ok(mitigationStatusIndex > rightPanelIndex);
   assert.match(assessmentSource, /Pelaksanaan Mitigasi/);
   assert.doesNotMatch(mitigationStatusSource, /<Table/);
+  assert.match(
+    monitoringSummarySource,
+    /<dt className="text-\[13px\] text-muted-foreground">Skor risiko<\/dt>/,
+  );
+  assert.doesNotMatch(monitoringSummarySource, /Math\.round\(delta\)/);
+  assert.match(
+    mitigationStatusSource,
+    /<dt className="text-\[13px\] text-muted-foreground">Total mitigasi<\/dt>/,
+  );
+  assert.match(
+    mitigationStatusSource,
+    /<p className="text-\[13px\] text-muted-foreground">Status pelaporan<\/p>/,
+  );
   assert.match(mitigationStatusSource, /Total mitigasi/);
   assert.match(mitigationStatusSource, /Sudah dilaporkan/);
   assert.match(mitigationStatusSource, /Belum dilaporkan/);
@@ -167,7 +260,7 @@ test("monitoring mitigation status lives in the compact right panel", () => {
 test("monitoring header and right panel use the shared detail geometry", () => {
   assert.match(
     assessmentSource,
-    /<div className="mx-auto w-full max-w-7xl min-w-0">\s*<CollectionPageHeader/,
+    /<div className="w-full min-w-0">\s*<CollectionPageHeader/,
   );
   assert.doesNotMatch(
     assessmentSource,
@@ -176,5 +269,17 @@ test("monitoring header and right panel use the shared detail geometry", () => {
   assert.match(
     assessmentSource,
     /<CardContent className="px-5 py-5 text-sm">/,
+  );
+  assert.match(
+    assessmentSource,
+    /<CollapsibleCard\.Body className="space-y-5 border-t-0 px-5 py-5 text-sm">/,
+  );
+  assert.match(
+    assessmentSource,
+    /className="text-xs font-semibold uppercase tracking-\[0\.6px\] text-muted-foreground\/70"/,
+  );
+  assert.match(
+    monitoringSummarySource,
+    /className="text-xs font-semibold uppercase tracking-\[0\.6px\] text-muted-foreground\/70"/,
   );
 });

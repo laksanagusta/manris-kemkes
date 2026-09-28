@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useReducedMotion } from "motion/react";
-import { ArrowRight, FilePlus2 } from "@/components/ui/icons";
+import { ArrowRight, FilePlus2 } from "@/components/shared/icons";
 
 import { useAuth } from "@/contexts/auth-context";
 import { listAllOrganizations } from "@/lib/api/organizations";
@@ -23,6 +23,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  FieldErrorMessage,
   Input,
   Label,
   LoadingActionButton,
@@ -188,7 +189,7 @@ export function RiskCharterQuickCreate({
         void handleCreate();
       }}
     >
-      <div className="space-y-2">
+      <div className="flex flex-col gap-2">
         <Label htmlFor="charter-title">Judul Piagam</Label>
         <Input
           id="charter-title"
@@ -204,15 +205,12 @@ export function RiskCharterQuickCreate({
           aria-invalid={Boolean(error)}
           aria-describedby={error ? "charter-create-error" : undefined}
         />
-        {error ? (
-          <p
-            id="charter-create-error"
-            className="text-sm leading-5 text-destructive"
-            role="alert"
-          >
-            {error}
-          </p>
-        ) : null}
+        <FieldErrorMessage
+          id="charter-create-error"
+          className="text-sm font-normal"
+        >
+          {error}
+        </FieldErrorMessage>
       </div>
 
       {existing ? (
@@ -243,11 +241,9 @@ export function RiskCharterQuickCreate({
         <FormHeader
           title="Buat Piagam"
           subtitle="Beri judul untuk membuat draf Piagam tahun berjalan."
-          onBack={close}
-          backLabel="Kembali ke Piagam"
         />
-        <Card className="mx-auto w-full max-w-xl rounded-xl">
-          <CardContent className="space-y-5 p-6">
+        <Card className="mx-auto w-full max-w-xl">
+          <CardContent className="space-y-5">
             <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-foreground">
               <FilePlus2 className="size-5" />
             </div>
@@ -255,8 +251,8 @@ export function RiskCharterQuickCreate({
             {!existing ? (
               <LoadingActionButton
                 className="w-full"
-                variant="primary"
-                size="primary"
+                variant="default"
+                size="default"
                 loading={submitting || loadingContext}
                 loadingLabel={loadingContext ? "Menyiapkan..." : "Membuat draf..."}
                 disabled={!title.trim() || Boolean(error && !uprLevel)}
@@ -300,8 +296,8 @@ export function RiskCharterQuickCreate({
             <CollectionDialogCancel
               type="button"
               variant="outline"
-              size="md"
-              className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
+              size="default"
+              className="border-0 shadow-black"
               onClick={close}
             >
               Batal
@@ -309,8 +305,8 @@ export function RiskCharterQuickCreate({
             {!existing ? (
               <LoadingActionButton
                 type="button"
-                variant="primary"
-                size="primary"
+                variant="default"
+                size="default"
                 loading={submitting || loadingContext}
                 loadingLabel={loadingContext ? "Menyiapkan..." : "Membuat draf..."}
                 disabled={!title.trim() || Boolean(error && !uprLevel)}

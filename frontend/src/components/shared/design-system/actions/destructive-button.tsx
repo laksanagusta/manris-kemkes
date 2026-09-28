@@ -2,7 +2,6 @@
 
 import type { ComponentProps, ReactNode } from "react";
 
-import { cn } from "@/lib/utils";
 
 import { ActionButton } from "./action-button";
 
@@ -16,7 +15,7 @@ type DestructiveButtonProps = Omit<
 export function DestructiveButton({
   children,
   className,
-  size = "md",
+  size = "default",
   ...props
 }: DestructiveButtonProps) {
   return (
@@ -24,10 +23,7 @@ export function DestructiveButton({
       {...props}
       variant="destructive"
       size={size}
-      className={cn(
-        "border-0 bg-destructive text-white hover:bg-destructive/90 focus-visible:border-destructive/40 focus-visible:ring-destructive/20",
-        className,
-      )}
+      className={className}
     >
       {children}
     </ActionButton>

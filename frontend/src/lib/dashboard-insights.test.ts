@@ -13,6 +13,7 @@ const {
   buildLatestOrganizationProgressData,
   buildMovementChartData,
   buildMovementSnapshotData,
+  buildRiskCountTrendData,
   buildSemesterScoreTargetTrendData,
   buildTopRiskBadgeMap,
   buildUnitTotalRiskScoreData,
@@ -216,6 +217,26 @@ test("buildUnitExposureData uses approved base values for current-state exposure
   assert.deepEqual(result, [
     { orgName: "Direktorat A", exposureScore: 1, low: 1, medium: 0, high: 0, extreme: 0 },
   ]);
+});
+
+test("quarterly exposure keeps profile score separate from monitoring observation", () => {
+  const risk = makeDashboardRisk({
+    status: "final",
+    probability: 5,
+    impact: 5,
+    weight: 1,
+    nilai: 25,
+    inherentScore: 25,
+    monitoringObservedProbability: 2,
+    monitoringObservedImpact: 2,
+    monitoringObservedWeight: 1,
+    monitoringObservedNilai: 4,
+  });
+
+  assert.equal(buildUnitExposureData([risk])[0].exposureScore, 5);
+  const matrix = buildCurrentRiskHeatmapMatrix([risk], "2026-Q2");
+  assert.equal(matrix[4][4], 1);
+  assert.equal(matrix[1][1], 0);
 });
 
 test("buildUnitExposureData uses base values for all approved risks", () => {
@@ -680,6 +701,67 @@ test("buildSemesterScoreTargetTrendData uses latest version per risk within each
       gap: 2,
       riskCount: 1,
       targetCount: 1,
+    },
+  ]);
+});
+
+test("buildRiskCountTrendData counts total and every risk level per quarter", () => {
+  const result = buildRiskCountTrendData([
+    makeDashboardRisk({
+      id: "risk-very-low",
+      code: "R-001",
+      versionGroupId: "vg-1",
+      assessmentCycle: "2026-Q3",
+      nilai: 4,
+    }),
+    makeDashboardRisk({
+      id: "risk-low-old",
+      code: "R-002",
+      versionGroupId: "vg-2",
+      versionNumber: 1,
+      assessmentCycle: "2026-Q3",
+      nilai: 6,
+    }),
+    makeDashboardRisk({
+      id: "risk-low-new",
+      code: "R-002",
+      versionGroupId: "vg-2",
+      versionNumber: 2,
+      assessmentCycle: "2026-Q3",
+      nilai: 8,
+    }),
+    makeDashboardRisk({
+      id: "risk-medium",
+      code: "R-003",
+      versionGroupId: "vg-3",
+      assessmentCycle: "2026-Q3",
+      nilai: 10,
+    }),
+    makeDashboardRisk({
+      id: "risk-high",
+      code: "R-004",
+      versionGroupId: "vg-4",
+      assessmentCycle: "2026-Q3",
+      nilai: 15,
+    }),
+    makeDashboardRisk({
+      id: "risk-extreme",
+      code: "R-005",
+      versionGroupId: "vg-5",
+      assessmentCycle: "2026-Q3",
+      nilai: 20,
+    }),
+  ]);
+
+  assert.deepEqual(result, [
+    {
+      period: "2026-Q3",
+      totalRisks: 5,
+      sangatRendah: 1,
+      rendah: 1,
+      sedang: 1,
+      tinggi: 1,
+      sangatTinggi: 1,
     },
   ]);
 });

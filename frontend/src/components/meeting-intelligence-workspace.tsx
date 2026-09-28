@@ -6,16 +6,18 @@ import { toast } from "sonner";
 import { api } from "@/lib/api";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { cn } from "@/lib/utils";
+import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 import { useAuth } from "@/contexts/auth-context";
 import { AIFeaturesDisabledState } from "@/components/shared/ai-features-disabled-state";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { FormHeader, FormPage } from "@/components/shared/form-shell";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -51,6 +53,8 @@ import {
   ActionButton,
   CollectionDialogCancel,
   CollectionSearchField,
+  IllustratedEmptyState,
+  InlineEmptyState,
   LabeledList,
   LabeledListItem,
 } from "@/components/shared/design-system";
@@ -63,11 +67,9 @@ import {
   GitBranch,
   Link2,
   Loader2,
-  RefreshCw,
   Save,
-  Sparkles,
   X,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 import { createMeetingMinute } from "@/lib/meeting-minutes";
 
 type WorkspaceMode = "minutes" | "risk";
@@ -239,22 +241,16 @@ const suggestionTypeConfig: Record<
   TranscriptSuggestionTargetType,
   {
     label: string;
-    color: string;
-    bg: string;
-    border: string;
+    variant: BadgeVariant;
   }
 > = {
   existing: {
     label: "Existing Risk",
-    color: "text-primary",
-    bg: "bg-primary/10",
-    border: "border-primary/20",
+    variant: "default",
   },
   new: {
     label: "Risiko Baru",
-    color: "text-success",
-    bg: "bg-success/10",
-    border: "border-success/20",
+    variant: "secondary",
   },
 };
 
@@ -386,7 +382,6 @@ export function MeetingIntelligenceWorkspace({
       <AIFeaturesDisabledState
         title="Workspace AI Dinonaktifkan"
         description="Analisis MoM, transkrip, dan generator briefing sedang dimatikan melalui environment frontend."
-        backHref="/overview"
       />
     );
   }
@@ -727,16 +722,16 @@ function MeetingIntelligenceWorkspaceContent({
       ) : null}
 
       <section className="space-y-6">
-          <Card className="gap-4 p-4">
+          <Card className="">
             <div>
               <div className="flex flex-col gap-[2px]">
                 <p className="text-[15px] font-medium leading-[23px] text-foreground">Transkrip rapat</p>
-                <p className="text-[13px] font-normal leading-[22px] text-muted-foreground">
+                <p className="text-[13px] font-normal leading-[22px] text-secondary-foreground">
                   Pilih keluaran, lalu masukkan transkrip atau catatan rapat untuk dianalisis.
                 </p>
               </div>
             </div>
-            <CardContent className="space-y-6 p-0">
+            <CardContent className="space-y-6">
               <fieldset className="flex flex-col gap-2">
                 <legend className="text-sm font-medium text-foreground">Jenis keluaran</legend>
                 <div className="grid gap-3 md:grid-cols-2">
@@ -761,7 +756,7 @@ function MeetingIntelligenceWorkspaceContent({
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <p className="text-sm font-semibold text-foreground">{config.title}</p>
-                          <p className="mt-1 text-xs leading-5 text-muted-foreground">{config.summary}</p>
+                          <p className="mt-1 text-xs leading-5 text-secondary-foreground">{config.summary}</p>
                         </div>
                       </div>
                     </button>
@@ -777,30 +772,25 @@ function MeetingIntelligenceWorkspaceContent({
                   value={transcript}
                   onChange={(event) => setTranscript(event.target.value)}
                   placeholder="Paste transkrip atau catatan rapat di sini. Sertakan keputusan, isu utama, dan tindak lanjut bila sudah ada."
-                  className="min-h-[240px] resize-y text-sm leading-6"
+                  className="resize-y"
                 />
               </div>
 
               <div className="flex flex-wrap justify-end gap-2">
-                  <ActionButton
-                    onClick={() => setTranscript("")}
-                    disabled={isWorking || transcript.length === 0}
-                  >
-                    Kosongkan
-                  </ActionButton>
-                  <AccentButton onClick={handleRun} disabled={isWorking || !transcript.trim()} className="gap-2">
-                    {isWorking ? (
-                      <>
-                        <RefreshCw className="size-4 animate-spin" />
-                        {selectedMode.runningLabel}
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="size-4" />
-                        {selectedMode.actionLabel}
-                      </>
-                    )}
-                  </AccentButton>
+                <ActionButton
+                  onClick={() => setTranscript("")}
+                  disabled={isWorking || transcript.length === 0}
+                >
+                  Kosongkan
+                </ActionButton>
+                <AccentButton
+                  onClick={handleRun}
+                  disabled={isWorking || !transcript.trim()}
+                >
+                  {isWorking
+                    ? selectedMode.runningLabel
+                    : selectedMode.actionLabel}
+                </AccentButton>
               </div>
             </CardContent>
           </Card>
@@ -809,10 +799,8 @@ function MeetingIntelligenceWorkspaceContent({
             generatedMinutes ? (
               <div className="space-y-10">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <Badge
-                    size="compact"
-                    tone="neutral"
-                    className="!bg-[#0000000a] !text-[#8f8e8e]"
+                  <Badge variant="secondary"
+                    className=""
                   >
                     Draf Briefing
                   </Badge>
@@ -820,7 +808,7 @@ function MeetingIntelligenceWorkspaceContent({
                     <Button
                       size="sm"
                       variant="outline"
-                      className="gap-1 text-xs"
+                      className=""
                       onClick={handleExportMinutes}
                     >
                       <Download className="size-3.5" />
@@ -829,7 +817,7 @@ function MeetingIntelligenceWorkspaceContent({
                     <Button
                       size="sm"
                       variant="outline"
-                      className="gap-1 text-xs"
+                      className=""
                       onClick={handleOpenSaveDialog}
                       disabled={savedMinutesId !== null}
                     >
@@ -928,18 +916,18 @@ function MeetingIntelligenceWorkspaceContent({
                               {item.pic ? (
                                 <span>PIC: {item.pic}</span>
                               ) : missingPic ? (
-                                <Badge tone="warning" size="compact">
+                                <Badge variant="outline">
                                   Perlu PIC
                                 </Badge>
                               ) : null}
                               {item.deadline ? (
                                 <span>{item.deadline}</span>
                               ) : missingDeadline ? (
-                                <Badge tone="warning" size="compact">
+                                <Badge variant="outline">
                                   Perlu deadline
                                 </Badge>
                               ) : null}
-                              <Badge tone={priorityTone[itemPriority]} size="compact">
+                              <Badge variant={toBadgeVariant(priorityTone[itemPriority])} className={getStatusBadgeClassName(priorityTone[itemPriority])}>
                                 {itemPriority}
                               </Badge>
                             </div>
@@ -997,9 +985,9 @@ function MeetingIntelligenceWorkspaceContent({
                 </LabeledList>
               </div>
             ) : (
-              <Card className="min-h-[60px] flex-row items-center rounded-[10px]">
-                <CardContent role="status" className="w-full p-0 text-sm font-normal leading-5 text-muted-foreground">
-                  Briefing akan muncul di sini setelah Anda menjalankan mode ini.
+              <Card className="flex-row items-center">
+                <CardContent role="status" className="w-full">
+                  <InlineEmptyState message="Briefing akan muncul di sini setelah Anda menjalankan mode ini." />
                 </CardContent>
               </Card>
             )
@@ -1009,19 +997,19 @@ function MeetingIntelligenceWorkspaceContent({
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
                   <div>
                     <h2 className="text-lg font-semibold">Saran perubahan risiko</h2>
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-secondary-foreground">
                       Existing risk bisa di-review lalu di-apply langsung. Risiko baru tetap dibuka sebagai draft terpisah.
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <Badge className="bg-primary/10 text-[10px] uppercase tracking-[0.12em] text-primary">
+                    <Badge className="">
                       Existing: {suggestionSummary.existing}
                     </Badge>
-                    <Badge className="bg-success/10 text-[10px] uppercase tracking-[0.12em] text-success">
+                    <Badge className="">
                       Baru: {suggestionSummary.new}
                     </Badge>
                     {suggestionSummary.lowConfidence > 0 ? (
-                      <Badge className="bg-amber-500/10 text-[10px] uppercase tracking-[0.12em] text-amber-700">
+                      <Badge className="">
                         Keyakinan rendah: {suggestionSummary.lowConfidence}
                       </Badge>
                     ) : null}
@@ -1036,13 +1024,13 @@ function MeetingIntelligenceWorkspaceContent({
                   return (
                     <Card
                       key={suggestion.id}
-                      className="bg-card/90"
+                      className=""
                     >
-                      <CardContent className="space-y-4 p-5">
+                      <CardContent className="space-y-4">
                         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                           <div className="min-w-0 flex-1 space-y-3">
                             <div className="flex flex-wrap items-center gap-2">
-                              <Badge className={cn("text-[10px] uppercase tracking-[0.12em]", config.bg, config.color)}>
+                    <Badge variant={config.variant} className="uppercase">
                                 {config.label}
                               </Badge>
                               {suggestion.targetRiskCode ? (
@@ -1052,13 +1040,7 @@ function MeetingIntelligenceWorkspaceContent({
                               ) : null}
                               {suggestion.targetType === "existing" && suggestion.matchConfidence ? (
                                 <Badge
- variant="outline"
- className={cn(
- "text-[10px]",
- isLowConfidenceSuggestion(suggestion)
- ? "-amber-500/30 bg-amber-500/5 text-amber-700"
- : "-success/30 bg-success/5 text-success"
- )}
+                                  variant={isLowConfidenceSuggestion(suggestion) ? "destructive" : "outline"}
                                 >
                                   Tingkat keyakinan {suggestion.matchConfidence}%
                                 </Badge>
@@ -1071,7 +1053,7 @@ function MeetingIntelligenceWorkspaceContent({
                                   ? suggestion.targetRiskTitle || "Risiko existing"
                                   : suggestion.draftPrefill?.title || "Draf risiko baru"}
                               </h3>
-                              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                              <p className="mt-1 text-sm leading-6 text-secondary-foreground">
                                 {suggestion.targetType === "existing"
                                   ? `${changeCount} usulan perubahan siap direview sebelum diterapkan ke risk register.`
                                   : suggestion.draftPrefill?.description || "AI menilai pembahasan ini layak disusun sebagai draft risiko baru."}
@@ -1110,7 +1092,7 @@ function MeetingIntelligenceWorkspaceContent({
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  className="gap-2 text-xs"
+                                  className=""
                                   onClick={() => router.push(`/risk/register/${appliedResult.riskId}`)}
                                 >
                                   <Link2 className="size-3.5" />
@@ -1170,14 +1152,14 @@ function MeetingIntelligenceWorkspaceContent({
                           {suggestion.targetType === "existing" ? (
                             <Button
                               size="sm"
-                              className="gap-2 text-xs"
+                              className=""
                               onClick={() => handleReviewExistingSuggestion(suggestion)}
                             >
                               <GitBranch className="size-3.5" />
                               Tinjau perubahan
                             </Button>
                           ) : (
-                            <Button size="sm" className="gap-2 text-xs" onClick={() => handleOpenDraft(suggestion)}>
+                            <Button size="sm" className="" onClick={() => handleOpenDraft(suggestion)}>
                               <Check className="size-3.5" />
                               Susun draf
                             </Button>
@@ -1185,7 +1167,7 @@ function MeetingIntelligenceWorkspaceContent({
                           <Button
                             size="sm"
                             variant="outline"
-                            className="gap-2 text-xs"
+                            className=""
                             onClick={() => handleDismissSuggestion(suggestion.id)}
                           >
                             <X className="size-3.5" />
@@ -1230,7 +1212,10 @@ function MeetingIntelligenceWorkspaceContent({
                             <DialogTitle className="text-base leading-5">
                               {reviewSuggestion.targetRiskTitle || "Tinjau perubahan risiko"}
                             </DialogTitle>
-                            <p className="text-sm leading-6 text-muted-foreground">
+                            <DialogDescription className="text-sm leading-6 text-secondary-foreground">
+                              Tinjau perubahan yang akan diterapkan sebelum menyimpan.
+                            </DialogDescription>
+                            <p className="text-sm leading-6 text-secondary-foreground">
                               {reviewSuggestion.reasoning || "Belum ada alasan terstruktur dari AI."}
                             </p>
                           </div>
@@ -1251,7 +1236,7 @@ function MeetingIntelligenceWorkspaceContent({
                                   Pilih target risiko
                                 </Label>
                                 <Select value={manualTargetRiskId} onValueChange={handleChangeManualTargetRisk}>
-                                  <SelectTrigger id="target-risk-select" className="w-full bg-background">
+                                  <SelectTrigger id="target-risk-select" className="w-full">
                                     <SelectValue placeholder="Pilih target risiko" />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -1445,8 +1430,8 @@ function MeetingIntelligenceWorkspaceContent({
               </Dialog>
             </>
           ) : (
-            <Card className="min-h-[60px] flex-row items-center rounded-[10px]">
-              <CardContent role="status" className="w-full p-0 text-sm font-normal leading-5 text-muted-foreground">
+            <Card className="flex-row items-center">
+              <CardContent role="status" className="w-full">
                 Saran akan muncul di sini setelah analisis dijalankan.
               </CardContent>
             </Card>
@@ -1467,6 +1452,9 @@ function MeetingIntelligenceWorkspaceContent({
         <DialogContent className="max-w-2xl no-scrollbar" showCloseButton={false}>
           <DialogHeader className="shrink-0">
             <DialogTitle className="text-base leading-5">Simpan Briefing</DialogTitle>
+            <DialogDescription>
+              Lengkapi ringkasan sebelum menyimpan briefing.
+            </DialogDescription>
           </DialogHeader>
           
           <div className="min-h-0 flex-1 overflow-y-auto">
@@ -1537,7 +1525,7 @@ function MeetingIntelligenceWorkspaceContent({
                   </PopoverTrigger>
                   <PopoverContent
                     align="start"
-                    className="w-[var(--radix-popover-trigger-width)] gap-0 overflow-hidden p-0"
+                    className="w-[var(--radix-popover-trigger-width)] overflow-hidden"
                   >
                     <div className="relative border-b border-border/60 p-2">
                       <CollectionSearchField
@@ -1546,7 +1534,7 @@ function MeetingIntelligenceWorkspaceContent({
                         value={riskSearchQuery}
                         onChange={(event) => handleSearchRisks(event.target.value)}
                         containerClassName="sm:w-full"
-                        className="h-9 pr-9"
+                        className="h-8 pr-9"
                       />
                       {isLoadingRisks ? (
                         <Loader2 className="absolute right-5 top-1/2 size-4 -translate-y-1/2 animate-spin text-muted-foreground" />
@@ -1598,9 +1586,11 @@ function MeetingIntelligenceWorkspaceContent({
                           );
                         })
                       ) : (
-                        <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                          Risiko tidak ditemukan.
-                        </p>
+                        <IllustratedEmptyState
+                          title="Risiko tidak ditemukan."
+                          size="compact"
+                          className="py-2"
+                        />
                       )}
                     </div>
                   </PopoverContent>

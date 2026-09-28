@@ -3,7 +3,6 @@ export { ActionButton } from "./actions/action-button";
 export { ActionIconButton } from "./actions/action-icon-button";
 export { DestructiveButton } from "./actions/destructive-button";
 export { DirtyActionBar } from "./actions/dirty-action-bar";
-export { FormBackAction } from "./actions/form-back-action";
 export {
   DialogActionList,
   type DialogActionItem,
@@ -26,7 +25,6 @@ export { CollectionNotice } from "./collections/collection-notice";
 export { CollectionPagination } from "./collections/collection-pagination";
 export { shouldShowCollectionPagination } from "./collections/collection-pagination-visibility";
 export { CollectionSearchField } from "./collections/collection-search-field";
-export { CollectionStatusBadge } from "./collections/collection-status-badge";
 export { CollectionTableCard } from "./collections/collection-table-card";
 export {
   CollectionTableSurface,
@@ -43,7 +41,13 @@ export { SidebarTabsList } from "./collections/sidebar-tabs-list";
 
 export { ArchivedBanner } from "./feedback/archived-banner";
 export { InlineEmptyState } from "./feedback/inline-empty-state";
+export {
+  EmptyStateIllustration,
+  IllustratedEmptyState,
+  type EmptyStateIllustrationSize,
+} from "./feedback/illustrated-empty-state";
 export { ProgressMeter } from "./feedback/progress-meter";
+export { WarningCard } from "./feedback/warning-card";
 export {
   VersionTimeline,
   type VersionTimelineItem,
@@ -70,7 +74,7 @@ export {
   type LabeledListProps,
 } from "./layout/labeled-list";
 export { MetricGrid } from "./layout/metric-grid";
-export { KpiCard, type KpiCardTone } from "@/components/ui/kpi-card";
+export { KpiCard, type KpiCardTone } from "@/components/shared/kpi-card";
 export { PageHeader } from "./layout/page-header";
 export {
   PageHeaderActionsPortal,
@@ -78,8 +82,8 @@ export {
 } from "./layout/page-header-actions-portal";
 export { PageStack } from "./layout/page-stack";
 export { CollectionPageHeader } from "./layout/collection-page-header";
-export { PAGE_BACK_ACTION_SLOT_ID } from "./layout/page-back-action-portal";
 export { StandardCard, type StandardCardProps } from "./layout/standard-card";
+export { MonitoringInsightCard, type MonitoringInsightCardProps } from "./domain/monitoring-insight-card";
 export {
   Card,
   CardAction,
@@ -89,7 +93,6 @@ export {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-export { Badge } from "@/components/ui/badge";
 export { Input } from "@/components/ui/input";
 export { Label } from "@/components/ui/label";
 export { Textarea } from "@/components/ui/textarea";
@@ -132,10 +135,29 @@ export {
   SheetTrigger,
 } from "@/components/ui/sheet";
 export {
+  bottomFormDrawerClassName,
+  Drawer,
+  DrawerBody,
+  DrawerClose,
+  DrawerContent,
+  DrawerDescription,
+  DrawerFooter,
+  DrawerHandle,
+  DrawerHeader,
+  DrawerOverlay,
+  DrawerPortal,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/shared/app-drawer";
+export {
   PopoverSelectField,
   type PopoverSelectFieldProps,
   type PopoverSelectOption,
 } from "./fields/popover-select-field";
+export {
+  FieldErrorMessage,
+  type FieldErrorMessageProps,
+} from "./fields/field-error-message";
 export {
   Tooltip,
   TooltipContent,
@@ -155,6 +177,10 @@ export {
 } from "./domain/ai-suggestion-dropdown";
 export { MitigationProgressDialog } from "./domain/mitigation-progress-dialog";
 export {
+  MitigationProgressFlowDialog,
+  type MitigationProgressFlowView,
+} from "./domain/mitigation-progress-flow-dialog";
+export {
   MitigationProgressForm,
   type MitigationProgressFormProps,
 } from "./domain/mitigation-progress-form";
@@ -169,6 +195,11 @@ export { OverviewCategoryCard, type OverviewCategorySegment } from "./domain/ove
 export { OverviewPanelState } from "./domain/overview-panel-state";
 export { OverviewTopRisksCard } from "./domain/overview-top-risks-card";
 export { OverviewTrendCard } from "./domain/overview-trend-card";
+export { RiskCategoryIndicator } from "./domain/risk-category-indicator";
+export {
+  RiskDetailDrawer,
+  type RiskDetailDrawerProps,
+} from "./domain/risk-detail-drawer";
 export { RiskHeatmapGrid } from "./domain/risk-heatmap-grid";
 export {
   RiskAssessmentSummaryStrip,
@@ -194,3 +225,5 @@ export {
 
 export { RiskCascadeRowActions } from "@/components/shared/risk-cascade-row-actions";
 export { PlanningManagementPage } from "@/components/shared/planning-management-page";
+
+export { SettingsDialog, type SettingsSection } from "./layout/settings-dialog";

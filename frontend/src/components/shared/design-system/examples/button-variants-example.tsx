@@ -4,51 +4,48 @@ import {
   ChevronLeft,
   Filter,
   MoreHorizontal,
-  Plus,
-  Save,
-  Send,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 
 import { AccentButton, DestructiveButton, LoadingActionButton } from "@/components/shared/design-system";
 import { Button } from "@/components/ui/button";
 
 export function ButtonVariantsExample() {
   return (
-    <div className="space-y-4 rounded-xl bg-card p-6 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+    <div className="space-y-4 rounded-[12px] bg-card p-6 shadow-black">
       <div className="flex flex-wrap items-center gap-3">
-        <AccentButton icon={<Plus className="size-3.5" strokeWidth={2.5} />}>
-          Primary
-        </AccentButton>
-        <Button variant="secondary" size="md">
+        <AccentButton>Primary</AccentButton>
+        <Button variant="secondary" size="default">
           Secondary
         </Button>
-        <Button variant="outline" size="md" className="border-transparent shadow-none">
-          <Save className="size-3.5" />
+        <Button variant="outline" size="default" className="">
           Outline
         </Button>
-        <Button variant="outline" size="md" className="gap-2 border-transparent shadow-none">
-          <Filter className="size-3.5" strokeWidth={2.5} />
-          Filter
+        <Button
+          variant="outline"
+          size="icon-xs"
+          className=""
+          aria-label="Filter"
+          title="Filter"
+        >
+          <Filter className="size-3.5" />
         </Button>
-        <Button variant="ghost" size="md" className="shadow-none">
+        <Button variant="ghost" size="default" className="">
           Ghost
         </Button>
         <DestructiveButton>Hapus</DestructiveButton>
       </div>
       <div className="flex flex-wrap items-center gap-3">
-        <AccentButton icon={<Send className="size-3.5" />}>
-          Ajukan review
-        </AccentButton>
-        <Button variant="outline" size="icon-xs" className="rounded-lg border-transparent bg-white shadow-none">
+        <AccentButton>Ajukan review</AccentButton>
+        <Button variant="outline" size="icon-xs" className="">
           <ChevronLeft className="size-3.5" />
         </Button>
-        <Button variant="outline" size="xs" className="min-w-10 rounded-lg border-transparent bg-white px-3 text-foreground shadow-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+        <Button variant="outline" size="xs" className="min-w-10">
           1
         </Button>
-        <Button variant="outline" size="xs" className="min-w-10 rounded-lg border-transparent bg-white px-3 text-foreground/80 shadow-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+        <Button variant="outline" size="xs" className="min-w-10">
           2
         </Button>
-        <Button variant="ghost" size="icon-xs" className="bg-white text-foreground shadow-none hover:bg-sidebar-accent hover:text-sidebar-accent-foreground">
+        <Button variant="ghost" size="icon-xs" className="">
           <MoreHorizontal className="size-3.5" />
         </Button>
       </div>
@@ -56,7 +53,7 @@ export function ButtonVariantsExample() {
         <LoadingActionButton
           variant="outline"
           size="xs"
-          className="h-7 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+          className="h-7 px-4 text-[14px] text-muted-foreground hover:text-foreground"
         >
           AI Button
         </LoadingActionButton>
@@ -64,7 +61,7 @@ export function ButtonVariantsExample() {
           variant="outline"
           size="xs"
           loading
-          className="h-7 px-2.5 text-xs text-muted-foreground hover:text-foreground"
+          className="h-7 px-4 text-[14px] text-muted-foreground hover:text-foreground"
         >
           Memproses...
         </LoadingActionButton>

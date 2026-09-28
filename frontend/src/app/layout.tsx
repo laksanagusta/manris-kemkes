@@ -1,42 +1,14 @@
 import type { Metadata } from "next";
-import type { CSSProperties } from "react";
 import { Agentation } from "agentation";
-import { Inter, JetBrains_Mono, Poppins } from "next/font/google";
+import { Inter } from "next/font/google";
+import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/contexts/auth-context";
 import { Toaster } from "@/components/ui/sonner";
 import { SuppressRadixWarnings } from "@/components/suppress-radix-warnings";
-import { SmoothCorners } from "@/components/smooth-corners";
 import "./globals.css";
+import { cn } from "@/lib/utils";
 
-const inter = Inter({
-  subsets: ["latin"],
-  variable: "--font-inter",
-  display: "swap",
-});
-
-const jetbrainsMono = JetBrains_Mono({
-  subsets: ["latin"],
-  variable: "--font-jetbrains-mono",
-  display: "swap",
-});
-
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ["600"],
-  variable: "--font-poppins",
-  display: "swap",
-});
-
-const fontVariables = {
-  "--font-sans":
-    "var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-  "--font-display":
-    "var(--font-inter), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-  "--font-logo":
-    "var(--font-poppins), ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-  "--font-mono":
-    "var(--font-jetbrains-mono), ui-monospace, 'SFMono-Regular', 'SF Mono', Consolas, 'Liberation Mono', monospace",
-} as CSSProperties;
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
 export const metadata: Metadata = {
   title: "Manris",
@@ -56,19 +28,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="id"
-      style={fontVariables}
-      className={`${inter.variable} ${jetbrainsMono.variable} ${poppins.variable}`}
-    >
+    <html suppressHydrationWarning lang="id" className={cn("font-sans", inter.variable)}>
       <body className="bg-background antialiased">
-        <AuthProvider>
-          {children}
-          <Toaster />
-          <SuppressRadixWarnings />
-          <SmoothCorners />
-          {process.env.NODE_ENV === "development" && <Agentation />}
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            {children}
+            <Toaster />
+            <SuppressRadixWarnings />
+            {process.env.NODE_ENV === "development" && <Agentation />}
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

@@ -217,14 +217,14 @@ func (r *mitigationTaskRepository) ListAll(ctx context.Context, orgIDs []uuid.UU
 	return r.queryTasks(ctx, baseQuery+" ORDER BY t.due_date DESC")
 }
 
-func (r *mitigationTaskRepository) ListAllPaginated(ctx context.Context, orgIDs []uuid.UUID, query string, page, limit int) ([]*entity.MitigationTask, int, error) {
+func (r *mitigationTaskRepository) ListAllPaginated(ctx context.Context, orgIDs []uuid.UUID, query, status, period string, page, limit int) ([]*entity.MitigationTask, int, error) {
 	baseFrom := ` FROM mitigation_tasks t
 		 JOIN mitigations m ON t.mitigation_id = m.id
 		 JOIN risks r ON t.risk_id = r.id
 		 LEFT JOIN users u ON t.reported_by = u.id`
 
-	whereClauses := make([]string, 0, 2)
-	args := make([]interface{}, 0, 2)
+	whereClauses := make([]string, 0, 4)
+	args := make([]interface{}, 0, 4)
 
 	if len(orgIDs) > 0 {
 		args = append(args, orgIDs)
@@ -249,6 +249,18 @@ func (r *mitigationTaskRepository) ListAllPaginated(ctx context.Context, orgIDs 
 		)`,
 			queryArg, queryArg, queryArg, queryArg, queryArg, queryArg, queryArg, queryArg, queryArg,
 		))
+	}
+
+	normalizedStatus := strings.TrimSpace(status)
+	if normalizedStatus != "" && normalizedStatus != "all" {
+		args = append(args, normalizedStatus)
+		whereClauses = append(whereClauses, fmt.Sprintf("t.status = $%d", len(args)))
+	}
+
+	normalizedPeriod := strings.TrimSpace(period)
+	if normalizedPeriod != "" {
+		args = append(args, "%"+normalizedPeriod+"%")
+		whereClauses = append(whereClauses, fmt.Sprintf("COALESCE(t.period_label, '') ILIKE $%d", len(args)))
 	}
 
 	whereClause := ""

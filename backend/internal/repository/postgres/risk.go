@@ -544,9 +544,13 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 		                  COALESCE(monitoring_score.source_nilai, prev.nilai, r.nilai) as before_monitoring_nilai,
 		                  monitoring_score.observed_nilai as monitoring_result_nilai,
 		                  quarters.q1 as quarter_q1,
-		                  quarters.q2 as quarter_q2,
-		                  quarters.q3 as quarter_q3,
-		                  quarters.q4 as quarter_q4
+			                  quarters.q2 as quarter_q2,
+			                  quarters.q3 as quarter_q3,
+			                  quarters.q4 as quarter_q4,
+			                  quarters.q1_nilai as quarter_q1_nilai,
+			                  quarters.q2_nilai as quarter_q2_nilai,
+			                  quarters.q3_nilai as quarter_q3_nilai,
+			                  quarters.q4_nilai as quarter_q4_nilai
 		           FROM risks r
 		           LEFT JOIN organizations o ON r.organization_id = o.id
 		           LEFT JOIN users u ON r.created_by = u.id
@@ -585,9 +589,14 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 		               MAX(CASE WHEN rm.assessment_cycle = EXTRACT(YEAR FROM NOW())::text || '-Q1' THEN rm.status END) AS q1,
 		               MAX(CASE WHEN rm.assessment_cycle = EXTRACT(YEAR FROM NOW())::text || '-Q2' THEN rm.status END) AS q2,
 		               MAX(CASE WHEN rm.assessment_cycle = EXTRACT(YEAR FROM NOW())::text || '-Q3' THEN rm.status END) AS q3,
-		               MAX(CASE WHEN rm.assessment_cycle = EXTRACT(YEAR FROM NOW())::text || '-Q4' THEN rm.status END) AS q4
-		             FROM risk_monitorings rm
-		             WHERE rm.version_group_id = r.version_group_id
+		               MAX(CASE WHEN rm.assessment_cycle = EXTRACT(YEAR FROM NOW())::text || '-Q4' THEN rm.status END) AS q4,
+		               MAX(CASE WHEN rm.assessment_cycle = EXTRACT(YEAR FROM NOW())::text || '-Q1' AND rm.status = 'final' THEN rm.observed_nilai END) AS q1_nilai,
+		               MAX(CASE WHEN rm.assessment_cycle = EXTRACT(YEAR FROM NOW())::text || '-Q2' AND rm.status = 'final' THEN rm.observed_nilai END) AS q2_nilai,
+		               MAX(CASE WHEN rm.assessment_cycle = EXTRACT(YEAR FROM NOW())::text || '-Q3' AND rm.status = 'final' THEN rm.observed_nilai END) AS q3_nilai,
+		               MAX(CASE WHEN rm.assessment_cycle = EXTRACT(YEAR FROM NOW())::text || '-Q4' AND rm.status = 'final' THEN rm.observed_nilai END) AS q4_nilai
+			             FROM risk_monitorings rm
+			             WHERE rm.version_group_id = r.version_group_id
+		               AND rm.status IN ('draft', 'final')
 		               AND rm.assessment_cycle IN (
 		                 EXTRACT(YEAR FROM NOW())::text || '-Q1',
 		                 EXTRACT(YEAR FROM NOW())::text || '-Q2',
@@ -600,8 +609,8 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 	argIdx := 1
 
 	if filter.View == "monitoring-transactions" {
-		countQuery += " AND r.version_number > 1"
-		dataQuery += " AND r.version_number > 1"
+		countQuery += " AND r.version_number > 1 AND r.superseded_by_risk_id IS NULL"
+		dataQuery += " AND r.version_number > 1 AND r.superseded_by_risk_id IS NULL"
 	} else if filter.Status == entity.RiskStatusDraft {
 		countQuery += " AND r.status = 'draft'"
 		dataQuery += " AND r.status = 'draft'"
@@ -697,6 +706,7 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 	for rows.Next() {
 		var risk entity.Risk
 		var q1, q2, q3, q4 *string
+		var q1Nilai, q2Nilai, q3Nilai, q4Nilai *float64
 		if err := rows.Scan(
 			&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.IsCycleCurrent, &risk.VersionNumber, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy, &risk.ObjectiveID, &risk.LikelihoodAssessmentID, &risk.ImpactCriteriaID, &risk.ImpactJustification,
 			&risk.Cause, &risk.RiskSource, &risk.Controllability, &risk.ImpactDesc,
@@ -710,12 +720,14 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 			&risk.MonitoringStatus, &risk.LastMonitoredAt,
 			&risk.BeforeMonitoringNilai, &risk.MonitoringResultNilai,
 			&q1, &q2, &q3, &q4,
+			&q1Nilai, &q2Nilai, &q3Nilai, &q4Nilai,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan risk register row: %w", err)
 		}
 		if q1 != nil || q2 != nil || q3 != nil || q4 != nil {
 			risk.SemesterMonitoring = &entity.SemesterMonitoringStatus{
 				Q1: q1, Q2: q2, Q3: q3, Q4: q4,
+				Q1Nilai: q1Nilai, Q2Nilai: q2Nilai, Q3Nilai: q3Nilai, Q4Nilai: q4Nilai,
 			}
 		}
 		risks = append(risks, &risk)
@@ -757,7 +769,8 @@ func (r *riskRepository) ListApprovedRisks(ctx context.Context, orgIDs []uuid.UU
 	           	SELECT DISTINCT ON (r2.version_group_id, r2.assessment_cycle) r2.id
 	           	FROM risks r2
 	           WHERE r2.status = 'final'
-	           	ORDER BY r2.version_group_id, r2.assessment_cycle, r2.version_number DESC, r2.created_at DESC
+	             AND r2.superseded_by_risk_id IS NULL
+	           ORDER BY r2.version_group_id, r2.assessment_cycle, r2.version_number DESC, r2.created_at DESC
 	           )`
 	var args []interface{}
 	argIdx := 1
@@ -873,25 +886,17 @@ const dashboardRiskSnapshotCTE = `WITH risk_snapshots AS (
 	SELECT DISTINCT ON (r.version_group_id) r.*
 	FROM risks r
 	WHERE r.status = 'final'
+	  AND r.superseded_by_risk_id IS NULL
 	  AND r.assessment_cycle <= $1
 	ORDER BY r.version_group_id, r.assessment_cycle DESC, r.version_number DESC, r.created_at DESC
 ), dashboard_risks AS (
 	SELECT snapshot.*,
-	       COALESCE(m.observed_probability, snapshot.probability) AS effective_probability,
-	       COALESCE(m.observed_impact, snapshot.impact) AS effective_impact,
-	       COALESCE(m.observed_weight, snapshot.weight) AS effective_weight,
-	       COALESCE(m.observed_nilai, snapshot.nilai) AS effective_nilai,
-	       ROUND(COALESCE(m.observed_nilai, snapshot.nilai, 0))::int AS effective_inherent_score
+	       snapshot.probability AS effective_probability,
+	       snapshot.impact AS effective_impact,
+	       snapshot.weight AS effective_weight,
+	       snapshot.nilai AS effective_nilai,
+	       ROUND(COALESCE(snapshot.nilai, 0))::int AS effective_inherent_score
 	FROM risk_snapshots snapshot
-	LEFT JOIN LATERAL (
-		SELECT rm.observed_probability, rm.observed_impact, rm.observed_weight, rm.observed_nilai
-		FROM risk_monitorings rm
-		WHERE rm.version_group_id = snapshot.version_group_id
-		  AND rm.status = 'final'
-		  AND rm.assessment_cycle <= $1
-		ORDER BY rm.assessment_cycle DESC, rm.finalized_at DESC NULLS LAST, rm.updated_at DESC, rm.id DESC
-		LIMIT 1
-	) m ON true
 ) `
 
 // DashboardSummary returns KPI card data as of a specific cycle (or current versions if empty).
@@ -1298,7 +1303,7 @@ func (r *riskRepository) TopRisks(ctx context.Context, cycle string, limit int, 
 // ListVersions returns all versions for a risk group ordered newest first.
 func (r *riskRepository) ListVersions(ctx context.Context, versionGroupID uuid.UUID) ([]*entity.Risk, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.objective_id, r.likelihood_assessment_id, r.impact_criteria_id, COALESCE(r.impact_justification, '') as impact_justification,
+		`SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.superseded_by_risk_id, r.organization_id, r.created_by, r.objective_id, r.likelihood_assessment_id, r.impact_criteria_id, COALESCE(r.impact_justification, '') as impact_justification,
 		        r.cause, r.risk_source, r.controllability, r.impact_description,
 		        r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, ROUND(COALESCE(r.nilai, 0))::int,
 		        r.risk_priority, r.risk_appetite, r.treatment_option,
@@ -1322,7 +1327,7 @@ func (r *riskRepository) ListVersions(ctx context.Context, versionGroupID uuid.U
 	for rows.Next() {
 		var risk entity.Risk
 		if err := rows.Scan(
-			&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.IsCycleCurrent, &risk.VersionNumber, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy, &risk.ObjectiveID, &risk.LikelihoodAssessmentID, &risk.ImpactCriteriaID, &risk.ImpactJustification,
+			&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.IsCycleCurrent, &risk.VersionNumber, &risk.ArchivedAt, &risk.ArchivedReason, &risk.SupersededByRiskID, &risk.OrganizationID, &risk.CreatedBy, &risk.ObjectiveID, &risk.LikelihoodAssessmentID, &risk.ImpactCriteriaID, &risk.ImpactJustification,
 			&risk.Cause, &risk.RiskSource, &risk.Controllability, &risk.ImpactDesc,
 			&risk.ExistingControl, &risk.ControlEffectiveness, &risk.Probability, &risk.Impact, &risk.Weight, &risk.Nilai, &risk.InherentScore,
 			&risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,
@@ -1341,15 +1346,14 @@ func (r *riskRepository) ListVersions(ctx context.Context, versionGroupID uuid.U
 // ListCycleSnapshot returns the latest finalized risk profile as of a cycle and
 // attaches that cycle's finalized monitoring observation when one exists.
 //
-// A score-only monitoring does not create a row in risks, so querying risks by
-// assessment_cycle alone would silently drop it from historical reports and
-// dashboard trends. The profile snapshot and monitoring observation are
-// intentionally resolved independently here.
+// The profile snapshot and monitoring observation are intentionally resolved
+// independently: an observation in Q1 informs the profile effective in Q2.
 func (r *riskRepository) ListCycleSnapshot(ctx context.Context, cycle string, orgIDs []uuid.UUID) ([]*entity.Risk, error) {
 	query := `WITH risk_snapshots AS (
 		SELECT DISTINCT ON (r.version_group_id) r.*
 		FROM risks r
 		WHERE r.status = 'final'
+		  AND r.superseded_by_risk_id IS NULL
 		  AND COALESCE(r.assessment_cycle, '') <= $1
 		ORDER BY r.version_group_id,
 		         COALESCE(r.assessment_cycle, '') DESC,
@@ -1571,6 +1575,7 @@ func (r *riskRepository) ListReviewQueue(ctx context.Context, cycle string, orgI
 		SELECT DISTINCT ON (r.version_group_id) r.*
 		FROM risks r
 		WHERE r.status = 'final'
+		  AND r.superseded_by_risk_id IS NULL
 		  AND COALESCE(r.assessment_cycle, '') <= $1
 		ORDER BY r.version_group_id, COALESCE(r.assessment_cycle, '') DESC, r.version_number DESC, r.created_at DESC, r.id DESC
 	)`
@@ -1728,48 +1733,27 @@ func (r *riskRepository) CompareCycles(ctx context.Context, fromCycle string, to
 		SELECT DISTINCT ON (r.version_group_id) r.*
 		FROM risks r
 		WHERE r.status = 'final'
+		  AND r.superseded_by_risk_id IS NULL
 		  AND COALESCE(r.assessment_cycle, '') <= $2
 		ORDER BY r.version_group_id, COALESCE(r.assessment_cycle, '') DESC, r.version_number DESC, r.created_at DESC, r.id DESC
 	), previous_snapshots AS (
 		SELECT DISTINCT ON (r.version_group_id) r.*
 		FROM risks r
 		WHERE r.status = 'final'
+		  AND r.superseded_by_risk_id IS NULL
 		  AND COALESCE(r.assessment_cycle, '') <= $1
 		ORDER BY r.version_group_id, COALESCE(r.assessment_cycle, '') DESC, r.version_number DESC, r.created_at DESC, r.id DESC
-	), current_monitorings AS (
-		SELECT DISTINCT ON (rm.version_group_id)
-			rm.version_group_id,
-			rm.observed_nilai,
-			rm.change_reason
-		FROM risk_monitorings rm
-		WHERE rm.assessment_cycle = $2
-		  AND rm.status = 'final'
-		ORDER BY rm.version_group_id, rm.finalized_at DESC NULLS LAST, rm.updated_at DESC, rm.id DESC
-	), previous_monitorings AS (
-		SELECT DISTINCT ON (rm.version_group_id)
-			rm.version_group_id,
-			rm.observed_nilai
-		FROM risk_monitorings rm
-		WHERE rm.assessment_cycle = $1
-		  AND rm.status = 'final'
-		ORDER BY rm.version_group_id, rm.finalized_at DESC NULLS LAST, rm.updated_at DESC, rm.id DESC
 	), scored AS (
 		SELECT
 			curr.version_group_id,
 			curr.code,
 			curr.title,
 			COALESCE(org.name, '') AS org_name,
-			CASE
-				WHEN prev_monitoring.observed_nilai IS NOT NULL THEN ROUND(prev_monitoring.observed_nilai)::int
-				WHEN prev.assessment_cycle = $1 THEN ROUND(COALESCE(prev.nilai, 0))::int
-				ELSE 0
-			END AS prev_score,
-			COALESCE(ROUND(current_monitoring.observed_nilai)::int, ROUND(COALESCE(curr.nilai, 0))::int) AS curr_score,
-			(prev_monitoring.version_group_id IS NOT NULL OR prev.assessment_cycle = $1) AS has_previous,
-			COALESCE(NULLIF(current_monitoring.change_reason, ''), curr.change_reason, '') AS change_reason
-		FROM current_monitorings current_monitoring
-		JOIN current_snapshots curr ON curr.version_group_id = current_monitoring.version_group_id
-		LEFT JOIN previous_monitorings prev_monitoring ON prev_monitoring.version_group_id = curr.version_group_id
+			ROUND(COALESCE(prev.nilai, 0))::int AS prev_score,
+			ROUND(COALESCE(curr.nilai, 0))::int AS curr_score,
+			(prev.id IS NOT NULL) AS has_previous,
+			COALESCE(curr.change_reason, '') AS change_reason
+		FROM current_snapshots curr
 		LEFT JOIN previous_snapshots prev ON prev.version_group_id = curr.version_group_id
 		LEFT JOIN organizations org ON org.id = curr.organization_id
 		WHERE TRUE`

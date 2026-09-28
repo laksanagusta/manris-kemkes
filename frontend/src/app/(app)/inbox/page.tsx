@@ -7,7 +7,7 @@ import {
   Clock,
   FileSignature,
   FileText,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 
 import { Badge } from "@/components/ui/badge";
 import {
@@ -21,8 +21,6 @@ import {
   CollectionTableHead,
   CollectionTableHeader,
   CollectionTableHeaderRow,
-  CollectionTabsList,
-  CollectionTabsTrigger,
   CollectionToolbar,
   KpiCard,
 } from "@/components/shared/design-system";
@@ -31,22 +29,19 @@ import {
   PageStack,
 } from "@/components/shared/design-system";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
   TableRow,
 } from "@/components/ui/table";
-import { Tabs } from "@/components/ui/tabs";
+import {
+  Tabs,
+  TabsList,
+  TabsTrigger,
+} from "@/components/shared/animated-tabs";
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
-import { cn } from "@/lib/utils";
+import { getLinearStatusBadgeClassName, getLinearStatusBadgeTone } from "@/lib/linear-status-badge";
 
 interface ApprovalRequest {
   id: string;
@@ -78,15 +73,6 @@ interface WorkingPaperSigningItem {
 }
 
 type InboxItem = ApprovalRequest | WorkingPaperSigningItem;
-
-const statusVariant: Record<string, string> = {
-  pending: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
-  approved: "bg-success/15 text-success border-success/20",
-  rejected: "bg-destructive/15 text-destructive border-destructive/20",
-  submitted: "bg-amber-100 text-amber-700 border-amber-200",
-  revision_requested: "bg-orange-100 text-orange-700 border-orange-200",
-  pending_signing: "bg-blue-100 text-blue-700 border-blue-200",
-};
 
 const statusLabel: Record<string, string> = {
   pending: "Menunggu",
@@ -210,14 +196,6 @@ export default function InboxPage() {
     }
     return "all";
   });
-  const [typeFilter, setTypeFilter] = useState<
-    "all" | "risk" | "working_paper"
-  >(() => {
-    const value = searchParams.get("type");
-    return value === "risk" || value === "working_paper"
-      ? value
-      : "all";
-  });
   const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
   const [requests, setRequests] = useState<InboxItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -273,7 +251,6 @@ export default function InboxPage() {
 
   useEffect(() => {
     const queryStatus = searchParams.get("status");
-    const queryType = searchParams.get("type");
     const querySearch = searchParams.get("search");
     const nextPage = parsePositiveInt(searchParams.get("page"), 1);
     const nextLimit = parsePositiveInt(searchParams.get("limit"), 10);
@@ -293,11 +270,6 @@ export default function InboxPage() {
     } else {
       setFilter("all");
     }
-    setTypeFilter(
-      queryType === "risk" || queryType === "working_paper"
-        ? queryType
-        : "all",
-    );
     setSearch(querySearch ?? "");
     setPage((current) => (current === nextPage ? current : nextPage));
     setLimit((current) => (current === nextLimit ? current : nextLimit));
@@ -356,17 +328,12 @@ export default function InboxPage() {
 
   useEffect(() => {
     const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete("type");
 
     if (filter === "all") {
       nextParams.delete("status");
     } else {
       nextParams.set("status", filter);
-    }
-
-    if (typeFilter === "all") {
-      nextParams.delete("type");
-    } else {
-      nextParams.set("type", typeFilter);
     }
 
     const normalizedSearch = search.trim();
@@ -402,7 +369,6 @@ export default function InboxPage() {
     });
   }, [
     filter,
-    typeFilter,
     search,
     page,
     limit,
@@ -483,9 +449,6 @@ export default function InboxPage() {
         if ((item as ApprovalRequest).currentStatus !== filter) return false;
       }
 
-      // Filter by type
-      if (typeFilter !== "all" && item.requestType !== typeFilter) return false;
-
       // Filter by search
       const keyword = search.trim().toLowerCase();
       if (!keyword) return true;
@@ -513,7 +476,7 @@ export default function InboxPage() {
         .filter(Boolean)
         .some((value) => value!.toLowerCase().includes(keyword));
     });
-  }, [filter, requests, search, typeFilter, currentUserId]);
+  }, [filter, requests, search, currentUserId]);
 
   if (loading) {
     return (
@@ -548,25 +511,25 @@ export default function InboxPage() {
           setPage(1);
         }}
       >
-        <CollectionTabsList>
-          <CollectionTabsTrigger value="all">
+        <TabsList className="h-auto items-start gap-1">
+          <TabsTrigger value="all" className="flex-none px-3">
             Semua
-          </CollectionTabsTrigger>
-          <CollectionTabsTrigger value="my_approvals">
+          </TabsTrigger>
+          <TabsTrigger value="my_approvals" className="flex-none px-3">
             Persetujuan Saya
             {counts.myApprovals > 0 && (
-              <Badge className="ml-1 h-4 bg-primary/20 px-1 text-[9px] text-primary">
+              <Badge className="ml-1">
                 {counts.myApprovals}
               </Badge>
             )}
-          </CollectionTabsTrigger>
-          <CollectionTabsTrigger value="approved">
+          </TabsTrigger>
+          <TabsTrigger value="approved" className="flex-none px-3">
             Disetujui
-          </CollectionTabsTrigger>
-          <CollectionTabsTrigger value="rejected">
+          </TabsTrigger>
+          <TabsTrigger value="rejected" className="flex-none px-3">
             Ditolak
-          </CollectionTabsTrigger>
-        </CollectionTabsList>
+          </TabsTrigger>
+        </TabsList>
       </Tabs>
 
       <MetricGrid>
@@ -580,6 +543,7 @@ export default function InboxPage() {
         ))}
       </MetricGrid>
 
+      <div className="space-y-4">
       <CollectionToolbar
         leading={
           <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
@@ -589,22 +553,6 @@ export default function InboxPage() {
               onChange={(event) => setSearch(event.target.value)}
               aria-label="Cari permintaan persetujuan"
             />
-            <Select
-              value={typeFilter}
-              onValueChange={(value) => {
-                setTypeFilter(value as typeof typeFilter);
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="h-9 w-full bg-muted/50 text-sm sm:w-40">
-                <SelectValue placeholder="Jenis Permintaan" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Jenis</SelectItem>
-                <SelectItem value="risk">Risiko</SelectItem>
-                <SelectItem value="working_paper">Kertas Kerja</SelectItem>
-              </SelectContent>
-            </Select>
           </div>
         }
       />
@@ -613,7 +561,7 @@ export default function InboxPage() {
         {filteredRequests.length === 0 ? (
           <CollectionEmptyState
             title="Belum ada permintaan persetujuan yang sesuai filter"
-            description="Ubah filter pencarian atau jenis permintaan untuk melihat data lain."
+            description="Ubah filter pencarian untuk melihat data lain."
           />
         ) : (
           <Table className="min-w-[760px] table-fixed">
@@ -626,19 +574,19 @@ export default function InboxPage() {
             </colgroup>
             <CollectionTableHeader>
               <CollectionTableHeaderRow>
-                <CollectionTableHead className="pl-4 pr-3">
+                <CollectionTableHead>
                   Kode
                 </CollectionTableHead>
-                <CollectionTableHead className="px-3">
+                <CollectionTableHead className="px-24">
                   Entitas
                 </CollectionTableHead>
-                <CollectionTableHead className="px-3">
+                <CollectionTableHead >
                   Jenis
                 </CollectionTableHead>
-                <CollectionTableHead className="px-3">
+                <CollectionTableHead >
                   Tanggal
                 </CollectionTableHead>
-                <CollectionTableHead className="px-3">
+                <CollectionTableHead >
                   Status
                 </CollectionTableHead>
               </CollectionTableHeaderRow>
@@ -679,12 +627,12 @@ export default function InboxPage() {
                 return (
                   <TableRow
                     key={item.id}
-                    className="border-b border-border hover:bg-muted/50"
+                    className="hover:bg-muted/50"
                   >
-                    <TableCell className="py-2 pl-4 pr-3 text-foreground">
+                    <TableCell className="">
                       {displayCode || `REQ-${item.id.slice(0, 8)}`}
                     </TableCell>
-                    <TableCell className="px-3 py-2">
+                    <TableCell className="px-24">
                       <div className="min-w-0">
                         <Link
                           href={typeConfig.href(entityId)}
@@ -697,27 +645,22 @@ export default function InboxPage() {
                         </p>
                       </div>
                     </TableCell>
-                    <TableCell className="px-3 py-2">
-                      <Badge variant="outline" className="h-5 px-1.5 text-xs">
+                    <TableCell className="">
+                      <Badge variant="outline" className="">
                         <span className="inline-flex items-center gap-1">
                           <Icon className="size-3" />
                           {typeConfig.label}
                         </span>
                       </Badge>
                     </TableCell>
-                    <TableCell className="px-3 py-2 text-muted-foreground">
+                    <TableCell className="">
                       <span className="inline-flex items-center gap-1.5">
                         <Clock className="size-3" />
                         {formatDate(displayDate)}
                       </span>
                     </TableCell>
-                    <TableCell className="px-3 py-2">
-                      <Badge
-                        className={cn(
-                          "h-5 px-1.5 text-[10px] font-medium",
-                          statusVariant[status],
-                        )}
-                      >
+                    <TableCell className="">
+                      <Badge variant={getLinearStatusBadgeTone(status)} className={getLinearStatusBadgeClassName(status)}>
                         {statusLabel[status]}
                       </Badge>
                     </TableCell>
@@ -741,6 +684,7 @@ export default function InboxPage() {
             }}
           />
       </CollectionTableCard>
+      </div>
 
     </PageStack>
   );

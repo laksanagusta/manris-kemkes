@@ -53,6 +53,10 @@ export interface RiskRegisterListItem {
     q2?: string | null;
     q3?: string | null;
     q4?: string | null;
+    q1Nilai?: number | null;
+    q2Nilai?: number | null;
+    q3Nilai?: number | null;
+    q4Nilai?: number | null;
   } | null;
 }
 

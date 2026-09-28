@@ -8,7 +8,7 @@ import {
   FilePlus2,
   Loader2,
   MoreHorizontal,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 import { toast } from "sonner";
 
 import { useAuth } from "@/contexts/auth-context";
@@ -28,6 +28,7 @@ import {
 import {
   CollectionPagination,
   CollectionPageHeader,
+  CollectionEmptyState,
   CollectionFilterTrigger,
   CollectionSearchField,
   CollectionTableCard,
@@ -40,11 +41,12 @@ import {
 import {
   AccentButton,
   ActionButton,
+  FieldErrorMessage,
   MetricGrid,
   PageStack,
 } from "@/components/shared/design-system";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import {
   Popover,
   PopoverContent,
@@ -82,8 +84,8 @@ import {
 } from "@/lib/report-scope";
 import { evaluationStatusLabel, filterEvaluations } from "@/lib/evaluations";
 import {
+  getLinearStatusBadgeClassName,
   getLinearStatusBadgeTone,
-  type BadgeTone,
 } from "@/lib/linear-status-badge";
 import {
   currentAssessmentCycle,
@@ -101,7 +103,7 @@ function formatDateTime(value?: string | null) {
   }).format(date);
 }
 
-const statusStyles: Record<EvaluationStatus, BadgeTone> = {
+const statusStyles: Record<EvaluationStatus, BadgeVariant> = {
   draft: getLinearStatusBadgeTone("draft"),
   final: getLinearStatusBadgeTone("finalized"),
 };
@@ -147,12 +149,12 @@ function EvaluationFiltersSidebar({
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="w-[22rem] rounded-xl p-4"
+        className="w-[22rem]"
       >
         <div className="space-y-4">
           <div>
             <h4 className="text-sm font-medium">Filter Evaluasi</h4>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-secondary-foreground">
               Atur organisasi, periode, dan status.
             </p>
           </div>
@@ -187,7 +189,7 @@ function EvaluationFiltersSidebar({
                 Periode
               </Label>
               <Select value={periodFilter} onValueChange={onPeriodFilterChange}>
-                <SelectTrigger className="h-9 rounded-lg border border-input bg-card text-sm">
+                <SelectTrigger className="">
                   <SelectValue placeholder="Periode" />
                 </SelectTrigger>
                 <SelectContent>
@@ -208,7 +210,7 @@ function EvaluationFiltersSidebar({
                 value={status}
                 onValueChange={(value) => onStatusChange(value as EvaluationStatus | "all")}
               >
-                <SelectTrigger className="h-9 rounded-lg border border-input bg-card text-sm">
+                <SelectTrigger className="">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -656,6 +658,7 @@ export default function EvaluationsPage() {
         ))}
       </MetricGrid>
 
+      <div className="space-y-4">
       <CollectionToolbar
         leading={
           <EvaluationFiltersToolbar
@@ -726,26 +729,26 @@ export default function EvaluationsPage() {
             </colgroup>
             <CollectionTableHeader>
               <CollectionTableHeaderRow>
-                <CollectionTableHead className="pl-4 pr-3">
+                <CollectionTableHead >
                   Kode
                 </CollectionTableHead>
-                <CollectionTableHead className="px-3">
+                <CollectionTableHead >
                   Periode
                 </CollectionTableHead>
-                <CollectionTableHead className="px-3">
+                <CollectionTableHead >
                   Organisasi
                 </CollectionTableHead>
-                <CollectionTableHead className="px-3">
+                <CollectionTableHead >
                   Template
                 </CollectionTableHead>
-                <CollectionTableHead className="px-3">
+                <CollectionTableHead >
                   Status
                 </CollectionTableHead>
-                <CollectionTableHead className="px-3">
+                <CollectionTableHead >
                   Diperbarui
                 </CollectionTableHead>
-                <CollectionTableHead className="px-3 text-right">
-                  Aksi
+                <CollectionTableHead className="text-right">
+                  <span className="sr-only">Aksi</span>
                 </CollectionTableHead>
               </CollectionTableHeaderRow>
             </CollectionTableHeader>
@@ -754,7 +757,7 @@ export default function EvaluationsPage() {
                 <TableRow>
                   <TableCell
                     colSpan={7}
-                    className="py-8 text-left text-xs text-muted-foreground"
+                    className="text-left"
                   >
                     Memuat evaluasi...
                   </TableCell>
@@ -763,9 +766,12 @@ export default function EvaluationsPage() {
                 <TableRow>
                   <TableCell
                     colSpan={7}
-                    className="py-8 text-left text-xs text-muted-foreground"
+                    className="text-left"
                   >
-                    Belum ada evaluasi untuk filter yang dipilih.
+                    <CollectionEmptyState
+                      title="Belum ada evaluasi yang sesuai"
+                      description="Coba ubah kata kunci atau sesuaikan filter."
+                    />
                   </TableCell>
                 </TableRow>
               ) : (
@@ -778,9 +784,9 @@ export default function EvaluationsPage() {
                   return (
                     <TableRow
                       key={evaluation.id}
-                      className="border-b border-border hover:bg-muted/50"
+                      className="hover:bg-muted/50"
                     >
-                      <TableCell className="py-2 pl-4 pr-3 text-foreground">
+                      <TableCell className="">
                         <Link
                           href={`/evaluations/${evaluation.id}`}
                           className="font-medium transition-colors hover:text-primary"
@@ -789,29 +795,27 @@ export default function EvaluationsPage() {
                           {evaluation.code}
                         </Link>
                       </TableCell>
-                      <TableCell className="px-3 py-2 text-muted-foreground">
+                      <TableCell className="">
                         {evaluation.period}
                       </TableCell>
-                      <TableCell className="px-3 py-2">
+                      <TableCell className="">
                         <span className="text-sm font-medium text-foreground">
                           {orgName}
                         </span>
                       </TableCell>
-                      <TableCell className="px-3 py-2 text-muted-foreground">
+                      <TableCell className="">
                         {evaluation.templateName || evaluation.templateId}
                       </TableCell>
-                      <TableCell className="px-3 py-2">
-                        <Badge
-                          tone={statusStyles[evaluation.status]}
-                          size="compact"
+                      <TableCell className="">
+                        <Badge variant={statusStyles[evaluation.status]} className={getLinearStatusBadgeClassName(evaluation.status)}
                         >
                           {evaluationStatusLabel[evaluation.status]}
                         </Badge>
                       </TableCell>
-                      <TableCell className="px-3 py-2 text-muted-foreground">
+                      <TableCell className="">
                         {formatDateTime(evaluation.updatedAt)}
                       </TableCell>
-                      <TableCell className="py-2 pl-3 pr-4 text-right">
+                      <TableCell className="text-right">
                         <div className="flex items-center justify-end">
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -859,6 +863,7 @@ export default function EvaluationsPage() {
             }}
           />
       </CollectionTableCard>
+      </div>
 
       <Dialog
         open={createDialogOpen}
@@ -910,14 +915,9 @@ export default function EvaluationsPage() {
                   }
                   className="h-10 rounded-lg text-sm"
                 />
-                {createFieldErrors.organization ? (
-                  <p
-                    id="create-organization-error"
-                    className="text-xs text-destructive"
-                  >
-                    {createFieldErrors.organization}
-                  </p>
-                ) : null}
+                <FieldErrorMessage id="create-organization-error">
+                  {createFieldErrors.organization}
+                </FieldErrorMessage>
               </div>
 
               <div className="space-y-2">
@@ -940,7 +940,7 @@ export default function EvaluationsPage() {
                     aria-describedby={
                       createFieldErrors.period ? "create-period-error" : undefined
                     }
-                    className="h-10 rounded-lg text-sm"
+                    className=""
                   >
                     <SelectValue placeholder="Pilih periode" />
                   </SelectTrigger>
@@ -952,11 +952,9 @@ export default function EvaluationsPage() {
                     ))}
                   </SelectContent>
                 </Select>
-                {createFieldErrors.period ? (
-                  <p id="create-period-error" className="text-xs text-destructive">
-                    {createFieldErrors.period}
-                  </p>
-                ) : null}
+                <FieldErrorMessage id="create-period-error">
+                  {createFieldErrors.period}
+                </FieldErrorMessage>
               </div>
             </div>
 

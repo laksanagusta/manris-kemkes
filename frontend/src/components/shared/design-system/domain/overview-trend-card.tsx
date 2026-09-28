@@ -6,24 +6,29 @@ export function OverviewTrendCard({
   title = "Tren Skor Risiko per Semester",
   chart,
   legend,
+  children,
 }: {
   title?: ReactNode;
-  chart: ReactNode;
+  chart?: ReactNode;
   legend?: ReactNode;
+  children?: ReactNode;
 }) {
   return (
     <StandardCard
-      title={title}
-      className="rounded-2xl"
-      headerClassName="px-5 pb-3 pt-5"
-      contentClassName="px-5 pb-5 pt-0"
+      title={<span className="text-sm">{title}</span>}
     >
-      {chart}
-      {legend ? (
-        <div className="mt-3 flex flex-wrap items-center justify-end gap-x-5 gap-y-2 text-xs text-muted-foreground">
-          {legend}
-        </div>
-      ) : null}
+      <div className="space-y-4">
+        {legend ? (
+          <div
+            role="list"
+            aria-label="Legenda tren risiko"
+            className="flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-muted-foreground"
+          >
+            {legend}
+          </div>
+        ) : null}
+        {chart ?? children}
+      </div>
     </StandardCard>
   );
 }

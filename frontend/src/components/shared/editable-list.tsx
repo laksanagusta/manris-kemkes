@@ -9,6 +9,7 @@ interface EditableListProps {
   onChange: (val: string) => void;
   placeholder?: string;
   disabled?: boolean;
+  invalid?: boolean;
 }
 
 export function EditableList({
@@ -18,16 +19,18 @@ export function EditableList({
   onChange,
   placeholder,
   disabled,
+  invalid = false,
 }: EditableListProps) {
   return (
     <Textarea
       id={id}
       aria-label={ariaLabel}
+      aria-invalid={invalid}
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       disabled={disabled}
-      className="min-h-[80px] text-xs bg-muted/20 resize-none leading-relaxed"
+      className="resize-none"
     />
   );
 }

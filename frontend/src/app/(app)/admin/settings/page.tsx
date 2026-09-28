@@ -1,13 +1,12 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
-import { cn } from "@/lib/utils";
 import {
   CollectionPageHeader,
   PageStack,
@@ -20,7 +19,7 @@ import {
   AlertTriangle,
   Shield,
   FileText,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 
 const probabilityScale = [
   { level: 1, label: "Rare", description: "Hampir tidak mungkin terjadi (<5%)" },
@@ -38,12 +37,12 @@ const impactScale = [
   { level: 5, label: "Catastrophic", description: "Dampak sangat besar, kegagalan total" },
 ];
 
-const scaleColors = [
-  "bg-risk-low/15 text-risk-low border-risk-low/20",
-  "bg-risk-low/15 text-risk-low border-risk-low/20",
-  "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
-  "bg-risk-high/15 text-risk-high border-risk-high/20",
-  "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
+const scaleVariants: BadgeVariant[] = [
+  "secondary",
+  "secondary",
+  "outline",
+  "destructive",
+  "destructive",
 ];
 
 export default function CriteriaPage() {
@@ -52,7 +51,7 @@ export default function CriteriaPage() {
       <CollectionPageHeader
         title="Scope, Context & Criteria"
         actions={
-          <Button className="gap-2">
+          <Button className="">
             <Save className="size-4" />
             Simpan Perubahan
           </Button>
@@ -61,9 +60,9 @@ export default function CriteriaPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Scope */}
-        <Card className="bg-card/80">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+        <Card className="">
+          <CardHeader className="">
+            <CardTitle className="flex items-center gap-2">
               <FileText className="size-4" />
               Objek & Ruang Lingkup
             </CardTitle>
@@ -71,26 +70,26 @@ export default function CriteriaPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label className="text-xs">Jenis Objek</Label>
-              <Input defaultValue="Direktorat Jenderal" className="h-10 text-xs bg-muted/20 border-input" />
+              <Input defaultValue="Direktorat Jenderal" className="" />
             </div>
             <div className="space-y-2">
               <Label className="text-xs">Nama Objek</Label>
-              <Input defaultValue="Ditjen Pencegahan dan Pengendalian Penyakit (P2P)" className="h-10 text-xs bg-muted/20 border-input" />
+              <Input defaultValue="Ditjen Pencegahan dan Pengendalian Penyakit (P2P)" className="" />
             </div>
             <div className="space-y-2">
               <Label className="text-xs">Pernyataan Ruang Lingkup</Label>
               <Textarea
                 defaultValue="Manajemen risiko mencakup seluruh kegiatan pencegahan, pengendalian, dan penanggulangan penyakit yang berada di bawah koordinasi Ditjen P2P Kementerian Kesehatan RI."
-                className="min-h-[80px] text-xs bg-muted/20 border-input resize-none"
+                className="resize-none"
               />
             </div>
           </CardContent>
         </Card>
 
         {/* Context */}
-        <Card className="bg-card/80">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+        <Card className="">
+          <CardHeader className="">
+            <CardTitle className="flex items-center gap-2">
               <Settings2 className="size-4" />
               Konteks Internal & Eksternal
             </CardTitle>
@@ -100,23 +99,23 @@ export default function CriteriaPage() {
               <Label className="text-xs">Konteks Internal</Label>
               <Textarea
                 defaultValue="Struktur organisasi, SDM, anggaran, kapasitas laboratorium, sistem informasi kesehatan, infrastruktur logistik vaksin dan obat."
-                className="min-h-[80px] text-xs bg-muted/20 border-input resize-none"
+                className="resize-none"
               />
             </div>
             <div className="space-y-2">
               <Label className="text-xs">Konteks Eksternal</Label>
               <Textarea
                 defaultValue="Regulasi WHO, pandemi global, perubahan iklim, resistensi antimikroba, dinamika politik kesehatan, kerjasama lintas sektor."
-                className="min-h-[80px] text-xs bg-muted/20 border-input resize-none"
+                className="resize-none"
               />
             </div>
           </CardContent>
         </Card>
 
         {/* Appetite & Tolerance */}
-        <Card className="bg-card/80">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+        <Card className="">
+          <CardHeader className="">
+            <CardTitle className="flex items-center gap-2">
               <Target className="size-4" />
               Risk Appetite & Tolerance
             </CardTitle>
@@ -124,14 +123,14 @@ export default function CriteriaPage() {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label className="text-xs">Risk Appetite</Label>
-              <Input defaultValue="Sedang (skor ≤ 9)" className="h-10 text-xs bg-muted/20 border-input" />
+              <Input defaultValue="Sedang (skor ≤ 9)" className="" />
               <p className="text-[10px] text-muted-foreground">
                 Batas selera risiko yang bisa diterima organisasi
               </p>
             </div>
             <div className="space-y-2">
               <Label className="text-xs">Risk Tolerance</Label>
-              <Input defaultValue="Tinggi (skor ≤ 16)" className="h-10 text-xs bg-muted/20 border-input" />
+              <Input defaultValue="Tinggi (skor ≤ 16)" className="" />
               <p className="text-[10px] text-muted-foreground">
                 Batas toleransi penyimpangan dari appetite
               </p>
@@ -141,9 +140,9 @@ export default function CriteriaPage() {
       </div>
 
       {/* Probability Scale */}
-      <Card className="bg-card/80">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+      <Card className="">
+        <CardHeader className="">
+          <CardTitle className="flex items-center gap-2">
             <Gauge className="size-4" />
             Skala Probabilitas (1-5)
           </CardTitle>
@@ -156,10 +155,8 @@ export default function CriteriaPage() {
                 className="flex items-center gap-3 rounded-lg border border-border/50 p-3"
               >
                 <Badge
-                  className={cn(
-                    "text-xs font-bold border h-7 w-7 flex items-center justify-center p-0",
-                    scaleColors[index]
-                  )}
+                  variant={scaleVariants[index]}
+                  className="w-7"
                 >
                   {item.level}
                 </Badge>
@@ -173,7 +170,7 @@ export default function CriteriaPage() {
                 </div>
                 <Input
                   defaultValue={item.description}
-                  className="h-10 text-[11px] max-w-[300px] bg-muted/20 border-input hidden lg:block"
+                  className="max-w-[300px] hidden lg:block"
                 />
               </div>
             ))}
@@ -182,9 +179,9 @@ export default function CriteriaPage() {
       </Card>
 
       {/* Impact Scale */}
-      <Card className="bg-card/80">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-semibold flex items-center gap-2">
+      <Card className="">
+        <CardHeader className="">
+          <CardTitle className="flex items-center gap-2">
             <AlertTriangle className="size-4" />
             Skala Dampak (1-5)
           </CardTitle>
@@ -197,10 +194,8 @@ export default function CriteriaPage() {
                 className="flex items-center gap-3 rounded-lg border border-border/50 p-3"
               >
                 <Badge
-                  className={cn(
-                    "text-xs font-bold border h-7 w-7 flex items-center justify-center p-0",
-                    scaleColors[index]
-                  )}
+                  variant={scaleVariants[index]}
+                  className="w-7"
                 >
                   {item.level}
                 </Badge>
@@ -214,7 +209,7 @@ export default function CriteriaPage() {
                 </div>
                 <Input
                   defaultValue={item.description}
-                  className="h-10 text-[11px] max-w-[300px] bg-muted/20 border-input hidden lg:block"
+                  className="max-w-[300px] hidden lg:block"
                 />
               </div>
             ))}

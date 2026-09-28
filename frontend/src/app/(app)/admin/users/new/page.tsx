@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Save } from "@/components/ui/icons";
+import { Loader2, Save } from "@/components/shared/icons";
 import { toast } from "sonner";
 
 import { AdminOnlyState } from "@/components/admin/admin-only-state";
@@ -167,22 +167,20 @@ export default function NewUserPage() {
           <div className="flex flex-wrap items-center gap-2">
             <Badge
               variant="outline"
-              className="border-primary/15 bg-primary/[0.04] text-primary"
+              className=""
             >
               Administrasi akses
             </Badge>
             <Badge
               variant="outline"
-              className="border-warning/20 bg-warning/10 text-warning"
+              className=""
             >
               Password sementara
             </Badge>
           </div>
         }
-        backLabel="Kembali ke daftar pengguna"
-        onBack={() => router.push("/admin/users")}
         actions={
-          <Button className="text-xs" onClick={handleSave} disabled={loading}>
+          <Button className="" onClick={handleSave} disabled={loading}>
             {loading ? (
               <Loader2 data-icon="inline-start" className="animate-spin" />
             ) : (
@@ -205,7 +203,7 @@ export default function NewUserPage() {
             </Label>
             <Input
               placeholder="Contoh: Dr. Andi Pratama, M.Kes"
-              className="h-10 text-sm"
+              className=""
               value={name}
               onChange={(event) => setName(event.target.value)}
             />
@@ -216,7 +214,7 @@ export default function NewUserPage() {
             </Label>
             <Input
               placeholder="Contoh: 198001012006041001"
-              className="h-10 text-sm"
+              className=""
               value={nip}
               onChange={(event) => setNip(event.target.value)}
             />
@@ -231,7 +229,7 @@ export default function NewUserPage() {
             <Input
               type="email"
               placeholder="Contoh: andi@kemenkes.go.id"
-              className="h-10 text-sm"
+              className=""
               value={email}
               onChange={(event) => setEmail(event.target.value)}
             />
@@ -242,7 +240,7 @@ export default function NewUserPage() {
             </Label>
             <Input
               placeholder="Contoh: 081234567890"
-              className="h-10 text-sm"
+              className=""
               value={phoneNumber}
               onChange={(event) => setPhoneNumber(event.target.value)}
             />
@@ -255,7 +253,7 @@ export default function NewUserPage() {
             <Input
               type="password"
               placeholder="Minimal 8 karakter untuk login pertama"
-              className="h-10 text-sm"
+              className=""
               value={password}
               onChange={(event) => setPassword(event.target.value)}
             />
@@ -278,7 +276,7 @@ export default function NewUserPage() {
             <Label className="text-sm font-medium">Jabatan</Label>
             <Input
               placeholder="Contoh: Kepala Seksi Surveilans"
-              className="h-10 text-sm"
+              className=""
               value={jabatan}
               onChange={(event) => setJabatan(event.target.value)}
             />
@@ -287,7 +285,7 @@ export default function NewUserPage() {
             <Label className="text-sm font-medium">Pangkat</Label>
             <Input
               placeholder="Contoh: Pembina Tk. I (IV/b)"
-              className="h-10 text-sm"
+              className=""
               value={pangkat}
               onChange={(event) => setPangkat(event.target.value)}
             />
@@ -306,7 +304,7 @@ export default function NewUserPage() {
               Peran<span className="ml-0.5 text-destructive">*</span>
             </Label>
             <Select value={role} onValueChange={handleRoleChange}>
-              <SelectTrigger className="h-10 text-sm">
+              <SelectTrigger className="">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -337,7 +335,7 @@ export default function NewUserPage() {
               onValueChange={setOrgId}
               disabled={role === "superadmin"}
             >
-              <SelectTrigger className="h-10 text-sm">
+              <SelectTrigger className="">
                 <SelectValue
                   placeholder={
                     role === "superadmin"
@@ -363,7 +361,7 @@ export default function NewUserPage() {
           </div>
         </div>
 
-        <div className="rounded-xl border border-border/15 bg-muted/20 px-4 py-4">
+        <div className="rounded-lg border border-border/15 bg-muted/20 px-4 py-4">
           <p className="text-xs font-medium text-foreground">Ringkasan peran</p>
           <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
             {roleOptions.map((option) => (

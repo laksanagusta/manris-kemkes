@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
-import { UnitTotalRiskScoreChart } from "./_components/unit-total-risk-score-chart";
+import { RiskCountTrendChart } from "./_components/risk-count-trend-chart";
+import { RiskCategoryPieChart } from "./_components/risk-category-pie-chart";
 import { TopRisksPanel } from "./_components/top-risks-panel";
 import { CurrentRiskHeatmap } from "./_components/current-risk-heatmap";
 import {
@@ -11,12 +12,14 @@ import {
   PageStack,
 } from "@/components/shared/design-system";
 import type {
+  DashboardRiskCategoryItem,
   Risk,
   TopRiskItem,
 } from "@/types/risk";
 import { api } from "@/lib/api";
 import {
   buildCurrentRiskHeatmapMatrix,
+  buildDashboardRiskCategoryData,
   calculateRiskExposureScore,
 } from "@/lib/dashboard-insights";
 import { currentAssessmentCycle, shiftAssessmentCycle } from "@/lib/risk-cycle-options";
@@ -44,6 +47,11 @@ export default function DashboardPage() {
   const [topRisks, setTopRisks] = useState<TopRiskItem[]>([]);
   const [topRisksLoading, setTopRisksLoading] = useState(true);
   const [topRisksError, setTopRisksError] = useState(false);
+  const [riskCategoryData, setRiskCategoryData] = useState<
+    ReturnType<typeof buildDashboardRiskCategoryData>
+  >([]);
+  const [riskCategoryLoading, setRiskCategoryLoading] = useState(true);
+  const [riskCategoryError, setRiskCategoryError] = useState(false);
   const [reloadKey, setReloadKey] = useState(0);
 
   const currentCycle = useMemo(() => currentGlobalCycle(), []);
@@ -116,6 +124,22 @@ export default function DashboardPage() {
         if (!cancelled) setTopRisksLoading(false);
       });
 
+    void api
+      .get<DashboardRiskCategoryItem[]>(
+        `/dashboard/risk-categories?cycle=${currentCycle}`,
+        token,
+      )
+      .then((result) => {
+        if (!cancelled) setRiskCategoryData(buildDashboardRiskCategoryData(result));
+      })
+      .catch((error) => {
+        console.error(error);
+        if (!cancelled) setRiskCategoryError(true);
+      })
+      .finally(() => {
+        if (!cancelled) setRiskCategoryLoading(false);
+      });
+
     return () => {
       cancelled = true;
     };
@@ -139,18 +163,25 @@ export default function DashboardPage() {
     setTopRisks([]);
     setTopRisksLoading(true);
     setTopRisksError(false);
+    setRiskCategoryData([]);
+    setRiskCategoryLoading(true);
+    setRiskCategoryError(false);
     setReloadKey((value) => value + 1);
   };
   const kpiCards = [
     {
       title: "Total",
       value: totalRisks === undefined ? "—" : String(totalRisks),
+      detail: "risiko terdaftar",
+      trend: "up",
       loading: summaryLoading,
       error: summaryError,
     },
     {
       title: "Prioritas",
       value: highExtreme === undefined ? "—" : String(highExtreme),
+      detail: "risiko tinggi & ekstrem",
+      trend: "up",
       loading: summaryLoading,
       error: summaryError,
     },
@@ -160,16 +191,20 @@ export default function DashboardPage() {
         unreportedMitigations === undefined
           ? "—"
           : String(unreportedMitigations),
+      detail: "tugas tanpa laporan",
+      trend: "down",
       loading: summaryLoading,
       error: summaryError,
     },
     {
       title: "Eksposur",
       value: exposureScore === null ? "—" : String(exposureScore),
+      detail: "skor paparan risiko",
+      trend: "down",
       loading: trendLoading,
       error: trendError,
     },
-  ];
+  ] as const;
 
   return (
     <PageStack className="space-y-5 lg:space-y-6">
@@ -184,20 +219,35 @@ export default function DashboardPage() {
         </MetricGrid>
       </section>
 
-      <section data-dashboard-section="trend" aria-label="Tren risiko">
-        <UnitTotalRiskScoreChart
-          risks={trendRisks}
-          currentCycle={currentCycle}
-          loading={trendLoading}
-          error={trendError}
-          onRetry={retryDashboard}
-        />
+      <section
+        data-dashboard-section="trend"
+        aria-label="Tren dan distribusi risiko"
+        className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(22rem,1fr)]"
+      >
+        <div className="flex min-h-0 min-w-0 w-full xl:h-[32rem] [&>*]:h-full [&>*]:w-full">
+          <RiskCountTrendChart
+            risks={trendRisks}
+            currentCycle={currentCycle}
+            loading={trendLoading}
+            error={trendError}
+            onRetry={retryDashboard}
+          />
+        </div>
+        <div className="flex min-h-0 min-w-0 w-full xl:h-[32rem] [&>*]:h-full [&>*]:w-full">
+          <RiskCategoryPieChart
+            data={riskCategoryData}
+            loading={riskCategoryLoading}
+            error={riskCategoryError}
+            cycle={currentCycle}
+            onRetry={retryDashboard}
+          />
+        </div>
       </section>
 
       <section
         data-dashboard-section="priorities"
         aria-label="Prioritas dan distribusi risiko"
-        className="grid gap-4 pb-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.65fr)]"
+        className="grid items-start gap-4 pb-4 xl:items-stretch xl:grid-cols-[minmax(0,2fr)_minmax(22rem,1fr)]"
       >
         <TopRisksPanel
           risks={topRisks}

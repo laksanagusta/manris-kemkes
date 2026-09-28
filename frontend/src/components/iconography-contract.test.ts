@@ -15,20 +15,12 @@ function collectSourceFiles(directory: string): string[] {
   });
 }
 
-test("application icons use the shared Hugeicons layer", () => {
+test("application icons use Lucide", () => {
   const files = collectSourceFiles(sourceRoot);
-  const legacyPackage = ["lucide", "react"].join("-");
-  const directLucideImports = files.filter((file) =>
-    new RegExp(`from ["']${legacyPackage}["']`).test(readFileSync(file, "utf8")),
-  );
   const directHugeiconsImports = files.filter((file) =>
     /@hugeicons\/(react|core-free-icons)/.test(readFileSync(file, "utf8")),
   );
 
-  assert.deepEqual(directLucideImports, []);
-  assert.deepEqual(
-    directHugeiconsImports.map((file) => path.relative(sourceRoot, file)),
-    ["ui/icons.tsx"],
-  );
-  assert.match(readFileSync(path.join(sourceRoot, "ui/icons.tsx"), "utf8"), /HugeiconsIcon/);
+  assert.deepEqual(directHugeiconsImports, []);
+  assert.match(readFileSync(path.join(sourceRoot, "shared/icons.tsx"), "utf8"), /lucide-react/);
 });

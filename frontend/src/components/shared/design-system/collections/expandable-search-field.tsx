@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search } from "@/components/ui/icons";
+import { Search } from "@/components/shared/icons";
 
 import { CollectionSearchField } from "./collection-search-field";
 
@@ -40,7 +40,7 @@ export function ExpandableSearchField({
     <button
       type="button"
       onClick={() => setOpen(true)}
-      className="relative flex h-9 w-9 items-center justify-end rounded-md pr-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+      className="relative flex h-8 w-8 items-center justify-end rounded-md pr-2 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
       aria-label={ariaLabel}
     >
       <Search className="absolute right-2 size-4" />

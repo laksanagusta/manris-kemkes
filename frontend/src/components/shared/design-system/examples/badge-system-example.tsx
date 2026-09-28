@@ -1,25 +1,24 @@
 "use client";
 
-import { Badge } from "@/components/shared/design-system";
+import { Badge } from "@/components/ui/badge";
+import { getStatusBadgeClassName } from "@/lib/badge-variant";
 import {
-  designSystemBadgeTones,
+  designSystemBadgeVariants,
   designSystemRiskLevels,
   designSystemStatusMapping,
 } from "../data/badge-fixtures";
 
 export function BadgeSystemExample() {
   return (
-    <div className="space-y-5 rounded-xl bg-card p-6 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+    <div className="space-y-5 rounded-[12px] bg-card p-6 shadow-black">
       <div>
-        <p className="mb-3 text-xs font-medium text-foreground">Tone Palette</p>
+        <p className="mb-3 text-xs font-medium text-foreground">Variant Badge</p>
         <div className="flex flex-wrap gap-2">
-          {designSystemBadgeTones.map((tone) => (
+          {designSystemBadgeVariants.map((badge) => (
             <Badge
-              key={tone.tone}
-              tone={tone.tone}
-              size="compact"
+              key={badge.variant} variant={badge.variant}
             >
-              {tone.label}
+              {badge.label}
             </Badge>
           ))}
         </div>
@@ -29,9 +28,7 @@ export function BadgeSystemExample() {
         <div className="flex flex-wrap gap-2">
           {designSystemStatusMapping.map((status) => (
             <Badge
-              key={status.status}
-              tone={status.tone}
-              size="compact"
+              key={status.status} variant={status.variant} className={getStatusBadgeClassName(status.status)}
             >
               {status.status}
             </Badge>
@@ -41,23 +38,19 @@ export function BadgeSystemExample() {
       <div>
         <p className="mb-3 text-xs font-medium text-foreground">Context Badge</p>
         <div className="flex flex-wrap items-center gap-2">
-          <Badge
-            size="compact"
-            tone="neutral"
-            className="!bg-[#0000000a] !text-[#8f8e8e]"
+          <Badge variant="secondary"
+            className=""
           >
             2026-H1
           </Badge>
-          <Badge
-            size="compact"
-            tone="neutral"
-            className="!bg-[#0000000a] !text-[#8f8e8e]"
+          <Badge variant="secondary"
+            className=""
           >
             Tidak dilaporkan
           </Badge>
         </div>
         <p className="mt-2 font-mono text-[11px] text-muted-foreground">
-          size compact · tone neutral · bg-[#0000000a] text-[#8f8e8e]
+          variant secondary · API Badge bawaan shadcn/ui
         </p>
       </div>
       <div>
@@ -65,9 +58,7 @@ export function BadgeSystemExample() {
         <div className="flex flex-wrap gap-2">
           {designSystemRiskLevels.map((level) => (
             <Badge
-              key={level.label}
-              tone={level.tone}
-              size="compact"
+              key={level.label} variant={level.variant} className={getStatusBadgeClassName(level.label)}
             >
               {level.label}
             </Badge>
@@ -77,9 +68,9 @@ export function BadgeSystemExample() {
       <div>
         <p className="mb-3 text-xs font-medium text-foreground">With Icon & Counter</p>
         <div className="flex flex-wrap gap-2">
-          <Badge tone="info" size="compact">Current</Badge>
-          <Badge tone="info" size="compact">3</Badge>
-          <Badge tone="neutral" size="micro">RO</Badge>
+          <Badge variant="outline">Current</Badge>
+          <Badge variant="outline">3</Badge>
+          <Badge variant="secondary">RO</Badge>
         </div>
       </div>
     </div>

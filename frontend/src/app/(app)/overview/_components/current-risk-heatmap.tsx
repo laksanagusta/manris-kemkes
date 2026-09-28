@@ -9,7 +9,8 @@ import {
   RiskHeatmapGrid,
   StandardCard,
 } from "@/components/shared/design-system";
-import { ArrowExpand } from "@/components/ui/icons";
+import { ArrowExpand } from "@/components/shared/icons";
+import { Button } from "@/components/ui/button";
 import { MultiPhaseHeatmapCompareCard } from "../../compliance/_components/multi-phase-heatmap-compare";
 
 const riskLevelLegend = [
@@ -35,43 +36,63 @@ export function CurrentRiskHeatmap({
 
   return (
     <Dialog>
-      <div className="relative h-full">
-        <StandardCard
-          title="Peta Risiko Saat Ini"
-          className="h-full rounded-2xl"
-          contentClassName="px-5 pb-6 pt-3"
-          headerClassName="px-5 pb-3 pt-5"
-        >
+      <StandardCard
+        title={<span className="text-sm">Peta Risiko Saat Ini</span>}
+        className="h-full"
+        contentClassName="flex flex-1 flex-col"
+        action={
+          <DialogTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              aria-label="Buka perbandingan heatmap multi-fase"
+              title="Buka perbandingan heatmap multi-fase"
+            >
+              <ArrowExpand aria-hidden="true" />
+            </Button>
+          </DialogTrigger>
+        }
+      >
           {loading ? (
             <OverviewPanelState
               state="loading"
               message="Memuat peta risiko..."
-              className="min-h-64"
+              className="min-h-64 xl:min-h-0 xl:flex-1"
             />
           ) : error ? (
             <OverviewPanelState
               state="error"
               message="Peta risiko tidak dapat dimuat."
               onRetry={onRetry}
-              className="min-h-64"
+              className="min-h-64 xl:min-h-0 xl:flex-1"
             />
           ) : total === 0 ? (
             <OverviewPanelState
               state="empty"
               message="Belum ada distribusi risiko untuk kuartal ini."
-              className="min-h-64"
+              className="min-h-64 xl:min-h-0 xl:flex-1"
             />
           ) : (
-            <div>
-              <RiskHeatmapGrid
-                matrix={matrix}
-                label="Peta risiko kuartal berjalan"
-                className="mx-auto max-w-72"
-              />
+            <div className="flex flex-1 flex-col justify-center">
+              <div className="mx-auto grid w-full max-w-[22rem] grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2">
+                <span className="rotate-180 text-xs text-muted-foreground [writing-mode:vertical-rl]">
+                  Probabilitas
+                </span>
+                <RiskHeatmapGrid
+                  matrix={matrix}
+                  label="Peta risiko kuartal berjalan"
+                  className="w-full"
+                />
+                <span aria-hidden="true" />
+                <span className="text-center text-xs text-muted-foreground">
+                  Dampak
+                </span>
+              </div>
               <div
                 role="list"
                 aria-label="Legenda level risiko"
-                className="mt-5 flex flex-wrap justify-center gap-x-3 gap-y-2 text-[10px] text-muted-foreground"
+                className="mt-5 flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground"
               >
                 {riskLevelLegend.map((item) => (
                   <span
@@ -81,7 +102,7 @@ export function CurrentRiskHeatmap({
                   >
                     <span
                       aria-hidden="true"
-                      className={`size-2 rounded-sm ${item.className}`}
+                      className={`size-2.5 rounded-sm ${item.className}`}
                     />
                     {item.label}
                   </span>
@@ -89,26 +110,13 @@ export function CurrentRiskHeatmap({
               </div>
             </div>
           )}
-        </StandardCard>
+      </StandardCard>
 
-        <DialogTrigger asChild>
-          <button
-            type="button"
-            aria-label="Buka perbandingan heatmap multi-fase"
-            title="Buka perbandingan heatmap multi-fase"
-            className="absolute bottom-0 left-1/2 inline-flex size-9 -translate-x-1/2 translate-y-1/2 items-center justify-center rounded-full border border-border bg-card text-muted-foreground shadow-sm outline-none transition-[color,background-color,box-shadow,transform] duration-150 hover:bg-muted hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 active:scale-95 motion-reduce:transition-none"
-          >
-            <ArrowExpand aria-hidden="true" className="size-4" />
-          </button>
-        </DialogTrigger>
-      </div>
-
-      <DialogContent className="max-w-[min(96vw,1180px)] gap-4">
-        <DialogHeader>
+      <DialogContent className="max-h-[90dvh] min-w-0 overflow-y-auto sm:max-w-[min(96vw,1480px)]">
+        <DialogHeader className="pe-10">
           <DialogTitle>Perbandingan Heatmap Multi-Fase</DialogTitle>
-          <DialogDescription className="sr-only">
-            Perbandingan distribusi risiko dari skor awal, setiap kuartal,
-            hingga target skor.
+          <DialogDescription>
+            Bandingkan distribusi risiko dari skor awal, setiap kuartal, hingga target skor.
           </DialogDescription>
         </DialogHeader>
         <MultiPhaseHeatmapCompareCard surface="plain" />

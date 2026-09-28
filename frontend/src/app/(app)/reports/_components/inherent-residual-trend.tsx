@@ -67,7 +67,7 @@ export function SemesterTargetTrend({
       title="Tren Skor Kuartal vs Target"
       action={
         latest ? (
-          <Badge variant="outline" className="h-5 px-2 text-[10px]">
+          <Badge variant="outline" className="">
             {latest.period}
           </Badge>
         ) : null

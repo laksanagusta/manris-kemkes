@@ -10,14 +10,14 @@ export function FilterPopoverExample() {
     <CollectionFilterPopover
       footer={
         <div className="flex items-center justify-between pt-4">
-          <Button type="button" variant="ghost" size="md" className="shadow-none">Reset</Button>
-          <Button type="button" size="md">Terapkan</Button>
+          <Button type="button" variant="ghost" size="default" className="">Reset</Button>
+          <Button type="button" size="default">Terapkan</Button>
         </div>
       }
     >
       <div>
         <h4 className="text-sm font-medium">Filter Daftar Risiko</h4>
-        <p className="mt-1 text-xs text-muted-foreground">
+        <p className="mt-1 text-xs text-secondary-foreground">
           Atur filter untuk daftar risiko dan transaksi pemantauan.
         </p>
       </div>

@@ -4,8 +4,9 @@ import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, GripVertical } from "@/components/ui/icons";
+import { Plus, Trash2, GripVertical } from "@/components/shared/icons";
 import { Input } from "@/components/shared/design-system";
+import { IllustratedEmptyState } from "@/components/shared/design-system/feedback/illustrated-empty-state";
 import { cn } from "@/lib/utils";
 
 export interface EditableItem {
@@ -21,16 +22,24 @@ interface EditableItemsTableProps {
   addItemLabel?: string;
   emptyMessage?: string;
   itemLabel?: string;
+  invalid?: boolean;
+  itemErrors?: Array<string | undefined>;
+  emptyStatePresentation?: "illustrated" | "plain";
+  hideAddButton?: boolean;
 }
 
 export function EditableItemsTable({
   items,
   onChange,
-  placeholder = "Tulis item...",
+  placeholder,
   disabled = false,
   addItemLabel = "Tambah Item",
   emptyMessage = "Belum ada item",
   itemLabel = "Item",
+  invalid = false,
+  itemErrors,
+  emptyStatePresentation = "illustrated",
+  hideAddButton = false,
 }: EditableItemsTableProps) {
   const previousItemIdsRef = useRef(new Set(items.map((item) => item.id)));
   const animatingItemIdsRef = useRef<Set<string>>(new Set());
@@ -105,13 +114,33 @@ export function EditableItemsTable({
   };
 
   return (
-    <div className="space-y-2">
+    <div
+      role="group"
+      aria-label={itemLabel}
+      data-invalid={invalid || undefined}
+      className="space-y-2"
+    >
       {items.length === 0 ? (
-        <div className="rounded-lg bg-state-surface py-8 text-center text-state-foreground">
-          <p className="text-xs text-state-foreground">{emptyMessage}</p>
-        </div>
+        emptyStatePresentation === "plain" ? (
+          <div
+            className={cn(
+              "rounded-lg bg-sunken py-8 text-center text-state-foreground shadow-[inset_0_1px_2px_rgb(0_0_0/0.12),inset_0_-1px_0_rgb(255_255_255/0.6)] dark:shadow-[inset_0_1px_2px_rgb(0_0_0/0.35),inset_0_-1px_0_rgb(255_255_255/0.06)]",
+              invalid && "ring-1 ring-destructive",
+            )}
+          >
+            <p className="text-xs text-state-foreground">{emptyMessage}</p>
+          </div>
+        ) : (
+          <div className={cn("rounded-lg", invalid && "ring-1 ring-destructive")}>
+            <IllustratedEmptyState
+              title={emptyMessage}
+              size="compact"
+              className="py-3"
+            />
+          </div>
+        )
       ) : (
-        <div className="border border-border/50 rounded-lg overflow-hidden">
+        <div className={cn("border rounded-lg overflow-hidden", invalid ? "border-destructive" : "border-border/50")}>
           <Table className="w-full">
             <TableBody>
               {items.map((item, index) => (
@@ -123,32 +152,35 @@ export function EditableItemsTable({
                       "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-2 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-reduce:animate-none",
                   )}
                 >
-                  <TableCell className="w-8 px-2 py-2">
+                  <TableCell className="w-8">
                     <div className="flex items-center justify-center text-muted-foreground">
                       <GripVertical className="size-3.5" />
                     </div>
                   </TableCell>
-                  <TableCell className="w-8 px-2 py-2">
-                    <span className="text-[10px] font-semibold text-muted-foreground bg-muted/50 rounded-full w-5 h-5 flex items-center justify-center">
+                  <TableCell className="w-8">
+                    <span className="text-[10px] font-medium text-muted-foreground bg-muted/50 rounded-full w-5 h-5 flex items-center justify-center">
                       {index + 1}
                     </span>
                   </TableCell>
-                  <TableCell className="flex-1 px-2 py-2">
+                  <TableCell className="flex-1">
                     <Input
                       aria-label={`${itemLabel} ${index + 1}`}
                       value={item.text}
                       onChange={(e) => updateItem(item.id, e.target.value)}
                       placeholder={placeholder}
-                      className="text-xs bg-background h-10"
+                      className=""
                       disabled={disabled}
                     />
+                    {itemErrors?.[index] ? (
+                      <p className="mt-1 text-xs text-destructive">{itemErrors[index]}</p>
+                    ) : null}
                   </TableCell>
-                  <TableCell className="w-10 px-2 py-2">
+                  <TableCell className="w-10">
                     <Button
                       variant="ghost"
                       size="icon"
                       aria-label={`Hapus ${itemLabel.toLowerCase()} ${index + 1}`}
-                      className="h-8 w-8 text-destructive/50 hover:text-destructive hover:bg-destructive/10"
+                      className="w-8"
                       onClick={() => removeItem(item.id)}
                       disabled={disabled}
                     >
@@ -162,17 +194,19 @@ export function EditableItemsTable({
         </div>
       )}
 
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={addItem}
-        disabled={disabled}
-        className="w-full border-dashed gap-2 text-xs text-muted-foreground hover:text-primary hover:border-primary/50"
-      >
-        <Plus className="size-3.5" />
-        {addItemLabel}
-      </Button>
+      {!hideAddButton ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={addItem}
+          disabled={disabled}
+          className="w-full"
+        >
+          <Plus className="size-3.5" />
+          {addItemLabel}
+        </Button>
+      ) : null}
     </div>
   );
 }

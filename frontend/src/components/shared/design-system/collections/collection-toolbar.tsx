@@ -34,7 +34,7 @@ export function CollectionToolbar({
             </h2>
           ) : null}
           {description ? (
-            <p className="mt-0.5 text-sm text-muted-foreground text-pretty">
+            <p className="mt-0.5 text-sm text-secondary-foreground text-pretty">
               {description}
             </p>
           ) : null}

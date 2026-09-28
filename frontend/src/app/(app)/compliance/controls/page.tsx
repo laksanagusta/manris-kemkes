@@ -27,11 +27,12 @@ import {
   XCircle,
   Calendar,
   User,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 import { Input } from "@/components/ui/input";
 import {
   CollectionPageHeader,
   CollectionToolbar,
+  CollectionEmptyState,
   PageStack,
 } from "@/components/shared/design-system";
 
@@ -73,6 +74,7 @@ export default function ControlsPage() {
     <PageStack>
       <CollectionPageHeader title="Control Library" />
 
+      <div className="space-y-4">
       <CollectionToolbar
         className="w-full"
         leading={
@@ -82,13 +84,13 @@ export default function ControlsPage() {
               placeholder="Cari kontrol..."
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              className="h-9 bg-card pl-8 text-xs"
+              className=""
             />
           </div>
         }
         actions={
           (!user?.isGlobal && !user?.organizationId) ? null : (
-            <Button asChild size="md" className="w-full gap-2 sm:w-auto">
+            <Button asChild size="default" className="w-full sm:w-auto">
               <Link href="/compliance/controls/new">
                 <Plus className="size-4" />
                 Tambah Kontrol
@@ -103,15 +105,18 @@ export default function ControlsPage() {
         {loading ? (
            <div className="rounded-lg bg-state-surface px-4 py-10 text-center text-sm text-state-foreground">Memuat data control library...</div>
         ) : filteredControls.length === 0 ? (
-           <div className="rounded-lg bg-state-surface px-4 py-10 text-center text-sm text-state-foreground">Tidak ada control library yang ditemukan.</div>
+           <CollectionEmptyState
+             title="Tidak ada control library yang ditemukan."
+             description="Coba ubah kata kunci pencarian."
+           />
         ) : filteredControls.map((control) => {
           const isExpanded = expandedId === control.id;
           const lastTest = control.tests?.[0];
           const effectiveCount = control.tests ? control.tests.filter((t: any) => t.result === "Efektif").length : 0;
 
           return (
-            <Card key={control.id} className="bg-card/80 transition-all">
-              <CardContent className="p-0">
+            <Card key={control.id} className="transition-all">
+              <CardContent className="">
                 {/* Main row */}
                 <button
                   onClick={() => setExpandedId(isExpanded ? null : control.id)}
@@ -125,17 +130,17 @@ export default function ControlsPage() {
                       <span className="text-[10px] font-mono text-muted-foreground">
                         {control.id.substring(0,8)}
                       </span>
-                      <Badge variant="outline" className="text-[9px] h-4 px-1.5">
+                      <Badge variant="outline" className="">
                         {control.frequency}
                       </Badge>
                       {isReadOnlyForOrg(user, control.organizationId) && (
-                        <Badge variant="secondary" className="text-[9px] h-4 px-1.5">
+                        <Badge variant="secondary" className="">
                           RO
                         </Badge>
                       )}
                     </div>
                     <h3 className="text-sm font-semibold">{control.name}</h3>
-                    <p className="text-[11px] text-muted-foreground mt-0.5">{control.description}</p>
+                    <p className="mt-0.5 text-[11px] text-secondary-foreground">{control.description}</p>
                   </div>
                   <div className="hidden md:flex items-center gap-4 text-[11px] text-muted-foreground shrink-0">
                     <span className="flex items-center gap-1">
@@ -145,10 +150,10 @@ export default function ControlsPage() {
                     <Badge
                       variant="outline"
                       className={cn(
-                        "text-[9px] h-4 px-1.5",
+                        "",
                         control.effectiveness === "efektif"
-                          ? "text-success border-success/20"
-                          : "text-risk-extreme border-risk-extreme/20"
+                          ? ""
+                          : ""
                       )}
                     >
                       {control.effectiveness}
@@ -168,7 +173,7 @@ export default function ControlsPage() {
                     <div className="flex items-center justify-between py-3">
                       <h4 className="text-xs font-semibold">Testing Records</h4>
                       {!isReadOnlyForOrg(user, control.organizationId) && (
-                        <Button variant="outline" size="xs" className="text-[10px] h-6 gap-1">
+                        <Button variant="outline" size="xs" className="">
                           <Plus className="size-2.5" />
                           Tambah Testing
                         </Button>
@@ -176,33 +181,33 @@ export default function ControlsPage() {
                     </div>
                      <Table>
                        <TableHeader>
-                         <TableRow className="border-border/30 hover:bg-transparent">
-                           <TableHead className="text-[10px] w-28 whitespace-nowrap">Tanggal</TableHead>
-                           <TableHead className="text-[10px] whitespace-nowrap">Tester</TableHead>
-                           <TableHead className="text-[10px] w-28 whitespace-nowrap">Hasil</TableHead>
-                           <TableHead className="text-[10px] whitespace-nowrap">Temuan</TableHead>
+                         <TableRow className="hover:bg-transparent">
+                           <TableHead className="w-28 whitespace-nowrap">Tanggal</TableHead>
+                           <TableHead className="whitespace-nowrap">Tester</TableHead>
+                           <TableHead className="w-28 whitespace-nowrap">Hasil</TableHead>
+                           <TableHead className="whitespace-nowrap">Temuan</TableHead>
                          </TableRow>
                        </TableHeader>
                       <TableBody>
                         {control.tests && control.tests.length > 0 ? control.tests.map((test: any, i: number) => (
-                           <TableRow key={i} className="border-border/20">
+                           <TableRow key={i} className="">
                              {/* render test rows */}
-                             <TableCell className="text-[11px] text-muted-foreground">
+                             <TableCell className="">
                                <span className="flex items-center gap-1">
                                  <Calendar className="size-3" />
                                  {test.date}
                                </span>
                              </TableCell>
-                             <TableCell className="text-[11px]">{test.tester}</TableCell>
+                             <TableCell className="">{test.tester}</TableCell>
                              {/* ... */}
                            </TableRow>
                         )) : (
                            <TableRow>
                              <TableCell colSpan={4} className="h-24">
-                               <div className="flex flex-col gap-1 text-left">
-                                 <p className="text-sm font-medium text-muted-foreground">Belum ada testing record untuk control ini</p>
-                                 <p className="text-xs text-muted-foreground/70">Tambahkan testing record baru untuk memulai pemantauan</p>
-                               </div>
+                               <CollectionEmptyState
+                                 title="Belum ada testing record untuk control ini"
+                                 description="Tambahkan testing record baru untuk memulai pemantauan."
+                               />
                              </TableCell>
                            </TableRow>
                         )}
@@ -214,6 +219,7 @@ export default function ControlsPage() {
             </Card>
           );
         })}
+      </div>
       </div>
     </PageStack>
   );

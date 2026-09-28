@@ -15,10 +15,8 @@ export function CollapsibleCardExample() {
           </CollapsibleCard.Text>
         </CollapsibleCard.Header>
         <CollapsibleCard.Actions>
-          <Badge
-            size="compact"
-            tone="neutral"
-            className="bg-muted text-muted-foreground"
+          <Badge variant="secondary"
+            className=""
           >
             2026-H1
           </Badge>

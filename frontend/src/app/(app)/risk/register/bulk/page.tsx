@@ -1,15 +1,21 @@
 "use client";
 
 import { useMemo, useState, type ChangeEvent } from "react";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Download, FileSpreadsheet, Loader2, Upload } from "@/components/ui/icons";
+import { Download, Loader2, Upload } from "@/components/shared/icons";
 
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
+import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 import { FormHeader, FormPage } from "@/components/shared/form-shell";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -84,6 +90,9 @@ type BatchResponse = {
   items: RiskBatchResultItem[];
 };
 
+const bulkImportSurfaceClassName =
+  "gap-3 rounded-lg border border-dashed border-border/70 bg-muted/[0.18] px-6 py-10 text-center";
+
 function getPreviewStatus(preview: BulkRiskPreview) {
   if (preview.errors.length > 0) {
     return { label: "Invalid", tone: "danger" as const };
@@ -95,7 +104,6 @@ function getPreviewStatus(preview: BulkRiskPreview) {
 }
 
 export default function BulkRiskRegisterPage() {
-  const router = useRouter();
   const { token } = useAuth();
   const [sourceName, setSourceName] = useState("");
   const [previews, setPreviews] = useState<BulkRiskPreview[]>([]);
@@ -225,14 +233,12 @@ export default function BulkRiskRegisterPage() {
     <FormPage className="pb-10">
       <FormHeader
         title="Import Risiko"
-        onBack={() => router.push("/risk/register")}
-        backLabel="Kembali"
         actions={
           <>
             <ActionButton
               type="button"
               variant="outline"
-              size="md"
+              size="default"
               icon={<Download className="size-3.5" />}
               onClick={handleDownloadTemplate}
             >
@@ -257,24 +263,20 @@ export default function BulkRiskRegisterPage() {
       />
 
       <div className="space-y-6">
-        <Card className="rounded-xl">
+        <Card className="">
           <CardHeader>
-            <CardTitle className="text-base font-semibold text-foreground">
-              Sumber Data
-            </CardTitle>
+            <CardTitle className="">Sumber Data</CardTitle>
+            <CardDescription>
+              Unggah template untuk memulai parsing dan validasi risiko.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <label className="flex cursor-pointer flex-col items-center justify-center gap-3 rounded-xl border border-dashed border-border/70 bg-muted/[0.18] px-6 py-10 text-center transition-[background-color,border-color] duration-150 hover:border-primary/40 hover:bg-muted/[0.28]">
-              <div className="flex size-11 items-center justify-center rounded-xl bg-background text-primary">
-                {isParsing ? (
-                  <Loader2 className="size-5 animate-spin" />
-                ) : (
-                  <FileSpreadsheet className="size-5" />
-                )}
-              </div>
+            <label
+              className={`flex cursor-pointer flex-col items-center justify-center ${bulkImportSurfaceClassName} transition-[background-color,border-color] duration-150 hover:border-primary/40 hover:bg-muted/[0.28]`}
+            >
               <div className="space-y-1">
                 <p className="text-sm font-medium text-foreground">
-                  Upload file Excel template
+                  {isParsing ? "Memproses file Excel..." : "Upload file Excel template"}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Frontend hanya mengirim file. Semua parsing dan validasi
@@ -301,27 +303,29 @@ export default function BulkRiskRegisterPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-xl">
+        <Card className="">
           <CardHeader>
-            <CardTitle className="text-base font-semibold text-foreground">
-              Review hasil parsing
-            </CardTitle>
+            <CardTitle className="">Review hasil parsing</CardTitle>
+            <CardDescription>
+              Periksa hasil parsing file sebelum membuat risiko.
+            </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             {previews.length === 0 ? (
               <CollectionEmptyState
+                align="center"
                 title="Belum ada data."
                 description="Upload template untuk mulai review."
               />
             ) : (
-              <div className="overflow-hidden rounded-xl border border-border/60">
+              <div className="overflow-hidden rounded-lg border border-border/60">
                 <Table>
                   <CollectionTableHeader density="compact">
                     <TableRow>
                       <CollectionTableHead density="compact">
                         Baris
                       </CollectionTableHead>
-                      <CollectionTableHead density="compact">
+                      <CollectionTableHead density="compact" className="px-24">
                         Risiko
                       </CollectionTableHead>
                       <CollectionTableHead density="compact">
@@ -338,7 +342,7 @@ export default function BulkRiskRegisterPage() {
                       return (
                         <TableRow key={preview.clientKey}>
                           <TableCell>{preview.rowNumber}</TableCell>
-                          <TableCell className="max-w-[320px] whitespace-normal">
+                          <TableCell className="max-w-[320px] px-24 whitespace-normal">
                             <p className="font-medium text-foreground">
                               {preview.raw["RISIKO"] ||
                                 preview.raw["Risiko"] ||
@@ -346,11 +350,11 @@ export default function BulkRiskRegisterPage() {
                             </p>
                           </TableCell>
                           <TableCell>
-                            <Badge tone={status.tone} size="compact">
+                            <Badge variant={toBadgeVariant(status.tone)} className={getStatusBadgeClassName(status.tone)}>
                               {status.label}
                             </Badge>
                           </TableCell>
-                          <TableCell className="max-w-[520px] whitespace-normal text-xs text-muted-foreground">
+                          <TableCell className="max-w-[520px] whitespace-normal">
                             {preview.errors.length > 0
                               ? preview.errors.join(" ")
                               : preview.warnings.length > 0
@@ -369,29 +373,27 @@ export default function BulkRiskRegisterPage() {
       </div>
 
       {resultItems.length > 0 ? (
-        <Card className="rounded-xl">
+        <Card className="">
           <CardHeader>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="space-y-1">
-                <CardTitle className="text-base font-semibold text-foreground">
-                  Hasil import risiko
-                </CardTitle>
-                <p className="text-xs text-muted-foreground">
+                <CardTitle className="">Hasil import risiko</CardTitle>
+                <CardDescription>
                   Ringkasan status setiap baris yang dikirim.
-                </p>
+                </CardDescription>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Badge tone="success" size="compact">
+                <Badge variant="default" className="border-transparent bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300">
                   {createdCount} dibuat
                 </Badge>
-                <Badge tone="danger" size="compact">
+                <Badge variant="destructive">
                   {failedCount} gagal
                 </Badge>
               </div>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4 pt-0">
-            <div className="overflow-hidden rounded-xl border border-border/60">
+          <CardContent className="space-y-4">
+            <div className="overflow-hidden rounded-lg border border-border/60">
               <Table>
                 <CollectionTableHeader density="compact">
                   <TableRow>
@@ -406,15 +408,14 @@ export default function BulkRiskRegisterPage() {
                     <TableRow key={item.clientKey}>
                       <TableCell>{item.clientKey}</TableCell>
                       <TableCell>
-                        <Badge
-                          tone={item.status === "created" ? "success" : "danger"}
-                          size="compact"
+                        <Badge variant={item.status === "created" ? "default" : "destructive"}
+                          className={item.status === "created" ? "border-transparent bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300" : ""}
                         >
                           {item.status}
                         </Badge>
                       </TableCell>
                       <TableCell>{item.code || "-"}</TableCell>
-                      <TableCell className="max-w-[480px] whitespace-normal text-xs text-muted-foreground">
+                      <TableCell className="max-w-[480px] whitespace-normal">
                         {item.error || item.message}
                       </TableCell>
                     </TableRow>

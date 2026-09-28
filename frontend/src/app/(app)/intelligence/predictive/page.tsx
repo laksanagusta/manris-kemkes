@@ -3,7 +3,7 @@ import { toast } from "sonner";
 
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -23,7 +23,7 @@ import {
   ArrowUp,
   ArrowDown,
   BarChart3,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
@@ -31,24 +31,19 @@ import { useAuth } from "@/contexts/auth-context";
 import { AIFeaturesDisabledState } from "@/components/shared/ai-features-disabled-state";
 import {
   CollectionPageHeader,
+  CollectionEmptyState,
+  IllustratedEmptyState,
   KpiCard,
   MetricGrid,
   PageStack,
 } from "@/components/shared/design-system";
 
 
-const levelColors: Record<string, string> = {
-  Rendah: "text-risk-low",
-  Sedang: "text-risk-medium",
-  Tinggi: "text-risk-high",
-  "Sangat Tinggi": "text-risk-extreme",
-};
-
-const levelBadgeVariant: Record<string, string> = {
-  Rendah: "bg-risk-low/15 text-risk-low border-risk-low/20",
-  Sedang: "bg-risk-medium/15 text-risk-medium border-risk-medium/20",
-  Tinggi: "bg-risk-high/15 text-risk-high border-risk-high/20",
-  "Sangat Tinggi": "bg-risk-extreme/15 text-risk-extreme border-risk-extreme/20",
+const levelBadgeVariant: Record<string, BadgeVariant> = {
+  Rendah: "secondary",
+  Sedang: "outline",
+  Tinggi: "destructive",
+  "Sangat Tinggi": "destructive",
 };
 
 function ConfidenceBar({ value }: { value: number }) {
@@ -125,9 +120,9 @@ function PredictivePageContent() {
         title="AI Predictive Scoring"
         actions={
           <Button
-            size="md"
+            size="default"
             onClick={handleRunPrediction}
-            className="gap-2"
+            className=""
             disabled={isRunning}
           >
             {isRunning ? (
@@ -146,18 +141,22 @@ function PredictivePageContent() {
       />
 
       {/* Executive Summary */}
-      <Card className="bg-card/80">
-        <CardContent className="p-5">
+      <Card className="">
+        <CardContent className="">
           <div className="flex items-start gap-4">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10">
+            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
               <Sparkles className="size-5 text-primary" />
             </div>
             <div>
               <h3 className="text-sm font-semibold">Ringkasan Eksekutif AI</h3>
               {predictions.length === 0 ? (
-                <p className="text-xs text-secondary-foreground mt-1.5 leading-relaxed">
-                  Belum ada data prediksi. Klik tombol &quot;Run Prediction&quot; untuk memulai analisis profil risiko.
-                </p>
+                <IllustratedEmptyState
+                  title="Belum ada data prediksi"
+                  description='Klik tombol "Run Prediction" untuk memulai analisis profil risiko.'
+                  size="compact"
+                  align="left"
+                  className="mt-2"
+                />
               ) : (
                 <p className="text-xs text-secondary-foreground mt-1.5 leading-relaxed">
                   Dari {predictions.length} risiko yang dianalisis,{" "}
@@ -195,60 +194,54 @@ function PredictivePageContent() {
       </MetricGrid>
 
       {/* Predictions Table */}
-       <Card className="bg-card/80 overflow-hidden">
+       <Card className="overflow-hidden">
          <Table>
            <TableHeader>
-             <TableRow className="border-border/50 hover:bg-transparent">
-               <TableHead className="w-20 text-sm whitespace-nowrap">Kode</TableHead>
-               <TableHead className="text-sm whitespace-nowrap">Risiko</TableHead>
-               <TableHead className="text-sm w-24 whitespace-nowrap">Level Saat Ini</TableHead>
-               <TableHead className="text-sm text-center w-12 whitespace-nowrap">→</TableHead>
-               <TableHead className="text-sm w-24 whitespace-nowrap">Prediksi Level</TableHead>
-               <TableHead className="text-sm w-16 whitespace-nowrap">Tren</TableHead>
-               <TableHead className="text-sm w-28 whitespace-nowrap">Confidence</TableHead>
-               <TableHead className="text-sm whitespace-nowrap">Reasoning</TableHead>
+             <TableRow className="hover:bg-transparent">
+               <TableHead className="w-20 whitespace-nowrap">Kode</TableHead>
+               <TableHead className="px-24 whitespace-nowrap">Risiko</TableHead>
+               <TableHead className="w-24 whitespace-nowrap">Level Saat Ini</TableHead>
+               <TableHead className="text-center w-12 whitespace-nowrap">→</TableHead>
+               <TableHead className="w-24 whitespace-nowrap">Prediksi Level</TableHead>
+               <TableHead className="w-16 whitespace-nowrap">Tren</TableHead>
+               <TableHead className="w-28 whitespace-nowrap">Confidence</TableHead>
+               <TableHead className="whitespace-nowrap">Reasoning</TableHead>
              </TableRow>
            </TableHeader>
           <TableBody>
             {predictions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="bg-state-surface h-24">
-                  <div className="flex flex-col gap-1 text-left text-state-foreground">
-                    <p className="text-sm font-medium text-state-foreground">Data prediksi kosong</p>
-                    <p className="text-xs text-state-foreground">Klik tombol "Run Prediction" untuk memulai analisis profil risiko</p>
-                  </div>
+                <TableCell colSpan={8} className="h-24">
+                  <CollectionEmptyState
+                    title="Data prediksi kosong"
+                    description='Klik tombol "Run Prediction" untuk memulai analisis profil risiko.'
+                  />
                 </TableCell>
               </TableRow>
             ) : predictions.map((pred) => (
               <TableRow
                 key={pred.riskCode}
-                className="border-border/30 hover:bg-muted/30 transition-colors"
+                className="hover:bg-muted/30 transition-colors"
               >
-                <TableCell className="text-xs font-mono text-muted-foreground">
+                <TableCell className="">
                   {pred.riskCode}
                 </TableCell>
-                <TableCell className="text-xs font-medium max-w-[200px]">
+                <TableCell className="max-w-[200px] px-24">
                   <span className="line-clamp-1 text-foreground">{pred.title}</span>
                 </TableCell>
                 <TableCell>
                   <Badge
-                    className={cn(
-                      "text-[10px] font-semibold border h-5 px-1.5",
-                      levelBadgeVariant[pred.currentLevel]
-                    )}
+                    variant={levelBadgeVariant[pred.currentLevel] ?? "secondary"}
                   >
                     {pred.currentLevel}
                   </Badge>
                 </TableCell>
-                <TableCell className="text-center text-muted-foreground">
+                <TableCell className="text-center">
                   →
                 </TableCell>
                 <TableCell>
                   <Badge
-                    className={cn(
-                      "text-[10px] font-semibold border h-5 px-1.5",
-                      levelBadgeVariant[pred.predictedLevel]
-                    )}
+                    variant={levelBadgeVariant[pred.predictedLevel] ?? "secondary"}
                   >
                     {pred.predictedLevel}
                   </Badge>
@@ -267,7 +260,7 @@ function PredictivePageContent() {
                 <TableCell>
                   <ConfidenceBar value={pred.confidence} />
                 </TableCell>
-                <TableCell className="text-[11px] text-muted-foreground max-w-[250px]">
+                <TableCell className="max-w-[250px]">
                   <span className="line-clamp-2">{pred.reasoning}</span>
                 </TableCell>
               </TableRow>

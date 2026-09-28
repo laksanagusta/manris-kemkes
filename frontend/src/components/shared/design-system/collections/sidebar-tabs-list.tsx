@@ -1,6 +1,6 @@
 import type { ComponentProps } from "react";
 
-import { TabsList } from "@/components/ui/tabs";
+import { TabsList } from "@/components/shared/animated-tabs";
 import { cn } from "@/lib/utils";
 
 export function SidebarTabsList({

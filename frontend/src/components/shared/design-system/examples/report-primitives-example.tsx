@@ -13,7 +13,7 @@ export function ReportPrimitivesExample() {
         <div className="flex min-h-0 min-w-0 w-full md:h-[30rem] md:[&>*]:h-full [&>*]:w-full">
           <ReportPanel
             title="Paparan Risiko"
-            actions={<Badge tone="neutral">2026-H1</Badge>}
+            actions={<Badge variant="secondary">2026-H1</Badge>}
           >
             <ReportEmptyState description="Belum ada data laporan pada scope ini." />
           </ReportPanel>

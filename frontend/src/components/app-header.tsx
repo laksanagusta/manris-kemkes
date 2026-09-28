@@ -6,7 +6,6 @@ import { useHeaderActions } from "@/lib/header-actions-context";
 import {
   CollectionPageHeader,
   PAGE_HEADER_ACTION_SLOT_ID,
-  PAGE_BACK_ACTION_SLOT_ID,
 } from "@/components/shared/design-system";
 
 export function AppHeader() {
@@ -18,7 +17,8 @@ export function AppHeader() {
   if (
     pathname === "/overview" ||
     pathname === "/risk/register/new" ||
-    pathname === "/intelligence/document"
+    pathname === "/risk/register/import-sop" ||
+    pathname === "/compliance/penanganan/impor"
   ) {
     return null;
   }
@@ -29,10 +29,6 @@ export function AppHeader() {
 
   return (
     <div className="mx-auto w-full max-w-7xl">
-      <div
-        id={PAGE_BACK_ACTION_SLOT_ID}
-        className="mb-3 flex items-center empty:hidden"
-      />
       <CollectionPageHeader
         title={title}
         subtitle={subtitle}

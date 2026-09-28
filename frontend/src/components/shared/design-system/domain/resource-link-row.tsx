@@ -23,6 +23,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -41,8 +42,9 @@ import {
   MoreHorizontal,
   Pencil,
   Trash2,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 import { cn } from "@/lib/utils";
+import { FieldErrorMessage } from "../fields/field-error-message";
 
 type ResourceLinkMenuContextValue = {
   openId: string | null;
@@ -160,7 +162,7 @@ export function ResourceLinkRow({
         role="listitem"
         data-state={isMenuOpen || isEditOpen || isDeleteOpen ? "active" : "idle"}
         className={cn(
-          "group/resource-row flex min-w-0 max-w-full items-center gap-1 rounded-md px-1.5 py-1 transition-[background-color,color] duration-150 motion-reduce:transition-none hover:bg-sidebar-accent data-[state=active]:bg-sidebar-accent",
+          "group/resource-row flex min-w-0 max-w-full items-center gap-1 rounded-md px-1.5 py-1 transition-[background-color,color] duration-150 motion-reduce:transition-none hover:bg-sidebar-accent data-[state=active]:bg-active",
           className,
         )}
       >
@@ -185,7 +187,7 @@ export function ResourceLinkRow({
               variant="ghost"
               size="icon-xs"
               aria-label={`Options for ${name}`}
-              className="group/options-trigger relative shrink-0 translate-x-0 bg-transparent text-muted-foreground opacity-100 shadow-none transition-[opacity,transform] duration-150 hover:bg-transparent hover:text-muted-foreground hover:shadow-none data-[state=open]:bg-transparent focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:shadow-none active:translate-y-0 motion-reduce:transition-none"
+              className="group/options-trigger relative shrink-0 translate-x-0 transition-[opacity,transform] duration-150 data-[state=open]:bg-transparent focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:shadow-none active:translate-y-0 motion-reduce:transition-none"
             >
               <ArrowUpRight
                 aria-hidden="true"
@@ -222,6 +224,9 @@ export function ResourceLinkRow({
           <form onSubmit={saveEdit} className="flex flex-col gap-5">
             <DialogHeader>
               <DialogTitle>Edit Link</DialogTitle>
+              <DialogDescription>
+                Perbarui nama dan URL sumber daya.
+              </DialogDescription>
             </DialogHeader>
             <div className="flex flex-col gap-4">
               <div className="flex flex-col gap-2">
@@ -252,15 +257,9 @@ export function ResourceLinkRow({
                   }
                 />
               </div>
-              {editError ? (
-                <p
-                  id={`${editFieldId}-edit-error`}
-                  role="alert"
-                  className="text-xs text-destructive"
-                >
-                  {editError}
-                </p>
-              ) : null}
+              <FieldErrorMessage id={`${editFieldId}-edit-error`}>
+                {editError}
+              </FieldErrorMessage>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => closeEdit(false)}>

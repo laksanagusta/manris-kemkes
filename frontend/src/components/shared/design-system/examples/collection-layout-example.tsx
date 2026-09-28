@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Download, Plus } from "@/components/ui/icons";
 
 import { AccentButton } from "@/components/shared/design-system";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -23,7 +22,7 @@ export function CollectionLayoutExample() {
   const [search, setSearch] = useState("");
 
   return (
-    <PageStack className="rounded-lg border bg-background p-4">
+    <PageStack className="rounded-[12px] border bg-background p-4">
       <MetricGrid>
         {["Total", "Aktif", "Menunggu", "Selesai"].map((label, index) => (
           <KpiCard
@@ -52,19 +51,15 @@ export function CollectionLayoutExample() {
           }
           actions={
             <>
-              <ActionButton
-                icon={<Download className="size-3.5" />}
-                variant="outline"
-              >
+              <ActionButton variant="outline">
                 Export data
               </ActionButton>
-              <AccentButton icon={<Plus className="size-4" />}>
-                Buat item
-              </AccentButton>
+              <AccentButton>Buat item</AccentButton>
             </>
           }
         />
       </div>
+      <div className="space-y-4">
       <CollectionFilterGrid className="lg:grid-cols-[minmax(0,1fr)_220px] lg:items-end">
         <div className="min-w-0">
           <ExpandableSearchField
@@ -76,7 +71,7 @@ export function CollectionLayoutExample() {
         </div>
         <div className="justify-self-end">
           <Select defaultValue="all">
-            <SelectTrigger className="h-9">
+            <SelectTrigger className="">
               <SelectValue placeholder="Semua periode" />
             </SelectTrigger>
             <SelectContent>
@@ -97,6 +92,7 @@ export function CollectionLayoutExample() {
           ))}
         </div>
       </CollectionTableCard>
+      </div>
     </PageStack>
   );
 }

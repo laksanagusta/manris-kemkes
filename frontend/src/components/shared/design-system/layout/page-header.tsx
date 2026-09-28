@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { cn } from "@/lib/utils";
+import { Card, CardAction, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export function PageHeader({
   eyebrow,
@@ -14,27 +14,12 @@ export function PageHeader({
   className?: string;
 }) {
   return (
-    <div
-      className={cn(
-        "flex flex-col overflow-hidden rounded-xl bg-card smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30",
-        className,
-      )}
-    >
-      {eyebrow ? (
-        <div className="flex items-center border-b border-border/60 px-4 py-4">
-          <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.15em] text-muted-foreground">
-            {eyebrow}
-          </p>
-        </div>
-      ) : null}
-      <div className="flex flex-col gap-4 px-4 pb-4 pt-6 sm:flex-row sm:items-start sm:justify-between">
-        <div>
-          <h1 className="page-title">
-            {title}
-          </h1>
-        </div>
-        {actions}
-      </div>
-    </div>
+    <Card className={className}>
+      <CardHeader>
+        <CardTitle><h1>{title}</h1></CardTitle>
+        {eyebrow ? <CardDescription>{eyebrow}</CardDescription> : null}
+        {actions ? <CardAction>{actions}</CardAction> : null}
+      </CardHeader>
+    </Card>
   );
 }

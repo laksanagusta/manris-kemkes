@@ -110,6 +110,7 @@ test("createRiskBulkExportWorkbookBuffer creates worksheet with template headers
   assert.equal(sheet.getRow(1).getCell(16).value, "EVALUASI RISIKO");
   assert.equal(sheet.getRow(1).getCell(18).value, "RENCANA PENANGANAN RISIKO (RPR)");
   assert.equal(sheet.getRow(1).getCell(21).value, "TARGET PENURUNAN TINGKAT RISIKO");
+  assert.equal(sheet.getRow(1).getCell(26).value, "UNIT KERJA");
 
   assert.equal(sheet.getRow(2).getCell(2).value, "RISIKO");
   assert.equal(sheet.getRow(2).getCell(8).value, "PENGENDALIAN YANG ADA");
@@ -123,6 +124,7 @@ test("createRiskBulkExportWorkbookBuffer creates worksheet with template headers
   assert.equal(sheet.getRow(3).getCell(10).value, "TIDAK EFEKTIF");
   assert.equal(sheet.getRow(4).getCell(1).value, 1);
   assert.equal(sheet.getRow(4).getCell(25).value, 25);
+  assert.equal(sheet.getRow(4).getCell(26).value, 26);
 
   assert.equal(sheet.getRow(5).getCell(1).value, 1);
   assert.equal(sheet.getRow(5).getCell(2).value, "Gangguan distribusi vaksin");
@@ -145,6 +147,7 @@ test("createRiskBulkExportWorkbookBuffer creates worksheet with template headers
   assert.equal(sheet.getRow(5).getCell(23).value, 1);
   assert.equal(sheet.getRow(5).getCell(24).value, 6);
   assert.equal(sheet.getRow(5).getCell(25).value, "Rendah");
+  assert.equal(sheet.getRow(5).getCell(26).value, "Dit. Surveilans");
   assert.equal(sheet.getRow(5).getCell(24).alignment?.horizontal, "right");
   assert.equal(sheet.getRow(5).getCell(24).alignment?.vertical, "top");
   assert.equal(sheet.getRow(5).getCell(24).numFmt, "0");

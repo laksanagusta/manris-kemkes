@@ -1,6 +1,7 @@
 "use client";
 
-import { Info } from "@/components/ui/icons";
+import { Info } from "@/components/shared/icons";
+import { Button } from "@/components/ui/button";
 
 import { cn } from "@/lib/utils";
 import {
@@ -62,18 +63,14 @@ export function ProbabilityCriteriaTooltip({
       <span>{label}</span>
       <Tooltip>
         <TooltipTrigger asChild>
-          <button
-            type="button"
-            className="inline-flex size-5 items-center justify-center rounded-full border border-border/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-            aria-label="Lihat kriteria probabilitas"
-          >
-            <Info className="size-3.5" />
-          </button>
+          <Button type="button" variant="ghost" size="icon-xs" aria-label="Lihat kriteria probabilitas">
+            <Info />
+          </Button>
         </TooltipTrigger>
         <TooltipContent
           side="top"
           align="start"
-          className="w-[min(92vw,44rem)] max-w-[44rem] rounded-xl bg-background p-0 text-foreground"
+          className="w-[min(92vw,44rem)] max-w-[44rem]"
         >
           <div className="max-h-[70vh] overflow-auto">
             <div className="border-b border-border/60 px-4 py-3">
@@ -82,36 +79,36 @@ export function ProbabilityCriteriaTooltip({
                 Panduan nilai probabilitas untuk penilaian risiko.
               </p>
             </div>
-            <Table className="w-full border-collapse text-left text-xs">
-              <TableHeader className="bg-table-header text-[11px] uppercase tracking-wide text-muted-foreground">
+            <Table className="w-full text-left">
+              <TableHeader>
                 <TableRow className="h-auto">
-                  <TableHead className="border-b border-r border-border/60 px-3 py-2 font-semibold">
+                  <TableHead className="">
                     Level Kemungkinan
                   </TableHead>
-                  <TableHead className="border-b border-r border-border/60 px-3 py-2 font-semibold">
+                  <TableHead className="">
                     Probabilitas
                   </TableHead>
-                  <TableHead className="border-b border-r border-border/60 px-3 py-2 font-semibold">
+                  <TableHead className="">
                     Jumlah frekuensi
                   </TableHead>
-                  <TableHead className="border-b border-border/60 px-3 py-2 font-semibold">
+                  <TableHead className="">
                     Low Frequency Event
                   </TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {criteriaRows.map((row) => (
-                  <TableRow key={row.level} className="h-auto border-t-0 align-top">
-                    <TableCell className="border-b border-r border-border/60 px-3 py-3 font-medium">
+                  <TableRow key={row.level} className="h-auto align-top">
+                    <TableCell className="">
                       {row.level}
                     </TableCell>
-                    <TableCell className="border-b border-r border-border/60 px-3 py-3">
+                    <TableCell className="">
                       {row.probability}
                     </TableCell>
-                    <TableCell className="border-b border-r border-border/60 px-3 py-3">
+                    <TableCell className="">
                       {row.nonLowFrequency}
                     </TableCell>
-                    <TableCell className="border-b border-border/60 px-3 py-3">
+                    <TableCell className="">
                       {row.lowFrequency}
                     </TableCell>
                   </TableRow>

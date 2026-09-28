@@ -5,9 +5,10 @@ import { useParams, useRouter } from "next/navigation";
 import { AIFeaturesDisabledState } from "@/components/shared/ai-features-disabled-state";
 import {
   ActionButton,
+  ActionIconButton,
   CollectionDialogCancel,
   DestructiveButton,
-  FormBackAction,
+  IllustratedEmptyState,
 } from "@/components/shared/design-system";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { ApiError } from "@/lib/api";
@@ -27,12 +28,19 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
   AlertCircle,
   ChevronRight,
   Download,
   Loader2,
   Trash2,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 import Link from "next/link";
 import { toast } from "sonner";
 
@@ -46,7 +54,7 @@ function BriefingSection({
   className?: string;
 }) {
   return (
-    <section className={`border-t border-border/70 px-6 py-6 md:px-8 ${className ?? ""}`}>
+    <section className={`border-t border-dashed border-border/70 px-6 py-6 md:px-8 ${className ?? ""}`}>
       <h3 className="text-base font-medium tracking-tight text-foreground">{title}</h3>
       <div className="mt-3">{children}</div>
     </section>
@@ -78,7 +86,6 @@ export default function MeetingMinuteDetailPage() {
       <AIFeaturesDisabledState
         title="Detail Notulen Dinonaktifkan"
         description="Akses ke detail notulen MoM Intelligence sedang dimatikan melalui environment frontend."
-        backHref="/overview"
       />
     );
   }
@@ -132,7 +139,7 @@ function MeetingMinuteDetailContent() {
         role="status"
         aria-live="polite"
         aria-busy="true"
-        className="flex min-h-[400px] items-center justify-center rounded-xl bg-state-surface text-state-foreground"
+        className="flex min-h-[400px] items-center justify-center rounded-lg bg-state-surface text-state-foreground"
       >
         <div className="flex flex-col items-center gap-2">
           <Loader2 aria-hidden="true" className="size-6 motion-safe:animate-spin text-primary" />
@@ -146,7 +153,7 @@ function MeetingMinuteDetailContent() {
     return (
       <div
         role="alert"
-        className="flex min-h-[400px] items-center justify-center rounded-xl bg-state-surface px-6 text-state-foreground"
+        className="flex min-h-[400px] items-center justify-center rounded-lg bg-state-surface px-6 text-state-foreground"
       >
         <div className="max-w-md text-center">
           <AlertCircle aria-hidden="true" className="mx-auto mb-4 size-10 text-destructive" />
@@ -158,10 +165,6 @@ function MeetingMinuteDetailContent() {
             <ActionButton type="button" onClick={() => setReloadKey((current) => current + 1)}>
               Coba lagi
             </ActionButton>
-            <FormBackAction
-              label="Kembali ke daftar notulen"
-              onClick={() => router.push("/minutes")}
-            />
           </div>
         </div>
       </div>
@@ -172,7 +175,7 @@ function MeetingMinuteDetailContent() {
     return (
       <div
         role="alert"
-        className="flex min-h-[400px] items-center justify-center rounded-xl bg-state-surface text-state-foreground"
+        className="flex min-h-[400px] items-center justify-center rounded-lg bg-state-surface text-state-foreground"
       >
         <div className="text-center">
           <AlertCircle aria-hidden="true" className="mx-auto mb-4 size-10 text-destructive" />
@@ -180,10 +183,6 @@ function MeetingMinuteDetailContent() {
           <p className="mb-4 mt-2 text-sm text-state-foreground">
             Notulen tidak ditemukan atau Anda tidak memiliki akses.
           </p>
-          <FormBackAction
-            label="Kembali ke daftar notulen"
-            onClick={() => router.push("/minutes")}
-          />
         </div>
       </div>
     );
@@ -238,28 +237,39 @@ function MeetingMinuteDetailContent() {
       <FormHeader
         title={minutes.title}
         actions={
-          <>
-            <ActionButton icon={<Download aria-hidden="true" className="size-4" />} onClick={handleExport}>
-              Ekspor Notulen
-            </ActionButton>
-            {!isReadOnlyForOrg(user, minutes.organizationId || "") ? (
-              <ActionButton
-                icon={<Trash2 aria-hidden="true" className="size-4" />}
-                className="text-destructive hover:bg-destructive/10 hover:text-destructive"
-                onClick={() => {
-                  setDeleteError(null);
-                  setShowDeleteConfirm(true);
-                }}
-              >
-                Hapus Notulen
-              </ActionButton>
-            ) : null}
-          </>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <ActionIconButton
+                aria-label="Tindakan notulen"
+                title="Tindakan notulen"
+              />
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuItem onSelect={handleExport}>
+                <Download className="size-3.5" />
+                Ekspor Notulen
+              </DropdownMenuItem>
+              {!isReadOnlyForOrg(user, minutes.organizationId || "") ? (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    variant="destructive"
+                    onSelect={() => {
+                      setDeleteError(null);
+                      setShowDeleteConfirm(true);
+                    }}
+                  >
+                    <Trash2 className="size-3.5" />
+                    Hapus Notulen
+                  </DropdownMenuItem>
+                </>
+              ) : null}
+            </DropdownMenuContent>
+          </DropdownMenu>
         }
-        onBack={() => router.back()}
       />
 
-      <Card className="gap-0 overflow-hidden p-0">
+      <Card className="overflow-hidden">
         <header className="px-6 py-8 md:px-8">
           <h2 className="text-lg font-medium tracking-tight text-foreground">Properti</h2>
 
@@ -340,7 +350,11 @@ function MeetingMinuteDetailContent() {
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-muted-foreground">Belum ada agenda yang tercatat.</p>
+            <IllustratedEmptyState
+              title="Belum ada agenda yang tercatat."
+              size="compact"
+              className="py-2"
+            />
           )}
         </BriefingSection>
 
@@ -365,7 +379,7 @@ function MeetingMinuteDetailContent() {
                   <div className="rounded-md bg-muted/60 px-3 py-2 text-xs font-medium text-secondary-foreground">
                     {deadline}
                   </div>
-                  <ul className="divide-y divide-border/70">
+                  <ul className="divide-y divide-dashed divide-border/70">
                     {items.map((action, index) => (
                       <li
                         key={`${action.task}-${index}`}
@@ -418,7 +432,7 @@ function MeetingMinuteDetailContent() {
 
         <BriefingSection title="Risiko terkait" className="pb-7">
           {(minutes.linkedRisks?.length ?? 0) > 0 ? (
-            <div className="divide-y divide-border/70">
+            <div className="divide-y divide-dashed divide-border/70">
               {minutes.linkedRisks.map((risk) => (
                 <Link
                   key={risk.id}
@@ -440,7 +454,11 @@ function MeetingMinuteDetailContent() {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Tidak ada risiko yang terkait.</p>
+            <IllustratedEmptyState
+              title="Tidak ada risiko yang terkait."
+              size="compact"
+              className="py-2"
+            />
           )}
         </BriefingSection>
       </Card>

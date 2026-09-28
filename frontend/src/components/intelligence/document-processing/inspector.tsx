@@ -7,9 +7,10 @@ import {
   FileSearch,
   PanelLeftIcon,
   X,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 import type { Finding, ProcessingJob } from "@/types/document-processing";
 import { DocumentThumbnail } from "./upload-panel";
 import { formatFileSize } from "./upload-utils";
@@ -54,15 +55,23 @@ export function Inspector({
   const page = job?.pages.find((item) => item.id === `${selectedFinding?.source.documentId}-page-${selectedFinding?.source.pageNumber}`);
 
   return (
-    <aside className="min-w-0 overflow-hidden rounded-xl border border-border/80 bg-card" aria-label="Pemeriksa dokumen">
+    <aside className="min-w-0 overflow-hidden rounded-lg border border-border/80 bg-card" aria-label="Pemeriksa dokumen">
       <div className="flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3">
         <div className="flex min-w-0 items-center gap-2">
           <PanelLeftIcon className="size-3.5 text-muted-foreground" />
           <span className="font-display truncate text-xs font-semibold uppercase tracking-[0.13em] text-muted-foreground">Pemeriksa</span>
         </div>
-        <button type="button" aria-label="Tutup inspector" title="Tutup inspector" onClick={onClose} className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-[background-color,color] duration-150 hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 active:scale-[0.96]">
+        <Button
+          type="button"
+          variant="outline"
+          size="icon-sm"
+          aria-label="Tutup inspector"
+          title="Tutup inspector"
+          onClick={onClose}
+          className="rounded-lg"
+        >
           <X className="size-4" />
-        </button>
+        </Button>
       </div>
       <div className="max-h-[calc(100vh-210px)] overflow-auto p-4">
         {selectedFinding ? (
@@ -71,9 +80,9 @@ export function Inspector({
           <DocumentInspector document={document} page={page} job={job} />
         ) : (
           <div className="flex min-h-52 flex-col items-center justify-center text-center">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-muted text-muted-foreground"><FileSearch className="size-5" /></div>
+            <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-muted-foreground"><FileSearch className="size-5" /></div>
             <h2 className="mt-3 text-sm font-semibold text-foreground">Pilih halaman atau dokumen</h2>
-            <p className="mt-1 max-w-[220px] text-xs leading-5 text-muted-foreground">Metadata, status pemrosesan, dan temuan terkait akan muncul di sini.</p>
+            <p className="mt-1 max-w-[220px] text-xs leading-5 text-secondary-foreground">Metadata, status pemrosesan, dan temuan terkait akan muncul di sini.</p>
           </div>
         )}
       </div>
@@ -99,7 +108,7 @@ function DocumentInspector({
         <DocumentThumbnail document={document} />
         <div className="min-w-0 flex-1">
           <h2 className="break-words text-sm font-semibold leading-5 text-foreground">{document.name}</h2>
-          <div className="mt-1 flex flex-wrap gap-1.5"><Badge variant="outline" tone={status.tone} size="micro">{status.label}</Badge><Badge variant="secondary" size="micro">{document.extension.toUpperCase()}</Badge></div>
+          <div className="mt-1 flex flex-wrap gap-1.5"><Badge variant={toBadgeVariant(status.tone)} className={getStatusBadgeClassName(status.tone)}>{status.label}</Badge><Badge variant="secondary">{document.extension.toUpperCase()}</Badge></div>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-x-4 gap-y-3 border-y border-border/70 py-4">
@@ -108,8 +117,8 @@ function DocumentInspector({
         <Meta label="Kelompok" value={group?.label ?? "—"} />
         <Meta label="Temuan" value={`${findings.length}`} />
       </div>
-      {page ? <div className="rounded-xl border border-border/70 bg-muted/20 p-3"><div className="font-display text-xs uppercase tracking-[0.12em] text-muted-foreground">Halaman terpilih</div><div className="mt-1 text-sm font-medium text-foreground">Halaman {page.pageNumber}</div><p className="mt-1 text-xs leading-5 text-muted-foreground">{page.findingIds.length ? `${page.findingIds.length} temuan terkait halaman ini.` : "Belum ada temuan yang terhubung."}</p></div> : null}
-      {document.error ? <div className="flex items-start gap-2 rounded-xl border border-destructive/20 bg-destructive/10 p-3 text-xs leading-5 text-destructive"><AlertTriangle className="mt-0.5 size-3.5 shrink-0" />{document.error}</div> : null}
+      {page ? <div className="rounded-lg border border-border/70 bg-muted/20 p-3"><div className="font-display text-xs uppercase tracking-[0.12em] text-muted-foreground">Halaman terpilih</div><div className="mt-1 text-sm font-medium text-foreground">Halaman {page.pageNumber}</div><p className="mt-1 text-xs leading-5 text-muted-foreground">{page.findingIds.length ? `${page.findingIds.length} temuan terkait halaman ini.` : "Belum ada temuan yang terhubung."}</p></div> : null}
+      {document.error ? <div className="flex items-start gap-2 rounded-lg border border-destructive/20 bg-destructive/10 p-3 text-xs leading-5 text-destructive"><AlertTriangle className="mt-0.5 size-3.5 shrink-0" />{document.error}</div> : null}
     </div>
   );
 }
@@ -129,25 +138,25 @@ function FindingInspector({
   return (
     <div className="space-y-5">
       <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2"><Badge variant="outline" tone={severity.tone} size="compact">{severity.label}</Badge><Badge variant="secondary" size="compact">{finding.category}</Badge></div>
+        <div className="flex flex-wrap items-center gap-2"><Badge variant="outline">{severity.label}</Badge><Badge variant="secondary">{finding.category}</Badge></div>
         <h2 className="text-base font-semibold leading-6 tracking-[-0.01em] text-foreground text-balance">{finding.title}</h2>
-        <p className="text-sm leading-6 text-muted-foreground">{finding.summary}</p>
+        <p className="text-sm leading-6 text-secondary-foreground">{finding.summary}</p>
       </div>
-      <div className="rounded-xl border border-warning/30 bg-warning/10 p-3">
+      <div className="rounded-lg border border-warning/30 bg-warning/10 p-3">
         <div className="flex items-center justify-between gap-3"><span className="font-display text-xs uppercase tracking-[0.12em] text-foreground/70">Tingkat keyakinan</span><span className="font-mono text-sm font-medium tabular-nums text-foreground">{Math.round(finding.confidence * 100)}%</span></div>
         <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-warning/20"><div className="h-full rounded-full bg-warning" style={{ width: `${finding.confidence * 100}%` }} /></div>
       </div>
       <div className="space-y-3">
         <div className="font-display text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Referensi sumber</div>
-        <div className="rounded-xl border border-border/70 bg-muted/20 p-3">
+        <div className="rounded-lg border border-border/70 bg-muted/20 p-3">
           <div className="flex items-start gap-2"><FileSearch className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" /><div className="min-w-0"><div className="break-words text-xs font-medium text-foreground">{document?.name ?? finding.source.documentName}</div><div className="mt-1 text-xs text-muted-foreground">{finding.source.location}</div></div></div>
           <p className="mt-3 border-l-2 border-amber-300 pl-3 text-xs italic leading-5 text-muted-foreground">“{finding.source.quote}”</p>
         </div>
       </div>
       <div className="space-y-2"><div className="font-display text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Tindakan yang disarankan</div><p className="text-sm leading-6 text-foreground">{finding.recommendedAction}</p></div>
       <div className="space-y-2 border-t border-border/70 pt-4">
-        <Button type="button" variant="outline" className="w-full justify-between gap-2 active:scale-[0.96]" onClick={() => onOpenSource(finding)}>Buka sumber <ExternalLink className="size-3.5" /></Button>
-        <Button type="button" variant="secondary" className="w-full justify-between gap-2 active:scale-[0.96]" onClick={() => onUseRiskDraft(finding)}>Gunakan sebagai draf risiko <ArrowRight className="size-3.5" /></Button>
+        <Button type="button" variant="outline" className="w-full justify-between active:scale-[0.96]" onClick={() => onOpenSource(finding)}>Buka sumber <ExternalLink className="size-3.5" /></Button>
+        <Button type="button" variant="secondary" className="w-full justify-between active:scale-[0.96]" onClick={() => onUseRiskDraft(finding)}>Gunakan sebagai draf risiko <ArrowRight className="size-3.5" /></Button>
       </div>
     </div>
   );

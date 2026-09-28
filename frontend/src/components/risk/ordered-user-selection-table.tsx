@@ -4,14 +4,16 @@ import { useCallback } from "react";
 import { DragDropProvider } from "@dnd-kit/react";
 import { isSortable } from "@dnd-kit/dom/sortable";
 import { useSortable } from "@dnd-kit/react/sortable";
-import { GripVertical, Plus, Trash2 } from "@/components/ui/icons";
+import { GripVertical, Plus, Trash2 } from "@/components/shared/icons";
 
 import { RemoteUserPicker } from "@/components/risk/remote-user-picker";
 import {
   CollectionTableCard,
+  FieldErrorMessage,
   CollectionTableHead,
   CollectionTableHeader,
   CollectionTableHeaderRow,
+  IllustratedEmptyState,
 } from "@/components/shared/design-system";
 import { Button } from "@/components/ui/button";
 import {
@@ -136,11 +138,11 @@ function SortableOrderedUserSelectionRow({
         </button>
       </TableCell>
       <TableCell className="w-10">
-        <span className="flex size-5 items-center justify-center rounded-full bg-muted/70 text-[10px] font-semibold text-muted-foreground">
+        <span className="flex size-5 items-center justify-center rounded-full bg-muted/70 text-[10px] font-medium text-muted-foreground">
           {index + 1}
         </span>
       </TableCell>
-      <TableCell className="align-top">
+      <TableCell className="align-top px-24">
         <div className="flex flex-col gap-2">
           <RemoteUserPicker
             title={`${pickerTitle} ${index + 1}`}
@@ -153,15 +155,13 @@ function SortableOrderedUserSelectionRow({
             onSelect={handleSelect}
             loadOptions={loadRowOptions}
           />
-          {errorMessage ? (
-            <p className="text-xs text-destructive">{errorMessage}</p>
-          ) : null}
+          <FieldErrorMessage>{errorMessage}</FieldErrorMessage>
         </div>
       </TableCell>
-      <TableCell className="text-sm text-muted-foreground">
+      <TableCell className="">
         {row.nip || "-"}
       </TableCell>
-      <TableCell className="text-sm text-muted-foreground">
+      <TableCell className="">
         <div className="flex items-center justify-between gap-3">
           <span
             className="truncate"
@@ -173,7 +173,7 @@ function SortableOrderedUserSelectionRow({
             type="button"
             variant="ghost"
             size="icon"
-            className="size-8 shrink-0 text-destructive/50 hover:bg-destructive/10 hover:text-destructive"
+            className="size-8 shrink-0"
             onClick={() => onRemoveRow(row.rowId)}
             disabled={disabled || !canRemove}
             aria-label={`Hapus pengguna ${index + 1}`}
@@ -248,7 +248,7 @@ export function OrderedUserSelectionTable({
             >
               <span className="sr-only">Urutan</span>
             </CollectionTableHead>
-            <CollectionTableHead density="compact" className="w-[360px]">
+            <CollectionTableHead density="compact" className="w-[360px] px-24">
               Nama
             </CollectionTableHead>
             <CollectionTableHead density="compact" className="w-[220px]">
@@ -262,9 +262,13 @@ export function OrderedUserSelectionTable({
             <TableRow>
               <TableCell
                 colSpan={5}
-                className="h-24 text-sm text-muted-foreground"
+                className="h-24"
               >
-                {emptyStateMessage}
+                <IllustratedEmptyState
+                  title={emptyStateMessage}
+                  size="compact"
+                  className="py-2"
+                />
               </TableCell>
             </TableRow>
           ) : (
@@ -302,7 +306,7 @@ export function OrderedUserSelectionTable({
           size="sm"
           onClick={onAddRow}
           disabled={disabled}
-          className="gap-2 border-dashed text-xs text-muted-foreground hover:border-primary/50 hover:text-primary"
+          className=""
         >
           <Plus className="size-3.5" />
           {addRowLabel}

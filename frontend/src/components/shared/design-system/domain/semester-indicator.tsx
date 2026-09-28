@@ -1,4 +1,4 @@
-import { Check, Minus, Pencil } from "@/components/ui/icons";
+import { Check, Minus, Pencil } from "@/components/shared/icons";
 
 import { Badge } from "@/components/ui/badge";
 
@@ -12,10 +12,10 @@ const iconByStatus = {
 };
 
 const toneByStatus = {
-  complete: "success",
-  draft: "warning",
-  empty: "neutral",
-  error: "danger",
+  complete: "default",
+  draft: "outline",
+  empty: "secondary",
+  error: "destructive",
 } as const;
 
 export function SemesterIndicator({
@@ -30,10 +30,8 @@ export function SemesterIndicator({
   const Icon = iconByStatus[status];
   return (
     <Badge
-      aria-label={statusLabel}
-      tone={toneByStatus[status]}
-      size="compact"
-      className="px-1.5 text-[10px]"
+      aria-label={statusLabel} variant={toneByStatus[status]}
+      className=""
     >
       <Icon aria-hidden="true" className="size-2.5" />
       {label}

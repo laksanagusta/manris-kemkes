@@ -44,7 +44,7 @@ export function RiskHeatmapGrid({
               role="img"
               aria-label={`Probabilitas ${probability}, dampak ${impact}, level ${level}, ${count} risiko`}
               className={cn(
-                "flex aspect-square items-center justify-center rounded-md border text-xs font-semibold",
+                "flex aspect-square items-center justify-center rounded-md border-[0.5px] border-border text-xs font-semibold !text-secondary-foreground",
                 getHeatmapCellClass(
                   count,
                   probability,

@@ -1,6 +1,6 @@
 "use client";
 
-import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent, TabsTrigger } from "@/components/shared/animated-tabs";
 import { SidebarTabsList } from "@/components/shared/design-system";
 
 export function TabsExample() {

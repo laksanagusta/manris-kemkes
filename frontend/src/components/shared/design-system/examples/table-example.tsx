@@ -1,6 +1,6 @@
 "use client";
 
-import { Server } from "@/components/ui/icons";
+import { Server } from "@/components/shared/icons";
 
 import {
   CollectionTableCard,
@@ -28,50 +28,49 @@ export function TableExample() {
           <col className="w-[130.03px]" />
           <col className="w-[121.55px]" />
         </colgroup>
-        <CollectionTableHeader className="bg-table-header [&_tr]:border-b [&_tr]:border-border/60">
-          <CollectionTableHeaderRow className="h-[40.5px]">
+        <CollectionTableHeader>
+          <CollectionTableHeaderRow>
             <CollectionTableHead
               density="compact"
-              className="h-[40.5px] px-6 py-3 text-left uppercase tracking-[0.05em] text-muted-foreground"
+              className="px-24 text-left"
             >
               Name
             </CollectionTableHead>
             <CollectionTableHead
               density="compact"
-              className="h-[40.5px] px-6 py-3 text-left uppercase tracking-[0.05em] text-muted-foreground"
+              className="text-left"
             >
               Status
             </CollectionTableHead>
             <CollectionTableHead
               density="compact"
-              className="h-[40.5px] px-6 py-3 text-left uppercase tracking-[0.05em] text-muted-foreground"
+              className="text-left"
             >
               Plan
             </CollectionTableHead>
             <CollectionTableHead
               density="compact"
-              className="h-[40.5px] px-6 py-3 text-center uppercase tracking-[0.05em] text-muted-foreground"
+              className="text-center"
             >
               Auto renewal
             </CollectionTableHead>
             <CollectionTableHead
               density="compact"
-              className="h-[40.5px] px-6 py-3 text-left uppercase tracking-[0.05em] text-muted-foreground"
+              className="text-left"
             >
               Expiry
             </CollectionTableHead>
             <CollectionTableHead
               density="compact"
-              className="h-[40.5px] px-6 py-3 text-right uppercase tracking-[0.05em] text-muted-foreground"
+              className="text-right"
             >
-              Actions
+              <span className="sr-only">Actions</span>
             </CollectionTableHead>
           </CollectionTableHeaderRow>
         </CollectionTableHeader>
         <TableBody>
-          {/* Two-line ledger rows stay tall; single-line registers opt into h-10. */}
-          <TableRow className="h-[72.5px] border-0 hover:bg-sidebar-accent">
-            <TableCell className="h-[72.5px] p-4 px-6 align-middle">
+          <TableRow>
+            <TableCell className="px-24">
               <div className="flex h-10 items-center gap-3">
                 <div
                   aria-hidden="true"
@@ -83,22 +82,20 @@ export function TableExample() {
                   <span className="truncate text-sm font-normal leading-5 text-foreground">
                     Rencana Penanganan
                   </span>
-                  <span className="truncate font-mono text-sm font-normal tracking-wide text-muted-foreground">
+                  <span className="truncate font-mono text-sm leading-5 text-muted-foreground">
                     R-151
                   </span>
                 </div>
               </div>
             </TableCell>
-            <TableCell className="h-[72.5px] p-0 px-6 align-middle">
-              <Badge
-                size="compact"
-                tone="success"
-                className="h-5 px-2 text-xs font-normal leading-5"
+            <TableCell>
+              <Badge variant="default"
+                className="border-transparent bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
               >
                 active
               </Badge>
             </TableCell>
-            <TableCell className="h-[72.5px] p-4 px-6 align-middle">
+            <TableCell>
               <div className="flex h-10 flex-col justify-start">
                 <span className="text-sm font-normal leading-5 text-foreground">
                   Monthly
@@ -108,23 +105,23 @@ export function TableExample() {
                 </span>
               </div>
             </TableCell>
-            <TableCell className="h-[72.5px] p-0 px-6 text-center align-middle">
+            <TableCell className="text-center">
               <div className="flex justify-center">
                 <Switch defaultChecked aria-label="Auto renewal aktif" />
               </div>
             </TableCell>
-            <TableCell className="h-[72.5px] p-4 px-6 align-middle">
+            <TableCell>
               <span className="text-sm font-normal leading-5 text-muted-foreground">
                 21/08/2026
                 <br />
                 (8 days left)
               </span>
             </TableCell>
-            <TableCell className="h-[72.5px] p-0 text-center align-middle">
+            <TableCell className="text-center">
               <Button
                 variant="ghost"
                 size="xs"
-                className="bg-muted px-3 text-xs font-normal text-foreground shadow-none hover:bg-accent hover:text-foreground"
+                className=""
               >
                 Manage
               </Button>

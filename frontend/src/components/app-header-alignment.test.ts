@@ -17,9 +17,9 @@ const collectionHeaderSource = readFileSync(
   ),
   "utf8",
 );
-const formBackActionSource = readFileSync(
+const pageHeaderActionsPortalSource = readFileSync(
   new URL(
-    "./shared/design-system/actions/form-back-action.tsx",
+    "./shared/design-system/layout/page-header-actions-portal.tsx",
     import.meta.url,
   ),
   "utf8",
@@ -43,14 +43,14 @@ const rootLayoutSource = readFileSync(
 
 test("uses the compact 56px global topbar geometry", () => {
   assert.match(appTopbarSource, /className="fixed[\s\S]*flex h-14 w-full/);
-  assert.match(appShellSource, /className="relative flex min-h-svh w-full flex-col bg-background pt-14"/);
+  assert.match(appShellSource, /className="relative flex min-h-svh w-full flex-col bg-white pt-14"/);
   assert.match(appSidebarSource, /md:top-14 md:h-\[calc\(100svh-3\.5rem\)\]/);
   assert.doesNotMatch(appTopbarSource, /AI Tools/);
   assert.doesNotMatch(appTopbarSource, /Semua Modul/);
   assert.doesNotMatch(appTopbarSource, /src="\/logo\.svg"/);
   assert.match(
     appTopbarSource,
-    /border-e border-border\/60 px-2[\s\S]*font-logo[\s\S]*text-\[20px\][\s\S]*font-semibold/,
+    /border-e border-sidebar-border px-2[\s\S]*font-logo[\s\S]*text-\[20px\][\s\S]*font-semibold/,
   );
   assert.match(
     appTopbarSource,
@@ -61,11 +61,24 @@ test("uses the compact 56px global topbar geometry", () => {
   assert.doesNotMatch(appTopbarSource, /<DropdownMenu/);
 });
 
+test("uses the sidebar border token for topbar dividers", () => {
+  assert.match(appTopbarSource, /border-e border-sidebar-border/);
+  assert.match(
+    appTopbarSource,
+    /items-center gap-3 border-b border-sidebar-border px-3 md:px-5/,
+  );
+  assert.match(appSidebarSource, /md:border-sidebar-border/);
+});
+
 test("keeps the application canvas painted through viewport overscroll", () => {
   assert.match(rootLayoutSource, /<body className="bg-background antialiased">/);
   assert.match(
+    rootLayoutSource,
+    /className=\{`\$\{inter\.variable\} border-shadow`\}/,
+  );
+  assert.match(
     appShellSource,
-    /className="relative flex min-h-svh w-full flex-col bg-background pt-14"/,
+    /className="relative flex min-h-svh w-full flex-col bg-white pt-14"/,
   );
 });
 
@@ -105,10 +118,8 @@ test("renders the shared title and subtitle header with route exceptions", () =>
 });
 
 test("uses the shared compact page header", () => {
-  assert.match(
-    source,
-    /CollectionPageHeader,[\s\S]*PAGE_BACK_ACTION_SLOT_ID,[\s\S]*from "@\/components\/shared\/design-system"/,
-  );
+  assert.doesNotMatch(source, /PAGE_BACK_ACTION_SLOT_ID/);
+  assert.doesNotMatch(collectionHeaderSource, /backAction|PageBackAction/);
   assert.match(
     source,
     /<CollectionPageHeader[\s\S]*title=\{title\}/,
@@ -128,9 +139,17 @@ test("keeps the canonical header title at the shared page-title scale", () => {
   );
   assert.match(
     collectionHeaderSource,
-    /className="mt-1 text-sm leading-6 text-muted-foreground text-pretty"/,
+    /className="mt-1 text-sm leading-6 text-secondary-foreground text-pretty"/,
   );
   assert.match(collectionHeaderSource, /subtitle\?: ReactNode/);
+});
+
+test("keeps the title content free of a redundant min-width wrapper", () => {
+  assert.doesNotMatch(
+    collectionHeaderSource,
+    /<div className="min-w-0">\s*<div className="flex items-center gap-2\.5">/,
+  );
+  assert.match(collectionHeaderSource, /"min-w-0"/);
 });
 
 test("centers title-row actions against the title and subtitle block", () => {
@@ -148,16 +167,19 @@ test("allows form and detail actions to use the global title-row slot", () => {
   assert.match(collectionHeaderSource, /<PageHeaderActionsPortal>\{actions\}<\/PageHeaderActionsPortal>/);
 });
 
-test("uses one aligned, transparent back action across forms and details", () => {
-  assert.match(formBackActionSource, /variant="ghost"/);
-  assert.match(formBackActionSource, /size="sm"/);
-  assert.match(formBackActionSource, /!px-0 text-\[12px\]/);
-  assert.match(formBackActionSource, /ChevronLeft/);
-  assert.match(formBackActionSource, /hover:bg-transparent/);
-  assert.match(formBackActionSource, /group-hover\/back:text-foreground/);
+test("right-aligns action groups in the local top slot", () => {
+  assert.match(
+    pageHeaderActionsPortalSource,
+    /className="flex flex-wrap items-center justify-end gap-2"/,
+  );
 });
 
-test("defines page-title as 28px medium", () => {
+test("does not render a back-action slot in the shared shell", () => {
+  assert.doesNotMatch(source, /app-header-back-action/);
+  assert.doesNotMatch(source, /empty:hidden/);
+});
+
+test("defines page-title as 24px semibold", () => {
   const globalsSource = readFileSync(
     new URL("../app/globals.css", import.meta.url),
     "utf8",
@@ -165,19 +187,33 @@ test("defines page-title as 28px medium", () => {
 
   assert.match(
     globalsSource,
-    /\.page-title \{[\s\S]*font-size: 1\.75rem;[\s\S]*font-weight: 500;/,
+    /\.page-title \{[\s\S]*font-size: 1\.5rem;[\s\S]*font-weight: 600;/,
   );
 });
 
-test("uses the topbar as a compact context alongside the visible page header", () => {
+test("uses the topbar as compact context without a duplicated global page header", () => {
   assert.match(
     appTopbarSource,
-    /<h1 className="truncate text-center text-sm font-medium text-foreground">/,
+    /<AppBreadcrumbs \/>/,
   );
-  assert.match(source, /showTitle/);
+  assert.doesNotMatch(appShellSource, /<AppHeader/);
+  assert.doesNotMatch(appShellSource, /HeaderActionsProvider/);
   assert.match(collectionHeaderSource, /showTitle = false/);
   assert.match(
     collectionHeaderSource,
     /const hasHeaderContent = hasLeftContent \|\| Boolean\(actions && !actionsInTopSlot\);/,
   );
+});
+
+test("keeps route-local header actions visible without a global header slot", () => {
+  const portalSource = readFileSync(
+    new URL(
+      "./shared/design-system/layout/page-header-actions-portal.tsx",
+      import.meta.url,
+    ),
+    "utf8",
+  );
+
+  assert.match(portalSource, /flex flex-wrap items-center justify-end gap-2/);
+  assert.doesNotMatch(portalSource, /createPortal|document\.getElementById/);
 });

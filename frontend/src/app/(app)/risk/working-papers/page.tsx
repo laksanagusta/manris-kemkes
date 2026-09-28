@@ -12,9 +12,11 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
 import { listWorkingPapers } from "@/lib/api/working-papers";
 import type { WorkingPaper, WorkingPaperStatus } from "@/types/working-paper";
+import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 import { WorkingPaperProgressCollapsible } from "./_components/working-paper-progress-collapsible";
 
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -34,7 +36,8 @@ import {
   TableCell,
   TableRow,
 } from "@/components/ui/table";
-import { ChevronRight, Plus } from "@/components/ui/icons";
+import { ChevronRight, Plus } from "@/components/shared/icons";
+import { Badge } from "@/components/ui/badge";
 import {
   currentAssessmentCycle,
   shiftAssessmentCycle,
@@ -48,7 +51,6 @@ import {
   CollectionPagination,
   CollectionPageHeader,
   CollectionSearchField,
-  CollectionStatusBadge,
   CollectionTableCard,
   CollectionTableHead,
   CollectionTableHeader,
@@ -136,12 +138,12 @@ function WorkingPaperFiltersSidebar({
       <PopoverContent
         align="end"
         sideOffset={8}
-        className="w-[22rem] rounded-xl p-4"
+        className="w-[22rem]"
       >
         <div className="space-y-4">
           <div>
             <h4 className="text-sm font-medium">Filter Kertas Kerja</h4>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1 text-xs text-secondary-foreground">
               Atur status, siklus asesmen, dan tanggal dibuat.
             </p>
           </div>
@@ -157,7 +159,7 @@ function WorkingPaperFiltersSidebar({
                   onStatusFilterChange(value as WorkingPaperStatusFilter)
                 }
               >
-                <SelectTrigger className="h-9 rounded-lg border border-input bg-card text-sm">
+                <SelectTrigger className="">
                   <SelectValue placeholder="Semua status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -199,15 +201,15 @@ function WorkingPaperFiltersSidebar({
             <Button
               type="button"
               variant="ghost"
-              size="md"
+              size="default"
               onClick={onReset}
-              className="shadow-none"
+              className=""
             >
               Reset
             </Button>
             <AccentButton
               type="button"
-              size="md"
+              size="default"
               onClick={() => onOpenChange(false)}
             >
               Terapkan
@@ -368,20 +370,21 @@ function WorkingPaperMobileCard({
   createdDate: string;
 }) {
   return (
-    <div className="rounded-lg border border-border bg-card px-4 py-3 transition-colors hover:bg-muted/50">
+    <Card className="transition-colors hover:bg-muted/50">
+      <CardContent>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2">
             <WorkingPaperCode code={paper.code} />
-            <CollectionStatusBadge
-              tone={statusTones[paper.status]}
+            <Badge variant={toBadgeVariant(statusTones[paper.status])}
+              className={getStatusBadgeClassName(statusTones[paper.status])}
             >
               {statusLabels[paper.status] || paper.status}
-            </CollectionStatusBadge>
+            </Badge>
           </div>
           <Link
             href={`/risk/working-papers/${paper.id}`}
-            className="mt-1 line-clamp-2 text-sm font-semibold text-foreground transition-colors hover:text-primary"
+            className="mt-1 line-clamp-2 text-sm font-medium text-foreground transition-colors hover:text-primary"
           >
             {paper.title || "Tanpa Judul"}
           </Link>
@@ -400,7 +403,8 @@ function WorkingPaperMobileCard({
         progressPercent={progressPercent}
         progressText={progressText}
       />
-    </div>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -423,7 +427,7 @@ function WorkingPaperDesktopSigningProgress({
         label: signatory.signer_name || `Penandatangan ${signatory.sequence_no}`,
         status: signatory.status === "signed" ? "final" : "draft",
       }))}
-      countLabel="TTE"
+      showCount={false}
       ariaLabelOverride={`Progres TTE: ${signedCount} dari ${signatories.length} penandatangan sudah menandatangani.`}
     />
   );
@@ -654,6 +658,7 @@ export default function WorkingPapersPage() {
         />
       ) : null}
 
+      <div className="space-y-4">
       <CollectionToolbar
         className="w-full"
         leading={
@@ -744,22 +749,22 @@ export default function WorkingPapersPage() {
                   </colgroup>
                   <CollectionTableHeader density="compact">
                     <CollectionTableHeaderRow>
-                      <CollectionTableHead className="pl-4 pr-3">
+                      <CollectionTableHead className="px-24">
                         Judul
                       </CollectionTableHead>
-                      <CollectionTableHead className="px-3">
+                      <CollectionTableHead >
                         Periode
                       </CollectionTableHead>
-                      <CollectionTableHead className="px-3">
+                      <CollectionTableHead >
                         Status
                       </CollectionTableHead>
-                      <CollectionTableHead className="px-3 text-center">
-                        Risiko
+                      <CollectionTableHead className="text-right">
+                        Jumlah risiko
                       </CollectionTableHead>
-                      <CollectionTableHead className="px-3">
+                      <CollectionTableHead >
                         Progres TTE
                       </CollectionTableHead>
-                      <CollectionTableHead className="px-3">
+                      <CollectionTableHead >
                         Dibuat
                       </CollectionTableHead>
                     </CollectionTableHeaderRow>
@@ -778,12 +783,12 @@ export default function WorkingPapersPage() {
                       return (
                         <TableRow
                           key={paper.id}
-                          className="border-0 hover:bg-muted/50"
+                          className="hover:bg-muted/50"
                         >
-                          <TableCell className="min-w-[320px] py-2 pl-4 pr-3 align-middle">
+                          <TableCell className="min-w-[320px] px-24 align-middle">
                             <Link
                               href={`/risk/working-papers/${paper.id}`}
-                              className="block text-sm font-semibold leading-relaxed text-foreground transition-colors hover:text-primary"
+                              className="block max-w-full whitespace-normal break-words text-sm font-medium leading-relaxed text-foreground transition-colors hover:text-primary"
                               title={paper.title}
                             >
                               {paper.title || "Tanpa Judul"}
@@ -792,25 +797,25 @@ export default function WorkingPapersPage() {
                               {paper.code}
                             </div>
                           </TableCell>
-                          <TableCell className="whitespace-nowrap px-3 py-2 align-middle text-sm text-muted-foreground">
+                          <TableCell className="whitespace-nowrap align-middle">
                             {paper.assessment_cycle || "-"}
                           </TableCell>
-                          <TableCell className="whitespace-nowrap px-3 py-2 align-middle">
-                            <CollectionStatusBadge
-                              tone={statusTones[paper.status]}
+                          <TableCell className="whitespace-nowrap align-middle">
+                            <Badge variant={toBadgeVariant(statusTones[paper.status])}
+                              className={getStatusBadgeClassName(statusTones[paper.status])}
                             >
                               {statusLabels[paper.status] || paper.status}
-                            </CollectionStatusBadge>
+                            </Badge>
                           </TableCell>
-                          <TableCell className="whitespace-nowrap px-3 py-2 text-center align-middle text-sm font-medium tabular-nums text-foreground">
+                          <TableCell className="whitespace-nowrap text-right align-middle tabular-nums">
                             {paper.risks?.length || 0}
                           </TableCell>
-                          <TableCell className="min-w-[180px] px-3 py-2 align-middle">
+                          <TableCell className="min-w-[180px] align-middle">
                             <WorkingPaperDesktopSigningProgress
                               signatories={paper.signatories}
                             />
                           </TableCell>
-                          <TableCell className="whitespace-nowrap px-3 py-2 align-middle text-sm text-muted-foreground">
+                          <TableCell className="whitespace-nowrap align-middle">
                             {createdDate}
                           </TableCell>
                         </TableRow>
@@ -833,7 +838,8 @@ export default function WorkingPapersPage() {
               setPage(1);
             }}
           />
-        </CollectionTableCard>
+      </CollectionTableCard>
+      </div>
       <WorkingPaperProgressCollapsible
         workingPapers={papers}
         loading={loading}

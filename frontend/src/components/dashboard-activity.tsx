@@ -5,7 +5,7 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { DashboardCard } from "@/components/dashboard-card";
-import { CreditCardIcon, UserPlusIcon, FileTextIcon, RocketIcon } from "@/components/ui/icons";
+import { CreditCardIcon, UserPlusIcon, FileTextIcon, RocketIcon } from "@/components/shared/icons";
 
 const items = [
 	{
@@ -45,11 +45,11 @@ const items = [
 export function DashboardActivity() {
 	return (
 		<DashboardCard className="gap-0">
-			<CardHeader className="border-b">
+			<CardHeader className="">
 				<CardTitle>Activity</CardTitle>
 				<CardDescription>Latest updates in your workspace.</CardDescription>
 			</CardHeader>
-			<CardContent className="px-0">
+			<CardContent className="">
 				<ul className="flex flex-col divide-y divide-border">
 					{items.map((item) => (
 						<li className="flex h-16 items-center gap-3 px-6" key={item.title}>

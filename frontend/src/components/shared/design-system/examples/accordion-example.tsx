@@ -14,11 +14,11 @@ export function AccordionExample() {
       >
         <div className="flex flex-col gap-2">
           <Label htmlFor="accordion-input">Form Field</Label>
-          <Input id="accordion-input" placeholder="Placeholder text..." className="h-10 text-sm" />
+          <Input id="accordion-input" placeholder="Placeholder text..." className="" />
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="accordion-textarea">Textarea Field</Label>
-          <Textarea id="accordion-textarea" placeholder="Tulis sesuatu..." className="min-h-[80px] text-sm" />
+          <Textarea id="accordion-textarea" placeholder="Tulis sesuatu..." className="" />
         </div>
       </AccordionFormSection>
       <AccordionFormSection
@@ -26,7 +26,7 @@ export function AccordionExample() {
         title="Another Section"
         description="All accordion items follow the exact same pattern."
       >
-        <div className="space-y-3 rounded-xl bg-card p-5 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30">
+        <div className="space-y-3 rounded-[12px] bg-card p-5 shadow-black">
           <p className="text-sm font-medium text-foreground">Nested Card</p>
           <p className="text-xs text-muted-foreground">
             Digunakan untuk approval line dan grouped content.

@@ -10,6 +10,8 @@ const source = readFileSync(
 test("uses the shared briefing detail reading pattern", () => {
   assert.match(source, /<FormPage className="space-y-0">/);
   assert.match(source, /<Card className="gap-0 overflow-hidden p-0">/);
+  assert.match(source, /border-t border-dashed border-border\/70/);
+  assert.match(source, /divide-y divide-dashed divide-border\/70/);
   assert.match(
     source,
     /<dl className="mt-8 grid gap-x-12 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">/,
@@ -32,8 +34,11 @@ test("keeps briefing content editorial and low-noise", () => {
   assert.match(source, /className="block font-mono text-xs leading-5 text-muted-foreground"/);
 });
 
-test("uses shared actions for the header and destructive confirmation", () => {
-  assert.match(source, /<ActionButton icon=\{<Download/);
+test("keeps detail actions behind a compact options menu", () => {
+  assert.match(source, /<DropdownMenu>/);
+  assert.match(source, /<ActionIconButton\s+aria-label="Tindakan notulen"/);
+  assert.match(source, /<DropdownMenuItem onSelect=\{handleExport\}>/);
+  assert.doesNotMatch(source, /<ActionButton icon=\{<Download/);
   assert.match(source, /<CollectionDialogCancel/);
   assert.match(source, /<DestructiveButton/);
 });

@@ -79,6 +79,7 @@ test("planning uses collection table primitives instead of a handcrafted table s
 test("reports uses shared design-system action buttons without local accent tokens", () => {
   assert.match(pages.reports, /<ActionButton[\s>]/);
   assert.match(pages.reports, /<AccentButton[\s>]/);
+  assert.match(pages.reports, /<ActionButton variant="outline" size="md" className="gap-2">/);
   assert.doesNotMatch(pages.reports, /--primary/);
 });
 
@@ -152,10 +153,11 @@ test("audited routes do not bypass design system with direct UI foundation impor
   }
 });
 
-test("cascading and reports use the design-system DashboardKpiCard", () => {
-  for (const name of ["cascading", "reports"] as const) {
-    assert.match(pages[name], /<DashboardKpiCard[\s>]/);
-    assert.doesNotMatch(pages[name], /<KpiCard[\s>]/);
-    assert.doesNotMatch(pages[name], /from "@\/components\/ui\/kpi-card"/);
-  }
+test("collection cascading uses the collection KpiCard", () => {
+  assert.match(pages.cascading, /<KpiCard[\s>]/);
+  assert.doesNotMatch(pages.cascading, /<DashboardKpiCard[\s>]/);
+  assert.doesNotMatch(
+    pages.cascading,
+    /from "@\/components\/ui\/kpi-card"/,
+  );
 });

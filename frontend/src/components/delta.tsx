@@ -2,7 +2,7 @@
 import { cn } from "@/lib/utils";
 import * as React from "react";
 import { Badge } from "@/components/ui/badge";
-import { MinusIcon, TrendingUpIcon, ArrowUpIcon, ChevronUpIcon, TrendingDownIcon, ArrowDownIcon, ChevronDownIcon } from "@/components/ui/icons";
+import { MinusIcon, TrendingUpIcon, ArrowUpIcon, ChevronUpIcon, TrendingDownIcon, ArrowDownIcon, ChevronDownIcon } from "@/components/shared/icons";
 
 type DeltaIconVariant = "default" | "trend" | "arrow";
 type DeltaVariant = "default" | "badge";
@@ -39,10 +39,10 @@ function Delta({
 			{variant === "badge" ? (
 				<Badge
 					className={cn(
-						"gap-1 border-none tabular-nums [&_svg]:size-4 [&_svg]:shrink-0",
+						"tabular-nums [&_svg]:size-4 [&_svg]:shrink-0",
 						value > 0
-							? "bg-emerald-500/10 text-emerald-500"
-							: "bg-red-500/10 text-red-500",
+							? ""
+							: "",
 						className
 					)}
 					data-slot="delta"

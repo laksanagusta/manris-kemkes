@@ -55,6 +55,7 @@ type Risk struct {
 	VersionNumber          int        `json:"versionNumber"`
 	ArchivedAt             *time.Time `json:"archivedAt,omitempty"`
 	ArchivedReason         string     `json:"archivedReason,omitempty"`
+	SupersededByRiskID     *uuid.UUID `json:"supersededByRiskId,omitempty"`
 	OrganizationID         *uuid.UUID `json:"organizationId,omitempty"`
 	OrgName                string     `json:"orgName"`
 	CreatedBy              *uuid.UUID `json:"createdBy,omitempty"`
@@ -145,10 +146,14 @@ type Risk struct {
 }
 
 type QuarterlyMonitoringStatus struct {
-	Q1 *string `json:"q1"`
-	Q2 *string `json:"q2"`
-	Q3 *string `json:"q3"`
-	Q4 *string `json:"q4"`
+	Q1      *string  `json:"q1"`
+	Q2      *string  `json:"q2"`
+	Q3      *string  `json:"q3"`
+	Q4      *string  `json:"q4"`
+	Q1Nilai *float64 `json:"q1Nilai,omitempty"`
+	Q2Nilai *float64 `json:"q2Nilai,omitempty"`
+	Q3Nilai *float64 `json:"q3Nilai,omitempty"`
+	Q4Nilai *float64 `json:"q4Nilai,omitempty"`
 }
 
 // SemesterMonitoringStatus is retained as a Go compatibility alias. The API

@@ -21,7 +21,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { MovementByOrgDatum, MovementByOrgSortKey } from "@/lib/dashboard-insights";
-import { StandardCard } from "@/components/shared/design-system";
+import {
+  IllustratedEmptyState,
+  StandardCard,
+} from "@/components/shared/design-system";
 import { RISK_CHART_COLORS } from "@/lib/chart-colors";
 
 const chartConfig = {
@@ -60,7 +63,7 @@ export function RiskMovementByOrg({
             value={currentSort}
             onValueChange={(value) => onSortChange?.(value as MovementByOrgSortKey)}
           >
-            <SelectTrigger className="h-9 w-[120px] text-xs">
+            <SelectTrigger className="w-[120px]">
               <SelectValue placeholder="Urutkan" />
             </SelectTrigger>
             <SelectContent>
@@ -82,9 +85,12 @@ export function RiskMovementByOrg({
         className="flex min-h-0 flex-1 flex-col"
       >
         {!hasData ? (
-          <div className="flex h-full flex-1 items-center justify-center rounded-lg bg-state-surface px-6 text-center text-sm text-state-foreground">
-            Belum ada data perbandingan risiko antar-cycle.
-          </div>
+          <IllustratedEmptyState
+            title="Belum ada data"
+            description="Belum ada data perbandingan risiko antar-cycle."
+            size="compact"
+            className="min-h-48"
+          />
         ) : (
           <>
             <div className="min-h-0 flex-1 overflow-y-auto pr-2 custom-scrollbar">

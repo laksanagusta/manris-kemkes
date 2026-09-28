@@ -2,8 +2,10 @@
 
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, Circle } from "@/components/ui/icons";
+import { CheckCircle2, Circle } from "@/components/shared/icons";
 import type { WorkingPaperTimelineItem } from "@/lib/working-paper-detail-view-model";
+import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
+import { IllustratedEmptyState } from "@/components/shared/design-system";
 
 const timelineStatusTone = {
   signed: "success",
@@ -32,11 +34,11 @@ export function WorkingPaperSignatureTimeline({
 }) {
   if (timeline.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-border/60 bg-muted/10 px-4 py-6 text-center">
-        <p className="text-sm text-muted-foreground">
-          Belum ada penandatangan
-        </p>
-      </div>
+      <IllustratedEmptyState
+        title="Belum ada penandatangan"
+        size="compact"
+        className="py-3"
+      />
     );
   }
 
@@ -95,10 +97,8 @@ export function WorkingPaperSignatureTimeline({
                   <p className="truncate text-sm font-semibold leading-none">
                     {sig.signer_name}
                   </p>
-                  <Badge
-                    size="micro"
-                    tone={timelineStatusTone[item.state]}
-                    className="font-semibold"
+                  <Badge variant={toBadgeVariant(timelineStatusTone[item.state])}
+                    className={getStatusBadgeClassName(timelineStatusTone[item.state])}
                   >
                     {item.label}
                   </Badge>
@@ -110,15 +110,14 @@ export function WorkingPaperSignatureTimeline({
                     .join(" · ")}
                 </p>
 
-                <p className="text-xs leading-5 text-muted-foreground">
+                <p className="text-xs leading-5 text-tertiary-foreground">
                   {item.description}
                 </p>
               </div>
 
               {sig.signed_at ? (
-                <Badge
-                  tone="success"
-                  className="mt-2 h-6 gap-1.5 px-2 text-xs font-medium"
+                <Badge variant="default"
+                  className="mt-2 border-transparent bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
                 >
                   <CheckCircle2 className="size-3.5" />
                   Tercatat pada {formatDateTime(sig.signed_at)}

@@ -3,6 +3,7 @@ package organization
 import (
 	"context"
 
+	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/repository"
 )
@@ -16,9 +17,10 @@ func NewListOrganizationsWithFilterUseCase(orgRepo repository.OrganizationReposi
 }
 
 type ListOrganizationsWithFilterInput struct {
-	Page  int
-	Limit int
-	Q     string
+	Page       int
+	Limit      int
+	Q          string
+	AncestorID *uuid.UUID
 }
 
 type ListOrganizationsWithFilterOutput struct {
@@ -37,9 +39,10 @@ func (uc *ListOrganizationsWithFilterUseCase) Execute(ctx context.Context, input
 	}
 
 	orgs, total, err := uc.orgRepo.ListWithFilter(ctx, repository.OrganizationListFilter{
-		Page:  input.Page,
-		Limit: input.Limit,
-		Q:     input.Q,
+		Page:       input.Page,
+		Limit:      input.Limit,
+		Q:          input.Q,
+		AncestorID: input.AncestorID,
 	})
 	if err != nil {
 		return nil, err

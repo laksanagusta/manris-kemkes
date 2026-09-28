@@ -25,7 +25,7 @@ func (r *archiveRiskRepo) GetByID(_ context.Context, _ uuid.UUID, _ []uuid.UUID)
 	return &copy, nil
 }
 
-func (r *archiveRiskRepo) Update(_ context.Context, risk *entity.Risk) error {
+func (r *archiveRiskRepo) UpdateArchiveMetadata(_ context.Context, risk *entity.Risk, _ uuid.UUID) error {
 	if r.updateErr != nil {
 		return r.updateErr
 	}

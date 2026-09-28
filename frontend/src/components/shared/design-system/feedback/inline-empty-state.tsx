@@ -1,19 +1,20 @@
 import type { ReactNode } from "react";
 
+import { IllustratedEmptyState } from "./illustrated-empty-state";
+
 export function InlineEmptyState({
   message,
-  icon,
   action,
 }: {
   message: ReactNode;
-  icon?: ReactNode;
   action?: ReactNode;
 }) {
   return (
-    <div className="flex min-h-[36px] items-center justify-center gap-2 rounded-md bg-state-surface px-3 text-center text-xs text-state-foreground">
-      {icon}
-      <span>{message}</span>
-      {action}
-    </div>
+    <IllustratedEmptyState
+      title={message}
+      action={action}
+      size="compact"
+      className="min-h-24"
+    />
   );
 }

@@ -14,7 +14,7 @@ export function LoadingActionButtonExample({
       type="button"
       variant="outline"
       size="xs"
-      className="h-7 gap-2 border-transparent bg-muted/40 px-2.5 text-xs text-muted-foreground shadow-none hover:bg-muted/60 hover:text-foreground"
+      className="h-7 gap-2 border-transparent bg-muted/40 px-4 text-[14px] text-muted-foreground shadow-none hover:bg-muted/60 hover:text-foreground"
       loading={loading}
     >
       {children}

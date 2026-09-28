@@ -10,7 +10,7 @@ import {
   Plus,
   Trash2,
   XCircle,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,6 +21,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { IllustratedEmptyState } from "@/components/shared/design-system";
+import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 import type { ProcessingJob, ProcessingStatus } from "@/types/document-processing";
 import { formatDuration } from "./upload-utils";
 
@@ -33,7 +35,7 @@ function statusMeta(status: ProcessingStatus) {
     case "failed":
       return { label: "Gagal", tone: "danger" as const, icon: XCircle };
     case "cancelled":
-      return { label: "Dibatalkan", tone: "neutral" as const, icon: XCircle };
+      return { label: "Dibatalkan", tone: "danger" as const, icon: XCircle };
     case "processing":
     case "queued":
       return { label: status === "queued" ? "Dalam antrean" : "Diproses", tone: "progress" as const, icon: Clock };
@@ -108,8 +110,8 @@ export function HistoryPanel({
               <div
                 key={job.id}
                 className={cn(
-                  "group rounded-xl border p-2.5 transition-[background-color,border-color,box-shadow] duration-150",
-                  active ? "border-foreground/20 bg-card border-shadow" : "border-transparent hover:border-border/70 hover:bg-card/70",
+                  "group rounded-lg border p-2.5 transition-[background-color,border-color,box-shadow] duration-150",
+                  active ? "border-foreground/20 bg-card" : "border-transparent hover:border-border/70 hover:bg-card/70",
                 )}
               >
                 {editingJobId === job.id ? (
@@ -122,11 +124,11 @@ export function HistoryPanel({
                         if (event.key === "Enter") saveRename(job);
                         if (event.key === "Escape") setEditingJobId(null);
                       }}
-                      className="rounded-md bg-background px-2 text-xs"
+                      className=""
                       aria-label="Nama proses"
                     />
                     <div className="flex gap-1.5">
-                      <Button type="button" size="xs" variant="secondary" className="h-7 flex-1" onClick={() => saveRename(job)}>
+                      <Button type="button" size="xs" variant="secondary" className="flex-1" onClick={() => saveRename(job)}>
                         Simpan
                       </Button>
                       <Button type="button" size="icon-xs" variant="ghost" aria-label="Batalkan rename" onClick={() => setEditingJobId(null)}>
@@ -146,7 +148,7 @@ export function HistoryPanel({
                           <span>{relativeDate(job.updatedAt)}</span>
                         </span>
                       </span>
-                      <Badge variant="outline" tone={meta.tone} size="micro" className="hidden shrink-0 sm:inline-flex">
+                      <Badge variant={toBadgeVariant(meta.tone)} className={`hidden shrink-0 sm:inline-flex ${getStatusBadgeClassName(meta.tone)}`}>
                         {meta.label}
                       </Badge>
                     </div>
@@ -186,9 +188,12 @@ export function HistoryPanel({
           })}
         </div>
       ) : (
-        <div className="rounded-xl border border-dashed border-border/80 p-3 text-xs leading-5 text-muted-foreground">
-          Belum ada proses tersimpan. Proses yang selesai akan muncul di sini.
-        </div>
+        <IllustratedEmptyState
+          title="Belum ada proses tersimpan"
+          description="Proses yang selesai akan muncul di sini."
+          size="compact"
+          className="py-2"
+        />
       )}
       <div className="flex items-center gap-2 px-1 pt-1 text-xs leading-4 text-muted-foreground/80">
         <MoreHorizontal className="size-3" />

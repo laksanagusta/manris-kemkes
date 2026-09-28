@@ -108,11 +108,7 @@ export interface MitigationTaskReportSuggestion {
   riskTitle: string;
   mitigationAction: string;
   periodLabel: string;
-  suggestedStatus: string;
-  progressPct: number;
-  actualCost: number;
   reportNotes: string;
-  blocker?: string;
   reasoning: string;
   confidence: number;
   sourceRefs: DocumentSourceRef[];

@@ -110,11 +110,12 @@ func TestRiskListRegisterMonitoringTransactionsIncludesBeforeAndAfterNilai(t *te
 	}
 }
 
-func TestRiskListRegisterIncludesMonitoringStatusAndLastMonitoredAt(t *testing.T) {
+func TestRiskListRegisterIncludesQuarterlyMonitoringScoreStatusAndLastMonitoredAt(t *testing.T) {
 	pool := setupPool(t)
 	repo := postgres.NewRiskRepository(pool)
 	monitoringRepo := postgres.NewRiskMonitoringRepository(pool)
 	ctx := context.Background()
+	currentYear := time.Now().Format("2006")
 
 	orgID := uuid.New()
 	if _, err := pool.Exec(ctx, `INSERT INTO organizations (id, name) VALUES ($1, $2)`, orgID, "Monitoring Status Org"); err != nil {
@@ -122,6 +123,18 @@ func TestRiskListRegisterIncludesMonitoringStatusAndLastMonitoredAt(t *testing.T
 	}
 	t.Cleanup(func() {
 		_, _ = pool.Exec(context.Background(), `DELETE FROM organizations WHERE id = $1`, orgID)
+	})
+
+	actorID := uuid.New()
+	actorKey := uuid.NewString()
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO users (id, name, username, email, password_hash, role)
+		VALUES ($1, $2, $3, $4, $5, $6)
+	`, actorID, "Monitoring Status Test Actor", "monitoring-status-"+actorKey, "monitoring-status-"+actorKey+"@example.test", "test-hash", "unit"); err != nil {
+		t.Fatalf("Insert monitoring actor: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM users WHERE id = $1`, actorID)
 	})
 
 	source := &entity.Risk{
@@ -135,7 +148,7 @@ func TestRiskListRegisterIncludesMonitoringStatusAndLastMonitoredAt(t *testing.T
 		IsCurrent:       true,
 		IsCycleCurrent:  true,
 		VersionNumber:   1,
-		AssessmentCycle: "2026-H1",
+		AssessmentCycle: currentYear + "-Q2",
 		Probability:     2,
 		Impact:          3,
 		Weight:          entity.GetBobot(2, 3),
@@ -150,8 +163,7 @@ func TestRiskListRegisterIncludesMonitoringStatusAndLastMonitoredAt(t *testing.T
 	}
 	t.Cleanup(func() { _ = repo.Delete(ctx, source.ID) })
 
-	startedBy := uuid.New()
-	monitoring := entity.NewRiskMonitoringDraft(source, "2026-H1", startedBy)
+	monitoring := entity.NewRiskMonitoringDraft(source, currentYear+"-Q2", actorID)
 	monitoring.ObservedProbability = 4
 	monitoring.ObservedImpact = 4
 	monitoring.CalculateObservedScore()
@@ -169,15 +181,20 @@ func TestRiskListRegisterIncludesMonitoringStatusAndLastMonitoredAt(t *testing.T
 	result.IsCurrent = true
 	result.IsCycleCurrent = true
 	result.VersionNumber = source.VersionNumber + 1
+	result.AssessmentCycle = currentYear + "-Q2"
 	result.Probability = monitoring.ObservedProbability
 	result.Impact = monitoring.ObservedImpact
 	result.Weight = monitoring.ObservedWeight
 	result.Nilai = monitoring.ObservedNilai
 	result.InherentScore = int(monitoring.ObservedNilai)
 
-	finalized, err := monitoringRepo.Finalize(ctx, monitoring.ID, &result, uuid.New())
+	finalized, err := monitoringRepo.Finalize(ctx, monitoring.ID, &result, actorID)
 	if err != nil {
 		t.Fatalf("Finalize monitoring: %v", err)
+	}
+	if finalized.ResultRiskID != nil {
+		resultRiskID := *finalized.ResultRiskID
+		t.Cleanup(func() { _ = repo.Delete(context.Background(), resultRiskID) })
 	}
 	if finalized.FinalizedAt == nil {
 		t.Fatal("expected finalized_at on monitoring row")
@@ -206,6 +223,12 @@ func TestRiskListRegisterIncludesMonitoringStatusAndLastMonitoredAt(t *testing.T
 		}
 		if item.LastMonitoredAt == nil {
 			t.Fatal("expected lastMonitoredAt to be populated")
+		}
+		if item.SemesterMonitoring == nil || item.SemesterMonitoring.Q2 == nil || *item.SemesterMonitoring.Q2 != entity.RiskMonitoringStatusFinal {
+			t.Fatalf("expected Q2 monitoring status final, got %#v", item.SemesterMonitoring)
+		}
+		if item.SemesterMonitoring.Q2Nilai == nil || *item.SemesterMonitoring.Q2Nilai != monitoring.ObservedNilai {
+			t.Fatalf("expected Q2 monitoring score %v, got %#v", monitoring.ObservedNilai, item.SemesterMonitoring.Q2Nilai)
 		}
 		break
 	}

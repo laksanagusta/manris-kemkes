@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowRight, FileText, ClipboardList } from "@/components/ui/icons";
+import { ArrowRight, FileText, ClipboardList } from "@/components/shared/icons";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,19 +16,19 @@ export default function FormalReportsPage() {
       <CollectionPageHeader title="Laporan Monitoring & Evaluasi dipindahkan ke Evaluasi" />
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Card className="rounded-xl bg-card">
-          <CardHeader className="border-b border-border/40 pb-4">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium normal-case">
+        <Card className="">
+          <CardHeader className="">
+            <CardTitle className="flex items-center gap-2">
               <ClipboardList className="size-4" />
               Buka Evaluasi
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 pt-6">
+          <CardContent className="space-y-4">
             <p className="text-sm leading-6 text-secondary-foreground">
               Masuk ke daftar evaluasi untuk melihat draft, final, dan PDF yang
               sudah diekspor.
             </p>
-            <Button asChild size="md" className="gap-2">
+            <Button asChild size="default" className="">
               <Link href="/evaluations">
                 Ke Evaluasi
                 <ArrowRight className="size-4" />
@@ -37,19 +37,19 @@ export default function FormalReportsPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-xl bg-card">
-          <CardHeader className="border-b border-border/40 pb-4">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium normal-case">
+        <Card className="">
+          <CardHeader className="">
+            <CardTitle className="flex items-center gap-2">
               <FileText className="size-4" />
               Buat Draft Baru
             </CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 pt-6">
+          <CardContent className="space-y-4">
             <p className="text-sm leading-6 text-secondary-foreground">
               Langsung buat draft evaluasi untuk organisasi dan periode yang
               dipilih, lalu isi section dan finalisasi dari detail evaluasi.
             </p>
-            <Button asChild variant="outline" size="md" className="gap-2">
+            <Button asChild variant="outline" size="default" className="">
               <Link href="/evaluations/new">
                 Buat Evaluasi
                 <ArrowRight className="size-4" />

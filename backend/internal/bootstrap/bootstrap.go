@@ -31,6 +31,7 @@ import (
 	planninguc "github.com/manris/backend/internal/usecase/planning"
 	reportuc "github.com/manris/backend/internal/usecase/report"
 	riskuc "github.com/manris/backend/internal/usecase/risk"
+	riskeventuc "github.com/manris/backend/internal/usecase/risk_event"
 	riskcascadeuc "github.com/manris/backend/internal/usecase/riskcascade"
 	riskcharteruc "github.com/manris/backend/internal/usecase/riskcharter"
 	systemuc "github.com/manris/backend/internal/usecase/system"
@@ -70,6 +71,7 @@ type Container struct {
 	LikelihoodAssessmentRepository domainrepo.LikelihoodAssessmentRepository
 	ImpactCriteriaRepository       domainrepo.ImpactCriteriaRepository
 	RiskMonitoringRepository       domainrepo.RiskMonitoringRepository
+	RiskEventRepository            domainrepo.RiskEventRepository
 
 	// Domain Services
 	OrgHierarchySvc *domainsvc.OrganizationHierarchy
@@ -117,7 +119,9 @@ type Container struct {
 	RiskMonitoringStartUC     *riskuc.StartMonitoringUseCase
 	RiskMonitoringGetUC       *riskuc.GetMonitoringUseCase
 	RiskMonitoringUpdateUC    *riskuc.UpdateMonitoringUseCase
+	RiskMonitoringDeleteUC    *riskuc.DeleteMonitoringUseCase
 	RiskMonitoringFinalizeUC  *riskuc.FinalizeMonitoringUseCase
+	RiskEventService          *riskeventuc.Service
 
 	// Risk Cascade UseCases
 	RiskCascadeCreateMandatoryUC *riskcascadeuc.CreateMandatoryUseCase
@@ -260,9 +264,11 @@ type Container struct {
 	WPUseCase *workingpaperusecase.UseCase
 
 	// Report UseCases
-	GenerateReportUC        *reportuc.GenerateReportUseCase
-	PDFReportRenderer       domainsvc.ReportPDFRenderer
-	FormalReportPDFRenderer domainsvc.FormalReportPDFRenderer
+	GenerateReportUC           *reportuc.GenerateReportUseCase
+	QuarterlyReportUC          *reportuc.QuarterlyReportUseCase
+	QuarterlyReportPDFRenderer domainsvc.QuarterlyReportPDFRenderer
+	PDFReportRenderer          domainsvc.ReportPDFRenderer
+	FormalReportPDFRenderer    domainsvc.FormalReportPDFRenderer
 }
 
 // Build initializes and wires all application dependencies.
@@ -305,6 +311,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.LikelihoodAssessmentRepository = postgresrepo.NewLikelihoodAssessmentRepository(pool)
 	c.ImpactCriteriaRepository = postgresrepo.NewImpactCriteriaRepository(pool)
 	c.RiskMonitoringRepository = postgresrepo.NewRiskMonitoringRepository(pool)
+	c.RiskEventRepository = postgresrepo.NewRiskEventRepository(pool)
 
 	// ============================================================================
 	// Domain Services
@@ -344,8 +351,9 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.RiskSpreadsheetUC = riskuc.NewBulkRiskSpreadsheetUseCase(c.OrgRepository, c.UserRepository)
 	c.RiskGetUC = riskuc.NewGetRiskUseCase(c.RiskRepository)
 	c.RiskExportPDFUC = riskuc.NewExportRiskPDFUseCase(c.RiskRepository, renderer)
-	c.RiskArchiveUC = riskuc.NewArchiveRiskUseCase(c.RiskRepository, c.WPRepository)
-	c.RiskRestoreUC = riskuc.NewRestoreRiskUseCase(c.RiskRepository)
+	archiveRepository := postgresrepo.NewRiskArchiveRepository(pool)
+	c.RiskArchiveUC = riskuc.NewArchiveRiskUseCase(archiveRepository, c.WPRepository)
+	c.RiskRestoreUC = riskuc.NewRestoreRiskUseCase(archiveRepository)
 	c.RiskUpdateUC = riskuc.NewUpdateRiskUseCase(c.RiskRepository, c.UserRepository, c.OrgRepository, c.WPRepository, c.MitigationTaskRepository)
 	c.RiskDeleteUC = riskuc.NewDeleteRiskUseCase(c.RiskRepository)
 	c.RiskListUC = riskuc.NewListRisksUseCase(c.RiskRepository, c.OrgHierarchySvc)
@@ -375,7 +383,9 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.RiskMonitoringStartUC = riskuc.NewStartMonitoringUseCase(c.RiskRepository, c.RiskMonitoringRepository, c.RiskRepository, c.MitigationTaskRepository, periodRepo)
 	c.RiskMonitoringGetUC = riskuc.NewGetMonitoringUseCase(c.RiskMonitoringRepository)
 	c.RiskMonitoringUpdateUC = riskuc.NewUpdateMonitoringUseCase(c.RiskRepository, c.RiskMonitoringRepository)
+	c.RiskMonitoringDeleteUC = riskuc.NewDeleteMonitoringUseCase(c.RiskMonitoringRepository)
 	c.RiskMonitoringFinalizeUC = riskuc.NewFinalizeMonitoringUseCase(c.RiskRepository, c.RiskMonitoringRepository, c.MitigationTaskRepository, c.RiskRepository)
+	c.RiskEventService = riskeventuc.NewService(c.RiskEventRepository, c.RiskRepository)
 
 	c.RiskCascadeCreateMandatoryUC = riskcascadeuc.NewCreateMandatoryUseCase(c.RiskCascadeRepository, c.RiskRepository, c.OrgRepository)
 	c.RiskCascadeCreateBottomUpUC = riskcascadeuc.NewCreateBottomUpUseCase(c.RiskCascadeRepository, c.RiskRepository, c.OrgRepository)
@@ -569,6 +579,8 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	// ============================================================================
 
 	c.GenerateReportUC = reportuc.NewGenerateReportUseCase(c.RiskRepository, c.IncidentRepository)
+	c.QuarterlyReportUC = reportuc.NewQuarterlyReportUseCase(postgresrepo.NewQuarterlyReportRepository(pool))
+	c.QuarterlyReportPDFRenderer = reportpdf.NewQuarterlyReportPDFRenderer()
 	return c, nil
 }
 

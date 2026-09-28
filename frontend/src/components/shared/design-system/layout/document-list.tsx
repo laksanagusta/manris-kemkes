@@ -1,8 +1,10 @@
 import { useId, type ReactNode } from "react";
 
-import { Plus } from "@/components/ui/icons";
+import { Plus } from "@/components/shared/icons";
 import { Button } from "@/components/ui/button";
-import { ListGroup } from "@/components/ui/list-group";
+import { CardContent } from "@/components/ui/card";
+import { ListGroup } from "@/components/shared/list-group";
+import { IllustratedEmptyState } from "../feedback/illustrated-empty-state";
 import { cn } from "@/lib/utils";
 
 export type DocumentListItem = {
@@ -41,7 +43,7 @@ export function DocumentListSection({
       <div className="flex items-center justify-between gap-4">
         <h2
           id={labelId}
-          className="text-sm font-semibold leading-5 text-foreground"
+          className="text-sm font-semibold leading-5 text-muted-foreground"
         >
           {title}
         </h2>
@@ -53,17 +55,14 @@ export function DocumentListSection({
             aria-label={addLabel}
             title={addLabel}
             onClick={onAdd}
-            className="rounded-full text-muted-foreground hover:bg-transparent hover:text-muted-foreground"
+            className=""
           >
             <Plus className="size-4" aria-hidden="true" />
           </Button>
         ) : null}
       </div>
-      <ListGroup
-        className="surface-hairline rounded-xl bg-card px-4 py-1.5"
-        role="region"
-        aria-labelledby={labelId}
-      >
+      <ListGroup role="region" aria-labelledby={labelId}>
+        <CardContent>
         {items.length > 0 ? (
           <div
             className="space-y-1"
@@ -91,10 +90,14 @@ export function DocumentListSection({
             ))}
           </div>
         ) : (
-          <p className="px-0 py-1.5 text-sm text-muted-foreground">
-            {emptyMessage}
-          </p>
+          <IllustratedEmptyState
+            title="Belum ada data"
+            description={emptyMessage}
+            size="compact"
+            className="py-3"
+          />
         )}
+        </CardContent>
       </ListGroup>
     </div>
   );

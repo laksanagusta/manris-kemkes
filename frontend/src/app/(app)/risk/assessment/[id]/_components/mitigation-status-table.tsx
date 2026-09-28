@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useMemo, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/auth-context";
@@ -9,15 +8,16 @@ import {
   listMonitoringTasks,
   updateTaskReport,
 } from "@/lib/api/mitigation-tasks";
-import type { MitigationTask, MitigationTaskStatus } from "@/types/risk";
+import type { MitigationTask } from "@/types/risk";
 import {
   AlertTriangle,
   ChevronDown,
   Loader2,
   Send,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 import {
   AccentButton,
+  IllustratedEmptyState,
   ActionButton,
   MitigationProgressDialog,
 } from "@/components/shared/design-system";
@@ -26,15 +26,26 @@ import {
   validateMitigationReportForm,
 } from "@/lib/validation/reporting";
 import { toast } from "sonner";
+import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 
 interface MitigationStatusTableProps {
   monitoringId: string;
 }
 
-function getTaskStatusLabel(status: MitigationTaskStatus) {
-  switch (status) {
+function hasCompletedReport(task: MitigationTask) {
+  return (
+    task.status === "done" &&
+    Boolean(task.reportedAt) &&
+    (task.notes ?? "").trim().length > 0
+  );
+}
+
+function getTaskStatusLabel(task: MitigationTask) {
+  if (hasCompletedReport(task)) return "Dilaporkan";
+
+  switch (task.status) {
     case "done":
-      return "Dilaporkan";
+      return "Laporan belum lengkap";
     case "overdue":
       return "Terlambat";
     case "skipped":
@@ -46,10 +57,12 @@ function getTaskStatusLabel(status: MitigationTaskStatus) {
   }
 }
 
-function getTaskStatusTone(status: MitigationTaskStatus) {
-  switch (status) {
+function getTaskStatusTone(task: MitigationTask) {
+  if (hasCompletedReport(task)) return "success" as const;
+
+  switch (task.status) {
     case "done":
-      return "success" as const;
+      return "warning" as const;
     case "overdue":
       return "danger" as const;
     case "skipped":
@@ -61,7 +74,7 @@ function getTaskStatusTone(status: MitigationTaskStatus) {
   }
 }
 
-export function MitigationStatusTable({
+export const MitigationStatusTable = memo(function MitigationStatusTable({
   monitoringId,
 }: MitigationStatusTableProps) {
   const { token } = useAuth();
@@ -169,7 +182,7 @@ export function MitigationStatusTable({
 
   if (error) {
     return (
-      <div className="flex items-start gap-2 rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-amber-800">
+      <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-sm text-amber-800">
         <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
         <div className="space-y-1">
           <p className="font-medium">Laporan mitigasi tidak tersedia</p>
@@ -188,31 +201,30 @@ export function MitigationStatusTable({
 
   if (tasks.length === 0) {
     return (
-      <div className="rounded-xl bg-state-surface p-3 text-state-foreground">
-        <p className="text-sm font-medium leading-6 text-state-foreground">
-          Belum ada tugas mitigasi pada periode ini
-        </p>
-        <p className="mt-1 text-sm leading-6 text-state-foreground/80">
-          Finalisasi dapat dilakukan tanpa laporan mitigasi.
-        </p>
-      </div>
+      <IllustratedEmptyState
+        title="Belum ada tugas mitigasi pada periode ini"
+        description="Finalisasi dapat dilakukan tanpa laporan mitigasi."
+        size="compact"
+      />
     );
   }
 
-  const doneCount = tasks.filter((t) => t.status === "done").length;
-  const pendingCount = tasks.filter((task) => task.status !== "done").length;
+  const doneCount = tasks.filter(hasCompletedReport).length;
+  const pendingCount = tasks.length - doneCount;
   const reportableCount = tasks.filter(
-    (task) => task.status === "pending" || task.status === "overdue",
+    (task) =>
+      task.status === "pending" ||
+      task.status === "overdue" ||
+      (task.status === "done" && !hasCompletedReport(task)),
   ).length;
   const progressPct = Math.round((doneCount / tasks.length) * 100);
 
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-muted-foreground">Status pelaporan</p>
-        <Badge
-          size="micro"
-          tone={pendingCount === 0 ? "success" : "warning"}
+        <p className="text-[13px] text-muted-foreground">Status pelaporan</p>
+        <Badge variant={pendingCount === 0 ? "default" : "outline"}
+          className={pendingCount === 0 ? "border-transparent bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300" : "border-transparent bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"}
         >
           {doneCount}/{tasks.length} dilaporkan
         </Badge>
@@ -224,19 +236,19 @@ export function MitigationStatusTable({
       />
       <dl className="space-y-0.5">
         <div className="flex items-center justify-between gap-3 py-1.5">
-          <dt className="text-sm text-muted-foreground">Total mitigasi</dt>
+          <dt className="text-[13px] text-muted-foreground">Total mitigasi</dt>
           <dd className="font-mono text-sm font-semibold tabular-nums text-foreground">
             {tasks.length}
           </dd>
         </div>
         <div className="flex items-center justify-between gap-3 py-1.5">
-          <dt className="text-sm text-muted-foreground">Sudah dilaporkan</dt>
+          <dt className="text-[13px] text-muted-foreground">Sudah dilaporkan</dt>
           <dd className="font-mono text-sm font-semibold tabular-nums text-foreground">
             {doneCount}
           </dd>
         </div>
         <div className="flex items-center justify-between gap-3 py-1.5">
-          <dt className="text-sm text-muted-foreground">Belum dilaporkan</dt>
+          <dt className="text-[13px] text-muted-foreground">Belum dilaporkan</dt>
           <dd className="font-mono text-sm font-semibold tabular-nums text-foreground">
             {pendingCount}
           </dd>
@@ -270,7 +282,9 @@ export function MitigationStatusTable({
             >
               {tasks.map((task) => {
                 const canReport =
-                  task.status === "pending" || task.status === "overdue";
+                  task.status === "pending" ||
+                  task.status === "overdue" ||
+                  (task.status === "done" && !hasCompletedReport(task));
 
                 return (
                   <div
@@ -286,11 +300,10 @@ export function MitigationStatusTable({
                         <span className="truncate text-xs text-muted-foreground">
                           {task.periodLabel}
                         </span>
-                        <Badge
-                          size="micro"
-                          tone={getTaskStatusTone(task.status)}
+                        <Badge variant={toBadgeVariant(getTaskStatusTone(task))}
+                          className={getStatusBadgeClassName(getTaskStatusTone(task))}
                         >
-                          {getTaskStatusLabel(task.status)}
+                          {getTaskStatusLabel(task)}
                         </Badge>
                       </div>
                     </div>
@@ -360,4 +373,4 @@ export function MitigationStatusTable({
       />
     </div>
   );
-}
+});

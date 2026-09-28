@@ -7,6 +7,7 @@ import { useForm, useFieldArray, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
+import { ApiError } from "@/lib/api";
 import { listUsers, type UserListItem } from "@/lib/api/users";
 import {
   createWorkingPaper,
@@ -24,12 +25,13 @@ import type {
   WorkingPaperRosterPreview,
 } from "@/types/working-paper";
 import type { UserPickerOption } from "@/lib/risk-register-user-picker";
+import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 
 import { FormPage, FormSection } from "@/components/shared/form-shell";
 import {
   AccentButton,
   CollectionEmptyState,
-  FormBackAction,
+  FieldErrorMessage,
   CollectionLoadingState,
   CollectionPageHeader,
   CollectionSearchField,
@@ -57,7 +59,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, Save } from "@/components/ui/icons";
+import { Loader2, Save } from "@/components/shared/icons";
 
 const formSchema = z.object({
   assessment_cycle: z.string().optional(),
@@ -325,24 +327,19 @@ export default function CreateWorkingPaperPage() {
       toast.success("Kertas kerja berhasil dibuat");
       router.push(`/risk/working-papers/${result.id}`);
     } catch (error) {
-      console.error(error);
+      const isClientError =
+        error instanceof ApiError && error.status >= 400 && error.status < 500;
+      if (!isClientError) {
+        console.error("Failed to create working paper", error);
+      }
       toast.error(getWorkingPaperCreateErrorMessage(error));
     }
   };
-
-  const backAction = (
-    <FormBackAction
-      href="/risk/working-papers"
-      label="Kembali ke daftar kertas kerja"
-    />
-  );
 
   if (!organizationId) {
     return (
       <FormPage className="space-y-6 pb-0">
       <CollectionPageHeader
-        backAction={backAction}
-        backActionPlacement="top"
         title="Buat Kertas Kerja Baru"
         />
         <CollectionEmptyState
@@ -360,12 +357,10 @@ export default function CreateWorkingPaperPage() {
   return (
     <FormPage className="space-y-6 pb-0">
       <CollectionPageHeader
-        backAction={backAction}
-        backActionPlacement="top"
         actionsPlacement="top"
         title="Buat Kertas Kerja Baru"
         eyebrow={
-          <Badge tone="info" size="micro" className="font-mono tracking-tight">
+          <Badge variant="outline" className="">
             Siklus asesmen {assessmentCycle}
           </Badge>
         }
@@ -425,7 +420,7 @@ export default function CreateWorkingPaperPage() {
                 className="sticky top-0 z-10"
               >
                 <CollectionTableHeaderRow>
-                  <CollectionTableHead className="w-[18%] min-w-0 px-2 align-middle">
+                  <CollectionTableHead className="w-[18%] min-w-0 align-middle">
                     <div className="flex items-center gap-2">
                       <Checkbox
                         checked={
@@ -440,13 +435,13 @@ export default function CreateWorkingPaperPage() {
                       <span>Kode</span>
                     </div>
                   </CollectionTableHead>
-                  <CollectionTableHead className="w-[14%] min-w-0 whitespace-normal px-2 text-center leading-tight">
+                  <CollectionTableHead className="w-[14%] min-w-0 whitespace-normal text-center">
                     Periode
                   </CollectionTableHead>
-                  <CollectionTableHead className="w-[44%] min-w-0 px-2">
+                  <CollectionTableHead className="w-[44%] min-w-0 px-24">
                     Judul risiko
                   </CollectionTableHead>
-                  <CollectionTableHead className="w-[24%] min-w-0 whitespace-normal px-2 text-center leading-tight">
+                  <CollectionTableHead className="w-[24%] min-w-0 whitespace-normal text-center">
                     Status monitoring
                   </CollectionTableHead>
                 </CollectionTableHeaderRow>
@@ -459,9 +454,9 @@ export default function CreateWorkingPaperPage() {
                   return (
                     <TableRow
                       key={entry.versionGroupId}
-                      className="h-14 border-b border-border/60 hover:bg-muted/30"
+                      className="h-14 hover:bg-muted/30"
                     >
-                      <TableCell className="w-[18%] min-w-0 px-2 py-3 align-middle">
+                      <TableCell className="w-[18%] min-w-0 align-middle">
                         <div className="flex min-w-0 items-center gap-2">
                           <Checkbox
                             checked={isIncluded}
@@ -481,7 +476,7 @@ export default function CreateWorkingPaperPage() {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="w-[14%] min-w-0 px-2 py-3 text-center font-mono text-xs text-muted-foreground">
+                      <TableCell className="w-[14%] min-w-0 text-center">
                         <span
                           className="block truncate"
                           title={entry.monitoringCycle}
@@ -489,7 +484,7 @@ export default function CreateWorkingPaperPage() {
                           {entry.monitoringCycle}
                         </span>
                       </TableCell>
-                      <TableCell className="w-[44%] min-w-0 px-2 py-3">
+                      <TableCell className="w-[44%] min-w-0 px-24">
                         <span
                           className="block max-w-full truncate text-sm font-medium text-foreground"
                           title={entry.title}
@@ -497,14 +492,12 @@ export default function CreateWorkingPaperPage() {
                           {entry.title}
                         </span>
                       </TableCell>
-                      <TableCell className="w-[24%] min-w-0 px-2 py-3 text-center">
-                        <Badge
-                          tone={
+                      <TableCell className="w-[24%] min-w-0 text-center">
+                        <Badge variant={toBadgeVariant(
                             ROSTER_STATUS_TO_TONE[entry.rosterStatus] ??
                             "neutral"
-                          }
-                          size="micro"
-                          className="max-w-full truncate"
+                          )}
+                          className={`max-w-full truncate ${getStatusBadgeClassName(ROSTER_STATUS_TO_TONE[entry.rosterStatus] ?? "neutral")}`}
                         >
                           {ROSTER_STATUS_LABELS[entry.rosterStatus]}
                         </Badge>
@@ -521,18 +514,19 @@ export default function CreateWorkingPaperPage() {
         <FormSection
           title="Konfigurasi Penandatangan"
           action={
-            <Badge tone="neutral" size="compact">
+            <Badge variant="secondary">
               {signatoryFields.length} penandatangan
             </Badge>
           }
         >
 
-          {errors.signatories &&
-            typeof errors.signatories.message === "string" && (
-              <p className="rounded-lg border border-destructive/20 bg-destructive/[0.04] px-3 py-2 text-xs text-destructive">
-                {errors.signatories.message}
-              </p>
-            )}
+          <FieldErrorMessage
+            className="rounded-lg border border-destructive/20 bg-destructive/[0.04] px-3 py-2"
+          >
+            {typeof errors.signatories?.message === "string"
+              ? errors.signatories.message
+              : undefined}
+          </FieldErrorMessage>
 
           <OrderedUserSelectionTable
             rows={signatoryRows}
@@ -574,8 +568,8 @@ export default function CreateWorkingPaperPage() {
                 . Pemantauan selanjutnya dilakukan dari menu Risiko.
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <dl className="grid grid-cols-2 gap-2 rounded-xl bg-muted/50 p-3">
-              <div className="rounded-lg bg-card px-3 py-2">
+            <dl className="grid grid-cols-2 gap-4">
+              <div>
                 <dt className="text-xs text-muted-foreground">
                   Risiko eligible
                 </dt>
@@ -583,13 +577,13 @@ export default function CreateWorkingPaperPage() {
                   {summary.eligibleCount}
                 </dd>
               </div>
-              <div className="rounded-lg bg-card px-3 py-2">
+              <div>
                 <dt className="text-xs text-muted-foreground">Termasuk</dt>
                 <dd className="mt-1 font-mono text-base font-semibold tabular-nums text-foreground">
                   {summary.includedCount}
                 </dd>
               </div>
-              <div className="rounded-lg bg-card px-3 py-2">
+              <div>
                 <dt className="text-xs text-muted-foreground">
                   Dikecualikan
                 </dt>
@@ -597,7 +591,7 @@ export default function CreateWorkingPaperPage() {
                   {summary.excludedCount}
                 </dd>
               </div>
-              <div className="rounded-lg bg-card px-3 py-2">
+              <div>
                 <dt className="text-xs text-muted-foreground">Sudah final</dt>
                 <dd className="mt-1 font-mono text-base font-semibold tabular-nums text-foreground">
                   {summary.finalizedCount}
@@ -605,12 +599,12 @@ export default function CreateWorkingPaperPage() {
               </div>
             </dl>
             <AlertDialogFooter>
-              <AlertDialogCancel variant="outline" size="md">
+              <AlertDialogCancel variant="outline" size="default">
                 Batal
               </AlertDialogCancel>
               <AlertDialogAction
-                variant="primary"
-                size="primary"
+                variant="default"
+                size="default"
                 onClick={handleSubmit(onSubmit)}
               >
                 Buat Kertas Kerja

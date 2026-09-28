@@ -1,6 +1,6 @@
 "use client";
 
-import { GitBranch, ShieldAlert, Trash2 } from "@/components/ui/icons";
+import { GitBranch, ShieldAlert, Trash2 } from "@/components/shared/icons";
 
 import { ActionButton } from "@/components/shared/design-system";
 import {

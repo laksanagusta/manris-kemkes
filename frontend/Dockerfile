@@ -15,7 +15,7 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 
 # Build-time argument for API URL
-ARG NEXT_PUBLIC_API_URL=https://api-manris.marvcore.com/api/v1
+ARG NEXT_PUBLIC_API_URL=https://api-manris.dikalaksana.com/api/v1
 ARG NEXT_PUBLIC_DISABLE_AI_FEATURES=true
 
 # Set environment variable from ARG

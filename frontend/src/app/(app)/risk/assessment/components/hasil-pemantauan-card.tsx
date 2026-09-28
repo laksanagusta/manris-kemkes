@@ -115,7 +115,7 @@ export function HasilPemantauanCard({
                             type="button"
                             onClick={() => field.onChange(val)}
                             className={cn(
-                              "h-14 rounded-xl border-2 text-lg font-bold transition-all",
+                              "h-14 rounded-lg border-2 text-lg font-bold transition-all",
                               val === field.value
                                 ? "border-amber-600 bg-amber-50 text-amber-900"
                                 : "border-border bg-card text-muted-foreground hover:border-border hover:bg-muted",
@@ -129,7 +129,7 @@ export function HasilPemantauanCard({
                             {val}
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent side="top" className="text-xs">
+                        <TooltipContent side="top" className="">
                           {PROBABILITY_LABELS[val]}
                         </TooltipContent>
                       </Tooltip>
@@ -158,7 +158,7 @@ export function HasilPemantauanCard({
                             type="button"
                             onClick={() => field.onChange(val)}
                             className={cn(
-                              "h-14 rounded-xl border-2 text-lg font-bold transition-all",
+                              "h-14 rounded-lg border-2 text-lg font-bold transition-all",
                               val === field.value
                                 ? "border-amber-600 bg-amber-50 text-amber-900"
                                 : "border-border bg-card text-muted-foreground hover:border-border hover:bg-muted",
@@ -170,7 +170,7 @@ export function HasilPemantauanCard({
                             {val}
                           </button>
                         </TooltipTrigger>
-                        <TooltipContent side="top" className="text-xs">
+                        <TooltipContent side="top" className="">
                           {IMPACT_LABELS[val]}
                         </TooltipContent>
                       </Tooltip>
@@ -196,7 +196,7 @@ export function HasilPemantauanCard({
               <Textarea
                 {...field}
                 placeholder="Tuliskan alasan mengapa skor probabilitas/dampak diubah..."
-                className="min-h-[100px]"
+                className=""
               />
             )}
           />
@@ -211,7 +211,7 @@ export function HasilPemantauanCard({
               <Textarea
                 {...field}
                 placeholder="Tuliskan ringkasan dari hasil review dan rekomendasi tindakan..."
-                className="min-h-[100px]"
+                className=""
               />
             )}
           />

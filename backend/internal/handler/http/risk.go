@@ -53,6 +53,7 @@ type RiskHandler struct {
 	startMonitoringUC     *riskuc.StartMonitoringUseCase
 	getMonitoringUC       *riskuc.GetMonitoringUseCase
 	updateMonitoringUC    *riskuc.UpdateMonitoringUseCase
+	deleteMonitoringUC    *riskuc.DeleteMonitoringUseCase
 	finalizeMonitoringUC  *riskuc.FinalizeMonitoringUseCase
 	mmRepo                repository.MeetingMinuteRepository
 }
@@ -94,6 +95,7 @@ func NewRiskHandler(
 	startMonitoringUC *riskuc.StartMonitoringUseCase,
 	getMonitoringUC *riskuc.GetMonitoringUseCase,
 	updateMonitoringUC *riskuc.UpdateMonitoringUseCase,
+	deleteMonitoringUC *riskuc.DeleteMonitoringUseCase,
 	finalizeMonitoringUC *riskuc.FinalizeMonitoringUseCase,
 	mmRepo repository.MeetingMinuteRepository,
 ) *RiskHandler {
@@ -130,6 +132,7 @@ func NewRiskHandler(
 		startMonitoringUC:     startMonitoringUC,
 		getMonitoringUC:       getMonitoringUC,
 		updateMonitoringUC:    updateMonitoringUC,
+		deleteMonitoringUC:    deleteMonitoringUC,
 		finalizeMonitoringUC:  finalizeMonitoringUC,
 		mmRepo:                mmRepo,
 	}
@@ -821,6 +824,35 @@ func (h *RiskHandler) UpdateMonitoring(c *fiber.Ctx) error {
 		MitigationCompletionPercent: req.MitigationCompletionPercent,
 		Values:                      req.Values,
 	})
+	if err != nil {
+		return handleError(c, err)
+	}
+
+	return c.JSON(fiber.Map{"data": result})
+}
+
+// DeleteMonitoring handles DELETE /api/risk-monitorings/:id.
+// Only draft monitoring transactions may be deleted; finalized records are immutable.
+func (h *RiskHandler) DeleteMonitoring(c *fiber.Ctx) error {
+	if h.deleteMonitoringUC == nil {
+		return sendProblemDetails(c, fiber.StatusNotImplemented, "Belum Diimplementasikan", "https://api.manris.com/errors/not-implemented", "use case penghapusan pemantauan belum dikonfigurasi")
+	}
+
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID pemantauan tidak valid")
+	}
+
+	scope := middleware.GetAccessScope(c)
+	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	if err != nil {
+		if errors.Is(err, domainerrors.ErrForbidden) {
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
+		}
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
+	}
+
+	result, err := h.deleteMonitoringUC.Execute(c.Context(), id, orgIDs)
 	if err != nil {
 		return handleError(c, err)
 	}

@@ -1,9 +1,6 @@
 import type { ReactNode } from "react";
 
-import {
-  CollectionPageHeader,
-  FormBackAction,
-} from "@/components/shared/design-system";
+import { CollectionPageHeader } from "@/components/shared/design-system";
 import {
   Card,
   CardContent,
@@ -25,9 +22,6 @@ type FormHeaderProps = {
   badges?: ReactNode;
   actions?: ReactNode;
   actionsPlacement?: "header" | "title" | "top";
-  backActionPlacement?: "local" | "top";
-  onBack?: () => void;
-  backLabel?: string;
 };
 
 type FormSectionProps = {
@@ -43,7 +37,7 @@ export function FormPage({ children, className }: FormPageProps) {
   return (
     <div
       className={cn(
-        "mx-auto w-full max-w-7xl min-w-0 animate-fade-in space-y-6 pb-20 [&>header+*]:!mt-0",
+        "w-full min-w-0 animate-fade-in space-y-6 pb-20 [&>header+*]:!mt-0",
         className,
       )}
     >
@@ -59,21 +53,9 @@ export function FormHeader({
   badges,
   actions,
   actionsPlacement = "top",
-  backActionPlacement = "top",
-  onBack,
-  backLabel = "Kembali",
 }: FormHeaderProps) {
   return (
     <CollectionPageHeader
-      backAction={
-        onBack ? (
-          <FormBackAction
-            label={backLabel}
-            onClick={onBack}
-          />
-        ) : undefined
-      }
-      backActionPlacement={backActionPlacement}
       eyebrow={
         badges ? (
           <div className="flex flex-wrap items-center gap-2">{badges}</div>
@@ -100,18 +82,18 @@ export function FormSection({
   return (
     <Card
       className={cn(
-        "rounded-xl bg-card transition-colors duration-200",
+        "transition-colors duration-200",
         className,
       )}
     >
       <CardHeader>
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div className="space-y-1">
-            <CardTitle className="text-base font-semibold text-foreground">
+            <CardTitle className="">
               {title}
             </CardTitle>
             {description ? (
-              <CardDescription className="max-w-2xl text-sm leading-6">
+              <CardDescription className="max-w-2xl">
                 {description}
               </CardDescription>
             ) : null}

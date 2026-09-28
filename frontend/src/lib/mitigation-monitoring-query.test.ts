@@ -6,6 +6,7 @@ const mitigationMonitoringQueryLib = await import(
 );
 
 const {
+  buildMitigationMonitoringApiQueryString,
   buildMitigationMonitoringQueryString,
   parseMitigationMonitoringQueryState,
 } = mitigationMonitoringQueryLib as typeof import("./mitigation-monitoring-query");
@@ -36,4 +37,14 @@ test("buildMitigationMonitoringQueryString keeps page and limit when changed", (
   });
 
   assert.equal(query, "page=3&limit=25");
+});
+
+test("buildMitigationMonitoringApiQueryString always sends page and limit", () => {
+  const query = buildMitigationMonitoringApiQueryString({
+    search: "",
+    page: 1,
+    limit: 10,
+  });
+
+  assert.equal(query, "page=1&limit=10");
 });

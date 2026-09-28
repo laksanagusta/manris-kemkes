@@ -36,7 +36,7 @@ export function OverviewCategoryCard({
     .stops.join(", ");
 
   return (
-    <StandardCard title={title} className="h-full" contentClassName="p-4 pt-6">
+    <StandardCard title={title} className="h-full">
       <div className="grid gap-4 lg:grid-cols-[auto_1fr] lg:items-center">
         <div className="flex justify-center">
           <div
@@ -59,7 +59,7 @@ export function OverviewCategoryCard({
           {segments.map((segment) => (
             <div
               key={segment.label}
-              className="flex items-center justify-between rounded-xl border border-border/60 bg-muted/20 px-3 py-2"
+              className="flex items-center justify-between rounded-lg border border-border/60 bg-muted/20 px-3 py-2"
             >
               <div className="flex items-center gap-2">
                 <span

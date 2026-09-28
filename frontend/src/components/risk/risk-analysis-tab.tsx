@@ -4,14 +4,20 @@ import { useMemo } from "react";
 import {
   Line,
   LineChart,
-  ResponsiveContainer,
-  Tooltip as RechartsTooltip,
   XAxis,
   YAxis,
 } from "recharts";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Spinner } from "@/components/ui/spinner";
+import { IllustratedEmptyState } from "@/components/shared/design-system/feedback/illustrated-empty-state";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from "@/components/ui/chart";
 import {
   Table,
   TableBody,
@@ -20,7 +26,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Loader2 } from "@/components/ui/icons";
 
 import { cn } from "@/lib/utils";
 import {
@@ -44,12 +49,19 @@ type AnalysisRow = {
   targetLevel: string;
   changeReason: string;
   isCurrent: boolean;
+  supersededByRiskId: string | null;
+  supersededByVersionNumber?: number;
 };
 
 type RiskAnalysisTabProps = {
   versions: RiskVersionTimelineItem[];
   loading?: boolean;
 };
+
+const chartConfig = {
+  inherentScore: { label: "Nilai risiko", color: "oklch(0.68 0.17 35)" },
+  targetScore: { label: "Target penanganan", color: "oklch(0.53 0.12 240)" },
+} satisfies ChartConfig;
 
 function formatShortDate(value: string) {
   const date = new Date(value);
@@ -86,43 +98,60 @@ export function RiskAnalysisTab({
   loading = false,
 }: RiskAnalysisTabProps) {
   const rows = useMemo<AnalysisRow[]>(() => {
-    return [...versions]
-      .sort(
-        (left, right) =>
-          new Date(left.createdAt).getTime() -
-          new Date(right.createdAt).getTime(),
-      )
-      .map((version, index, all) => {
-        const inherentScore = getVersionInherentScore(version);
-        const targetScore = getVersionTargetScore(version);
-        const previousScore =
-          index > 0 ? getVersionInherentScore(all[index - 1]) : null;
+    const chronological = [...versions].sort(
+      (left, right) =>
+        new Date(left.createdAt).getTime() -
+        new Date(right.createdAt).getTime(),
+    );
+    const activeVersions = chronological.filter(
+      (version) => !version.supersededByRiskId,
+    );
+    const activeIndexById = new Map<string, number>(
+      activeVersions.map((version, index) => [version.id, index] as const),
+    );
+    const versionNumberById = new Map(
+      chronological.map((version) => [version.id, version.versionNumber] as const),
+    );
 
-        return {
-          id: version.id,
-          label: formatVersionLabel(version),
-          versionNumber: version.versionNumber,
-          period: version.assessmentCycle || formatShortDate(version.createdAt),
-          createdAt: version.createdAt,
-          inherentScore,
-          targetScore,
-          delta: previousScore === null ? null : inherentScore - previousScore,
-          level: getRiskLevelLabel(getRiskLevelFromNilai(inherentScore)),
-          targetLevel:
-            targetScore > 0
-              ? getRiskLevelLabel(getRiskLevelFromNilai(targetScore))
-              : "-",
-          changeReason:
-            version.changeReason?.trim() ||
-            version.reviewSummary?.trim() ||
-            "Tidak ada catatan perubahan.",
-          isCurrent: version.isCurrent,
-        };
-      });
+    return chronological.map((version) => {
+      const activeIndex = activeIndexById.get(version.id);
+      const inherentScore = getVersionInherentScore(version);
+      const targetScore = getVersionTargetScore(version);
+      const previousScore =
+        activeIndex !== undefined && activeIndex > 0
+          ? getVersionInherentScore(activeVersions[activeIndex - 1])
+          : null;
+
+      return {
+        id: version.id,
+        label: formatVersionLabel(version),
+        versionNumber: version.versionNumber,
+        period: version.assessmentCycle || formatShortDate(version.createdAt),
+        createdAt: version.createdAt,
+        inherentScore,
+        targetScore,
+        delta: previousScore === null ? null : inherentScore - previousScore,
+        level: getRiskLevelLabel(getRiskLevelFromNilai(inherentScore)),
+        targetLevel:
+          targetScore > 0
+            ? getRiskLevelLabel(getRiskLevelFromNilai(targetScore))
+            : "-",
+        changeReason:
+          version.changeReason?.trim() ||
+          version.reviewSummary?.trim() ||
+          "Tidak ada catatan perubahan.",
+        isCurrent: version.isCurrent,
+        supersededByRiskId: version.supersededByRiskId ?? null,
+        supersededByVersionNumber: version.supersededByRiskId
+          ? versionNumberById.get(version.supersededByRiskId)
+          : undefined,
+      };
+    });
   }, [versions]);
 
-  const latest = rows.at(-1);
-  const previous = rows.length > 1 ? rows.at(-2) : undefined;
+  const activeRows = rows.filter((row) => !row.supersededByRiskId);
+  const latest = activeRows.at(-1);
+  const previous = activeRows.length > 1 ? activeRows.at(-2) : undefined;
   const deltaFromPrevious =
     latest && previous ? latest.inherentScore - previous.inherentScore : null;
   const targetGap =
@@ -137,19 +166,13 @@ export function RiskAnalysisTab({
         : deltaFromPrevious < 0
           ? "Membaik"
           : "Memburuk";
-  const trendTone =
-    deltaFromPrevious === null
-      ? "bg-muted/40 text-muted-foreground"
-      : deltaFromPrevious <= 0
-        ? "bg-success/10 text-success"
-        : "bg-destructive/10 text-destructive";
 
   if (loading) {
     return (
-      <Card className="bg-card/80">
-        <CardContent className="flex items-center justify-center rounded-b-xl bg-state-surface py-14 text-state-foreground">
-          <Loader2 className="size-5 animate-spin text-state-foreground" />
-          <span className="ml-2 text-sm text-state-foreground">
+      <Card>
+        <CardContent className="flex items-center justify-center gap-2">
+          <Spinner />
+          <span>
             Memuat analisis risiko...
           </span>
         </CardContent>
@@ -159,15 +182,12 @@ export function RiskAnalysisTab({
 
   if (rows.length === 0) {
     return (
-      <Card className="border-0 bg-state-surface text-state-foreground">
-        <CardContent className="flex flex-col items-center justify-center gap-2 py-14 text-center">
-          <p className="text-sm font-medium text-state-foreground">
-            Belum ada versi risiko untuk dianalisis.
-          </p>
-          <p className="max-w-md text-xs leading-relaxed text-state-foreground/80">
-            Setelah risiko disimpan sebagai versi, tab ini menampilkan
-            perubahan nilai, level, target, dan catatan revisi.
-          </p>
+      <Card>
+        <CardContent>
+          <IllustratedEmptyState
+            title="Belum ada versi risiko untuk dianalisis."
+            description="Setelah risiko disimpan sebagai versi, tab ini menampilkan perubahan nilai, level, target, dan catatan revisi."
+          />
         </CardContent>
       </Card>
     );
@@ -176,7 +196,8 @@ export function RiskAnalysisTab({
   return (
     <div className="space-y-5">
       <div className="grid gap-3 md:grid-cols-4">
-        <div className="surface-hairline rounded-xl bg-card/80 px-4 py-3">
+        <Card>
+          <CardContent>
           <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
             Nilai risiko terkini
           </p>
@@ -186,8 +207,10 @@ export function RiskAnalysisTab({
           <p className="mt-1 text-xs text-muted-foreground">
             {latest ? latest.level : "Belum ada data"}
           </p>
-        </div>
-        <div className="surface-hairline rounded-xl bg-card/80 px-4 py-3">
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
           <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
             Nilai sebelumnya
           </p>
@@ -197,24 +220,23 @@ export function RiskAnalysisTab({
           <p className="mt-1 text-xs text-muted-foreground">
             {previous ? previous.level : "Belum ada pembanding"}
           </p>
-        </div>
-        <div className="surface-hairline rounded-xl bg-card/80 px-4 py-3">
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
           <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
             Perubahan
           </p>
           <p className="mt-1 text-2xl font-semibold tracking-tight text-foreground">
             {formatDelta(deltaFromPrevious)}
           </p>
-          <span
-            className={cn(
-              "mt-1 inline-flex rounded-full px-2.5 py-1 text-xs font-medium",
-              trendTone,
-            )}
-          >
+          <Badge variant={deltaFromPrevious !== null && deltaFromPrevious > 0 ? "destructive" : "secondary"}>
             {trendLabel}
-          </span>
-        </div>
-        <div className="surface-hairline rounded-xl bg-card/80 px-4 py-3">
+          </Badge>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent>
           <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
             Selisih dari target
           </p>
@@ -226,15 +248,16 @@ export function RiskAnalysisTab({
               ? latest.targetLevel
               : "Target belum ditetapkan"}
           </p>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="space-y-5">
-        <Card className="bg-card/80">
+        <Card className="">
           <CardHeader className="space-y-1.5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <CardTitle className="text-sm font-medium normal-case">
+                <CardTitle className="">
                   Tren nilai risiko
                 </CardTitle>
                 <p className="mt-1 text-xs text-secondary-foreground">
@@ -242,16 +265,16 @@ export function RiskAnalysisTab({
                   dengan target penanganan.
                 </p>
               </div>
-              <Badge variant="outline" className="h-5 px-2 text-[10px]">
-                {rows.length} versi
+              <Badge variant="outline" className="">
+                {activeRows.length} versi aktif
               </Badge>
             </div>
           </CardHeader>
           <CardContent>
             <div className="h-72">
-              <ResponsiveContainer width="100%" height="100%">
+              <ChartContainer config={chartConfig} className="h-full w-full">
                 <LineChart
-                  data={rows}
+                  data={activeRows}
                   margin={{ top: 6, right: 18, left: -18, bottom: 0 }}
                 >
                   <XAxis
@@ -266,27 +289,24 @@ export function RiskAnalysisTab({
                     axisLine={false}
                     tickLine={false}
                   />
-                  <RechartsTooltip
-                    contentStyle={{
-                      background: "oklch(0.98 0.003 170 / 96%)",
-                      border: "1px solid oklch(0.91 0.008 170)",
-                      borderRadius: "10px",
-                      fontSize: "11px",
-                    }}
-                    formatter={(value, name) => [
-                      formatRiskScore(
-                        typeof value === "number" ? value : null,
-                        "0",
-                      ),
-                      name === "inherentScore"
-                        ? "Nilai risiko"
-                        : "Target penanganan",
-                    ]}
+                  <ChartTooltip
+                    content={
+                      <ChartTooltipContent
+                        formatter={(value, name) => (
+                          <span className="flex w-full items-center justify-between gap-4">
+                            <span>{chartConfig[name as keyof typeof chartConfig]?.label ?? name}</span>
+                            <span className="font-mono font-medium tabular-nums">
+                              {formatRiskScore(typeof value === "number" ? value : null, "0")}
+                            </span>
+                          </span>
+                        )}
+                      />
+                    }
                   />
                   <Line
                     type="monotone"
                     dataKey="inherentScore"
-                    stroke="oklch(0.68 0.17 35)"
+                    stroke="var(--color-inherentScore)"
                     strokeWidth={2.25}
                     dot={false}
                     activeDot={false}
@@ -294,14 +314,14 @@ export function RiskAnalysisTab({
                   <Line
                     type="monotone"
                     dataKey="targetScore"
-                    stroke="oklch(0.53 0.12 240)"
+                    stroke="var(--color-targetScore)"
                     strokeWidth={2}
                     strokeDasharray="4 4"
                     dot={false}
                     activeDot={false}
                   />
                 </LineChart>
-              </ResponsiveContainer>
+              </ChartContainer>
             </div>
             <div className="mt-4 flex flex-wrap gap-3 text-[11px] text-muted-foreground">
               <span className="inline-flex items-center gap-1.5">
@@ -316,51 +336,51 @@ export function RiskAnalysisTab({
           </CardContent>
         </Card>
 
-        <Card className="bg-card/80">
+        <Card className="">
           <div className="space-y-1.5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="mt-1 text-xs text-muted-foreground">
+                <p className="mt-1 text-xs text-secondary-foreground">
                   Lihat setiap versi risiko, kapan dibuat, nilai target, dan
                   alasan perubahannya.
                 </p>
               </div>
-              <Badge variant="outline" className="h-5 px-2 text-[10px]">
+              <Badge variant="outline" className="">
                 {rows.length} versi
               </Badge>
             </div>
           </div>
-          <CardContent className="pt-0">
-            <div className="surface-hairline overflow-hidden rounded-lg bg-card">
+          <CardContent className="">
+            <div className="overflow-hidden">
               <div className="relative w-full overflow-x-auto">
-                <Table className="w-full caption-bottom text-sm">
-                  <TableHeader className="sticky top-0 z-10 bg-table-header [&_tr]:border-b">
-                    <TableRow className="border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted">
-                      <TableHead className="h-10 px-2 text-left align-middle font-semibold whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                <Table className="w-full caption-bottom">
+                  <TableHeader className="sticky top-0 z-10">
+                    <TableRow className="transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted">
+                      <TableHead className="h-10 text-left align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
                         Versi
                       </TableHead>
-                      <TableHead className="h-10 px-2 text-left align-middle font-semibold whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                      <TableHead className="h-10 text-left align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
                         Periode
                       </TableHead>
-                      <TableHead className="h-10 px-2 text-left align-middle font-semibold whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                      <TableHead className="h-10 text-left align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
                         Tanggal
                       </TableHead>
-                      <TableHead className="h-10 px-2 text-left align-middle font-semibold whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                      <TableHead className="h-10 text-left align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
                         Status
                       </TableHead>
-                      <TableHead className="h-10 px-2 text-right align-middle font-semibold whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                      <TableHead className="h-10 text-right align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
                         Nilai
                       </TableHead>
-                      <TableHead className="h-10 px-2 text-right align-middle font-semibold whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                      <TableHead className="h-10 text-right align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
                         Target
                       </TableHead>
-                      <TableHead className="h-10 px-2 text-right align-middle font-semibold whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                      <TableHead className="h-10 text-right align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
                         Perubahan
                       </TableHead>
-                      <TableHead className="h-10 px-2 text-left align-middle font-semibold whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                      <TableHead className="h-10 text-left align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
                         Level
                       </TableHead>
-                      <TableHead className="h-10 px-2 text-left align-middle font-semibold whitespace-nowrap text-foreground [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
+                      <TableHead className="h-10 text-left align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
                         Catatan
                       </TableHead>
                     </TableRow>
@@ -374,41 +394,37 @@ export function RiskAnalysisTab({
                           row.isCurrent && "bg-muted/25",
                         )}
                       >
-                        <TableCell className="p-2 align-middle whitespace-nowrap">
+                        <TableCell className="align-middle whitespace-nowrap">
                           <span className="text-sm font-medium text-foreground">
                             {row.versionNumber ? `v${row.versionNumber}` : "-"}
                           </span>
                         </TableCell>
-                        <TableCell className="p-2 align-middle whitespace-nowrap">
+                        <TableCell className="align-middle whitespace-nowrap">
                           <div className="flex min-w-0 items-center gap-2">
                             <span className="truncate text-sm font-medium text-foreground">
                               {row.label}
                             </span>
                           </div>
                         </TableCell>
-                        <TableCell className="p-2 align-middle whitespace-nowrap text-sm text-muted-foreground">
+                        <TableCell className="align-middle whitespace-nowrap">
                           {formatShortDate(row.createdAt)}
                         </TableCell>
-                        <TableCell className="p-2 align-middle whitespace-nowrap">
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "h-5 px-2 text-[10px]",
-                              row.isCurrent
-                                ? "border-primary/30 bg-primary/10 text-primary"
-                                : "text-muted-foreground",
-                            )}
-                          >
-                            {row.isCurrent ? "Terkini" : "Riwayat"}
+                        <TableCell className="align-middle whitespace-nowrap">
+                          <Badge variant={row.supersededByRiskId ? "secondary" : "outline"}>
+                            {row.supersededByRiskId
+                              ? `Digantikan${row.supersededByVersionNumber ? ` oleh v${row.supersededByVersionNumber}` : ""}`
+                              : row.isCurrent
+                                ? "Terkini"
+                                : "Riwayat"}
                           </Badge>
                         </TableCell>
-                        <TableCell className="p-2 align-middle whitespace-nowrap text-right text-sm font-medium text-foreground">
+                        <TableCell className="align-middle whitespace-nowrap text-right">
                           {formatRiskScore(row.inherentScore)}
                         </TableCell>
-                        <TableCell className="p-2 align-middle whitespace-nowrap text-right text-sm text-muted-foreground">
+                        <TableCell className="align-middle whitespace-nowrap text-right">
                           {formatRiskScore(row.targetScore > 0 ? row.targetScore : null)}
                         </TableCell>
-                        <TableCell className="p-2 align-middle whitespace-nowrap text-right text-sm">
+                        <TableCell className="align-middle whitespace-nowrap text-right">
                           <span
                             className={cn(
                               row.delta === null
@@ -421,15 +437,15 @@ export function RiskAnalysisTab({
                             {formatDelta(row.delta)}
                           </span>
                         </TableCell>
-                        <TableCell className="p-2 align-middle whitespace-nowrap">
+                        <TableCell className="align-middle whitespace-nowrap">
                           <Badge
                             variant="outline"
-                            className="h-5 px-2 text-[10px]"
+                            className=""
                           >
                             {row.level}
                           </Badge>
                         </TableCell>
-                        <TableCell className="p-2 align-middle whitespace-nowrap">
+                        <TableCell className="align-middle whitespace-nowrap">
                           <span
                             className="block max-w-[28rem] truncate text-xs leading-relaxed text-muted-foreground"
                             title={row.changeReason}

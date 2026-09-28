@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, Plus } from "@/components/ui/icons";
+import { ChevronDown, Plus } from "@/components/shared/icons";
 import { motion, useReducedMotion } from "motion/react";
-import { Badge } from "@/components/shared/design-system";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { IllustratedEmptyState } from "@/components/shared/design-system";
+import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 import type { Finding, ProcessingJob } from "@/types/document-processing";
 
 function severityMeta(severity: Finding["severity"]) {
@@ -19,10 +21,14 @@ function severityMeta(severity: Finding["severity"]) {
 export function FindingsReviewPanel({
   job,
   onUseRiskDraft,
+  onUseMitigationReport,
+  reportedFindingIds,
   onStartNew,
 }: {
   job: ProcessingJob;
-  onUseRiskDraft: (finding: Finding) => void;
+  onUseRiskDraft?: (finding: Finding) => void;
+  onUseMitigationReport?: (finding: Finding) => void;
+  reportedFindingIds?: ReadonlySet<string>;
   onStartNew: () => void;
 }) {
   const reduceMotion = useReducedMotion();
@@ -40,18 +46,18 @@ export function FindingsReviewPanel({
           <h2 id="findings-title" className="text-sm font-semibold text-foreground">
             Temuan untuk ditinjau
           </h2>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <p className="mt-1 text-xs text-secondary-foreground">
             Buka rincian sumber dan tindakan sebelum membuat draf risiko.
           </p>
         </div>
-        <Button type="button" variant="outline" size="sm" className="gap-2 border-0 border-shadow" onClick={onStartNew}>
+        <Button type="button" variant="outline" size="sm" className="" onClick={onStartNew}>
           <Plus className="size-3.5" />
           Mulai proses baru
         </Button>
       </div>
 
       {job.status === "failed" && job.error ? (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive" role="alert">
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive" role="alert">
           Analisis dari server gagal: {job.error}
         </div>
       ) : null}
@@ -59,10 +65,12 @@ export function FindingsReviewPanel({
       <div className="space-y-3">
         {job.findings.map((finding) => {
           const meta = severityMeta(finding.severity);
+          const isMitigationReport = finding.kind === "mitigation-report";
+          const isReported = reportedFindingIds?.has(finding.id) ?? false;
           return (
             <article
               key={finding.id}
-              className="group rounded-xl border border-border/80 bg-card p-4 transition-[border-color,box-shadow] duration-150 hover:border-foreground/20 hover:shadow-sm"
+              className="group overflow-hidden rounded-lg border border-border/80 bg-card p-4 transition-[border-color,box-shadow] duration-150 hover:border-foreground/20 hover:shadow-sm"
             >
               <div className="w-full text-left">
                 <div className="flex items-start gap-3">
@@ -70,7 +78,7 @@ export function FindingsReviewPanel({
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h4 className="text-sm font-medium text-foreground">{finding.title}</h4>
-                      <Badge tone={meta.tone} size="micro">
+                      <Badge variant={toBadgeVariant(meta.tone)} className={getStatusBadgeClassName(meta.tone)}>
                         {meta.label}
                       </Badge>
                     </div>
@@ -82,10 +90,30 @@ export function FindingsReviewPanel({
                 <span className="tabular-nums">Keyakinan {Math.round(finding.confidence * 100)}%</span>
               </div>
               <FindingSourceDisclosure finding={finding} />
-              <footer className="-mx-4 -mb-4 mt-4 flex flex-wrap justify-end gap-2 border-t border-border/70 px-4 py-3">
-                <Button type="button" variant="outline" size="xs" className="gap-1.5" onClick={() => onUseRiskDraft(finding)}>
-                  Buat draf risiko
-                </Button>
+              <footer className="-mx-4 -mb-4 mt-4 flex flex-wrap justify-end gap-2 border-t border-border/70 bg-table-header px-4 py-3">
+                {isMitigationReport && onUseMitigationReport ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="xs"
+                    className=""
+                    disabled={isReported}
+                    onClick={() => onUseMitigationReport(finding)}
+                  >
+                    {isReported ? "Sudah dilaporkan" : "Gunakan untuk laporan"}
+                  </Button>
+                ) : onUseRiskDraft ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="xs"
+                    className=""
+                    disabled={isReported}
+                    onClick={() => onUseRiskDraft(finding)}
+                  >
+                    {isReported ? "Draf dibuat" : "Buat draf risiko"}
+                  </Button>
+                ) : null}
               </footer>
             </article>
           );
@@ -93,9 +121,11 @@ export function FindingsReviewPanel({
       </div>
 
       {job.findings.length === 0 ? (
-        <div className="mt-4 rounded-xl border border-dashed border-border/80 p-6 text-center text-sm text-muted-foreground">
-          Tidak ada temuan yang dihasilkan dari proses ini.
-        </div>
+        <IllustratedEmptyState
+          title="Tidak ada temuan"
+          description="Proses ini belum menghasilkan temuan yang dapat ditinjau."
+          className="mt-4"
+        />
       ) : null}
     </motion.section>
   );

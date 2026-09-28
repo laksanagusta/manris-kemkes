@@ -18,13 +18,13 @@ import { WorkingPaperMonitoringTable } from "./working-paper-monitoring-table";
 import { WorkingPaperStatusActions } from "./working-paper-status-actions";
 import { WorkingPaperSignatureTimeline } from "./working-paper-signature-timeline";
 import { Card, CardContent } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { ChartContainer } from "@/components/ui/chart";
+import { PolarAngleAxis, RadialBar, RadialBarChart } from "recharts";
 import {
   AccentButton,
   CollectionPageHeader,
   CollectionTableCard,
-  FormBackAction,
-  StandardCard,
 } from "@/components/shared/design-system";
 import {
   AlertDialog,
@@ -47,15 +47,8 @@ import {
 } from "@/components/shared/design-system";
 
 import { cn } from "@/lib/utils";
-import {
-  AlertCircle,
-  CalendarDays,
-  CheckCircle2,
-  CircleDot,
-  Clock3,
-  FileText,
-  Pen,
-} from "@/components/ui/icons";
+import { Pen } from "@/components/shared/icons";
+import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 
 
 const dateFormatter = new Intl.DateTimeFormat("id-ID", {
@@ -78,6 +71,13 @@ const statusLabel: Record<WorkingPaperStatus, string> = {
   completed: "Selesai",
   cancelled: "Dibatalkan",
 };
+
+const statusTone = {
+  draft: "neutral",
+  signing: "progress",
+  completed: "success",
+  cancelled: "danger",
+} as const;
 
 function formatDate(value?: string) {
   if (!value) return "-";
@@ -249,8 +249,6 @@ export default function WorkingPaperDetailPage(props: {
       <FormPage className="space-y-6 pb-0">
         <FormHeader
           title="Memuat detail kertas kerja"
-          onBack={() => router.push("/risk/working-papers")}
-          backLabel="Kertas Kerja"
         />
         <CollectionLoadingState message="Memuat detail kertas kerja..." />
       </FormPage>
@@ -262,8 +260,6 @@ export default function WorkingPaperDetailPage(props: {
       <FormPage className="space-y-6 pb-0">
         <FormHeader
           title="Detail kertas kerja belum tersedia"
-          onBack={() => router.push("/risk/working-papers")}
-          backLabel="Kertas Kerja"
         />
         <CollectionErrorState
           title="Gagal memuat kertas kerja"
@@ -279,8 +275,6 @@ export default function WorkingPaperDetailPage(props: {
       <FormPage className="space-y-6 pb-0">
         <FormHeader
           title="Kertas kerja tidak ditemukan"
-          onBack={() => router.push("/risk/working-papers")}
-          backLabel="Kertas Kerja"
         />
         <CollectionEmptyState
           title="Dokumen tidak ditemukan"
@@ -297,6 +291,10 @@ export default function WorkingPaperDetailPage(props: {
   const finalizedMonitoringCount =
     data.risks?.filter((link) => link.risk.monitoring?.status === "final")
       .length || 0;
+  const finalizedMonitoringPercentage =
+    totalRiskCount > 0
+      ? Math.round((finalizedMonitoringCount / totalRiskCount) * 100)
+      : 0;
   const isAllMonitoringFinal =
     totalRiskCount > 0 && finalizedMonitoringCount === totalRiskCount;
 
@@ -304,22 +302,18 @@ export default function WorkingPaperDetailPage(props: {
     {
       label: "Kode",
       value: data.code || "-",
-      icon: FileText,
     },
     {
       label: "Status",
       value: statusLabel[status],
-      icon: CircleDot,
     },
     {
       label: "Periode pemantauan",
       value: data.assessment_cycle || "Belum ditetapkan",
-      icon: CalendarDays,
     },
     {
       label: "Dibuat pada",
       value: formatDate(data.created_at),
-      icon: CalendarDays,
     },
     {
       label:
@@ -334,16 +328,8 @@ export default function WorkingPaperDetailPage(props: {
           : status === "cancelled"
             ? formatDateTime(data.cancelled_at)
             : formatDateTime(data.updated_at),
-      icon: Clock3,
     },
   ];
-
-  const backAction = (
-    <FormBackAction
-      href="/risk/working-papers"
-      label="Kertas Kerja"
-    />
-  );
 
   const headerActions = (
     <>
@@ -378,16 +364,14 @@ export default function WorkingPaperDetailPage(props: {
   return (
     <FormPage className="space-y-6 pb-0">
       <CollectionPageHeader
-        backAction={backAction}
-        backActionPlacement="top"
         actionsPlacement="top"
-        title="Detail Kertas Kerja"
+        title={data.code || "Detail Kertas Kerja"}
         actions={headerActions}
       />
 
       {viewModel.monitoringBlockers.length > 0 ? (
-        <Card className="rounded-xl bg-amber-50/80">
-          <CardContent className="space-y-1 p-4 text-sm text-amber-900">
+        <Card className="">
+          <CardContent className="space-y-1">
             <p className="font-semibold">Finalisasi monitoring terlebih dahulu</p>
             <p>
               Berikut risiko yang masih memiliki monitoring draft atau belum
@@ -412,68 +396,143 @@ export default function WorkingPaperDetailPage(props: {
         </div>
 
         <div className="min-w-0 space-y-4 lg:sticky lg:top-6 lg:self-start">
-          <StandardCard
-            title="Ringkasan dokumen"
-            contentClassName="px-4 pb-4 pt-2"
-          >
-            <div className="flex flex-col gap-4">
-              {summaryItems.map(({ icon: Icon, label, value }) => (
-                <div key={label} className="flex min-w-0 flex-col gap-2">
-                  <p className="text-sm text-muted-foreground">{label}</p>
-                  <div className="flex min-w-0 items-center gap-2 text-sm font-medium text-foreground">
-                    <Icon
-                      className="size-5 shrink-0 text-muted-foreground"
-                      strokeWidth={1.6}
-                      aria-hidden="true"
-                    />
-                    <span
-                      className={cn(
-                        "min-w-0 break-words",
-                        label === "Kode" && "font-mono",
-                      )}
-                    >
-                      {value}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </StandardCard>
-          <StandardCard title="Progres Pemantauan">
-            {totalRiskCount > 0 && (
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-2">
-                    {isAllMonitoringFinal ? (
-                      <CheckCircle2 className="size-4 text-success" />
+          <Card className="overflow-hidden transition-colors duration-300">
+            <CardContent className="">
+              <div className="space-y-4">
+                <section aria-labelledby="working-paper-summary-properties">
+                  <h2
+                    id="working-paper-summary-properties"
+                    className="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground/70"
+                  >
+                    Ringkasan
+                  </h2>
+                  <dl className="mt-3 space-y-3">
+                    {summaryItems.map(({ label, value }) => (
+                      <div
+                        key={label}
+                        className="flex items-center justify-between gap-4"
+                      >
+                        <dt className="text-[13px] text-muted-foreground">{label}</dt>
+                        <dd
+                          className={cn(
+                            "max-w-[65%] break-words text-right text-foreground",
+                            label === "Kode" && "font-mono",
+                          )}
+                        >
+                          {label === "Status" ? (
+                            <Badge variant={toBadgeVariant(statusTone[status])} className={getStatusBadgeClassName(statusTone[status])}>
+                              {value}
+                            </Badge>
+                          ) : (
+                            value
+                          )}
+                        </dd>
+                      </div>
+                    ))}
+                  </dl>
+                </section>
+
+                <section
+                  aria-labelledby="working-paper-monitoring-progress"
+                  className="border-t border-dashed border-border/70 pt-5"
+                >
+                  <h2
+                    id="working-paper-monitoring-progress"
+                    className="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground/70"
+                  >
+                    Progres Pemantauan
+                  </h2>
+                  <div className="mt-3">
+                    {totalRiskCount > 0 ? (
+                      <div className="flex items-center gap-4">
+                        <div
+                          className="relative size-[88px] shrink-0"
+                          role="img"
+                          aria-label={`${finalizedMonitoringPercentage}% selesai dipantau, ${finalizedMonitoringCount} dari ${totalRiskCount} risiko`}
+                        >
+                          <ChartContainer
+                            config={{
+                              completion: {
+                                label: "Selesai dipantau",
+                                color: isAllMonitoringFinal
+                                  ? "var(--color-success)"
+                                  : "var(--primary)",
+                              },
+                            }}
+                            initialDimension={{ width: 88, height: 88 }}
+                            className="size-[88px] aspect-square"
+                            aria-hidden="true"
+                          >
+                            <RadialBarChart
+                              data={[
+                                {
+                                  name: "Selesai dipantau",
+                                  value: finalizedMonitoringPercentage,
+                                },
+                              ]}
+                              startAngle={90}
+                              endAngle={-270}
+                              innerRadius="78%"
+                              outerRadius="96%"
+                              margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+                            >
+                              <PolarAngleAxis
+                                type="number"
+                                domain={[0, 100]}
+                                tick={false}
+                                axisLine={false}
+                              />
+                              <RadialBar
+                                dataKey="value"
+                                fill="var(--color-completion)"
+                                background={{ fill: "var(--muted)" }}
+                                cornerRadius={8}
+                              />
+                            </RadialBarChart>
+                          </ChartContainer>
+                          <span
+                            aria-hidden="true"
+                            className="pointer-events-none absolute inset-0 flex items-center justify-center text-base font-semibold tabular-nums text-foreground"
+                          >
+                            {finalizedMonitoringPercentage}%
+                          </span>
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm leading-5 text-secondary-foreground">
+                            {finalizedMonitoringCount} dari {totalRiskCount} Risiko
+                            Selesai Dipantau
+                          </p>
+                        </div>
+                      </div>
                     ) : (
-                      <AlertCircle className="size-4 text-amber-500" />
+                      <CollectionEmptyState
+                        title="Belum ada risiko di dalam kertas kerja."
+                        description="Risiko yang ditambahkan ke kertas kerja akan muncul di sini."
+                        className="py-3"
+                      />
                     )}
-                    <span className="text-sm font-medium text-foreground">
-                      {finalizedMonitoringCount} dari {totalRiskCount} risiko
-                      selesai dipantau
-                    </span>
                   </div>
-                  <span className="text-xs font-medium text-muted-foreground">
-                    {Math.round(
-                      (finalizedMonitoringCount / totalRiskCount) * 100,
-                    )}
-                    %
-                  </span>
-                </div>
-                <Progress
-                  value={(finalizedMonitoringCount / totalRiskCount) * 100}
-                  className={cn(
-                    "h-1.5",
-                    isAllMonitoringFinal && "[&>[data-slot=progress-indicator]]:bg-success",
-                  )}
-                />
+                </section>
+
+                <section
+                  aria-labelledby="working-paper-signature-history"
+                  className="border-t border-dashed border-border/70 pt-5"
+                >
+                  <h2
+                    id="working-paper-signature-history"
+                    className="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground/70"
+                  >
+                    Histori Tanda Tangan
+                  </h2>
+                  <div className="mt-3">
+                    <WorkingPaperSignatureTimeline
+                      timeline={viewModel.timeline}
+                    />
+                  </div>
+                </section>
               </div>
-            )}
-          </StandardCard>
-          <StandardCard title="Histori Tanda Tangan">
-            <WorkingPaperSignatureTimeline timeline={viewModel.timeline} />
-          </StandardCard>
+            </CardContent>
+          </Card>
         </div>
       </div>
 
@@ -497,7 +556,7 @@ export default function WorkingPaperDetailPage(props: {
             <CollectionDialogCancel onClick={() => setStartSigningDialogOpen(false)}>
               Batal
             </CollectionDialogCancel>
-            <AlertDialogAction variant="primary" size="primary" onClick={handleStartSigning}>
+            <AlertDialogAction variant="default" size="default" onClick={handleStartSigning}>
               Mulai proses TTE
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -519,7 +578,7 @@ export default function WorkingPaperDetailPage(props: {
             <CollectionDialogCancel onClick={() => setSignDialogOpen(false)}>
               Batal
             </CollectionDialogCancel>
-            <AlertDialogAction variant="primary" size="primary" onClick={handleSign}>
+            <AlertDialogAction variant="default" size="default" onClick={handleSign}>
               Tanda Tangani
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -542,8 +601,8 @@ export default function WorkingPaperDetailPage(props: {
               Batal
             </CollectionDialogCancel>
             <AlertDialogAction
-              variant="primary"
-              size="primary"
+              variant="default"
+              size="default"
               onClick={handleCancel}
             >
               Batalkan Dokumen
@@ -568,7 +627,7 @@ export default function WorkingPaperDetailPage(props: {
             <CollectionDialogCancel onClick={() => setSkipDialogOpen(false)}>
               Batal
             </CollectionDialogCancel>
-            <AlertDialogAction variant="primary" size="primary" onClick={handleSkipTTE}>
+            <AlertDialogAction variant="default" size="default" onClick={handleSkipTTE}>
               Lewati tanda tangan elektronik
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -590,7 +649,7 @@ export default function WorkingPaperDetailPage(props: {
             <CollectionDialogCancel onClick={() => setDeleteDialogOpen(false)}>
               Batal
             </CollectionDialogCancel>
-            <AlertDialogAction variant="destructive" size="md" onClick={handleDelete}>
+            <AlertDialogAction variant="destructive" size="default" onClick={handleDelete}>
               Ya, hapus
             </AlertDialogAction>
           </AlertDialogFooter>

@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown } from "@/components/ui/icons";
+import { ChevronDown } from "@/components/shared/icons";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { IllustratedEmptyState } from "../feedback/illustrated-empty-state";
 
 export type PopoverSelectOption = {
   value: string;
@@ -27,6 +28,7 @@ export type PopoverSelectFieldProps = {
   invalid?: boolean;
   triggerClassName?: string;
   contentClassName?: string;
+  optionClassName?: string;
   emptyMessage?: string;
 };
 
@@ -41,6 +43,7 @@ export function PopoverSelectField({
   invalid = false,
   triggerClassName,
   contentClassName,
+  optionClassName,
   emptyMessage = "Tidak ada opsi.",
 }: PopoverSelectFieldProps) {
   const selected = options.find((option) => option.value === value);
@@ -57,8 +60,7 @@ export function PopoverSelectField({
           aria-invalid={invalid || undefined}
           disabled={disabled}
           className={cn(
-            "group/popover-select h-10 w-full justify-between gap-2 rounded-lg border-input bg-card px-3 text-sm font-normal shadow-none transition-[background-color,border-color] active:translate-y-0 active:scale-100 aria-expanded:bg-card aria-expanded:text-foreground hover:border-foreground/15 disabled:hover:border-input focus:border-input focus-visible:border-input focus:ring-0 focus-visible:ring-0",
-            !selected && "text-muted-foreground",
+            "group/popover-select w-full justify-between active:translate-y-0 active:scale-100",
             triggerClassName,
           )}
         >
@@ -77,13 +79,19 @@ export function PopoverSelectField({
         )}
       >
         {options.length === 0 ? (
-          <div className="h-8 px-2 text-sm leading-8 text-muted-foreground">
-            {emptyMessage}
-          </div>
+          <IllustratedEmptyState
+            title={emptyMessage}
+            size="compact"
+            className="py-2"
+          />
         ) : (
           <DropdownMenuRadioGroup value={value} onValueChange={onValueChange}>
             {options.map((option) => (
-              <DropdownMenuRadioItem key={option.value} value={option.value}>
+              <DropdownMenuRadioItem
+                key={option.value}
+                value={option.value}
+                className={optionClassName}
+              >
                 {option.label}
               </DropdownMenuRadioItem>
             ))}

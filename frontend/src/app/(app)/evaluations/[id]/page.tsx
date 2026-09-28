@@ -12,7 +12,7 @@ import {
   RefreshCw,
   Save,
   Send,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 import { toast } from "sonner";
 
 import { useAuth } from "@/contexts/auth-context";
@@ -27,7 +27,8 @@ import { listAllOrganizations, type OrganizationListItem } from "@/lib/api/organ
 import { listUsers, type UserListItem } from "@/lib/api/users";
 import { evaluationStatusLabel, isEvaluationEditable } from "@/lib/evaluations";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import type { BadgeVariant } from "@/components/ui/badge";
+import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -54,7 +55,7 @@ import {
   ActionButton,
   AccentButton,
   CollectionPageHeader,
-  FormBackAction,
+  IllustratedEmptyState,
 } from "@/components/shared/design-system";
 import { OrderedUserSelectionTable } from "@/components/risk/ordered-user-selection-table";
 import { RemoteUserPicker } from "@/components/risk/remote-user-picker";
@@ -244,11 +245,11 @@ function formatStatus(status: EvaluationStatus) {
 }
 
 const evaluationCardClass =
-  "scroll-mt-28 overflow-hidden rounded-xl bg-card gap-0 p-0 transition-colors duration-200";
+  "scroll-mt-28 transition-colors duration-200";
 
-const statusTones: Record<EvaluationStatus, "neutral" | "success"> = {
-  draft: "neutral",
-  final: "success",
+const statusTones: Record<EvaluationStatus, BadgeVariant> = {
+  draft: "secondary",
+  final: "default",
 };
 
 function getAnswerLabel(value: EvaluationItem["answer"]) {
@@ -258,12 +259,12 @@ function getAnswerLabel(value: EvaluationItem["answer"]) {
 }
 
 function getAnswerTone(value: EvaluationItem["answer"]):
-  | "neutral"
-  | "success"
-  | "danger" {
-  if (value === "yes") return "success";
-  if (value === "no") return "danger";
-  return "neutral";
+  | "secondary"
+  | "default"
+  | "destructive" {
+  if (value === "yes") return "default";
+  if (value === "no") return "destructive";
+  return "secondary";
 }
 
 function updateSectionField(
@@ -602,7 +603,7 @@ export default function EvaluationDetailPage() {
 
   if (loading) {
     return (
-      <div className="font-display flex min-h-[50vh] items-center justify-center rounded-xl bg-state-surface text-sm text-state-foreground">
+      <div className="font-display flex min-h-[50vh] items-center justify-center rounded-lg bg-state-surface text-sm text-state-foreground">
         <Loader2 className="mr-2 size-4 animate-spin" />
         Memuat evaluasi...
       </div>
@@ -611,13 +612,12 @@ export default function EvaluationDetailPage() {
 
   if (!evaluation) {
     return (
-      <div className="font-display rounded-xl bg-state-surface px-6 py-10 text-center text-state-foreground">
+      <div className="font-display rounded-lg bg-state-surface px-6 py-10 text-center text-state-foreground">
         <div className="space-y-3">
           <p className="text-sm font-medium">Evaluasi tidak ditemukan</p>
           <p className="text-sm text-state-foreground">
             Periksa kembali tautan atau buka daftar evaluasi untuk memilih data yang benar.
           </p>
-          <FormBackAction href="/evaluations" label="Kembali ke daftar" />
         </div>
       </div>
     );
@@ -629,18 +629,14 @@ export default function EvaluationDetailPage() {
   return (
     <FormPage className="evaluation-form space-y-6 [&>header+*]:!mt-6">
       <CollectionPageHeader
-        backActionPlacement="local"
-        backAction={<FormBackAction href="/evaluations" label="Kembali" />}
         showTitle
         actionsPlacement="title"
         eyebrow={
           <div className="flex flex-wrap items-center gap-2">
-            <Badge tone={statusTones[evaluation.status]} size="compact">
+            <Badge variant={statusTones[evaluation.status]}>
               {formatStatus(evaluation.status)}
             </Badge>
-            <Badge
-              tone="neutral"
-              size="compact"
+            <Badge variant="secondary"
               className="max-w-[240px] truncate"
             >
               {orgName}
@@ -735,15 +731,15 @@ export default function EvaluationDetailPage() {
           <AlertDialogFooter>
             <AlertDialogCancel
               variant="outline"
-              size="md"
-              className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
+              size="default"
+              className="border-0 shadow-black"
               disabled={savingAction === "finalize"}
             >
               Batal
             </AlertDialogCancel>
             <AlertDialogAction
-              variant="primary"
-              size="primary"
+              variant="default"
+              size="default"
               onClick={() => {
                 setShowFinalizeConfirm(false);
                 void handleFinalize();
@@ -759,30 +755,24 @@ export default function EvaluationDetailPage() {
       <div className="grid w-full min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
         <div className="space-y-6">
           <Card id="identitas-evaluasi" className={evaluationCardClass}>
-            <CardHeader className="px-5 py-4">
-              <div className="flex items-center justify-between gap-3">
-                <div className="space-y-1">
-                  <CardTitle className="text-base font-medium tracking-tight text-foreground">
-                    Identitas Evaluasi
-                  </CardTitle>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    Lengkapi metadata laporan, unit kerja, dan susunan tim evaluasi.
-                  </p>
-                </div>
+            <CardHeader>
+              <CardTitle>Identitas Evaluasi</CardTitle>
+              <CardDescription>Lengkapi metadata laporan, unit kerja, dan susunan tim evaluasi.</CardDescription>
+              <CardAction>
                 {!editable ? (
-                  <Badge tone="warning" size="micro" className="gap-1.5">
+                  <Badge variant="outline">
                     <Lock className="size-3.5" />
                     Terkunci
                   </Badge>
                 ) : (
-                  <Badge tone="neutral" size="micro" className="gap-1.5">
+                  <Badge variant="secondary">
                     <PencilLine className="size-3.5" />
                     Draft
                   </Badge>
                 )}
-              </div>
+              </CardAction>
             </CardHeader>
-            <CardContent className="grid gap-5 px-5 pb-6 pt-2 [&_[data-slot=label]]:font-normal">
+            <CardContent className="grid gap-5 [&_[data-slot=label]]:font-normal">
               <div className="space-y-2">
                 <Label>No. Laporan</Label>
                 <Input
@@ -963,21 +953,16 @@ export default function EvaluationDetailPage() {
           </Card>
 
           <Card id="hasil-evaluasi" className={evaluationCardClass}>
-            <CardHeader className="px-5 py-4">
-              <div className="space-y-1">
-                <CardTitle className="text-base font-medium tracking-tight text-foreground">
-                  Hasil Pemantauan dan Evaluasi
-                </CardTitle>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  Isi jawaban, uraian kondisi, dan keterangan untuk setiap poin evaluasi.
-                </p>
-              </div>
+            <CardHeader>
+              <CardTitle>Hasil Pemantauan dan Evaluasi</CardTitle>
+              <CardDescription>Isi jawaban, uraian kondisi, dan keterangan untuk setiap poin evaluasi.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6 px-5 pb-6 pt-2">
+            <CardContent className="space-y-6">
               {evaluationSections.length === 0 ? (
-                <div className="rounded-xl bg-state-surface px-4 py-8 text-sm text-state-foreground">
-                  Belum ada section evaluasi yang tersedia.
-                </div>
+                <IllustratedEmptyState
+                  title="Belum ada bagian evaluasi"
+                  description="Bagian evaluasi belum tersedia untuk penilaian ini."
+                />
               ) : null}
 
               {evaluationSections.map((section, sectionIndex) => {
@@ -1000,14 +985,12 @@ export default function EvaluationDetailPage() {
                           {section.title}
                         </h3>
                         {section.description ? (
-                          <p className="text-sm leading-relaxed text-muted-foreground">
+                          <p className="text-sm leading-relaxed text-secondary-foreground">
                             {section.description}
                           </p>
                         ) : null}
                       </div>
-                      <Badge
-                        tone="neutral"
-                        size="compact"
+                      <Badge variant="secondary"
                         className="whitespace-nowrap"
                       >
                         {sectionItems.length} poin
@@ -1026,9 +1009,7 @@ export default function EvaluationDetailPage() {
                                 <span className="font-mono text-xs tracking-[0.12em] text-muted-foreground">
                                   {item.itemNo}
                                 </span>
-                                <Badge
-                                  tone={getAnswerTone(item.answer)}
-                                  size="micro"
+                                <Badge variant={getAnswerTone(item.answer)}
                                 >
                                   {getAnswerLabel(item.answer)}
                                 </Badge>
@@ -1072,7 +1053,7 @@ export default function EvaluationDetailPage() {
                                 }}
                                 disabled={!editable}
                               >
-                                <SelectTrigger className="h-10">
+                                <SelectTrigger className="">
                                   <SelectValue placeholder="Ya/Tidak" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -1112,7 +1093,7 @@ export default function EvaluationDetailPage() {
                                   );
                                 }}
                                 disabled={!editable}
-                                className="min-h-28"
+                                className=""
                                 placeholder="Uraikan kondisi aktual yang ditemukan"
                               />
                             </div>
@@ -1143,7 +1124,7 @@ export default function EvaluationDetailPage() {
                                   );
                                 }}
                                 disabled={!editable}
-                                className="min-h-28"
+                                className=""
                                 placeholder="Tuliskan keterangan singkat yang relevan"
                               />
                             </div>
@@ -1176,7 +1157,7 @@ export default function EvaluationDetailPage() {
                           );
                         }}
                         disabled={!editable}
-                        className="min-h-28"
+                        className=""
                         placeholder="Simpulkan section ini secara singkat"
                       />
                     </div>
@@ -1188,17 +1169,11 @@ export default function EvaluationDetailPage() {
           </Card>
 
           <Card id="permasalahan-saran" className={evaluationCardClass}>
-            <CardHeader className="px-5 py-4">
-              <div className="space-y-1">
-                <CardTitle className="text-base font-medium tracking-tight text-foreground">
-                  Permasalahan dan saran
-                </CardTitle>
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  Ringkas hambatan utama dan langkah perbaikannya, tanpa mengulang isi tiap poin.
-                </p>
-              </div>
+            <CardHeader>
+              <CardTitle>Permasalahan dan saran</CardTitle>
+              <CardDescription>Ringkas hambatan utama dan langkah perbaikannya, tanpa mengulang isi tiap poin.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-5 px-5 pb-6 pt-2 [&_[data-slot=label]]:font-normal">
+            <CardContent className="space-y-5 [&_[data-slot=label]]:font-normal">
               <div className="space-y-2">
                 <Label className="text-sm font-normal text-foreground">
                   Permasalahan
@@ -1207,7 +1182,7 @@ export default function EvaluationDetailPage() {
                   value={evaluation.problems}
                   onChange={(event) => patchEvaluation({ problems: event.target.value })}
                   disabled={!editable}
-                  className="min-h-28"
+                  className=""
                   placeholder="Tuliskan hambatan utama yang perlu ditindaklanjuti"
                 />
               </div>
@@ -1221,7 +1196,7 @@ export default function EvaluationDetailPage() {
                     patchEvaluation({ recommendations: event.target.value })
                   }
                   disabled={!editable}
-                  className="min-h-28"
+                  className=""
                   placeholder="Tuliskan rekomendasi yang paling relevan dan praktis"
                 />
               </div>
@@ -1232,22 +1207,16 @@ export default function EvaluationDetailPage() {
         <aside className="min-w-0 self-start">
           <div className="space-y-6 xl:sticky xl:top-20">
             <Card className={evaluationCardClass}>
-              <CardHeader className="px-5 py-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="space-y-1">
-                  <CardTitle className="text-base font-medium tracking-tight text-foreground">
-                    Status kerja
-                  </CardTitle>
-                  <p className="text-sm leading-relaxed text-muted-foreground">
-                    Pantau kelengkapan isian sebelum evaluasi difinalisasi.
-                  </p>
-                </div>
-                <Badge tone={statusTones[evaluation.status]} size="micro">
-                  {formatStatus(evaluation.status)}
-                </Badge>
-              </div>
+              <CardHeader>
+                <CardTitle>Status kerja</CardTitle>
+                <CardDescription>Pantau kelengkapan isian sebelum evaluasi difinalisasi.</CardDescription>
+                <CardAction>
+                  <Badge variant={statusTones[evaluation.status]}>
+                    {formatStatus(evaluation.status)}
+                  </Badge>
+                </CardAction>
               </CardHeader>
-              <CardContent className="space-y-5 px-5 pb-5 pt-2">
+              <CardContent className="space-y-5">
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground">Kelengkapan poin</span>
@@ -1302,7 +1271,7 @@ export default function EvaluationDetailPage() {
                   </div>
                 </dl>
 
-                <div className="rounded-xl bg-muted/50 px-3 py-3 text-sm leading-relaxed text-muted-foreground">
+                <div className="rounded-lg bg-muted/50 px-3 py-3 text-sm leading-relaxed text-muted-foreground">
                   Sebelum finalisasi, pastikan kesimpulan section dan permasalahan
                   sudah sesuai dengan isi poin. Setelah final, data terkunci dan
                   PDF diambil dari evaluasi tersimpan.

@@ -1,12 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useReducedMotion } from "motion/react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import {
-  CollectionDialogCancel,
   CollectionEmptyState,
+  CollectionFilterInput,
   CollectionLoadingState,
   CollectionPagination,
   CollectionSearchField,
@@ -14,23 +14,18 @@ import {
   CollectionTableHead,
   CollectionTableHeader,
   CollectionTableHeaderRow,
+  ActionIconButton,
   KpiCard,
   MetricGrid,
+  PopoverSelectField,
 } from "@/components/shared/design-system";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { toast } from "sonner";
 import { parseEvidenceUrls } from "@/lib/validation/reporting";
 import {
@@ -43,32 +38,32 @@ import {
   Target,
   ExternalLink,
   UserRound,
-} from "@/components/ui/icons";
+  Upload,
+} from "@/components/shared/icons";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
 import {
   ActionButton,
   AccentButton,
-  MitigationProgressDialog,
+  MitigationProgressFlowDialog,
+  type MitigationProgressFlowView,
 } from "@/components/shared/design-system";
 import { validateMitigationReportForm } from "@/lib/validation/reporting";
 import { getMitigationSubmissionActionState } from "@/lib/mitigation-reporting";
+import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 import {
+  buildMitigationMonitoringApiQueryString,
   buildMitigationMonitoringQueryString,
   parseMitigationMonitoringQueryState,
+  type MitigationMonitoringStatusFilter,
 } from "@/lib/mitigation-monitoring-query";
 import type { MitigationTask } from "@/types/risk";
 
-const tierConfig: Record<string, { label: string; color: string }> = {
-  upcoming: { label: "Akan Datang", color: "text-muted-foreground" },
-  reminder: { label: "Reminder", color: "text-violet-700" },
-  light: { label: "Overdue Ringan", color: "text-amber-700" },
-  heavy: { label: "Overdue Berat", color: "text-rose-700" },
-};
+type MitigationTier = "upcoming" | "reminder" | "light" | "heavy";
 
 type MitigationTaskRow = MitigationTask & {
-  tier: keyof typeof tierConfig;
+  tier: MitigationTier;
   unit: string;
   daysOverdue: number;
   mitigationAction: string;
@@ -85,8 +80,48 @@ function getMitigationStatusTone(status: MitigationTaskRow["status"]) {
 function getMitigationStatusLabel(status: MitigationTaskRow["status"]) {
   if (status === "done") return "Selesai";
   if (status === "overdue") return "Overdue";
+  if (status === "skipped") return "Dilewati";
   if (status === "not_reported") return "Tidak dilaporkan";
   return "Pending";
+}
+
+function MitigationRowActions({
+  task,
+  submissionState,
+  onOpenSubmit,
+}: {
+  task: MitigationTaskRow;
+  submissionState: ReturnType<typeof getMitigationSubmissionActionState>;
+  onOpenSubmit: () => void;
+}) {
+  const canReport = task.status !== "done" && task.status !== "not_reported";
+
+  if (!canReport) return null;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <ActionIconButton
+          className="text-muted-foreground"
+          aria-label={`Aksi penanganan ${task.mitigationAction}`}
+        />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52">
+        <DropdownMenuItem
+          disabled={!submissionState.allowed}
+          title={submissionState.allowed ? undefined : submissionState.message}
+          onClick={onOpenSubmit}
+        >
+          <Send className="size-3.5" />
+          {submissionState.allowed
+            ? submissionState.isOverdue
+              ? "Lapor terlambat"
+              : "Lapor progress"
+            : "Lapor belum tersedia"}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }
 
 function useDebouncedValue<T>(value: T, delay: number) {
@@ -122,26 +157,32 @@ export function MitigationMonitoringPanel() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [detailTask, setDetailTask] = useState<MitigationTaskRow | null>(null);
-  const [showDetailDialog, setShowDetailDialog] = useState(false);
+  const [showMitigationDialog, setShowMitigationDialog] = useState(false);
+  const [dialogView, setDialogView] = useState<MitigationProgressFlowView>(
+    "detail",
+  );
   const [selectedTask, setSelectedTask] = useState<MitigationTaskRow | null>(
     null,
   );
-  const [showDialog, setShowDialog] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [evidenceUrl, setEvidenceUrl] = useState("");
   const [notes, setNotes] = useState("");
   const evidenceInputRef = useRef<HTMLInputElement | null>(null);
   const notesInputRef = useRef<HTMLTextAreaElement | null>(null);
-  const pendingReportTaskRef = useRef<MitigationTaskRow | null>(null);
-  const reducedMotion = useReducedMotion();
   const [showValidationErrors, setShowValidationErrors] = useState(false);
   const [search, setSearch] = useState(queryState.search);
+  const [period, setPeriod] = useState(queryState.period ?? "");
 
   useEffect(() => {
     setSearch(queryState.search);
   }, [queryState.search]);
 
+  useEffect(() => {
+    setPeriod(queryState.period ?? "");
+  }, [queryState.period]);
+
   const debouncedSearch = useDebouncedValue(search, 500);
+  const debouncedPeriod = useDebouncedValue(period, 400);
 
   const formErrors = useMemo(
     () =>
@@ -157,12 +198,16 @@ export function MitigationMonitoringPanel() {
     (
       nextState: Partial<{
         search: string;
+        status: MitigationMonitoringStatusFilter;
+        period: string;
         page: number;
         limit: number;
       }>,
     ) => {
       const mergedState = {
         search: nextState.search ?? queryState.search,
+        status: nextState.status ?? queryState.status ?? "all",
+        period: nextState.period ?? queryState.period ?? "",
         page: nextState.page ?? queryState.page,
         limit: nextState.limit ?? queryState.limit,
       };
@@ -170,25 +215,45 @@ export function MitigationMonitoringPanel() {
       const nextUrl = query ? `${pathname}?${query}` : pathname;
       router.replace(nextUrl, { scroll: false });
     },
-    [pathname, queryState.limit, queryState.page, queryState.search, router],
+    [
+      pathname,
+      queryState.limit,
+      queryState.page,
+      queryState.period,
+      queryState.search,
+      queryState.status,
+      router,
+    ],
   );
 
   useEffect(() => {
     const nextSearch = debouncedSearch.trim();
-    if (nextSearch === queryState.search) {
+    const nextPeriod = debouncedPeriod.trim();
+    if (
+      nextSearch === queryState.search &&
+      nextPeriod === (queryState.period ?? "")
+    ) {
       return;
     }
 
-    pushQueryState({ search: nextSearch, page: 1 });
-  }, [debouncedSearch, pushQueryState, queryState.search]);
+    pushQueryState({ search: nextSearch, period: nextPeriod, page: 1 });
+  }, [
+    debouncedPeriod,
+    debouncedSearch,
+    pushQueryState,
+    queryState.period,
+    queryState.search,
+  ]);
 
   const fetchMitigations = useCallback(async () => {
     if (!token) return;
 
     setLoading(true);
     try {
-      const query = buildMitigationMonitoringQueryString({
+      const query = buildMitigationMonitoringApiQueryString({
         search: queryState.search,
+        status: queryState.status,
+        period: queryState.period,
         page,
         limit,
       });
@@ -269,7 +334,7 @@ export function MitigationMonitoringPanel() {
     } finally {
       setLoading(false);
     }
-  }, [token, page, limit, queryState.search]);
+  }, [token, page, limit, queryState.search, queryState.status, queryState.period]);
 
   useEffect(() => {
     fetchMitigations();
@@ -280,38 +345,25 @@ export function MitigationMonitoringPanel() {
     setEvidenceUrl(task.evidenceUrl || "");
     setNotes(task.notes || "");
     setShowValidationErrors(false);
-    setShowDialog(true);
+    setDialogView("form");
+    setShowMitigationDialog(true);
   }, []);
-
-  const flushPendingReport = useCallback(() => {
-    const task = pendingReportTaskRef.current;
-    if (!task) return;
-
-    pendingReportTaskRef.current = null;
-    handleOpenSubmit(task);
-  }, [handleOpenSubmit]);
 
   const handleOpenSubmitFromDetail = useCallback(
     (task: MitigationTaskRow) => {
-      pendingReportTaskRef.current = task;
-      setShowDetailDialog(false);
-
-      if (reducedMotion) {
-        window.requestAnimationFrame(flushPendingReport);
-      }
+      setSelectedTask(task);
+      setEvidenceUrl(task.evidenceUrl || "");
+      setNotes(task.notes || "");
+      setShowValidationErrors(false);
+      setDialogView("form");
     },
-    [flushPendingReport, reducedMotion],
+    [],
   );
-
-  useEffect(() => {
-    return () => {
-      pendingReportTaskRef.current = null;
-    };
-  }, []);
 
   const handleOpenDetail = (task: MitigationTaskRow) => {
     setDetailTask(task);
-    setShowDetailDialog(true);
+    setDialogView("detail");
+    setShowMitigationDialog(true);
   };
 
   const handleSubmitProgress = async () => {
@@ -341,7 +393,7 @@ export function MitigationMonitoringPanel() {
         token,
       );
       toast.success("Progress berhasil dilaporkan!");
-      setShowDialog(false);
+      setShowMitigationDialog(false);
       await fetchMitigations();
     } catch (error) {
       console.error(error);
@@ -361,6 +413,9 @@ export function MitigationMonitoringPanel() {
     (m) => m.tier === "upcoming",
   ).length;
   const overdueCount = heavyCount + lightCount;
+  const hasActiveFilters =
+    Boolean(queryState.search || queryState.period) ||
+    (queryState.status ?? "all") !== "all";
 
   const formatDate = (value?: string | null) => {
     if (!value) return "-";
@@ -387,7 +442,7 @@ export function MitigationMonitoringPanel() {
       <MetricGrid>
         <KpiCard
           label="Total Penanganan"
-          value={mitigations.length}
+          value={total}
           tone="white"
         />
         <KpiCard
@@ -407,51 +462,117 @@ export function MitigationMonitoringPanel() {
         />
       </MetricGrid>
 
-      <div className="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center md:ml-auto">
-        <CollectionSearchField
-          containerClassName="w-full sm:w-80 sm:flex-none"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Cari mitigasi..."
-          aria-label="Cari mitigasi"
-        />
-      </div>
+      <div className="space-y-4">
+        <div className="flex w-full min-w-0 flex-wrap items-center gap-2 md:ml-auto">
+          <CollectionSearchField
+            containerClassName="w-full sm:w-80 sm:flex-none xl:w-[calc((100%_-_3rem)/4)]"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Cari mitigasi..."
+            aria-label="Cari mitigasi"
+          />
+          <div className="w-full sm:w-44">
+            <PopoverSelectField
+              value={queryState.status ?? "all"}
+              onValueChange={(value) =>
+                pushQueryState({
+                  status: value as MitigationMonitoringStatusFilter,
+                  page: 1,
+                })
+              }
+              options={[
+                { value: "all", label: "Semua Status" },
+                { value: "pending", label: "Pending" },
+                { value: "overdue", label: "Overdue" },
+                { value: "done", label: "Selesai" },
+                { value: "skipped", label: "Dilewati" },
+                { value: "not_reported", label: "Tidak dilaporkan" },
+              ]}
+              placeholder="Status"
+              ariaLabel="Filter status penanganan"
+              triggerClassName="h-8 rounded-lg bg-card text-sm"
+              optionClassName="whitespace-nowrap"
+            />
+          </div>
+          <CollectionFilterInput
+            className="w-full rounded-lg bg-card text-sm sm:w-36"
+            placeholder="Periode (YYYY-QN)"
+            aria-label="Filter periode penanganan"
+            value={period}
+            onChange={(event) => setPeriod(event.target.value)}
+          />
+          <ActionButton asChild variant="outline" className="sm:ml-auto">
+            <Link href="/compliance/penanganan/impor">
+              <Upload className="size-3.5" />
+              Import
+            </Link>
+          </ActionButton>
+        </div>
 
-      {loading ? (
-        <CollectionLoadingState message="Memuat data mitigasi..." />
-      ) : mitigations.length === 0 ? (
-        <CollectionEmptyState
-          title="Belum ada rencana mitigasi yang sesuai filter"
-          description="Ubah filter pencarian atau periode untuk melihat data lain."
-        />
-      ) : (
-        <CollectionTableCard>
-          <Table className="min-w-[980px] table-fixed">
+        {loading ? (
+          <CollectionLoadingState message="Memuat data mitigasi..." />
+        ) : mitigations.length === 0 ? (
+          <CollectionEmptyState
+            title={
+              hasActiveFilters
+                ? "Tidak ada penanganan sesuai filter"
+                : "Belum ada rencana penanganan"
+            }
+            description={
+              hasActiveFilters
+                ? "Ubah kata kunci, status, atau periode untuk melihat data lain."
+                : "Rencana penanganan akan muncul di sini setelah tersedia."
+            }
+            action={
+              hasActiveFilters ? (
+                <ActionButton
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setSearch("");
+                    setPeriod("");
+                    pushQueryState({
+                      search: "",
+                      status: "all",
+                      period: "",
+                      page: 1,
+                    });
+                  }}
+                >
+                  Reset filter
+                </ActionButton>
+              ) : undefined
+            }
+          />
+        ) : (
+          <CollectionTableCard>
+          <Table className="min-w-[1180px] table-fixed">
             <colgroup>
-              <col className="w-[44%]" />
-              <col className="w-[18%]" />
+              <col className="w-[35%]" />
+              <col className="w-[16%]" />
+              <col className="w-[12%]" />
               <col className="w-[14%]" />
-              <col className="w-[12%]" />
-              <col className="w-[12%]" />
+              <col className="w-[13%]" />
+              <col className="w-[10%]" />
             </colgroup>
             <CollectionTableHeader>
               <CollectionTableHeaderRow className="h-9 hover:bg-transparent">
-                <CollectionTableHead className="px-3">
+                <CollectionTableHead className="px-24">
                   Rencana Penanganan
                 </CollectionTableHead>
-                <CollectionTableHead className="px-3">PIC</CollectionTableHead>
-                <CollectionTableHead className="px-3">
+                <CollectionTableHead >PIC</CollectionTableHead>
+                <CollectionTableHead >Periode</CollectionTableHead>
+                <CollectionTableHead >
                   Deadline
                 </CollectionTableHead>
-                <CollectionTableHead className="px-3">Status</CollectionTableHead>
-                <CollectionTableHead className="pl-3 pr-4 text-right">
-                  Aksi
+                <CollectionTableHead >Status</CollectionTableHead>
+                <CollectionTableHead className="text-right">
+                  <span className="sr-only">Aksi</span>
                 </CollectionTableHead>
               </CollectionTableHeaderRow>
             </CollectionTableHeader>
             <TableBody>
               {mitigations.map((item) => {
-                const tier = tierConfig[item.tier];
                 const submissionState =
                   getMitigationSubmissionActionState(
                     item.periodEnd,
@@ -461,116 +582,51 @@ export function MitigationMonitoringPanel() {
                 return (
                   <TableRow
                     key={item.id}
-                    className="group border-0 hover:bg-transparent"
+                    className="group hover:bg-transparent hover:[&>td]:bg-muted/50 [&>td]:transition-[background-color]"
                   >
-                    <TableCell className="px-3 py-2 align-middle">
+                    <TableCell className="align-middle px-24">
                       <button
                         type="button"
                         onClick={() => handleOpenDetail(item)}
-                        className="block min-w-0 text-left text-sm font-semibold leading-5 text-foreground transition-colors hover:text-primary"
+                        className="block w-full min-w-0 text-left text-sm font-medium leading-5 text-foreground transition-colors hover:text-primary"
                       >
-                        <span className="line-clamp-2 font-semibold">
+                        <span className="block truncate font-medium">
                           {item.mitigationAction}
                         </span>
+                        <span className="mt-0.5 block font-mono text-sm leading-5 text-muted-foreground">
+                          {item.riskCode}
+                        </span>
                       </button>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <p
-                            tabIndex={0}
-                            className="mt-1 line-clamp-1 cursor-help rounded-sm text-xs text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
-                          >
-                            {item.riskCode} · {item.title}
-                          </p>
-                        </TooltipTrigger>
-                        <TooltipContent side="top" className="max-w-md text-xs">
-                          {item.riskCode} · {item.title}
-                        </TooltipContent>
-                      </Tooltip>
                     </TableCell>
-                    <TableCell className="px-3 py-2 align-middle">
+                    <TableCell className="align-middle">
                       <p className="truncate text-sm font-medium text-muted-foreground">
                         {item.unit}
                       </p>
                     </TableCell>
-                    <TableCell className="px-3 py-2 align-middle text-sm text-muted-foreground">
-                      <div className="space-y-1">
-                        <p>
-                          {formatDate(item.dueDate)}
-                        </p>
-                        {item.tier !== "upcoming" ? (
-                          <p className="text-xs text-muted-foreground/80">
-                            {tier.label}
-                          </p>
-                        ) : null}
-                      </div>
+                    <TableCell className="align-middle">
+                      <span className="font-mono text-sm text-muted-foreground">
+                        {item.periodLabel || "—"}
+                      </span>
                     </TableCell>
-                    <TableCell className="px-3 py-2 align-middle">
-                      <Badge
-                        size="compact"
-                        tone={getMitigationStatusTone(item.status)}
+                    <TableCell className="align-middle">
+                      <p className="text-muted-foreground">
+                        {formatDate(item.dueDate)}
+                      </p>
+                    </TableCell>
+                    <TableCell className="align-middle">
+                      <Badge variant={toBadgeVariant(getMitigationStatusTone(item.status))}
+                        className={getStatusBadgeClassName(getMitigationStatusTone(item.status))}
                       >
                         {getMitigationStatusLabel(item.status)}
                       </Badge>
                     </TableCell>
-                    <TableCell className="py-2 pl-3 pr-4 text-right align-middle">
-                      {item.status === "done" || item.status === "not_reported" ? null : !submissionState.allowed ? (
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span className="inline-block cursor-not-allowed">
-                                <ActionButton
-                                  size="sm"
-                                  variant={
-                                    submissionState.isOverdue
-                                      ? "destructive"
-                                      : "default"
-                                  }
-                                  disabled
-                                  className="pointer-events-none text-xs opacity-50"
-                                  onClick={(event) =>
-                                    event.stopPropagation()
-                                  }
-                                  icon={<Send className="size-3" />}
-                                >
-                                  Lapor
-                                </ActionButton>
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent
-                              side="left"
-                              className="max-w-[220px] text-xs"
-                            >
-                              {submissionState.message}
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
-                      ) : submissionState.isOverdue ? (
-                        <ActionButton
-                          size="sm"
-                          variant="destructive"
-                          className="h-8 shrink-0 gap-1.5 text-xs"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleOpenSubmit(item);
-                          }}
-                          icon={<Send className="size-3" />}
-                        >
-                          Lapor
-                        </ActionButton>
-                      ) : (
-                        <AccentButton
-                          size="sm"
-                          className="h-8 shrink-0 gap-1.5 text-xs"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleOpenSubmit(item);
-                          }}
-                          icon={<Send className="size-3" />}
-                        >
-                          Lapor
-                        </AccentButton>
-                      )}
-                    </TableCell>
+                  <TableCell className="sticky right-0 z-10 text-right align-middle">
+                    <MitigationRowActions
+                      task={item}
+                      submissionState={submissionState}
+                      onOpenSubmit={() => handleOpenSubmit(item)}
+                    />
+                  </TableCell>
                   </TableRow>
                 );
               })}
@@ -588,29 +644,25 @@ export function MitigationMonitoringPanel() {
               handleLimitChange(nextLimit);
             }}
           />
-        </CollectionTableCard>
-      )}
+          </CollectionTableCard>
+        )}
+      </div>
 
-      <Dialog open={showDetailDialog} onOpenChange={setShowDetailDialog}>
-        <DialogContent
-          className="max-w-2xl no-scrollbar"
-          showCloseButton={false}
-          onAnimationEnd={(event) => {
-            if (
-              event.currentTarget !== event.target ||
-              event.animationName !== "exit"
-            ) {
-              return;
-            }
-
-            flushPendingReport();
-          }}
-        >
-          <DialogHeader>
-            <DialogTitle className="text-base">Detail Laporan Penanganan</DialogTitle>
-          </DialogHeader>
-
-          {detailTask && (
+      <MitigationProgressFlowDialog
+        open={showMitigationDialog}
+        onOpenChange={(open) => {
+          setShowMitigationDialog(open);
+          if (!open) {
+            setShowValidationErrors(false);
+            setDialogView("detail");
+          }
+        }}
+        view={dialogView}
+        onViewChange={setDialogView}
+        detailTitle="Detail Laporan Penanganan"
+        detailDescription="Tinjau status, bukti, dan catatan penanganan."
+        detailContent={
+          detailTask ? (
             <div className="space-y-6">
               <div className="space-y-4">
                 <div className="flex flex-col gap-2">
@@ -753,46 +805,31 @@ export function MitigationMonitoringPanel() {
                 </div>
               </div>
             </div>
-          )}
-
-          <DialogFooter className="gap-2 sm:justify-between">
-            <CollectionDialogCancel
-              type="button"
-              variant="outline"
-              size="md"
-              className="border-0 smooth-shadow-ring-xs shadow-black smooth-ring-neutral-300/30"
-              onClick={() => setShowDetailDialog(false)}
-            >
-              Tutup
-            </CollectionDialogCancel>
-            {detailTask &&
-              (detailTask.status === "pending" ||
-                detailTask.status === "overdue") && (
-                detailTask.status === "overdue" ? (
-                  <ActionButton
-                    variant="destructive"
-                    onClick={() => handleOpenSubmitFromDetail(detailTask)}
-                    icon={<Send className="size-3" />}
-                  >
-                    Lapor Progress
-                  </ActionButton>
-                ) : (
-                  <AccentButton
-                    onClick={() => handleOpenSubmitFromDetail(detailTask)}
-                    icon={<Send className="size-3" />}
-                  >
-                    Lapor Progress
-                  </AccentButton>
-                )
-              )}
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <MitigationProgressDialog
-        open={showDialog}
-        onOpenChange={setShowDialog}
-        title="Lapor Progress Penanganan"
+          ) : null
+        }
+        detailAction={
+          detailTask &&
+          (detailTask.status === "pending" || detailTask.status === "overdue") ? (
+            detailTask.status === "overdue" ? (
+              <ActionButton
+                variant="destructive"
+                onClick={() => handleOpenSubmitFromDetail(detailTask)}
+                icon={<Send className="size-3" />}
+              >
+                Lapor Progress
+              </ActionButton>
+            ) : (
+              <AccentButton
+                onClick={() => handleOpenSubmitFromDetail(detailTask)}
+                icon={<Send className="size-3" />}
+              >
+                Lapor Progress
+              </AccentButton>
+            )
+          ) : null
+        }
+        formTitle="Lapor Progress Penanganan"
+        onFormCancel={() => setDialogView("detail")}
         evidenceUrl={evidenceUrl}
         onEvidenceUrlChange={setEvidenceUrl}
         notes={notes}

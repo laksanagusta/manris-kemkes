@@ -1,6 +1,6 @@
 "use client";
 
-import { MoreHorizontal, Pencil, Trash2 } from "@/components/ui/icons";
+import { MoreHorizontal, Pencil, Trash2 } from "@/components/shared/icons";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,7 +27,7 @@ export function OrganizationRowActions({
         <Button
           variant="ghost"
           size="icon-xs"
-          className="text-muted-foreground"
+          className=""
           aria-label={`Aksi organisasi ${organization.name}`}
         >
           <MoreHorizontal className="size-3.5" />

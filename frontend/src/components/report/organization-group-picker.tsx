@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronsUpDown, Search, Users } from "@/components/ui/icons";
+import { Check, ChevronsUpDown, Search, Users } from "@/components/shared/icons";
 
 import type { OrganizationGroupListItem } from "@/lib/api/organization-groups";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { SearchInput } from "@/components/ui/search-input";
+import { SearchInput } from "@/components/shared/search-input";
+import { IllustratedEmptyState } from "@/components/shared/design-system/feedback/illustrated-empty-state";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
@@ -114,7 +115,7 @@ export function OrganizationGroupPicker({
           disabled={disabled}
           className={cn(
             controlHeight,
-            "w-full min-w-0 justify-between overflow-hidden border-input bg-background/80 px-3 text-xs font-normal shadow-none",
+            "w-full min-w-0 justify-between overflow-hidden",
             className,
           )}
         >
@@ -127,7 +128,7 @@ export function OrganizationGroupPicker({
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[min(var(--radix-popover-trigger-width),620px)] gap-0 overflow-hidden rounded-xl p-0"
+        className="w-[min(var(--radix-popover-trigger-width),620px)] overflow-hidden"
         align="start"
       >
         <div className="flex items-center border-b px-3">
@@ -140,16 +141,18 @@ export function OrganizationGroupPicker({
             placeholder={searchPlaceholder}
             className={cn(
               controlHeight,
-              "rounded-none border-0 bg-transparent px-0 py-2 text-xs shadow-none",
+              "rounded-none border-0 bg-transparent px-0 py-2 text-xs !shadow-none",
             )}
           />
         </div>
         <ScrollArea className="h-56">
           <div className="p-1">
             {filteredGroups.length === 0 ? (
-              <div className="px-3 py-5 text-center text-xs text-muted-foreground">
-                {emptyMessage}
-              </div>
+              <IllustratedEmptyState
+                title={emptyMessage}
+                size="compact"
+                className="py-2"
+              />
             ) : (
               filteredGroups.map((group) => {
                 const isSelected = group.id === value;

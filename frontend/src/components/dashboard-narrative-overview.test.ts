@@ -12,8 +12,11 @@ const catalogue = read(
 const currentHeatmap = read(
   "../app/(app)/overview/_components/current-risk-heatmap.tsx",
 );
+const multiPhaseHeatmap = read(
+  "../app/(app)/compliance/_components/multi-phase-heatmap-compare.tsx",
+);
 const trendCard = read(
-  "../app/(app)/overview/_components/unit-total-risk-score-chart.tsx",
+  "../app/(app)/overview/_components/risk-count-trend-chart.tsx",
 );
 const topRisksCard = read(
   "../app/(app)/overview/_components/top-risks-panel.tsx",
@@ -21,6 +24,7 @@ const topRisksCard = read(
 const dashboardKpiCard = read(
   "./shared/design-system/layout/dashboard-kpi-card.tsx",
 );
+const tablePrimitive = read("./ui/table.tsx");
 const appHeader = read("./app-header.tsx");
 const designSystemPage = read("../app/(app)/design-system/page.tsx");
 const designDocument = read("../../../DESIGN.md");
@@ -44,7 +48,7 @@ test("overview follows the approved narrative order", () => {
   assert.doesNotMatch(overviewPage, /data-dashboard-section="multi-phase"/);
   assert.match(
     appHeader,
-    /pathname === "\/overview" \|\| pathname === "\/risk\/register\/new"/,
+    /pathname === "\/overview"[\s\S]*pathname === "\/risk\/register\/new"/,
   );
 });
 
@@ -73,21 +77,32 @@ test("overview and catalogue use the same dashboard primitives", () => {
   assert.match(currentHeatmap, /<Dialog[\s>]/);
   assert.match(currentHeatmap, /<MultiPhaseHeatmapCompareCard surface="plain"/);
   assert.match(
+    multiPhaseHeatmap,
+    /surface === "plain"[\s\S]*className="min-h-0 min-w-0"/,
+  );
+  assert.match(
     currentHeatmap,
     /aria-label="Buka perbandingan heatmap multi-fase"/,
   );
-  assert.match(currentHeatmap, /className="relative h-full"/);
-  assert.match(currentHeatmap, /contentClassName="px-5 pb-6 pt-3"/);
-  assert.match(currentHeatmap, /translate-y-1\/2/);
-  assert.doesNotMatch(currentHeatmap, /relative h-full pb-4/);
-  assert.match(catalogue, /aria-label="Buka perbandingan heatmap multi-fase"/);
+  assert.match(
+    currentHeatmap,
+    /<Button[\s\S]*size="icon-sm"[\s\S]*aria-label="Buka perbandingan heatmap multi-fase"[\s\S]*<ArrowExpand aria-hidden="true" \/>/,
+  );
+  assert.doesNotMatch(currentHeatmap, /\n\s*Bandingkan\n/);
+  assert.match(currentHeatmap, /className="h-full"/);
+  assert.match(currentHeatmap, /contentClassName="flex flex-1 flex-col"/);
+  assert.match(currentHeatmap, /Probabilitas[\s\S]*<RiskHeatmapGrid/);
+  assert.match(currentHeatmap, /text-center text-xs text-muted-foreground[\s\S]*Dampak/);
+  assert.doesNotMatch(currentHeatmap, /absolute bottom-0|translate-y-1\/2/);
+  assert.match(catalogue, /size="icon-sm"[\s\S]*aria-label="Buka perbandingan heatmap multi-fase"/);
+  assert.doesNotMatch(catalogue, /\n\s*Bandingkan\n/);
   assert.match(
     overviewPage,
-    /xl:grid-cols-\[minmax\(0,1\.35fr\)_minmax\(18rem,0\.65fr\)\]/,
+    /xl:grid-cols-\[minmax\(0,2fr\)_minmax\(22rem,1fr\)\]/,
   );
 });
 
-test("dashboard cards omit helper subtitles", () => {
+test("dashboard cards use concise title-only headers", () => {
   assert.doesNotMatch(overviewPage, /Seluruh risiko aktif/);
   assert.doesNotMatch(overviewPage, /Prioritas pengendalian/);
   assert.doesNotMatch(overviewPage, /Perlu tindak lanjut/);
@@ -96,50 +111,54 @@ test("dashboard cards omit helper subtitles", () => {
     trendCard,
     /Perbandingan skor aktual dan target dalam empat kuartal terakhir/,
   );
-  assert.doesNotMatch(
-    topRisksCard,
-    /Prioritas berdasarkan skor risiko tertinggi/,
-  );
-  assert.doesNotMatch(
-    currentHeatmap,
-    /Distribusi probabilitas dan dampak pada kuartal berjalan/,
-  );
+  assert.doesNotMatch(topRisksCard, /subtitle=/);
+  assert.doesNotMatch(currentHeatmap, /subtitle=/);
+  assert.doesNotMatch(trendCard, /subtitle=/);
   assert.doesNotMatch(currentHeatmap, /risiko aktif terpetakan/);
   assert.match(trendCard, /className="font-mono font-medium text-foreground/);
 });
 
-test("dashboard KPI titles use an 11px semibold label", () => {
-  const titleClass = dashboardKpiCard.match(/<h2 className="([^"]+)"/)?.[1] ?? "";
+test("dashboard KPI titles use the shared muted 14px label", () => {
   assert.match(
     dashboardKpiCard,
-    /className="font-sans text-\[11px\] leading-4 font-semibold uppercase tracking-\[1px\] text-muted-foreground text-pretty"/,
+    /<CardTitle className="text-sm text-muted-foreground">/,
   );
-  assert.doesNotMatch(titleClass, /text-xs|text-\[13px\]|font-normal|font-medium|tracking-normal/);
-  assert.match(dashboardKpiCard, /uppercase/);
-  assert.match(dashboardKpiCard, /className="mt-6 flex items-baseline gap-1"/);
-  assert.doesNotMatch(dashboardKpiCard, /className="mt-3 flex items-baseline gap-1"/);
+  assert.doesNotMatch(dashboardKpiCard, /uppercase|tracking-\[1px\]/);
 });
 
-test("attention risk list uses a white card surface for its header", () => {
-  assert.match(topRisksCard, /data-testid="risk-list-header"[\s\S]*bg-card/);
-  assert.doesNotMatch(topRisksCard, /data-testid="risk-list-header"[\s\S]*bg-table-header/);
+test("dashboard KPI surfaces use the stock Card composition", () => {
+  assert.match(dashboardKpiCard, /<Card aria-busy=\{loading\}>/);
+  assert.match(dashboardKpiCard, /<CardHeader>/);
+  assert.match(dashboardKpiCard, /<CardContent className="flex flex-col gap-2">/);
+  assert.doesNotMatch(dashboardKpiCard, /data-corner-smoothing|surface-hairline/);
 });
 
-test("attention risk table headers use a 12px medium label", () => {
+test("attention risk list uses the shared table surface", () => {
+  assert.match(topRisksCard, /<Table[\s\S]*aria-label="Risiko yang perlu perhatian"/);
+  assert.match(topRisksCard, /<CollectionTableHeader(?:\s[^>]*)?>/);
+  assert.match(topRisksCard, /<CollectionTableHeader>/);
+  assert.doesNotMatch(topRisksCard, /\[&_th\]:bg-card/);
   assert.match(
     topRisksCard,
-    /data-testid="risk-list-header"[\s\S]*text-xs font-medium/,
+    /<CollectionTableHeaderRow[\s\S]*data-testid="risk-list-header"/,
   );
+  assert.match(tablePrimitive, /bg-table-header/);
 });
 
-test("attention risk rows emphasize codes and mute risk titles", () => {
+test("attention risk table inherits canonical header spacing and typography", () => {
+  assert.match(tablePrimitive, /h-10 bg-table-header px-2 text-left/);
+  assert.match(tablePrimitive, /text-\[13px\] font-medium/);
+  assert.match(tablePrimitive, /first:ps-4 last:pe-4/);
+});
+
+test("attention risk rows prioritize titles and keep codes as metadata", () => {
   assert.match(
     topRisksCard,
-    /font-mono text-sm font-normal text-foreground/,
+    /text-sm font-medium leading-5 text-foreground/,
   );
   assert.match(
     topRisksCard,
-    /min-w-0 truncate text-sm font-normal text-muted-foreground/,
+    /font-mono text-\[11px\] leading-4 text-muted-foreground/,
   );
 });
 
@@ -149,14 +168,16 @@ test("narrative overview is documented in both design-system surfaces", () => {
     designSystemPage,
     /condition.*change.*attention.*concentrated risk.*multi-fase/is,
   );
-  assert.match(designDocument, /dashboard-narrative-overview:/);
   assert.match(
     designDocument,
-    /order: "kpis > trend > priorities-current-heatmap"/,
+    /narrative overview orders KPI condition, trend change, attention risks, and the current heatmap/i,
   );
-  assert.match(designDocument, /header: "none; \/overview suppresses AppHeader"/);
   assert.match(
     designDocument,
-    /multi-phase: "modal from the current-heatmap card bottom-center expand control"/,
+    /shared collection table header and stock `Table` cells/,
+  );
+  assert.match(
+    designDocument,
+    /multi-phase comparison action in `CardAction`/,
   );
 });

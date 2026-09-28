@@ -1,5 +1,8 @@
-import { AlertCircle } from "@/components/ui/icons";
+import { AlertCircle } from "@/components/shared/icons";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Spinner } from "@/components/ui/spinner";
+import { IllustratedEmptyState } from "../feedback/illustrated-empty-state";
 
 import { cn } from "@/lib/utils";
 
@@ -18,14 +21,8 @@ export function OverviewPanelState({
 }: OverviewPanelStateProps) {
   if (state === "loading") {
     return (
-      <div
-        role="status"
-        aria-live="polite"
-        className={cn(
-          "flex min-h-48 items-center justify-center rounded-lg bg-state-surface px-6 text-center text-sm text-state-foreground",
-          className,
-        )}
-      >
+      <div role="status" aria-live="polite" className={cn("flex min-h-48 items-center justify-center gap-2", className)}>
+        <Spinner />
         <span className="motion-safe:animate-pulse">{message}</span>
       </div>
     );
@@ -33,40 +30,29 @@ export function OverviewPanelState({
 
   if (state === "error") {
     return (
-      <div
-        role="alert"
-        className={cn(
-          "flex min-h-48 flex-col items-center justify-center gap-3 rounded-lg bg-state-surface px-6 text-center text-sm text-state-foreground",
-          className,
-        )}
-      >
-        <span className="inline-flex max-w-sm items-center gap-2">
-          <AlertCircle aria-hidden="true" className="size-4 shrink-0 text-destructive" />
-          {message}
-        </span>
+      <Alert variant="destructive" className={cn("min-h-48", className)}>
+        <AlertCircle aria-hidden="true" />
+        <AlertDescription>{message}</AlertDescription>
         {onRetry ? (
           <Button
             type="button"
             variant="outline"
             size="sm"
-            className="border-destructive/30 text-destructive hover:bg-destructive/10 hover:text-destructive"
             onClick={onRetry}
           >
             Coba lagi
           </Button>
         ) : null}
-      </div>
+      </Alert>
     );
   }
 
   return (
-    <div
-      className={cn(
-        "flex min-h-48 items-center justify-center rounded-lg bg-state-surface px-6 text-center text-sm text-state-foreground",
-        className,
-      )}
-    >
-      {message}
-    </div>
+    <IllustratedEmptyState
+      title="Belum ada data"
+      description={message}
+      size="compact"
+      className={cn("min-h-48", className)}
+    />
   );
 }

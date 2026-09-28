@@ -1,11 +1,12 @@
 "use client";
 
-import { ArrowUpRight, FileText, Loader2 } from "@/components/ui/icons";
+import { ArrowUpRight, FileText, Loader2 } from "@/components/shared/icons";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { getLinearStatusBadgeClassName, getLinearStatusBadgeTone } from "@/lib/linear-status-badge";
 import { parseFormalReportSummary } from "@/types/formal-report";
 import type { FormalReport, FormalReportType } from "@/types/formal-report";
 
@@ -45,11 +46,11 @@ export function FormalReportCard({
   const subtitle = summary?.headline || "";
 
   return (
-    <Card className="group flex h-full flex-col rounded-xl bg-card">
-      <CardHeader className="pb-4">
+    <Card className="group flex flex-col">
+      <CardHeader className="">
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1.5">
-            <CardTitle className="text-sm font-medium normal-case leading-5 text-balance">
+            <CardTitle className="text-balance">
               {title}
             </CardTitle>
             <p className="text-sm leading-6 text-secondary-foreground">
@@ -58,7 +59,7 @@ export function FormalReportCard({
           </div>
           <Badge
             variant="outline"
-            className="gap-1.5 border-primary/20 bg-primary/[0.06] text-[10px] text-primary"
+            className=""
           >
             <FileText className="size-3.5" />
             PDF
@@ -66,7 +67,7 @@ export function FormalReportCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="surface-hairline rounded-xl bg-muted/20 px-4 py-3">
+        <div className="flex flex-col gap-1">
           <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
             Latest generated
           </p>
@@ -81,20 +82,20 @@ export function FormalReportCard({
         </div>
         {latestReport ? (
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-            <Badge variant="outline" className="h-5 px-2 text-[10px]">
+            <Badge variant={getLinearStatusBadgeTone(latestReport.status)} className={getLinearStatusBadgeClassName(latestReport.status)}>
               {latestReport.status}
             </Badge>
             <span>Periode {latestReport.period}</span>
           </div>
         ) : null}
       </CardContent>
-      <CardFooter className="mt-auto justify-between gap-2 border-t border-border/50 bg-muted/30">
+      <CardFooter className="mt-auto justify-between gap-2">
         <p className="text-xs text-muted-foreground">
           {title}
         </p>
         <Button
           size="sm"
-          className="gap-2 shadow-none"
+          className=""
           onClick={() => onGenerate(reportType)}
           disabled={disabled || isGenerating}
         >

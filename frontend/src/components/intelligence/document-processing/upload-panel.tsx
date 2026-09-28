@@ -10,7 +10,7 @@ import {
   FileSpreadsheet,
   FileText,
   X,
-} from "@/components/ui/icons";
+} from "@/components/shared/icons";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { UploadedDocument } from "@/types/document-processing";
@@ -106,10 +106,10 @@ function DropZone({
       }}
       onDrop={onDrop}
       className={cn(
-        "group relative flex min-h-[300px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed px-6 py-12 text-center outline-none transition-[background-color,border-color,transform,box-shadow] duration-200 ease-(--ease-out) focus-visible:ring-2 focus-visible:ring-ring/40 sm:min-h-[340px] sm:px-10 motion-reduce:transition-none",
+        "group relative flex min-h-[300px] cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed bg-card px-6 py-12 text-center outline-none transition-[background-color,border-color,transform,box-shadow] duration-200 ease-(--ease-out) focus-visible:ring-2 focus-visible:ring-ring/40 sm:min-h-[340px] sm:px-10 motion-reduce:transition-none",
         dragActive
-          ? "scale-[1.008] border-primary/60 bg-primary/5"
-          : "border-border bg-card hover:border-foreground/25 hover:bg-state-surface",
+          ? "scale-[1.008] border-primary/60"
+          : "border-border hover:border-foreground/25 hover:bg-card",
       )}
     >
       <input
@@ -204,7 +204,7 @@ export function UploadPanel({
               exit={reduceMotion ? { opacity: 0 } : { opacity: 0, transform: "translateY(-6px)" }}
               transition={{ duration: reduceMotion ? 0.12 : 0.18, ease: [0.23, 1, 0.32, 1] }}
               className={cn(
-                "rounded-xl bg-card p-4 border-shadow sm:p-5",
+                "rounded-lg bg-card p-4 sm:p-5",
                 document.error && "ring-1 ring-destructive/35",
               )}
             >
@@ -247,10 +247,10 @@ export function UploadPanel({
         </p>
         <Button
           type="button"
-          variant="primary"
-          size="primary"
+          variant="default"
+          size="default"
           disabled={!validDocuments.length || processing}
-          className="gap-2"
+          className=""
           onClick={onStart}
           aria-label={processing ? "Menyiapkan analisis" : "Mulai analisis"}
         >
@@ -292,7 +292,7 @@ function IssueList({ issues }: { issues: FileIssue[] }) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: reduceMotion ? 0.12 : 0.15, ease: [0.23, 1, 0.32, 1] }}
-          className="space-y-2 rounded-xl border border-warning/30 bg-warning/10 p-3"
+          className="space-y-2 rounded-lg border border-warning/30 bg-warning/10 p-3"
           role="alert"
         >
           <div className="flex items-center gap-2 text-sm font-medium text-foreground">
