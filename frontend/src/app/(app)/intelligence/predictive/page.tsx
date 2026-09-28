@@ -31,6 +31,8 @@ import { useAuth } from "@/contexts/auth-context";
 import { AIFeaturesDisabledState } from "@/components/shared/ai-features-disabled-state";
 import {
   CollectionPageHeader,
+  CollectionEmptyState,
+  IllustratedEmptyState,
   KpiCard,
   MetricGrid,
   PageStack,
@@ -148,9 +150,13 @@ function PredictivePageContent() {
             <div>
               <h3 className="text-sm font-semibold">Ringkasan Eksekutif AI</h3>
               {predictions.length === 0 ? (
-                <p className="text-xs text-secondary-foreground mt-1.5 leading-relaxed">
-                  Belum ada data prediksi. Klik tombol &quot;Run Prediction&quot; untuk memulai analisis profil risiko.
-                </p>
+                <IllustratedEmptyState
+                  title="Belum ada data prediksi"
+                  description='Klik tombol "Run Prediction" untuk memulai analisis profil risiko.'
+                  size="compact"
+                  align="left"
+                  className="mt-2"
+                />
               ) : (
                 <p className="text-xs text-secondary-foreground mt-1.5 leading-relaxed">
                   Dari {predictions.length} risiko yang dianalisis,{" "}
@@ -206,10 +212,10 @@ function PredictivePageContent() {
             {predictions.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="h-24">
-                  <div className="flex flex-col gap-1 text-left text-state-foreground">
-                    <p className="text-sm font-medium text-state-foreground">Data prediksi kosong</p>
-                    <p className="text-xs text-state-foreground">Klik tombol "Run Prediction" untuk memulai analisis profil risiko</p>
-                  </div>
+                  <CollectionEmptyState
+                    title="Data prediksi kosong"
+                    description='Klik tombol "Run Prediction" untuk memulai analisis profil risiko.'
+                  />
                 </TableCell>
               </TableRow>
             ) : predictions.map((pred) => (

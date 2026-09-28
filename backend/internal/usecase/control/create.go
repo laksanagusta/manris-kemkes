@@ -50,9 +50,6 @@ type CreateControlOutput struct {
 
 func (uc *CreateControlUseCase) Execute(ctx context.Context, input CreateControlInput) (*CreateControlOutput, error) {
 	// 1. Validate input
-	if input.Code == "" {
-		return nil, errors.ErrInvalidCode
-	}
 	if input.Name == "" {
 		return nil, errors.ErrInvalidName
 	}

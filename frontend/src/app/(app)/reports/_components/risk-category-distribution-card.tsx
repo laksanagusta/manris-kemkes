@@ -15,6 +15,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buildDashboardRiskCategoryData } from "@/lib/dashboard-insights";
 import { RISK_CHART_COLORS } from "@/lib/chart-colors";
+import { IllustratedEmptyState } from "@/components/shared/design-system";
 
 type RiskCategoryDatum = ReturnType<typeof buildDashboardRiskCategoryData>;
 
@@ -80,9 +81,12 @@ export function RiskCategoryDistributionCard({
             Data kategori risiko tidak tersedia saat ini.
           </div>
         ) : data.length === 0 ? (
-          <div className="flex h-48 items-center justify-center rounded-lg bg-state-surface px-6 text-center text-sm text-state-foreground">
-            Belum ada data kategori risiko.
-          </div>
+          <IllustratedEmptyState
+            title="Belum ada data"
+            description="Belum ada data kategori risiko untuk ditampilkan."
+            size="compact"
+            className="min-h-48"
+          />
         ) : (
           <div className="h-72">
             <ChartContainer config={chartConfig} className="h-full w-full">

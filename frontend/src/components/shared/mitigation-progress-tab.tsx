@@ -22,7 +22,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import {
-  Activity,
   CheckCircle2,
   Clock,
   AlertTriangle,
@@ -41,6 +40,7 @@ import { getLinearStatusBadgeClassName, getLinearStatusBadgeTone } from "@/lib/l
 import {
   AccentButton,
   ActionButton,
+  IllustratedEmptyState,
   MitigationProgressFlowDialog,
   type MitigationProgressFlowView,
 } from "@/components/shared/design-system";
@@ -368,14 +368,10 @@ export function MitigationProgressTab({
           </p>
         </div>
         {tasks.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-lg bg-state-surface p-8 text-center text-state-foreground">
-            <Activity className="mb-3 size-8 text-state-foreground/50" />
-            <p className="text-sm font-medium text-state-foreground">Belum Ada Task Penanganan</p>
-            <p className="mt-1 max-w-sm text-xs text-state-foreground/80">
-              Task akan muncul otomatis saat risiko difinalisasi dan setiap
-              mitigasi hanya memiliki satu laporan.
-            </p>
-          </div>
+          <IllustratedEmptyState
+            title="Belum ada task penanganan"
+            description="Task akan muncul otomatis saat risiko difinalisasi dan setiap mitigasi hanya memiliki satu laporan."
+          />
         ) : (
           <div className="overflow-x-auto rounded-lg border border-border/50">
             <Table className="min-w-[980px] w-full">

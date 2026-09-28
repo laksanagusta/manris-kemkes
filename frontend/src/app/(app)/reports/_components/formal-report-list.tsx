@@ -19,6 +19,7 @@ import {
 import { downloadFormalReport } from "@/lib/api/formal-reports";
 import { formalReportTypeLabels } from "@/lib/formal-report-definitions";
 import { getLinearStatusBadgeClassName, getLinearStatusBadgeTone } from "@/lib/linear-status-badge";
+import { CollectionEmptyState } from "@/components/shared/design-system";
 import { parseFormalReportSummary } from "@/types/formal-report";
 import type { FormalReport } from "@/types/formal-report";
 
@@ -115,7 +116,10 @@ export function FormalReportList({
                   colSpan={6}
                   className="text-center"
                 >
-                  Belum ada laporan Monitoring & Evaluasi yang digenerate.
+                  <CollectionEmptyState
+                    title="Belum ada laporan Monitoring & Evaluasi"
+                    description="Laporan yang sudah dibuat akan tampil di sini."
+                  />
                 </TableCell>
               </TableRow>
             ) : (

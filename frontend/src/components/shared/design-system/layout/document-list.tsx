@@ -4,6 +4,7 @@ import { Plus } from "@/components/shared/icons";
 import { Button } from "@/components/ui/button";
 import { CardContent } from "@/components/ui/card";
 import { ListGroup } from "@/components/shared/list-group";
+import { IllustratedEmptyState } from "../feedback/illustrated-empty-state";
 import { cn } from "@/lib/utils";
 
 export type DocumentListItem = {
@@ -89,9 +90,12 @@ export function DocumentListSection({
             ))}
           </div>
         ) : (
-          <p className="px-0 py-1.5 text-sm text-muted-foreground">
-            {emptyMessage}
-          </p>
+          <IllustratedEmptyState
+            title="Belum ada data"
+            description={emptyMessage}
+            size="compact"
+            className="py-3"
+          />
         )}
         </CardContent>
       </ListGroup>

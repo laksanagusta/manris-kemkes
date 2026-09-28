@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { Plus, Trash2, GripVertical } from "@/components/shared/icons";
 import { Input } from "@/components/shared/design-system";
+import { IllustratedEmptyState } from "@/components/shared/design-system/feedback/illustrated-empty-state";
 import { cn } from "@/lib/utils";
 
 export interface EditableItem {
@@ -21,6 +22,10 @@ interface EditableItemsTableProps {
   addItemLabel?: string;
   emptyMessage?: string;
   itemLabel?: string;
+  invalid?: boolean;
+  itemErrors?: Array<string | undefined>;
+  emptyStatePresentation?: "illustrated" | "plain";
+  hideAddButton?: boolean;
 }
 
 export function EditableItemsTable({
@@ -31,6 +36,10 @@ export function EditableItemsTable({
   addItemLabel = "Tambah Item",
   emptyMessage = "Belum ada item",
   itemLabel = "Item",
+  invalid = false,
+  itemErrors,
+  emptyStatePresentation = "illustrated",
+  hideAddButton = false,
 }: EditableItemsTableProps) {
   const previousItemIdsRef = useRef(new Set(items.map((item) => item.id)));
   const animatingItemIdsRef = useRef<Set<string>>(new Set());
@@ -105,13 +114,33 @@ export function EditableItemsTable({
   };
 
   return (
-    <div className="space-y-2">
+    <div
+      role="group"
+      aria-label={itemLabel}
+      data-invalid={invalid || undefined}
+      className="space-y-2"
+    >
       {items.length === 0 ? (
-        <div className="rounded-lg bg-state-surface py-8 text-center text-state-foreground">
-          <p className="text-xs text-state-foreground">{emptyMessage}</p>
-        </div>
+        emptyStatePresentation === "plain" ? (
+          <div
+            className={cn(
+              "rounded-lg bg-sunken py-8 text-center text-state-foreground shadow-[inset_0_1px_2px_rgb(0_0_0/0.12),inset_0_-1px_0_rgb(255_255_255/0.6)] dark:shadow-[inset_0_1px_2px_rgb(0_0_0/0.35),inset_0_-1px_0_rgb(255_255_255/0.06)]",
+              invalid && "ring-1 ring-destructive",
+            )}
+          >
+            <p className="text-xs text-state-foreground">{emptyMessage}</p>
+          </div>
+        ) : (
+          <div className={cn("rounded-lg", invalid && "ring-1 ring-destructive")}>
+            <IllustratedEmptyState
+              title={emptyMessage}
+              size="compact"
+              className="py-3"
+            />
+          </div>
+        )
       ) : (
-        <div className="border border-border/50 rounded-lg overflow-hidden">
+        <div className={cn("border rounded-lg overflow-hidden", invalid ? "border-destructive" : "border-border/50")}>
           <Table className="w-full">
             <TableBody>
               {items.map((item, index) => (
@@ -142,6 +171,9 @@ export function EditableItemsTable({
                       className=""
                       disabled={disabled}
                     />
+                    {itemErrors?.[index] ? (
+                      <p className="mt-1 text-xs text-destructive">{itemErrors[index]}</p>
+                    ) : null}
                   </TableCell>
                   <TableCell className="w-10">
                     <Button
@@ -162,17 +194,19 @@ export function EditableItemsTable({
         </div>
       )}
 
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={addItem}
-        disabled={disabled}
-        className="w-full"
-      >
-        <Plus className="size-3.5" />
-        {addItemLabel}
-      </Button>
+      {!hideAddButton ? (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={addItem}
+          disabled={disabled}
+          className="w-full"
+        >
+          <Plus className="size-3.5" />
+          {addItemLabel}
+        </Button>
+      ) : null}
     </div>
   );
 }

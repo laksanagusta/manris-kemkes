@@ -31,6 +31,7 @@ import {
   CollectionPageHeader,
   CollectionPagination,
   CollectionToolbar,
+  CollectionEmptyState,
   KpiCard,
   MetricGrid,
   PageStack,
@@ -485,10 +486,10 @@ export default function UsersManagementPage() {
               {users.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={9} className="h-24">
-                    <div className="flex flex-col gap-1 text-left">
-                      <p className="text-sm font-medium text-muted-foreground">Belum ada data pengguna</p>
-                      <p className="text-xs text-muted-foreground/70">Tambahkan pengguna baru untuk memulai</p>
-                    </div>
+                    <CollectionEmptyState
+                      title="Belum ada data pengguna"
+                      description="Tambahkan pengguna baru untuk memulai."
+                    />
                   </TableCell>
                 </TableRow>
               ) : (

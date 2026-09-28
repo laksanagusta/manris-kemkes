@@ -8,6 +8,7 @@ import {
   AccentButton,
   CollectionDialogCancel,
   DestructiveButton,
+  IllustratedEmptyState,
   PopoverSelectField,
 } from "@/components/shared/design-system";
 import { listOrganizations, type OrganizationListItem } from "@/lib/api/organizations";
@@ -199,9 +200,11 @@ function CascadeRiskSelect({
               Memuat risiko...
             </div>
           ) : items.length === 0 ? (
-            <div className="py-6 text-center text-sm text-muted-foreground">
-              Risiko belum ditemukan.
-            </div>
+            <IllustratedEmptyState
+              title="Risiko belum ditemukan."
+              size="compact"
+              className="py-2"
+            />
           ) : (
             items.map((item) => (
               <button
@@ -325,9 +328,11 @@ function CascadeOrgSelect({
               Memuat organisasi...
             </div>
           ) : items.length === 0 ? (
-            <div className="py-6 text-center text-sm text-muted-foreground">
-              Organisasi belum ditemukan.
-            </div>
+            <IllustratedEmptyState
+              title="Organisasi belum ditemukan."
+              size="compact"
+              className="py-2"
+            />
           ) : (
             items.map((item) => (
               <button

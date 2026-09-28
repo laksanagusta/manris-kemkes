@@ -5,7 +5,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Save } from "@/components/shared/icons";
 
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 import { FormHeader, FormPage, FormSection } from "@/components/shared/form-shell";
 import { Badge } from "@/components/ui/badge";
@@ -31,10 +31,21 @@ export default function NewControlPage() {
   const [owner, setOwner] = useState("");
   const [type, setType] = useState("preventif");
   const [frequency, setFrequency] = useState("harian");
+  const [fieldErrors, setFieldErrors] = useState<{
+    name?: string;
+    owner?: string;
+  }>({});
 
   const handleSave = async () => {
-    if (!name || !owner) {
-      toast.error("Lengkapi nama kontrol dan penanggung jawab terlebih dahulu.");
+    const nextErrors = {
+      ...(name.trim() ? {} : { name: "Nama kontrol wajib diisi." }),
+      ...(owner.trim() ? {} : { owner: "Penanggung jawab wajib diisi." }),
+    };
+    setFieldErrors(nextErrors);
+    if (Object.keys(nextErrors).length > 0) {
+      document
+        .getElementById(nextErrors.name ? "control-name" : "control-owner")
+        ?.focus();
       return;
     }
 
@@ -43,19 +54,24 @@ export default function NewControlPage() {
       await api.post(
         "/controls",
         {
-          name,
+          name: name.trim(),
           description,
-          owner,
+          owner: owner.trim(),
           type,
           frequency,
           organizationId: user?.organizationId,
         },
         token || undefined,
       );
+      toast.success("Kontrol berhasil disimpan.");
       router.push("/compliance/controls");
     } catch (error) {
       console.error("Failed to create control:", error);
-      toast.error("Kontrol baru belum berhasil disimpan.");
+      toast.error(
+        error instanceof ApiError && error.message.trim()
+          ? error.message
+          : "Kontrol belum berhasil disimpan. Periksa data dan coba lagi.",
+      );
     } finally {
       setSaving(false);
     }
@@ -84,15 +100,28 @@ export default function NewControlPage() {
         contentClassName="space-y-5"
       >
         <div className="space-y-1.5">
-          <Label className="text-sm font-medium">
+          <Label htmlFor="control-name" className="text-sm font-medium">
             Nama kontrol<span className="text-destructive ml-0.5">*</span>
           </Label>
           <Input
+            id="control-name"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              setName(e.target.value);
+              if (fieldErrors.name) {
+                setFieldErrors((current) => ({ ...current, name: undefined }));
+              }
+            }}
             placeholder="Contoh: Pengecekan suhu cold chain harian"
+            aria-invalid={Boolean(fieldErrors.name)}
+            aria-describedby={fieldErrors.name ? "control-name-error" : undefined}
             className=""
           />
+          {fieldErrors.name ? (
+            <p id="control-name-error" className="text-xs text-destructive">
+              {fieldErrors.name}
+            </p>
+          ) : null}
         </div>
 
         <div className="space-y-1.5">
@@ -107,15 +136,28 @@ export default function NewControlPage() {
 
         <div className="grid gap-4 md:grid-cols-2">
           <div className="space-y-1.5">
-            <Label className="text-sm font-medium">
+            <Label htmlFor="control-owner" className="text-sm font-medium">
               Penanggung jawab<span className="text-destructive ml-0.5">*</span>
             </Label>
             <Input
+              id="control-owner"
               value={owner}
-              onChange={(e) => setOwner(e.target.value)}
+              onChange={(e) => {
+                setOwner(e.target.value);
+                if (fieldErrors.owner) {
+                  setFieldErrors((current) => ({ ...current, owner: undefined }));
+                }
+              }}
               placeholder="Contoh: Tim logistik vaksin"
+              aria-invalid={Boolean(fieldErrors.owner)}
+              aria-describedby={fieldErrors.owner ? "control-owner-error" : undefined}
               className=""
             />
+            {fieldErrors.owner ? (
+              <p id="control-owner-error" className="text-xs text-destructive">
+                {fieldErrors.owner}
+              </p>
+            ) : null}
           </div>
           <div className="space-y-1.5">
             <Label className="text-sm font-medium">Tipe kontrol</Label>

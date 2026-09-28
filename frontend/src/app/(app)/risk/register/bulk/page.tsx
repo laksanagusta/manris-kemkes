@@ -314,7 +314,6 @@ export default function BulkRiskRegisterPage() {
             {previews.length === 0 ? (
               <CollectionEmptyState
                 align="center"
-                className={bulkImportSurfaceClassName}
                 title="Belum ada data."
                 description="Upload template untuk mulai review."
               />

@@ -479,8 +479,8 @@ func TestFinalizeMonitoringUseCase_BuildsRiskVersion(t *testing.T) {
 	if resultRisk.ReviewStartedAt == nil {
 		t.Fatalf("expected review started at to be set")
 	}
-	if resultRisk.AssessmentCycle != "2026-Q2" {
-		t.Fatalf("expected result risk assessment cycle 2026-Q2, got %q", resultRisk.AssessmentCycle)
+	if resultRisk.AssessmentCycle != "2026-Q3" {
+		t.Fatalf("expected result risk assessment cycle 2026-Q3, got %q", resultRisk.AssessmentCycle)
 	}
 }
 
@@ -502,6 +502,7 @@ func TestFinalizeMonitoringUseCase_BuildsRiskVersionForScoreOnlyMonitoring(t *te
 		Probability:    4,
 		Impact:         4,
 		Weight:         entity.GetBobot(4, 4),
+		Mitigations:    []entity.Mitigation{{ID: uuid.New(), Action: "Perbaiki prosedur", Owner: "Unit"}},
 	}
 	monitoring := entity.NewRiskMonitoringDraft(source, "2026-Q3", uuid.New())
 	monitoring.ID = monitoringID
@@ -529,47 +530,49 @@ func TestFinalizeMonitoringUseCase_BuildsRiskVersionForScoreOnlyMonitoring(t *te
 	if result.VersionNumber != 5 || result.Probability != 2 || result.Impact != 3 {
 		t.Fatalf("expected next version with observed score, got version=%d score=%d/%d", result.VersionNumber, result.Probability, result.Impact)
 	}
-}
-
-func TestFilterUnreportedMitigationsRemovesTerminalTasksFromNextSnapshot(t *testing.T) {
-	firstID := uuid.New()
-	secondID := uuid.New()
-	dueDate := "2026-09-30"
-	source := []entity.Mitigation{
-		{ID: firstID, Action: "Kirim laporan", Owner: "PIC A", DueDate: &dueDate},
-		{ID: secondID, Action: "Validasi data", Owner: "PIC B", DueDate: &dueDate},
+	if result.AssessmentCycle != "2026-Q4" {
+		t.Fatalf("expected Q3 observation to produce Q4 profile, got %q", result.AssessmentCycle)
 	}
-	tasks := []*entity.MitigationTask{
-		{MitigationID: firstID, Status: entity.MitigationTaskStatusNotReported},
-		{MitigationID: secondID, Status: entity.MitigationTaskStatusDone, ReportedAt: timePtrForTest(time.Now()), Notes: "Validasi sudah dilakukan."},
-	}
-
-	filtered := filterUnreportedMitigations(source, source, tasks)
-	if len(filtered) != 1 || filtered[0].ID != secondID {
-		t.Fatalf("expected only reported mitigation in next snapshot, got %#v", filtered)
+	if len(result.Mitigations) != 1 || result.Mitigations[0].Action != "Perbaiki prosedur" {
+		t.Fatalf("expected mitigation retained in next profile, got %#v", result.Mitigations)
 	}
 }
 
-func TestFilterUnreportedMitigationsMatchesProfileRevisionByStableFields(t *testing.T) {
-	firstID := uuid.New()
-	dueDate := "2026-09-30"
-	source := []entity.Mitigation{{
-		ID: firstID, Action: "Kirim laporan", Owner: "PIC A", DueDate: &dueDate,
-	}}
-	profileRevision := []entity.Mitigation{{
-		Action: "Kirim laporan", Owner: "PIC A", DueDate: &dueDate,
-	}}
-	tasks := []*entity.MitigationTask{{
-		MitigationID: firstID,
-		Status:       entity.MitigationTaskStatusPending,
-	}}
-
-	filtered := filterUnreportedMitigations(profileRevision, source, tasks)
-	if len(filtered) != 0 {
-		t.Fatalf("expected unreported mitigation to be excluded from profile revision, got %#v", filtered)
+func TestMonitoringResultsBecomeFollowingQuarterProfiles(t *testing.T) {
+	source := &entity.Risk{
+		ID:              uuid.New(),
+		VersionGroupID:  uuid.New(),
+		AssessmentCycle: "2026-Q1",
+		VersionNumber:   1,
+		Probability:     5,
+		Impact:          5,
 	}
-}
+	source.CalculateBobot()
+	source.CalculateNilai()
+	if got := source.GetEffectiveScore(); got != 25 {
+		t.Fatalf("Q1 opening score = %d, want 25", got)
+	}
 
-func timePtrForTest(value time.Time) *time.Time {
-	return &value
+	q1 := entity.NewRiskMonitoringDraft(source, "2026-Q1", uuid.New())
+	q1.ObservedProbability, q1.ObservedImpact = 4, 5
+	q1.CalculateObservedScore()
+	q2Profile, err := buildRiskVersionFromMonitoring(source, q1, uuid.New())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if q2Profile.AssessmentCycle != "2026-Q2" || q2Profile.GetEffectiveScore() != 24 {
+		t.Fatalf("Q1 monitoring should produce Q2 profile score 24, got %s/%d", q2Profile.AssessmentCycle, q2Profile.GetEffectiveScore())
+	}
+
+	q2Profile.ID = uuid.New()
+	q2 := entity.NewRiskMonitoringDraft(q2Profile, "2026-Q2", uuid.New())
+	q2.ObservedProbability, q2.ObservedImpact = 5, 4
+	q2.CalculateObservedScore()
+	q3Profile, err := buildRiskVersionFromMonitoring(q2Profile, q2, uuid.New())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if q3Profile.AssessmentCycle != "2026-Q3" || q3Profile.GetEffectiveScore() != 23 {
+		t.Fatalf("Q2 monitoring should produce Q3 profile score 23, got %s/%d", q3Profile.AssessmentCycle, q3Profile.GetEffectiveScore())
+	}
 }

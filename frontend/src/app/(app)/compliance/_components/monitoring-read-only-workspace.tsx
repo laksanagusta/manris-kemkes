@@ -45,11 +45,9 @@ import {
   KpiCard,
   MetricGrid,
   PopoverSelectField,
-  StandardCard,
 } from "@/components/shared/design-system";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
 import {
   Popover,
   PopoverContent,
@@ -169,6 +167,59 @@ function ScoreComparison({ row }: { row: MonitoringOverviewRow }) {
           -
         </span>
       )}
+    </div>
+  );
+}
+
+function MitigationProgressIndicator({
+  riskTitle,
+  value,
+}: {
+  riskTitle: string;
+  value: number;
+}) {
+  const normalizedValue = Number.isFinite(value) ? value : 0;
+  const percent = Math.min(100, Math.max(0, Math.round(normalizedValue)));
+  const radius = 7.5;
+  const circumference = 2 * Math.PI * radius;
+  const strokeDashoffset = circumference * (1 - percent / 100);
+
+  return (
+    <div
+      className="flex min-w-0 items-center gap-2"
+      role="img"
+      aria-label={`Progres penanganan ${riskTitle}: ${percent}%`}
+    >
+      <svg
+        aria-hidden="true"
+        viewBox="0 0 18 18"
+        className="size-[18px] shrink-0"
+      >
+        <circle
+          cx="9"
+          cy="9"
+          r={radius}
+          fill="none"
+          stroke="var(--muted)"
+          strokeWidth="2"
+        />
+        <circle
+          cx="9"
+          cy="9"
+          r={radius}
+          fill="none"
+          stroke="currentColor"
+          strokeDasharray={circumference}
+          strokeDashoffset={strokeDashoffset}
+          strokeLinecap="round"
+          strokeWidth="2"
+          transform="rotate(-90 9 9)"
+          className="text-violet-400"
+        />
+      </svg>
+      <span className="text-sm leading-5 font-medium tabular-nums text-foreground">
+        {percent}%
+      </span>
     </div>
   );
 }
@@ -464,9 +515,6 @@ export function MonitoringReadOnlyWorkspace() {
     currentPage * limit,
   );
   const finalizedCount = scopedRows.filter((row) => row.status === "finalized").length;
-  const progressPercent = scopedRows.length
-    ? Math.round((finalizedCount / scopedRows.length) * 100)
-    : 0;
 
   useEffect(() => {
     if (page !== currentPage) setPage(currentPage);
@@ -505,34 +553,6 @@ export function MonitoringReadOnlyWorkspace() {
             tone="white"
           />
         </MetricGrid>
-
-        <StandardCard
-          title="Progress keseluruhan"
-          subtitle="Menunjukkan persentase risiko berstatus Final dalam cakupan pemantauan saat ini."
-        >
-          <div className="space-y-3">
-            <div className="flex items-end justify-between gap-4">
-              <div>
-                <p className="text-sm font-medium text-foreground">
-                  {finalizedCount} dari {scopedRows.length} risiko sudah Final
-                </p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {cycle === "all"
-                    ? "Berdasarkan seluruh transaksi pemantauan."
-                    : `Berdasarkan transaksi pemantauan ${cycle}.`}
-                </p>
-              </div>
-              <span className="font-mono text-lg font-semibold tabular-nums text-foreground">
-                {error ? "—" : `${progressPercent}%`}
-              </span>
-            </div>
-            <Progress
-              value={error ? 0 : progressPercent}
-              aria-label={`Progress pemantauan ${progressPercent}%`}
-              className="h-2"
-            />
-          </div>
-        </StandardCard>
       </section>
 
       <section className="space-y-4" aria-label="Daftar status pemantauan">
@@ -698,16 +718,10 @@ export function MonitoringReadOnlyWorkspace() {
                           {formatMonitoringDate(row.createdAt)}
                         </TableCell>
                         <TableCell className="max-w-0 overflow-hidden">
-                          <div className="flex min-w-0 items-center gap-2">
-                            <Progress
-                              value={row.mitigationCompletionPercent}
-                              className="h-1.5 min-w-10 flex-1"
-                              aria-label={`Progres pelaporan ${row.mitigationCompletionPercent}%`}
-                            />
-                            <span className="min-w-10 text-right font-mono text-sm tabular-nums text-foreground">
-                              {row.mitigationCompletionPercent}%
-                            </span>
-                          </div>
+                          <MitigationProgressIndicator
+                            riskTitle={row.title}
+                            value={row.mitigationCompletionPercent}
+                          />
                         </TableCell>
                         <TableCell className="max-w-0">
                           {formatMonitoringDate(row.updatedAt)}

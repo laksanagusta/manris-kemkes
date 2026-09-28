@@ -198,16 +198,13 @@ export function levelFromScore(inherentScore?: number): Severity {
 }
 
 function effectiveScoreSemantics(risk: RiskLike) {
-  const probability = risk.monitoringObservedProbability ?? risk.probability ?? 1;
-  const impact = risk.monitoringObservedImpact ?? risk.impact ?? 1;
-  const weight =
-    risk.monitoringObservedWeight ?? risk.weight ?? getBobot(probability, impact);
-  const nilai = risk.monitoringObservedNilai ?? risk.nilai;
-  const inherentScore =
-    risk.monitoringObservedNilai !== null &&
-    risk.monitoringObservedNilai !== undefined
-      ? roundRiskScore(risk.monitoringObservedNilai) ?? 0
-      : risk.inherentScore ?? 0;
+  // Monitoring is an observation of this quarter; its score becomes the
+  // profile of the next quarter only after finalization.
+  const probability = risk.probability ?? 1;
+  const impact = risk.impact ?? 1;
+  const weight = risk.weight ?? getBobot(probability, impact);
+  const nilai = risk.nilai;
+  const inherentScore = risk.inherentScore ?? 0;
 
   return resolveRiskScoreSemantics({
     status: risk.status === "final" ? "final" : "draft",
@@ -273,8 +270,8 @@ export function buildCurrentRiskHeatmapMatrix(
   const matrix = Array.from({ length: 5 }, () => Array<number>(5).fill(0));
 
   for (const risk of selectEffectiveRiskVersions(risks, targetCycle)) {
-    const probability = risk.monitoringObservedProbability ?? risk.probability;
-    const impact = risk.monitoringObservedImpact ?? risk.impact;
+    const probability = risk.probability;
+    const impact = risk.impact;
 
     if (
       probability === undefined ||

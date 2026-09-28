@@ -42,6 +42,7 @@ import {
   CollectionPageHeader,
   shouldShowCollectionPagination,
   CollectionToolbar,
+  CollectionEmptyState,
   KpiCard,
   MetricGrid,
   PageStack,
@@ -327,8 +328,11 @@ export default function TMPMRListPage() {
                 <TableBody>
                   {paginatedItems.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center">
-                        Belum ada assessment yang cocok dengan filter ini.
+                      <TableCell colSpan={7} className="!p-0">
+                        <CollectionEmptyState
+                          title="Belum ada assessment yang cocok dengan filter ini"
+                          description="Coba ubah filter atau buat assessment baru."
+                        />
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -373,8 +377,8 @@ export default function TMPMRListPage() {
               </Table>
 
               {shouldShowCollectionPagination(filteredItems.length) ? (
-                <div className="flex items-center justify-between gap-3 border-t border-border/40 pt-4 text-sm">
-                  <p className="text-muted-foreground">
+                <div className="flex items-center justify-between gap-3 border-t border-border/40 bg-table-footer pt-4 text-sm">
+                  <p className="text-secondary-foreground">
                     Menampilkan {filteredItems.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}
                     {" "}
                     hingga {Math.min(page * PAGE_SIZE, filteredItems.length)} dari {filteredItems.length}

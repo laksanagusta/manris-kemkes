@@ -1,6 +1,6 @@
 import type { Risk, RiskMitigation } from "./risk";
 
-export type RiskMonitoringStatus = "draft" | "final";
+export type RiskMonitoringStatus = "draft" | "final" | "superseded";
 
 export interface RiskMonitoringDetail {
   id: string;
@@ -9,6 +9,7 @@ export interface RiskMonitoringDetail {
   resultRiskId?: string | null;
   assessmentCycle: string;
   status: RiskMonitoringStatus;
+  supersededByMonitoringId?: string | null;
   mode: string;
   sourceProbability: number;
   sourceImpact: number;

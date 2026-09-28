@@ -20,6 +20,7 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SearchInput } from "@/components/shared/search-input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { IllustratedEmptyState } from "@/components/shared/design-system/feedback/illustrated-empty-state";
 import { cn } from "@/lib/utils";
 
 type PickerOption = {
@@ -181,7 +182,11 @@ export function OrganizationPicker({
         </ComboboxChips>
         <ComboboxContent anchor={comboboxAnchor} className="min-w-[420px]">
           <ComboboxEmpty>
-            {search.trim() ? emptyMessage : "Ketik untuk mencari unit."}
+            <IllustratedEmptyState
+              title={search.trim() ? emptyMessage : "Ketik untuk mencari unit."}
+              size="compact"
+              className="py-2"
+            />
           </ComboboxEmpty>
           <ComboboxList>
             {(optionId: string) => (
@@ -250,9 +255,11 @@ export function OrganizationPicker({
         <ScrollArea className="h-44">
           <div className="p-1">
             {filteredOptions.length === 0 ? (
-              <div className="px-3 py-5 text-center text-xs text-muted-foreground">
-                {emptyMessage}
-              </div>
+              <IllustratedEmptyState
+                title={emptyMessage}
+                size="compact"
+                className="py-2"
+              />
             ) : (
               filteredOptions.map((option) => {
                 const isSelected = option.id === value;

@@ -8,6 +8,7 @@ import {
   ActionIconButton,
   CollectionDialogCancel,
   DestructiveButton,
+  IllustratedEmptyState,
 } from "@/components/shared/design-system";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { ApiError } from "@/lib/api";
@@ -349,7 +350,11 @@ function MeetingMinuteDetailContent() {
               ))}
             </ul>
           ) : (
-            <p className="text-sm text-muted-foreground">Belum ada agenda yang tercatat.</p>
+            <IllustratedEmptyState
+              title="Belum ada agenda yang tercatat."
+              size="compact"
+              className="py-2"
+            />
           )}
         </BriefingSection>
 
@@ -449,7 +454,11 @@ function MeetingMinuteDetailContent() {
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">Tidak ada risiko yang terkait.</p>
+            <IllustratedEmptyState
+              title="Tidak ada risiko yang terkait."
+              size="compact"
+              className="py-2"
+            />
           )}
         </BriefingSection>
       </Card>

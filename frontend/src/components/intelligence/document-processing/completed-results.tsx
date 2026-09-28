@@ -6,6 +6,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { IllustratedEmptyState } from "@/components/shared/design-system";
 import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 import type { Finding, ProcessingJob } from "@/types/document-processing";
 
@@ -120,9 +121,11 @@ export function FindingsReviewPanel({
       </div>
 
       {job.findings.length === 0 ? (
-        <div className="mt-4 rounded-lg border border-dashed border-border/80 p-6 text-center text-sm text-muted-foreground">
-          Tidak ada temuan yang dihasilkan dari proses ini.
-        </div>
+        <IllustratedEmptyState
+          title="Tidak ada temuan"
+          description="Proses ini belum menghasilkan temuan yang dapat ditinjau."
+          className="mt-4"
+        />
       ) : null}
     </motion.section>
   );

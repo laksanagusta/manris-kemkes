@@ -77,13 +77,8 @@ export default function LoginScreen() {
             </FieldGroup>
           </form>
           <nav className="flex items-center justify-center gap-1" aria-label="Bantuan akun">
-            <Button asChild variant="link"><Link href="/panduan-risiko">Panduan</Link></Button>
             <Button asChild variant="link"><Link href="/register">Daftar akun</Link></Button>
           </nav>
-        </div>
-        <div className="mt-6 text-center text-xs text-muted-foreground">
-          <p>Kementerian Kesehatan RI · Ditjen Penanggulangan Penyakit</p>
-          <p>Tim Kerja Manajemen Risiko Reformasi Birokrasi dan Monev</p>
         </div>
       </div>
     </div>

@@ -9,6 +9,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
+import { IllustratedEmptyState } from "@/components/shared/design-system";
 import type { LatestOrganizationProgressDatum } from "@/lib/dashboard-insights";
 
 const chartConfig = {
@@ -45,9 +46,12 @@ export function OrganizationLatestProgressChart({
       </CardHeader>
       <CardContent>
         {!hasData ? (
-          <div className="flex h-56 items-center justify-center rounded-lg bg-state-surface px-6 text-center text-sm text-state-foreground">
-            Belum ada data progress organisasi untuk ditampilkan.
-          </div>
+          <IllustratedEmptyState
+            title="Belum ada data"
+            description="Belum ada data progress organisasi untuk ditampilkan."
+            size="compact"
+            className="min-h-56"
+          />
         ) : (
           <div className="h-64">
             <ChartContainer config={chartConfig} className="h-full w-full">

@@ -30,8 +30,7 @@ export function OverviewTopRisksCard({
 
   return (
     <StandardCard
-      title="Risiko yang Perlu Perhatian"
-      subtitle="Prioritas berdasarkan skor risiko tertinggi."
+      title={<span className="text-sm">Risiko yang Perlu Perhatian</span>}
       className="xl:h-full xl:min-h-[377px]"
       contentClassName="xl:flex xl:flex-1 xl:flex-col"
     >

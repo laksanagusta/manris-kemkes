@@ -10,8 +10,8 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
 import { Spinner } from "@/components/ui/spinner";
+import { IllustratedEmptyState } from "@/components/shared/design-system/feedback/illustrated-empty-state";
 import {
   ChartContainer,
   ChartTooltip,
@@ -49,6 +49,8 @@ type AnalysisRow = {
   targetLevel: string;
   changeReason: string;
   isCurrent: boolean;
+  supersededByRiskId: string | null;
+  supersededByVersionNumber?: number;
 };
 
 type RiskAnalysisTabProps = {
@@ -96,43 +98,60 @@ export function RiskAnalysisTab({
   loading = false,
 }: RiskAnalysisTabProps) {
   const rows = useMemo<AnalysisRow[]>(() => {
-    return [...versions]
-      .sort(
-        (left, right) =>
-          new Date(left.createdAt).getTime() -
-          new Date(right.createdAt).getTime(),
-      )
-      .map((version, index, all) => {
-        const inherentScore = getVersionInherentScore(version);
-        const targetScore = getVersionTargetScore(version);
-        const previousScore =
-          index > 0 ? getVersionInherentScore(all[index - 1]) : null;
+    const chronological = [...versions].sort(
+      (left, right) =>
+        new Date(left.createdAt).getTime() -
+        new Date(right.createdAt).getTime(),
+    );
+    const activeVersions = chronological.filter(
+      (version) => !version.supersededByRiskId,
+    );
+    const activeIndexById = new Map<string, number>(
+      activeVersions.map((version, index) => [version.id, index] as const),
+    );
+    const versionNumberById = new Map(
+      chronological.map((version) => [version.id, version.versionNumber] as const),
+    );
 
-        return {
-          id: version.id,
-          label: formatVersionLabel(version),
-          versionNumber: version.versionNumber,
-          period: version.assessmentCycle || formatShortDate(version.createdAt),
-          createdAt: version.createdAt,
-          inherentScore,
-          targetScore,
-          delta: previousScore === null ? null : inherentScore - previousScore,
-          level: getRiskLevelLabel(getRiskLevelFromNilai(inherentScore)),
-          targetLevel:
-            targetScore > 0
-              ? getRiskLevelLabel(getRiskLevelFromNilai(targetScore))
-              : "-",
-          changeReason:
-            version.changeReason?.trim() ||
-            version.reviewSummary?.trim() ||
-            "Tidak ada catatan perubahan.",
-          isCurrent: version.isCurrent,
-        };
-      });
+    return chronological.map((version) => {
+      const activeIndex = activeIndexById.get(version.id);
+      const inherentScore = getVersionInherentScore(version);
+      const targetScore = getVersionTargetScore(version);
+      const previousScore =
+        activeIndex !== undefined && activeIndex > 0
+          ? getVersionInherentScore(activeVersions[activeIndex - 1])
+          : null;
+
+      return {
+        id: version.id,
+        label: formatVersionLabel(version),
+        versionNumber: version.versionNumber,
+        period: version.assessmentCycle || formatShortDate(version.createdAt),
+        createdAt: version.createdAt,
+        inherentScore,
+        targetScore,
+        delta: previousScore === null ? null : inherentScore - previousScore,
+        level: getRiskLevelLabel(getRiskLevelFromNilai(inherentScore)),
+        targetLevel:
+          targetScore > 0
+            ? getRiskLevelLabel(getRiskLevelFromNilai(targetScore))
+            : "-",
+        changeReason:
+          version.changeReason?.trim() ||
+          version.reviewSummary?.trim() ||
+          "Tidak ada catatan perubahan.",
+        isCurrent: version.isCurrent,
+        supersededByRiskId: version.supersededByRiskId ?? null,
+        supersededByVersionNumber: version.supersededByRiskId
+          ? versionNumberById.get(version.supersededByRiskId)
+          : undefined,
+      };
+    });
   }, [versions]);
 
-  const latest = rows.at(-1);
-  const previous = rows.length > 1 ? rows.at(-2) : undefined;
+  const activeRows = rows.filter((row) => !row.supersededByRiskId);
+  const latest = activeRows.at(-1);
+  const previous = activeRows.length > 1 ? activeRows.at(-2) : undefined;
   const deltaFromPrevious =
     latest && previous ? latest.inherentScore - previous.inherentScore : null;
   const targetGap =
@@ -165,12 +184,10 @@ export function RiskAnalysisTab({
     return (
       <Card>
         <CardContent>
-          <Empty>
-            <EmptyHeader>
-              <EmptyTitle>Belum ada versi risiko untuk dianalisis.</EmptyTitle>
-              <EmptyDescription>Setelah risiko disimpan sebagai versi, tab ini menampilkan perubahan nilai, level, target, dan catatan revisi.</EmptyDescription>
-            </EmptyHeader>
-          </Empty>
+          <IllustratedEmptyState
+            title="Belum ada versi risiko untuk dianalisis."
+            description="Setelah risiko disimpan sebagai versi, tab ini menampilkan perubahan nilai, level, target, dan catatan revisi."
+          />
         </CardContent>
       </Card>
     );
@@ -249,7 +266,7 @@ export function RiskAnalysisTab({
                 </p>
               </div>
               <Badge variant="outline" className="">
-                {rows.length} versi
+                {activeRows.length} versi aktif
               </Badge>
             </div>
           </CardHeader>
@@ -257,7 +274,7 @@ export function RiskAnalysisTab({
             <div className="h-72">
               <ChartContainer config={chartConfig} className="h-full w-full">
                 <LineChart
-                  data={rows}
+                  data={activeRows}
                   margin={{ top: 6, right: 18, left: -18, bottom: 0 }}
                 >
                   <XAxis
@@ -393,16 +410,12 @@ export function RiskAnalysisTab({
                           {formatShortDate(row.createdAt)}
                         </TableCell>
                         <TableCell className="align-middle whitespace-nowrap">
-                          <Badge
-                            variant="outline"
-                            className={cn(
-                              "",
-                              row.isCurrent
-                                ? ""
-                                : "",
-                            )}
-                          >
-                            {row.isCurrent ? "Terkini" : "Riwayat"}
+                          <Badge variant={row.supersededByRiskId ? "secondary" : "outline"}>
+                            {row.supersededByRiskId
+                              ? `Digantikan${row.supersededByVersionNumber ? ` oleh v${row.supersededByVersionNumber}` : ""}`
+                              : row.isCurrent
+                                ? "Terkini"
+                                : "Riwayat"}
                           </Badge>
                         </TableCell>
                         <TableCell className="align-middle whitespace-nowrap text-right">

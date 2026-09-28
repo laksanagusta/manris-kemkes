@@ -30,7 +30,7 @@ function TrendChartExample() {
       viewBox="0 0 360 180"
       className="h-64 w-full"
       role="img"
-      aria-label="Line chart contoh untuk tren jumlah risiko dan level risiko"
+      aria-label="Line chart contoh satu seri untuk tren jumlah risiko"
     >
       <g fill="none" stroke="oklch(0.5 0 0 / 10%)" strokeWidth="1">
         <path d="M16 36 H344" />
@@ -41,16 +41,11 @@ function TrendChartExample() {
       <path
         d="M16 48 L92 42 L168 58 L244 44 L320 52"
         fill="none"
-        stroke="var(--color-blue-600)"
-        strokeWidth="3.5"
+        stroke="var(--color-violet-400)"
+        strokeWidth="2.5"
         strokeLinecap="round"
         strokeLinejoin="round"
       />
-      <path d="M16 104 L92 110 L168 100 L244 108 L320 102" fill="none" stroke="var(--color-cyan-600)" strokeWidth="2" strokeLinecap="round" />
-      <path d="M16 116 L92 124 L168 112 L244 120 L320 114" fill="none" stroke="var(--color-green-600)" strokeWidth="2" strokeLinecap="round" />
-      <path d="M16 130 L92 134 L168 126 L244 132 L320 128" fill="none" stroke="var(--color-yellow-600)" strokeWidth="2" strokeLinecap="round" />
-      <path d="M16 148 L92 142 L168 150 L244 144 L320 146" fill="none" stroke="var(--color-orange-600)" strokeWidth="2" strokeLinecap="round" />
-      <path d="M16 160 L92 154 L168 162 L244 156 L320 158" fill="none" stroke="var(--color-red-600)" strokeWidth="2" strokeLinecap="round" />
     </svg>
   );
 }
@@ -70,23 +65,6 @@ export function OverviewDashboardExample() {
         <OverviewTrendCard
           title="Tren Jumlah Risiko"
           chart={<TrendChartExample />}
-          legend={
-            <>
-              {[
-                ["Total risiko", "bg-blue-600"],
-                ["Sangat Rendah", "bg-cyan-600"],
-                ["Rendah", "bg-green-600"],
-                ["Sedang", "bg-yellow-600"],
-                ["Tinggi", "bg-orange-600"],
-                ["Sangat Tinggi", "bg-red-600"],
-              ].map(([label, colorClass]) => (
-                <span key={label} role="listitem" className="inline-flex items-center gap-2">
-                  <span aria-hidden="true" className={`size-2 rounded-full ${colorClass}`} />
-                  {label}
-                </span>
-              ))}
-            </>
-          }
         />
       </section>
 

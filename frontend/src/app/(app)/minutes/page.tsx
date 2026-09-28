@@ -14,6 +14,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { AIFeaturesDisabledState } from "@/components/shared/ai-features-disabled-state";
 import {
   AccentButton,
+  ActionIconButton,
   CollectionPageHeader,
   CollectionEmptyState,
   CollectionSearchField,
@@ -32,7 +33,6 @@ import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { deleteMeetingMinute, listMeetingMinutes } from "@/lib/meeting-minutes";
 import type { MeetingMinute } from "@/types/meeting-minute";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -41,6 +41,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -248,8 +254,7 @@ function MinutesPageContent() {
         ) : (
           <Table className="min-w-[760px] table-fixed">
             <colgroup>
-              <col className="w-[12%]" />
-              <col className="w-[37%]" />
+              <col className="w-[49%]" />
               <col className="w-[15%]" />
               <col className="w-[10%]" />
               <col className="w-[18%]" />
@@ -257,7 +262,6 @@ function MinutesPageContent() {
             </colgroup>
             <CollectionTableHeader>
               <CollectionTableHeaderRow>
-                <CollectionTableHead >Kode</CollectionTableHead>
                 <CollectionTableHead className="px-24">Judul Notulen</CollectionTableHead>
                 <CollectionTableHead >Tanggal</CollectionTableHead>
                 <CollectionTableHead className="text-center">Peserta</CollectionTableHead>
@@ -270,9 +274,6 @@ function MinutesPageContent() {
             <TableBody>
               {filteredItems.map((minute) => (
                 <TableRow key={minute.id} className="hover:bg-muted/50">
-                  <TableCell className="">
-                    {minute.id.slice(0, 8)}
-                  </TableCell>
                   <TableCell className="max-w-[320px] px-24">
                     <Link
                       href={`/minutes/${minute.id}`}
@@ -280,8 +281,8 @@ function MinutesPageContent() {
                     >
                       {minute.title || "-"}
                     </Link>
-                    <p className="mt-0.5 truncate text-sm text-muted-foreground">
-                      {minute.summary || "Belum ada ringkasan"}
+                    <p className="mt-0.5 truncate font-mono text-xs text-tertiary-foreground">
+                      {minute.id.slice(0, 8)}
                     </p>
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
@@ -300,19 +301,26 @@ function MinutesPageContent() {
                   <TableCell className="sticky right-0">
                     <div className="flex justify-center">
                       {!isReadOnlyForOrg(user, minute.organizationId || "") && (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          aria-label={`Hapus notulen ${minute.title || minute.id}`}
-                          className="w-7"
-                          onClick={() => {
-                            setDeleteError(null);
-                            setMinuteToDelete(minute);
-                          }}
-                        >
-                          <Trash2 className="size-3.5" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <ActionIconButton
+                              className="text-muted-foreground"
+                              aria-label={`Opsi notulen ${minute.title || minute.id}`}
+                            />
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-52">
+                            <DropdownMenuItem
+                              variant="destructive"
+                              onClick={() => {
+                                setDeleteError(null);
+                                setMinuteToDelete(minute);
+                              }}
+                            >
+                              <Trash2 className="size-3.5" />
+                              Hapus Notulen
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       )}
                     </div>
                   </TableCell>

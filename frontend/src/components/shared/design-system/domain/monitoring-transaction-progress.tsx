@@ -41,6 +41,7 @@ export function MonitoringTransactionProgress({
   countLabel = "",
   showCount = true,
   ariaLabelOverride,
+  nativeTitle = true,
 }: {
   data?: MonitoringTransactionQuarters | null;
   className?: string;
@@ -48,6 +49,7 @@ export function MonitoringTransactionProgress({
   countLabel?: string;
   showCount?: boolean;
   ariaLabelOverride?: string;
+  nativeTitle?: boolean;
 }) {
   const transactions =
     items ??
@@ -75,7 +77,7 @@ export function MonitoringTransactionProgress({
         className,
       )}
       role="img"
-      title={ariaLabel}
+      title={nativeTitle ? ariaLabel : undefined}
     >
       {transactions.map(({ label, status }) => (
         <span

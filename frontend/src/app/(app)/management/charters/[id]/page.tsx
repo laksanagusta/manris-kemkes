@@ -49,6 +49,7 @@ import {
   DocumentListSection,
   DocumentFormSection,
   FieldErrorMessage,
+  IllustratedEmptyState,
   Input,
   Label,
   LoadingActionButton,
@@ -1104,7 +1105,11 @@ export default function RiskCharterDetailPage() {
             {historyLoading ? (
               <CollectionLoadingState message="Memuat riwayat versi..." />
             ) : versions.length === 0 ? (
-              <p className="text-sm text-secondary-foreground">Belum ada riwayat versi.</p>
+              <IllustratedEmptyState
+                title="Belum ada riwayat versi."
+                size="compact"
+                className="py-3"
+              />
             ) : (
               <VersionTimeline
                 activeId={charter.id}

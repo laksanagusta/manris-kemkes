@@ -84,6 +84,7 @@ import {
   AccentButton,
   CollectionDialogCancel,
   FieldErrorMessage,
+  IllustratedEmptyState,
   Input,
   PopoverSelectField,
   RiskScoreHeatmapModal,
@@ -91,9 +92,9 @@ import {
   Textarea,
 } from "@/components/shared/design-system";
 import {
-  MitigationTable,
   type MitigationItem,
 } from "@/components/shared/mitigation-table";
+import { MitigationPlanList } from "@/components/shared/mitigation-plan-list";
 import { MitigationPicker } from "@/components/shared/mitigation-picker";
 import {
   MitigationProgressTab,
@@ -316,8 +317,10 @@ function getRiskStatusLabel(status?: string | null) {
     case "pending_review":
       return "Dalam review";
     case "approved":
-    case "final":
       return "Disetujui";
+    case "final":
+    case "finalized":
+      return "Final";
     case "rejected":
       return "Ditolak";
     case "archived":
@@ -334,6 +337,7 @@ function getRiskStatusLabel(status?: string | null) {
 function getRiskStatusTone(status?: string | null): RiskStatusTone {
   switch ((status ?? "").trim().toLowerCase()) {
     case "final":
+    case "finalized":
     case "approved":
       return "success";
     case "assessment_in_review":
@@ -468,6 +472,22 @@ function waitForAiButtonTransition() {
       window.matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 540,
     );
   });
+}
+
+function FormErrorMessage({
+  error,
+  className,
+}: {
+  error?: string | { message?: string };
+  className?: string;
+}) {
+  const message = typeof error === "string" ? error : error?.message;
+
+  return (
+    <FieldErrorMessage className={cn("mt-1", className)}>
+      {message}
+    </FieldErrorMessage>
+  );
 }
 
 function AiFieldButton({
@@ -812,6 +832,8 @@ export default function RiskInputPage() {
     useState(false);
   const riskLoadRequestRef = useRef(0);
   const riskEventsRequestRef = useRef(0);
+  const finalizeValidationAttemptedRef = useRef(false);
+  const draftValidationAttemptedRef = useRef(false);
   const [ongoingAssessmentId, setOngoingAssessmentId] = useState<string | null>(
     null,
   );
@@ -1720,7 +1742,7 @@ export default function RiskInputPage() {
 
   const missingSections = sectionStatuses.filter((section) => !section.done);
   const lockedControlClass =
-    "disabled:pointer-events-none disabled:cursor-not-allowed disabled:!bg-disabled-surface disabled:!text-disabled-foreground disabled:!opacity-100";
+    "disabled:pointer-events-none disabled:cursor-not-allowed disabled:!bg-disabled-input-surface disabled:!text-disabled-foreground disabled:!opacity-100";
   const isRiskLocked =
     riskStatus === "final" ||
     !!riskArchivedAt;
@@ -1907,6 +1929,7 @@ export default function RiskInputPage() {
     const schemaFields = new Set<keyof FormInput>(finalizeSchemaFields);
     const schemaResult = formSchema.safeParse(values);
     let firstInvalidSection: SectionId | undefined;
+    const schemaErrors = new Map<keyof FormInput, string>();
 
     if (!schemaResult.success) {
       schemaResult.error.issues.forEach((issue) => {
@@ -1919,10 +1942,10 @@ export default function RiskInputPage() {
           return;
         }
 
-        setError(field as keyof FormInput, {
-          type: "manual",
-          message: issue.message,
-        });
+        const typedField = field as keyof FormInput;
+        if (!schemaErrors.has(typedField)) {
+          schemaErrors.set(typedField, issue.message);
+        }
 
         if (!firstInvalidSection) {
           firstInvalidSection = getSectionIdFromField(field);
@@ -1930,27 +1953,117 @@ export default function RiskInputPage() {
       });
     }
 
+    schemaFields.forEach((field) => {
+      const message = schemaErrors.get(field);
+      const currentMessage = form.getFieldState(field).error?.message;
+
+      if (message && message !== currentMessage) {
+        setError(field, { type: "manual", message });
+      } else if (!message && currentMessage) {
+        clearErrors(field);
+      }
+    });
+
     const missingFinalizeFields = missingSections.flatMap(
       (section) => finalizeRequiredFieldMessages[section.id] ?? [],
     );
+    const customFinalizeFields: Array<{
+      field: keyof FormInput;
+      valid: boolean;
+    }> = [
+      { field: "existingControl", valid: Boolean(values.existingControl?.trim()) },
+      { field: "controlEffectiveness", valid: Boolean(values.controlEffectiveness) },
+      { field: "treatmentOption", valid: Boolean(values.treatmentOption) },
+      {
+        field: "targetProbability",
+        valid:
+          Number(values.targetProbability) >= 1 &&
+          Number(values.targetProbability) <= 5,
+      },
+      {
+        field: "targetImpact",
+        valid: Number(values.targetImpact) >= 1 && Number(values.targetImpact) <= 5,
+      },
+    ];
 
-    missingFinalizeFields.forEach(({ field, message }) => {
-      if (schemaFields.has(field)) {
+    customFinalizeFields.forEach(({ field, valid }) => {
+      const currentMessage = form.getFieldState(field).error?.message;
+
+      if (valid) {
+        if (currentMessage) clearErrors(field);
         return;
       }
 
-      setError(field, { type: "manual", message });
-
+      const message = missingFinalizeFields.find(
+        (item) => item.field === field,
+      )?.message;
+      if (message && message !== currentMessage) {
+        setError(field, { type: "manual", message });
+      }
       if (!firstInvalidSection) {
         firstInvalidSection = getSectionIdFromField(field);
       }
     });
 
     return {
-      hasErrors: !schemaResult.success || missingFinalizeFields.length > 0,
+      hasErrors:
+        !schemaResult.success || customFinalizeFields.some(({ valid }) => !valid),
       firstInvalidSection,
     };
   };
+
+  useEffect(() => {
+    if (finalizeValidationAttemptedRef.current) {
+      applyFinalizeValidationErrors(form.getValues());
+    } else if (draftValidationAttemptedRef.current) {
+      const draftFields: Array<keyof FormInput> = [
+        "title",
+        "description",
+        "category",
+        "organizationId",
+      ];
+      const draftResult = draftSchema.safeParse(form.getValues());
+      const draftErrors = new Map<keyof FormInput, string>();
+
+      if (!draftResult.success) {
+        draftResult.error.issues.forEach((issue) => {
+          const field = issue.path[0];
+          if (
+            typeof field === "string" &&
+            draftFields.includes(field as keyof FormInput) &&
+            !draftErrors.has(field as keyof FormInput)
+          ) {
+            draftErrors.set(field as keyof FormInput, issue.message);
+          }
+        });
+      }
+
+      draftFields.forEach((field) => {
+        const message = draftErrors.get(field);
+        const currentMessage = form.getFieldState(field).error?.message;
+
+        if (message && message !== currentMessage) {
+          setError(field, { type: "manual", message });
+        } else if (!message && currentMessage) {
+          clearErrors(field);
+        }
+      });
+    }
+    // Recheck manual validation errors only when a value changes after validation.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    title,
+    description,
+    category,
+    causes,
+    impacts,
+    existingControl,
+    controlEffectiveness,
+    treatmentOption,
+    targetProbability,
+    targetImpact,
+    currentOrganizationId,
+  ]);
 
   const buildPayload = (data: FormValues, status: string) =>
     buildRiskRegisterPayload(data, status, {
@@ -2075,6 +2188,8 @@ export default function RiskInputPage() {
 
   const handleSaveDraft = async () => {
     submitTarget.current = "draft";
+    finalizeValidationAttemptedRef.current = false;
+    draftValidationAttemptedRef.current = false;
     clearErrors();
 
     const values = form.getValues();
@@ -2095,6 +2210,7 @@ export default function RiskInputPage() {
       toast.error(
         "Lengkapi judul, deskripsi, dan kategori sebelum menyimpan draft.",
       );
+      draftValidationAttemptedRef.current = true;
       scrollToSection("identifikasi");
       return;
     }
@@ -2133,6 +2249,8 @@ export default function RiskInputPage() {
     if (isSubmitting) return;
 
     submitTarget.current = "review";
+    finalizeValidationAttemptedRef.current = false;
+    draftValidationAttemptedRef.current = false;
     clearErrors();
 
     if (
@@ -2153,6 +2271,7 @@ export default function RiskInputPage() {
       return;
     }
 
+    finalizeValidationAttemptedRef.current = true;
     const { hasErrors, firstInvalidSection } = applyFinalizeValidationErrors(
       form.getValues(),
     );
@@ -2214,21 +2333,6 @@ export default function RiskInputPage() {
     },
     [selectedRiskId],
   );
-
-  const FormErrorMessage = ({
-    error,
-    className,
-  }: {
-    error?: string | { message?: string };
-    className?: string;
-  }) => {
-    const message = typeof error === "string" ? error : error?.message;
-    return (
-      <FieldErrorMessage className={cn("mt-1", className)}>
-        {message}
-      </FieldErrorMessage>
-    );
-  };
 
   // AI Generators
   async function handleGenerateRisk() {
@@ -2576,7 +2680,7 @@ export default function RiskInputPage() {
                           Risiko
                           <span className="text-destructive ml-0.5">*</span>
                         </Label>
-                        {!aiFeaturesDisabled ? (
+                        {!aiFeaturesDisabled && !isRiskLocked ? (
                           <AiFieldButton
                             loading={generatingRisk}
                             disabled={isRiskLocked}
@@ -2592,11 +2696,11 @@ export default function RiskInputPage() {
                           render={({ field }) => (
                             <Input
                               {...field}
+                              aria-invalid={Boolean(errors.title)}
                               disabled={isRiskLocked}
                               className={cn(
                                 "",
                                 lockedControlClass,
-                                errors.title && "",
                               )}
                             />
                           )}
@@ -2617,11 +2721,11 @@ export default function RiskInputPage() {
                         render={({ field }) => (
                           <Textarea
                             {...field}
+                            aria-invalid={Boolean(errors.description)}
                             disabled={isRiskLocked}
                             className={cn(
                               "",
                               lockedControlClass,
-                              errors.description && "",
                             )}
                           />
                         )}
@@ -2664,7 +2768,7 @@ export default function RiskInputPage() {
                           Sebab
                           <span className="text-destructive ml-0.5">*</span>
                         </Label>
-                        {!aiFeaturesDisabled ? (
+                        {!aiFeaturesDisabled && !isRiskLocked ? (
                           <AiFieldButton
                             loading={generatingCause}
                             disabled={!canUseAiAssist || isRiskLocked}
@@ -2679,10 +2783,14 @@ export default function RiskInputPage() {
                         render={({ field }) => (
                           <EditableItemsTable
                             items={field.value}
+                            invalid={Boolean(errors.causes)}
+                            itemErrors={field.value.map((_, index) => errors.causes?.[index]?.text?.message)}
+                            emptyStatePresentation="plain"
                             onChange={field.onChange}
                             addItemLabel="Tambah sebab"
                             emptyMessage="Belum ada sebab"
                             disabled={isRiskLocked}
+                            hideAddButton={isRiskLocked}
                           />
                         )}
                       />
@@ -2744,7 +2852,7 @@ export default function RiskInputPage() {
                           Dampak
                           <span className="text-destructive ml-0.5">*</span>
                         </Label>
-                        {!aiFeaturesDisabled ? (
+                        {!aiFeaturesDisabled && !isRiskLocked ? (
                           <AiFieldButton
                             loading={generatingImpact}
                             disabled={!canUseAiAssist || isRiskLocked}
@@ -2759,9 +2867,13 @@ export default function RiskInputPage() {
                         render={({ field }) => (
                           <EditableItemsTable
                             items={field.value}
+                            invalid={Boolean(errors.impacts)}
+                            itemErrors={field.value.map((_, index) => errors.impacts?.[index]?.text?.message)}
+                            emptyStatePresentation="plain"
                             onChange={field.onChange}
                             addItemLabel="Tambah dampak"
                             disabled={isRiskLocked}
+                            hideAddButton={isRiskLocked}
                           />
                         )}
                       />
@@ -2789,6 +2901,7 @@ export default function RiskInputPage() {
                         control={control}
                         render={({ field }) => (
                           <EditableList
+                            invalid={Boolean(errors.existingControl)}
                             value={field.value || ""}
                             onChange={field.onChange}
                             disabled={isRiskLocked}
@@ -2843,11 +2956,18 @@ export default function RiskInputPage() {
                       </Label>
                       <RiskScorePickerTrigger
                         title="Skor Risiko"
+                        presentation="card"
+                        invalid={Boolean(errors.probability || errors.impact)}
                         probability={probability}
                         impact={impact}
                         onClick={() => setScorePickerMode("inherent")}
                         disabled={isRiskLocked}
                       />
+                      {!riskId ? (
+                        <p className="text-xs text-tertiary-foreground">
+                          Nilai awal terisi otomatis. Sesuaikan probabilitas dan dampak dengan hasil asesmen sebelum finalisasi.
+                        </p>
+                      ) : null}
                     </div>
                   </CardContent>
                 </Card>
@@ -2927,7 +3047,7 @@ export default function RiskInputPage() {
                         <Label className="text-sm font-medium text-foreground">
                           Rencana Mitigasi
                         </Label>
-                        {!aiFeaturesDisabled ? (
+                        {!aiFeaturesDisabled && !isRiskLocked ? (
                           <MitigationPicker
                             title={title}
                             description={description}
@@ -2967,7 +3087,7 @@ export default function RiskInputPage() {
                         name="mitigations"
                         control={control}
                         render={({ field }) => (
-                          <MitigationTable
+                          <MitigationPlanList
                             items={(field.value ?? []).map(
                               (mitigation): MitigationItem => ({
                                 id: mitigation.id,
@@ -2996,7 +3116,9 @@ export default function RiskInputPage() {
                             )}
                             onChange={field.onChange}
                             loadPicOptions={loadPicOptions}
+                            emptyStatePresentation="plain"
                             disabled={isRiskLocked}
+                            hideAddButton={isRiskLocked}
                             actionErrors={mitigationActionErrors}
                             showPlaceholders={false}
                           />
@@ -3018,6 +3140,7 @@ export default function RiskInputPage() {
                           })
                         }
                         disabled={isRiskLocked}
+                        aria-invalid={Boolean(errors.nextReviewDate)}
                         className={cn("", lockedControlClass)}
                       />
                     </div>
@@ -3042,11 +3165,18 @@ export default function RiskInputPage() {
                       </div>
                       <RiskScorePickerTrigger
                         title="Target penurunan"
+                        presentation="card"
+                        invalid={Boolean(errors.targetProbability || errors.targetImpact)}
                         probability={targetProbability}
                         impact={targetImpact}
                         onClick={() => setScorePickerMode("target")}
                         disabled={isRiskLocked}
                       />
+                      {!riskId ? (
+                        <p className="text-xs text-tertiary-foreground">
+                          Target awal terisi otomatis. Sesuaikan dengan hasil mitigasi yang realistis.
+                        </p>
+                      ) : null}
                       <div className="grid gap-1 md:grid-cols-2">
                         <FormErrorMessage
                           error={errors.targetProbability?.message}
@@ -3292,11 +3422,16 @@ export default function RiskInputPage() {
                               </li>
                             ))}
                           </ul>
+                        ) : riskStatus === "final" ? (
+                          <IllustratedEmptyState
+                            title="Belum ada kejadian terkait."
+                            titleClassName="text-secondary-foreground"
+                            size="compact"
+                            className="py-2"
+                          />
                         ) : (
                           <div className="rounded-lg bg-state-surface px-3 py-4 text-center text-xs text-state-foreground">
-                            {riskStatus === "final"
-                              ? "Belum ada kejadian terkait."
-                              : "Finalisasi risiko sebelum mencatat dan menautkan kejadian."}
+                            Finalisasi risiko sebelum mencatat dan menautkan kejadian.
                           </div>
                         )}
                       </div>
@@ -3370,11 +3505,15 @@ export default function RiskInputPage() {
                             versions={visibleRiskVersions}
                             onVersionSelect={handleVersionSelect}
                           />
+                        ) : riskId ? (
+                          <IllustratedEmptyState
+                            title="Belum ada riwayat versi."
+                            size="compact"
+                            className="py-2"
+                          />
                         ) : (
                           <p className="rounded-lg bg-state-surface px-3 py-2 text-xs text-state-foreground">
-                            {riskId
-                              ? "Belum ada riwayat versi."
-                              : "Simpan draft untuk membentuk riwayat versi."}
+                            Simpan draft untuk membentuk riwayat versi.
                           </p>
                         )}
                       </div>

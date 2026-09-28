@@ -17,7 +17,7 @@ export function WarningCard({
         <div className="flex items-start justify-between gap-3">
           <div className="space-y-1">
             <p className="font-semibold">{title}</p>
-            {description ? <p className="text-muted-foreground">{description}</p> : null}
+            {description ? <p className="text-xs text-muted-foreground">{description}</p> : null}
           </div>
           {action}
         </div>

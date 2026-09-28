@@ -1,5 +1,6 @@
 "use client";
 
+import { SettingsProvider } from "@/components/settings/settings-provider";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AppTopbar } from "@/components/app-topbar";
 import {
@@ -41,22 +42,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }, [hasFullSession, token]);
 
   return (
-    <TooltipProvider delayDuration={200}>
-      <SidebarProvider>
-        <div className="relative flex min-h-svh w-full flex-col bg-background pt-14">
-          <AppTopbar />
-          <div className="flex min-h-0 flex-1 w-full">
-            <AppSidebar inboxBadge={hasFullSession ? inboxCount : 0} />
-            <SidebarInset className="min-w-0 overflow-x-hidden p-4 md:p-6">
-              <main className="flex min-w-0 flex-1 flex-col gap-4">
-                <div className="w-full min-w-0 pb-8">
-                  {children}
-                </div>
-              </main>
-            </SidebarInset>
+    <SettingsProvider>
+      <TooltipProvider delayDuration={200}>
+        <SidebarProvider>
+          <div className="relative flex min-h-svh w-full flex-col bg-background pt-14">
+            <AppTopbar />
+            <div className="flex min-h-0 flex-1 w-full">
+              <AppSidebar inboxBadge={hasFullSession ? inboxCount : 0} />
+              <SidebarInset className="min-w-0 overflow-x-hidden p-4 md:p-6">
+                <main className="flex min-w-0 flex-1 flex-col gap-4">
+                  <div className="w-full min-w-0 pb-8">
+                    {children}
+                  </div>
+                </main>
+              </SidebarInset>
+            </div>
           </div>
-        </div>
-      </SidebarProvider>
-    </TooltipProvider>
+        </SidebarProvider>
+      </TooltipProvider>
+    </SettingsProvider>
   );
 }

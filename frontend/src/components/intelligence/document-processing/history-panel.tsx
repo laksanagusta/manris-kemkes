@@ -21,6 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { IllustratedEmptyState } from "@/components/shared/design-system";
 import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 import type { ProcessingJob, ProcessingStatus } from "@/types/document-processing";
 import { formatDuration } from "./upload-utils";
@@ -187,9 +188,12 @@ export function HistoryPanel({
           })}
         </div>
       ) : (
-        <div className="rounded-lg border border-dashed border-border/80 p-3 text-xs leading-5 text-muted-foreground">
-          Belum ada proses tersimpan. Proses yang selesai akan muncul di sini.
-        </div>
+        <IllustratedEmptyState
+          title="Belum ada proses tersimpan"
+          description="Proses yang selesai akan muncul di sini."
+          size="compact"
+          className="py-2"
+        />
       )}
       <div className="flex items-center gap-2 px-1 pt-1 text-xs leading-4 text-muted-foreground/80">
         <MoreHorizontal className="size-3" />

@@ -56,7 +56,7 @@ func (r *fakeGenerateTaskRepo) ListAll(context.Context, []uuid.UUID) ([]*entity.
 	return nil, nil
 }
 
-func (r *fakeGenerateTaskRepo) ListAllPaginated(context.Context, []uuid.UUID, string, int, int) ([]*entity.MitigationTask, int, error) {
+func (r *fakeGenerateTaskRepo) ListAllPaginated(context.Context, []uuid.UUID, string, string, string, int, int) ([]*entity.MitigationTask, int, error) {
 	return nil, 0, nil
 }
 
@@ -111,7 +111,7 @@ func (r *fakeSubmitMitigationTaskRepo) GetRecurringMitigations(context.Context) 
 func (r *fakeSubmitMitigationTaskRepo) ListAll(context.Context, []uuid.UUID) ([]*entity.MitigationTask, error) {
 	return nil, errors.New("not implemented")
 }
-func (r *fakeSubmitMitigationTaskRepo) ListAllPaginated(context.Context, []uuid.UUID, string, int, int) ([]*entity.MitigationTask, int, error) {
+func (r *fakeSubmitMitigationTaskRepo) ListAllPaginated(context.Context, []uuid.UUID, string, string, string, int, int) ([]*entity.MitigationTask, int, error) {
 	return nil, 0, errors.New("not implemented")
 }
 func (r *fakeSubmitMitigationTaskRepo) TaskExistsForPeriod(context.Context, uuid.UUID, string, string) (bool, error) {

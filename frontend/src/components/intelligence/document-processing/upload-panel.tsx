@@ -106,10 +106,10 @@ function DropZone({
       }}
       onDrop={onDrop}
       className={cn(
-        "group relative flex min-h-[300px] cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-6 py-12 text-center outline-none transition-[background-color,border-color,transform,box-shadow] duration-200 ease-(--ease-out) focus-visible:ring-2 focus-visible:ring-ring/40 sm:min-h-[340px] sm:px-10 motion-reduce:transition-none",
+        "group relative flex min-h-[300px] cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed bg-card px-6 py-12 text-center outline-none transition-[background-color,border-color,transform,box-shadow] duration-200 ease-(--ease-out) focus-visible:ring-2 focus-visible:ring-ring/40 sm:min-h-[340px] sm:px-10 motion-reduce:transition-none",
         dragActive
-          ? "scale-[1.008] border-primary/60 bg-primary/5"
-          : "border-border bg-card hover:border-foreground/25 hover:bg-state-surface",
+          ? "scale-[1.008] border-primary/60"
+          : "border-border hover:border-foreground/25 hover:bg-card",
       )}
     >
       <input

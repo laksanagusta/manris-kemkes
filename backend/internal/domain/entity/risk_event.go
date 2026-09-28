@@ -41,8 +41,11 @@ type RiskEvent struct {
 	CreatedByName         string             `json:"createdByName,omitempty"`
 	UpdatedBy             *uuid.UUID         `json:"updatedBy,omitempty"`
 	LinkedRisks           []IncidentRiskLink `json:"linkedRisks"`
-	CreatedAt             time.Time          `json:"createdAt"`
-	UpdatedAt             time.Time          `json:"updatedAt"`
+	// Quarterly reports keep relation presence without exposing risk details
+	// belonging to organizations outside the authorized report scope.
+	HasLinkedRisks *bool     `json:"hasLinkedRisks,omitempty"`
+	CreatedAt      time.Time `json:"createdAt"`
+	UpdatedAt      time.Time `json:"updatedAt"`
 }
 
 func (e *RiskEvent) Validate() error {

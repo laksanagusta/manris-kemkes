@@ -102,7 +102,7 @@ test("overview and catalogue use the same dashboard primitives", () => {
   );
 });
 
-test("dashboard cards use concise contextual subtitles", () => {
+test("dashboard cards use concise title-only headers", () => {
   assert.doesNotMatch(overviewPage, /Seluruh risiko aktif/);
   assert.doesNotMatch(overviewPage, /Prioritas pengendalian/);
   assert.doesNotMatch(overviewPage, /Perlu tindak lanjut/);
@@ -111,22 +111,17 @@ test("dashboard cards use concise contextual subtitles", () => {
     trendCard,
     /Perbandingan skor aktual dan target dalam empat kuartal terakhir/,
   );
-  assert.match(
-    topRisksCard,
-    /subtitle="Prioritas berdasarkan skor risiko tertinggi\."/,
-  );
-  assert.match(
-    currentHeatmap,
-    /subtitle="Distribusi probabilitas dan dampak pada kuartal berjalan\."/,
-  );
+  assert.doesNotMatch(topRisksCard, /subtitle=/);
+  assert.doesNotMatch(currentHeatmap, /subtitle=/);
+  assert.doesNotMatch(trendCard, /subtitle=/);
   assert.doesNotMatch(currentHeatmap, /risiko aktif terpetakan/);
   assert.match(trendCard, /className="font-mono font-medium text-foreground/);
 });
 
-test("dashboard KPI titles use the shared muted 12px label", () => {
+test("dashboard KPI titles use the shared muted 14px label", () => {
   assert.match(
     dashboardKpiCard,
-    /<CardTitle className="text-xs text-muted-foreground">/,
+    /<CardTitle className="text-sm text-muted-foreground">/,
   );
   assert.doesNotMatch(dashboardKpiCard, /uppercase|tracking-\[1px\]/);
 });

@@ -21,6 +21,7 @@ import {
 import {
   ActionIconButton,
   CollectionDialogCancel,
+  IllustratedEmptyState,
 } from "@/components/shared/design-system";
 
 import type { CommunicationLog } from "@/types/communication-log";
@@ -387,9 +388,12 @@ export function RiskLogTimeline({
         ) : (
           <div className="space-y-1">
             {timelineItems.length === 0 ? (
-              <p className="py-2 text-xs text-muted-foreground">
-                Belum ada catatan aktivitas.
-              </p>
+              <IllustratedEmptyState
+                title="Belum ada catatan aktivitas."
+                titleClassName="text-secondary-foreground"
+                size="compact"
+                className="py-2"
+              />
             ) : (
               visibleTimelineItems.map((item) => (
                 <ActivityFeedRow

@@ -7,6 +7,7 @@ import type { OrganizationGroupListItem } from "@/lib/api/organization-groups";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SearchInput } from "@/components/shared/search-input";
+import { IllustratedEmptyState } from "@/components/shared/design-system/feedback/illustrated-empty-state";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 
@@ -147,9 +148,11 @@ export function OrganizationGroupPicker({
         <ScrollArea className="h-56">
           <div className="p-1">
             {filteredGroups.length === 0 ? (
-              <div className="px-3 py-5 text-center text-xs text-muted-foreground">
-                {emptyMessage}
-              </div>
+              <IllustratedEmptyState
+                title={emptyMessage}
+                size="compact"
+                className="py-2"
+              />
             ) : (
               filteredGroups.map((group) => {
                 const isSelected = group.id === value;

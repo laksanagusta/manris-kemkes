@@ -107,6 +107,7 @@ export interface RiskVersionTimelineItem {
   versionGroupId: string;
   versionNumber?: number;
   previousRiskId?: string | null;
+  supersededByRiskId?: string | null;
   probability: number;
   impact: number;
   inherentScore: number;

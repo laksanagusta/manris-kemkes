@@ -2,17 +2,28 @@
 
 import {
   useCallback,
-  useDeferredValue,
   useEffect,
   useId,
   useRef,
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
-import { Check, ChevronDown, Loader2, Search, UserRound } from "@/components/shared/icons";
+import { Check, ChevronDown, Loader2, Search, UserRound, X } from "@/components/shared/icons";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SearchInput } from "@/components/shared/search-input";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { DitherAvatar } from "@/components/dither-kit/avatar";
+import { IllustratedEmptyState } from "@/components/shared/design-system/feedback/illustrated-empty-state";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   appendUniqueUserOptions,
@@ -38,6 +49,7 @@ interface RemoteUserPickerProps {
   disabled?: boolean;
   value: UserPickerOption | null;
   onSelect: (option: UserPickerOption) => void;
+  presentation?: "default" | "assignee";
   loadOptions: (params: {
     q: string;
     page: number;
@@ -56,16 +68,18 @@ export function RemoteUserPicker({
   disabled,
   value,
   onSelect,
+  presentation = "default",
   loadOptions,
   className,
   iconOnly = false,
 }: RemoteUserPickerProps) {
   const panelId = useId();
+  const isAssignee = presentation === "assignee";
   const containerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const deferredQuery = useDeferredValue(query.trim());
+  const [debouncedQuery, setDebouncedQuery] = useState("");
   const [page, setPage] = useState(1);
   const [options, setOptions] = useState<UserPickerOption[]>(
     value ? [value] : [],
@@ -75,17 +89,24 @@ export function RemoteUserPicker({
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const totalOptions = options.length;
 
   const handleOpenChange = useCallback((nextOpen: boolean) => {
     setOpen(nextOpen);
 
     if (!nextOpen) {
       setQuery("");
+      setDebouncedQuery("");
       setPage(1);
       setErrorMessage("");
       setActiveIndex(-1);
     }
   }, []);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => setDebouncedQuery(query.trim()), 300);
+    return () => window.clearTimeout(timeoutId);
+  }, [query]);
 
   useEffect(() => {
     if (!value) {
@@ -105,7 +126,16 @@ export function RemoteUserPicker({
     setHasMore(false);
     setErrorMessage("");
     setActiveIndex(-1);
-  }, [deferredQuery, open, value]);
+  }, [debouncedQuery, open, value]);
+
+  useEffect(() => {
+    if (!open || !isAssignee) {
+      return;
+    }
+
+    const frameId = window.requestAnimationFrame(() => inputRef.current?.focus());
+    return () => window.cancelAnimationFrame(frameId);
+  }, [isAssignee, open]);
 
   useEffect(() => {
     if (!disabled || !open) {
@@ -130,7 +160,7 @@ export function RemoteUserPicker({
     }
     setErrorMessage("");
 
-    loadOptions({ q: deferredQuery, page, limit: pageLimit })
+    loadOptions({ q: debouncedQuery, page, limit: pageLimit })
       .then((result) => {
         if (cancelled) {
           return;
@@ -169,11 +199,11 @@ export function RemoteUserPicker({
     return () => {
       cancelled = true;
     };
-  }, [deferredQuery, loadOptions, open, page, value]);
+  }, [debouncedQuery, loadOptions, open, page, value]);
 
   useEffect(() => {
     setActiveIndex((current) => {
-      if (options.length === 0) {
+      if (totalOptions === 0) {
         return -1;
       }
 
@@ -181,13 +211,13 @@ export function RemoteUserPicker({
         return 0;
       }
 
-      if (current >= options.length) {
-        return options.length - 1;
+      if (current >= totalOptions) {
+        return totalOptions - 1;
       }
 
       return current;
     });
-  }, [options]);
+  }, [totalOptions]);
 
   const handleSelect = useCallback(
     (option: UserPickerOption) => {
@@ -204,7 +234,7 @@ export function RemoteUserPicker({
         setActiveIndex((current) =>
           getNextUserPickerActiveIndex({
             currentIndex: current,
-            total: options.length,
+            total: totalOptions,
             direction: 1,
           }),
         );
@@ -216,7 +246,7 @@ export function RemoteUserPicker({
         setActiveIndex((current) =>
           getNextUserPickerActiveIndex({
             currentIndex: current,
-            total: options.length,
+            total: totalOptions,
             direction: -1,
           }),
         );
@@ -226,13 +256,127 @@ export function RemoteUserPicker({
       if (event.key === "Enter" && activeIndex >= 0) {
         event.preventDefault();
         const option = options[activeIndex];
-        if (option) {
-          handleSelect(option);
-        }
+        if (option) handleSelect(option);
       }
     },
-    [activeIndex, handleSelect, options],
+    [activeIndex, handleSelect, options, totalOptions],
   );
+
+  if (isAssignee) {
+    return (
+      <DropdownMenu open={open} onOpenChange={handleOpenChange}>
+        <div ref={containerRef} className={cn("relative w-full", className)}>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              role="combobox"
+              aria-label={title}
+              disabled={disabled}
+              className="group/popover-select w-full justify-between active:translate-y-0 active:scale-100"
+            >
+              {value ? (
+                <DitherAvatar
+                  name={value.name}
+                  size={18}
+                  className="overflow-hidden rounded-full"
+                />
+              ) : null}
+              <span className={cn("min-w-0 flex-1 truncate text-left", !value && "text-muted-foreground")}>
+                {value?.name ?? placeholder}
+              </span>
+              <ChevronDown className="pointer-events-none size-4 shrink-0 opacity-60 transition-transform duration-150 ease-(--ease-out) group-data-[state=open]/popover-select:rotate-180 motion-reduce:transition-none" />
+            </Button>
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent
+            align="start"
+            sideOffset={8}
+            className="w-[var(--radix-dropdown-menu-trigger-width)]"
+          >
+            <div className="flex items-center px-1.5">
+              <SearchInput
+                ref={inputRef}
+                type="text"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key !== "Escape" && event.key !== "Tab") {
+                    event.stopPropagation();
+                  }
+                }}
+                placeholder="Assign to…"
+                aria-label={`${title}: cari`}
+                className="h-8 min-w-0 flex-1 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
+              />
+              {query ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-xs"
+                  aria-label="Hapus pencarian"
+                  onClick={() => {
+                    setQuery("");
+                    inputRef.current?.focus();
+                  }}
+                  className="shrink-0 text-muted-foreground"
+                >
+                  <X />
+                </Button>
+              ) : null}
+            </div>
+            <p className="sr-only">{description}</p>
+            <DropdownMenuSeparator />
+            <DropdownMenuRadioGroup
+              value={value?.id ?? ""}
+              onValueChange={(selectedId) => {
+                const selectedOption = options.find((option) => option.id === selectedId);
+                if (selectedOption) handleSelect(selectedOption);
+              }}
+            >
+              {options.map((option) => (
+                <DropdownMenuRadioItem key={option.id} value={option.id}>
+                  <DitherAvatar
+                    name={option.name}
+                    size={18}
+                    className="overflow-hidden rounded-full"
+                  />
+                  <span className="truncate">{option.name}</span>
+                </DropdownMenuRadioItem>
+              ))}
+            </DropdownMenuRadioGroup>
+            {isLoading && options.length === 0 ? (
+              <div className="flex items-center gap-2 px-2 py-2 text-sm text-muted-foreground" role="status">
+                <Loader2 className="size-4 animate-spin" />
+                Memuat user...
+              </div>
+            ) : null}
+            {!isLoading && errorMessage ? (
+              <div className="px-2 py-2 text-sm text-muted-foreground" role="alert">
+                {errorMessage}
+              </div>
+            ) : null}
+            {!isLoading && !errorMessage && options.length === 0 ? (
+              <div className="px-2 py-2 text-sm text-muted-foreground">{emptyMessage}</div>
+            ) : null}
+            {hasMore ? (
+              <DropdownMenuItem
+                disabled={isLoading || isLoadingMore}
+                onSelect={(event) => {
+                  event.preventDefault();
+                  setPage((current) => current + 1);
+                }}
+                className="justify-center text-muted-foreground"
+              >
+                {isLoadingMore ? <Loader2 className="size-4 animate-spin" /> : null}
+                {isLoadingMore ? "Memuat..." : "Muat lagi"}
+              </DropdownMenuItem>
+            ) : null}
+          </DropdownMenuContent>
+        </div>
+      </DropdownMenu>
+    );
+  }
 
   return (
     <Popover open={open} onOpenChange={handleOpenChange}>
@@ -249,7 +393,7 @@ export function RemoteUserPicker({
             className={cn(
               "group/remote-user-picker flex h-10 w-full items-center justify-between gap-1.5 rounded-lg border-0 bg-card py-2 pr-3 pl-3 text-sm whitespace-nowrap transition-[background-color,box-shadow] active:translate-y-0 active:scale-100 outline-none select-none hover:bg-muted/20 focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:ring-2 aria-invalid:ring-destructive/20 data-placeholder:text-muted-foreground *:data-[slot=select-value]:line-clamp-1 *:data-[slot=select-value]:flex *:data-[slot=select-value]:items-center *:data-[slot=select-value]:gap-1.5 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4",
               !value && "text-muted-foreground",
-        iconOnly && "size-8 justify-center border-0 bg-transparent p-0 !shadow-none hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-ring",
+              iconOnly && "size-8 justify-center border-0 bg-transparent p-0 !shadow-none hover:bg-sidebar-accent focus-visible:outline-2 focus-visible:outline-ring",
             )}
           >
             {iconOnly ? <UserRound className="size-4" /> : <>
@@ -260,16 +404,16 @@ export function RemoteUserPicker({
         </PopoverTrigger>
 
         <PopoverContent
+          align="start"
+          sideOffset={8}
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            inputRef.current?.focus();
+          }}
           style={{
             width: iconOnly
               ? "min(320px, calc(100vw - 2rem))"
               : "min(24rem, calc(100vw - 2rem))",
-          }}
-          align="start"
-          sideOffset={8}
-          onOpenAutoFocus={(e) => {
-            e.preventDefault();
-            inputRef.current?.focus();
           }}
         >
           <div className="flex flex-col">
@@ -307,14 +451,15 @@ export function RemoteUserPicker({
                 ) : null}
 
                 {!isLoading && !errorMessage && options.length === 0 ? (
-                  <div className="py-6 text-center text-sm text-muted-foreground">
-                    {emptyMessage}
-                  </div>
+                  <IllustratedEmptyState
+                    title={emptyMessage}
+                    size="compact"
+                    className="py-2"
+                  />
                 ) : null}
 
                 {options.map((option, optionIndex) => {
                   const isSelected = value?.id === option.id;
-                  const isActive = optionIndex === activeIndex;
 
                   return (
                     <button
@@ -325,19 +470,15 @@ export function RemoteUserPicker({
                       aria-selected={isSelected}
                       className={cn(
                         "relative flex h-8 w-full cursor-pointer items-center gap-2 rounded-lg pr-10 pl-2 text-sm outline-hidden select-none focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-foreground",
-                        (isSelected || isActive) ? "bg-accent text-accent-foreground" : "",
+                        (isSelected || optionIndex === activeIndex) && "bg-accent text-accent-foreground",
                       )}
                       onMouseEnter={() => setActiveIndex(optionIndex)}
                       onClick={() => handleSelect(option)}
                     >
-                      <UserRound
-                        className="size-4 shrink-0 text-muted-foreground"
-                        fill="currentColor"
-                        aria-hidden="true"
-                      />
+                      <UserRound className="size-4 shrink-0 text-muted-foreground" fill="currentColor" aria-hidden="true" />
                       <span className="truncate font-normal">{option.name}</span>
                       {isSelected ? (
-                        <span className="absolute right-3 flex size-4 items-center justify-center">
+                        <span className="absolute right-3 flex items-center gap-3 text-muted-foreground">
                           <Check className="size-4" />
                         </span>
                       ) : null}

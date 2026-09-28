@@ -25,7 +25,7 @@ export function DashboardKpiCard({
   return (
     <Card aria-busy={loading}>
       <CardHeader>
-        <CardTitle className="text-xs text-muted-foreground">{title}</CardTitle>
+        <CardTitle className="text-sm text-muted-foreground">{title}</CardTitle>
         {!loading && !error && trend ? (
           <CardAction>
             {trend === "up" ? (

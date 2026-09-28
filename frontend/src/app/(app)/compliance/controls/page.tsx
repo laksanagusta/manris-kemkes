@@ -32,6 +32,7 @@ import { Input } from "@/components/ui/input";
 import {
   CollectionPageHeader,
   CollectionToolbar,
+  CollectionEmptyState,
   PageStack,
 } from "@/components/shared/design-system";
 
@@ -104,7 +105,10 @@ export default function ControlsPage() {
         {loading ? (
            <div className="rounded-lg bg-state-surface px-4 py-10 text-center text-sm text-state-foreground">Memuat data control library...</div>
         ) : filteredControls.length === 0 ? (
-           <div className="rounded-lg bg-state-surface px-4 py-10 text-center text-sm text-state-foreground">Tidak ada control library yang ditemukan.</div>
+           <CollectionEmptyState
+             title="Tidak ada control library yang ditemukan."
+             description="Coba ubah kata kunci pencarian."
+           />
         ) : filteredControls.map((control) => {
           const isExpanded = expandedId === control.id;
           const lastTest = control.tests?.[0];
@@ -200,10 +204,10 @@ export default function ControlsPage() {
                         )) : (
                            <TableRow>
                              <TableCell colSpan={4} className="h-24">
-                               <div className="flex flex-col gap-1 text-left">
-                                 <p className="text-sm font-medium text-muted-foreground">Belum ada testing record untuk control ini</p>
-                                 <p className="text-xs text-muted-foreground/70">Tambahkan testing record baru untuk memulai pemantauan</p>
-                               </div>
+                               <CollectionEmptyState
+                                 title="Belum ada testing record untuk control ini"
+                                 description="Tambahkan testing record baru untuk memulai pemantauan."
+                               />
                              </TableCell>
                            </TableRow>
                         )}

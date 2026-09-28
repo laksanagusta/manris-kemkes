@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Download, Loader2 } from "@/components/shared/icons";
 import {
   CollapsibleCard,
+  CollectionEmptyState,
   CollectionLoadingState,
   CollectionTableSurface,
   CollectionTableHead,
@@ -160,11 +161,15 @@ export function WorkingPaperProgressCollapsible({
           {loading ? (
             <CollectionLoadingState message="Memuat progress kertas kerja..." />
           ) : progressData.length === 0 ? (
-            <div className="flex min-h-40 items-center justify-center rounded-lg bg-state-surface px-6 text-center text-sm text-state-foreground">
-              {activePeriodFilter === "all"
-                ? "Belum ada progress risiko pada hasil saat ini."
-                : `Belum ada progress risiko untuk periode ${activePeriodFilter}.`}
-            </div>
+            <CollectionEmptyState
+              title="Belum ada progress risiko"
+              description={
+                activePeriodFilter === "all"
+                  ? "Belum ada progress pada hasil saat ini."
+                  : `Belum ada progress untuk periode ${activePeriodFilter}.`
+              }
+              className="min-h-40"
+            />
           ) : (
             <LatestProgressTable
               data={progressData}

@@ -38,37 +38,9 @@ function getLastNQuarters(currentCycle: string, n: number): string[] {
 const chartConfig = {
   totalRisks: {
     label: "Total Risiko",
-    color: "var(--color-blue-600)",
-  },
-  sangatRendah: {
-    label: "Sangat Rendah",
-    color: "var(--color-cyan-600)",
-  },
-  rendah: {
-    label: "Rendah",
-    color: "var(--color-green-600)",
-  },
-  sedang: {
-    label: "Sedang",
-    color: "var(--color-yellow-600)",
-  },
-  tinggi: {
-    label: "Tinggi",
-    color: "var(--color-orange-600)",
-  },
-  sangatTinggi: {
-    label: "Sangat Tinggi",
-    color: "var(--color-red-600)",
+    color: "var(--color-violet-400)",
   },
 } satisfies ChartConfig;
-
-const riskLevelSeries = [
-  { key: "sangatRendah", label: "Sangat Rendah", colorClassName: "bg-cyan-600" },
-  { key: "rendah", label: "Rendah", colorClassName: "bg-green-600" },
-  { key: "sedang", label: "Sedang", colorClassName: "bg-yellow-600" },
-  { key: "tinggi", label: "Tinggi", colorClassName: "bg-orange-600" },
-  { key: "sangatTinggi", label: "Sangat Tinggi", colorClassName: "bg-red-600" },
-] as const;
 
 export function RiskCountTrendChart({
   risks,
@@ -85,11 +57,6 @@ export function RiskCountTrendChart({
       return {
         period: p,
         totalRisks: found?.totalRisks ?? 0,
-        sangatRendah: found?.sangatRendah ?? 0,
-        rendah: found?.rendah ?? 0,
-        sedang: found?.sedang ?? 0,
-        tinggi: found?.tinggi ?? 0,
-        sangatTinggi: found?.sangatTinggi ?? 0,
       };
     });
   }, [risks, currentCycle]);
@@ -97,27 +64,7 @@ export function RiskCountTrendChart({
   const hasData = chartData.some((d) => d.totalRisks > 0);
 
   return (
-    <OverviewTrendCard
-      title="Tren Jumlah Risiko"
-      subtitle="Total risiko dan distribusi per level dalam 4 kuartal terakhir."
-      legend={
-        <>
-          <span role="listitem" className="inline-flex items-center gap-2">
-            <span aria-hidden="true" className="size-2 rounded-full bg-blue-600" />
-            Total risiko
-          </span>
-          {riskLevelSeries.map((series) => (
-            <span key={series.key} role="listitem" className="inline-flex items-center gap-2">
-              <span
-                aria-hidden="true"
-                className={`size-2 rounded-full ${series.colorClassName}`}
-              />
-              {series.label}
-            </span>
-          ))}
-        </>
-      }
-    >
+    <OverviewTrendCard title="Tren Jumlah Risiko">
       {loading ? (
         <OverviewPanelState
           state="loading"
@@ -141,8 +88,8 @@ export function RiskCountTrendChart({
         <div>
           <div
             role="img"
-            aria-label={`Grafik total risiko dan jumlah risiko per level dari ${chartData[0]?.period} sampai ${chartData.at(-1)?.period}`}
-            className="h-72 w-full sm:h-80 lg:h-[22rem]"
+            aria-label={`Tren jumlah total risiko dari ${chartData[0]?.period} sampai ${chartData.at(-1)?.period}`}
+            className="h-72 w-full sm:h-80 xl:h-[27rem]"
           >
             <ChartContainer config={chartConfig} className="h-full w-full">
               <RechartsLineChart
@@ -189,27 +136,16 @@ export function RiskCountTrendChart({
                   dataKey="totalRisks"
                   stroke="var(--color-totalRisks)"
                   strokeWidth={2.5}
-                  dot={{ r: 2 }}
-                  activeDot={{ r: 4 }}
+                  dot={false}
+                  activeDot={false}
                 />
-                {riskLevelSeries.map((series) => (
-                  <Line
-                    key={series.key}
-                    type="monotone"
-                    dataKey={series.key}
-                    stroke={`var(--color-${series.key})`}
-                    strokeWidth={1.75}
-                    dot={{ r: 2 }}
-                    activeDot={{ r: 4 }}
-                  />
-                ))}
               </RechartsLineChart>
             </ChartContainer>
           </div>
           <ul className="sr-only">
             {chartData.map((item) => (
               <li key={item.period}>
-                {item.period}: total risiko {item.totalRisks}; sangat rendah {item.sangatRendah}; rendah {item.rendah}; sedang {item.sedang}; tinggi {item.tinggi}; sangat tinggi {item.sangatTinggi}
+                {item.period}: total risiko {item.totalRisks}
               </li>
             ))}
           </ul>

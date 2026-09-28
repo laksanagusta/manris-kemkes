@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
+import { IllustratedEmptyState } from "../feedback/illustrated-empty-state";
 
 export type PopoverSelectOption = {
   value: string;
@@ -27,6 +28,7 @@ export type PopoverSelectFieldProps = {
   invalid?: boolean;
   triggerClassName?: string;
   contentClassName?: string;
+  optionClassName?: string;
   emptyMessage?: string;
 };
 
@@ -41,6 +43,7 @@ export function PopoverSelectField({
   invalid = false,
   triggerClassName,
   contentClassName,
+  optionClassName,
   emptyMessage = "Tidak ada opsi.",
 }: PopoverSelectFieldProps) {
   const selected = options.find((option) => option.value === value);
@@ -76,13 +79,19 @@ export function PopoverSelectField({
         )}
       >
         {options.length === 0 ? (
-          <div className="h-8 px-2 text-sm leading-8 text-muted-foreground">
-            {emptyMessage}
-          </div>
+          <IllustratedEmptyState
+            title={emptyMessage}
+            size="compact"
+            className="py-2"
+          />
         ) : (
           <DropdownMenuRadioGroup value={value} onValueChange={onValueChange}>
             {options.map((option) => (
-              <DropdownMenuRadioItem key={option.value} value={option.value}>
+              <DropdownMenuRadioItem
+                key={option.value}
+                value={option.value}
+                className={optionClassName}
+              >
                 {option.label}
               </DropdownMenuRadioItem>
             ))}

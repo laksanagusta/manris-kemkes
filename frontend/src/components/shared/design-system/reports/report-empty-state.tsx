@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
+import { IllustratedEmptyState } from "../feedback/illustrated-empty-state";
 
 export function ReportEmptyState({
   title,
@@ -13,11 +13,10 @@ export function ReportEmptyState({
   className?: string;
 }) {
   return (
-    <Empty className={cn("min-h-40", className)}>
-      <EmptyHeader>
-        {title ? <EmptyTitle>{title}</EmptyTitle> : null}
-        <EmptyDescription>{description}</EmptyDescription>
-      </EmptyHeader>
-    </Empty>
+    <IllustratedEmptyState
+      title={title ?? "Belum ada data"}
+      description={description}
+      className={cn("min-h-40", className)}
+    />
   );
 }

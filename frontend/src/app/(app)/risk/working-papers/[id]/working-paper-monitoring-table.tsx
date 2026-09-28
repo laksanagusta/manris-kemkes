@@ -101,7 +101,7 @@ export function WorkingPaperMonitoringTable({
         <CollectionTableHeaderRow>
           <CollectionTableHead >Kode</CollectionTableHead>
           <CollectionTableHead >Versi</CollectionTableHead>
-          <CollectionTableHead className="px-24">Risiko</CollectionTableHead>
+          <CollectionTableHead>Risiko</CollectionTableHead>
           <CollectionTableHead >Perubahan Skor</CollectionTableHead>
           <CollectionTableHead >Status</CollectionTableHead>
           <CollectionTableHead className="text-center">
@@ -134,7 +134,7 @@ export function WorkingPaperMonitoringTable({
               <TableCell className="truncate">
                 {row.versionNumber != null ? `v${row.versionNumber}` : "-"}
               </TableCell>
-              <TableCell className="max-w-0 px-24">
+              <TableCell className="max-w-0">
                 <span
                   className="block truncate text-sm font-medium leading-relaxed text-foreground"
                   title={row.title}

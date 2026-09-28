@@ -53,6 +53,8 @@ import {
   ActionButton,
   CollectionDialogCancel,
   CollectionSearchField,
+  IllustratedEmptyState,
+  InlineEmptyState,
   LabeledList,
   LabeledListItem,
 } from "@/components/shared/design-system";
@@ -985,7 +987,7 @@ function MeetingIntelligenceWorkspaceContent({
             ) : (
               <Card className="flex-row items-center">
                 <CardContent role="status" className="w-full">
-                  Briefing akan muncul di sini setelah Anda menjalankan mode ini.
+                  <InlineEmptyState message="Briefing akan muncul di sini setelah Anda menjalankan mode ini." />
                 </CardContent>
               </Card>
             )
@@ -1584,9 +1586,11 @@ function MeetingIntelligenceWorkspaceContent({
                           );
                         })
                       ) : (
-                        <p className="px-3 py-6 text-center text-sm text-muted-foreground">
-                          Risiko tidak ditemukan.
-                        </p>
+                        <IllustratedEmptyState
+                          title="Risiko tidak ditemukan."
+                          size="compact"
+                          className="py-2"
+                        />
                       )}
                     </div>
                   </PopoverContent>

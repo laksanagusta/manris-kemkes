@@ -21,6 +21,7 @@ import {
   CollectionPageHeader,
   CollectionPagination,
   CollectionToolbar,
+  CollectionEmptyState,
   KpiCard,
   MetricGrid,
   PageStack,
@@ -407,10 +408,10 @@ export default function OrganizationsManagementPage() {
               ) : organizations.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="h-24">
-                    <div className="flex flex-col gap-1 text-left">
-                      <p className="text-sm font-medium text-state-foreground">Belum ada data organisasi</p>
-                      <p className="text-xs text-state-foreground/70">Tambahkan organisasi baru untuk memulai</p>
-                    </div>
+                    <CollectionEmptyState
+                      title="Belum ada data organisasi"
+                      description="Tambahkan organisasi baru untuk memulai."
+                    />
                   </TableCell>
                 </TableRow>
               ) : (

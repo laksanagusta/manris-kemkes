@@ -13,6 +13,7 @@ import {
   CollectionTableHead,
   CollectionTableHeader,
   CollectionTableHeaderRow,
+  IllustratedEmptyState,
 } from "@/components/shared/design-system";
 import { Button } from "@/components/ui/button";
 import {
@@ -263,7 +264,11 @@ export function OrderedUserSelectionTable({
                 colSpan={5}
                 className="h-24"
               >
-                {emptyStateMessage}
+                <IllustratedEmptyState
+                  title={emptyStateMessage}
+                  size="compact"
+                  className="py-2"
+                />
               </TableCell>
             </TableRow>
           ) : (

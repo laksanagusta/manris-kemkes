@@ -1,7 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useMemo, useRef } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/auth-context";
@@ -18,6 +17,7 @@ import {
 } from "@/components/shared/icons";
 import {
   AccentButton,
+  IllustratedEmptyState,
   ActionButton,
   MitigationProgressDialog,
 } from "@/components/shared/design-system";
@@ -74,7 +74,7 @@ function getTaskStatusTone(task: MitigationTask) {
   }
 }
 
-export function MitigationStatusTable({
+export const MitigationStatusTable = memo(function MitigationStatusTable({
   monitoringId,
 }: MitigationStatusTableProps) {
   const { token } = useAuth();
@@ -201,14 +201,11 @@ export function MitigationStatusTable({
 
   if (tasks.length === 0) {
     return (
-      <div className="rounded-lg bg-state-surface p-3 text-state-foreground">
-        <p className="text-sm font-medium leading-6 text-state-foreground">
-          Belum ada tugas mitigasi pada periode ini
-        </p>
-        <p className="mt-1 text-sm leading-6 text-state-foreground/80">
-          Finalisasi dapat dilakukan tanpa laporan mitigasi.
-        </p>
-      </div>
+      <IllustratedEmptyState
+        title="Belum ada tugas mitigasi pada periode ini"
+        description="Finalisasi dapat dilakukan tanpa laporan mitigasi."
+        size="compact"
+      />
     );
   }
 
@@ -376,4 +373,4 @@ export function MitigationStatusTable({
       />
     </div>
   );
-}
+});

@@ -7,6 +7,7 @@ import { useForm, useFieldArray, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
+import { ApiError } from "@/lib/api";
 import { listUsers, type UserListItem } from "@/lib/api/users";
 import {
   createWorkingPaper,
@@ -326,7 +327,11 @@ export default function CreateWorkingPaperPage() {
       toast.success("Kertas kerja berhasil dibuat");
       router.push(`/risk/working-papers/${result.id}`);
     } catch (error) {
-      console.error(error);
+      const isClientError =
+        error instanceof ApiError && error.status >= 400 && error.status < 500;
+      if (!isClientError) {
+        console.error("Failed to create working paper", error);
+      }
       toast.error(getWorkingPaperCreateErrorMessage(error));
     }
   };

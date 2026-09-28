@@ -1,10 +1,6 @@
 "use client";
 
-import {
-	Avatar,
-	AvatarFallback,
-	AvatarImage,
-} from "@/components/ui/avatar";
+import { DitherAvatar } from "@/components/dither-kit/avatar";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -19,25 +15,20 @@ import { UserIcon, SettingsIcon, CreditCardIcon, LogOutIcon } from "@/components
 const user = {
 	name: "Shaban Haider",
 	email: "shaban@efferd.com",
-	avatar: "https://github.com/shabanhr.png",
 };
 
 export function NavUser() {
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				<Avatar className="size-8">
-					<AvatarImage src={user.avatar} />
-					<AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-				</Avatar>
+				<button type="button" aria-label="Open user menu" className="rounded-full outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+					<DitherAvatar name={user.name} size={32} className="overflow-hidden rounded-full" />
+				</button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="end" className="w-60">
 				<DropdownMenuItem className="flex items-center justify-start gap-2">
 					<DropdownMenuLabel className="flex items-center gap-3">
-						<Avatar className="size-10">
-							<AvatarImage src={user.avatar} />
-							<AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-						</Avatar>
+						<DitherAvatar name={user.name} size={40} className="overflow-hidden rounded-full" />
 						<div>
 							<span className="font-medium text-foreground">{user.name}</span>{" "}
 							<br />

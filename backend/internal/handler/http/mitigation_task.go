@@ -84,6 +84,8 @@ func (h *MitigationTaskHandler) ListAll(c *fiber.Ctx) error {
 	input := mtuc.ListTasksInput{
 		OrgIDs: orgIDs,
 		Query:  strings.TrimSpace(c.Query("q")),
+		Status: strings.TrimSpace(c.Query("status")),
+		Period: strings.TrimSpace(c.Query("period")),
 		Page:   page,
 		Limit:  limit,
 	}

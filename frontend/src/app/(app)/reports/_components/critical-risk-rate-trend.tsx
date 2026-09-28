@@ -16,7 +16,10 @@ import {
 } from "@/components/ui/chart";
 import { CHART_COLORS } from "@/lib/chart-colors";
 import type { CriticalRiskRateDatum } from "@/lib/dashboard-insights";
-import { StandardCard } from "@/components/shared/design-system";
+import {
+  IllustratedEmptyState,
+  StandardCard,
+} from "@/components/shared/design-system";
 
 const RATE_COLOR = CHART_COLORS.primary;
 
@@ -76,9 +79,12 @@ export function CriticalRiskRateTrend({
         className="flex min-h-0 flex-1 flex-col"
       >
         {!hasData ? (
-          <div className="flex h-full flex-1 items-center justify-center rounded-lg bg-state-surface px-6 text-center text-sm text-state-foreground">
-            Belum ada data kuartal untuk menampilkan tren risiko kritis.
-          </div>
+          <IllustratedEmptyState
+            title="Belum ada data"
+            description="Belum ada data kuartal untuk menampilkan tren risiko kritis."
+            size="compact"
+            className="min-h-48"
+          />
         ) : (
           <>
             <div className="min-h-56 flex-1">

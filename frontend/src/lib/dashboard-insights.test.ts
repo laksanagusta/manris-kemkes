@@ -219,6 +219,26 @@ test("buildUnitExposureData uses approved base values for current-state exposure
   ]);
 });
 
+test("quarterly exposure keeps profile score separate from monitoring observation", () => {
+  const risk = makeDashboardRisk({
+    status: "final",
+    probability: 5,
+    impact: 5,
+    weight: 1,
+    nilai: 25,
+    inherentScore: 25,
+    monitoringObservedProbability: 2,
+    monitoringObservedImpact: 2,
+    monitoringObservedWeight: 1,
+    monitoringObservedNilai: 4,
+  });
+
+  assert.equal(buildUnitExposureData([risk])[0].exposureScore, 5);
+  const matrix = buildCurrentRiskHeatmapMatrix([risk], "2026-Q2");
+  assert.equal(matrix[4][4], 1);
+  assert.equal(matrix[1][1], 0);
+});
+
 test("buildUnitExposureData uses base values for all approved risks", () => {
   const result = buildUnitExposureData([
     makeDashboardRisk({

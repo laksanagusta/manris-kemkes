@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   OverviewPanelState,
+  IllustratedEmptyState,
   RiskHeatmapGrid,
   StandardCard,
 } from "@/components/shared/design-system";
@@ -142,12 +143,11 @@ export function MultiPhaseHeatmapCompareCard({
                         className="mx-auto w-full max-w-56"
                       />
                     ) : (
-                      <div
-                        role="status"
-                        className="mx-auto flex min-h-32 w-full max-w-56 items-center justify-center rounded-md bg-state-surface px-3 text-center text-xs text-state-foreground"
-                      >
-                        Data fase belum tersedia.
-                      </div>
+                      <IllustratedEmptyState
+                        title="Data fase belum tersedia"
+                        size="compact"
+                        className="mx-auto min-h-32 w-full max-w-56 justify-center"
+                      />
                     )}
                   </div>
                 );

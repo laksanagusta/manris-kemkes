@@ -37,8 +37,7 @@ export function CurrentRiskHeatmap({
   return (
     <Dialog>
       <StandardCard
-        title="Peta Risiko Saat Ini"
-        subtitle="Distribusi probabilitas dan dampak pada kuartal berjalan."
+        title={<span className="text-sm">Peta Risiko Saat Ini</span>}
         className="h-full"
         contentClassName="flex flex-1 flex-col"
         action={

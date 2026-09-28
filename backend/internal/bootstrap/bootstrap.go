@@ -264,9 +264,11 @@ type Container struct {
 	WPUseCase *workingpaperusecase.UseCase
 
 	// Report UseCases
-	GenerateReportUC        *reportuc.GenerateReportUseCase
-	PDFReportRenderer       domainsvc.ReportPDFRenderer
-	FormalReportPDFRenderer domainsvc.FormalReportPDFRenderer
+	GenerateReportUC           *reportuc.GenerateReportUseCase
+	QuarterlyReportUC          *reportuc.QuarterlyReportUseCase
+	QuarterlyReportPDFRenderer domainsvc.QuarterlyReportPDFRenderer
+	PDFReportRenderer          domainsvc.ReportPDFRenderer
+	FormalReportPDFRenderer    domainsvc.FormalReportPDFRenderer
 }
 
 // Build initializes and wires all application dependencies.
@@ -349,8 +351,9 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.RiskSpreadsheetUC = riskuc.NewBulkRiskSpreadsheetUseCase(c.OrgRepository, c.UserRepository)
 	c.RiskGetUC = riskuc.NewGetRiskUseCase(c.RiskRepository)
 	c.RiskExportPDFUC = riskuc.NewExportRiskPDFUseCase(c.RiskRepository, renderer)
-	c.RiskArchiveUC = riskuc.NewArchiveRiskUseCase(c.RiskRepository, c.WPRepository)
-	c.RiskRestoreUC = riskuc.NewRestoreRiskUseCase(c.RiskRepository)
+	archiveRepository := postgresrepo.NewRiskArchiveRepository(pool)
+	c.RiskArchiveUC = riskuc.NewArchiveRiskUseCase(archiveRepository, c.WPRepository)
+	c.RiskRestoreUC = riskuc.NewRestoreRiskUseCase(archiveRepository)
 	c.RiskUpdateUC = riskuc.NewUpdateRiskUseCase(c.RiskRepository, c.UserRepository, c.OrgRepository, c.WPRepository, c.MitigationTaskRepository)
 	c.RiskDeleteUC = riskuc.NewDeleteRiskUseCase(c.RiskRepository)
 	c.RiskListUC = riskuc.NewListRisksUseCase(c.RiskRepository, c.OrgHierarchySvc)
@@ -576,6 +579,8 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	// ============================================================================
 
 	c.GenerateReportUC = reportuc.NewGenerateReportUseCase(c.RiskRepository, c.IncidentRepository)
+	c.QuarterlyReportUC = reportuc.NewQuarterlyReportUseCase(postgresrepo.NewQuarterlyReportRepository(pool))
+	c.QuarterlyReportPDFRenderer = reportpdf.NewQuarterlyReportPDFRenderer()
 	return c, nil
 }
 

@@ -26,15 +26,13 @@ import {
   GitBranch,
   LogOut,
   HelpCircle,
-  User as UserIcon,
 } from "@/components/shared/icons";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { DitherAvatar } from "@/components/dither-kit/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuLabel,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -60,6 +58,7 @@ import {
 import { SidebarNavItem } from "@/components/shared/sidebar-nav-item";
 import { useEffect, useMemo, useState } from "react";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
+import { useSettings } from "@/components/settings/settings-provider";
 import { useAuth } from "@/contexts/auth-context";
 
 interface NavItem {
@@ -317,10 +316,7 @@ function useLocationHash() {
 export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
   const { user, logout } = useAuth();
   const router = useRouter();
-  const scopeLabel = user?.orgName || user?.role || "Workspace";
-  const normalizedScopeLabel = scopeLabel
-    .replaceAll("_", " ")
-    .replace(/\b\w/g, (char) => char.toUpperCase());
+  const { openSettings } = useSettings();
   const currentHash = useLocationHash();
   const aiFeaturesDisabled = isAIFeaturesDisabled();
   const visibleNavigation = useMemo(() => {
@@ -344,7 +340,7 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
 
   return (
     <Sidebar
-      className="md:top-14 md:h-[calc(100svh-3.5rem)] md:border-sidebar-border"
+      className="md:top-14 md:h-[calc(100svh-3.5rem)] md:border-r-[0.5px] md:border-border"
       collapsible="icon"
       variant="sidebar"
     >
@@ -409,31 +405,17 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
                 <DropdownMenuTrigger asChild>
                   <SidebarMenuButton className="min-w-0 flex-1" aria-label="Open user menu">
                     <span className="inline-flex shrink-0 items-center justify-center">
-                      <Avatar size="sm"><AvatarFallback>{user?.name?.slice(0, 2).toUpperCase() || "U"}</AvatarFallback></Avatar>
+                      <DitherAvatar name={user?.name || "User"} size={24} className="overflow-hidden rounded-full" />
                     </span>
                     <span className="min-w-0 flex-1 truncate text-sm font-normal text-sidebar-foreground group-data-[collapsible=icon]:hidden">
                       {user?.name || "User"}
                     </span>
                   </SidebarMenuButton>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel className="space-y-1 px-2 py-1.5">
-                    <div className="truncate text-sm font-normal text-foreground">
-                      {user?.name || "User"}
-                    </div>
-                    <div className="flex items-center gap-1.5 truncate text-xs text-muted-foreground">
-                      <Building2 className="size-3.5 shrink-0" />
-                      <span className="truncate">{normalizedScopeLabel}</span>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => router.push("/account")}>
-                    <UserIcon className="mr-2 size-4" />
-                    Profile
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Settings2 className="mr-2 size-4" />
-                    Settings
+                <DropdownMenuContent side="top" align="start" sideOffset={4} className="w-56">
+                  <DropdownMenuItem onClick={() => openSettings("account")}>
+                    <Settings2 className="size-4" />
+                    Pengaturan
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
@@ -443,7 +425,7 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
                       router.push("/login");
                     }}
                   >
-                    <LogOut className="mr-2 size-4" />
+                    <LogOut className="size-4" />
                     Logout
                   </DropdownMenuItem>
                 </DropdownMenuContent>

@@ -12,7 +12,7 @@ import (
 
 type riskArchiveRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID) (*entity.Risk, error)
-	Update(ctx context.Context, risk *entity.Risk) error
+	UpdateArchiveMetadata(ctx context.Context, risk *entity.Risk, actorID uuid.UUID) error
 }
 
 type ArchiveRiskUseCase struct {
@@ -76,7 +76,7 @@ func (uc *ArchiveRiskUseCase) Execute(ctx context.Context, input ArchiveRiskInpu
 	risk.ArchivedAt = &now
 	risk.ArchivedReason = reason
 
-	if err := uc.riskRepo.Update(ctx, risk); err != nil {
+	if err := uc.riskRepo.UpdateArchiveMetadata(ctx, risk, scope.UserID); err != nil {
 		return nil, errors.Wrap(err, "failed to archive risk")
 	}
 
@@ -119,7 +119,7 @@ func (uc *RestoreRiskUseCase) Execute(ctx context.Context, input RestoreRiskInpu
 	risk.ArchivedAt = nil
 	risk.ArchivedReason = ""
 
-	if err := uc.riskRepo.Update(ctx, risk); err != nil {
+	if err := uc.riskRepo.UpdateArchiveMetadata(ctx, risk, scope.UserID); err != nil {
 		return nil, errors.Wrap(err, "failed to restore risk")
 	}
 

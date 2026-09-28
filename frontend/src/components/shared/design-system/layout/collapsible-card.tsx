@@ -61,7 +61,7 @@ function CollapsibleCardIcon({
   return (
     <span
       className={cn(
-        "inline-flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-[0_1px_1px_rgba(0,0,0,0.04)]",
+        "inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-sunken text-foreground shadow-[inset_0_1px_2px_rgb(0_0_0/0.12),inset_0_-1px_0_rgb(255_255_255/0.6)] dark:shadow-[inset_0_1px_2px_rgb(0_0_0/0.35),inset_0_-1px_0_rgb(255_255_255/0.06)]",
         className,
       )}
       {...props}

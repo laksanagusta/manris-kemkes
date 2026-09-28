@@ -153,8 +153,7 @@ func (r *riskMonitoringRepository) ListByVersionGroup(ctx context.Context, versi
 	rows, err := r.pool.Query(ctx, baseRiskMonitoringSelect()+`
 		JOIN risks rv ON rv.id = rm.source_risk_id
 		WHERE rv.version_group_id = $1
-		  AND rm.status IN ('draft', 'final')
-		ORDER BY rm.assessment_cycle
+		ORDER BY rm.assessment_cycle, rm.started_at, rm.id
 	`, versionGroupID)
 	if err != nil {
 		return nil, fmt.Errorf("list monitorings by version group: %w", err)
@@ -225,6 +224,9 @@ func (r *riskMonitoringRepository) List(ctx context.Context, filter repository.R
 		dataQuery += clause
 		args = append(args, filter.Status)
 		argIdx++
+	} else if filter.Status == "" {
+		countQuery += " AND rm.status <> 'superseded'"
+		dataQuery += " AND rm.status <> 'superseded'"
 	}
 
 	if filter.AssessmentCycle != "" {
@@ -473,10 +475,10 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 			UPDATE risks
 			SET finalized_by = $2,
 			    finalized_at = $3::timestamptz,
-			    effective_from = $4::date,
+			    effective_from = make_date(LEFT(assessment_cycle, 4)::int, (RIGHT(assessment_cycle, 1)::int - 1) * 3 + 1, 1),
 			    updated_at = now()
 			WHERE id = $1
-		`, resultRisk.ID, actor, now, now); err != nil {
+		`, resultRisk.ID, actor, now); err != nil {
 			return nil, fmt.Errorf("record monitoring result risk finalization: %w", err)
 		}
 	}
@@ -536,7 +538,7 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 func baseRiskMonitoringSelect() string {
 	return `
 		SELECT
-			rm.id, rm.source_risk_id, rm.version_group_id, rm.result_risk_id, rm.assessment_cycle, rm.status, rm.mode,
+			rm.id, rm.source_risk_id, rm.version_group_id, rm.result_risk_id, rm.assessment_cycle, rm.status, rm.superseded_by_monitoring_id, rm.mode,
 			rm.source_probability, rm.source_impact, rm.source_weight, rm.source_nilai, rm.source_level, rm.source_version_number,
 			rm.observed_probability, rm.observed_impact, rm.observed_weight, rm.observed_nilai, rm.observed_level,
 			rm.conclusion,
@@ -609,7 +611,7 @@ func scanRiskMonitoring(row pgx.Row) (*entity.RiskMonitoring, error) {
 	var resultID uuid.NullUUID
 
 	if err := row.Scan(
-		&monitoring.ID, &monitoring.SourceRiskID, &monitoring.VersionGroupID, &monitoring.ResultRiskID, &monitoring.AssessmentCycle, &monitoring.Status, &monitoring.Mode,
+		&monitoring.ID, &monitoring.SourceRiskID, &monitoring.VersionGroupID, &monitoring.ResultRiskID, &monitoring.AssessmentCycle, &monitoring.Status, &monitoring.SupersededByMonitoringID, &monitoring.Mode,
 		&monitoring.SourceProbability, &monitoring.SourceImpact, &monitoring.SourceWeight, &monitoring.SourceNilai, &monitoring.SourceLevel, &monitoring.SourceVersionNumber,
 		&monitoring.ObservedProbability, &monitoring.ObservedImpact, &monitoring.ObservedWeight, &monitoring.ObservedNilai, &monitoring.ObservedLevel,
 		&monitoring.Conclusion,

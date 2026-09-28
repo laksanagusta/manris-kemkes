@@ -1,8 +1,8 @@
 import { AlertCircle } from "@/components/shared/icons";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Empty, EmptyDescription, EmptyHeader } from "@/components/ui/empty";
 import { Spinner } from "@/components/ui/spinner";
+import { IllustratedEmptyState } from "../feedback/illustrated-empty-state";
 
 import { cn } from "@/lib/utils";
 
@@ -48,8 +48,11 @@ export function OverviewPanelState({
   }
 
   return (
-    <Empty className={cn("min-h-48", className)}>
-      <EmptyHeader><EmptyDescription>{message}</EmptyDescription></EmptyHeader>
-    </Empty>
+    <IllustratedEmptyState
+      title="Belum ada data"
+      description={message}
+      size="compact"
+      className={cn("min-h-48", className)}
+    />
   );
 }

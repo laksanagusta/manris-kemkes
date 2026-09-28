@@ -19,6 +19,7 @@ export interface PaginatedOrganizationsResponse {
 
 export interface ListOrganizationsParams {
   q?: string;
+  ancestorId?: string;
   page?: number;
   limit?: number;
 }
@@ -37,6 +38,7 @@ export async function listOrganizations(
   const searchParams = new URLSearchParams();
 
   if (params?.q) searchParams.set("q", params.q);
+  if (params?.ancestorId) searchParams.set("ancestor_id", params.ancestorId);
   if (params?.page) searchParams.set("page", params.page.toString());
   if (params?.limit) searchParams.set("limit", params.limit.toString());
 
@@ -74,7 +76,7 @@ export async function collectAllOrganizations(
 
 export async function listAllOrganizations(
   token?: string,
-  params?: Pick<ListOrganizationsParams, "q">,
+  params?: Pick<ListOrganizationsParams, "q" | "ancestorId">,
 ): Promise<OrganizationListItem[]> {
   return collectAllOrganizations(({ page, limit }) =>
     listOrganizations(token, {

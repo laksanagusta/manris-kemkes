@@ -22,6 +22,9 @@
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
   --color-border: var(--border);
+  --color-separator: var(--separator);
+  --color-active: var(--active);
+  --color-sunken: var(--sunken);
   --color-input: var(--input);
   --color-ring: var(--ring);
   --color-chart-1: var(--chart-1);
@@ -58,38 +61,48 @@
   --color-surface-border: var(--border);
   --color-field-border: var(--input);
   --color-component-border: var(--border);
-  --color-disabled-foreground: var(--tertiary-foreground);
+  --color-disabled-foreground: var(--disabled-foreground);
   --color-disabled-surface: var(--muted);
+  --color-disabled-input-surface: var(--disabled-input-surface);
   --color-state-surface: var(--muted);
   --color-state-foreground: var(--muted-foreground);
   --color-warning-card-surface: var(--muted);
   --color-warning-card-foreground: var(--foreground);
+  --color-card-subtle-surface: var(--card-subtle-surface);
   --color-secondary-card-surface: var(--secondary-card-surface);
   --color-table-header: var(--table-header);
   --color-table-header-foreground: var(--table-header-foreground);
+  --color-table-footer: var(--table-footer);
   --color-sidebar-muted-foreground: var(--muted-foreground);
 }
 
 :root {
   --card: oklch(1 0 0);
-  --card-foreground: #09090b;
+  --card-foreground: #202020;
   --popover: oklch(1 0 0);
-  --popover-foreground: #09090b;
+  --popover-foreground: #202020;
   --primary: oklch(0.205 0 0);
   --primary-foreground: oklch(0.985 0 0);
   --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: #71717a;
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: #71717a;
-  --tertiary-foreground: #a3a3a3;
-  --secondary-card-surface: #fbfbfb;
-  --table-header: #fafafa;
-  --table-header-foreground: var(--tertiary-foreground);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --secondary-foreground: #636363;
+  --muted: #efefef;
+  --muted-foreground: #636363;
+  --tertiary-foreground: #8b8b8b;
+  --disabled-foreground: #b9b9b9;
+  --disabled-input-surface: #fafafa;
+  --card-subtle-surface: #f6f6f6;
+  --secondary-card-surface: #efefef;
+  --sunken: #efefef;
+  --table-header: #fcfcfc;
+  --table-header-foreground: var(--secondary-foreground);
+  --table-footer: #fcfcfc;
+  --accent: #e5e5e5;
+  --accent-foreground: #202020;
+  --active: #dddddd;
   --destructive: oklch(0.577 0.245 27.325);
-  --border: var(--sidebar-border);
-  --input: var(--sidebar-border);
+  --border: #ececec;
+  --input: #ececec;
+  --separator: #f6f6f6;
   --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.855 0.138 181.071);
   --chart-2: oklch(0.704 0.14 182.503);
@@ -97,24 +110,24 @@
   --chart-4: oklch(0.511 0.096 186.391);
   --chart-5: oklch(0.437 0.078 188.216);
   --radius: 0.625rem;
-  --sidebar: #f1f1f1;
-  --sidebar-foreground: #09090b;
+  --sidebar: #f6f6f6;
+  --sidebar-foreground: #202020;
   --sidebar-primary: oklch(0.205 0 0);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.93 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: #e3e3e3;
+  --sidebar-accent: #e5e5e5;
+  --sidebar-accent-foreground: #202020;
+  --sidebar-border: #f6f6f6;
   --sidebar-ring: oklch(0.708 0 0);
   --risk-low: oklch(0.72 0.17 155);
   --risk-medium: oklch(0.78 0.16 85);
   --risk-high: oklch(0.70 0.18 40);
   --risk-extreme: oklch(0.58 0.22 27);
-  --risk-category-policy: oklch(0.56 0.18 255);
-  --risk-category-operational: oklch(0.58 0.17 155);
-  --risk-category-compliance: oklch(0.64 0.16 85);
-  --risk-category-fraud: oklch(0.58 0.2 28);
-  --risk-category-reputation: oklch(0.58 0.18 330);
-  --risk-category-legal: oklch(0.54 0.16 290);
+  --risk-category-policy: var(--color-blue-400);
+  --risk-category-operational: var(--color-emerald-400);
+  --risk-category-compliance: var(--color-yellow-400);
+  --risk-category-fraud: var(--color-red-400);
+  --risk-category-reputation: var(--color-fuchsia-400);
+  --risk-category-legal: var(--color-indigo-400);
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
@@ -139,8 +152,8 @@
   --chart-tooltip-background: var(--popover);
   --chart-tooltip-foreground: var(--popover-foreground);
   --chart-tooltip-muted: var(--muted-foreground);
-  --background: #f1f1f1;
-  --foreground: #09090b;
+  --background: #fcfcfc;
+  --foreground: #202020;
 }
 
 .dark {
@@ -157,12 +170,18 @@
   --muted: oklch(0.269 0 0);
   --muted-foreground: oklch(0.708 0 0);
   --tertiary-foreground: #a3a3a3;
+  --disabled-foreground: oklch(0.556 0 0);
+  --disabled-input-surface: var(--muted);
+  --card-subtle-surface: oklch(0.23 0 0);
   --secondary-card-surface: oklch(0.23 0 0);
+  --sunken: oklch(0.23 0 0);
+  --separator: oklch(1 0 0 / 10%);
+  --active: oklch(0.32 0 0);
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
-  --border: var(--sidebar-border);
-  --input: var(--sidebar-border);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 10%);
   --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.855 0.138 181.071);
   --chart-2: oklch(0.704 0.14 182.503);
@@ -189,18 +208,79 @@
 
 [data-slot="table-head"] {
   background-color: var(--table-header) !important;
-  color: var(--tertiary-foreground) !important;
+  color: var(--secondary-foreground) !important;
 }
 
-/* The stock Card edge is a ring, so match its ring color to shell dividers. */
+/* The stock Card edge is a ring, so use the shared surface border. */
 [data-slot="card"] {
-  --tw-ring-color: var(--sidebar-border);
+  --tw-ring-color: var(--border);
+}
+
+[data-slot="table-row"] {
+  border-color: var(--separator);
+}
+
+[data-slot="table-body"] [data-slot="table-row"]:hover {
+  background-color: var(--sidebar-accent);
+}
+
+[data-slot="table-row"][data-state="selected"] {
+  background-color: var(--active);
+}
+
+[data-slot="separator"] {
+  background-color: var(--separator);
+}
+
+@media (min-width: 48rem) {
+  [data-slot="sidebar-container"][data-side="left"] {
+    border-right-width: 0.5px;
+  }
+}
+
+/* Neutral button interaction colors share the application palette. */
+:root:not(.dark) [data-slot="button"]:is([data-variant="outline"], [data-variant="ghost"], [data-variant="secondary"]):hover {
+  background-color: var(--accent);
+}
+
+:root:not(.dark) [data-slot="button"]:is([data-variant="outline"], [data-variant="ghost"], [data-variant="secondary"]):is(:active, [aria-expanded="true"]) {
+  background-color: var(--active);
+}
+
+:root:not(.dark) [data-slot="button"]:disabled {
+  color: var(--disabled-foreground);
+  opacity: 1;
+}
+
+:is(input, textarea, select):disabled:not([data-slot="input-group-control"], [type="checkbox"], [type="radio"]),
+[data-slot="select-trigger"]:disabled,
+[data-slot="button"][role="combobox"]:disabled {
+  background-color: var(--disabled-input-surface);
+  color: var(--disabled-foreground);
+  opacity: 1;
+}
+
+[data-slot="input-group"]:has(input:disabled, textarea:disabled) {
+  background-color: var(--disabled-input-surface);
+  opacity: 1;
+}
+
+[data-slot="button"][data-variant="default"]:disabled {
+  background-color: var(--muted);
+  color: var(--disabled-foreground);
+  opacity: 1;
 }
 
 .frosted-scrim {
   background: color-mix(in oklab, var(--background) 64%, transparent);
   -webkit-backdrop-filter: blur(4px) saturate(110%);
   backdrop-filter: blur(4px) saturate(110%);
+}
+
+/* Keep the sticky monitoring summary sharp while its confirmation modal opens. */
+body:has([data-monitoring-finalize-dialog]) [data-slot="alert-dialog-overlay"] {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
 }
 
 @supports not (background: color-mix(in oklab, white 64%, transparent)) {

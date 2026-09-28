@@ -23,7 +23,7 @@ export function SidebarMotionExample() {
   return (
     <div className="space-y-4 rounded-[12px] bg-card p-6 shadow-black">
       <SidebarProvider className="min-h-0 w-full">
-        <div className="flex w-full max-w-xs flex-col gap-1 rounded-lg border border-sidebar-border bg-sidebar py-2">
+        <div className="flex w-full max-w-xs flex-col gap-1 rounded-lg border-[0.5px] border-border bg-sidebar py-2">
           <div className="font-logo px-4 py-3 text-xl font-semibold lowercase tracking-[-0.4px] text-sidebar-foreground">
             Manris
           </div>

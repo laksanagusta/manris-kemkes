@@ -22,6 +22,7 @@ import {
 import { RiskCascadeActionDialog } from "@/components/risk/risk-cascade-action-dialog";
 import {
   CollectionPagination,
+  CollectionEmptyState,
   CollectionErrorState,
   CollectionTableCard,
   CollectionTableHead,
@@ -319,7 +320,10 @@ export default function RiskCascadingPage() {
                       colSpan={7}
                       className="text-center"
                     >
-                      Belum ada eskalasi yang cocok.
+                      <CollectionEmptyState
+                        title="Belum ada eskalasi yang cocok"
+                        description="Coba ubah kata kunci atau sesuaikan filter."
+                      />
                     </TableCell>
                   </TableRow>
                 ) : (

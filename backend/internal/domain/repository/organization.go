@@ -9,9 +9,10 @@ import (
 
 // OrganizationListFilter holds filter/pagination parameters for listing organizations
 type OrganizationListFilter struct {
-	Page  int
-	Limit int
-	Q     string // search query (name)
+	Page       int
+	Limit      int
+	Q          string
+	AncestorID *uuid.UUID
 }
 
 // OrganizationRepository defines the interface for organization data access

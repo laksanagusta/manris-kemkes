@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import {
   CollectionEmptyState,
+  CollectionFilterInput,
   CollectionLoadingState,
   CollectionPagination,
   CollectionSearchField,
@@ -16,6 +17,7 @@ import {
   ActionIconButton,
   KpiCard,
   MetricGrid,
+  PopoverSelectField,
 } from "@/components/shared/design-system";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import {
@@ -54,6 +56,7 @@ import {
   buildMitigationMonitoringApiQueryString,
   buildMitigationMonitoringQueryString,
   parseMitigationMonitoringQueryState,
+  type MitigationMonitoringStatusFilter,
 } from "@/lib/mitigation-monitoring-query";
 import type { MitigationTask } from "@/types/risk";
 
@@ -77,6 +80,7 @@ function getMitigationStatusTone(status: MitigationTaskRow["status"]) {
 function getMitigationStatusLabel(status: MitigationTaskRow["status"]) {
   if (status === "done") return "Selesai";
   if (status === "overdue") return "Overdue";
+  if (status === "skipped") return "Dilewati";
   if (status === "not_reported") return "Tidak dilaporkan";
   return "Pending";
 }
@@ -167,12 +171,18 @@ export function MitigationMonitoringPanel() {
   const notesInputRef = useRef<HTMLTextAreaElement | null>(null);
   const [showValidationErrors, setShowValidationErrors] = useState(false);
   const [search, setSearch] = useState(queryState.search);
+  const [period, setPeriod] = useState(queryState.period ?? "");
 
   useEffect(() => {
     setSearch(queryState.search);
   }, [queryState.search]);
 
+  useEffect(() => {
+    setPeriod(queryState.period ?? "");
+  }, [queryState.period]);
+
   const debouncedSearch = useDebouncedValue(search, 500);
+  const debouncedPeriod = useDebouncedValue(period, 400);
 
   const formErrors = useMemo(
     () =>
@@ -188,12 +198,16 @@ export function MitigationMonitoringPanel() {
     (
       nextState: Partial<{
         search: string;
+        status: MitigationMonitoringStatusFilter;
+        period: string;
         page: number;
         limit: number;
       }>,
     ) => {
       const mergedState = {
         search: nextState.search ?? queryState.search,
+        status: nextState.status ?? queryState.status ?? "all",
+        period: nextState.period ?? queryState.period ?? "",
         page: nextState.page ?? queryState.page,
         limit: nextState.limit ?? queryState.limit,
       };
@@ -201,17 +215,35 @@ export function MitigationMonitoringPanel() {
       const nextUrl = query ? `${pathname}?${query}` : pathname;
       router.replace(nextUrl, { scroll: false });
     },
-    [pathname, queryState.limit, queryState.page, queryState.search, router],
+    [
+      pathname,
+      queryState.limit,
+      queryState.page,
+      queryState.period,
+      queryState.search,
+      queryState.status,
+      router,
+    ],
   );
 
   useEffect(() => {
     const nextSearch = debouncedSearch.trim();
-    if (nextSearch === queryState.search) {
+    const nextPeriod = debouncedPeriod.trim();
+    if (
+      nextSearch === queryState.search &&
+      nextPeriod === (queryState.period ?? "")
+    ) {
       return;
     }
 
-    pushQueryState({ search: nextSearch, page: 1 });
-  }, [debouncedSearch, pushQueryState, queryState.search]);
+    pushQueryState({ search: nextSearch, period: nextPeriod, page: 1 });
+  }, [
+    debouncedPeriod,
+    debouncedSearch,
+    pushQueryState,
+    queryState.period,
+    queryState.search,
+  ]);
 
   const fetchMitigations = useCallback(async () => {
     if (!token) return;
@@ -220,6 +252,8 @@ export function MitigationMonitoringPanel() {
     try {
       const query = buildMitigationMonitoringApiQueryString({
         search: queryState.search,
+        status: queryState.status,
+        period: queryState.period,
         page,
         limit,
       });
@@ -300,7 +334,7 @@ export function MitigationMonitoringPanel() {
     } finally {
       setLoading(false);
     }
-  }, [token, page, limit, queryState.search]);
+  }, [token, page, limit, queryState.search, queryState.status, queryState.period]);
 
   useEffect(() => {
     fetchMitigations();
@@ -379,6 +413,9 @@ export function MitigationMonitoringPanel() {
     (m) => m.tier === "upcoming",
   ).length;
   const overdueCount = heavyCount + lightCount;
+  const hasActiveFilters =
+    Boolean(queryState.search || queryState.period) ||
+    (queryState.status ?? "all") !== "all";
 
   const formatDate = (value?: string | null) => {
     if (!value) return "-";
@@ -426,13 +463,43 @@ export function MitigationMonitoringPanel() {
       </MetricGrid>
 
       <div className="space-y-4">
-        <div className="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center md:ml-auto">
+        <div className="flex w-full min-w-0 flex-wrap items-center gap-2 md:ml-auto">
           <CollectionSearchField
             containerClassName="w-full sm:w-80 sm:flex-none xl:w-[calc((100%_-_3rem)/4)]"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder="Cari mitigasi..."
             aria-label="Cari mitigasi"
+          />
+          <div className="w-full sm:w-44">
+            <PopoverSelectField
+              value={queryState.status ?? "all"}
+              onValueChange={(value) =>
+                pushQueryState({
+                  status: value as MitigationMonitoringStatusFilter,
+                  page: 1,
+                })
+              }
+              options={[
+                { value: "all", label: "Semua Status" },
+                { value: "pending", label: "Pending" },
+                { value: "overdue", label: "Overdue" },
+                { value: "done", label: "Selesai" },
+                { value: "skipped", label: "Dilewati" },
+                { value: "not_reported", label: "Tidak dilaporkan" },
+              ]}
+              placeholder="Status"
+              ariaLabel="Filter status penanganan"
+              triggerClassName="h-8 rounded-lg bg-card text-sm"
+              optionClassName="whitespace-nowrap"
+            />
+          </div>
+          <CollectionFilterInput
+            className="w-full rounded-lg bg-card text-sm sm:w-36"
+            placeholder="Periode (YYYY-QN)"
+            aria-label="Filter periode penanganan"
+            value={period}
+            onChange={(event) => setPeriod(event.target.value)}
           />
           <ActionButton asChild variant="outline" className="sm:ml-auto">
             <Link href="/compliance/penanganan/impor">
@@ -446,8 +513,36 @@ export function MitigationMonitoringPanel() {
           <CollectionLoadingState message="Memuat data mitigasi..." />
         ) : mitigations.length === 0 ? (
           <CollectionEmptyState
-            title="Belum ada rencana mitigasi yang sesuai filter"
-            description="Ubah filter pencarian atau periode untuk melihat data lain."
+            title={
+              hasActiveFilters
+                ? "Tidak ada penanganan sesuai filter"
+                : "Belum ada rencana penanganan"
+            }
+            description={
+              hasActiveFilters
+                ? "Ubah kata kunci, status, atau periode untuk melihat data lain."
+                : "Rencana penanganan akan muncul di sini setelah tersedia."
+            }
+            action={
+              hasActiveFilters ? (
+                <ActionButton
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setSearch("");
+                    setPeriod("");
+                    pushQueryState({
+                      search: "",
+                      status: "all",
+                      period: "",
+                      page: 1,
+                    });
+                  }}
+                >
+                  Reset filter
+                </ActionButton>
+              ) : undefined
+            }
           />
         ) : (
           <CollectionTableCard>

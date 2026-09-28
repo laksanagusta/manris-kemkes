@@ -19,6 +19,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { PopoverSelectField } from "@/components/shared/design-system";
+import { IllustratedEmptyState } from "@/components/shared/design-system/feedback/illustrated-empty-state";
 import { SearchInput } from "@/components/shared/search-input";
 import { cn } from "@/lib/utils";
 
@@ -231,9 +232,11 @@ export function ROPicker({
               Memuat...
             </div>
           ) : filtered.length === 0 ? (
-            <div className="py-6 text-center text-sm text-muted-foreground">
-              Tidak ada RO ditemukan.
-            </div>
+            <IllustratedEmptyState
+              title="Tidak ada RO ditemukan."
+              size="compact"
+              className="py-2"
+            />
           ) : (
             filtered.map((item) => (
               <button

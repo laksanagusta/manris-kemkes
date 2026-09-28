@@ -162,7 +162,7 @@ export function ResourceLinkRow({
         role="listitem"
         data-state={isMenuOpen || isEditOpen || isDeleteOpen ? "active" : "idle"}
         className={cn(
-          "group/resource-row flex min-w-0 max-w-full items-center gap-1 rounded-md px-1.5 py-1 transition-[background-color,color] duration-150 motion-reduce:transition-none hover:bg-sidebar-accent data-[state=active]:bg-sidebar-accent",
+          "group/resource-row flex min-w-0 max-w-full items-center gap-1 rounded-md px-1.5 py-1 transition-[background-color,color] duration-150 motion-reduce:transition-none hover:bg-sidebar-accent data-[state=active]:bg-active",
           className,
         )}
       >

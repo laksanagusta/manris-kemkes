@@ -41,6 +41,11 @@ export { SidebarTabsList } from "./collections/sidebar-tabs-list";
 
 export { ArchivedBanner } from "./feedback/archived-banner";
 export { InlineEmptyState } from "./feedback/inline-empty-state";
+export {
+  EmptyStateIllustration,
+  IllustratedEmptyState,
+  type EmptyStateIllustrationSize,
+} from "./feedback/illustrated-empty-state";
 export { ProgressMeter } from "./feedback/progress-meter";
 export { WarningCard } from "./feedback/warning-card";
 export {
@@ -78,6 +83,7 @@ export {
 export { PageStack } from "./layout/page-stack";
 export { CollectionPageHeader } from "./layout/collection-page-header";
 export { StandardCard, type StandardCardProps } from "./layout/standard-card";
+export { MonitoringInsightCard, type MonitoringInsightCardProps } from "./domain/monitoring-insight-card";
 export {
   Card,
   CardAction,
@@ -219,3 +225,5 @@ export {
 
 export { RiskCascadeRowActions } from "@/components/shared/risk-cascade-row-actions";
 export { PlanningManagementPage } from "@/components/shared/planning-management-page";
+
+export { SettingsDialog, type SettingsSection } from "./layout/settings-dialog";

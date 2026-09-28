@@ -31,11 +31,12 @@ import {
   AccentButton,
   ActionButton,
   ActionIconButton,
-  CollectionFilterPopover,
   CollectionPageHeader,
   CollectionSearchField,
   CollectionToolbar,
   DestructiveButton,
+  EmptyStateIllustration,
+  IllustratedEmptyState,
   PopoverSelectField,
   PageStack,
 } from "@/components/shared/design-system";
@@ -78,6 +79,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import {
   riskCategoryLabels,
+  getRiskLevelFromNilai,
+  getRiskLevelDisplayLabel,
 } from "@/lib/risk";
 import {
   buildRiskRegisterQueryString,
@@ -85,6 +88,7 @@ import {
   shouldReplaceRiskRegisterUrl,
 } from "@/lib/risk-register-query";
 import { formatMonitoringNilai } from "@/lib/risk-register-monitoring";
+import { RegisterMonitoringInsights } from "./_components/register-monitoring-insights";
 import {
   CollectionPagination,
   CollectionErrorState,
@@ -132,19 +136,12 @@ type RiskRegisterFilterToolbarProps = {
   onSearchChange: (value: string) => void;
   searchPlaceholder: string;
   searchAriaLabel: string;
-  filterOpen: boolean;
-  onFilterOpenChange: (open: boolean) => void;
   assessmentCycleFilter: string;
   onAssessmentCycleFilterChange: (value: string) => void;
-  createdAtFilter: string;
-  onCreatedAtFilterChange: (value: string) => void;
-  lifecycleFilter: RiskRegisterLifecycleFilter;
-  onLifecycleFilterChange: (value: RiskRegisterLifecycleFilter) => void;
   statusFilter: RiskRegisterStatusFilter;
   onStatusFilterChange: (value: RiskRegisterStatusFilter) => void;
   categoryFilter: RiskRegisterCategoryFilter;
   onCategoryFilterChange: (value: RiskRegisterCategoryFilter) => void;
-  onReset: () => void;
 };
 
 function RiskRegisterFilterToolbar({
@@ -152,202 +149,71 @@ function RiskRegisterFilterToolbar({
   onSearchChange,
   searchPlaceholder,
   searchAriaLabel,
-  filterOpen,
-  onFilterOpenChange,
   assessmentCycleFilter,
   onAssessmentCycleFilterChange,
-  createdAtFilter,
-  onCreatedAtFilterChange,
-  lifecycleFilter,
-  onLifecycleFilterChange,
   statusFilter,
   onStatusFilterChange,
   categoryFilter,
   onCategoryFilterChange,
-  onReset,
 }: RiskRegisterFilterToolbarProps) {
   return (
-    <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
       <CollectionSearchField
-        containerClassName="w-full sm:w-80 sm:flex-none"
+        containerClassName="w-full sm:w-64 sm:flex-none"
         className="placeholder:text-tertiary-foreground"
         value={search}
         onChange={(event) => onSearchChange(event.target.value)}
         placeholder={searchPlaceholder}
         aria-label={searchAriaLabel}
       />
+      <div className="w-full sm:w-32">
+        <PopoverSelectField
+          value={statusFilter}
+          onValueChange={(value) =>
+            onStatusFilterChange(value as RiskRegisterStatusFilter)
+          }
+          options={[
+            { value: "all", label: "Semua Status" },
+            { value: "draft", label: "Draf Risiko" },
+            { value: "final", label: "Final" },
+          ]}
+          placeholder="Status"
+          ariaLabel="Filter status risiko"
+          triggerClassName="h-8 rounded-lg bg-card text-sm"
+        />
+      </div>
 
-      <RiskRegisterFiltersSidebar
-        open={filterOpen}
-        onOpenChange={onFilterOpenChange}
-        assessmentCycleFilter={assessmentCycleFilter}
-        onAssessmentCycleFilterChange={onAssessmentCycleFilterChange}
-        createdAtFilter={createdAtFilter}
-        onCreatedAtFilterChange={onCreatedAtFilterChange}
-        lifecycleFilter={lifecycleFilter}
-        onLifecycleFilterChange={onLifecycleFilterChange}
-        statusFilter={statusFilter}
-        onStatusFilterChange={onStatusFilterChange}
-        categoryFilter={categoryFilter}
-        onCategoryFilterChange={onCategoryFilterChange}
-        onReset={onReset}
+      <CollectionFilterInput
+        className="w-full rounded-lg bg-card text-sm sm:w-36"
+        placeholder="Periode (YYYY-QN)"
+        aria-label="Filter periode kuartal"
+        value={assessmentCycleFilter}
+        onChange={(event) =>
+          onAssessmentCycleFilterChange(event.target.value)
+        }
       />
+
+      <div className="w-full sm:w-40">
+        <PopoverSelectField
+          value={categoryFilter}
+          onValueChange={(value) =>
+            onCategoryFilterChange(value as RiskRegisterCategoryFilter)
+          }
+          options={[
+            { value: "all", label: "Semua Kategori" },
+            { value: "kebijakan", label: riskCategoryLabels.kebijakan },
+            { value: "reputasi", label: riskCategoryLabels.reputasi },
+            { value: "fraud_korupsi", label: riskCategoryLabels.fraud_korupsi },
+            { value: "legal", label: riskCategoryLabels.legal },
+            { value: "kepatuhan", label: riskCategoryLabels.kepatuhan },
+            { value: "operasional", label: riskCategoryLabels.operasional },
+          ]}
+          placeholder="Kategori"
+          ariaLabel="Filter kategori risiko"
+          triggerClassName="h-8 rounded-lg bg-card text-sm"
+        />
+      </div>
     </div>
-  );
-}
-
-type RiskRegisterFiltersSidebarProps = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  assessmentCycleFilter: string;
-  onAssessmentCycleFilterChange: (value: string) => void;
-  createdAtFilter: string;
-  onCreatedAtFilterChange: (value: string) => void;
-  lifecycleFilter: RiskRegisterLifecycleFilter;
-  onLifecycleFilterChange: (value: RiskRegisterLifecycleFilter) => void;
-  statusFilter: RiskRegisterStatusFilter;
-  onStatusFilterChange: (value: RiskRegisterStatusFilter) => void;
-  categoryFilter: RiskRegisterCategoryFilter;
-  onCategoryFilterChange: (value: RiskRegisterCategoryFilter) => void;
-  onReset: () => void;
-};
-
-function RiskRegisterFiltersSidebar({
-  open,
-  onOpenChange,
-  assessmentCycleFilter,
-  onAssessmentCycleFilterChange,
-  createdAtFilter,
-  onCreatedAtFilterChange,
-  lifecycleFilter,
-  onLifecycleFilterChange,
-  statusFilter,
-  onStatusFilterChange,
-  categoryFilter,
-  onCategoryFilterChange,
-  onReset,
-}: RiskRegisterFiltersSidebarProps) {
-  return (
-    <CollectionFilterPopover
-      open={open}
-      onOpenChange={onOpenChange}
-      contentClassName="w-[22rem]"
-      triggerProps={{
-        "aria-label": "Buka filter risiko",
-        title: "Filter risiko",
-      }}
-      footer={
-        <div className="flex items-center justify-between pt-4">
-          <Button type="button" variant="ghost" size="default" onClick={onReset}>
-            Reset
-          </Button>
-          <Button
-            type="button"
-            size="default"
-            onClick={() => onOpenChange(false)}
-          >
-            Terapkan
-          </Button>
-        </div>
-      }
-    >
-      <div>
-        <h4 className="text-sm font-medium">Filter Risiko</h4>
-        <p className="mt-1 text-xs text-secondary-foreground">
-          Atur filter untuk daftar risiko.
-        </p>
-      </div>
-
-      <div className="space-y-4">
-        <div className="flex flex-col gap-2">
-          <Label className="text-sm font-medium text-foreground">
-            Periode Kuartal
-          </Label>
-          <CollectionFilterInput
-            placeholder="YYYY-QN"
-            value={assessmentCycleFilter}
-            onChange={(event) =>
-              onAssessmentCycleFilterChange(event.target.value)
-            }
-          />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <Label className="text-sm font-medium text-foreground">
-            Tanggal Dibuat
-          </Label>
-          <CollectionFilterInput
-            type="date"
-            value={createdAtFilter}
-            onChange={(event) => onCreatedAtFilterChange(event.target.value)}
-          />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <Label className="text-sm font-medium text-foreground">
-            Lifecycle
-          </Label>
-          <PopoverSelectField
-            value={lifecycleFilter}
-            onValueChange={(value) =>
-              onLifecycleFilterChange(value as RiskRegisterLifecycleFilter)
-            }
-            options={[
-              { value: "active", label: "Aktif" },
-              { value: "archived", label: "Arsip" },
-              { value: "all", label: "Semua" },
-            ]}
-            placeholder="Lifecycle"
-            ariaLabel="Filter lifecycle risiko"
-            triggerClassName="h-8 rounded-lg bg-card text-sm"
-          />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <Label className="text-sm font-medium text-foreground">
-            Status
-          </Label>
-          <PopoverSelectField
-            value={statusFilter}
-            onValueChange={(value) =>
-              onStatusFilterChange(value as RiskRegisterStatusFilter)
-            }
-            options={[
-              { value: "all", label: "Semua Status" },
-              { value: "draft", label: "Draf Risiko" },
-              { value: "final", label: "Final" },
-            ]}
-            placeholder="Status"
-            ariaLabel="Filter status risiko"
-            triggerClassName="h-8 rounded-lg bg-card text-sm"
-          />
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <Label className="text-sm font-medium text-foreground">
-            Kategori
-          </Label>
-          <PopoverSelectField
-            value={categoryFilter}
-            onValueChange={(value) =>
-              onCategoryFilterChange(value as RiskRegisterCategoryFilter)
-            }
-            options={[
-              { value: "all", label: "Semua Kategori" },
-              { value: "kebijakan", label: riskCategoryLabels.kebijakan },
-              { value: "reputasi", label: riskCategoryLabels.reputasi },
-              { value: "fraud_korupsi", label: riskCategoryLabels.fraud_korupsi },
-              { value: "legal", label: riskCategoryLabels.legal },
-              { value: "kepatuhan", label: riskCategoryLabels.kepatuhan },
-              { value: "operasional", label: riskCategoryLabels.operasional },
-            ]}
-            placeholder="Kategori"
-            ariaLabel="Filter kategori risiko"
-            triggerClassName="h-8 rounded-lg bg-card text-sm"
-          />
-        </div>
-      </div>
-    </CollectionFilterPopover>
   );
 }
 
@@ -480,7 +346,6 @@ export default function RiskRegisterPage() {
   );
   const [riskToArchive, setRiskToArchive] = useState<RiskListItem | null>(null);
   const [archiveReason, setArchiveReason] = useState("");
-  const [filterOpen, setFilterOpen] = useState(false);
 
   const handleRegisterSearchChange = (value: string) => {
     setSearch(value);
@@ -492,18 +357,6 @@ export default function RiskRegisterPage() {
     setPage(1);
   };
 
-  const handleRegisterCreatedAtChange = (value: string) => {
-    setCreatedAtFilter(value);
-    setPage(1);
-  };
-
-  const handleRegisterLifecycleChange = (
-    value: RiskRegisterLifecycleFilter,
-  ) => {
-    setLifecycleFilter(value);
-    setPage(1);
-  };
-
   const handleRegisterStatusChange = (value: RiskRegisterStatusFilter) => {
     setStatusFilter(value);
     setPage(1);
@@ -511,15 +364,6 @@ export default function RiskRegisterPage() {
 
   const handleRegisterCategoryChange = (value: RiskRegisterCategoryFilter) => {
     setCategoryFilter(value);
-    setPage(1);
-  };
-  const handleResetRegisterFilters = () => {
-    setSearch("");
-    setStatusFilter("all");
-    setLifecycleFilter("active");
-    setCategoryFilter("all");
-    setAssessmentCycleFilter("");
-    setCreatedAtFilter("");
     setPage(1);
   };
   const [archiveNote, setArchiveNote] = useState("");
@@ -906,6 +750,7 @@ export default function RiskRegisterPage() {
   return (
     <PageStack>
       <CollectionPageHeader title="Risiko" />
+      <RegisterMonitoringInsights refreshKey={risks} />
       <div className="space-y-4">
         <CollectionToolbar
           leading={
@@ -914,19 +759,12 @@ export default function RiskRegisterPage() {
               onSearchChange={handleRegisterSearchChange}
               searchPlaceholder="Cari risiko..."
               searchAriaLabel="Cari risiko"
-              filterOpen={filterOpen}
-              onFilterOpenChange={setFilterOpen}
               assessmentCycleFilter={assessmentCycleFilter}
               onAssessmentCycleFilterChange={handleRegisterAssessmentCycleChange}
-              createdAtFilter={createdAtFilter}
-              onCreatedAtFilterChange={handleRegisterCreatedAtChange}
-              lifecycleFilter={lifecycleFilter}
-              onLifecycleFilterChange={handleRegisterLifecycleChange}
               statusFilter={statusFilter}
               onStatusFilterChange={handleRegisterStatusChange}
               categoryFilter={categoryFilter}
               onCategoryFilterChange={handleRegisterCategoryChange}
-              onReset={handleResetRegisterFilters}
             />
           }
           actions={
@@ -1022,12 +860,13 @@ export default function RiskRegisterPage() {
                       className="text-left text-muted-foreground"
                     >
                       <div className="flex min-h-24 flex-col items-center justify-center gap-1 py-6 text-center">
-                        <p className="font-normal">
+                        <EmptyStateIllustration className="mb-1 max-w-64" />
+                        <p className="font-normal text-foreground">
                           {hasAppliedFilters
                             ? "Tidak ada risiko yang sesuai"
                             : "Belum ada risiko"}
                         </p>
-                        <p className="max-w-lg text-xs">
+                        <p className="max-w-lg text-xs text-muted-foreground">
                           {hasAppliedFilters
                             ? "Coba ubah kata kunci atau sesuaikan filter untuk menampilkan risiko lain."
                             : "Tambahkan risiko baru untuk memulai daftar risiko."}
@@ -1062,6 +901,23 @@ export default function RiskRegisterPage() {
                           : statusLabel[risk.status || ""] ||
                             risk.status ||
                             "-";
+                    const monitoringQuarters = [
+                      { label: "Q1", status: risk.semesterMonitoring?.q1, score: risk.semesterMonitoring?.q1Nilai },
+                      { label: "Q2", status: risk.semesterMonitoring?.q2, score: risk.semesterMonitoring?.q2Nilai },
+                      { label: "Q3", status: risk.semesterMonitoring?.q3, score: risk.semesterMonitoring?.q3Nilai },
+                      { label: "Q4", status: risk.semesterMonitoring?.q4, score: risk.semesterMonitoring?.q4Nilai },
+                    ].filter((quarter) => quarter.status);
+                    const latestFinalQuarter = [...monitoringQuarters]
+                      .reverse()
+                      .find((quarter) => quarter.status === "final" || quarter.status === "finalized");
+                    const monitoringHistory = monitoringQuarters.map((quarter) => ({
+                      ...quarter,
+                      score:
+                        quarter.score ??
+                        (quarter.label === latestFinalQuarter?.label
+                          ? risk.monitoringResultNilai
+                          : undefined),
+                    }));
                     return (
                       <TableRow
                         key={risk.id}
@@ -1114,10 +970,86 @@ export default function RiskRegisterPage() {
                           </div>
                         </TableCell>
                         <TableCell>
-                          <MonitoringTransactionProgress
-                            data={risk.semesterMonitoring}
-                            showCount={false}
-                          />
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span
+                                role="group"
+                                tabIndex={0}
+                                aria-label={`Riwayat pemantauan ${new Date().getFullYear()}`}
+                                className="inline-flex rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                              >
+                                <MonitoringTransactionProgress
+                                  data={risk.semesterMonitoring}
+                                  showCount={false}
+                                  nativeTitle={false}
+                                />
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent
+                              side="bottom"
+                              align="start"
+                              sideOffset={8}
+                              className="block w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-border bg-sidebar p-1 text-foreground shadow-lg [&>span]:!hidden"
+                            >
+                              <div>
+                                <div className="flex items-center justify-between gap-3 px-2 pb-2 pt-2">
+                                  <p className="text-xs font-medium uppercase text-tertiary-foreground">
+                                    RIWAYAT PEMANTAUAN
+                                  </p>
+                                  <span className="shrink-0 text-xs tabular-nums text-tertiary-foreground">
+                                    {new Date().getFullYear()}
+                                  </span>
+                                </div>
+                                {monitoringQuarters.length === 0 ? (
+                                  <IllustratedEmptyState
+                                    title="Belum ada riwayat pemantauan tahun ini."
+                                    size="compact"
+                                    className="py-3"
+                                  />
+                                ) : (
+                                  <div className="space-y-0.5 rounded-xl bg-card p-1.5">
+                                    {monitoringHistory.map((quarter) => {
+                                      const level =
+                                        quarter.score == null
+                                          ? undefined
+                                          : getRiskLevelFromNilai(quarter.score);
+
+                                      const scoreColor = level ? {
+                                        sangat_rendah: "text-green-600 dark:text-green-400",
+                                        rendah: "text-risk-low",
+                                        sedang: "text-risk-medium",
+                                        tinggi: "text-risk-high",
+                                        sangat_tinggi: "text-risk-extreme",
+                                      }[level] : "text-muted-foreground";
+
+                                      return (
+                                        <div
+                                          key={quarter.label}
+                                          className="flex min-h-10 items-center justify-between gap-4 px-1 py-1"
+                                        >
+                                          <span className="shrink-0 text-sm font-medium">
+                                            {quarter.label}
+                                          </span>
+                                          {quarter.score != null && level ? (
+                                            <span
+                                              className={`min-w-10 shrink-0 text-end text-sm font-medium tabular-nums ${scoreColor}`}
+                                              title={getRiskLevelDisplayLabel(level)}
+                                            >
+                                              {formatMonitoringNilai(quarter.score)}
+                                            </span>
+                                          ) : (
+                                            <span className="min-w-10 shrink-0 text-end text-sm tabular-nums text-muted-foreground">
+                                              -
+                                            </span>
+                                          )}
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            </TooltipContent>
+                          </Tooltip>
                         </TableCell>
                         <TableCell className="text-center">
                           <div className="flex justify-center">

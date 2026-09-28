@@ -4,21 +4,18 @@ import { StandardCard } from "../layout/standard-card";
 
 export function OverviewTrendCard({
   title = "Tren Skor Risiko per Semester",
-  subtitle,
   chart,
   legend,
   children,
 }: {
   title?: ReactNode;
-  subtitle?: ReactNode;
   chart?: ReactNode;
   legend?: ReactNode;
   children?: ReactNode;
 }) {
   return (
     <StandardCard
-      title={title}
-      subtitle={subtitle}
+      title={<span className="text-sm">{title}</span>}
     >
       <div className="space-y-4">
         {legend ? (

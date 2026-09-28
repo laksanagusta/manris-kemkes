@@ -117,7 +117,7 @@ const workingPaperMonitoringTableModel = readSource(
   "../lib/working-paper-monitoring-table.ts",
 );
 const riskCategoryPieChart = readSource(
-  "../app/(app)/reports/_components/risk-category-pie-chart.tsx",
+  "../app/(app)/overview/_components/risk-category-pie-chart.tsx",
 );
 const orderedUserSelectionTable = readSource(
   "../components/risk/ordered-user-selection-table.tsx",
@@ -192,10 +192,6 @@ test("collection routes use the shared CollectionToolbar", () => {
 });
 
 test("monitoring read-only toolbar matches collection control height", () => {
-  assert.match(
-    monitoringWorkspace,
-    /title="Progress keseluruhan"[\s\S]*contentClassName="p-4 pt-0"/,
-  );
   assert.match(monitoringWorkspace, /<CollectionSearchField[\s\S]*?h-9/);
   assert.match(monitoringWorkspace, /className="h-9 w-full rounded-lg/);
   assert.equal(
@@ -503,18 +499,21 @@ test("working paper signature timeline connectors reach the next marker", () => 
   assert.match(workingPaperSignatureTimeline, /w-0\.5 flex-1 min-h-4 -mb-1/);
 });
 
-test("report risk category legend sits below the chart", () => {
+test("dashboard risk-category donut uses selectable sectors and percentage tiles", () => {
   assert.match(
     riskCategoryPieChart,
-    /flex h-full flex-col items-center gap-4[\s\S]*w-full flex-1 items-center justify-center[\s\S]*grid w-full shrink-0 grid-cols-2[\s\S]*border-t border-surface-border\/60 pt-3/,
+    /PieChart accessibilityLayer[\s\S]*paddingAngle=\{2\}[\s\S]*shape=\{\(props: PieSectorShapeProps\)/,
   );
+  assert.match(riskCategoryPieChart, /aria-pressed=\{isSelected\}/);
+  assert.match(riskCategoryPieChart, /item\.percentage\.toLocaleString/);
+  assert.match(riskCategoryPieChart, /border-t border-surface-border\/60 pt-3/);
   assert.doesNotMatch(riskCategoryPieChart, /sm:flex-row/);
 });
 
-test("risk category distribution belongs to the scoped reports page", () => {
-  assert.doesNotMatch(pages.overview, /RiskCategoryPieChart|risk-categories/);
-  assert.match(pages.reports, /RiskCategoryPieChart/);
-  assert.match(pages.reports, /dashboard\/risk-categories/);
+test("risk category distribution belongs to the dashboard", () => {
+  assert.match(pages.overview, /RiskCategoryPieChart/);
+  assert.match(pages.overview, /dashboard\/risk-categories/);
+  assert.doesNotMatch(pages.reports, /RiskCategoryPieChart|dashboard\/risk-categories/);
 });
 
 test("risk movement report omits the snapshot metric grid", () => {

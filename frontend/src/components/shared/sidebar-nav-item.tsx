@@ -64,7 +64,7 @@ export function SidebarNavItem({
             {isActive && (
               <motion.span
                 aria-hidden="true"
-                className="pointer-events-none absolute inset-0 z-0 rounded-md bg-sidebar-accent"
+                className="pointer-events-none absolute inset-0 z-0 rounded-md bg-active"
                 layoutId="sidebar-active-background"
                 transition={SIDEBAR_SPRING}
               />

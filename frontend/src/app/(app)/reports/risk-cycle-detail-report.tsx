@@ -58,6 +58,8 @@ import {
 } from "@/components/report/report-scope-picker";
 import {
   CollectionToolbar,
+  CollectionEmptyState,
+  IllustratedEmptyState,
   KpiCard,
   MetricGrid,
 } from "@/components/shared/design-system";
@@ -234,9 +236,12 @@ function deriveMovementFromDetailItem(
 function FieldDiffTable({ diffs }: { diffs: RiskFieldDiff[] }) {
   if (diffs.length === 0) {
     return (
-      <div className="rounded-md border border-dashed border-border p-3 text-sm text-muted-foreground">
-        Tidak ada perubahan kolom.
-      </div>
+      <IllustratedEmptyState
+        title="Tidak ada perubahan kolom."
+        description="Nilai pada kolom ini tidak berubah."
+        size="compact"
+        className="py-2"
+      />
     );
   }
 
@@ -294,9 +299,12 @@ function FieldDiffTable({ diffs }: { diffs: RiskFieldDiff[] }) {
 function MitigationDiffTable({ diffs }: { diffs: RiskMitigationDiff[] }) {
   if (diffs.length === 0) {
     return (
-      <div className="rounded-md border border-dashed border-border p-3 text-sm text-muted-foreground">
-        Tidak ada perubahan mitigasi.
-      </div>
+      <IllustratedEmptyState
+        title="Tidak ada perubahan mitigasi."
+        description="Rencana mitigasi tidak berubah pada periode ini."
+        size="compact"
+        className="py-2"
+      />
     );
   }
 
@@ -788,15 +796,10 @@ export function RiskCycleDetailReport({
                   {filteredItems.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="h-24">
-                        <div className="flex flex-col gap-1 text-left">
-                          <p className="text-sm font-medium text-muted-foreground">
-                            Tidak ada data untuk filter report ini
-                          </p>
-                          <p className="text-xs text-muted-foreground/70">
-                            Coba ubah kriteria filter untuk melihat hasil yang
-                            berbeda
-                          </p>
-                        </div>
+                        <CollectionEmptyState
+                          title="Tidak ada data untuk filter report ini"
+                          description="Coba ubah kriteria filter untuk melihat hasil yang berbeda."
+                        />
                       </TableCell>
                     </TableRow>
                   ) : (

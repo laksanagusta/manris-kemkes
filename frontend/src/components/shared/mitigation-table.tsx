@@ -15,7 +15,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { RemoteUserPicker } from "@/components/risk/remote-user-picker";
-import { Input, Textarea } from "@/components/shared/design-system";
+import {
+  IllustratedEmptyState,
+  Input,
+  Textarea,
+} from "@/components/shared/design-system";
 import { CollectionTableHead } from "@/components/shared/design-system/collections/collection-table-head";
 import { CollectionTableHeader } from "@/components/shared/design-system/collections/collection-table-header";
 import { CollectionTableHeaderRow } from "@/components/shared/design-system/collections/collection-table-header-row";
@@ -57,6 +61,7 @@ interface MitigationTableProps {
   disabled?: boolean;
   actionErrors?: Array<string | undefined>;
   showPlaceholders?: boolean;
+  emptyStatePresentation?: "illustrated" | "plain";
   loadPicOptions?: (params: {
     q: string;
     page: number;
@@ -91,6 +96,7 @@ export function MitigationTable({
   disabled,
   actionErrors,
   showPlaceholders = true,
+  emptyStatePresentation = "illustrated",
   loadPicOptions,
 }: MitigationTableProps) {
   const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
@@ -152,13 +158,20 @@ export function MitigationTable({
   return (
     <div className="space-y-3">
       {items.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-border/50 bg-muted/10 px-4 py-8 text-left">
-          <p className="text-xs text-muted-foreground">
-            Belum ada rencana mitigasi.
-          </p>
-        </div>
+        emptyStatePresentation === "plain" ? (
+          <div className="rounded-lg border border-dashed border-border/50 bg-sunken px-4 py-8 text-left shadow-[inset_0_1px_2px_rgb(0_0_0/0.12),inset_0_-1px_0_rgb(255_255_255/0.6)] dark:shadow-[inset_0_1px_2px_rgb(0_0_0/0.35),inset_0_-1px_0_rgb(255_255_255/0.06)]">
+            <p className="text-xs text-muted-foreground">
+              Belum ada rencana mitigasi.
+            </p>
+          </div>
+        ) : (
+          <IllustratedEmptyState
+            title="Belum ada rencana mitigasi."
+            description="Tambahkan rencana mitigasi untuk mulai mencatat penanganan risiko."
+          />
+        )
       ) : (
-        <div className="w-full min-w-0 overflow-hidden rounded-lg border border-border/60">
+        <div className={cn("w-full min-w-0 overflow-hidden rounded-lg border", actionErrors?.some(Boolean) ? "border-destructive" : "border-border/60")}>
           <Table className="w-full table-fixed">
             <colgroup>
               <col className="w-[40%]" />
@@ -499,7 +512,7 @@ export function MitigationTable({
 
       <Button
         type="button"
-        variant="outline"
+        variant="ghost"
         size="sm"
         onClick={addItem}
         disabled={disabled}

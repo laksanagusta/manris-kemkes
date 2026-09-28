@@ -28,6 +28,7 @@ import {
 import {
   CollectionPagination,
   CollectionPageHeader,
+  CollectionEmptyState,
   CollectionFilterTrigger,
   CollectionSearchField,
   CollectionTableCard,
@@ -767,7 +768,10 @@ export default function EvaluationsPage() {
                     colSpan={7}
                     className="text-left"
                   >
-                    Belum ada evaluasi untuk filter yang dipilih.
+                    <CollectionEmptyState
+                      title="Belum ada evaluasi yang sesuai"
+                      description="Coba ubah kata kunci atau sesuaikan filter."
+                    />
                   </TableCell>
                 </TableRow>
               ) : (

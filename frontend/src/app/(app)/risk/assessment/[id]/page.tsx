@@ -125,7 +125,7 @@ function buildRiskFromMonitoring(
   sourceRisk: Risk | null,
 ): Risk {
   const base = (monitoring.resultRisk ?? sourceRisk ?? {}) as Risk;
-  const status = monitoring.status === "final" ? "final" : "draft";
+  const status = monitoring.status === "draft" ? "draft" : "final";
 
   return {
     ...base,
@@ -273,6 +273,7 @@ export default function AssessmentFormPage() {
       reviewSummary: "",
     },
   });
+  const { reset } = form;
 
   useEffect(() => {
     if (form.formState.submitCount === 0) {
@@ -490,6 +491,8 @@ export default function AssessmentFormPage() {
         toast.error("Lengkapi skor risiko sebelum finalisasi.");
         return;
       }
+      setMonitoringValidation(null);
+      setShowSubmitReviewConfirm(true);
       if (token && id) {
         setIsCheckingFinalize(true);
         try {
@@ -503,7 +506,6 @@ export default function AssessmentFormPage() {
           setIsCheckingFinalize(false);
         }
       }
-      setShowSubmitReviewConfirm(true);
       return;
     }
 
@@ -568,7 +570,7 @@ export default function AssessmentFormPage() {
         setSourceRisk(source);
         setSubstanceEditEnabled(monitoring.mode === "with_profile_revision");
         setSubstanceDraft(buildSubstanceDefaults(syntheticDraft));
-        form.reset({
+        reset({
           probability: monitoring.observedProbability || 1,
           impact: monitoring.observedImpact || 1,
           changeReason: monitoring.changeReason || "",
@@ -588,7 +590,7 @@ export default function AssessmentFormPage() {
       setSubstanceEditEnabled(false);
       setSubstanceDraft(buildSubstanceDefaults(draft));
 
-      form.reset({
+      reset({
         probability: draft.probability || 1,
         impact: draft.impact || 1,
         changeReason: draft.changeReason || "",
@@ -715,7 +717,7 @@ export default function AssessmentFormPage() {
         setSourceRisk(null);
         setMonitoringDraft(null);
         setSubstanceDraft(buildSubstanceDefaults(null));
-        form.reset({
+        reset({
           probability: 1,
           impact: 1,
           changeReason: "",
@@ -750,7 +752,7 @@ export default function AssessmentFormPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [id, token, form, isMonitoringRoute]);
+  }, [id, token, reset, isMonitoringRoute]);
 
   useEffect(() => {
     loadRiskData();
@@ -1071,10 +1073,12 @@ export default function AssessmentFormPage() {
     : null;
   const monitoringHeaderBadges = (
     <div className="flex flex-wrap items-center gap-2">
-      <Badge variant={draftRisk.status === "final" ? "default" : "secondary"}
+      <Badge variant={monitoringDraft?.status === "superseded" ? "secondary" : draftRisk.status === "final" ? "default" : "secondary"}
         className={draftRisk.status === "final" ? "border-transparent bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300" : ""}
       >
-        {assessmentStatusLabel[draftRisk.status] ?? draftRisk.status}
+        {monitoringDraft?.status === "superseded"
+          ? "Digantikan"
+          : assessmentStatusLabel[draftRisk.status] ?? draftRisk.status}
       </Badge>
       <Badge variant="secondary"
         className=""
@@ -1129,25 +1133,17 @@ export default function AssessmentFormPage() {
             <ActionButton
               variant="outline"
               icon={<Save className="size-3.5" />}
-              loading={isSaving && submitTarget.current === "draft"}
               onClick={handleSaveDraft}
               disabled={isSaving}
             >
               Simpan draft
             </ActionButton>
             <AccentButton
-              icon={
-                (isSaving && submitTarget.current === "review") ||
-                isCheckingFinalize ? (
-                  <Loader2 className="size-3.5 animate-spin" />
-                ) : (
-                  <Send className="size-3.5" />
-                )
-              }
+              icon={<Send className="size-3.5" />}
               onClick={openSubmitReviewConfirm}
               disabled={isSaving || isCheckingFinalize}
             >
-              {isCheckingFinalize ? "Memeriksa kesiapan…" : submitActionLabel}
+              {submitActionLabel}
             </AccentButton>
           </div>
         ) : null}
@@ -1193,11 +1189,7 @@ export default function AssessmentFormPage() {
                       onClick={handleSaveDraft}
                       disabled={isSaving || isAssessmentLocked}
                     >
-                      {isSaving && submitTarget.current === "draft" ? (
-                        <Loader2 className="size-3.5 animate-spin" />
-                      ) : (
-                        <Save className="size-3.5" />
-                      )}{" "}
+                      <Save className="size-3.5" />{" "}
                       Simpan draft
                     </Button>
                     <Button
@@ -1206,12 +1198,8 @@ export default function AssessmentFormPage() {
                       onClick={openSubmitReviewConfirm}
                       disabled={isSaving || isCheckingFinalize || isAssessmentLocked}
                     >
-                      {(isSaving && submitTarget.current === "review") || isCheckingFinalize ? (
-                        <Loader2 className="size-4 animate-spin" />
-                      ) : (
-                        <Send className="size-4" />
-                      )}{" "}
-                      {isCheckingFinalize ? "Memeriksa kesiapan…" : submitActionLabel}
+                      <Send className="size-4" />{" "}
+                      {submitActionLabel}
                     </Button>
                   </div>
                 )}
@@ -1278,26 +1266,18 @@ export default function AssessmentFormPage() {
 
                     if (isMonitoringRoute) return null;
 
-                    return mitigationItems.length > 0 ? (
+                    return (
                       <div className="w-full min-w-0 space-y-2">
                         <Label className="text-sm font-medium text-foreground">
-                          Rencana Penanganan (dari versi terakhir yang
-                          disetujui)
+                          {mitigationItems.length > 0
+                            ? "Rencana Penanganan (dari versi terakhir yang disetujui)"
+                            : "Rencana Penanganan"}
                         </Label>
                         <MitigationTable
                           items={mitigationItems}
                           onChange={() => {}}
                           disabled
                         />
-                      </div>
-                    ) : (
-                      <div>
-                        <Label className="text-sm font-medium text-foreground">
-                          Rencana Penanganan
-                        </Label>
-                        <p className="text-sm text-muted-foreground italic mt-2">
-                          Belum ada rencana penanganan
-                        </p>
                       </div>
                     );
                   })()}
@@ -1671,7 +1651,7 @@ export default function AssessmentFormPage() {
         open={showSubmitReviewConfirm}
         onOpenChange={setShowSubmitReviewConfirm}
       >
-        <AlertDialogContent>
+        <AlertDialogContent data-monitoring-finalize-dialog={isMonitoringRoute ? "" : undefined}>
           <AlertDialogHeader>
             <AlertDialogTitle className="text-base">
               {isMonitoringRoute ||
@@ -1765,7 +1745,6 @@ export default function AssessmentFormPage() {
               onClick={handleSubmitForReview}
               disabled={isSaving || isAssessmentLocked || isCheckingFinalize}
             >
-              {isSaving ? <Loader2 className="size-4 animate-spin" /> : null}
               {isMonitoringRoute ? "Finalisasi" : "Lanjutkan"}
             </AlertDialogAction>
           </AlertDialogFooter>

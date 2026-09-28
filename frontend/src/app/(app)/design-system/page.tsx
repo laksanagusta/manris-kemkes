@@ -2,7 +2,7 @@
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { DitherAvatar } from "@/components/dither-kit/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,9 +24,12 @@ import { AccentButton } from "@/components/shared/design-system/actions/accent-b
 import { ActionButton } from "@/components/shared/design-system/actions/action-button";
 import { SidebarMotionExample } from "@/components/shared/design-system/examples/sidebar-motion-example";
 import { DashboardKpiCard } from "@/components/shared/design-system/layout/dashboard-kpi-card";
+import { QuarterlyReportExample } from "@/components/shared/design-system/examples/quarterly-report-example";
 import { CardPatternsExample } from "@/components/shared/design-system/examples/card-patterns-example";
+import { MitigationPlanListExample } from "@/components/shared/design-system/examples/mitigation-plan-list-example";
 import { IncidentFormModalExample } from "@/components/shared/design-system/examples/incident-form-modal-example";
 import { MitigationProgressFormExample } from "@/components/shared/design-system/examples/mitigation-progress-form-example";
+import { MonitoringInsightCard } from "@/components/shared/design-system/domain/monitoring-insight-card";
 import {
   CollectionEmptyState,
   RiskCategoryIndicator,
@@ -40,6 +43,10 @@ import {
   RiskDetailDrawerExample,
 } from "@/components/shared/design-system/examples";
 
+import { SettingsModalExample } from "@/components/shared/design-system/examples/settings-modal-example";
+import { RiskScoreCardExample } from "@/components/shared/design-system/examples/risk-score-card-example";
+import { ToastExample } from "@/components/shared/design-system/examples/toast-example";
+
 export default function DesignSystemPage() {
   return (
     <main className="flex flex-col gap-8">
@@ -47,21 +54,34 @@ export default function DesignSystemPage() {
         <h1 className="text-2xl font-semibold tracking-tight">Design System</h1>
         <p className="text-muted-foreground">
           Manris menggunakan komponen shadcn/ui radix-nova, tema dasar neutral, palet grafik untuk data, dan font Inter. Variant default Badge dan Button memakai token primary neutral, sehingga tidak tampil teal. Shell memakai token background; navigasi dan aksi akun memakai komposisi Sidebar bawaan. Variasi tampilan
-          memakai prop resmi komponen; kelas halaman mengatur tata letak. Shell, topbar, dan main section memakai token `background` (`#f1f1f1` pada light mode), sementara sidebar dan logo section memakai token `sidebar` (`#f1f1f1` pada light mode). Surface card sekunder memakai token `secondary-card-surface` (`#fbfbfb` pada light mode). Warna risiko hanya
-          digunakan untuk menyampaikan data. Border, input, surface-border, dan component-border memakai token `sidebar-border` yang sama (`#e3e3e3` pada light mode). Tepi Card bawaan memakai ring dengan warna `sidebar-border` agar setara dengan garis sidebar. Hirarki teks memakai foreground untuk konten utama, muted-foreground untuk dukungan, dan tertiary-foreground (#a3a3a3) untuk microcopy berprioritas rendah. Sel data pendukung pada tabel seperti kategori memakai muted-foreground, sedangkan link utama, metrik, status, dan skor mempertahankan hierarki semantiknya. Animasi tab, tombol, overlay, input, Sidebar, dan Drawer mengikuti perilaku sebelum revamp.
+          memakai prop resmi komponen; kelas halaman mengatur tata letak. Shell, topbar, main section, dan header tabel memakai `background` / `table-header` (`#fcfcfc` pada light mode); footer tabel memakai token `table-footer` dengan warna yang sama. Sidebar dan logo section memakai `sidebar` (`#f6f6f6`). Konten inset di dalam Card memakai token `card-subtle-surface` (`#f6f6f6`); isi Card dan panel utama tetap putih, border Card dan panel memakai `border` (`#ececec`), termasuk ring Card bawaan. Row separator, Divider, dan garis pemisah shell memakai `separator` / `sidebar-border` (`#f6f6f6`). Area sunken memakai `sunken` (`#efefef`). Warna risiko hanya
+          digunakan untuk menyampaikan data. Hirarki teks memakai foreground (#202020) untuk konten utama, secondary-foreground / muted-foreground (#636363) untuk dukungan, tertiary-foreground (#8b8b8b) untuk microcopy termasuk deskripsi langkah pada timeline tanda tangan kertas kerja dan catatan nilai awal serta target pada form Register Risiko, serta disabled-foreground (#b9b9b9) untuk teks nonaktif. Hover memakai sidebar-accent (#e5e5e5) dan active memakai active (#dddddd). Sel data pendukung pada tabel seperti kategori memakai muted-foreground, sedangkan link utama, metrik, status, dan skor mempertahankan hierarki semantiknya. Animasi tab, tombol, overlay, input, Sidebar, dan Drawer mengikuti perilaku sebelum revamp.
         </p>
+        <p className="text-muted-foreground">Tombol outline, ghost, dan secondary memakai hover #e5e5e5 serta active #dddddd, termasuk saat kontrol terbuka. Tombol primary disabled memakai latar disabled-surface (muted), dengan teks dan ikon disabled-foreground tanpa pengurangan opacity pada kedua tema.</p>
       </header>
+
+      <section className="flex flex-col gap-4">
+        <h2 className="text-lg font-medium">Settings modal</h2>
+        <p className="text-sm text-muted-foreground">Dialog dua kolom dengan navigasi dan pencarian di kiri, serta konten yang dapat digulir di kanan. Lebar maksimal 1100px, tinggi 82svh, dan navigasi 240px. Pada layar kecil, menu berada di atas konten. Item menu aktif memakai teks dan ikon `primary`, sedangkan item inactive memakai `secondary-foreground`. Account memakai baris label dan isian responsif; Keamanan menjadi menu tersendiri untuk password dan perangkat aktif dalam satu Card dengan separator seperti Account, menggunakan mockup perangkat lokal; helper password memakai `text-tertiary-foreground`; Preferences menyimpan pilihan tema.</p>
+        <SettingsModalExample />
+      </section>
 
       <Separator />
 
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-medium">Grafik dan visualisasi risiko</h2>
-        <p className="text-sm text-muted-foreground">Semua grafik data memakai ChartContainer shadcn dengan ChartConfig untuk label dan warna seri serta ChartTooltip bawaan. Legenda di dalam plot memakai ChartLegend; legenda kontekstual di luar plot tetap menjadi komposisi halaman. Tinggi grafik ditetapkan oleh layout halaman. Recharts adalah renderer di dalam komponen Chart shadcn; tidak ada library grafik atau kerangka chart custom kedua. Heatmap risiko 5×5 tetap berupa matriks domain dengan label sumbu dan legenda yang terbaca.</p>
+        <p className="text-sm text-muted-foreground">Semua grafik data memakai ChartContainer shadcn dengan ChartConfig untuk label dan warna seri serta ChartTooltip bawaan. Legenda di dalam plot memakai ChartLegend; legenda kontekstual di luar plot tetap menjadi komposisi halaman. Tinggi grafik ditetapkan oleh layout halaman. Recharts adalah renderer di dalam komponen Chart shadcn; tidak ada library grafik atau kerangka chart custom kedua. Progres pemantauan Kertas Kerja memakai RadialBarChart ringkas dengan persentase di tengah, jumlah risiko sebagai teks `text-secondary-foreground` di samping tanpa badge, track muted, dan arc primary hingga semua monitoring selesai lalu memakai success. Heatmap risiko 5×5 tetap berupa matriks domain dengan label sumbu dan legenda yang terbaca.</p>
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <h2 className="text-lg font-medium">Kartu skor risiko</h2>
+        <p className="text-sm text-muted-foreground">Skor risiko dan target penurunan pada form risiko memakai kartu ringkas tanpa bayangan, dengan header penuh sesuai level keparahan. Warna header mengikuti level: sangat tinggi red-500, tinggi orange-500, sedang yellow-400, rendah green-500, dan sangat rendah green-400; nama level menjadi judul header 14px dengan teks dan ikon putih tanpa subtitle. Isi kartu menampilkan skor, probabilitas, dan dampak dalam tiga kolom; label metrik memakai 12px uppercase dengan letter spacing 0,5px di atas masing-masing angka. Klik kartu membuka heatmap untuk memilih nilai dan memperbarui warna header.</p>
+        <RiskScoreCardExample />
       </section>
 
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-medium">Navigasi sidebar</h2>
-        <p className="text-sm text-muted-foreground">Item dalam satu grup berjarak 4px; ruang antarseksi lebih besar. Label grup memakai text-tertiary-foreground, item navigasi yang tidak aktif memakai text-muted-foreground untuk label dan ikon, item aktif memakai text-sidebar-accent-foreground, dan hover serta permukaan item aktif memakai sidebar-accent netral yang sedikit lebih gelap dari latar sidebar. Teks logo sejajar dengan tepi kiri ikon navigasi, sementara footer sejajar dengan area item. Border kanan area logo dan border bawah topbar memakai token border-sidebar-border yang sama dengan garis tepi sidebar. Animasi pilihan aktif tetap sama.</p>
+        <p className="text-sm text-muted-foreground">Item dalam satu grup berjarak 4px; ruang antarseksi lebih besar. Label grup memakai text-tertiary-foreground, item navigasi yang tidak aktif memakai text-muted-foreground untuk label dan ikon, item aktif memakai text-sidebar-accent-foreground, dan hover memakai sidebar-accent (#e5e5e5), sedangkan item aktif memakai active (#dddddd). Border kanan sidebar desktop dan area logo setebal 0,5px dengan warna border (#ececec). Teks logo sejajar dengan tepi kiri ikon navigasi, sementara footer sejajar dengan area item. Menu pengguna membuka popover di atas tombol pengguna dengan sisi awal sejajar; isinya hanya Pengaturan dan Logout, tanpa nama maupun unit kerja di header dan tanpa menu Settings. Item Pengaturan memakai ikon Settings2 dengan ukuran 16px, selaras dengan ikon Logout. Border bawah topbar memakai token border-sidebar-border (#f6f6f6). Animasi pilihan aktif tetap sama.</p>
         <SidebarMotionExample />
       </section>
 
@@ -70,10 +90,11 @@ export default function DesignSystemPage() {
         <Card>
           <CardHeader>
             <CardTitle>Button dan Badge</CardTitle>
-            <CardDescription>Varian bawaan untuk aksi dan penanda status, termasuk alur panduan publik, persetujuan, laporan, kertas kerja, dan ringkasan kejadian. Tombol outline memakai surface putih di light mode dengan border terlihat; pada dark mode memakai surface gelap. Trigger menu dan aksi sekunder seperti Import memakai outline dengan satu ikon konteks tanpa chevron trailing. Menu aksi memakai satu surface popover dengan row DropdownMenuItem native, tanpa Card bersarang.</CardDescription>
+            <CardDescription>Varian bawaan untuk aksi dan penanda status, termasuk alur panduan publik, persetujuan, laporan, kertas kerja, dan ringkasan kejadian. Status Digantikan memakai Badge sekunder yang netral dan tetap tampak di riwayat audit, bukan sebagai data lifecycle aktif. Tombol outline memakai surface putih di light mode dengan border terlihat; pada dark mode memakai surface gelap. Trigger menu dan aksi sekunder seperti Import memakai outline dengan satu ikon konteks tanpa chevron trailing. Menu aksi memakai satu surface popover dengan row DropdownMenuItem native, tanpa Card bersarang.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap items-center gap-3">
             <Button>Utama</Button>
+            <Button disabled>Utama nonaktif</Button>
             <Button variant="secondary">Sekunder</Button>
             <Button variant="outline">Outline</Button>
             <Button className="h-9 rounded-full">Masuk (login)</Button>
@@ -88,6 +109,7 @@ export default function DesignSystemPage() {
             <Badge variant="outline">Outline</Badge>
             <Badge variant="destructive">Perlu perhatian</Badge>
             <Badge variant="secondary">Draf</Badge>
+            <Badge variant="secondary">Digantikan</Badge>
             <Badge variant="default" className="border-transparent bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300">Final</Badge>
             <Badge variant="default" className="border-transparent bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300">Menunggu</Badge>
             <Badge variant="default" className="border-transparent bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300">Sedang</Badge>
@@ -96,12 +118,20 @@ export default function DesignSystemPage() {
       </section>
 
       <section className="flex flex-col gap-4">
+        <h2 className="text-lg font-medium">Toast (Sonner)</h2>
+        <p className="text-sm text-muted-foreground">Semua toast memakai Sonner melalui satu Toaster global di root layout, mengikuti tema aplikasi dengan surface neutral dan ikon status Lucide di kanan bawah. Pilih pesan, berhasil, gagal, informasi, atau peringatan sesuai hasil aksi. Proses async memakai toast.promise agar status memproses berakhir dengan berhasil atau gagal; validasi field wajib tetap inline.</p>
+        <ToastExample />
+      </section>
+
+      <section className="flex flex-col gap-4">
         <h2 className="text-lg font-medium">Formulir</h2>
+        <p className="text-sm text-muted-foreground">Error validasi diteruskan ke kontrol melalui aria-invalid atau prop invalid agar border merah terlihat. List dan tabel menampilkan border pada kotak kontennya saja, termasuk border merah saat invalid; tombol tambah memakai variant ghost tanpa border terlihat. Input baris tetap memakai tampilan standar, dengan pesan error pada baris terkait.</p>
         <p className="text-sm text-muted-foreground">Bagian formulir memakai jarak dan inset Card bawaan; judul dan deskripsi berada di CardHeader, diikuti isian dalam CardContent.</p>
+        <p className="text-sm text-muted-foreground">Aksi formulir mengonfirmasi data yang berhasil disimpan dan menampilkan pesan kegagalan yang bisa ditindaklanjuti. Isian wajib memberi pesan inline pada kontrol terkait. Skor risiko yang terisi otomatis ditandai sebagai nilai awal dan menjelaskan apa yang perlu dipastikan sebelum finalisasi.</p>
         <Card>
           <CardHeader>
             <CardTitle>Kontrol bawaan</CardTitle>
-            <CardDescription>Label, input, textarea, checkbox, dan switch memakai komposisi bawaan shadcn. Field NIP dan Password pada login memakai tinggi 36px dan surface putih sebagai pengecualian konteks halaman; default Input dan InputGroup tetap tidak berubah.</CardDescription>
+            <CardDescription>Label, input, textarea, checkbox, dan switch memakai komposisi bawaan shadcn. Semua input teks, textarea, input group, select, dan combobox nonaktif memakai surface `disabled-input-surface` (#fafafa pada tema terang); tema gelap memakai surface muted yang sesuai. Field NIP dan Password pada login memakai tinggi 36px dan surface putih sebagai pengecualian konteks halaman.</CardDescription>
           </CardHeader>
           <CardContent>
             <FieldGroup>
@@ -122,6 +152,10 @@ export default function DesignSystemPage() {
             <Field>
               <FieldLabel htmlFor="design-system-description">Deskripsi</FieldLabel>
               <Textarea id="design-system-description" placeholder="Jelaskan risiko" />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="design-system-disabled-input">Input nonaktif</FieldLabel>
+              <Input id="design-system-disabled-input" disabled defaultValue="Risiko sudah terkunci" />
             </Field>
             <Field>
               <FieldLabel htmlFor="design-system-search">Pencarian dengan aksi</FieldLabel>
@@ -178,12 +212,12 @@ export default function DesignSystemPage() {
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-medium">Kategori risiko</h2>
         <p className="text-sm text-muted-foreground">
-          Indikator kategori memakai titik warna dan label yang selalu terlihat. Tidak ada border atau background tambahan; warna hanya menjadi penanda visual pendamping teks.
+          Indikator kategori memakai titik warna dan label yang selalu terlihat. Donut kategori risiko di overview memakai token warna yang sama, termasuk fallback muted untuk kategori tanpa pemetaan. Tidak ada border atau background tambahan; warna hanya menjadi penanda visual pendamping teks.
         </p>
         <Card>
           <CardHeader>
             <CardTitle>RiskCategoryIndicator</CardTitle>
-            <CardDescription>Enam kategori risiko dengan warna data yang berbeda.</CardDescription>
+            <CardDescription>Warna kategori memakai token Tailwind 400: Kebijakan blue-400, Operasional emerald-400, Kepatuhan yellow-400, Fraud–Korupsi red-400, Reputasi fuchsia-400, dan Legal indigo-400.</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-x-6 gap-y-3">
             {[
@@ -209,6 +243,8 @@ export default function DesignSystemPage() {
           Aksi berlabel Batal, Cancel, atau Tutup di footer dialog berada di sisi kanan dan memakai outline; kontrol tutup berbasis ikon tetap memakai hit area ringkas.
           Semua subtitle atau deskripsi pada modal memakai komposisi Description dengan
           text-secondary-foreground untuk menjelaskan tujuan atau konsekuensi tindakan.
+          Modal konfirmasi finalisasi pemantauan memakai scrim redup tanpa blur agar panel ringkasan yang sticky tetap stabil saat modal dibuka.
+          Jika modal memerlukan pemeriksaan awal, tampilkan modal segera. Teks dan ikon tombol di section serta modal tetap sama; nonaktifkan aksi konfirmasi sampai pemeriksaan selesai.
           Catat Kejadian hanya meminta tanggal melalui Calendar shadcn di dalam Popover;
           input jam tidak ditampilkan.
           Saat isi langkah berubah, tinggi modal mengikuti konten dengan transisi grow/shrink
@@ -216,7 +252,13 @@ export default function DesignSystemPage() {
           Dialog yang sama: klik Lapor Progress memakai continuity transition/layout animation
           untuk mengubah detail menjadi form, lalu Batal kembali ke detail tanpa membuka modal kedua.
         </p>
+        <p className="max-w-2xl text-sm text-muted-foreground">
+          Dialog tambah/edit grup memakai lebar maksimal 2xl dan batas tinggi viewport. Header serta footer tetap terlihat, sementara isi formulir dapat digulir. Isian nama dan deskripsi memakai Field; helper nama memakai FieldDescription 12px. Pilihan anggota memakai Combobox multi-select: organisasi terpilih tampil sebagai chip yang bisa dihapus, sedangkan popover mencari turunan owner di server berdasarkan nama, lokasi, dan level dengan debounce 250ms serta maksimal enam hasil teratas. Popup anggota menerima hover dan klik; interaksi di dalam popup tidak menutup Dialog, sementara area halaman di belakang modal tetap nonaktif. Tombol pilih semua dan pilih hasil pencarian memuat seluruh organisasi yang cocok secara paginasi; kosongkan pilihan tetap tersedia. Konfirmasi hapus tetap ringkas dengan aksi destruktif di sisi kanan footer.
+        </p>
         <IncidentFormModalExample />
+        <h3 className="text-sm font-medium">Daftar rencana mitigasi</h3>
+        <p className="max-w-2xl text-sm text-muted-foreground">Rencana mitigasi memakai baris abu-abu membulat dengan ikon di kiri, rencana dan PIC, serta badge tipe putih di kanan. Daftar hanya menampilkan isian langkah pertama; rincian langkah kedua tetap di modal. PIC memakai shadcn DropdownMenu dengan ukuran dan layout bawaan serta trigger outline yang sama seperti tipe mitigasi, ditambah kolom pencarian tanpa ikon, inset horizontal sejajar dengan opsi, dan tanpa padding vertikal tambahan; tombol clear Lucide X muncul saat pencarian berisi teks. Pencarian user berjalan ke server setelah jeda 300ms, dan input tetap bisa diketik tanpa tertangkap navigasi menu. Avatar Dither Kit berukuran 18px dan polanya dihasilkan dari nama PIC; PIC wajib dipilih sebelum lanjut atau simpan. Pada langkah pertama, rencana penanganan selebar penuh, sedangkan PIC dan tipe mitigasi berdampingan mulai breakpoint sm dan menumpuk di layar kecil. Klik baris untuk edit, atau gunakan menu aksi untuk edit dan hapus. Pilihan tipe memakai dropdown radio bersama. Tambah atau edit membuka modal dua langkah seperti Catat Kejadian: rencana, PIC, dan tipe pada langkah pertama; seluruh rincian pada langkah kedua. Kembali mempertahankan isian, Batal atau menutup modal membuang perubahan, dan Simpan memperbarui daftar.</p>
+        <MitigationPlanListExample />
       </section>
 
       <section className="flex flex-col items-start gap-4">
@@ -230,11 +272,10 @@ export default function DesignSystemPage() {
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-medium">Koleksi dan toolbar</h2>
         <p className="text-sm text-muted-foreground">
-          Halaman koleksi memakai toolbar dengan filter di kiri dan action di
-          kanan. Search koleksi yang persisten memakai CollectionSearchField
+          Halaman koleksi mengelompokkan toolbar dan tabel dengan jarak vertikal 16px (`space-y-4`); PageStack memberi jarak 24px untuk bagian utama. Toolbar memakai filter di kiri dan action di
+          kanan. Footer tabel dan pagination memakai token `table-footer` (#fcfcfc); footer pagination mempertahankan spacing bawaan CardFooter dan mengikuti tinggi kontennya di semua breakpoint, sementara tombol angka dan panahnya setinggi 32px. Label informasi di footer memakai `text-secondary-foreground`. Empty state koleksi dan hasil filter memakai ilustrasi transparan di atas judul 14px normal-weight dan subtitle 12px muted, tanpa frame tambahan; lebar ilustrasi maksimal 256px, dengan ukuran 112px untuk picker dan area ringkas. Search koleksi yang persisten memakai CollectionSearchField
           yang selalu terlihat dengan tinggi compact 32px; ExpandableSearchField
-          hanya dipakai saat ruang memang terbatas. Popover filter, table shell, dan pagination memakai komponen shared yang sama
-          seperti Register Risiko. Empty state hasil pencarian atau filter selalu
+          hanya dipakai saat ruang memang terbatas. Register Risiko menampilkan field Status, Periode, dan Kategori secara inline di samping search; Risk Events menambahkan field Tingkat, dan Penanganan menambahkan Status serta Periode. Lebar filter Status Penanganan mengikuti opsi terpanjang agar setiap label opsi tetap satu baris. Halaman koleksi lain dapat memakai CollectionFilterPopover untuk filter yang memerlukan ruang tambahan. Table shell dan pagination memakai komponen shared. Empty state hasil pencarian atau filter selalu
           menjelaskan kondisinya dengan judul 14px medium, subtitle 12px muted,
           jarak 4px, dan langkah berikutnya.
         </p>
@@ -245,13 +286,14 @@ export default function DesignSystemPage() {
 
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-medium">Komposisi Card</h2>
-        <p className="text-sm text-muted-foreground">Panel dashboard dan formulir memakai radius, jarak antarbagian, serta inset Card bawaan. Tabel atau grafik boleh mengatur ruang kontennya tanpa mengubah source Card. Detail kejadian risiko memakai pembagian desktop sekitar 55/45; judul Card memakai ukuran 14px, row label–value memakai gap 32px, Ringkasan mendapat minimum 400px, tetap mengikuti tinggi kontennya, dan setiap risiko terkait memakai border tipis pada row-nya, sementara tingkat kejadian dan pencatat berada di Informasi utama. Deskripsi WarningCard memakai text-muted-foreground agar judul peringatan tetap menjadi fokus.</p>
+        <p className="text-sm text-muted-foreground">Panel dashboard dan formulir memakai radius, jarak antarbagian, serta inset Card bawaan. Tabel atau grafik boleh mengatur ruang kontennya tanpa mengubah source Card. Kartu pengelolaan grup menempatkan jumlah di samping judul, deskripsi di bawahnya, lalu pencarian 32px dan aksi buat pada sisi trailing; tabel memiliki border atas, mencapai tepi Card di sisi inline dan bawah agar tidak menyisakan celah, lalu pagination menjadi CardFooter, sementara aksi baris berkumpul di menu ellipsis dengan hapus sebagai tindakan destruktif. Detail kejadian risiko memakai pembagian desktop 50/50; judul Card memakai ukuran 14px, row label–value memakai gap 32px, kartu Ringkasan tetap mengikuti tinggi kontennya, label Risiko terkait memakai 12px medium, judul risiko terkait memakai 12px, dan setiap row memakai surface `card-subtle-surface` dengan radius tanpa border, sementara tingkat kejadian dan pencatat berada di Informasi utama. Deskripsi WarningCard memakai ukuran 12px dan `text-muted-foreground` agar judul peringatan tetap menjadi fokus.</p>
         <CardPatternsExample />
       </section>
 
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-medium">Data dan progres</h2>
-        <p className="text-sm text-muted-foreground">Status Draf memakai variant secondary abu-abu; pending/progress dan tingkat kejadian Sedang memakai biru, final/success/done hijau, dan cancel merah. Kartu KPI memakai judul 12px berwarna muted, angka 24px, dan keterangan 12px agar angka tetap menjadi fokus utama. State kosong untuk alur upload/import dapat memakai surface dashed muted yang sama dengan area unggah, dengan label terpusat.</p>
+        <p className="text-sm text-muted-foreground">Status Draf memakai variant secondary abu-abu; pending/progress dan tingkat kejadian Sedang memakai biru, final/success/done hijau, dan cancel merah. Semua widget dashboard memakai judul 14px tanpa subtitle; KPI mempertahankan angka 24px dan keterangan 12px agar angka tetap menjadi fokus utama. Empty state data memakai ilustrasi transparan di atas judul normal-weight dan deskripsi 12px muted; ukuran standar maksimal 256px dan konteks picker maksimal 112px. Editor Sebab, Dampak, dan Mitigasi pada form risiko baru memakai surface `bg-sunken` dengan bayangan inset lembut dan highlight bawah. Saat risiko terkunci, tombol tambah sebab, dampak, dan rencana penanganan serta seluruh tombol AI untuk risiko, sebab, dampak, dan penanganan disembunyikan; item yang sudah ada tetap terlihat dalam keadaan baca-saja. Kolom Progres Penanganan pada tabel Pemantauan memakai ring 18×18px dengan label persentase 14px di sampingnya; arc selalu violet-400, termasuk saat progress 100%, dengan track muted. Error dan loading memakai alert serta spinner.</p>
+        <p className="text-sm text-muted-foreground">Judul empty state ringkas di panel risiko dan linimasa aktivitas memakai `text-secondary-foreground` agar tetap berada di bawah judul bagian.</p>
         <div className="grid max-w-2xl gap-3 sm:grid-cols-2">
           <DashboardKpiCard title="Risiko Prioritas" value="13" detail="risiko tinggi & ekstrem" trend="up" />
           <DashboardKpiCard title="Mitigasi belum terlapor" value="2" detail="tugas tanpa laporan" trend="down" />
@@ -262,11 +304,11 @@ export default function DesignSystemPage() {
               <CardTitle>Daftar risiko</CardTitle>
               <CardAction><Badge variant="secondary">2 risiko</Badge></CardAction>
               <CardDescription>
-                Table bawaan mengatur tipografi 13px, padding, surface #fafafa, dan border daftar operasional. Header tabel memakai background #fafafa dengan label `text-tertiary-foreground`. Sel pertama dan terakhir berjarak 16px dari tepi tabel, sementara jarak antarkolom tetap 8px; setiap kolom label utama seperti Risiko, Judul, Judul Piagam, Kejadian, Organisasi, dan padanannya memakai `px-24` lokal pada header serta body seperti kolom judul risiko pada Register Risiko. Isi tabel sejajar dengan inset Card dan pagination. Teks panjang di kolom utama umumnya membungkus di dalam sel; khusus judul rencana pada tabel Penanganan, teks satu baris memakai ellipsis (`truncate`) dengan `px-24` agar jarak kanan tetap terjaga dan kode risiko tetap terbaca sebagai metadata sekunder. Sel pendukung seperti risiko terkait, pencatat, tanggal, serta waktu memakai `text-muted-foreground`; identifier kode di dalam Ringkasan dan metadata kode dialog konfirmasi memakai `text-tertiary-foreground`. Kode di bawah nama risiko pada Register Risiko memakai Inter 14px (`font-sans text-sm`), sementara kode di bawah judul rencana pada tabel Penanganan tetap memakai 14px monospace; keduanya menggunakan `text-muted-foreground`. Kolom jumlah menggunakan label eksplisit; default-nya rata kiri, sedangkan kolom Jumlah risiko di tabel Kertas Kerja rata kanan.
+                Table bawaan mengatur tipografi 13px, padding, surface #fcfcfc, dan border daftar operasional. Header dan footer tabel memakai surface #fcfcfc melalui token masing-masing; label informasi footer memakai `text-secondary-foreground` (#636363). Sel pertama dan terakhir berjarak 16px dari tepi tabel, sementara jarak antarkolom tetap 8px; setiap kolom label utama seperti Risiko, Judul, Judul Piagam, Kejadian, Organisasi, dan padanannya memakai `px-24` lokal pada header serta body seperti kolom judul risiko pada Register Risiko. Isi tabel sejajar dengan inset Card dan pagination. Teks panjang di kolom utama umumnya membungkus di dalam sel; khusus judul rencana pada tabel Penanganan, teks satu baris memakai ellipsis (`truncate`) dengan `px-24` agar jarak kanan tetap terjaga dan kode risiko tetap terbaca sebagai metadata sekunder. Daftar MoM menggabungkan kode ke kolom judul sebagai subteks 12px monospace berwarna tertiary, menggantikan ringkasan sebagai subjudul. Sel pendukung seperti risiko terkait, pencatat, tanggal, serta waktu memakai `text-muted-foreground`; identifier kode di dalam Ringkasan dan metadata kode dialog konfirmasi memakai `text-tertiary-foreground`. Kode di bawah nama risiko pada Register Risiko memakai Inter 14px (`font-sans text-sm`), sementara kode di bawah judul rencana pada tabel Penanganan tetap memakai 14px monospace; keduanya menggunakan `text-muted-foreground`. Kolom jumlah menggunakan label eksplisit; default-nya rata kiri, sedangkan kolom Jumlah risiko di tabel Kertas Kerja rata kanan. Aksi pada baris tabel memakai tombol opsi ellipsis; tindakan destruktif seperti hapus tersedia sebagai item menu destruktif.
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="-mx-(--card-spacing) -mb-(--card-spacing)">
+              <div className="-mx-(--card-spacing) -mb-(--card-spacing) border-t border-border/60">
               <Table>
                 <TableHeader>
                   <TableRow><TableHead className="px-24">Risiko</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Jumlah risiko</TableHead></TableRow>
@@ -282,30 +324,42 @@ export default function DesignSystemPage() {
           <Card>
             <CardHeader>
               <CardTitle>Progres dan identitas</CardTitle>
-              <CardDescription>Komponen bawaan untuk indikator ringkas.</CardDescription>
+              <CardDescription>Avatar Dither Kit menghasilkan pola deterministik dari nama yang ditampilkan dan memakai border tipis berwarna netral.</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-              <div className="flex items-center gap-3"><Avatar><AvatarFallback>MR</AvatarFallback></Avatar><span>Pengelola risiko</span></div>
+              <div className="flex items-center gap-3"><DitherAvatar name="Pengelola risiko" size={32} className="overflow-hidden rounded-full" /><span>Pengelola risiko</span></div>
               <Progress value={65} aria-label="Progres 65 persen" />
               <p className="text-muted-foreground">Linimasa aktivitas dan tugas dokumen memakai Card serta Badge; gerak indikator progres tetap dipertahankan.</p>
               <Skeleton className="h-8 w-full" />
               <CollectionEmptyState
                 align="center"
-                className="gap-3 rounded-lg border border-dashed border-border/70 bg-muted/[0.18] px-6 py-10"
-                title="Belum ada data"
-                description="State kosong memakai komposisi Empty bawaan."
+                title="Belum ada risiko"
+                description="Tambahkan risiko baru untuk memulai daftar risiko."
               />
             </CardContent>
           </Card>
         </div>
+        <p className="text-sm text-muted-foreground">Tabel monitoring pada detail Kertas Kerja memakai inset sel standar tanpa tambahan `px-24` di kolom Risiko, agar judul risiko sejajar dengan data pada kolom lain.</p>
       </section>
 
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-medium">Narrative Overview</h2>
         <p className="text-sm text-muted-foreground">
-          Overview menyusun condition, change, attention, dan concentrated risk secara berurutan. Tabel perhatian memakai primitive tabel koleksi yang sama dengan halaman lain, menggunakan surface putih pada header tabel, sedangkan kartu tren menempatkan legenda berbasis dot tepat di bawah header Card sebelum chart; seri chart memakai token Tailwind skala 600 (`blue-600`, `cyan-600`, `green-600`, `yellow-600`, `orange-600`, dan `red-600`), dan peta risiko menempatkan aksi perbandingan multi-fase di header Card.
+          Overview menyusun condition, change, attention, dan concentrated risk secara berurutan. Semua widget memakai judul 14px tanpa subtitle; keterangan KPI tetap 12px dan angka tetap 24px. Pada layar lebar, tren risiko dan distribusi kategori berbagi satu baris dengan porsi lebar sekitar 2:1; pada layar sempit keduanya bertumpuk. Kartu distribusi menempatkan donut di tengah, menonjolkan sektor terpilih, dan memakai tooltip standar `ChartTooltipContent`. Tombol kategori di bagian bawah menunjukkan persentase, menandai pilihan aktif, dan membungkus saat ruang tidak cukup; titik warna tampil langsung di samping label tanpa wadah. Tabel perhatian memakai primitive tabel koleksi yang sama dengan halaman lain dan surface putih pada header. Tren jumlah risiko memakai satu garis total berwarna Tailwind `violet-400`, tanpa marker dan tanpa legenda; di breakpoint `xl`, plot setinggi 27rem mengisi kartu tren setinggi 32rem. Angka heatmap memakai `text-secondary-foreground`, setiap sel memakai border 0,5px dengan token `border-border`, dan aksi perbandingan multi-fase berada di header Card.
         </p>
         <OverviewDashboardExample />
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <h2 className="text-lg font-medium">Evaluasi kuartalan · Laporan</h2>
+        <p className="text-sm text-muted-foreground">Sembilan widget: empat KPI, perubahan dan target, pelaporan mitigasi, kejadian aktual, perbandingan unit, dan daftar risiko perhatian/semua. Contoh memakai data ilustrasi. Pembilang dan penyebut selalu terlihat; data yang belum dapat dinilai memakai tanda —. Unit tanpa data tetap ditampilkan. Klik nama unit untuk membuka drawer Vaul dari kanan; pencarian dan pilihan isi drawer tidak mengubah scope halaman.</p>
+        <QuarterlyReportExample />
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <h2 className="text-lg font-medium">Ringkasan pemantauan kuartalan</h2>
+        <p className="text-pretty text-sm text-muted-foreground">Ring utama dan keterangan angka berada di kiri; sorotan prioritas dan insight lain berada di kanan dengan surface `bg-card-subtle-surface`. Label “Prioritas pemantauan” memakai 12px medium dengan warna muted. Ikon info menempel dekat dengan label, dengan target klik tetap 40px. Pada layar kecil kolom bertumpuk. Ring menunjukkan penyelesaian pemantauan final, bukan kesehatan risiko. Angka memakai tabular-nums, tanpa animasi masuk. Contoh berikut memakai data ilustrasi.</p>
+        <MonitoringInsightCard cycle="2026-Q3" total={50} finalized={40} highPending={3} increased={2} overdue={5} />
       </section>
 
       <section className="flex flex-col gap-4">
@@ -328,6 +382,7 @@ export default function DesignSystemPage() {
         </Card>
         <p className="text-sm text-muted-foreground">Collapsible card menghapus inset vertikal root agar spacing header dimiliki trigger dan isi tabel dapat full-bleed; tabel memakai <code>CollapsibleCard.Body className=&quot;px-0&quot;</code> di pemanggil, sedangkan form dan ringkasan dapat mempertahankan inset CardContent standar.</p>
         <CollapsibleCardExample />
+        <p className="text-sm text-muted-foreground">Ikon CollapsibleCard memakai permukaan sunken dengan bayangan inset di atas dan highlight di bawah agar terlihat masuk ke dalam header. Bayangan dan highlight menyesuaikan mode gelap.</p>
       </section>
 
       <section className="flex flex-col gap-4">
@@ -341,7 +396,25 @@ export default function DesignSystemPage() {
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              Saat card perubahan substansi risiko dibuka, tinggi kolom utama boleh bertambah tanpa mendorong atau menurunkan posisi simpulan pemantauan. Rail tetap menempel pada awal workspace dan hanya memakai offset sticky yang aman dari app chrome. Pada tabel transaksi pemantauan, kode risiko berada di bawah judul dalam kolom Risiko selebar `33%`; kolom Perubahan Skor tetap mendapat `15%` dan lebar kolom lainnya tidak berubah. Badge level pada Perubahan Skor memakai palet `levelToColor` yang sama dengan badge level di field Skor form risiko.
+              Saat card perubahan substansi risiko dibuka, tinggi kolom utama boleh bertambah tanpa mendorong atau menurunkan posisi simpulan pemantauan. Rail tetap menempel pada awal workspace dan hanya memakai offset sticky yang aman dari app chrome. Pada tabel transaksi pemantauan, kode risiko berada di bawah judul dalam kolom Risiko selebar `33%`; kolom Perubahan Skor tetap mendapat `15%` dan lebar kolom lainnya tidak berubah. Badge level pada Perubahan Skor memakai palet `levelToColor` yang sama dengan badge level di field Skor form risiko. Workspace monitoring read-only menampilkan KPI Draf/Final di atas tabel transaksi tanpa kartu Progress keseluruhan terpisah.
+            </p>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Indikator Pemantauan pada Register Risiko membuka tooltip riwayat Q1–Q4 untuk tahun berjalan dengan lebar 256px dan batas aman terhadap lebar viewport. Panel memakai token `sidebar` (#f6f6f6) tanpa panah diamond, dengan border lembut dan bayangan; daftar berada pada token `card` (putih). Panel memakai padding luar 4px. Header memakai 8px horizontal, 8px di atas, 8px di bawah, dengan judul “RIWAYAT PEMANTAUAN” uppercase 12px berwarna tertiary dan tahun di ujung kanan. Setiap baris memakai padding horizontal dan vertikal 4px, hanya menampilkan label kuartal dan skor 14px rata kanan dengan warna sesuai level tanpa badge. Periode tanpa skor tetap terlihat dengan tanda strip.
+            </p>
+          </CardContent>
+        </Card>
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <h2 className="text-lg font-medium">Semantik laporan risiko kuartalan</h2>
+        <Card>
+          <CardHeader>
+            <CardTitle>Profil efektif dan hasil pemantauan</CardTitle>
+            <CardDescription>Jangan gabungkan dua skor yang memiliki makna waktu berbeda.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Profil Q1 menampilkan skor awal Q1. Hasil pemantauan Q1 ditampilkan terpisah dan menjadi dasar profil Q2. Tren, dashboard, dan ekspor memakai skor profil efektif pada kuartal yang dipilih. Tabel profil dan pemantauan memakai <code>ReportPanel contentClassName=&quot;px-0&quot;</code> agar konten membentang ke tepi Card tanpa paragraf penjelas di atasnya. Kolom Risiko memakai lebar 38% dan inset <code>px-24</code> seperti Register Risiko; judul risiko dipotong satu baris sementara kodenya tetap tampil di bawah, dan kepala tabel memiliki garis atas tipis.
             </p>
           </CardContent>
         </Card>

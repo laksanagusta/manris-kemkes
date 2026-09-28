@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Info } from "@/components/shared/icons";
 import { Button } from "@/components/ui/button";
+import { IllustratedEmptyState } from "@/components/shared/design-system/feedback/illustrated-empty-state";
 
 import { cn } from "@/lib/utils";
 import {
@@ -95,9 +96,11 @@ export function ImpactCriteriaTooltip({
                 Memuat...
               </div>
             ) : criteria.length === 0 ? (
-              <div className="px-4 py-6 text-xs text-muted-foreground">
-                Tidak ada data kriteria.
-              </div>
+              <IllustratedEmptyState
+                title="Tidak ada data kriteria."
+                size="compact"
+                className="py-2"
+              />
             ) : (
               <Table className="w-full text-left">
                 <TableHeader>

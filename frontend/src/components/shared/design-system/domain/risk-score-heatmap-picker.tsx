@@ -33,6 +33,13 @@ const LEGEND_LEVELS: RiskLevel[] = [
   "tinggi",
   "sangat_tinggi",
 ];
+const RISK_LEVEL_HEADER_BACKGROUND: Record<RiskLevel, string> = {
+  sangat_rendah: "bg-green-400",
+  rendah: "bg-green-500",
+  sedang: "bg-yellow-400",
+  tinggi: "bg-orange-500",
+  sangat_tinggi: "bg-red-500",
+};
 const DIGITS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
 
 function VerticalNumberTicker({
@@ -88,18 +95,22 @@ export interface RiskScoreSelection {
 
 export interface RiskScorePickerTriggerProps extends RiskScoreSelection {
   title: string;
+  presentation?: "compact" | "card";
   onClick: () => void;
   disabled?: boolean;
+  invalid?: boolean;
   id?: string;
   "aria-describedby"?: string;
 }
 
 export function RiskScorePickerTrigger({
   title,
+  presentation = "compact",
   probability,
   impact,
   onClick,
   disabled = false,
+  invalid = false,
   id,
   "aria-describedby": ariaDescribedBy,
 }: RiskScorePickerTriggerProps) {
@@ -111,24 +122,58 @@ export function RiskScorePickerTrigger({
       id={id}
       onClick={onClick}
       disabled={disabled}
+      data-invalid={invalid || undefined}
       aria-describedby={ariaDescribedBy}
       aria-label={`Pilih ${title.toLowerCase()} dari heatmap. Probabilitas ${probability}, dampak ${impact}, skor ${metrics.inherentScore}.`}
-      className="group flex min-h-11 w-fit max-w-full self-start items-center justify-between gap-3 rounded-lg border border-border/60 bg-card px-3 py-2.5 text-left transition-[background-color,border-color] hover:border-foreground/15 hover:bg-muted/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:hover:border-border/60 disabled:cursor-not-allowed disabled:opacity-60"
+      className={cn(
+        "group self-start border border-border/60 bg-card text-left hover:border-foreground/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:hover:border-border/60 disabled:cursor-not-allowed disabled:opacity-60 data-[invalid]:border-destructive data-[invalid]:ring-2 data-[invalid]:ring-destructive/20",
+        presentation === "card"
+          ? "w-full max-w-sm overflow-hidden rounded-2xl"
+          : "flex min-h-11 w-fit max-w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 transition-[background-color,border-color] hover:bg-muted/20",
+      )}
     >
-      <div className="flex shrink-0 items-center gap-2">
-        <span className="text-3xl font-mono font-medium leading-none tracking-tight text-foreground tabular-nums">
-          {metrics.inherentScore}
+      {presentation === "card" ? (
+        <>
+          <span
+            className={cn(
+              "flex items-center justify-between gap-3 px-4 py-3 text-white",
+              RISK_LEVEL_HEADER_BACKGROUND[metrics.level],
+            )}
+          >
+            <span className="min-w-0">
+              <span className="text-sm font-semibold tracking-tight">{getRiskLevelLabel(metrics.level)}</span>
+            </span>
+            <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-white" />
+          </span>
+          <span className="grid grid-cols-3 gap-2 px-4 py-4 text-foreground">
+            {[
+              { label: "Skor", value: metrics.inherentScore },
+              { label: "Probabilitas", value: probability },
+              { label: "Dampak", value: impact },
+            ].map(({ label, value }) => (
+              <span key={label} className="flex min-w-0 flex-col gap-1.5">
+                <span className="text-xs uppercase tracking-[0.5px] text-muted-foreground">{label}</span>
+                <span className="text-2xl font-semibold leading-none tracking-tight tabular-nums">{value}</span>
+              </span>
+            ))}
+          </span>
+        </>
+      ) : (
+        <span className="flex shrink-0 items-center gap-2">
+          <span className="text-3xl font-mono font-medium leading-none tracking-tight text-foreground tabular-nums">
+            {metrics.inherentScore}
+          </span>
+          <span
+            className={cn(
+              "rounded-full border px-2 py-0.5 text-[10px] font-semibold",
+              levelToColor(metrics.level),
+            )}
+          >
+            {getRiskLevelLabel(metrics.level)}
+          </span>
+          <ChevronRight className="size-4 text-muted-foreground transition-transform duration-150 ease-(--ease-out) group-hover:translate-x-0.5 motion-reduce:transition-none" />
         </span>
-        <span
-          className={cn(
-            "rounded-full border px-2 py-0.5 text-[10px] font-semibold",
-            levelToColor(metrics.level),
-          )}
-        >
-          {getRiskLevelLabel(metrics.level)}
-        </span>
-        <ChevronRight className="size-4 text-muted-foreground transition-transform duration-150 ease-(--ease-out) group-hover:translate-x-0.5 motion-reduce:transition-none" />
-      </div>
+      )}
     </button>
   );
 }

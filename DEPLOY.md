@@ -41,13 +41,13 @@ Add A records pointing to your Droplet's IP:
 
 | Record Type | Hostname              | Value           | TTL  |
 |-------------|-----------------------|-----------------|------|
-| A           | api-manris.marvcore.com | YOUR_DROPLET_IP | 3600 |
-| A           | manris.marvcore.com     | YOUR_DROPLET_IP | 3600 |
+| A           | api-manris.dikalaksana.com | YOUR_DROPLET_IP | 3600 |
+| A           | manris.dikalaksana.com     | YOUR_DROPLET_IP | 3600 |
 
 **Verify DNS propagation:**
 ```bash
-dig api-manris.marvcore.com +short
-dig manris.marvcore.com +short
+dig api-manris.dikalaksana.com +short
+dig manris.dikalaksana.com +short
 ```
 
 ### Docker Hub Account
@@ -120,7 +120,7 @@ This installs Docker, creates directories, and configures the firewall.
    OPENAI_API_KEY=sk-your-real-openai-key-here
    
    # Verify CORS_ORIGINS matches your domain
-   CORS_ORIGINS=https://manris.marvcore.com
+   CORS_ORIGINS=https://manris.dikalaksana.com
    ```
 
 3. **Upload files to Droplet:**
@@ -159,38 +159,37 @@ docker compose logs backend
 
 Request Let's Encrypt certificates:
 ```bash
-docker compose run --rm certbot certonly --webroot \
-  -w /var/www/certbot \
-  -d api-manris.marvcore.com \
-  -d manris.marvcore.com \
-  --email your@email.com \
-  --agree-tos
+docker compose run --rm --entrypoint /bin/sh certbot -c \
+  'certbot certonly --webroot -w /var/www/certbot \
+    -d api-manris.dikalaksana.com \
+    -d manris.dikalaksana.com \
+    --email your@email.com --agree-tos --no-eff-email'
 ```
 
 **Troubleshooting:**
-- If this fails, verify DNS is propagated: `dig api-manris.marvcore.com +short`
+- If this fails, verify DNS is propagated: `dig api-manris.dikalaksana.com +short`
 - Check nginx logs: `docker compose logs nginx`
-- Verify HTTP is accessible: `curl -I http://api-manris.marvcore.com`
+- Verify HTTP is accessible: `curl -I http://api-manris.dikalaksana.com`
 
 ### Step 5: Enable SSL Configuration
 
-Restore SSL-enabled nginx config from git:
+From your local repository, upload the SSL-enabled nginx config:
 ```bash
-git checkout nginx/conf.d/default.conf
-docker compose exec nginx nginx -s reload
+scp nginx/conf.d/default.conf root@YOUR_DROPLET_IP:/opt/manris/nginx/conf.d/default.conf
+ssh root@YOUR_DROPLET_IP 'cd /opt/manris && docker compose exec nginx nginx -t && docker compose exec nginx nginx -s reload'
 ```
 
 Verify HTTPS works:
 ```bash
-curl -I https://api-manris.marvcore.com/api/health
-curl -I https://manris.marvcore.com
+curl -I https://api-manris.dikalaksana.com/api/health
+curl -I https://manris.dikalaksana.com
 ```
 
 ### Step 6: Set Up Automatic Renewal
 
 Add cron job for cert renewal (runs every 60 days):
 ```bash
-(crontab -l 2>/dev/null; echo "0 0 */60 * * cd /opt/manris && docker compose run --rm certbot renew && docker compose exec nginx nginx -s reload") | crontab -
+(crontab -l 2>/dev/null; echo "0 0 */60 * * cd /opt/manris && docker compose run --rm --entrypoint /bin/sh certbot -c 'certbot renew' && docker compose exec nginx nginx -s reload") | crontab -
 ```
 
 Verify cron job:
@@ -253,7 +252,7 @@ docker compose up -d backend frontend
 **Verify rollback:**
 ```bash
 docker compose ps
-curl https://api-manris.marvcore.com/api/health
+curl https://api-manris.dikalaksana.com/api/health
 ```
 
 ---
@@ -337,10 +336,10 @@ df -h
 ### Health Checks
 ```bash
 # Backend API
-curl https://api-manris.marvcore.com/api/health
+curl https://api-manris.dikalaksana.com/api/health
 
 # Frontend
-curl -I https://manris.marvcore.com
+curl -I https://manris.dikalaksana.com
 
 # Database connection
 docker compose exec postgres psql -U manris -d manris -c "SELECT version();"
@@ -378,8 +377,8 @@ docker compose exec backend /app/server migrate force <version>
 docker compose logs certbot
 
 # Manually renew
-docker compose run --rm certbot renew --dry-run  # Test first
-docker compose run --rm certbot renew
+docker compose run --rm --entrypoint /bin/sh certbot -c 'certbot renew --dry-run'  # Test first
+docker compose run --rm --entrypoint /bin/sh certbot -c 'certbot renew'
 docker compose exec nginx nginx -s reload
 ```
 

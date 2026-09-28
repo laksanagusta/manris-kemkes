@@ -28,6 +28,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 import { buildApprovedRiskHistoryItem } from "@/lib/risk-history";
 import {
+  CollectionEmptyState,
   CollectionPageHeader,
   PageStack,
 } from "@/components/shared/design-system";
@@ -125,10 +126,10 @@ export default function RiskHistoryPage() {
                   ) : historyData.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="h-24">
-                        <div className="flex flex-col gap-1 text-left text-state-foreground">
-                          <p className="text-sm font-medium text-state-foreground">Belum ada history untuk snapshot ini</p>
-                          <p className="text-xs text-state-foreground">Snapshot ini tidak memiliki rekam jejak yang tercatat</p>
-                        </div>
+                        <CollectionEmptyState
+                          title="Belum ada riwayat untuk snapshot ini"
+                          description="Snapshot ini belum memiliki rekam jejak yang tercatat."
+                        />
                       </TableCell>
                     </TableRow>
                   ) : historyData.map((history) => (

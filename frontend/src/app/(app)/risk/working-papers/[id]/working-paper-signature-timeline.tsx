@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { CheckCircle2, Circle } from "@/components/shared/icons";
 import type { WorkingPaperTimelineItem } from "@/lib/working-paper-detail-view-model";
 import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
+import { IllustratedEmptyState } from "@/components/shared/design-system";
 
 const timelineStatusTone = {
   signed: "success",
@@ -33,11 +34,11 @@ export function WorkingPaperSignatureTimeline({
 }) {
   if (timeline.length === 0) {
     return (
-      <div className="rounded-lg border border-dashed border-border/60 bg-muted/10 px-4 py-6 text-center">
-        <p className="text-sm text-muted-foreground">
-          Belum ada penandatangan
-        </p>
-      </div>
+      <IllustratedEmptyState
+        title="Belum ada penandatangan"
+        size="compact"
+        className="py-3"
+      />
     );
   }
 
@@ -109,7 +110,7 @@ export function WorkingPaperSignatureTimeline({
                     .join(" · ")}
                 </p>
 
-                <p className="text-xs leading-5 text-muted-foreground">
+                <p className="text-xs leading-5 text-tertiary-foreground">
                   {item.description}
                 </p>
               </div>

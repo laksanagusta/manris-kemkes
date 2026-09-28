@@ -10,8 +10,9 @@ import (
 )
 
 const (
-	RiskMonitoringStatusDraft = "draft"
-	RiskMonitoringStatusFinal = "final"
+	RiskMonitoringStatusDraft      = "draft"
+	RiskMonitoringStatusFinal      = "final"
+	RiskMonitoringStatusSuperseded = "superseded"
 	// Deprecated alias kept for callers that still use the old name.
 	RiskMonitoringStatusFinalized = RiskMonitoringStatusFinal
 
@@ -26,6 +27,7 @@ type RiskMonitoring struct {
 	ResultRiskID                *uuid.UUID                  `json:"resultRiskId,omitempty"`
 	AssessmentCycle             string                      `json:"assessmentCycle"`
 	Status                      string                      `json:"status"`
+	SupersededByMonitoringID    *uuid.UUID                  `json:"supersededByMonitoringId,omitempty"`
 	Mode                        string                      `json:"mode"`
 	SourceProbability           int                         `json:"sourceProbability"`
 	SourceImpact                int                         `json:"sourceImpact"`

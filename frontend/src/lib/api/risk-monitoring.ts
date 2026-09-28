@@ -19,6 +19,12 @@ export interface StartMonitoringResponse {
   existingDraft: boolean;
 }
 
+interface MonitoringMutationResponse {
+  monitoring: RiskMonitoringDetail;
+  message: string;
+  updatedMode?: string;
+}
+
 export async function startMonitoring(
   token: string,
   riskId: string,
@@ -64,11 +70,12 @@ export async function updateMonitoringDraft(
   id: string,
   payload: Record<string, unknown>
 ): Promise<RiskMonitoringDetail> {
-  return api.put<RiskMonitoringDetail>(
+  const result = await api.put<MonitoringMutationResponse>(
     `/risk-monitorings/${id}`,
     payload,
     token
   );
+  return result.monitoring;
 }
 
 export async function deleteMonitoringDraft(
@@ -82,9 +89,10 @@ export async function finalizeMonitoring(
   token: string,
   id: string
 ): Promise<RiskMonitoringDetail> {
-  return api.post<RiskMonitoringDetail>(
+  const result = await api.post<MonitoringMutationResponse>(
     `/risk-monitorings/${id}/finalize`,
     {},
     token
   );
+  return result.monitoring;
 }

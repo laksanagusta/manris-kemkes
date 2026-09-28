@@ -40,11 +40,20 @@ func (h *OrganizationHandler) List(c *fiber.Ctx) error {
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	limit, _ := strconv.Atoi(c.Query("limit", "10"))
 	q := c.Query("q")
+	var ancestorID *uuid.UUID
+	if rawAncestorID := c.Query("ancestor_id"); rawAncestorID != "" {
+		parsedAncestorID, err := uuid.Parse(rawAncestorID)
+		if err != nil {
+			return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID ancestor organisasi tidak valid")
+		}
+		ancestorID = &parsedAncestorID
+	}
 
 	result, err := h.listFilterUC.Execute(c.Context(), organizationuc.ListOrganizationsWithFilterInput{
-		Page:  page,
-		Limit: limit,
-		Q:     q,
+		Page:       page,
+		Limit:      limit,
+		Q:          q,
+		AncestorID: ancestorID,
 	})
 	if err != nil {
 		return handleOrganizationError(c, err)

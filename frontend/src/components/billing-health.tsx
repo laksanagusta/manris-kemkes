@@ -1,20 +1,13 @@
 import { Button } from "@/components/ui/button";
+import { IllustratedEmptyState } from "@/components/shared/design-system";
 import {
 	CardContent,
 	CardDescription,
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card";
-import {
-	Empty,
-	EmptyContent,
-	EmptyDescription,
-	EmptyHeader,
-	EmptyMedia,
-	EmptyTitle,
-} from "@/components/ui/empty";
 import { DashboardCard } from "@/components/dashboard-card";
-import { CircleCheckIcon, ArrowRightIcon } from "@/components/shared/icons";
+import { ArrowRightIcon } from "@/components/shared/icons";
 import Link from "next/link";
 
 export function BillingHealth() {
@@ -27,25 +20,18 @@ export function BillingHealth() {
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="flex h-full items-center">
-				<Empty>
-					<EmptyHeader>
-						<EmptyMedia variant="icon">
-							<CircleCheckIcon aria-hidden="true" />
-						</EmptyMedia>
-						<EmptyTitle>You&apos;re caught up.</EmptyTitle>
-						<EmptyDescription className="">
-							Balances and payouts look fine. nothing overdue in this snapshot.
-						</EmptyDescription>
-					</EmptyHeader>
-					<EmptyContent>
+				<IllustratedEmptyState
+					title="You&apos;re caught up."
+					description="Balances and payouts look fine. Nothing is overdue in this snapshot."
+					action={
 						<Button asChild variant="ghost">
 							<Link href="/#">
 								Review open invoices
 								<ArrowRightIcon aria-hidden="true" />
 							</Link>
 						</Button>
-					</EmptyContent>
-				</Empty>
+					}
+				/>
 			</CardContent>
 		</DashboardCard>
 	);

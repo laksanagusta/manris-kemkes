@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Agentation } from "agentation";
 import { Inter } from "next/font/google";
+import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/contexts/auth-context";
 import { Toaster } from "@/components/ui/sonner";
 import { SuppressRadixWarnings } from "@/components/suppress-radix-warnings";
@@ -27,14 +28,16 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id" className={cn("font-sans", inter.variable)}>
+    <html suppressHydrationWarning lang="id" className={cn("font-sans", inter.variable)}>
       <body className="bg-background antialiased">
-        <AuthProvider>
-          {children}
-          <Toaster />
-          <SuppressRadixWarnings />
-          {process.env.NODE_ENV === "development" && <Agentation />}
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            {children}
+            <Toaster />
+            <SuppressRadixWarnings />
+            {process.env.NODE_ENV === "development" && <Agentation />}
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

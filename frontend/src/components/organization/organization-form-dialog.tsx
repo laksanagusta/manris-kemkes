@@ -35,7 +35,10 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { FieldErrorMessage } from "@/components/shared/design-system";
+import {
+  FieldErrorMessage,
+  IllustratedEmptyState,
+} from "@/components/shared/design-system";
 import { cn } from "@/lib/utils";
 
 const uprLevelOptions = [
@@ -310,9 +313,11 @@ export function OrganizationFormDialog({
                         Memuat parent unit...
                       </div>
                     ) : parentOptions.length === 0 ? (
-                      <div className="py-6 text-center text-sm text-muted-foreground">
-                        Parent unit belum ditemukan.
-                      </div>
+                      <IllustratedEmptyState
+                        title="Parent unit belum ditemukan."
+                        size="compact"
+                        className="py-2"
+                      />
                     ) : (
                       parentOptions.map((org) => (
                         <button

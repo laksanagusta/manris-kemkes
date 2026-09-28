@@ -131,6 +131,7 @@ type ListTasksInput struct {
 	UserID       *uuid.UUID
 	Query        string
 	Status       string
+	Period       string
 	OrgIDs       []uuid.UUID
 	Page         int
 	Limit        int
@@ -171,7 +172,7 @@ func (uc *ListTasksUseCase) ExecutePaginated(ctx context.Context, input ListTask
 		input.Limit = 100
 	}
 
-	tasks, total, err := uc.taskRepo.ListAllPaginated(ctx, input.OrgIDs, input.Query, input.Page, input.Limit)
+	tasks, total, err := uc.taskRepo.ListAllPaginated(ctx, input.OrgIDs, input.Query, input.Status, input.Period, input.Page, input.Limit)
 	if err != nil {
 		return nil, fmt.Errorf("gagal mengambil daftar tugas mitigasi: %w", err)
 	}

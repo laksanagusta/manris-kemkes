@@ -218,11 +218,11 @@ test("report chart primitives use the surface border token", () => {
   );
   const overviewChartSources = [
     "../../app/(app)/overview/_components/unit-total-risk-score-chart.tsx",
+    "../../app/(app)/overview/_components/risk-category-pie-chart.tsx",
   ].map((path) => readFileSync(new URL(path, import.meta.url), "utf8"));
   const reportChartSources = [
     "../../app/(app)/reports/_components/critical-risk-rate-trend.tsx",
     "../../app/(app)/reports/_components/inherent-residual-trend.tsx",
-    "../../app/(app)/reports/_components/risk-category-pie-chart.tsx",
     "../../app/(app)/reports/_components/risk-category-distribution-card.tsx",
     "../../app/(app)/reports/_components/risk-movement-by-org.tsx",
   ].map((path) => readFileSync(new URL(path, import.meta.url), "utf8"));

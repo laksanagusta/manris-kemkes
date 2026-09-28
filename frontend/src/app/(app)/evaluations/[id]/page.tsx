@@ -55,6 +55,7 @@ import {
   ActionButton,
   AccentButton,
   CollectionPageHeader,
+  IllustratedEmptyState,
 } from "@/components/shared/design-system";
 import { OrderedUserSelectionTable } from "@/components/risk/ordered-user-selection-table";
 import { RemoteUserPicker } from "@/components/risk/remote-user-picker";
@@ -958,9 +959,10 @@ export default function EvaluationDetailPage() {
             </CardHeader>
             <CardContent className="space-y-6">
               {evaluationSections.length === 0 ? (
-                <div className="rounded-lg bg-state-surface px-4 py-8 text-sm text-state-foreground">
-                  Belum ada section evaluasi yang tersedia.
-                </div>
+                <IllustratedEmptyState
+                  title="Belum ada bagian evaluasi"
+                  description="Bagian evaluasi belum tersedia untuk penilaian ini."
+                />
               ) : null}
 
               {evaluationSections.map((section, sectionIndex) => {

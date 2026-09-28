@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { cn } from "@/lib/utils";
 import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +18,7 @@ export interface SimpulanCardProps {
   impact?: number;
 }
 
-export function SimpulanCard({
+export const SimpulanCard = memo(function SimpulanCard({
   nilaiCurrent,
   nilaiBaru,
   currentInherentScore,
@@ -162,4 +163,4 @@ export function SimpulanCard({
       </section>
     </div>
   );
-}
+});

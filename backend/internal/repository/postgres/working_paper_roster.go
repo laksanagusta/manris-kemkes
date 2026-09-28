@@ -185,6 +185,7 @@ func rosterPreviewQuery() string {
 			FROM risks r
 			WHERE r.organization_id = $1
 			  AND r.status = 'final'
+			  AND r.superseded_by_risk_id IS NULL
 			  AND r.assessment_cycle = $2
 			ORDER BY r.version_group_id, r.version_number DESC
 		),

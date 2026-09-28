@@ -19,7 +19,8 @@ import { WorkingPaperStatusActions } from "./working-paper-status-actions";
 import { WorkingPaperSignatureTimeline } from "./working-paper-signature-timeline";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import { ChartContainer } from "@/components/ui/chart";
+import { PolarAngleAxis, RadialBar, RadialBarChart } from "recharts";
 import {
   AccentButton,
   CollectionPageHeader,
@@ -290,6 +291,10 @@ export default function WorkingPaperDetailPage(props: {
   const finalizedMonitoringCount =
     data.risks?.filter((link) => link.risk.monitoring?.status === "final")
       .length || 0;
+  const finalizedMonitoringPercentage =
+    totalRiskCount > 0
+      ? Math.round((finalizedMonitoringCount / totalRiskCount) * 100)
+      : 0;
   const isAllMonitoringFinal =
     totalRiskCount > 0 && finalizedMonitoringCount === totalRiskCount;
 
@@ -399,7 +404,7 @@ export default function WorkingPaperDetailPage(props: {
                     id="working-paper-summary-properties"
                     className="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground/70"
                   >
-                    Ringkasan dokumen
+                    Ringkasan
                   </h2>
                   <dl className="mt-3 space-y-3">
                     {summaryItems.map(({ label, value }) => (
@@ -439,34 +444,72 @@ export default function WorkingPaperDetailPage(props: {
                   </h2>
                   <div className="mt-3">
                     {totalRiskCount > 0 ? (
-                      <div className="flex flex-col gap-3">
-                        <div className="flex items-center justify-between gap-4">
-                          <Badge variant={isAllMonitoringFinal ? "default" : "outline"}
-                            className={isAllMonitoringFinal ? "max-w-full truncate border-transparent bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300" : "max-w-full truncate border-transparent bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"}
+                      <div className="flex items-center gap-4">
+                        <div
+                          className="relative size-[88px] shrink-0"
+                          role="img"
+                          aria-label={`${finalizedMonitoringPercentage}% selesai dipantau, ${finalizedMonitoringCount} dari ${totalRiskCount} risiko`}
+                        >
+                          <ChartContainer
+                            config={{
+                              completion: {
+                                label: "Selesai dipantau",
+                                color: isAllMonitoringFinal
+                                  ? "var(--color-success)"
+                                  : "var(--primary)",
+                              },
+                            }}
+                            initialDimension={{ width: 88, height: 88 }}
+                            className="size-[88px] aspect-square"
+                            aria-hidden="true"
                           >
-                            {finalizedMonitoringCount} dari {totalRiskCount} Risiko
-                            Selesai Dipantau
-                          </Badge>
-                          <span className="text-xs font-medium text-muted-foreground">
-                            {Math.round(
-                              (finalizedMonitoringCount / totalRiskCount) * 100,
-                            )}
-                            %
+                            <RadialBarChart
+                              data={[
+                                {
+                                  name: "Selesai dipantau",
+                                  value: finalizedMonitoringPercentage,
+                                },
+                              ]}
+                              startAngle={90}
+                              endAngle={-270}
+                              innerRadius="78%"
+                              outerRadius="96%"
+                              margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+                            >
+                              <PolarAngleAxis
+                                type="number"
+                                domain={[0, 100]}
+                                tick={false}
+                                axisLine={false}
+                              />
+                              <RadialBar
+                                dataKey="value"
+                                fill="var(--color-completion)"
+                                background={{ fill: "var(--muted)" }}
+                                cornerRadius={8}
+                              />
+                            </RadialBarChart>
+                          </ChartContainer>
+                          <span
+                            aria-hidden="true"
+                            className="pointer-events-none absolute inset-0 flex items-center justify-center text-base font-semibold tabular-nums text-foreground"
+                          >
+                            {finalizedMonitoringPercentage}%
                           </span>
                         </div>
-                        <Progress
-                          value={(finalizedMonitoringCount / totalRiskCount) * 100}
-                          className={cn(
-                            "h-1.5",
-                            isAllMonitoringFinal &&
-                              "[&>[data-slot=progress-indicator]]:bg-success",
-                          )}
-                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm leading-5 text-secondary-foreground">
+                            {finalizedMonitoringCount} dari {totalRiskCount} Risiko
+                            Selesai Dipantau
+                          </p>
+                        </div>
                       </div>
                     ) : (
-                      <div className="rounded-lg bg-state-surface px-3 py-4 text-center text-xs text-state-foreground">
-                        Belum ada risiko di dalam kertas kerja.
-                      </div>
+                      <CollectionEmptyState
+                        title="Belum ada risiko di dalam kertas kerja."
+                        description="Risiko yang ditambahkan ke kertas kerja akan muncul di sini."
+                        className="py-3"
+                      />
                     )}
                   </div>
                 </section>

@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { IllustratedEmptyState } from "@/components/shared/design-system/feedback/illustrated-empty-state";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
@@ -203,7 +204,13 @@ export default function RegisterScreen() {
                       <Command shouldFilter={false}>
                         <CommandInput placeholder="Cari nama unit kerja..." value={organizationQuery} onValueChange={setOrganizationQuery} />
                         <CommandList>
-                          <CommandEmpty>Tidak ada unit kerja ditemukan.</CommandEmpty>
+                          <CommandEmpty>
+                            <IllustratedEmptyState
+                              title="Tidak ada unit kerja ditemukan."
+                              size="compact"
+                              className="py-2"
+                            />
+                          </CommandEmpty>
                           <CommandGroup>
                             {filteredOrganizations.map((organization) => (
                               <CommandItem key={organization.id} value={organization.name} data-checked={organization.id === organizationId} onSelect={() => selectOrganization(organization)}>
