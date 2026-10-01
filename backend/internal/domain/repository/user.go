@@ -28,3 +28,9 @@ type UserRepository interface {
 	List(ctx context.Context) ([]*entity.User, error)
 	ListWithFilter(ctx context.Context, filter UserListFilter) ([]*entity.User, int, error)
 }
+
+// UserLastLoginRepository records successful login timestamps independently
+// from profile updates.
+type UserLastLoginRepository interface {
+	RecordLastLogin(ctx context.Context, id uuid.UUID) error
+}

@@ -1,5 +1,5 @@
-import { RiskGuidePage } from "@/components/guides/risk-guide-page";
+import { redirect } from "next/navigation";
 
 export default function RiskGuideShellPage() {
-  return <RiskGuidePage />;
+  redirect("/panduan/pengenalan");
 }

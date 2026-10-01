@@ -1,6 +1,5 @@
 "use client";
 
-import { LayoutGroup } from "motion/react";
 import { useState } from "react";
 
 import {
@@ -27,50 +26,48 @@ export function SidebarMotionExample() {
           <div className="font-logo px-4 py-3 text-xl font-semibold lowercase tracking-[-0.4px] text-sidebar-foreground">
             Manris
           </div>
-          <LayoutGroup id="design-system-sidebar-motion">
-            <SidebarGroup>
-              <SidebarMenu className="gap-1">
-                {items.slice(0, 1).map((item) => (
-                  <SidebarNavItem
-                    key={item.href}
-                    href={item.href}
-                    icon={item.icon}
-                    isActive={activeHref === item.href}
-                    label={item.label}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      setActiveHref(item.href);
-                    }}
-                  />
-                ))}
-              </SidebarMenu>
-            </SidebarGroup>
-            <SidebarGroup>
-              <SidebarGroupLabel>OPERASIONAL</SidebarGroupLabel>
-              <SidebarMenu className="gap-1">
-                {items.slice(1).map((item) => (
-                  <SidebarNavItem
-                    key={item.href}
-                    href={item.href}
-                    icon={item.icon}
-                    isActive={activeHref === item.href}
-                    label={item.label}
-                    onClick={(event) => {
-                      event.preventDefault();
-                      setActiveHref(item.href);
-                    }}
-                  />
-                ))}
-              </SidebarMenu>
-            </SidebarGroup>
-          </LayoutGroup>
+          <SidebarGroup>
+            <SidebarMenu className="gap-1">
+              {items.slice(0, 1).map((item) => (
+                <SidebarNavItem
+                  key={item.href}
+                  href={item.href}
+                  icon={item.icon}
+                  isActive={activeHref === item.href}
+                  label={item.label}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    setActiveHref(item.href);
+                  }}
+                />
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
+          <SidebarGroup>
+            <SidebarGroupLabel>OPERASIONAL</SidebarGroupLabel>
+            <SidebarMenu className="gap-1">
+              {items.slice(1).map((item) => (
+                <SidebarNavItem
+                  key={item.href}
+                  href={item.href}
+                  icon={item.icon}
+                  isActive={activeHref === item.href}
+                  label={item.label}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    setActiveHref(item.href);
+                  }}
+                />
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
         </div>
       </SidebarProvider>
       <p className="text-xs text-muted-foreground">
         Ikon tetap statis tanpa transform atau transition khusus. Surface aktif
-        berpindah dengan layout animation tanpa garis indikator kiri; label dan
-        ikon inactive memakai muted foreground, label aktif memakai foreground
-        aktif, serta label aktif memakai font medium.
+        langsung mengikuti menu terpilih tanpa animasi slide; label dan ikon
+        inactive memakai muted foreground, sedangkan label aktif memakai
+        foreground aktif serta font medium.
       </p>
     </div>
   );

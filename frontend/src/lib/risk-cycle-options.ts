@@ -39,6 +39,56 @@ export function shiftMonitoringCycle(cycle: string, delta: number) {
   return shiftAssessmentCycle(cycle, delta);
 }
 
+export function getDefaultMonitoringCycle(
+  currentCycle = currentMonitoringCycle(),
+  previousCycleStatus?: string | null,
+  riskEffectiveCycle?: string | null,
+) {
+  const previousCycle = shiftMonitoringCycle(currentCycle, -1);
+  return isMonitoringCycleAfterPreviousEligible(
+    currentCycle,
+    previousCycleStatus,
+    riskEffectiveCycle,
+  )
+    ? currentCycle
+    : previousCycle;
+}
+
+export function isMonitoringCycleAfterPreviousEligible(
+  currentCycle: string,
+  previousCycleStatus?: string | null,
+  riskEffectiveCycle?: string | null,
+  unknownIsEligible = false,
+) {
+  const normalizedStatus = previousCycleStatus?.trim().toLowerCase();
+  if (normalizedStatus === "draft") return false;
+  if (normalizedStatus === "final" || normalizedStatus === "finalized") {
+    return true;
+  }
+
+  const previousCycle = shiftMonitoringCycle(currentCycle, -1);
+  if (!riskEffectiveCycle) return unknownIsEligible;
+  return isCycleAfter(riskEffectiveCycle, previousCycle);
+}
+
+export function isMonitoringCycleApplicable(
+  cycle: string,
+  riskEffectiveCycle?: string | null,
+) {
+  if (!riskEffectiveCycle) return true;
+  return !isCycleAfter(riskEffectiveCycle, cycle);
+}
+
+function isCycleAfter(firstCycle: string, secondCycle: string) {
+  try {
+    const first = normalizeQuarterCycle(firstCycle);
+    const second = normalizeQuarterCycle(secondCycle);
+    return first.year * 4 + first.quarter > second.year * 4 + second.quarter;
+  } catch {
+    return false;
+  }
+}
+
 export function getSelectableAssessmentCycles(
   currentCycle: string,
 ): AssessmentCycleOption[] {

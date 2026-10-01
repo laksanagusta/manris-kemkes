@@ -18,10 +18,10 @@ export const designSystemOverviewDashboardKpis: ReadonlyArray<{
     trend: "down",
   },
   {
-    title: "Eksposur",
-    value: "1,284",
-    detail: "skor paparan risiko",
-    trend: "down",
+    title: "Mitigasi overdue",
+    value: "8",
+    detail: "tugas melewati tenggat",
+    trend: "up",
   },
 ];
 
@@ -39,40 +39,4 @@ export const designSystemOverviewCategorySegments = [
   { label: "Mesin", value: 18, color: "var(--chart-3)" },
   { label: "Material", value: 16, color: "var(--chart-4)" },
   { label: "Lingkungan", value: 16, color: "var(--chart-5)" },
-] as const;
-
-export const designSystemOverviewTopRisks = [
-  {
-    id: "risk-example-018",
-    code: "RISK-018",
-    title: "Keterlambatan pengadaan bahan baku utama",
-    category: "operasional",
-    probability: 4,
-    impact: 4,
-    score: 18,
-    levelVariant: "destructive",
-    href: "/risk/register/risk-example-018",
-  },
-  {
-    id: "risk-example-024",
-    code: "RISK-024",
-    title: "Gangguan sistem informasi operasional",
-    category: "kebijakan",
-    probability: 5,
-    impact: 4,
-    score: 20,
-    levelVariant: "destructive",
-    href: "/risk/register/risk-example-024",
-  },
-  {
-    id: "risk-example-031",
-    code: "RISK-031",
-    title: "Ketidaksesuaian dokumen kepatuhan",
-    category: "kepatuhan",
-    probability: 2,
-    impact: 4,
-    score: 14,
-    levelVariant: "outline",
-    href: "/risk/register/risk-example-031",
-  },
 ] as const;

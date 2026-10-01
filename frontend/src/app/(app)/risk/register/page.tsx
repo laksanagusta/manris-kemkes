@@ -27,6 +27,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { getStatusBadgeClassName, toBadgeVariant, type StatusTone } from "@/lib/badge-variant";
 import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AccentButton,
   ActionButton,
@@ -51,7 +52,11 @@ import {
 } from "@/components/ui/table";
 import {
   currentMonitoringCycle,
+  getDefaultMonitoringCycle,
   getSelectableMonitoringCycles,
+  isMonitoringCycleApplicable,
+  isMonitoringCycleAfterPreviousEligible,
+  shiftMonitoringCycle,
 } from "@/lib/risk-cycle-options";
 import {
   DropdownMenu,
@@ -81,25 +86,29 @@ import {
   riskCategoryLabels,
   getRiskLevelFromNilai,
   getRiskLevelDisplayLabel,
+  levelToColor,
 } from "@/lib/risk";
 import {
   buildRiskRegisterQueryString,
   parseRiskRegisterQueryState,
   shouldReplaceRiskRegisterUrl,
 } from "@/lib/risk-register-query";
-import { formatMonitoringNilai } from "@/lib/risk-register-monitoring";
+import {
+  formatMonitoringNilai,
+  getMonitoringCycleBadgeStatus,
+} from "@/lib/risk-register-monitoring";
 import { RegisterMonitoringInsights } from "./_components/register-monitoring-insights";
 import {
   CollectionPagination,
   CollectionErrorState,
   CollectionDialogCancel,
-  CollectionFilterInput,
   CollectionLoadingState,
   CollectionTableCard,
   CollectionTableHead,
   CollectionTableHeader,
   CollectionTableHeaderRow,
   MonitoringTransactionProgress,
+  MonitoringCycleSelect,
   RiskCategoryIndicator,
   Tooltip,
   TooltipContent,
@@ -129,7 +138,55 @@ const statusLabel: Record<string, string> = {
   finalized: "Final",
 };
 
+function getRiskRegisterPeriodOptions(selectedCycle: string) {
+  const [currentYear, currentQuarter] = currentMonitoringCycle()
+    .split("-Q")
+    .map(Number);
+  const firstYear = 2026;
+  const firstQuarter = 2;
+  const cycles: { value: string; label: string }[] = [];
+
+  for (let year = firstYear; year <= currentYear; year += 1) {
+    const quarterStart = year === firstYear ? firstQuarter : 1;
+    const quarterEnd = year === currentYear ? currentQuarter : 4;
+
+    for (let quarter = quarterStart; quarter <= quarterEnd; quarter += 1) {
+      const value = `${year}-Q${quarter}`;
+      cycles.push({ value, label: value });
+    }
+  }
+
+  if (selectedCycle && !cycles.some((cycle) => cycle.value === selectedCycle)) {
+    cycles.push({ value: selectedCycle, label: selectedCycle });
+  }
+
+  return [{ value: "all", label: "Semua Periode" }, ...cycles];
+}
+
 type RiskListItem = RiskRegisterListItem;
+
+function getRiskMonitoringStatusForCycle(
+  risk: RiskListItem | null,
+  cycle: string,
+  currentCycle: string,
+) {
+  if (!risk) return null;
+
+  const [cycleYear, cycleQuarter] = cycle.split("-Q");
+  const [currentYear] = currentCycle.split("-Q");
+  if (cycle === shiftMonitoringCycle(currentCycle, -1) && cycleYear !== currentYear) {
+    return risk.previousQuarterMonitoringStatus ?? null;
+  }
+  if (cycleYear !== currentYear) return null;
+
+  const sameYearStatuses = {
+    "1": risk.semesterMonitoring?.q1,
+    "2": risk.semesterMonitoring?.q2,
+    "3": risk.semesterMonitoring?.q3,
+    "4": risk.semesterMonitoring?.q4,
+  };
+  return sameYearStatuses[cycleQuarter as keyof typeof sameYearStatuses] ?? null;
+}
 
 type RiskRegisterFilterToolbarProps = {
   search: string;
@@ -142,6 +199,7 @@ type RiskRegisterFilterToolbarProps = {
   onStatusFilterChange: (value: RiskRegisterStatusFilter) => void;
   categoryFilter: RiskRegisterCategoryFilter;
   onCategoryFilterChange: (value: RiskRegisterCategoryFilter) => void;
+  assessmentCycleOptions: { value: string; label: string }[];
 };
 
 function RiskRegisterFilterToolbar({
@@ -155,6 +213,7 @@ function RiskRegisterFilterToolbar({
   onStatusFilterChange,
   categoryFilter,
   onCategoryFilterChange,
+  assessmentCycleOptions,
 }: RiskRegisterFilterToolbarProps) {
   return (
     <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
@@ -183,15 +242,20 @@ function RiskRegisterFilterToolbar({
         />
       </div>
 
-      <CollectionFilterInput
-        className="w-full rounded-lg bg-card text-sm sm:w-36"
-        placeholder="Periode (YYYY-QN)"
-        aria-label="Filter periode kuartal"
-        value={assessmentCycleFilter}
-        onChange={(event) =>
-          onAssessmentCycleFilterChange(event.target.value)
-        }
-      />
+      <div className="w-full sm:w-36">
+        <PopoverSelectField
+          value={assessmentCycleFilter || "all"}
+          onValueChange={(value) =>
+            onAssessmentCycleFilterChange(value === "all" ? "" : value)
+          }
+          options={assessmentCycleOptions}
+          placeholder="Semua Periode"
+          ariaLabel="Filter periode kuartal"
+          side="bottom"
+          avoidCollisions={false}
+          triggerClassName="h-8 rounded-lg bg-card text-sm"
+        />
+      </div>
 
       <div className="w-full sm:w-40">
         <PopoverSelectField
@@ -318,6 +382,10 @@ export default function RiskRegisterPage() {
       parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString()))
         .assessmentCycleFilter,
   );
+  const assessmentCycleOptions = useMemo(
+    () => getRiskRegisterPeriodOptions(assessmentCycleFilter),
+    [assessmentCycleFilter],
+  );
   const [createdAtFilter, setCreatedAtFilter] = useState(
     () =>
       parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString()))
@@ -338,11 +406,45 @@ export default function RiskRegisterPage() {
   const [selectedRiskForReassessment, setSelectedRiskForReassessment] =
     useState<RiskListItem | null>(null);
   const [selectedAssessmentCycle, setSelectedAssessmentCycle] = useState(
-    currentMonitoringCycle(),
+    () => getDefaultMonitoringCycle(),
   );
   const selectableMonitoringCycles = useMemo(
     () => getSelectableMonitoringCycles(currentMonitoringCycle()),
     [],
+  );
+  const monitoringCycleOptions = useMemo(() => {
+    const currentCycle = currentMonitoringCycle();
+    return selectableMonitoringCycles.map((cycle) => ({
+      ...cycle,
+      status: getMonitoringCycleBadgeStatus(
+        getRiskMonitoringStatusForCycle(
+          selectedRiskForReassessment,
+          cycle.value,
+          currentCycle,
+        ),
+        cycle.value === currentCycle,
+        isMonitoringCycleApplicable(
+          cycle.value,
+          selectedRiskForReassessment?.assessmentCycle,
+        ),
+      ),
+    }));
+  }, [selectableMonitoringCycles, selectedRiskForReassessment]);
+  const selectedMonitoringCycleOption = monitoringCycleOptions.find(
+    (cycle) => cycle.value === selectedAssessmentCycle,
+  );
+  const currentCycle = currentMonitoringCycle();
+  const previousCycle = shiftMonitoringCycle(currentCycle, -1);
+  const selectedPreviousCycleStatus = getRiskMonitoringStatusForCycle(
+    selectedRiskForReassessment,
+    previousCycle,
+    currentCycle,
+  );
+  const canStartCurrentCycle = isMonitoringCycleAfterPreviousEligible(
+    currentCycle,
+    selectedPreviousCycleStatus,
+    selectedRiskForReassessment?.assessmentCycle,
+    true,
   );
   const [riskToArchive, setRiskToArchive] = useState<RiskListItem | null>(null);
   const [archiveReason, setArchiveReason] = useState("");
@@ -653,7 +755,22 @@ export default function RiskRegisterPage() {
 
   const handleOpenConfirmDialog = (risk: RiskListItem) => {
     setSelectedRiskForReassessment(risk);
-    setSelectedAssessmentCycle(currentMonitoringCycle());
+    const currentCycle = currentMonitoringCycle();
+    const previousCycle = shiftMonitoringCycle(currentCycle, -1);
+    const previousStatus = getRiskMonitoringStatusForCycle(
+      risk,
+      previousCycle,
+      currentCycle,
+    );
+    setSelectedAssessmentCycle(
+      risk.monitoringStatus === "draft"
+        ? currentCycle
+        : getDefaultMonitoringCycle(
+            currentCycle,
+            previousStatus,
+            risk.assessmentCycle,
+          ),
+    );
     setConfirmDialogOpen(true);
   };
 
@@ -761,6 +878,7 @@ export default function RiskRegisterPage() {
               searchAriaLabel="Cari risiko"
               assessmentCycleFilter={assessmentCycleFilter}
               onAssessmentCycleFilterChange={handleRegisterAssessmentCycleChange}
+              assessmentCycleOptions={assessmentCycleOptions}
               statusFilter={statusFilter}
               onStatusFilterChange={handleRegisterStatusChange}
               categoryFilter={categoryFilter}
@@ -799,11 +917,12 @@ export default function RiskRegisterPage() {
         <CollectionTableCard>
             <Table className="min-w-[1120px] table-fixed">
               <colgroup>
-                <col style={{ width: "38%" }} />
-                <col style={{ width: "17%" }} />
+                <col style={{ width: "34%" }} />
+                <col style={{ width: "14%" }} />
+                <col style={{ width: "8%" }} />
+                <col style={{ width: "13%" }} />
                 <col style={{ width: "9%" }} />
-                <col style={{ width: "11%" }} />
-                <col style={{ width: "17%" }} />
+                <col style={{ width: "14%" }} />
                 <col style={{ width: "8%" }} />
               </colgroup>
               <CollectionTableHeader>
@@ -814,12 +933,15 @@ export default function RiskRegisterPage() {
                   <CollectionTableHead>
                     Kategori
                   </CollectionTableHead>
-                  <CollectionTableHead aria-sort={scoreAriaSort}>
+                  <CollectionTableHead
+                    className="text-right"
+                    aria-sort={scoreAriaSort}
+                  >
                     <Button
                       type="button"
                       variant="ghost"
                       size="sm"
-                      className="-ml-2"
+                      className="w-full justify-end pr-0"
                       aria-label={`Urutkan berdasarkan skor, saat ini ${scoreAriaSort === "ascending" ? "menaik" : scoreAriaSort === "descending" ? "menurun" : "belum diurutkan"}`}
                       onClick={() => {
                         if (sortBy === "nilai") {
@@ -832,14 +954,17 @@ export default function RiskRegisterPage() {
                         }
                       }}
                   >
-                      Skor
                       {sortBy === "nilai" &&
                         (sortOrder === "desc" ? (
-                          <ChevronDown aria-hidden="true" data-icon="inline-end" />
+                          <ChevronDown aria-hidden="true" data-icon="inline-start" />
                         ) : (
-                          <ChevronUp aria-hidden="true" data-icon="inline-end" />
+                          <ChevronUp aria-hidden="true" data-icon="inline-start" />
                         ))}
+                      Skor
                     </Button>
+                  </CollectionTableHead>
+                  <CollectionTableHead className="pl-6">
+                    Level
                   </CollectionTableHead>
                   <CollectionTableHead>
                     Status
@@ -856,7 +981,7 @@ export default function RiskRegisterPage() {
                 {risks.length === 0 ? (
                   <TableRow>
                   <TableCell
-                      colSpan={6}
+                      colSpan={7}
                       className="text-left text-muted-foreground"
                     >
                       <div className="flex min-h-24 flex-col items-center justify-center gap-1 py-6 text-center">
@@ -901,6 +1026,11 @@ export default function RiskRegisterPage() {
                           : statusLabel[risk.status || ""] ||
                             risk.status ||
                             "-";
+                    const riskScore = risk.nilai ?? risk.inherentScore;
+                    const riskLevel =
+                      riskScore == null
+                        ? null
+                        : getRiskLevelFromNilai(riskScore);
                     const monitoringQuarters = [
                       { label: "Q1", status: risk.semesterMonitoring?.q1, score: risk.semesterMonitoring?.q1Nilai },
                       { label: "Q2", status: risk.semesterMonitoring?.q2, score: risk.semesterMonitoring?.q2Nilai },
@@ -945,12 +1075,24 @@ export default function RiskRegisterPage() {
                         <TableCell className="whitespace-nowrap">
                           <RiskCategoryIndicator category={risk.category} />
                         </TableCell>
-                        <TableCell>
-                          <span className="text-sm font-medium tabular-nums text-foreground">
+                        <TableCell className="text-right">
+                          <span className="block text-right text-sm font-medium tabular-nums text-foreground">
                             {formatMonitoringNilai(
-                              risk.nilai ?? risk.inherentScore,
+                              riskScore,
                             )}
                           </span>
+                        </TableCell>
+                        <TableCell className="pl-6">
+                          {riskLevel ? (
+                            <Badge
+                              variant="outline"
+                              className={levelToColor(riskLevel)}
+                            >
+                              {getRiskLevelDisplayLabel(riskLevel)}
+                            </Badge>
+                          ) : (
+                            <span className="text-sm text-muted-foreground">-</span>
+                          )}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1.5 whitespace-nowrap">
@@ -1149,15 +1291,38 @@ export default function RiskRegisterPage() {
               <Label className="text-sm" htmlFor="monitoring-cycle">
                 Periode Pemantauan
               </Label>
-              <PopoverSelectField
+              <MonitoringCycleSelect
                 id="monitoring-cycle"
                 value={selectedAssessmentCycle}
                 onValueChange={setSelectedAssessmentCycle}
-                options={selectableMonitoringCycles}
-                placeholder="Pilih kuartal"
-                ariaLabel="Pilih periode pemantauan"
+                options={monitoringCycleOptions}
               />
             </div>
+            {selectedAssessmentCycle === currentCycle ? (
+              <Alert
+                role="status"
+                className="border-info-foreground/20 bg-info-foreground/5"
+              >
+                <AlertTitle className="text-info-foreground">
+                  {selectedMonitoringCycleOption?.status === "completed"
+                    ? "Pemantauan sudah selesai"
+                    : !canStartCurrentCycle
+                    ? `Selesaikan ${previousCycle} terlebih dahulu`
+                    : selectedMonitoringCycleOption?.status === "in-progress"
+                    ? "Pemantauan masih berjalan"
+                    : "Kuartal masih berjalan"}
+                </AlertTitle>
+                <AlertDescription className="text-info-foreground">
+                  {selectedMonitoringCycleOption?.status === "completed"
+                    ? `Pemantauan ${selectedAssessmentCycle} sudah selesai. Pilih periode lain untuk memulai pemantauan baru.`
+                    : !canStartCurrentCycle
+                    ? `Pemantauan ${selectedAssessmentCycle} mengikuti urutan kuartal. Selesaikan pemantauan ${previousCycle} sebelum memulai periode ini.`
+                    : selectedMonitoringCycleOption?.status === "in-progress"
+                    ? `Pemantauan ${selectedAssessmentCycle} sudah dimulai. Anda akan melanjutkan catatan yang dapat diperbarui sampai kuartal berakhir.`
+                    : `Pemantauan ${selectedAssessmentCycle} akan dimulai sebagai proses berjalan. Catatannya dapat diperbarui sampai kuartal berakhir.`}
+                </AlertDescription>
+              </Alert>
+            ) : null}
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel
@@ -1171,8 +1336,15 @@ export default function RiskRegisterPage() {
               variant="default"
               size="default"
               onClick={handleCreateReassessment}
+              disabled={
+                selectedMonitoringCycleOption?.status === "completed" ||
+                (selectedAssessmentCycle === currentCycle &&
+                  !canStartCurrentCycle)
+              }
             >
-              Lanjutkan
+              {selectedMonitoringCycleOption?.status === "in-progress"
+                ? "Lanjutkan Pemantauan"
+                : `Mulai Pemantauan ${selectedAssessmentCycle}`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

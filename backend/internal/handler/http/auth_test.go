@@ -382,9 +382,10 @@ func (s *loginStubUserRepo) GetByUsername(_ context.Context, _ string) (*entity.
 func (s *loginStubUserRepo) GetByNIP(_ context.Context, _ string) (*entity.User, error) {
 	return s.user, s.err
 }
-func (s *loginStubUserRepo) Update(_ context.Context, _ *entity.User) error { return nil }
-func (s *loginStubUserRepo) Delete(_ context.Context, _ uuid.UUID) error    { return nil }
-func (s *loginStubUserRepo) List(_ context.Context) ([]*entity.User, error) { return nil, nil }
+func (s *loginStubUserRepo) Update(_ context.Context, _ *entity.User) error       { return nil }
+func (s *loginStubUserRepo) RecordLastLogin(_ context.Context, _ uuid.UUID) error { return nil }
+func (s *loginStubUserRepo) Delete(_ context.Context, _ uuid.UUID) error          { return nil }
+func (s *loginStubUserRepo) List(_ context.Context) ([]*entity.User, error)       { return nil, nil }
 func (s *loginStubUserRepo) ListWithFilter(_ context.Context, _ repository.UserListFilter) ([]*entity.User, int, error) {
 	return nil, 0, nil
 }

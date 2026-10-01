@@ -13,8 +13,8 @@ const designSystemPage = readSource("../../../design-system/page.tsx");
 const designSystemDocument = readSource("../../../../../../../DESIGN.md");
 
 test("risk charter uses the canonical desktop document editor", () => {
-  assert.equal((source.match(/<FormPage className="mx-auto max-w-\[672px\]/g) ?? []).length, 3);
-  assert.match(source, /<FormPage className="mx-auto max-w-\[672px\] space-y-0">/);
+  assert.equal((source.match(/<FormPage className="mx-auto max-w-6xl/g) ?? []).length, 3);
+  assert.match(source, /<FormPage className="mx-auto max-w-6xl space-y-0">/);
   assert.match(source, /<DocumentFormSection/);
   assert.match(source, /<DocumentListSection/);
   assert.equal((source.match(/<DocumentListSection/g) ?? []).length, 3);
@@ -128,8 +128,6 @@ test("risk charter form primitives are synchronized with the design system", () 
   ]) {
     assert.match(designSystemBarrel, new RegExp(component));
   }
-  assert.match(designSystemPage, /Form Piagam Manris/);
-  assert.match(designSystemPage, /satu kolom/);
-  assert.match(designSystemDocument, /\*\*Piagam Manris form:\*\*/);
-  assert.match(designSystemDocument, /single-column/);
+  assert.match(designSystemPage, /w-full max-w-6xl mx-auto/);
+  assert.match(designSystemDocument, /Document detail forms use a fluid `w-full max-w-6xl mx-auto` content container/);
 });

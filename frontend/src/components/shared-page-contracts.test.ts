@@ -600,12 +600,12 @@ test("sidebar hierarchy prioritizes operations and consolidates administration",
     appSidebar,
     /items: \[dashboardNavigation, \.\.\.approvalNavigation\][\s\S]*title: "OPERASIONAL"/,
   );
-  assert.match(appSidebar, /title: "LAPORAN"[\s\S]*label: "Laporan"/);
-  assert.match(appSidebar, /title: "AI & OTOMASI"/);
+  assert.match(appSidebar, /title: "LAPORAN"[\s\S]*label: "Ringkasan Risiko"/);
+  assert.match(appSidebar, /title: "OTOMASI"/);
   assert.match(appNavigation, /title: "TATA KELOLA RISIKO"/);
   assert.match(
     appNavigation,
-    /label: "Risiko"[\s\S]*icon: "Folder01"[\s\S]*label: "Kejadian Risiko"[\s\S]*icon: "Alert02"[\s\S]*label: "Penanganan"[\s\S]*label: "Pemantauan"[\s\S]*label: "Kertas Kerja"[\s\S]*label: "Tanda tangan"[\s\S]*label: "Laporan"/,
+    /label: "Risiko"[\s\S]*icon: "Folder01"[\s\S]*label: "Kejadian Risiko"[\s\S]*icon: "Alert02"[\s\S]*label: "Penanganan"[\s\S]*label: "Pemantauan"[\s\S]*label: "Kertas Kerja"[\s\S]*label: "Tanda tangan"[\s\S]*label: "Ringkasan Risiko"/,
   );
   assert.match(
     appNavigation,

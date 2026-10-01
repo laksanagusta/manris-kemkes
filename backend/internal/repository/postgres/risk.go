@@ -539,8 +539,9 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 		                  draft.id as draft_id,
 		                  draft.status as draft_status,
 		                  CASE WHEN draft.id IS NOT NULL THEN true ELSE false END as has_ongoing,
-		                  monitoring.status as monitoring_status,
-		                  monitoring_last.last_monitored_at as last_monitored_at,
+			                  monitoring.status as monitoring_status,
+			                  previous_quarter_monitoring.status as previous_quarter_monitoring_status,
+			                  monitoring_last.last_monitored_at as last_monitored_at,
 		                  COALESCE(monitoring_score.source_nilai, prev.nilai, r.nilai) as before_monitoring_nilai,
 		                  monitoring_score.observed_nilai as monitoring_result_nilai,
 		                  quarters.q1 as quarter_q1,
@@ -577,8 +578,21 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 		               AND rm.assessment_cycle = r.assessment_cycle
 		             ORDER BY rm.updated_at DESC, rm.id DESC
 		             LIMIT 1
-		           ) monitoring ON true
-		           LEFT JOIN LATERAL (
+			           ) monitoring ON true
+			           LEFT JOIN LATERAL (
+			             SELECT rm.status
+			             FROM risk_monitorings rm
+			             WHERE rm.version_group_id = r.version_group_id
+			               AND rm.status IN ('draft', 'final')
+			               AND rm.assessment_cycle = CASE
+			                 WHEN EXTRACT(QUARTER FROM CURRENT_DATE)::int = 1
+			                   THEN (EXTRACT(YEAR FROM CURRENT_DATE)::int - 1)::text || '-Q4'
+			                 ELSE EXTRACT(YEAR FROM CURRENT_DATE)::text || '-Q' || (EXTRACT(QUARTER FROM CURRENT_DATE)::int - 1)::text
+			               END
+			             ORDER BY rm.updated_at DESC, rm.id DESC
+			             LIMIT 1
+			           ) previous_quarter_monitoring ON true
+			           LEFT JOIN LATERAL (
 		             SELECT MAX(rm.finalized_at) AS last_monitored_at
 		             FROM risk_monitorings rm
 		             WHERE (rm.source_risk_id = r.id OR rm.result_risk_id = r.id)
@@ -717,7 +731,7 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 			&risk.CreatedAt, &risk.UpdatedAt,
 			&risk.OrgName, &risk.CreatedByName,
 			&risk.DraftID, &risk.DraftStatus, &risk.HasOngoing,
-			&risk.MonitoringStatus, &risk.LastMonitoredAt,
+			&risk.MonitoringStatus, &risk.PreviousQuarterMonitoringStatus, &risk.LastMonitoredAt,
 			&risk.BeforeMonitoringNilai, &risk.MonitoringResultNilai,
 			&q1, &q2, &q3, &q4,
 			&q1Nilai, &q2Nilai, &q3Nilai, &q4Nilai,

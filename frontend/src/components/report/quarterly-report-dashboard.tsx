@@ -2,7 +2,16 @@
 
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
-import { BarChart, Bar, XAxis, YAxis, Cell, LabelList } from "recharts";
+import {
+  BarChart,
+  Bar,
+  Cell,
+  PolarAngleAxis,
+  RadialBar,
+  RadialBarChart,
+  XAxis,
+  YAxis,
+} from "recharts";
 import {
   Card,
   CardAction,
@@ -26,12 +35,18 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import {
-  DashboardKpiCard,
+  CollapsibleCard,
   ReportEmptyState,
   CollectionPagination,
 } from "@/components/shared/design-system";
 import {
+  ReportKpiCard,
+  type ReportKpiComparison,
+} from "@/components/report/report-kpi-card";
+import {
   buildQuarterlyAnalysis,
+  buildQuarterlyOverview,
+  buildQuarterlyRiskRows,
   formatReportNumber,
   formatReportPercent,
   movementLabels,
@@ -39,24 +54,147 @@ import {
   conditionLabels,
   severityLabels,
   type ReportSummary,
+  type QuarterlyAnalysis,
   type TaskState,
 } from "@/lib/quarterly-report";
-import type { QuarterlyReport } from "@/types/quarterly-report";
+import type {
+  QuarterlyReport,
+  QuarterlyReportOverview,
+} from "@/types/quarterly-report";
 import { QuarterlyReportRiskTable } from "./quarterly-report-risk-table";
 import { QuarterlyReportUnitDrawer } from "./quarterly-report-unit-drawer";
 
-function changeText(
+function comparisonDelta(
   current: number | null,
   previous: number | null,
   cycle: string,
-) {
-  if (current === null || previous === null)
-    return `Pembanding ${cycle}: belum dapat dihitung`;
-  const delta = Math.round((current - previous) * 10) / 10;
-  return `${delta > 0 ? "+" : ""}${formatReportNumber(delta)} poin persentase dari ${cycle}`;
+): ReportKpiComparison {
+  const comparator = `dibanding ${cycle}`;
+  if (current == null || previous == null) {
+    return {
+      value: "—",
+      tooltip: `Selisih tidak dapat dihitung ${comparator} karena data tidak tersedia.`,
+    };
+  }
+  const roundedDelta = Math.round((current - previous) * 10) / 10;
+  const delta = Object.is(roundedDelta, -0) ? 0 : roundedDelta;
+  const value = `${delta > 0 ? "+" : ""}${formatReportNumber(delta)}`;
+  return {
+    value,
+    tooltip: `Selisih ${value} poin persentase ${comparator}.`,
+    trend: delta > 0 ? "up" : delta < 0 ? "down" : undefined,
+  };
 }
 function rateDetail(value: number, total: number, rate: number | null) {
   return `${value}/${total} · ${formatReportPercent(rate)}`;
+}
+
+function UnitRateCell({
+  label,
+  numerator,
+  denominator,
+  rate,
+  detail,
+  tone = "completion",
+}: {
+  label: string;
+  numerator: number;
+  denominator: number;
+  rate: number | null;
+  detail?: string;
+  tone?: "completion" | "risk";
+}) {
+  if (denominator === 0) {
+    return (
+      <div className="min-w-0 space-y-1">
+        <p className="tabular-nums text-muted-foreground">—</p>
+        {detail && (
+          <p className="text-[10px] leading-4 text-muted-foreground">
+            {detail}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  if (rate === null) {
+    return (
+      <div className="min-w-0 space-y-1">
+        <p className="text-xs tabular-nums">
+          {numerator}/{denominator} · —
+        </p>
+        {detail && (
+          <p className="text-[10px] leading-4 text-muted-foreground">
+            {detail}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  const completionRate = Math.max(0, Math.min(100, rate));
+  const percentage = formatReportPercent(rate);
+  const color =
+    tone === "risk"
+      ? "var(--destructive)"
+      : rate >= 100
+        ? "var(--color-success)"
+        : "var(--primary)";
+
+  return (
+    <div className="flex min-w-0 items-center gap-2">
+      <div
+        className="relative size-10 shrink-0"
+        role="img"
+        aria-label={`${label}: ${percentage}, ${numerator} dari ${denominator}${detail ? `, ${detail}` : ""}`}
+      >
+        <ChartContainer
+          config={{ completion: { label, color } }}
+          initialDimension={{ width: 40, height: 40 }}
+          className="size-10 aspect-square"
+          aria-hidden="true"
+        >
+          <RadialBarChart
+            data={[{ name: label, value: completionRate }]}
+            startAngle={90}
+            endAngle={-270}
+            innerRadius="76%"
+            outerRadius="96%"
+            margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+          >
+            <PolarAngleAxis
+              type="number"
+              domain={[0, 100]}
+              tick={false}
+              axisLine={false}
+            />
+            <RadialBar
+              dataKey="value"
+              fill="var(--color-completion)"
+              background={{ fill: "var(--muted)" }}
+              cornerRadius={8}
+            />
+          </RadialBarChart>
+        </ChartContainer>
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-0 flex items-center justify-center text-[9px] font-semibold leading-none tabular-nums text-foreground"
+        >
+          {percentage}
+        </span>
+      </div>
+      <div aria-hidden="true" className="min-w-0">
+        <p className="text-xs leading-4 tabular-nums text-secondary-foreground">
+          {numerator}/{denominator}
+        </p>
+        {detail && (
+          <p className="text-[10px] leading-4 text-muted-foreground">
+            {detail}
+          </p>
+        )}
+      </div>
+    </div>
+  );
 }
 function SummaryKpis({
   summary: s,
@@ -68,52 +206,117 @@ function SummaryKpis({
   cycle: string;
 }) {
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <DashboardKpiCard
+    <div className="grid gap-4 sm:grid-cols-2">
+      <ReportKpiCard
         title="Risiko di atas selera risiko"
         value={formatReportPercent(s.appetite.rate)}
-        detail={`${s.appetite.above}/${s.total} risiko · ${changeText(s.appetite.rate, p.appetite.rate, cycle)}`}
-        trend={
-          s.appetite.rate !== null &&
-          p.appetite.rate !== null &&
-          s.appetite.rate !== p.appetite.rate
-            ? s.appetite.rate > p.appetite.rate
-              ? "up"
-              : "down"
-            : undefined
-        }
+        progress={s.appetite.rate}
+        tone="risk"
+        comparison={comparisonDelta(s.appetite.rate, p.appetite.rate, cycle)}
+        href="#risk-register"
+        rows={[
+          {
+            label: "risiko di atas selera",
+            value: s.total ? `${s.appetite.above}/${s.total}` : "—",
+          },
+        ]}
       />
-      <DashboardKpiCard
+      <ReportKpiCard
         title="Target tercapai"
         value={formatReportPercent(s.target.rate)}
-        detail={`${s.target.achieved}/${s.target.eligible} dapat dinilai · ${s.target.unavailable} belum dapat dinilai. ${changeText(s.target.rate, p.target.rate, cycle)}`}
+        progress={s.target.rate}
+        comparison={comparisonDelta(s.target.rate, p.target.rate, cycle)}
+        href="#target-attainment"
+        rows={[
+          {
+            label: "risiko mencapai target",
+            value: s.target.eligible
+              ? `${s.target.achieved}/${s.target.eligible}`
+              : "—",
+          },
+          {
+            label: "risiko belum dapat dinilai",
+            value: String(s.target.unavailable),
+          },
+        ]}
       />
-      <DashboardKpiCard
+      <ReportKpiCard
         title="Mitigasi terlapor"
         value={formatReportPercent(s.mitigation.rate)}
-        detail={`${s.mitigation.reported}/${s.mitigation.total} tugas · ${changeText(s.mitigation.rate, p.mitigation.rate, cycle)}`}
+        progress={s.mitigation.rate}
+        comparison={comparisonDelta(s.mitigation.rate, p.mitigation.rate, cycle)}
+        href="#mitigation-reporting"
+        rows={[
+          {
+            label: "tugas dengan laporan valid",
+            value: s.mitigation.total
+              ? `${s.mitigation.reported}/${s.mitigation.total}`
+              : "—",
+          },
+        ]}
       />
-      <DashboardKpiCard
+      <ReportKpiCard
         title="Pemantauan final"
         value={formatReportPercent(s.monitoring.rate)}
-        detail={`${s.monitoring.final}/${s.total} risiko · ${changeText(s.monitoring.rate, p.monitoring.rate, cycle)}`}
+        progress={s.monitoring.rate}
+        comparison={comparisonDelta(s.monitoring.rate, p.monitoring.rate, cycle)}
+        href="#unit-comparison"
+        rows={[
+          {
+            label: "risiko dipantau final",
+            value: s.total ? `${s.monitoring.final}/${s.total}` : "—",
+          },
+        ]}
       />
     </div>
   );
 }
 export function QuarterlyReportDashboard({
   report,
+  overview,
+  loadDetails,
 }: {
-  report: QuarterlyReport;
+  report?: QuarterlyReport;
+  overview?: QuarterlyReportOverview;
+  loadDetails?: (organizationId?: string) => Promise<QuarterlyReport>;
 }) {
-  const analysis = useMemo(() => buildQuarterlyAnalysis(report), [report]);
+  const analysis = useMemo(
+    () => (report ? buildQuarterlyAnalysis(report) : null),
+    [report],
+  );
+  const data = useMemo(
+    () => overview ?? (report ? buildQuarterlyOverview(report) : null),
+    [overview, report],
+  );
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [unitOpen, setUnitOpen] = useState(false);
   const unitTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const unitRequestRef = useRef(0);
+  const [unitDetails, setUnitDetails] = useState<
+    Record<string, QuarterlyAnalysis["units"][number]>
+  >({});
+  const [unitLoading, setUnitLoading] = useState(false);
+  const [unitError, setUnitError] = useState<string | null>(null);
   const [unitPage, setUnitPage] = useState(1);
   const [unitPageSize, setUnitPageSize] = useState(10);
-  const { summary: s, movement, rows, units, tasks, events } = analysis;
-  const selectedUnit = units.find((unit) => unit.id === selectedUnitId) ?? null;
+  if (!data) return null;
+  const { summary: s, movement, units } = data;
+  const events = data.recentEvents;
+  const taskCounts = data.taskCounts;
+  const selectedUnitOverview =
+    units.find((unit) => unit.id === selectedUnitId) ?? null;
+  const selectedUnit = selectedUnitId
+    ? (unitDetails[selectedUnitId] ??
+      analysis?.units.find((unit) => unit.id === selectedUnitId) ??
+      (selectedUnitOverview
+        ? {
+            ...selectedUnitOverview,
+            rows: [],
+            tasks: [],
+            events: [],
+          }
+        : null))
+    : null;
   const safeUnitPage = Math.min(
     unitPage,
     Math.max(1, Math.ceil(units.length / unitPageSize)),
@@ -140,32 +343,63 @@ export function QuarterlyReportDashboard({
     "not_reported",
     "skipped",
   ];
+  const severityCounts = data.severityCounts;
+  const openUnit = async (
+    unitId: string,
+    trigger: HTMLButtonElement,
+  ) => {
+    unitTriggerRef.current = trigger;
+    setSelectedUnitId(unitId);
+    setUnitOpen(true);
+    setUnitLoading(false);
+    setUnitError(null);
+    const localUnit = analysis?.units.find((unit) => unit.id === unitId);
+    if (localUnit) {
+      setUnitDetails((current) => ({ ...current, [unitId]: localUnit }));
+      setUnitLoading(false);
+      return;
+    }
+    if (!loadDetails || unitDetails[unitId]) return;
+    const requestId = ++unitRequestRef.current;
+    setUnitLoading(true);
+    try {
+      const fullReport = await loadDetails(unitId);
+      const detailedUnit = buildQuarterlyAnalysis(fullReport).units.find(
+        (unit) => unit.id === unitId,
+      );
+      if (requestId !== unitRequestRef.current) return;
+      if (detailedUnit) {
+        setUnitDetails((current) => ({ ...current, [unitId]: detailedUnit }));
+      }
+      setUnitLoading(false);
+    } catch (error) {
+      if (requestId !== unitRequestRef.current) return;
+      setUnitError(
+        error instanceof Error ? error.message : "Gagal memuat detail unit.",
+      );
+      setUnitLoading(false);
+    }
+  };
   return (
     <div className="space-y-6">
       <SummaryKpis
         summary={s}
-        previous={analysis.previousSummary}
-        cycle={report.comparisonCycle}
+        previous={data.previousSummary}
+        cycle={data.comparisonCycle}
       />
-      <p className="text-xs leading-5 text-muted-foreground">
-        Cakupan data {report.cycle}: {s.monitoring.final}/{s.total} observasi
-        final · {s.targetsAvailable}/{s.total} target tersedia ·{" "}
-        {s.evidenceAvailable}/{s.mitigation.reported} laporan terlapor memiliki
-        referensi bukti.
-      </p>
-      <Card>
+      <Card id="target-attainment" className="scroll-mt-6">
         <CardHeader>
           <CardTitle className="text-sm">
             Perubahan risiko dan pencapaian target
           </CardTitle>
           <CardAction>
             <Badge variant="outline">
-              {report.comparisonCycle} → {report.cycle}
+              {data.comparisonCycle} → {data.cycle}
             </Badge>
           </CardAction>
         </CardHeader>
         <CardContent>
-          {rows.length ? (
+          {data.hasRisks ? (
             <div className="grid gap-6 lg:grid-cols-2">
               <div>
                 <ChartContainer
@@ -178,7 +412,7 @@ export function QuarterlyReportDashboard({
                     accessibilityLayer
                     data={movementData}
                     layout="vertical"
-                    margin={{ left: 8, right: 20 }}
+                    margin={{ top: 12, right: 20, bottom: 12, left: 8 }}
                   >
                     <XAxis
                       type="number"
@@ -200,21 +434,9 @@ export function QuarterlyReportDashboard({
                       {movementData.map((item) => (
                         <Cell key={item.key} fill={item.fill} />
                       ))}
-                      <LabelList
-                        dataKey="value"
-                        position="right"
-                        fontSize={12}
-                        fill="var(--foreground)"
-                      />
                     </Bar>
                   </BarChart>
                 </ChartContainer>
-                <p className="mt-2 text-xs leading-5 text-muted-foreground">
-                  Perubahan nilai profil kuartal yang dibulatkan. Profil dengan
-                  skor ≥10 berada di atas selera risiko. Risiko baru tetap
-                  dihitung tersendiri. {movement.absent} risiko pembanding tidak
-                  masuk populasi periode ini; hal ini bukan penurunan skor.
-                </p>
               </div>
               <div className="flex flex-col gap-4">
                 <dl className="grid grid-cols-3 gap-3">
@@ -236,7 +458,7 @@ export function QuarterlyReportDashboard({
                     Pencapaian pada observasi final
                   </p>
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="text-sm">{report.cycle}</span>
+                    <span className="text-sm">{data.cycle}</span>
                     <span className="text-sm font-medium tabular-nums">
                       {rateDetail(
                         s.target.achieved,
@@ -247,22 +469,17 @@ export function QuarterlyReportDashboard({
                   </div>
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <span className="text-sm text-muted-foreground">
-                      {report.comparisonCycle}
+                      {data.comparisonCycle}
                     </span>
                     <span className="text-sm tabular-nums">
                       {rateDetail(
-                        analysis.previousSummary.target.achieved,
-                        analysis.previousSummary.target.eligible,
-                        analysis.previousSummary.target.rate,
+                        data.previousSummary.target.achieved,
+                        data.previousSummary.target.eligible,
+                        data.previousSummary.target.rate,
                       )}
                     </span>
                   </div>
                 </div>
-                <p className="text-xs leading-5 text-muted-foreground">
-                  Hasil pemantauan dibandingkan dengan target profil yang
-                  berlaku pada kuartal tersebut. Belum tercapai menunjukkan
-                  posisi terhadap target; tenggat target belum dicatat.
-                </p>
               </div>
             </div>
           ) : (
@@ -271,42 +488,53 @@ export function QuarterlyReportDashboard({
         </CardContent>
       </Card>
       <div className="grid items-start gap-4 lg:grid-cols-2">
-        <Card>
+        <Card id="mitigation-reporting" className="scroll-mt-6">
           <CardHeader>
             <CardTitle className="text-sm">Pelaporan mitigasi</CardTitle>
           </CardHeader>
           <CardContent>
-            {tasks.length ? (
+            {taskCounts.total ? (
               <div className="space-y-4">
-                {states.map((state) => {
-                  const count = tasks.filter(
-                    (row) => row.state === state,
-                  ).length;
-                  return (
-                    <div key={state} className="space-y-2">
-                      <div className="flex items-center justify-between gap-4 text-sm">
-                        <span>{taskStateLabels[state]}</span>
-                        <span className="tabular-nums">{count}</span>
-                      </div>
+                <div
+                  aria-hidden="true"
+                  className="flex h-2 overflow-hidden rounded-full bg-muted"
+                >
+                  {states.map((state) => {
+                    const count = taskCounts[state];
+                    const color =
+                      state === "reported"
+                        ? "bg-risk-low"
+                        : state === "overdue"
+                          ? "bg-risk-extreme"
+                          : state === "pending"
+                            ? "bg-blue-400"
+                            : state === "skipped"
+                              ? "bg-muted-foreground/40"
+                              : "bg-muted-foreground";
+                    return count ? (
                       <div
-                        aria-hidden="true"
-                        className="h-1.5 overflow-hidden rounded-full bg-muted"
-                      >
-                        <div
-                          className={`h-full rounded-full ${state === "reported" ? "bg-risk-low" : state === "overdue" ? "bg-risk-extreme" : "bg-muted-foreground"}`}
-                          style={{ width: `${(count / tasks.length) * 100}%` }}
-                        />
-                      </div>
+                        key={state}
+                        className={color}
+                        style={{ width: `${(count / taskCounts.total) * 100}%` }}
+                      />
+                    ) : null;
+                  })}
+                </div>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
+                  {states.map((state) => (
+                    <div
+                      key={state}
+                      className="flex items-baseline justify-between gap-2"
+                    >
+                      <dt className="text-xs text-muted-foreground">
+                        {taskStateLabels[state]}
+                      </dt>
+                      <dd className="text-sm font-medium tabular-nums">
+                        {taskCounts[state]}
+                      </dd>
                     </div>
-                  );
-                })}
-                <p className="pt-2 text-xs leading-5 text-muted-foreground">
-                  {s.mitigation.reported}/{s.mitigation.total} tugas memiliki
-                  laporan valid. Penyebut mencakup seluruh tugas periode,
-                  termasuk yang dilewati. Pelaporan belum membuktikan
-                  pelaksanaan tindakan selesai atau menyebabkan target risiko
-                  tercapai.
-                </p>
+                  ))}
+                </dl>
               </div>
             ) : (
               <ReportEmptyState description="Belum ada tugas mitigasi yang tercatat untuk kuartal ini." />
@@ -318,47 +546,63 @@ export function QuarterlyReportDashboard({
             <CardTitle className="text-sm">
               Kejadian dan dampak aktual
             </CardTitle>
-            <CardAction>
-              <Badge variant="secondary">{events.length} kejadian</Badge>
-            </CardAction>
+            {s.events.total > 0 && (
+              <CardAction>
+                <Badge variant="secondary">{s.events.total} kejadian</Badge>
+              </CardAction>
+            )}
           </CardHeader>
           <CardContent>
-            {events.length ? (
+            {s.events.total ? (
               <div className="space-y-4">
                 <div className="rounded-lg bg-card-subtle-surface p-4">
-                  <p className="text-xs text-muted-foreground">
-                    Kerugian finansial yang diketahui
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold tabular-nums">
-                    {s.events.knownLossCount
-                      ? `Rp ${formatReportNumber(s.events.knownLoss)}`
-                      : "—"}
-                  </p>
-                  <p className="mt-2 text-xs text-muted-foreground">
-                    {s.events.knownLossCount} nilai diketahui ·{" "}
-                    {s.events.unknownLoss} belum diketahui · {s.events.unlinked}{" "}
-                    belum terhubung ke register.
-                  </p>
+                  <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                    <div>
+                      <dt className="text-xs text-muted-foreground">
+                        Kerugian diketahui ({s.events.knownLossCount})
+                      </dt>
+                      <dd className="mt-1 text-2xl font-semibold tabular-nums">
+                        {s.events.knownLossCount
+                          ? `Rp ${formatReportNumber(s.events.knownLoss)}`
+                          : "—"}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">
+                        Nilai belum diketahui
+                      </dt>
+                      <dd className="mt-1 text-2xl font-semibold tabular-nums">
+                        {s.events.unknownLoss}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted-foreground">
+                        Belum terhubung
+                      </dt>
+                      <dd className="mt-1 text-2xl font-semibold tabular-nums">
+                        {s.events.unlinked}
+                      </dd>
+                    </div>
+                  </dl>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {(["low", "medium", "high", "extreme"] as const).map(
-                    (severity) => (
-                      <Badge key={severity} variant="outline">
-                        {severityLabels[severity]}:{" "}
-                        {
-                          events.filter((event) => event.severity === severity)
-                            .length
-                        }
-                      </Badge>
-                    ),
+                    (severity) => {
+                      const count = severityCounts[severity];
+                      return count ? (
+                        <Badge key={severity} variant="outline">
+                          {severityLabels[severity]}: {count}
+                        </Badge>
+                      ) : null;
+                    },
                   )}
                 </div>
-                <ul className="space-y-3">
-                  {[...events]
-                    .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
-                    .slice(0, 3)
-                    .map((event) => (
-                      <li key={event.id}>
+                <ul className="divide-y divide-border/60">
+                  {events.map((event) => (
+                      <li
+                        key={event.id}
+                        className="py-3 first:pt-0 last:pb-0"
+                      >
                         <Link
                           href={`/risk-events/${event.id}`}
                           className="line-clamp-2 text-sm hover:underline"
@@ -367,15 +611,16 @@ export function QuarterlyReportDashboard({
                         </Link>
                         <p className="mt-1 text-xs text-muted-foreground">
                           {event.organizationName || "—"} ·{" "}
-                          {conditionLabels[event.postResponseCondition]}
+                          {conditionLabels[
+                            event.postResponseCondition as keyof typeof conditionLabels
+                          ] ?? event.postResponseCondition}
                         </p>
                       </li>
                     ))}
                 </ul>
-                <p className="text-xs leading-5 text-muted-foreground">
-                  Kondisi pascarespons adalah kondisi yang dicatat, bukan status
-                  terkini otomatis. Detail seluruh kejadian tersedia pada drawer
-                  unit.
+                <p className="text-xs leading-5 text-info-foreground">
+                  Kondisi pascarespons mengikuti catatan kejadian. Daftar lengkap
+                  tersedia pada detail unit.
                 </p>
               </div>
             ) : (
@@ -387,16 +632,18 @@ export function QuarterlyReportDashboard({
           </CardContent>
         </Card>
       </div>
-      <Card>
+      <Card id="unit-comparison" className="scroll-mt-6">
         <CardHeader>
           <CardTitle className="text-sm">Perbandingan unit</CardTitle>
           <CardAction>
             <Badge variant="secondary">{units.length} unit</Badge>
           </CardAction>
         </CardHeader>
-        <CardContent>
+        <CardContent
+          className={units.length ? "-mb-(--card-spacing)" : undefined}
+        >
           {units.length ? (
-            <div className="-mx-4">
+            <div className="-mx-4 border-t border-border/60">
               <Table className="min-w-[1120px] table-fixed">
                 <caption className="sr-only">
                   Semua unit dalam scope laporan. Klik unit untuk meninjau
@@ -432,11 +679,9 @@ export function QuarterlyReportDashboard({
                           <Button
                             variant="link"
                             className="h-auto whitespace-normal p-0 text-left font-normal"
-                            onClick={(event) => {
-                              unitTriggerRef.current = event.currentTarget;
-                              setSelectedUnitId(unit.id);
-                              setUnitOpen(true);
-                            }}
+                            onClick={(event) =>
+                              void openUnit(unit.id, event.currentTarget)
+                            }
                             aria-label={`Buka detail ${unit.name}`}
                           >
                             {unit.name}
@@ -450,46 +695,43 @@ export function QuarterlyReportDashboard({
                         <TableCell className="tabular-nums">
                           {unit.hasData ? unit.summary.total : "—"}
                         </TableCell>
-                        <TableCell className="tabular-nums">
-                          {unit.summary.total
-                            ? rateDetail(
-                                unit.summary.appetite.above,
-                                unit.summary.total,
-                                unit.summary.appetite.rate,
-                              )
-                            : "—"}
+                        <TableCell>
+                          <UnitRateCell
+                            label="Risiko di atas selera"
+                            numerator={unit.summary.appetite.above}
+                            denominator={unit.summary.total}
+                            rate={unit.summary.appetite.rate}
+                            tone="risk"
+                          />
                         </TableCell>
-                        <TableCell className="whitespace-normal tabular-nums">
-                          {unit.summary.target.eligible
-                            ? rateDetail(
-                                unit.summary.target.achieved,
-                                unit.summary.target.eligible,
-                                unit.summary.target.rate,
-                              )
-                            : "—"}
-                          <p className="mt-1 text-xs text-muted-foreground">
-                            {unit.summary.target.unavailable
-                              ? `${unit.summary.target.unavailable} belum dinilai`
-                              : ""}
-                          </p>
+                        <TableCell className="whitespace-normal">
+                          <UnitRateCell
+                            label="Target tercapai"
+                            numerator={unit.summary.target.achieved}
+                            denominator={unit.summary.target.eligible}
+                            rate={unit.summary.target.rate}
+                            detail={
+                              unit.summary.target.unavailable
+                                ? `${unit.summary.target.unavailable} belum dinilai`
+                                : undefined
+                            }
+                          />
                         </TableCell>
-                        <TableCell className="tabular-nums">
-                          {unit.summary.mitigation.total
-                            ? rateDetail(
-                                unit.summary.mitigation.reported,
-                                unit.summary.mitigation.total,
-                                unit.summary.mitigation.rate,
-                              )
-                            : "—"}
+                        <TableCell>
+                          <UnitRateCell
+                            label="Mitigasi terlapor"
+                            numerator={unit.summary.mitigation.reported}
+                            denominator={unit.summary.mitigation.total}
+                            rate={unit.summary.mitigation.rate}
+                          />
                         </TableCell>
-                        <TableCell className="tabular-nums">
-                          {unit.summary.total
-                            ? rateDetail(
-                                unit.summary.monitoring.final,
-                                unit.summary.total,
-                                unit.summary.monitoring.rate,
-                              )
-                            : "—"}
+                        <TableCell>
+                          <UnitRateCell
+                            label="Pemantauan final"
+                            numerator={unit.summary.monitoring.final}
+                            denominator={unit.summary.total}
+                            rate={unit.summary.monitoring.rate}
+                          />
                         </TableCell>
                       </TableRow>
                     ))}
@@ -512,11 +754,30 @@ export function QuarterlyReportDashboard({
           }}
         />
       </Card>
-      <QuarterlyReportRiskTable rows={rows} cycle={report.cycle} />
+      <div id="risk-register" className="scroll-mt-6">
+        <QuarterlyReportRiskTable
+          rows={analysis?.rows ?? []}
+          cycle={data.cycle}
+          totalRows={s.total}
+          hasRisks={data.hasRisks}
+          loadRows={
+            loadDetails
+              ? async () => buildQuarterlyRiskRows(await loadDetails())
+              : undefined
+          }
+        />
+      </div>
       <QuarterlyReportUnitDrawer
         unit={selectedUnit}
         open={unitOpen}
-        cycle={report.cycle}
+        cycle={data.cycle}
+        loading={unitLoading}
+        error={unitError}
+        onRetry={() => {
+          if (selectedUnitId && unitTriggerRef.current) {
+            void openUnit(selectedUnitId, unitTriggerRef.current);
+          }
+        }}
         onClose={() => setUnitOpen(false)}
         onRestoreFocus={() => unitTriggerRef.current?.focus()}
       />

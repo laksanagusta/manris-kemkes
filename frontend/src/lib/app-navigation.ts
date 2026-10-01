@@ -67,7 +67,7 @@ export const mainMenuItems: MainMenuGroup[] = [
         icon: "Agreement03",
       },
       { label: "Tanda tangan", href: "/inbox", icon: "FileSignature" },
-      { label: "Laporan", href: "/reports", icon: "FileBarChart" },
+      { label: "Ringkasan Risiko", href: "/reports", icon: "FileBarChart" },
     ],
   },
 ];
@@ -216,7 +216,7 @@ export function getBreadcrumbItems(
     return detailBreadcrumb(evaluationParent, dynamicLabel ?? "Detail Evaluasi");
   }
 
-  const reportParent = parentBreadcrumb("Laporan", "/reports");
+  const reportParent = parentBreadcrumb("Ringkasan Risiko", "/reports");
   if (route === "/reports") return [reportParent];
   if (route === "/reports/formal") return detailBreadcrumb(reportParent, "Laporan Formal");
   if (route === "/reports/cycle-detail") {
@@ -431,7 +431,7 @@ export const appPageMeta: Record<string, AppPageMeta> = {
     subtitle: "Pelajari tahapan dan prinsip pengelolaan risiko di Manris.",
   },
   "/reports": {
-    title: "Laporan",
+    title: "Ringkasan Risiko",
     subtitle: "Bandingkan paparan risiko dan perkembangan antarperiode.",
   },
   "/reports/formal": {

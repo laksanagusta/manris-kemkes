@@ -1,7 +1,12 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Download, FileSpreadsheet, FileText, Loader2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  Download,
+  FileSpreadsheet,
+  FileText,
+  Loader2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { api, API_BASE } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
@@ -27,20 +32,20 @@ import {
   completedReportCycle,
   currentReportCycle,
   shiftReportCycle,
-  formatReportDate,
 } from "@/lib/quarterly-report";
-import type { QuarterlyReport } from "@/types/quarterly-report";
+import type {
+  QuarterlyReport,
+  QuarterlyReportOverview,
+} from "@/types/quarterly-report";
 import { ReportScopePicker } from "@/components/report/report-scope-picker";
+import { ReportKpiCard } from "@/components/report/report-kpi-card";
 import { QuarterlyReportDashboard } from "@/components/report/quarterly-report-dashboard";
 import {
-  CollectionPageHeader,
   CollectionToolbar,
   CollectionFilterPopover,
   ReportEmptyState,
-  DashboardKpiCard,
 } from "@/components/shared/design-system";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -73,80 +78,75 @@ function PeriodPicker({
   label,
   cycle,
   onChange,
-  comparison = false,
 }: {
   label: string;
   cycle: string;
   onChange: (cycle: string) => void;
-  comparison?: boolean;
 }) {
   const current = currentReportCycle();
   const currentYear = Number(current.slice(0, 4));
   const [year, quarter] = cycle.split("-Q");
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex flex-col items-start gap-1.5">
       <span className="text-xs text-muted-foreground">{label}</span>
-      <Select
-        value={year}
-        onValueChange={(value) =>
-          onChange(
-            `${value}-Q${value === String(currentYear) && Number(quarter) > Number(current.slice(-1)) ? current.slice(-1) : quarter}`,
-          )
-        }
-      >
-        <SelectTrigger aria-label={`Tahun ${label.toLowerCase()}`}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {Array.from({ length: currentYear - 1999 }, (_, i) =>
-            String(currentYear - i),
-          ).map((value) => (
-            <SelectItem key={value} value={value}>
-              {value}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      <Select
-        value={quarter}
-        onValueChange={(value) => onChange(`${year}-Q${value}`)}
-      >
-        <SelectTrigger aria-label={`Kuartal ${label.toLowerCase()}`}>
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {[1, 2, 3, 4].map((value) => (
-            <SelectItem
-              key={value}
-              value={String(value)}
-              disabled={
-                Number(year) === currentYear &&
-                value > Number(current.slice(-1))
-              }
-            >
-              Q{value}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-      {comparison && (
-        <Button size="sm" variant="ghost" onClick={() => onChange("")}>
-          Sebelumnya
-        </Button>
-      )}
+      <div className="flex items-center gap-2">
+        <Select
+          value={year}
+          onValueChange={(value) =>
+            onChange(
+              `${value}-Q${value === String(currentYear) && Number(quarter) > Number(current.slice(-1)) ? current.slice(-1) : quarter}`,
+            )
+          }
+        >
+          <SelectTrigger aria-label={`Tahun ${label.toLowerCase()}`}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {Array.from({ length: currentYear - 1999 }, (_, i) =>
+              String(currentYear - i),
+            ).map((value) => (
+              <SelectItem key={value} value={value}>
+                {value}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select
+          value={quarter}
+          onValueChange={(value) => onChange(`${year}-Q${value}`)}
+        >
+          <SelectTrigger aria-label={`Kuartal ${label.toLowerCase()}`}>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {[1, 2, 3, 4].map((value) => (
+              <SelectItem
+                key={value}
+                value={String(value)}
+                disabled={
+                  Number(year) === currentYear &&
+                  value > Number(current.slice(-1))
+                }
+              >
+                Q{value}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
     </div>
   );
 }
 function LoadingReport() {
   return (
     <div className="space-y-6" aria-label="Memuat laporan" aria-busy="true">
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2">
         {titles.map((title) => (
-          <DashboardKpiCard
+          <ReportKpiCard
             key={title}
             title={title}
             value="—"
-            detail="Memuat data..."
+            rows={[]}
             loading
           />
         ))}
@@ -185,7 +185,7 @@ export default function ReportsPage() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [metadataReady, setMetadataReady] = useState(false);
   const [metadataError, setMetadataError] = useState<string | null>(null);
-  const [reportData, setReport] = useState<QuarterlyReport | null>(null);
+  const [reportData, setReport] = useState<QuarterlyReportOverview | null>(null);
   const [loadedQuery, setLoadedQuery] = useState("");
   const [reportError, setReportError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -263,7 +263,7 @@ export default function ReportsPage() {
     setReportError(null);
     setReport(null);
     api
-      .get<QuarterlyReport>(`/reports/quarterly?${query}`, token)
+      .get<QuarterlyReportOverview>(`/reports/quarterly/overview?${query}`, token)
       .then((data) => {
         if (!cancelled) {
           setReport(data);
@@ -284,6 +284,23 @@ export default function ReportsPage() {
     };
   }, [token, metadataReady, needsSelection, query, retry]);
 
+  const loadReportDetails = useCallback(
+    (organizationId?: string) => {
+      if (!token) return Promise.reject(new Error("Sesi login tidak tersedia."));
+      const params = new URLSearchParams(query);
+      if (organizationId) {
+        params.delete("org_id");
+        params.delete("organization_group_id");
+        params.set("org_id", organizationId);
+      }
+      return api.get<QuarterlyReport>(
+        `/reports/quarterly?${params.toString()}`,
+        token,
+      );
+    },
+    [query, token],
+  );
+
   async function exportReport(format: "xlsx" | "pdf") {
     if (!report || !token || exporting) return;
     const snapshot = report;
@@ -291,9 +308,15 @@ export default function ReportsPage() {
     try {
       let blob: Blob;
       if (format === "xlsx") {
+        const fullReport = await loadReportDetails();
+        if (fullReport.snapshotHash !== snapshot.snapshotHash) {
+          throw new Error(
+            "Data laporan berubah. Muat ulang laporan sebelum mengekspor.",
+          );
+        }
         const { createQuarterlyReportWorkbook } =
           await import("@/lib/quarterly-report-export");
-        const workbook = await createQuarterlyReportWorkbook(snapshot);
+        const workbook = await createQuarterlyReportWorkbook(fullReport);
         const bytes = await workbook.xlsx.writeBuffer();
         blob = new Blob([new Uint8Array(bytes)], {
           type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -327,16 +350,8 @@ export default function ReportsPage() {
       setExporting(null);
     }
   }
-  const activeScope = scope.organizationIds.length
-    ? `${scope.organizationIds.length} unit dipilih`
-    : "Semua unit yang dapat diakses";
   return (
     <div className="w-full min-w-0 space-y-6">
-      <CollectionPageHeader
-        title="Laporan"
-        showTitle
-        subtitle="Evaluasi perubahan risiko, pencapaian target, dan kelengkapan pelaporan per kuartal."
-      />
       <CollectionToolbar
         leading={
           <div className="flex flex-wrap items-center gap-3">
@@ -344,7 +359,6 @@ export default function ReportsPage() {
             <PeriodPicker
               label="Pembanding"
               cycle={comparisonCycle}
-              comparison
               onChange={setComparisonOverride}
             />
             <CollectionFilterPopover
@@ -441,27 +455,6 @@ export default function ReportsPage() {
           </DropdownMenu>
         }
       />
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-muted-foreground">
-        <span>{activeScope}</span>
-        {cycle === currentReportCycle() && (
-          <Badge variant="outline">Periode berjalan</Badge>
-        )}
-        {report && (
-          <>
-            <span>
-              Data diperbarui: {formatReportDate(report.dataUpdatedAt)}
-            </span>
-            <span>Dimuat: {formatReportDate(report.generatedAt)} WIB</span>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setRetry((value) => value + 1)}
-            >
-              Perbarui
-            </Button>
-          </>
-        )}
-      </div>
       {metadataError ? (
         <Alert variant="destructive">
           <AlertTitle>Scope organisasi gagal dimuat</AlertTitle>
@@ -497,21 +490,10 @@ export default function ReportsPage() {
         <LoadingReport />
       ) : report ? (
         <>
-          {report.warnings.length > 0 && (
-            <Alert>
-              <AlertTitle>Keterbatasan riwayat data</AlertTitle>
-              <AlertDescription>
-                <ul className="list-disc space-y-1 pl-4">
-                  {report.warnings.map((warning) => (
-                    <li key={warning}>{warning}</li>
-                  ))}
-                </ul>
-              </AlertDescription>
-            </Alert>
-          )}
           <QuarterlyReportDashboard
-            key={`${report.cycle}:${report.comparisonCycle}:${report.organizations.map((unit) => unit.id).join(",")}`}
-            report={report}
+            key={`${report.cycle}:${report.comparisonCycle}:${report.units.map((unit) => unit.id).join(",")}:${report.snapshotHash}`}
+            overview={report}
+            loadDetails={loadReportDetails}
           />
         </>
       ) : null}

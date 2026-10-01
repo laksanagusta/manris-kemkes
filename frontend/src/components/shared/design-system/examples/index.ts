@@ -27,6 +27,7 @@ export { LoadingActionButtonExample } from "./loading-action-button-example";
 export { MitigationProgressDialogExample } from "./mitigation-progress-dialog-example";
 export { MitigationProgressFormExample } from "./mitigation-progress-form-example";
 export { MonitoringTransactionProgressExample } from "./monitoring-transaction-progress-example";
+export { MonitoringCycleSelectExample } from "./monitoring-cycle-select-example";
 export { OverviewDashboardExample } from "./overview-dashboard-example";
 export { OverviewPanelStatesExample } from "./overview-panel-states-example";
 export { PageHeaderExample } from "./page-header-example";

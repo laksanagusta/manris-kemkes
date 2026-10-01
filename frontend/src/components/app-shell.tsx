@@ -49,7 +49,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <AppTopbar />
             <div className="flex min-h-0 flex-1 w-full">
               <AppSidebar inboxBadge={hasFullSession ? inboxCount : 0} />
-              <SidebarInset className="min-w-0 overflow-x-hidden p-4 md:p-6">
+              <SidebarInset className="min-w-0 overflow-x-hidden p-4 md:p-6 text-pretty">
                 <main className="flex min-w-0 flex-1 flex-col gap-4">
                   <div className="w-full min-w-0 pb-8">
                     {children}

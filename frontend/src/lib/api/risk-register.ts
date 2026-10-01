@@ -43,6 +43,7 @@ export interface RiskRegisterListItem {
   draftStatus?: RiskStatus | null;
   hasOngoing?: boolean;
   monitoringStatus?: string | null;
+  previousQuarterMonitoringStatus?: string | null;
   lastMonitoredAt?: string | null;
   archivedAt?: string | null;
   archivedReason?: string;

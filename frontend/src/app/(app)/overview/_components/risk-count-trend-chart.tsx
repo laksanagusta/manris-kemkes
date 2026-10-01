@@ -101,14 +101,14 @@ export function RiskCountTrendChart({
                   dataKey="period"
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fontSize: 10 }}
+                  tick={{ fontSize: 14 }}
                 />
                 <YAxis
                   allowDecimals={false}
                   orientation="right"
                   axisLine={false}
                   tickLine={false}
-                  tick={{ fontSize: 10 }}
+                  tick={{ fontSize: 12 }}
                   width={32}
                 />
                 <ChartTooltip

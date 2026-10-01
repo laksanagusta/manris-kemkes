@@ -38,10 +38,10 @@ export interface CreateRiskEventInput {
   occurredAt: string;
   impactTypes: string[];
   otherImpactType?: string;
-  actualImpact: string;
+  actualImpact?: string;
   severity: RiskEventSeverity;
-  immediateResponse: string;
-  postResponseCondition: RiskEventCondition;
+  immediateResponse?: string;
+  postResponseCondition?: RiskEventCondition;
   location?: string;
   affectedParties?: string;
   suspectedCause?: string;
@@ -52,5 +52,5 @@ export interface CreateRiskEventInput {
   ongoingAction?: string;
   evidenceUrl?: string;
   organizationId?: string;
-  riskIds: string[];
+  riskIds?: string[];
 }

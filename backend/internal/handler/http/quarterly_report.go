@@ -69,6 +69,14 @@ func (h *QuarterlyReportHandler) Get(c *fiber.Ctx) error {
 	return c.JSON(data)
 }
 
+func (h *QuarterlyReportHandler) Overview(c *fiber.Ctx) error {
+	data, err := h.load(c)
+	if err != nil {
+		return handleError(c, err)
+	}
+	return c.JSON(reportuc.BuildQuarterlyReportOverview(data))
+}
+
 func (h *QuarterlyReportHandler) PDF(c *fiber.Ctx) error {
 	data, err := h.load(c)
 	if err != nil {

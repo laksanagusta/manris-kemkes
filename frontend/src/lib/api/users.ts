@@ -12,6 +12,7 @@ export interface UserListItem {
   jabatan?: string | null;
   pangkat?: string | null;
   orgName?: string | null;
+  lastLoggedIn?: string | null;
 }
 
 export interface PaginatedUsersResponse {

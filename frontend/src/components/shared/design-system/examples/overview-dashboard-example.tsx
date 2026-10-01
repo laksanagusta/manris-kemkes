@@ -7,7 +7,6 @@ import {
   DialogTitle,
   DialogTrigger,
   MetricGrid,
-  OverviewTopRisksCard,
   OverviewTrendCard,
   RiskHeatmapGrid,
   StandardCard,
@@ -18,8 +17,8 @@ import { Button } from "@/components/ui/button";
 import {
   designSystemCurrentRiskMatrix,
   designSystemOverviewDashboardKpis,
-  designSystemOverviewTopRisks,
 } from "../data/overview-fixtures";
+import { RISK_CHART_COLORS } from "@/lib/chart-colors";
 
 const fixtureMatrix = () =>
   designSystemCurrentRiskMatrix.map((row) => [...row]);
@@ -50,6 +49,114 @@ function TrendChartExample() {
   );
 }
 
+const compositionLevels = [
+  { label: "Sangat Rendah", color: RISK_CHART_COLORS.veryLow },
+  { label: "Rendah", color: RISK_CHART_COLORS.low },
+  { label: "Sedang", color: RISK_CHART_COLORS.medium },
+  { label: "Tinggi", color: RISK_CHART_COLORS.high },
+  { label: "Sangat Tinggi", color: RISK_CHART_COLORS.extreme },
+] as const;
+
+const compositionPeriods = [
+  { period: "2025-Q4", values: [6, 11, 7, 5, 3] },
+  { period: "2026-Q1", values: [5, 12, 8, 6, 3] },
+  { period: "2026-Q2", values: [4, 11, 10, 7, 4] },
+  { period: "2026-Q3", values: [3, 10, 10, 8, 6] },
+] as const;
+
+function RiskCompositionChartExample() {
+  const baseline = 158;
+  const scale = 3.2;
+  const yTicks = [0, 10, 20, 30, 40];
+
+  return (
+    <svg
+      viewBox="0 0 360 192"
+      className="h-64 w-full"
+      role="img"
+      aria-label="Contoh batang bertumpuk yang membandingkan komposisi lima tingkat risiko pada empat kuartal"
+    >
+      <g fill="none" stroke="var(--border)" strokeDasharray="3 3">
+        {yTicks.map((tick) => {
+          const y = baseline - tick * scale;
+          return <path key={tick} d={`M36 ${y} H350`} />;
+        })}
+      </g>
+      <g fill="var(--muted-foreground)" fontSize="12" textAnchor="end">
+        {yTicks.map((tick) => {
+          const y = baseline - tick * scale + 3;
+          return (
+            <text key={tick} x="30" y={y}>
+              {tick}
+            </text>
+          );
+        })}
+      </g>
+      {compositionPeriods.map((item, periodIndex) => {
+        let top = baseline;
+        const x = 52 + periodIndex * 76;
+
+        return (
+          <g key={item.period}>
+            {compositionLevels.map((level, levelIndex) => {
+              const value = item.values[levelIndex] ?? 0;
+              const height = value * scale;
+              top -= height;
+              return (
+                <rect
+                  key={level.label}
+                  x={x}
+                  y={top}
+                  width="40"
+                  height={height}
+                  fill={level.color}
+                />
+              );
+            })}
+            <text
+              x={x + 20}
+              y="180"
+              fill="var(--muted-foreground)"
+              fontSize="14"
+              textAnchor="middle"
+            >
+              {item.period}
+            </text>
+          </g>
+        );
+      })}
+    </svg>
+  );
+}
+
+function RiskCompositionExample() {
+  return (
+    <OverviewTrendCard
+      title="Komposisi Jumlah Risiko per Kuartal"
+      legend={
+        <>
+          {compositionLevels.map((level) => (
+            <span
+              key={level.label}
+              role="listitem"
+              className="inline-flex items-center gap-1.5"
+            >
+              <span
+                aria-hidden="true"
+                className="size-2 rounded-full"
+                style={{ backgroundColor: level.color }}
+              />
+              {level.label}
+            </span>
+          ))}
+        </>
+      }
+    >
+      <RiskCompositionChartExample />
+    </OverviewTrendCard>
+  );
+}
+
 export function OverviewDashboardExample() {
   return (
     <div className="space-y-5 lg:space-y-6">
@@ -69,10 +176,12 @@ export function OverviewDashboardExample() {
       </section>
 
       <section
-        aria-label="Prioritas dan distribusi risiko"
+        aria-label="Komposisi risiko dan peta risiko saat ini"
         className="grid items-start gap-4 pb-4 xl:items-stretch xl:grid-cols-[minmax(0,2fr)_minmax(22rem,1fr)]"
       >
-        <OverviewTopRisksCard risks={designSystemOverviewTopRisks} />
+        <div className="flex min-h-0 min-w-0 w-full xl:h-[32rem] [&>*]:h-full [&>*]:w-full">
+          <RiskCompositionExample />
+        </div>
         <Dialog>
           <StandardCard
             title="Peta Risiko Saat Ini"
