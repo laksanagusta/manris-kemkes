@@ -187,7 +187,7 @@ export default function RegisterScreen() {
                   <FieldLabel htmlFor="name">Nama lengkap</FieldLabel>
                   <Input id="name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Contoh: Dr. Andi Pratama, M.Kes" required />
                 </Field>
-                <Field className="md:col-span-2">
+                <Field>
                   <FieldLabel htmlFor="email">Email</FieldLabel>
                   <Input id="email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="nama@kemenkes.go.id" required />
                 </Field>

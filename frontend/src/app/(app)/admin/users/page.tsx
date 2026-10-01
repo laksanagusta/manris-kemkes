@@ -122,6 +122,19 @@ const getInitials = (name: string) =>
     .join("")
     .toUpperCase() || "?";
 
+function formatLastLoggedIn(value?: string | null): string {
+  if (!value) return "—";
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+
+  return new Intl.DateTimeFormat("id-ID", {
+    dateStyle: "medium",
+    timeStyle: "short",
+    timeZone: "Asia/Jakarta",
+  }).format(date);
+}
+
 function parsePositiveInt(value: string | null, fallback: number): number {
   const parsed = Number(value);
 
@@ -476,6 +489,7 @@ export default function UsersManagementPage() {
                 <TableHead className="w-36 whitespace-nowrap">Jabatan</TableHead>
                 <TableHead className="w-28 whitespace-nowrap">Pangkat</TableHead>
                 <TableHead className="w-40 whitespace-nowrap">Organisasi</TableHead>
+                <TableHead className="w-44 whitespace-nowrap">Terakhir login</TableHead>
                 <TableHead className="w-40 whitespace-nowrap">Status</TableHead>
                 <TableHead className="w-16 whitespace-nowrap">
                   <span className="sr-only">Aksi</span>
@@ -485,7 +499,7 @@ export default function UsersManagementPage() {
             <TableBody>
               {users.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="h-24">
+                  <TableCell colSpan={10} className="h-24">
                     <CollectionEmptyState
                       title="Belum ada data pengguna"
                       description="Tambahkan pengguna baru untuk memulai."
@@ -544,6 +558,9 @@ export default function UsersManagementPage() {
                              : managedUser.orgName || "Belum ditetapkan"}
                          </span>
                        </TableCell>
+                      <TableCell className="whitespace-nowrap text-muted-foreground">
+                        {formatLastLoggedIn(managedUser.lastLoggedIn)}
+                      </TableCell>
                       <TableCell>
                         <Badge variant={toBadgeVariant(status.tone)} className={getStatusBadgeClassName(status.tone)}>
                           <span

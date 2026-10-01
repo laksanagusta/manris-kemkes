@@ -36,7 +36,7 @@ test("risk register table exposes accessible sorting and monitoring progress", (
 test("risk register table uses the approved column proportions", () => {
   assert.match(
     registerSource,
-    /<colgroup>\s*<col style=\{\{ width: "38%" \}\} \/>\s*<col style=\{\{ width: "17%" \}\} \/>\s*<col style=\{\{ width: "9%" \}\} \/>\s*<col style=\{\{ width: "11%" \}\} \/>\s*<col style=\{\{ width: "17%" \}\} \/>\s*<col style=\{\{ width: "8%" \}\} \/>\s*<\/colgroup>/,
+    /<colgroup>\s*<col style=\{\{ width: "34%" \}\} \/>\s*<col style=\{\{ width: "14%" \}\} \/>\s*<col style=\{\{ width: "8%" \}\} \/>\s*<col style=\{\{ width: "13%" \}\} \/>\s*<col style=\{\{ width: "9%" \}\} \/>\s*<col style=\{\{ width: "14%" \}\} \/>\s*<col style=\{\{ width: "8%" \}\} \/>\s*<\/colgroup>/,
   );
 });
 

@@ -57,6 +57,7 @@ type User struct {
 	PhoneNumber        string     `json:"phoneNumber"`
 	CreatedAt          time.Time  `json:"createdAt"`
 	UpdatedAt          time.Time  `json:"updatedAt"`
+	LastLoggedIn       time.Time  `json:"lastLoggedIn"`
 }
 
 // Validate performs domain validation on User

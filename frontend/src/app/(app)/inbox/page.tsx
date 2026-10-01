@@ -558,41 +558,36 @@ export default function InboxPage() {
       />
 
       <CollectionTableCard>
-        {filteredRequests.length === 0 ? (
-          <CollectionEmptyState
-            title="Belum ada permintaan persetujuan yang sesuai filter"
-            description="Ubah filter pencarian untuk melihat data lain."
-          />
-        ) : (
-          <Table className="min-w-[760px] table-fixed">
-            <colgroup>
-              <col className="w-[14%]" />
-              <col className="w-[44%]" />
-              <col className="w-[16%]" />
-              <col className="w-[14%]" />
-              <col className="w-[12%]" />
-            </colgroup>
-            <CollectionTableHeader>
-              <CollectionTableHeaderRow>
-                <CollectionTableHead>
-                  Kode
-                </CollectionTableHead>
-                <CollectionTableHead className="px-24">
-                  Entitas
-                </CollectionTableHead>
-                <CollectionTableHead >
-                  Jenis
-                </CollectionTableHead>
-                <CollectionTableHead >
-                  Tanggal
-                </CollectionTableHead>
-                <CollectionTableHead >
-                  Status
-                </CollectionTableHead>
-              </CollectionTableHeaderRow>
-            </CollectionTableHeader>
-            <TableBody>
-              {filteredRequests.map((item) => {
+        <Table className="min-w-[760px] table-fixed">
+          <colgroup>
+            <col className="w-[14%]" />
+            <col className="w-[44%]" />
+            <col className="w-[16%]" />
+            <col className="w-[14%]" />
+            <col className="w-[12%]" />
+          </colgroup>
+          <CollectionTableHeader>
+            <CollectionTableHeaderRow>
+              <CollectionTableHead>Kode</CollectionTableHead>
+              <CollectionTableHead className="px-24">Entitas</CollectionTableHead>
+              <CollectionTableHead>Jenis</CollectionTableHead>
+              <CollectionTableHead>Tanggal</CollectionTableHead>
+              <CollectionTableHead>Status</CollectionTableHead>
+            </CollectionTableHeaderRow>
+          </CollectionTableHeader>
+          <TableBody>
+            {filteredRequests.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={5}>
+                  <CollectionEmptyState
+                    title="Belum ada permintaan persetujuan yang sesuai filter"
+                    description="Ubah filter pencarian untuk melihat data lain."
+                    className="min-h-24 py-6"
+                  />
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredRequests.map((item) => {
                 const typeConfig =
                   requestTypeConfig[item.requestType] ?? requestTypeConfig.risk;
                 const Icon = typeConfig.icon;
@@ -625,11 +620,8 @@ export default function InboxPage() {
                   : approvalItem!.entityId;
 
                 return (
-                  <TableRow
-                    key={item.id}
-                    className="hover:bg-muted/50"
-                  >
-                    <TableCell className="">
+                  <TableRow key={item.id} className="hover:bg-muted/50">
+                    <TableCell>
                       {displayCode || `REQ-${item.id.slice(0, 8)}`}
                     </TableCell>
                     <TableCell className="px-24">
@@ -645,31 +637,34 @@ export default function InboxPage() {
                         </p>
                       </div>
                     </TableCell>
-                    <TableCell className="">
-                      <Badge variant="outline" className="">
+                    <TableCell>
+                      <Badge variant="outline">
                         <span className="inline-flex items-center gap-1">
                           <Icon className="size-3" />
                           {typeConfig.label}
                         </span>
                       </Badge>
                     </TableCell>
-                    <TableCell className="">
+                    <TableCell>
                       <span className="inline-flex items-center gap-1.5">
                         <Clock className="size-3" />
                         {formatDate(displayDate)}
                       </span>
                     </TableCell>
-                    <TableCell className="">
-                      <Badge variant={getLinearStatusBadgeTone(status)} className={getLinearStatusBadgeClassName(status)}>
+                    <TableCell>
+                      <Badge
+                        variant={getLinearStatusBadgeTone(status)}
+                        className={getLinearStatusBadgeClassName(status)}
+                      >
                         {statusLabel[status]}
                       </Badge>
                     </TableCell>
                   </TableRow>
                 );
-              })}
-            </TableBody>
-          </Table>
-        )}
+              })
+            )}
+          </TableBody>
+        </Table>
 
           <CollectionPagination
             itemLabel="permintaan persetujuan"

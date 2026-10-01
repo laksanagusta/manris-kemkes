@@ -387,7 +387,7 @@ export default function RiskCharterDetailPage() {
 
   if (loading) {
     return (
-      <FormPage className="mx-auto max-w-[672px]">
+      <FormPage className="mx-auto max-w-6xl">
         <CollectionLoadingState message="Memuat detail Piagam..." />
       </FormPage>
     );
@@ -395,7 +395,7 @@ export default function RiskCharterDetailPage() {
 
   if (loadError || !charter) {
     return (
-    <FormPage className="mx-auto max-w-[672px]">
+    <FormPage className="mx-auto max-w-6xl">
         <FormHeader
           title="Detail Piagam"
           subtitle="Piagam belum dapat ditampilkan."
@@ -571,7 +571,7 @@ export default function RiskCharterDetailPage() {
   };
 
   return (
-    <FormPage className="mx-auto max-w-[672px] space-y-0">
+    <FormPage className="mx-auto max-w-6xl space-y-0">
       <div className="px-6 pb-0 lg:px-8">
         <FormHeader
           title="Detail Piagam"

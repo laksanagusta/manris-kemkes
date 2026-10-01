@@ -11,9 +11,9 @@ export const CHART_COLORS = {
 } as const;
 
 export const RISK_CHART_COLORS = {
-  veryLow: CHART_COLORS.quinary,
-  low: "var(--risk-low)",
-  medium: "var(--risk-medium)",
-  high: "var(--risk-high)",
-  extreme: "var(--risk-extreme)",
+  veryLow: "var(--color-green-400)",
+  low: "var(--color-green-500)",
+  medium: "var(--color-yellow-400)",
+  high: "var(--color-orange-500)",
+  extreme: "var(--color-red-500)",
 } as const;

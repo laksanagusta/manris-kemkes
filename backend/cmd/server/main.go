@@ -347,6 +347,7 @@ func main() {
 	// Reports (Clean Architecture)
 	protected.Get("/reports/risk-pdf", cleanReportHandler.GenerateRiskPDF)
 	protected.Get("/reports/quarterly", quarterlyReportHandler.Get)
+	protected.Get("/reports/quarterly/overview", quarterlyReportHandler.Overview)
 	protected.Get("/reports/quarterly-pdf", quarterlyReportHandler.PDF)
 
 	// Controls (Clean Architecture)

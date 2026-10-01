@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 
-import { AccentButton } from "@/components/shared/design-system";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
+  AccentButton,
   CollectionFilterGrid,
   CollectionFilterTrigger,
   CollectionTableCard,
   CollectionToolbar,
   ExpandableSearchField,
+  PopoverSelectField,
 } from "@/components/shared/design-system";
 import {
   KpiCard,
@@ -20,6 +20,7 @@ import { ActionButton } from "@/components/shared/design-system";
 
 export function CollectionLayoutExample() {
   const [search, setSearch] = useState("");
+  const [period, setPeriod] = useState("all");
 
   return (
     <PageStack className="rounded-[12px] border bg-background p-4">
@@ -69,17 +70,21 @@ export function CollectionLayoutExample() {
             placeholder="Cari data..."
           />
         </div>
-        <div className="justify-self-end">
-          <Select defaultValue="all">
-            <SelectTrigger className="">
-              <SelectValue placeholder="Semua periode" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Semua periode</SelectItem>
-              <SelectItem value="2026-H1">2026-H1</SelectItem>
-              <SelectItem value="2025-H2">2025-H2</SelectItem>
-            </SelectContent>
-          </Select>
+        <div className="w-full lg:w-[220px]">
+          <PopoverSelectField
+            value={period}
+            onValueChange={setPeriod}
+            options={[
+              { value: "all", label: "Semua Periode" },
+              { value: "2026-Q2", label: "2026-Q2" },
+              { value: "2026-Q3", label: "2026-Q3" },
+            ]}
+            placeholder="Semua Periode"
+            ariaLabel="Filter periode koleksi"
+            side="bottom"
+            avoidCollisions={false}
+            triggerClassName="h-8 rounded-lg bg-card text-sm"
+          />
         </div>
       </CollectionFilterGrid>
       <CollectionTableCard>

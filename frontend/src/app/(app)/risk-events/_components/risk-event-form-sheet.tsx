@@ -288,21 +288,18 @@ export function RiskEventFormDialog({
     return risks.filter((risk) => (!organizationId || risk.organizationId === organizationId) && (!query || `${risk.code ?? ""} ${risk.title}`.toLowerCase().includes(query))).slice(0, 10);
   }, [organizationId, riskQuery, risks]);
   const selectedRisks = risks.filter((risk) => riskIds.includes(risk.id));
-  const valid = description.trim() && occurredAt && impactTypes.length > 0 && actualImpact.trim() && immediateResponse.trim() &&
+  const valid = description.trim() && occurredAt && impactTypes.length > 0 &&
     (!impactTypes.includes("other") || otherImpactType.trim()) &&
     (!impactTypes.includes("financial") || (financialLossState && (financialLossState === "unknown" || (financialLoss.trim() !== "" && Number(financialLoss) >= 0)))) &&
-    (severity !== "extreme" || extraordinaryReason.trim()) &&
-    (!["ongoing", "worsening"].includes(condition) || ongoingAction.trim());
+    Boolean(severity);
   const factStepValid = Boolean(
     occurredAt && description.trim() && impactTypes.length > 0 &&
     (!impactTypes.includes("other") || otherImpactType.trim()),
   );
   const handlingStepValid = Boolean(
-    actualImpact.trim() && immediateResponse.trim() &&
-    (!impactTypes.includes("financial") || (financialLossState &&
-      (financialLossState === "unknown" || (financialLoss.trim() !== "" && Number(financialLoss) >= 0)))) &&
-    (severity !== "extreme" || extraordinaryReason.trim()) &&
-    (!["ongoing", "worsening"].includes(condition) || ongoingAction.trim()),
+    !impactTypes.includes("financial") ||
+      (financialLossState &&
+        (financialLossState === "unknown" || (financialLoss.trim() !== "" && Number(financialLoss) >= 0))),
   );
   const stepValid = step === 0 ? factStepValid : step === 1 ? handlingStepValid : Boolean(valid);
 
@@ -409,7 +406,7 @@ export function RiskEventFormDialog({
           </div>
         ) : null}
         <Field>
-          <FieldLabel htmlFor="event-impact">Dampak aktual <span className="text-destructive">*</span></FieldLabel>
+          <FieldLabel htmlFor="event-impact">Dampak aktual</FieldLabel>
           <Textarea id="event-impact" rows={3} value={actualImpact} onChange={(e) => setActualImpact(e.target.value)} placeholder="Tuliskan dampak yang benar-benar terjadi." />
         </Field>
         <Field>
@@ -421,16 +418,16 @@ export function RiskEventFormDialog({
         </Field>
         {severity === "extreme" ? (
           <Field>
-            <FieldLabel htmlFor="event-extraordinary">Alasan tingkat ekstrem <span className="text-destructive">*</span></FieldLabel>
+            <FieldLabel htmlFor="event-extraordinary">Alasan tingkat ekstrem</FieldLabel>
             <Textarea id="event-extraordinary" value={extraordinaryReason} onChange={(e) => setExtraordinaryReason(e.target.value)} />
           </Field>
         ) : null}
         <Field>
-          <FieldLabel htmlFor="event-response">Penanganan langsung <span className="text-destructive">*</span></FieldLabel>
+          <FieldLabel htmlFor="event-response">Penanganan langsung</FieldLabel>
           <Textarea id="event-response" rows={3} value={immediateResponse} onChange={(e) => setImmediateResponse(e.target.value)} placeholder="Jika belum ada, tuliskan “Belum ada penanganan”." />
         </Field>
         <Field>
-          <FieldLabel htmlFor="event-condition">Kondisi setelah penanganan <span className="text-destructive">*</span></FieldLabel>
+          <FieldLabel htmlFor="event-condition">Kondisi setelah penanganan</FieldLabel>
           <Select value={condition} onValueChange={(value) => setCondition(value as RiskEventCondition)}>
             <SelectTrigger id="event-condition" className="w-full"><SelectValue /></SelectTrigger>
             <SelectContent>{Object.entries(conditionLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
@@ -438,7 +435,7 @@ export function RiskEventFormDialog({
         </Field>
         {["ongoing", "worsening"].includes(condition) ? (
           <Field>
-            <FieldLabel htmlFor="event-ongoing">Tindakan yang sedang berjalan <span className="text-destructive">*</span></FieldLabel>
+            <FieldLabel htmlFor="event-ongoing">Tindakan yang sedang berjalan</FieldLabel>
             <Textarea id="event-ongoing" value={ongoingAction} onChange={(e) => setOngoingAction(e.target.value)} />
           </Field>
         ) : null}

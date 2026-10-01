@@ -1,5 +1,29 @@
 import { formatRiskScore } from "./risk";
 
+export type MonitoringCycleBadgeStatus =
+  | "not-started"
+  | "in-progress"
+  | "completed"
+  | "current-period"
+  | "not-applicable";
+
+export function getMonitoringCycleBadgeStatus(
+  status?: string | null,
+  isCurrentPeriod = false,
+  isApplicable = true,
+): MonitoringCycleBadgeStatus {
+  switch ((status ?? "").trim().toLowerCase()) {
+    case "draft":
+      return "in-progress";
+    case "final":
+    case "finalized":
+      return "completed";
+    default:
+      if (!isApplicable && !isCurrentPeriod) return "not-applicable";
+      return isCurrentPeriod ? "current-period" : "not-started";
+  }
+}
+
 const dateFormatter = new Intl.DateTimeFormat("id-ID", {
   day: "2-digit",
   month: "short",

@@ -122,13 +122,14 @@ type Risk struct {
 	FinalizeRequested bool       `json:"-"`
 
 	// Ongoing draft tracking (for list views)
-	DraftID               *uuid.UUID `json:"draftId,omitempty"`
-	DraftStatus           *string    `json:"draftStatus,omitempty"`
-	HasOngoing            bool       `json:"hasOngoing"`
-	MonitoringStatus      *string    `json:"monitoringStatus,omitempty"`
-	LastMonitoredAt       *time.Time `json:"lastMonitoredAt,omitempty"`
-	BeforeMonitoringNilai *float64   `json:"beforeMonitoringNilai,omitempty"`
-	MonitoringResultNilai *float64   `json:"monitoringResultNilai,omitempty"`
+	DraftID                         *uuid.UUID `json:"draftId,omitempty"`
+	DraftStatus                     *string    `json:"draftStatus,omitempty"`
+	HasOngoing                      bool       `json:"hasOngoing"`
+	MonitoringStatus                *string    `json:"monitoringStatus,omitempty"`
+	PreviousQuarterMonitoringStatus *string    `json:"previousQuarterMonitoringStatus,omitempty"`
+	LastMonitoredAt                 *time.Time `json:"lastMonitoredAt,omitempty"`
+	BeforeMonitoringNilai           *float64   `json:"beforeMonitoringNilai,omitempty"`
+	MonitoringResultNilai           *float64   `json:"monitoringResultNilai,omitempty"`
 	// MonitoringObserved* is the finalized quarterly observation attached to
 	// a historical snapshot. It is intentionally nullable: a risk can exist in
 	// the register for a quarter before that quarter's monitoring is finalized.

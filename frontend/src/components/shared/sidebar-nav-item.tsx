@@ -1,26 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import {
-  MotionConfig,
-  motion,
-} from "motion/react";
 import type { ElementType, ReactNode } from "react";
 import type { MouseEventHandler } from "react";
 
 import { cn } from "@/lib/utils";
 import { SidebarMenuButton, SidebarMenuItem } from "@/components/ui/sidebar";
 
-const SIDEBAR_SPRING = {
-  type: "spring" as const,
-  duration: 0.35,
-  bounce: 0.18,
-};
-
 export interface SidebarNavItemProps {
   href: string;
   label: string;
-  icon: ElementType;
+  icon?: ElementType;
   isActive?: boolean;
   badge?: ReactNode;
   className?: string;
@@ -42,41 +32,39 @@ export function SidebarNavItem({
   onClick,
 }: SidebarNavItemProps) {
   return (
-    <MotionConfig reducedMotion="user">
-      <SidebarMenuItem>
-        <SidebarMenuButton
-          asChild
-          className={cn(
-            "relative transition-[width,height,padding,background-color,color] duration-[180ms] ease-(--ease-out) data-active:bg-transparent [&_svg]:text-current",
-            isActive
-              ? "text-sidebar-accent-foreground"
-              : "text-muted-foreground",
-            className,
-          )}
-          isActive={isActive}
-          tooltip={label}
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        asChild
+        className={cn(
+          "relative transition-[width,height,padding,background-color,color] duration-[180ms] ease-(--ease-out) data-active:bg-transparent [&_svg]:text-current",
+          isActive
+            ? "text-sidebar-accent-foreground"
+            : "text-muted-foreground",
+          className,
+        )}
+        isActive={isActive}
+        tooltip={label}
+      >
+        <Link
+          aria-current={isActive ? "page" : undefined}
+          href={href}
+          onClick={onClick}
         >
-          <Link
-            aria-current={isActive ? "page" : undefined}
-            href={href}
-            onClick={onClick}
-          >
-            {isActive && (
-              <motion.span
-                aria-hidden="true"
-                className="pointer-events-none absolute inset-0 z-0 rounded-md bg-active"
-                layoutId="sidebar-active-background"
-                transition={SIDEBAR_SPRING}
-              />
-            )}
+          {isActive && (
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-0 z-0 rounded-md bg-active"
+            />
+          )}
+          {Icon ? (
             <span aria-hidden="true" className="relative z-10 inline-flex shrink-0 items-center justify-center">
               <Icon aria-hidden="true" />
             </span>
-            <span className="relative z-10">{label}</span>
-            {badge}
-          </Link>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
-    </MotionConfig>
+          ) : null}
+          <span className="relative z-10">{label}</span>
+          {badge}
+        </Link>
+      </SidebarMenuButton>
+    </SidebarMenuItem>
   );
 }

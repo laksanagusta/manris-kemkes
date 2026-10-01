@@ -50,35 +50,40 @@ export default function LoginScreen() {
 
       <div className="relative w-full max-w-md px-4 motion-safe:animate-fade-in">
         <div className="flex flex-col gap-6">
-          <h1 className="text-center text-xl font-semibold">Masuk ke Manris</h1>
-          <form onSubmit={handleSubmit}>
-            <FieldGroup>
+          <header className="flex flex-col items-center gap-2 text-center">
+            <span className="font-logo text-[20px] leading-5 font-semibold lowercase tracking-[-0.4px] text-foreground">Manris</span>
+            <h1 className="text-[20px] leading-5 font-medium tracking-tight text-balance">Masuk untuk melanjutkan</h1>
+          </header>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+            <FieldGroup className="gap-2">
               {error ? <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert> : null}
               <Field>
-                <FieldLabel htmlFor="nip">NIP</FieldLabel>
-                <Input id="nip" name="nip" className="h-9 bg-white dark:bg-white" placeholder="Masukkan NIP" autoComplete="username" inputMode="numeric" required value={nip} onChange={(event) => setNip(event.target.value)} />
+                <FieldLabel htmlFor="nip" className="sr-only">NIP</FieldLabel>
+                <Input id="nip" name="nip" className="h-11 bg-white dark:bg-white" placeholder="Masukkan NIP" autoComplete="username" inputMode="numeric" required value={nip} onChange={(event) => setNip(event.target.value)} />
               </Field>
               <Field>
-                <FieldLabel htmlFor="password">Password</FieldLabel>
-                <FieldDescription>Hubungi administrator jika perlu reset</FieldDescription>
-                <InputGroup className="h-9 bg-white dark:bg-white">
-                  <InputGroupInput id="password" name="password" type={showPassword ? "text" : "password"} className="h-9 bg-transparent dark:bg-transparent" placeholder="Masukkan password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} />
-                  <InputGroupAddon align="inline-end">
-                    <InputGroupButton aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"} aria-pressed={showPassword} onClick={() => setShowPassword((value) => !value)} size="icon-xs">
+                <FieldLabel htmlFor="password" className="sr-only">Password</FieldLabel>
+                <InputGroup className="h-11 bg-white dark:bg-white">
+                  <InputGroupInput id="password" name="password" type={showPassword ? "text" : "password"} className="h-11 bg-transparent dark:bg-transparent" placeholder="Masukkan password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} />
+                  <InputGroupAddon align="inline-end" className="py-0">
+                    <InputGroupButton aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"} aria-pressed={showPassword} onClick={() => setShowPassword((value) => !value)} size="icon-xs" className="h-11 w-11 hover:bg-transparent hover:text-inherit">
                       {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
                     </InputGroupButton>
                   </InputGroupAddon>
                 </InputGroup>
+                <FieldDescription className="text-xs text-tertiary-foreground">Hubungi administrator jika perlu reset</FieldDescription>
               </Field>
-              <Button type="submit" className="h-9 w-full rounded-full" disabled={isLoading} aria-busy={isLoading}>
+            </FieldGroup>
+            <div className="flex flex-col gap-1">
+              <Button type="submit" className="h-11 w-full rounded-full" disabled={isLoading} aria-busy={isLoading}>
                 {isLoading ? <Spinner data-icon="inline-start" aria-hidden="true" /> : null}
                 {isLoading ? "Memproses..." : "Masuk"}
               </Button>
-            </FieldGroup>
+              <nav className="flex" aria-label="Bantuan akun">
+                <Button asChild variant="outline" className="h-11 w-full rounded-full"><Link href="/register">Daftar akun</Link></Button>
+              </nav>
+            </div>
           </form>
-          <nav className="flex items-center justify-center gap-1" aria-label="Bantuan akun">
-            <Button asChild variant="link"><Link href="/register">Daftar akun</Link></Button>
-          </nav>
         </div>
       </div>
     </div>

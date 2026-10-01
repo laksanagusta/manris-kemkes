@@ -35,6 +35,10 @@ type CreateInput struct {
 }
 
 func (s *Service) Create(ctx context.Context, input CreateInput) (*entity.RiskEvent, error) {
+	postResponseCondition := strings.TrimSpace(input.PostResponseCondition)
+	if postResponseCondition == "" {
+		postResponseCondition = "unknown"
+	}
 	for _, riskID := range input.RiskIDs {
 		risk, err := s.risks.GetByID(ctx, riskID, input.OrgIDs)
 		if err != nil {
@@ -50,7 +54,7 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (*entity.RiskEv
 	event := &entity.RiskEvent{
 		Description: strings.TrimSpace(input.Description), OccurredAt: input.OccurredAt,
 		ImpactTypes: input.ImpactTypes, OtherImpactType: strings.TrimSpace(input.OtherImpactType), ActualImpact: strings.TrimSpace(input.ActualImpact), Severity: input.Severity,
-		ImmediateResponse: strings.TrimSpace(input.ImmediateResponse), PostResponseCondition: input.PostResponseCondition,
+		ImmediateResponse: strings.TrimSpace(input.ImmediateResponse), PostResponseCondition: postResponseCondition,
 		Location: strings.TrimSpace(input.Location), AffectedParties: strings.TrimSpace(input.AffectedParties),
 		SuspectedCause: strings.TrimSpace(input.SuspectedCause), FinancialLoss: input.FinancialLoss,
 		FinancialLossKnown: input.FinancialLossKnown, DisruptionDuration: strings.TrimSpace(input.DisruptionDuration),

@@ -64,7 +64,20 @@ func (uc *LoginUseCase) Execute(ctx context.Context, input LoginInput) (*entity.
 		return nil, errors.ErrAccountPendingApproval
 	}
 
-	return buildAuthToken(ctx, uc.hierarchySvc, uc.jwtSecret, uc.jwtExpiry, uc.riskApprovalWorkflowEnabled, user, entity.AuthSessionModeFull, false)
+	result, err := buildAuthToken(ctx, uc.hierarchySvc, uc.jwtSecret, uc.jwtExpiry, uc.riskApprovalWorkflowEnabled, user, entity.AuthSessionModeFull, false)
+	if err != nil {
+		return nil, err
+	}
+
+	lastLoginRepo, ok := uc.userRepo.(repository.UserLastLoginRepository)
+	if !ok {
+		return nil, errors.ErrInternal
+	}
+	if err := lastLoginRepo.RecordLastLogin(ctx, user.ID); err != nil {
+		return nil, errors.Wrap(err, "gagal mencatat waktu login terakhir")
+	}
+
+	return result, nil
 }
 
 func validateLoginInput(input LoginInput) error {

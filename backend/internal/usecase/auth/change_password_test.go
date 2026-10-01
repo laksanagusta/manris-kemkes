@@ -68,6 +68,10 @@ func (s *changePasswordStubUserRepo) Update(_ context.Context, user *entity.User
 	return nil
 }
 
+func (s *changePasswordStubUserRepo) RecordLastLogin(_ context.Context, _ uuid.UUID) error {
+	return nil
+}
+
 func (s *changePasswordStubUserRepo) Delete(_ context.Context, _ uuid.UUID) error    { return nil }
 func (s *changePasswordStubUserRepo) List(_ context.Context) ([]*entity.User, error) { return nil, nil }
 func (s *changePasswordStubUserRepo) ListWithFilter(_ context.Context, _ repository.UserListFilter) ([]*entity.User, int, error) {

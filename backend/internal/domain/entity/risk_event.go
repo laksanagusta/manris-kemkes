@@ -49,8 +49,7 @@ type RiskEvent struct {
 }
 
 func (e *RiskEvent) Validate() error {
-	if strings.TrimSpace(e.Description) == "" || e.OccurredAt.IsZero() || len(e.ImpactTypes) == 0 ||
-		strings.TrimSpace(e.ActualImpact) == "" || strings.TrimSpace(e.ImmediateResponse) == "" {
+	if strings.TrimSpace(e.Description) == "" || e.OccurredAt.IsZero() || len(e.ImpactTypes) == 0 {
 		return domainerrors.ErrInvalidInput
 	}
 	hasFinancial, hasOther := false, false
@@ -72,12 +71,6 @@ func (e *RiskEvent) Validate() error {
 	switch e.PostResponseCondition {
 	case "recovered", "controlled", "ongoing", "worsening", "unknown":
 	default:
-		return domainerrors.ErrInvalidInput
-	}
-	if e.Severity == RiskEventSeverityExtreme && strings.TrimSpace(e.ExtraordinaryReason) == "" {
-		return domainerrors.ErrInvalidInput
-	}
-	if (e.PostResponseCondition == "ongoing" || e.PostResponseCondition == "worsening") && strings.TrimSpace(e.OngoingAction) == "" {
 		return domainerrors.ErrInvalidInput
 	}
 	if e.OrganizationID == uuid.Nil || e.CreatedBy == uuid.Nil {

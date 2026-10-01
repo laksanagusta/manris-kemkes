@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
-import { LayoutGroup } from "motion/react";
 import {
   LayoutDashboard,
   Inbox,
@@ -103,7 +102,7 @@ const reportsNavigation: NavGroup = {
   title: "LAPORAN",
   items: [
     {
-      label: "Laporan",
+      label: "Ringkasan Risiko",
       href: "/reports",
       icon: FileBarChart,
     },
@@ -170,7 +169,7 @@ const navigation: NavGroup[] = [
     }),
   reportsNavigation,
   {
-    title: "AI & OTOMASI",
+    title: "OTOMASI",
     items: [
       {
         label: "MoM",
@@ -208,7 +207,7 @@ const allNavHrefs = [
 const utilityLinks: NavItem[] = [
   {
     label: "Panduan",
-    href: "/panduan/risiko",
+    href: "/panduan/pengenalan",
     icon: BookOpen,
   },
 ];
@@ -333,7 +332,7 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
       return baseNavigation;
     }
 
-    return baseNavigation.filter((group) => group.title !== "AI & OTOMASI");
+    return baseNavigation.filter((group) => group.title !== "OTOMASI");
   }, [aiFeaturesDisabled, user]);
 
 
@@ -366,97 +365,95 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
         </SidebarMenu>
       </SidebarHeader>
 
-      <LayoutGroup id="sidebar-navigation">
-        <SidebarContent>
-          <ScrollArea className="min-h-0 flex-1">
-            <div className="flex flex-col gap-1 pt-2">
-              {visibleNavigation.map((group) => (
-                <SidebarGroup key={group.title ?? group.items?.[0]?.href}>
-                  {group.title ? (
-                    <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
-                  ) : null}
+      <SidebarContent>
+        <ScrollArea className="min-h-0 flex-1">
+          <div className="flex flex-col gap-1 pt-2">
+            {visibleNavigation.map((group) => (
+              <SidebarGroup key={group.title ?? group.items?.[0]?.href}>
+                {group.title ? (
+                  <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
+                ) : null}
 
-                  <SidebarMenu className="gap-1">
-                    {group.items?.map((item) => (
-                      <NavLink
-                        key={item.href}
-                        item={item}
-                        currentHash={currentHash}
-                        badgeOverride={
-                          item.href === "/inbox" ? inboxBadge : undefined
-                        }
-                      />
-                    ))}
-                  </SidebarMenu>
-                </SidebarGroup>
-              ))}
-            </div>
-          </ScrollArea>
-        </SidebarContent>
-
-        <SidebarFooter className="relative isolate gap-2 px-2 py-3">
-          <div
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 -top-10 z-10 h-10 bg-gradient-to-b from-transparent via-sidebar/75 to-sidebar backdrop-blur-md"
-          />
-          {user && (
-            <div className="flex min-w-0 items-center justify-center gap-2">
-              <DropdownMenu modal={false}>
-                <DropdownMenuTrigger asChild>
-                  <SidebarMenuButton className="min-w-0 flex-1" aria-label="Open user menu">
-                    <span className="inline-flex shrink-0 items-center justify-center">
-                      <DitherAvatar name={user?.name || "User"} size={24} className="overflow-hidden rounded-full" />
-                    </span>
-                    <span className="min-w-0 flex-1 truncate text-sm font-normal text-sidebar-foreground group-data-[collapsible=icon]:hidden">
-                      {user?.name || "User"}
-                    </span>
-                  </SidebarMenuButton>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent side="top" align="start" sideOffset={4} className="w-56">
-                  <DropdownMenuItem onClick={() => openSettings("account")}>
-                    <Settings2 className="size-4" />
-                    Pengaturan
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    className="text-destructive"
-                    onClick={() => {
-                      logout();
-                      router.push("/login");
-                    }}
-                  >
-                    <LogOut className="size-4" />
-                    Logout
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="ghost" size="icon" className="group-data-[collapsible=icon]:hidden" aria-label="Buka panduan" title="Panduan">
-                    <HelpCircle aria-hidden="true" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent
-                  side="top"
-                  align="end"
-                  sideOffset={8}
-                  className="w-52"
-                >
-                  <div className="px-2 py-1.5 text-xs font-normal text-muted-foreground">
-                    Bantuan
-                  </div>
-                  {utilityLinks.map(({ label, href, icon: Icon }) => (
-                    <Button key={href} asChild variant="ghost" className="w-full justify-start">
-                      <Link href={href}><Icon data-icon="inline-start" aria-hidden="true" />{label}</Link>
-                    </Button>
+                <SidebarMenu className="gap-1">
+                  {group.items?.map((item) => (
+                    <NavLink
+                      key={item.href}
+                      item={item}
+                      currentHash={currentHash}
+                      badgeOverride={
+                        item.href === "/inbox" ? inboxBadge : undefined
+                      }
+                    />
                   ))}
-                </PopoverContent>
-              </Popover>
-            </div>
-          )}
-        </SidebarFooter>
-      </LayoutGroup>
+                </SidebarMenu>
+              </SidebarGroup>
+            ))}
+          </div>
+        </ScrollArea>
+      </SidebarContent>
+
+      <SidebarFooter className="relative isolate gap-2 px-2 py-3">
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-x-0 -top-10 z-10 h-10 bg-gradient-to-b from-transparent via-sidebar/75 to-sidebar backdrop-blur-md"
+        />
+        {user && (
+          <div className="flex min-w-0 items-center justify-center gap-2">
+            <DropdownMenu modal={false}>
+              <DropdownMenuTrigger asChild>
+                <SidebarMenuButton className="min-w-0 flex-1" aria-label="Open user menu">
+                  <span className="inline-flex shrink-0 items-center justify-center">
+                    <DitherAvatar name={user?.name || "User"} size={24} className="overflow-hidden rounded-full" />
+                  </span>
+                  <span className="min-w-0 flex-1 translate-y-px truncate text-sm leading-5 font-normal text-sidebar-foreground group-data-[collapsible=icon]:hidden">
+                    {user?.name || "User"}
+                  </span>
+                </SidebarMenuButton>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent side="top" align="start" sideOffset={4} className="w-56">
+                <DropdownMenuItem onClick={() => openSettings("account")}>
+                  <Settings2 className="size-4" />
+                  Pengaturan
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="text-destructive"
+                  onClick={() => {
+                    logout();
+                    router.push("/login");
+                  }}
+                >
+                  <LogOut className="size-4" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="group-data-[collapsible=icon]:hidden" aria-label="Buka panduan" title="Panduan">
+                  <HelpCircle aria-hidden="true" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                side="top"
+                align="end"
+                sideOffset={8}
+                className="w-52"
+              >
+                <div className="px-2 py-1.5 text-xs font-normal text-muted-foreground">
+                  Bantuan
+                </div>
+                {utilityLinks.map(({ label, href, icon: Icon }) => (
+                  <Button key={href} asChild variant="ghost" className="w-full justify-start">
+                    <Link href={href}><Icon data-icon="inline-start" aria-hidden="true" />{label}</Link>
+                  </Button>
+                ))}
+              </PopoverContent>
+            </Popover>
+          </div>
+        )}
+      </SidebarFooter>
     </Sidebar>
   );
 }

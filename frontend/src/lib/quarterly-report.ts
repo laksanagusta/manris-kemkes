@@ -1,4 +1,5 @@
 import type {
+  QuarterlyReportOverview,
   QuarterlyReport,
   QuarterlyRisk,
   QuarterlyTask,
@@ -291,6 +292,19 @@ function summarize(
   };
 }
 export type ReportSummary = ReturnType<typeof summarize>;
+export type QuarterlyReportRiskData = Pick<
+  QuarterlyReport,
+  "cycle" | "generatedAt" | "risks" | "previousRisks" | "tasks"
+>;
+
+export function buildQuarterlyRiskRows(report: QuarterlyReportRiskData) {
+  const tasks = report.tasks.map((task) => ({
+    task,
+    state: reportTaskState(task, report.cycle, report.generatedAt),
+  }));
+  return riskRows(report.risks, report.previousRisks, tasks, report.cycle);
+}
+
 export function buildQuarterlyAnalysis(report: QuarterlyReport) {
   const tasks = report.tasks.map((task) => ({
     task,
@@ -359,3 +373,60 @@ export function buildQuarterlyAnalysis(report: QuarterlyReport) {
   return { summary, previousSummary, rows, tasks, events, movement, units };
 }
 export type QuarterlyAnalysis = ReturnType<typeof buildQuarterlyAnalysis>;
+
+export function buildQuarterlyOverview(
+  report: QuarterlyReport,
+): QuarterlyReportOverview {
+  const analysis = buildQuarterlyAnalysis(report);
+  const taskCounts = {
+    reported: 0,
+    pending: 0,
+    overdue: 0,
+    not_reported: 0,
+    skipped: 0,
+    total: analysis.tasks.length,
+  };
+  analysis.tasks.forEach(({ state }) => {
+    taskCounts[state] += 1;
+  });
+  const severityCounts = { low: 0, medium: 0, high: 0, extreme: 0 };
+  analysis.events.forEach((event) => {
+    if (event.severity in severityCounts) {
+      severityCounts[event.severity as keyof typeof severityCounts] += 1;
+    }
+  });
+  const recentEvents = [...analysis.events]
+    .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt))
+    .slice(0, 3)
+    .map((event) => ({
+      id: event.id,
+      code: event.code,
+      description: event.description,
+      occurredAt: event.occurredAt,
+      organizationName: event.organizationName ?? "",
+      postResponseCondition: event.postResponseCondition,
+      severity: event.severity,
+    }));
+  return {
+    cycle: report.cycle,
+    comparisonCycle: report.comparisonCycle,
+    generatedAt: report.generatedAt,
+    dataUpdatedAt: report.dataUpdatedAt,
+    snapshotHash: report.snapshotHash,
+    warnings: report.warnings,
+    summary: analysis.summary,
+    previousSummary: analysis.previousSummary,
+    movement: analysis.movement,
+    hasRisks: analysis.rows.length > 0,
+    taskCounts,
+    recentEvents,
+    severityCounts,
+    units: analysis.units.map((unit) => ({
+      id: unit.id,
+      name: unit.name,
+      hasData: unit.hasData,
+      attentionCount: unit.rows.filter((row) => row.attention.length > 0).length,
+      summary: unit.summary,
+    })),
+  };
+}

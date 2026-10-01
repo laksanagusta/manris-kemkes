@@ -18,13 +18,12 @@ const multiPhaseHeatmap = read(
 const trendCard = read(
   "../app/(app)/overview/_components/risk-count-trend-chart.tsx",
 );
-const topRisksCard = read(
-  "../app/(app)/overview/_components/top-risks-panel.tsx",
+const compositionTrend = read(
+  "../app/(app)/overview/_components/risk-composition-trend-chart.tsx",
 );
 const dashboardKpiCard = read(
   "./shared/design-system/layout/dashboard-kpi-card.tsx",
 );
-const tablePrimitive = read("./ui/table.tsx");
 const appHeader = read("./app-header.tsx");
 const designSystemPage = read("../app/(app)/design-system/page.tsx");
 const designDocument = read("../../../DESIGN.md");
@@ -32,13 +31,13 @@ const designDocument = read("../../../DESIGN.md");
 test("overview follows the approved narrative order", () => {
   const kpis = overviewPage.indexOf('data-dashboard-section="kpis"');
   const trend = overviewPage.indexOf('data-dashboard-section="trend"');
-  const priorities = overviewPage.indexOf(
-    'data-dashboard-section="priorities"',
+  const composition = overviewPage.indexOf(
+    'data-dashboard-section="composition"',
   );
 
   assert.ok(kpis >= 0);
   assert.ok(trend > kpis);
-  assert.ok(priorities > trend);
+  assert.ok(composition > trend);
   assert.match(overviewPage, /title: "Total"/);
   assert.match(overviewPage, /title: "Prioritas"/);
   assert.match(overviewPage, /title: "Mitigasi belum terlapor"/);
@@ -111,7 +110,7 @@ test("dashboard cards use concise title-only headers", () => {
     trendCard,
     /Perbandingan skor aktual dan target dalam empat kuartal terakhir/,
   );
-  assert.doesNotMatch(topRisksCard, /subtitle=/);
+  assert.doesNotMatch(compositionTrend, /subtitle=/);
   assert.doesNotMatch(currentHeatmap, /subtitle=/);
   assert.doesNotMatch(trendCard, /subtitle=/);
   assert.doesNotMatch(currentHeatmap, /risiko aktif terpetakan/);
@@ -133,48 +132,33 @@ test("dashboard KPI surfaces use the stock Card composition", () => {
   assert.doesNotMatch(dashboardKpiCard, /data-corner-smoothing|surface-hairline/);
 });
 
-test("attention risk list uses the shared table surface", () => {
-  assert.match(topRisksCard, /<Table[\s\S]*aria-label="Risiko yang perlu perhatian"/);
-  assert.match(topRisksCard, /<CollectionTableHeader(?:\s[^>]*)?>/);
-  assert.match(topRisksCard, /<CollectionTableHeader>/);
-  assert.doesNotMatch(topRisksCard, /\[&_th\]:bg-card/);
+test("dashboard composition uses quarterly snapshots and five semantic risk levels", () => {
+  assert.match(overviewPage, /<RiskCompositionTrendChart[\s>]/);
+  assert.doesNotMatch(overviewPage, /TopRisksPanel|dashboard\/top-risks/);
+  assert.match(compositionTrend, /buildRiskCountTrendData/);
+  assert.match(compositionTrend, /stackId="risk-level"/);
+  assert.match(compositionTrend, /RISK_CHART_COLORS/);
   assert.match(
-    topRisksCard,
-    /<CollectionTableHeaderRow[\s\S]*data-testid="risk-list-header"/,
+    compositionTrend,
+    /sangatRendah[\s\S]*rendah[\s\S]*sedang[\s\S]*tinggi[\s\S]*sangatTinggi/,
   );
-  assert.match(tablePrimitive, /bg-table-header/);
-});
-
-test("attention risk table inherits canonical header spacing and typography", () => {
-  assert.match(tablePrimitive, /h-10 bg-table-header px-2 text-left/);
-  assert.match(tablePrimitive, /text-\[13px\] font-medium/);
-  assert.match(tablePrimitive, /first:ps-4 last:pe-4/);
-});
-
-test("attention risk rows prioritize titles and keep codes as metadata", () => {
-  assert.match(
-    topRisksCard,
-    /text-sm font-medium leading-5 text-foreground/,
-  );
-  assert.match(
-    topRisksCard,
-    /font-mono text-\[11px\] leading-4 text-muted-foreground/,
-  );
+  assert.match(compositionTrend, /period\?\.totalRisks/);
+  assert.match(compositionTrend, /isAnimationActive=\{false\}/);
 });
 
 test("narrative overview is documented in both design-system surfaces", () => {
   assert.match(designSystemPage, /Narrative Overview/);
   assert.match(
     designSystemPage,
-    /condition.*change.*attention.*concentrated risk.*multi-fase/is,
+    /kondisi KPI, tren jumlah risiko, distribusi kategori saat ini, komposisi tingkat risiko lintas empat kuartal, lalu heatmap kuartal berjalan/i,
   );
   assert.match(
     designDocument,
-    /narrative overview orders KPI condition, trend change, attention risks, and the current heatmap/i,
+    /overview orders KPI condition, total-risk trend, current risk-category distribution, four-quarter risk-level composition, and current heatmap/i,
   );
   assert.match(
     designDocument,
-    /shared collection table header and stock `Table` cells/,
+    /composition card replaces the dashboard's risk-attention list/i,
   );
   assert.match(
     designDocument,

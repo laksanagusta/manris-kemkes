@@ -15,8 +15,8 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from "@/components/ui/input-group";
-import { Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Loader2, Search } from "lucide-react";
 import {
   formatReportNumber,
   taskStateLabels,
@@ -31,12 +31,18 @@ export function QuarterlyReportUnitDrawer({
   unit,
   open,
   cycle,
+  loading = false,
+  error,
+  onRetry,
   onClose,
   onRestoreFocus,
 }: {
   unit: Unit | null;
   open: boolean;
   cycle: string;
+  loading?: boolean;
+  error?: string | null;
+  onRetry?: () => void;
   onClose: () => void;
   onRestoreFocus: () => void;
 }) {
@@ -50,7 +56,7 @@ export function QuarterlyReportUnitDrawer({
     if (!open) return;
     const frame = requestAnimationFrame(() => searchRef.current?.focus());
     return () => cancelAnimationFrame(frame);
-  }, [open, unit?.id]);
+  }, [open, unit?.id, loading]);
   const view = selection.unitId === unit?.id ? selection.view : "risks";
   const query = selection.unitId === unit?.id ? selection.query : "";
   const match = (value: string) =>
@@ -93,176 +99,199 @@ export function QuarterlyReportUnitDrawer({
           </DrawerDescription>
         </DrawerHeader>
         <DrawerBody className="space-y-5">
-          <div
-            className="flex flex-wrap gap-1"
-            role="group"
-            aria-label="Data unit"
-          >
-            {(
-              [
-                ["risks", "Risiko"],
-                ["tasks", "Mitigasi"],
-                ["events", "Kejadian"],
-              ] as const
-            ).map(([value, label]) => (
-              <Button
-                key={value}
-                size="sm"
-                variant={view === value ? "secondary" : "ghost"}
-                aria-pressed={view === value}
-                onClick={() => {
-                  setSelection({ unitId: unit?.id, view: value, query: "" });
-                }}
+          {loading ? (
+            <div
+              className="flex min-h-32 items-center justify-center gap-2 text-sm text-muted-foreground"
+              role="status"
+            >
+              <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+              Memuat detail unit...
+            </div>
+          ) : error ? (
+            <div className="space-y-3">
+              <p className="text-sm text-destructive" role="alert">
+                {error}
+              </p>
+              {onRetry && (
+                <Button variant="outline" size="sm" onClick={onRetry}>
+                  Coba lagi
+                </Button>
+              )}
+            </div>
+          ) : (
+            <>
+              <div
+                className="flex flex-wrap gap-1"
+                role="group"
+                aria-label="Data unit"
               >
-                {label}
-              </Button>
-            ))}
-          </div>
-          <InputGroup>
-            <InputGroupAddon>
-              <Search className="size-4" />
-            </InputGroupAddon>
-            <InputGroupInput
-              ref={searchRef}
-              value={query}
-              onChange={(event) =>
-                setSelection({
-                  unitId: unit?.id,
-                  view,
-                  query: event.target.value,
-                })
-              }
-              placeholder="Cari dalam unit..."
-              aria-label="Cari data unit"
-            />
-          </InputGroup>
-          {view === "risks" && (
-            <div className="space-y-5">
-              {risks.map((row) => (
-                <div key={row.risk.id} className="space-y-2">
-                  <Link
-                    href={`/risk/register/${row.risk.id}`}
-                    className="break-words text-sm hover:underline"
+                {(
+                  [
+                    ["risks", "Risiko"],
+                    ["tasks", "Mitigasi"],
+                    ["events", "Kejadian"],
+                  ] as const
+                ).map(([value, label]) => (
+                  <Button
+                    key={value}
+                    size="sm"
+                    variant={view === value ? "secondary" : "ghost"}
+                    aria-pressed={view === value}
+                    onClick={() => {
+                      setSelection({ unitId: unit?.id, view: value, query: "" });
+                    }}
                   >
-                    {row.risk.title}
-                  </Link>
-                  <p className="text-xs text-muted-foreground">
-                    {row.risk.code || row.risk.riskCode || "—"}
-                  </p>
-                  <dl className="grid grid-cols-2 gap-2 text-xs">
-                    <dt className="text-muted-foreground">
-                      Profil / hasil final
-                    </dt>
-                    <dd className="text-right tabular-nums">
-                      {formatReportNumber(row.profile)} /{" "}
-                      {formatReportNumber(row.observed)}
-                    </dd>
-                    <dt className="text-muted-foreground">Target</dt>
-                    <dd className="text-right tabular-nums">
-                      {formatReportNumber(row.target)}
-                    </dd>
-                  </dl>
-                  {row.risk.archivedInPeriod && (
-                    <p className="text-xs text-muted-foreground">
-                      Diarsipkan dalam periode ini
-                    </p>
-                  )}
-                  {row.attention.map((item) => (
-                    <p key={item} className="text-xs text-muted-foreground">
-                      {item}
-                    </p>
-                  ))}
-                </div>
-              ))}
-              {!risks.length && (
-                <p className="text-sm text-muted-foreground">
-                  {query
-                    ? "Tidak ada hasil pencarian."
-                    : "Belum ada risiko pada periode ini."}
-                </p>
-              )}
-            </div>
-          )}
-          {view === "tasks" && (
-            <div className="space-y-5">
-              {tasks.map(({ task, state }) => (
-                <div key={task.id} className="space-y-2">
-                  <p className="break-words">
-                    {task.mitigationAction || "Tugas mitigasi"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {task.mitigationOwner || "PIC belum dicatat"} ·{" "}
-                    {taskStateLabels[state]}
-                  </p>
-                  <Link
-                    href={`/risk/register/${task.riskId}`}
-                    className="text-xs hover:underline"
-                  >
-                    {task.riskTitle || task.riskCode || "Lihat risiko"}
-                  </Link>
-                  {task.notes && (
-                    <p className="whitespace-pre-wrap break-words text-xs text-muted-foreground">
-                      {task.notes}
-                    </p>
-                  )}
-                </div>
-              ))}
-              {!tasks.length && (
-                <p className="text-sm text-muted-foreground">
-                  {query
-                    ? "Tidak ada hasil pencarian."
-                    : "Belum ada tugas mitigasi pada periode ini."}
-                </p>
-              )}
-            </div>
-          )}
-          {view === "events" && (
-            <div className="space-y-5">
-              {events.map((event) => (
-                <div key={event.id} className="space-y-2">
-                  <Link
-                    href={`/risk-events/${event.id}`}
-                    className="break-words hover:underline"
-                  >
-                    {event.description}
-                  </Link>
-                  <p className="text-xs text-muted-foreground">
-                    {severityLabels[event.severity]} ·{" "}
-                    {conditionLabels[event.postResponseCondition]}
-                  </p>
-                  <p className="break-words text-xs text-muted-foreground">
-                    {event.actualImpact}
-                  </p>
-                  {event.linkedRisks?.length ? (
-                    <ul className="space-y-1">
-                      {event.linkedRisks.map((risk) => (
-                        <li key={risk.id}>
-                          <Link
-                            href={`/risk/register/${risk.id}`}
-                            className="break-words text-xs hover:underline"
-                          >
-                            {risk.code}: {risk.title}
-                          </Link>
-                        </li>
+                    {label}
+                  </Button>
+                ))}
+              </div>
+              <InputGroup>
+                <InputGroupAddon>
+                  <Search className="size-4" />
+                </InputGroupAddon>
+                <InputGroupInput
+                  ref={searchRef}
+                  value={query}
+                  onChange={(event) =>
+                    setSelection({
+                      unitId: unit?.id,
+                      view,
+                      query: event.target.value,
+                    })
+                  }
+                  placeholder="Cari dalam unit..."
+                  aria-label="Cari data unit"
+                />
+              </InputGroup>
+              {view === "risks" && (
+                <div className="space-y-5">
+                  {risks.map((row) => (
+                    <div key={row.risk.id} className="space-y-2">
+                      <Link
+                        href={`/risk/register/${row.risk.id}`}
+                        className="break-words text-sm hover:underline"
+                      >
+                        {row.risk.title}
+                      </Link>
+                      <p className="text-xs text-muted-foreground">
+                        {row.risk.code || row.risk.riskCode || "—"}
+                      </p>
+                      <dl className="grid grid-cols-2 gap-2 text-xs">
+                        <dt className="text-muted-foreground">
+                          Profil / hasil final
+                        </dt>
+                        <dd className="text-right tabular-nums">
+                          {formatReportNumber(row.profile)} /{" "}
+                          {formatReportNumber(row.observed)}
+                        </dd>
+                        <dt className="text-muted-foreground">Target</dt>
+                        <dd className="text-right tabular-nums">
+                          {formatReportNumber(row.target)}
+                        </dd>
+                      </dl>
+                      {row.risk.archivedInPeriod && (
+                        <p className="text-xs text-muted-foreground">
+                          Diarsipkan dalam periode ini
+                        </p>
+                      )}
+                      {row.attention.map((item) => (
+                        <p key={item} className="text-xs text-muted-foreground">
+                          {item}
+                        </p>
                       ))}
-                    </ul>
-                  ) : (
-                    <p className="text-xs text-muted-foreground">
-                      {eventHasRiskLinks(event)
-                        ? "Risiko terkait berada di luar scope laporan."
-                        : "Belum terhubung ke register"}
+                    </div>
+                  ))}
+                  {!risks.length && (
+                    <p className="text-sm text-muted-foreground">
+                      {query
+                        ? "Tidak ada hasil pencarian."
+                        : "Belum ada risiko pada periode ini."}
                     </p>
                   )}
                 </div>
-              ))}
-              {!events.length && (
-                <p className="text-sm text-muted-foreground">
-                  {query
-                    ? "Tidak ada hasil pencarian."
-                    : "Belum ada kejadian pada periode ini."}
-                </p>
               )}
-            </div>
+              {view === "tasks" && (
+                <div className="space-y-5">
+                  {tasks.map(({ task, state }) => (
+                    <div key={task.id} className="space-y-2">
+                      <p className="break-words">
+                        {task.mitigationAction || "Tugas mitigasi"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {task.mitigationOwner || "PIC belum dicatat"} ·{" "}
+                        {taskStateLabels[state]}
+                      </p>
+                      <Link
+                        href={`/risk/register/${task.riskId}`}
+                        className="text-xs hover:underline"
+                      >
+                        {task.riskTitle || task.riskCode || "Lihat risiko"}
+                      </Link>
+                      {task.notes && (
+                        <p className="whitespace-pre-wrap break-words text-xs text-muted-foreground">
+                          {task.notes}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                  {!tasks.length && (
+                    <p className="text-sm text-muted-foreground">
+                      {query
+                        ? "Tidak ada hasil pencarian."
+                        : "Belum ada tugas mitigasi pada periode ini."}
+                    </p>
+                  )}
+                </div>
+              )}
+              {view === "events" && (
+                <div className="space-y-5">
+                  {events.map((event) => (
+                    <div key={event.id} className="space-y-2">
+                      <Link
+                        href={`/risk-events/${event.id}`}
+                        className="break-words hover:underline"
+                      >
+                        {event.description}
+                      </Link>
+                      <p className="text-xs text-muted-foreground">
+                        {severityLabels[event.severity]} ·{" "}
+                        {conditionLabels[event.postResponseCondition]}
+                      </p>
+                      <p className="break-words text-xs text-muted-foreground">
+                        {event.actualImpact}
+                      </p>
+                      {event.linkedRisks?.length ? (
+                        <ul className="space-y-1">
+                          {event.linkedRisks.map((risk) => (
+                            <li key={risk.id}>
+                              <Link
+                                href={`/risk/register/${risk.id}`}
+                                className="break-words text-xs hover:underline"
+                              >
+                                {risk.code}: {risk.title}
+                              </Link>
+                            </li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          {eventHasRiskLinks(event)
+                            ? "Risiko terkait berada di luar scope laporan."
+                            : "Belum terhubung ke register"}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                  {!events.length && (
+                    <p className="text-sm text-muted-foreground">
+                      {query
+                        ? "Tidak ada hasil pencarian."
+                        : "Belum ada kejadian pada periode ini."}
+                    </p>
+                  )}
+                </div>
+              )}
+            </>
           )}
         </DrawerBody>
       </DrawerContent>

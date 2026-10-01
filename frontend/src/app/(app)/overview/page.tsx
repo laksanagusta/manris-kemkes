@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { RiskCountTrendChart } from "./_components/risk-count-trend-chart";
 import { RiskCategoryPieChart } from "./_components/risk-category-pie-chart";
-import { TopRisksPanel } from "./_components/top-risks-panel";
+import { RiskCompositionTrendChart } from "./_components/risk-composition-trend-chart";
 import { CurrentRiskHeatmap } from "./_components/current-risk-heatmap";
 import {
   DashboardKpiCard,
@@ -14,13 +14,11 @@ import {
 import type {
   DashboardRiskCategoryItem,
   Risk,
-  TopRiskItem,
 } from "@/types/risk";
 import { api } from "@/lib/api";
 import {
   buildCurrentRiskHeatmapMatrix,
   buildDashboardRiskCategoryData,
-  calculateRiskExposureScore,
 } from "@/lib/dashboard-insights";
 import { currentAssessmentCycle, shiftAssessmentCycle } from "@/lib/risk-cycle-options";
 
@@ -43,10 +41,6 @@ export default function DashboardPage() {
   const [summaryError, setSummaryError] = useState(false);
   const [trendLoading, setTrendLoading] = useState(true);
   const [trendError, setTrendError] = useState(false);
-  const [exposureScore, setExposureScore] = useState<number | null>(null);
-  const [topRisks, setTopRisks] = useState<TopRiskItem[]>([]);
-  const [topRisksLoading, setTopRisksLoading] = useState(true);
-  const [topRisksError, setTopRisksError] = useState(false);
   const [riskCategoryData, setRiskCategoryData] = useState<
     ReturnType<typeof buildDashboardRiskCategoryData>
   >([]);
@@ -101,7 +95,6 @@ export default function DashboardPage() {
           })),
         );
         setTrendRisks(risks);
-        setExposureScore(calculateRiskExposureScore(risks, currentCycle));
       })
       .catch((error) => {
         console.error(error);
@@ -109,19 +102,6 @@ export default function DashboardPage() {
       })
       .finally(() => {
         if (!cancelled) setTrendLoading(false);
-      });
-
-    void api
-      .get<TopRiskItem[]>(`/dashboard/top-risks?cycle=${currentCycle}`, token)
-      .then((result) => {
-        if (!cancelled) setTopRisks(result);
-      })
-      .catch((error) => {
-        console.error(error);
-        if (!cancelled) setTopRisksError(true);
-      })
-      .finally(() => {
-        if (!cancelled) setTopRisksLoading(false);
       });
 
     void api
@@ -147,6 +127,7 @@ export default function DashboardPage() {
 
   const totalRisks = summary?.totalRisks;
   const highExtreme = summary?.highExtreme;
+  const overdueMitigations = summary?.overdueMitigations;
   const unreportedMitigations = summary?.unreportedMitigations;
   const currentHeatmapMatrix = useMemo(
     () => buildCurrentRiskHeatmapMatrix(trendRisks, currentCycle),
@@ -159,10 +140,6 @@ export default function DashboardPage() {
     setTrendRisks([]);
     setTrendLoading(true);
     setTrendError(false);
-    setExposureScore(null);
-    setTopRisks([]);
-    setTopRisksLoading(true);
-    setTopRisksError(false);
     setRiskCategoryData([]);
     setRiskCategoryLoading(true);
     setRiskCategoryError(false);
@@ -197,12 +174,13 @@ export default function DashboardPage() {
       error: summaryError,
     },
     {
-      title: "Eksposur",
-      value: exposureScore === null ? "—" : String(exposureScore),
-      detail: "skor paparan risiko",
-      trend: "down",
-      loading: trendLoading,
-      error: trendError,
+      title: "Mitigasi overdue",
+      value:
+        overdueMitigations === undefined ? "—" : String(overdueMitigations),
+      detail: "tugas melewati tenggat",
+      trend: "up",
+      loading: summaryLoading,
+      error: summaryError,
     },
   ] as const;
 
@@ -245,16 +223,19 @@ export default function DashboardPage() {
       </section>
 
       <section
-        data-dashboard-section="priorities"
-        aria-label="Prioritas dan distribusi risiko"
+        data-dashboard-section="composition"
+        aria-label="Komposisi risiko dan peta risiko saat ini"
         className="grid items-start gap-4 pb-4 xl:items-stretch xl:grid-cols-[minmax(0,2fr)_minmax(22rem,1fr)]"
       >
-        <TopRisksPanel
-          risks={topRisks}
-          loading={topRisksLoading}
-          error={topRisksError}
-          onRetry={retryDashboard}
-        />
+        <div className="flex min-h-0 min-w-0 w-full xl:h-[32rem] [&>*]:h-full [&>*]:w-full">
+          <RiskCompositionTrendChart
+            risks={trendRisks}
+            currentCycle={currentCycle}
+            loading={trendLoading}
+            error={trendError}
+            onRetry={retryDashboard}
+          />
+        </div>
         <CurrentRiskHeatmap
           matrix={currentHeatmapMatrix}
           loading={trendLoading}

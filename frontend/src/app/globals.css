@@ -18,6 +18,7 @@
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-tertiary-foreground: var(--tertiary-foreground);
+  --color-info-foreground: var(--info-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
@@ -88,6 +89,7 @@
   --muted: #efefef;
   --muted-foreground: #636363;
   --tertiary-foreground: #8b8b8b;
+  --info-foreground: var(--color-blue-700);
   --disabled-foreground: #b9b9b9;
   --disabled-input-surface: #fafafa;
   --card-subtle-surface: #f6f6f6;
@@ -170,6 +172,7 @@
   --muted: oklch(0.269 0 0);
   --muted-foreground: oklch(0.708 0 0);
   --tertiary-foreground: #a3a3a3;
+  --info-foreground: var(--color-blue-300);
   --disabled-foreground: oklch(0.556 0 0);
   --disabled-input-surface: var(--muted);
   --card-subtle-surface: oklch(0.23 0 0);

@@ -23,6 +23,8 @@ export type PopoverSelectFieldProps = {
   onValueChange: (value: string) => void;
   options: readonly PopoverSelectOption[];
   placeholder: string;
+  side?: "top" | "right" | "bottom" | "left";
+  avoidCollisions?: boolean;
   ariaLabel?: string;
   disabled?: boolean;
   invalid?: boolean;
@@ -38,6 +40,8 @@ export function PopoverSelectField({
   onValueChange,
   options,
   placeholder,
+  side,
+  avoidCollisions,
   ariaLabel,
   disabled = false,
   invalid = false,
@@ -72,6 +76,8 @@ export function PopoverSelectField({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align="start"
+        side={side}
+        avoidCollisions={avoidCollisions}
         sideOffset={8}
         className={cn(
           "w-[var(--radix-dropdown-menu-trigger-width)]",
