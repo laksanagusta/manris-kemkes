@@ -153,7 +153,7 @@ export function OrganizationPicker({
           ref={comboboxAnchor}
           className={cn(
             controlHeight,
-            "w-full min-w-0 flex-nowrap overflow-hidden border-0 bg-card text-sm",
+            "w-full min-w-0 flex-nowrap overflow-x-auto border-0 bg-card text-sm [scrollbar-width:none]",
             className,
           )}
         >
@@ -165,7 +165,7 @@ export function OrganizationPicker({
                     showRemove={values.length === 1}
                     className="max-w-[62%] shrink-0"
                   >
-                    <span className="truncate">
+                    <span className="overflow-x-auto whitespace-nowrap [scrollbar-width:none]">
                       {values.length === 1
                         ? optionNameById.get(values[0]) ?? values[0]
                         : `${values.length} unit dipilih`}
@@ -191,7 +191,7 @@ export function OrganizationPicker({
           <ComboboxList>
             {(optionId: string) => (
               <ComboboxItem key={optionId} value={optionId} className="text-xs">
-                <span className="min-w-0 flex-1 truncate">
+                <span className="min-w-0 flex-1 overflow-x-auto whitespace-nowrap [scrollbar-width:none]">
                   {optionNameById.get(optionId) ?? optionId}
                 </span>
               </ComboboxItem>
@@ -224,11 +224,11 @@ export function OrganizationPicker({
           disabled={disabled}
           className={cn(
             controlHeight,
-            "w-full min-w-0 justify-between overflow-hidden",
+            "w-full min-w-0 justify-between",
             className,
           )}
         >
-          <span className="min-w-0 flex-1 truncate text-left">
+          <span className="min-w-0 flex-1 overflow-x-auto text-left whitespace-nowrap [scrollbar-width:none]">
             {selectedOption ? selectedOption.name : placeholder}
           </span>
           <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
@@ -283,7 +283,7 @@ export function OrganizationPicker({
                         isSelected ? "opacity-100" : "opacity-0",
                       )}
                     />
-                    <span className="min-w-0 flex-1 truncate leading-5">
+                    <span className="min-w-0 flex-1 overflow-x-auto leading-5 whitespace-nowrap [scrollbar-width:none]">
                       {option.name}
                     </span>
                   </button>

@@ -3,14 +3,11 @@
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import {
-  BarChart,
-  Bar,
-  Cell,
+  Pie,
+  PieChart,
   PolarAngleAxis,
   RadialBar,
   RadialBarChart,
-  XAxis,
-  YAxis,
 } from "recharts";
 import {
   Card,
@@ -33,9 +30,11 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
+  type ChartConfig,
 } from "@/components/ui/chart";
+import { ReportSummaryCard, ReportSummaryMetrics } from "@/components/report/report-summary-card";
+import { RISK_CHART_COLORS } from "@/lib/chart-colors";
 import {
-  CollapsibleCard,
   ReportEmptyState,
   CollectionPagination,
 } from "@/components/shared/design-system";
@@ -48,10 +47,10 @@ import {
   buildQuarterlyOverview,
   buildQuarterlyRiskRows,
   formatReportNumber,
+  formatReportDate,
   formatReportPercent,
   movementLabels,
   taskStateLabels,
-  conditionLabels,
   severityLabels,
   type ReportSummary,
   type QuarterlyAnalysis,
@@ -63,6 +62,16 @@ import type {
 } from "@/types/quarterly-report";
 import { QuarterlyReportRiskTable } from "./quarterly-report-risk-table";
 import { QuarterlyReportUnitDrawer } from "./quarterly-report-unit-drawer";
+
+const eventSeverityChartConfig = {
+  low: { label: severityLabels.low, color: RISK_CHART_COLORS.low },
+  medium: { label: severityLabels.medium, color: RISK_CHART_COLORS.medium },
+  high: { label: severityLabels.high, color: RISK_CHART_COLORS.high },
+  extreme: { label: severityLabels.extreme, color: RISK_CHART_COLORS.extreme },
+  unknown: { label: "Belum diketahui", color: "var(--muted-foreground)" },
+} satisfies ChartConfig;
+
+type EventSeverity = keyof typeof eventSeverityChartConfig;
 
 function comparisonDelta(
   current: number | null,
@@ -85,10 +94,6 @@ function comparisonDelta(
     trend: delta > 0 ? "up" : delta < 0 ? "down" : undefined,
   };
 }
-function rateDetail(value: number, total: number, rate: number | null) {
-  return `${value}/${total} · ${formatReportPercent(rate)}`;
-}
-
 function UnitRateCell({
   label,
   numerator,
@@ -139,7 +144,7 @@ function UnitRateCell({
       ? "var(--destructive)"
       : rate >= 100
         ? "var(--color-success)"
-        : "var(--primary)";
+        : "var(--color-violet-400)";
 
   return (
     <div className="flex min-w-0 items-center gap-2">
@@ -321,21 +326,6 @@ export function QuarterlyReportDashboard({
     unitPage,
     Math.max(1, Math.ceil(units.length / unitPageSize)),
   );
-  const movementData = (["up", "down", "stable", "new"] as const).map(
-    (key) => ({
-      key,
-      label: movementLabels[key],
-      value: movement[key],
-      fill:
-        key === "up"
-          ? "var(--risk-extreme)"
-          : key === "down"
-            ? "var(--risk-low)"
-            : key === "new"
-              ? "var(--chart-1)"
-              : "var(--muted-foreground)",
-    }),
-  );
   const states: TaskState[] = [
     "reported",
     "pending",
@@ -344,6 +334,44 @@ export function QuarterlyReportDashboard({
     "skipped",
   ];
   const severityCounts = data.severityCounts;
+  const severityLevels = ["low", "medium", "high", "extreme"] as const;
+  const severitySegments = severityLevels
+    .map((severity) => ({ severity, count: severityCounts[severity] }))
+    .filter(({ count }) => count > 0);
+  const classifiedSeverityCount = severitySegments.reduce(
+    (total, segment) => total + segment.count,
+    0,
+  );
+  const unclassifiedSeverityCount = Math.max(
+    0,
+    s.events.total - classifiedSeverityCount,
+  );
+  const severityChartData: {
+    severity: EventSeverity;
+    count: number;
+    fill: string;
+  }[] = [
+    ...severitySegments.map(({ severity, count }) => ({
+      severity,
+      count,
+      fill: eventSeverityChartConfig[severity].color,
+    })),
+    ...(unclassifiedSeverityCount > 0
+      ? [
+          {
+            severity: "unknown" as const,
+            count: unclassifiedSeverityCount,
+            fill: eventSeverityChartConfig.unknown.color,
+          },
+        ]
+      : []),
+  ];
+  const severityChartLabel = severityChartData
+    .map(
+      ({ severity, count }) =>
+        `${eventSeverityChartConfig[severity].label} ${count}`,
+    )
+    .join(", ");
   const openUnit = async (
     unitId: string,
     trigger: HTMLButtonElement,
@@ -381,257 +409,151 @@ export function QuarterlyReportDashboard({
     }
   };
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <SummaryKpis
         summary={s}
         previous={data.previousSummary}
         cycle={data.comparisonCycle}
       />
-      <Card id="target-attainment" className="scroll-mt-6">
-        <CardHeader>
-          <CardTitle className="text-sm">
-            Perubahan risiko dan pencapaian target
-          </CardTitle>
-          <CardAction>
-            <Badge variant="outline">
-              {data.comparisonCycle} → {data.cycle}
-            </Badge>
-          </CardAction>
-        </CardHeader>
-        <CardContent>
-          {data.hasRisks ? (
-            <div className="grid gap-6 lg:grid-cols-2">
-              <div>
-                <ChartContainer
-                  config={{
-                    value: { label: "Jumlah risiko", color: "var(--chart-1)" },
-                  }}
-                  className="h-52 w-full"
-                >
-                  <BarChart
-                    accessibilityLayer
-                    data={movementData}
-                    layout="vertical"
-                    margin={{ top: 12, right: 20, bottom: 12, left: 8 }}
-                  >
-                    <XAxis
-                      type="number"
-                      allowDecimals={false}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <YAxis
-                      type="category"
-                      dataKey="label"
-                      width={78}
-                      axisLine={false}
-                      tickLine={false}
-                    />
-                    <ChartTooltip
-                      content={<ChartTooltipContent hideIndicator />}
-                    />
-                    <Bar dataKey="value" radius={4} isAnimationActive={false}>
-                      {movementData.map((item) => (
-                        <Cell key={item.key} fill={item.fill} />
-                      ))}
-                    </Bar>
-                  </BarChart>
-                </ChartContainer>
-              </div>
-              <div className="flex flex-col gap-4">
-                <dl className="grid grid-cols-3 gap-3">
-                  {[
-                    ["Tercapai", s.target.achieved],
-                    ["Belum tercapai", s.target.eligible - s.target.achieved],
-                    ["Belum dapat dinilai", s.target.unavailable],
-                  ].map(([label, value]) => (
-                    <div key={String(label)}>
-                      <dt className="text-xs text-muted-foreground">{label}</dt>
-                      <dd className="mt-2 text-2xl font-semibold tabular-nums">
-                        {value}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-                <div className="space-y-3 rounded-lg bg-card-subtle-surface p-4">
-                  <p className="text-xs text-muted-foreground">
-                    Pencapaian pada observasi final
-                  </p>
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="text-sm">{data.cycle}</span>
-                    <span className="text-sm font-medium tabular-nums">
-                      {rateDetail(
-                        s.target.achieved,
-                        s.target.eligible,
-                        s.target.rate,
-                      )}
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="text-sm text-muted-foreground">
-                      {data.comparisonCycle}
-                    </span>
-                    <span className="text-sm tabular-nums">
-                      {rateDetail(
-                        data.previousSummary.target.achieved,
-                        data.previousSummary.target.eligible,
-                        data.previousSummary.target.rate,
-                      )}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <ReportEmptyState description="Belum ada profil final yang berlaku pada periode ini." />
-          )}
-        </CardContent>
-      </Card>
-      <div className="grid items-start gap-4 lg:grid-cols-2">
-        <Card id="mitigation-reporting" className="scroll-mt-6">
-          <CardHeader>
-            <CardTitle className="text-sm">Pelaporan mitigasi</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {taskCounts.total ? (
-              <div className="space-y-4">
+      <ReportSummaryCard
+        id="risk-movement"
+        title="Perubahan risiko"
+      >
+        {data.hasRisks ? (
+          <ReportSummaryMetrics
+            items={(["up", "down", "stable", "new"] as const).map((key) => ({
+              label: movementLabels[key],
+              value: movement[key],
+            }))}
+          />
+        ) : (
+          <ReportEmptyState description="Belum ada profil final yang berlaku pada periode ini." />
+        )}
+      </ReportSummaryCard>
+      <ReportSummaryCard id="target-attainment" title="Pencapaian target">
+        {data.hasRisks ? (
+          <ReportSummaryMetrics items={[
+            { label: "Tercapai", value: s.target.achieved },
+            { label: "Belum tercapai", value: s.target.eligible - s.target.achieved },
+            { label: "Belum dapat dinilai", value: s.target.unavailable },
+          ]} />
+        ) : (
+          <ReportEmptyState description="Belum ada profil final yang berlaku pada periode ini." />
+        )}
+      </ReportSummaryCard>
+      <ReportSummaryCard id="mitigation-reporting" title="Pelaporan mitigasi">
+        {taskCounts.total ? (
+          <ReportSummaryMetrics
+            items={states.map((state) => ({
+              label: taskStateLabels[state],
+              value: taskCounts[state],
+            }))}
+          />
+        ) : (
+          <ReportEmptyState description="Belum ada tugas mitigasi yang tercatat untuk kuartal ini." />
+        )}
+      </ReportSummaryCard>
+      <ReportSummaryCard title="Kejadian dan dampak aktual">
+        <ReportSummaryMetrics
+          items={[
+            {
+              label: "Kerugian",
+              value: `Rp ${formatReportNumber(s.events.knownLoss)}`,
+            },
+            { label: "Nilai belum diketahui", value: s.events.unknownLoss },
+            { label: "Belum terhubung", value: s.events.unlinked },
+          ]}
+        />
+        {s.events.total ? (
+          <>
+            <div className="grid gap-4 sm:grid-cols-[minmax(0,180px)_minmax(0,1fr)] sm:items-center">
+              <div className="space-y-2">
+                <p className="text-xs text-secondary-foreground">Distribusi tingkat kejadian</p>
                 <div
-                  aria-hidden="true"
-                  className="flex h-2 overflow-hidden rounded-full bg-muted"
+                  role="group"
+                  aria-label={`Diagram donat distribusi tingkat kejadian: ${severityChartLabel}`}
+                  className="aspect-square w-full max-w-[180px]"
                 >
-                  {states.map((state) => {
-                    const count = taskCounts[state];
-                    const color =
-                      state === "reported"
-                        ? "bg-risk-low"
-                        : state === "overdue"
-                          ? "bg-risk-extreme"
-                          : state === "pending"
-                            ? "bg-blue-400"
-                            : state === "skipped"
-                              ? "bg-muted-foreground/40"
-                              : "bg-muted-foreground";
-                    return count ? (
-                      <div
-                        key={state}
-                        className={color}
-                        style={{ width: `${(count / taskCounts.total) * 100}%` }}
+                  <ChartContainer
+                    config={eventSeverityChartConfig}
+                    className="size-full max-h-[180px] max-w-[180px] aspect-square"
+                  >
+                    <PieChart accessibilityLayer>
+                      <ChartTooltip
+                        cursor={false}
+                        content={<ChartTooltipContent hideLabel />}
                       />
-                    ) : null;
-                  })}
+                      <Pie
+                        data={severityChartData}
+                        dataKey="count"
+                        nameKey="severity"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius="48%"
+                        outerRadius="80%"
+                        paddingAngle={2}
+                        stroke="var(--card)"
+                        strokeWidth={5}
+                      />
+                    </PieChart>
+                  </ChartContainer>
                 </div>
-                <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
-                  {states.map((state) => (
-                    <div
-                      key={state}
-                      className="flex items-baseline justify-between gap-2"
-                    >
-                      <dt className="text-xs text-muted-foreground">
-                        {taskStateLabels[state]}
-                      </dt>
-                      <dd className="text-sm font-medium tabular-nums">
-                        {taskCounts[state]}
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
               </div>
-            ) : (
-              <ReportEmptyState description="Belum ada tugas mitigasi yang tercatat untuk kuartal ini." />
-            )}
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-sm">
-              Kejadian dan dampak aktual
-            </CardTitle>
-            {s.events.total > 0 && (
-              <CardAction>
-                <Badge variant="secondary">{s.events.total} kejadian</Badge>
-              </CardAction>
-            )}
-          </CardHeader>
-          <CardContent>
-            {s.events.total ? (
-              <div className="space-y-4">
-                <div className="rounded-lg bg-card-subtle-surface p-4">
-                  <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
-                    <div>
-                      <dt className="text-xs text-muted-foreground">
-                        Kerugian diketahui ({s.events.knownLossCount})
-                      </dt>
-                      <dd className="mt-1 text-2xl font-semibold tabular-nums">
-                        {s.events.knownLossCount
-                          ? `Rp ${formatReportNumber(s.events.knownLoss)}`
-                          : "—"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-muted-foreground">
-                        Nilai belum diketahui
-                      </dt>
-                      <dd className="mt-1 text-2xl font-semibold tabular-nums">
-                        {s.events.unknownLoss}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="text-xs text-muted-foreground">
-                        Belum terhubung
-                      </dt>
-                      <dd className="mt-1 text-2xl font-semibold tabular-nums">
-                        {s.events.unlinked}
-                      </dd>
-                    </div>
-                  </dl>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {(["low", "medium", "high", "extreme"] as const).map(
-                    (severity) => {
-                      const count = severityCounts[severity];
-                      return count ? (
-                        <Badge key={severity} variant="outline">
-                          {severityLabels[severity]}: {count}
-                        </Badge>
-                      ) : null;
-                    },
-                  )}
-                </div>
-                <ul className="divide-y divide-border/60">
-                  {events.map((event) => (
-                      <li
-                        key={event.id}
-                        className="py-3 first:pt-0 last:pb-0"
-                      >
-                        <Link
-                          href={`/risk-events/${event.id}`}
-                          className="line-clamp-2 text-sm hover:underline"
-                        >
-                          {event.description}
-                        </Link>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {event.organizationName || "—"} ·{" "}
-                          {conditionLabels[
-                            event.postResponseCondition as keyof typeof conditionLabels
-                          ] ?? event.postResponseCondition}
-                        </p>
-                      </li>
-                    ))}
-                </ul>
-                <p className="text-xs leading-5 text-info-foreground">
-                  Kondisi pascarespons mengikuti catatan kejadian. Daftar lengkap
-                  tersedia pada detail unit.
-                </p>
+              <ul
+                aria-label="Jumlah kejadian menurut tingkat"
+                className="flex flex-col items-start gap-2"
+              >
+                {severityChartData.map(({ severity, count, fill }) => (
+                  <li
+                    key={severity}
+                    className="inline-flex items-center gap-2 whitespace-nowrap text-xs text-secondary-foreground"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className="size-2.5 shrink-0 rounded-full"
+                      style={{ backgroundColor: fill }}
+                    />
+                    <span>{eventSeverityChartConfig[severity].label}</span>
+                    <span className="tabular-nums text-foreground">{count}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div className="space-y-4">
+              <div aria-hidden="true" className="hidden grid-cols-[minmax(0,1fr)_144px_112px] gap-x-4 text-xs font-medium text-secondary-foreground lg:grid">
+                <span>Kejadian</span>
+                <span className="text-right">Waktu</span>
+                <span className="text-right">Tingkat</span>
               </div>
-            ) : (
-              <ReportEmptyState
-                title="Belum ada kejadian tercatat"
-                description="Atribusi memakai tanggal kejadian. Tidak adanya catatan belum membuktikan tidak ada kejadian."
-              />
-            )}
-          </CardContent>
-        </Card>
-      </div>
+              <ul className="space-y-4">
+                {events.map((event) => (
+                  <li key={event.id} className="grid gap-1 lg:grid-cols-[minmax(0,1fr)_144px_112px] lg:gap-x-4">
+                    <Link href={`/risk-events/${event.id}`} className="text-sm font-medium hover:no-underline">
+                      {event.description}
+                    </Link>
+                    <span className="text-sm text-secondary-foreground lg:text-right">
+                      <span className="sr-only">Waktu: </span>
+                      {formatReportDate(event.occurredAt)}
+                    </span>
+                    <span className="text-xs text-secondary-foreground lg:text-right">
+                      <span className="sr-only">Tingkat: </span>
+                      {(severityLabels[event.severity as keyof typeof severityLabels] ?? event.severity) || "—"}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <p className="text-xs leading-5 text-info-foreground">
+              Waktu dan tingkat mengikuti catatan kejadian. Buka kejadian untuk melihat informasi lengkap.
+            </p>
+          </>
+        ) : (
+          <ReportEmptyState
+            title="Belum ada kejadian tercatat"
+            description="Atribusi memakai tanggal kejadian. Tidak adanya catatan belum membuktikan tidak ada kejadian."
+          />
+        )}
+      </ReportSummaryCard>
       <Card id="unit-comparison" className="scroll-mt-6">
         <CardHeader>
           <CardTitle className="text-sm">Perbandingan unit</CardTitle>

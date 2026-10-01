@@ -52,8 +52,10 @@ import {
 } from "@/components/ui/table";
 import {
   currentMonitoringCycle,
+  getAssessmentCycleFilterOptions,
   getDefaultMonitoringCycle,
-  getSelectableMonitoringCycles,
+  getSelectableMonitoringCyclesForDate,
+  isCurrentMonitoringCycleAvailable,
   isMonitoringCycleApplicable,
   isMonitoringCycleAfterPreviousEligible,
   shiftMonitoringCycle,
@@ -139,28 +141,7 @@ const statusLabel: Record<string, string> = {
 };
 
 function getRiskRegisterPeriodOptions(selectedCycle: string) {
-  const [currentYear, currentQuarter] = currentMonitoringCycle()
-    .split("-Q")
-    .map(Number);
-  const firstYear = 2026;
-  const firstQuarter = 2;
-  const cycles: { value: string; label: string }[] = [];
-
-  for (let year = firstYear; year <= currentYear; year += 1) {
-    const quarterStart = year === firstYear ? firstQuarter : 1;
-    const quarterEnd = year === currentYear ? currentQuarter : 4;
-
-    for (let quarter = quarterStart; quarter <= quarterEnd; quarter += 1) {
-      const value = `${year}-Q${quarter}`;
-      cycles.push({ value, label: value });
-    }
-  }
-
-  if (selectedCycle && !cycles.some((cycle) => cycle.value === selectedCycle)) {
-    cycles.push({ value: selectedCycle, label: selectedCycle });
-  }
-
-  return [{ value: "all", label: "Semua Periode" }, ...cycles];
+  return getAssessmentCycleFilterOptions(new Date(), selectedCycle);
 }
 
 type RiskListItem = RiskRegisterListItem;
@@ -225,8 +206,9 @@ function RiskRegisterFilterToolbar({
         placeholder={searchPlaceholder}
         aria-label={searchAriaLabel}
       />
-      <div className="w-full sm:w-32">
+      <div className="w-full sm:w-fit">
         <PopoverSelectField
+          fitContent
           value={statusFilter}
           onValueChange={(value) =>
             onStatusFilterChange(value as RiskRegisterStatusFilter)
@@ -242,8 +224,9 @@ function RiskRegisterFilterToolbar({
         />
       </div>
 
-      <div className="w-full sm:w-36">
+      <div className="w-full sm:w-fit">
         <PopoverSelectField
+          fitContent
           value={assessmentCycleFilter || "all"}
           onValueChange={(value) =>
             onAssessmentCycleFilterChange(value === "all" ? "" : value)
@@ -257,8 +240,9 @@ function RiskRegisterFilterToolbar({
         />
       </div>
 
-      <div className="w-full sm:w-40">
+      <div className="w-full sm:w-fit">
         <PopoverSelectField
+          fitContent
           value={categoryFilter}
           onValueChange={(value) =>
             onCategoryFilterChange(value as RiskRegisterCategoryFilter)
@@ -409,7 +393,7 @@ export default function RiskRegisterPage() {
     () => getDefaultMonitoringCycle(),
   );
   const selectableMonitoringCycles = useMemo(
-    () => getSelectableMonitoringCycles(currentMonitoringCycle()),
+    () => getSelectableMonitoringCyclesForDate(),
     [],
   );
   const monitoringCycleOptions = useMemo(() => {
@@ -762,9 +746,22 @@ export default function RiskRegisterPage() {
       previousCycle,
       currentCycle,
     );
-    setSelectedAssessmentCycle(
-      risk.monitoringStatus === "draft"
+    const currentStatus = getRiskMonitoringStatusForCycle(
+      risk,
+      currentCycle,
+      currentCycle,
+    );
+    const ongoingCycle =
+      currentStatus === "draft"
         ? currentCycle
+        : previousStatus === "draft"
+          ? previousCycle
+          : null;
+    setSelectedAssessmentCycle(
+      ongoingCycle &&
+        (ongoingCycle !== currentCycle ||
+          isCurrentMonitoringCycleAvailable())
+        ? ongoingCycle
         : getDefaultMonitoringCycle(
             currentCycle,
             previousStatus,
@@ -1252,7 +1249,8 @@ export default function RiskRegisterPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Konfirmasi Pemantauan</AlertDialogTitle>
             <AlertDialogDescription>
-              Periksa detail risiko dan pilih periode pemantauan.
+              Periksa detail risiko dan pilih periode pemantauan. Kuartal
+              berjalan tersedia mulai bulan ketiga.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-5">

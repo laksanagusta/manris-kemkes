@@ -4,10 +4,8 @@ import { useCallback, useMemo } from "react";
 
 import { EditableItemsTable, type EditableItem } from "@/components/shared/editable-items-table";
 import { EditableList } from "@/components/shared/editable-list";
-import {
-  MitigationTable,
-  type MitigationItem,
-} from "@/components/shared/mitigation-table";
+import type { MitigationItem } from "@/components/shared/mitigation-table";
+import { MitigationPlanList } from "@/components/shared/mitigation-plan-list";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import {
@@ -403,12 +401,15 @@ export function RiskSubstanceFields({
               Gunakan bagian ini untuk memperbarui penanganan tanpa mengubah skor pemantauan utama.
             </p>
           </div>
-          <MitigationTable
+          <MitigationPlanList
             items={mitigationItems}
             onChange={handleMitigationChange}
             disabled={disabled}
             actionErrors={mitigationActionErrors}
             loadPicOptions={loadPicOptions}
+            emptyStatePresentation="plain"
+            hideAddButton={disabled}
+            showPlaceholders={false}
           />
         </div>
       ) : null}

@@ -13,12 +13,15 @@ import (
 )
 
 type fakeEvaluationRepo struct {
-	templates map[string]*entity.EvaluationTemplate
-	evals     map[uuid.UUID]*entity.Evaluation
-	listErr   error
-	createErr error
-	updateErr error
-	getErr    error
+	templates             map[string]*entity.EvaluationTemplate
+	evals                 map[uuid.UUID]*entity.Evaluation
+	listErr               error
+	createErr             error
+	updateErr             error
+	getErr                error
+	periods               []string
+	periodErr             error
+	periodOrganizationIDs []uuid.UUID
 }
 
 type fakeOrganizationRepo struct {
@@ -122,6 +125,14 @@ func (r *fakeEvaluationRepo) List(_ context.Context, filter repository.Evaluatio
 		result = append(result, &copy)
 	}
 	return result, len(result), nil
+}
+
+func (r *fakeEvaluationRepo) ListPeriods(_ context.Context, organizationIDs []uuid.UUID) ([]string, error) {
+	if r.periodErr != nil {
+		return nil, r.periodErr
+	}
+	r.periodOrganizationIDs = append([]uuid.UUID{}, organizationIDs...)
+	return append([]string{}, r.periods...), nil
 }
 
 func (r *fakeEvaluationRepo) ExistsByOrgPeriodTemplate(_ context.Context, orgID uuid.UUID, period string, templateID uuid.UUID, excludeID *uuid.UUID) (bool, error) {
@@ -409,6 +420,26 @@ func TestListUseCaseRequiresReadableScope(t *testing.T) {
 	})
 	if !errors.IsForbidden(err) {
 		t.Fatalf("expected forbidden, got %v", err)
+	}
+}
+
+func TestListUseCaseIncludesAllPeriods(t *testing.T) {
+	repo := newFakeEvaluationRepo()
+	repo.periods = []string{"2024-Q4", "2025-H1"}
+	orgID := uuid.New()
+	uc := NewListUseCase(repo)
+
+	result, err := uc.Execute(context.Background(), ListInput{
+		Scope: &entity.AccessScope{OrganizationID: &orgID},
+	})
+	if err != nil {
+		t.Fatalf("Execute() error = %v", err)
+	}
+	if len(result.Periods) != 2 || result.Periods[0] != "2024-Q4" || result.Periods[1] != "2025-H1" {
+		t.Fatalf("unexpected periods: %#v", result.Periods)
+	}
+	if len(repo.periodOrganizationIDs) != 1 || repo.periodOrganizationIDs[0] != orgID {
+		t.Fatalf("period query was not scoped to the readable organization: %#v", repo.periodOrganizationIDs)
 	}
 }
 

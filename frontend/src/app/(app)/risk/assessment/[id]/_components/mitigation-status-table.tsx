@@ -231,7 +231,7 @@ export const MitigationStatusTable = memo(function MitigationStatusTable({
       </div>
       <Progress
         value={progressPct}
-        className="h-1.5"
+        className="h-3 [&_[data-slot=progress-indicator]]:bg-violet-400"
         aria-label={`${progressPct}% laporan mitigasi selesai`}
       />
       <dl className="space-y-0.5">

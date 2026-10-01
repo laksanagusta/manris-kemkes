@@ -6,7 +6,6 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import {
   CollectionEmptyState,
-  CollectionFilterInput,
   CollectionLoadingState,
   CollectionPagination,
   CollectionSearchField,
@@ -52,6 +51,7 @@ import {
 import { validateMitigationReportForm } from "@/lib/validation/reporting";
 import { getMitigationSubmissionActionState } from "@/lib/mitigation-reporting";
 import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
+import { getAssessmentCycleFilterOptions } from "@/lib/risk-cycle-options";
 import {
   buildMitigationMonitoringApiQueryString,
   buildMitigationMonitoringQueryString,
@@ -183,6 +183,10 @@ export function MitigationMonitoringPanel() {
 
   const debouncedSearch = useDebouncedValue(search, 500);
   const debouncedPeriod = useDebouncedValue(period, 400);
+  const periodFilterOptions = useMemo(
+    () => getAssessmentCycleFilterOptions(new Date(), period),
+    [period],
+  );
 
   const formErrors = useMemo(
     () =>
@@ -471,8 +475,9 @@ export function MitigationMonitoringPanel() {
             placeholder="Cari mitigasi..."
             aria-label="Cari mitigasi"
           />
-          <div className="w-full sm:w-44">
+          <div className="w-full sm:w-fit">
             <PopoverSelectField
+              fitContent
               value={queryState.status ?? "all"}
               onValueChange={(value) =>
                 pushQueryState({
@@ -494,12 +499,14 @@ export function MitigationMonitoringPanel() {
               optionClassName="whitespace-nowrap"
             />
           </div>
-          <CollectionFilterInput
-            className="w-full rounded-lg bg-card text-sm sm:w-36"
-            placeholder="Periode (YYYY-QN)"
-            aria-label="Filter periode penanganan"
-            value={period}
-            onChange={(event) => setPeriod(event.target.value)}
+          <PopoverSelectField
+            fitContent
+            value={period || "all"}
+            onValueChange={(value) => setPeriod(value === "all" ? "" : value)}
+            options={periodFilterOptions}
+            placeholder="Semua Periode"
+            ariaLabel="Filter periode penanganan"
+            triggerClassName="h-8 rounded-lg bg-card text-sm"
           />
           <ActionButton asChild variant="outline" className="sm:ml-auto">
             <Link href="/compliance/penanganan/impor">

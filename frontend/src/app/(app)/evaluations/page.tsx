@@ -29,8 +29,6 @@ import {
   CollectionPagination,
   CollectionPageHeader,
   CollectionEmptyState,
-  CollectionFilterTrigger,
-  CollectionSearchField,
   CollectionTableCard,
   CollectionTableHead,
   CollectionTableHeader,
@@ -47,11 +45,6 @@ import {
 } from "@/components/shared/design-system";
 import { Label } from "@/components/ui/label";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -75,7 +68,7 @@ import {
 } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { OrganizationPicker } from "@/components/report/organization-picker";
-import { ReportScopePicker } from "@/components/report/report-scope-picker";
+import { EvaluationFiltersToolbar } from "@/components/evaluation/evaluation-filters-toolbar";
 import {
   buildSelectableReportOrganizations,
   buildSelectableReportOrganizationGroups,
@@ -89,8 +82,10 @@ import {
 } from "@/lib/linear-status-badge";
 import {
   currentAssessmentCycle,
+  getAssessmentCycleFilterOptions,
   getSelectableAssessmentCycles,
 } from "@/lib/risk-cycle-options";
+import { getEvaluationPeriodFilterOptions } from "@/lib/evaluation-period-options";
 import type { Evaluation, EvaluationStatus } from "@/types/evaluation";
 
 function formatDateTime(value?: string | null) {
@@ -108,204 +103,6 @@ const statusStyles: Record<EvaluationStatus, BadgeVariant> = {
   final: getLinearStatusBadgeTone("finalized"),
 };
 
-type EvaluationFiltersSidebarProps = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  organizationId: string;
-  onOrganizationIdChange: (value: string) => void;
-  organizationGroupId: string;
-  onOrganizationGroupIdChange: (value: string) => void;
-  organizations: OrganizationListItem[];
-  organizationGroups: OrganizationGroupListItem[];
-  periodOptions: { value: string; label: string }[];
-  periodFilter: string;
-  onPeriodFilterChange: (value: string) => void;
-  status: EvaluationStatus | "all";
-  onStatusChange: (value: EvaluationStatus | "all") => void;
-  onReset: () => void;
-};
-
-function EvaluationFiltersSidebar({
-  open,
-  onOpenChange,
-  organizationId,
-  onOrganizationIdChange,
-  organizationGroupId,
-  onOrganizationGroupIdChange,
-  organizations,
-  organizationGroups,
-  periodOptions,
-  periodFilter,
-  onPeriodFilterChange,
-  status,
-  onStatusChange,
-  onReset,
-}: EvaluationFiltersSidebarProps) {
-  return (
-    <Popover open={open} onOpenChange={onOpenChange}>
-      <PopoverTrigger asChild>
-        <CollectionFilterTrigger />
-      </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        sideOffset={8}
-        className="w-[22rem]"
-      >
-        <div className="space-y-4">
-          <div>
-            <h4 className="text-sm font-medium">Filter Evaluasi</h4>
-            <p className="mt-1 text-xs text-secondary-foreground">
-              Atur organisasi, periode, dan status.
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-foreground">
-                Organisasi
-              </Label>
-              <ReportScopePicker
-                organizationId={organizationId}
-                onOrganizationChange={onOrganizationIdChange}
-                organizations={organizations}
-                organizationGroupId={organizationGroupId}
-                onOrganizationGroupChange={onOrganizationGroupIdChange}
-                organizationGroups={organizationGroups}
-                organizationPlaceholder="Semua organisasi"
-                organizationGroupPlaceholder="Semua group"
-                allowAllOrganizations
-                allOrganizationLabel="Semua organisasi"
-                allOrganizationValue="all"
-                allowAllOrganizationGroups
-                allOrganizationGroupLabel="Semua group"
-                allOrganizationGroupValue="all"
-                orientation="vertical"
-                density="compact"
-              />
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label className="text-sm font-medium text-foreground">
-                Periode
-              </Label>
-              <Select value={periodFilter} onValueChange={onPeriodFilterChange}>
-                <SelectTrigger className="">
-                  <SelectValue placeholder="Periode" />
-                </SelectTrigger>
-                <SelectContent>
-                  {periodOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex flex-col gap-2">
-              <Label className="text-sm font-medium text-foreground">
-                Status
-              </Label>
-              <Select
-                value={status}
-                onValueChange={(value) => onStatusChange(value as EvaluationStatus | "all")}
-              >
-                <SelectTrigger className="">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua status</SelectItem>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="final">Final</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between pt-4">
-            <ActionButton type="button" variant="ghost" onClick={onReset}>
-              Reset
-            </ActionButton>
-            <AccentButton type="button" onClick={() => onOpenChange(false)}>
-              Terapkan
-            </AccentButton>
-          </div>
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-type EvaluationFiltersToolbarProps = {
-  query: string;
-  onQueryChange: (value: string) => void;
-  queryPlaceholder: string;
-  queryAriaLabel: string;
-  filterOpen: boolean;
-  onFilterOpenChange: (open: boolean) => void;
-  organizationId: string;
-  onOrganizationIdChange: (value: string) => void;
-  organizationGroupId: string;
-  onOrganizationGroupIdChange: (value: string) => void;
-  organizations: OrganizationListItem[];
-  organizationGroups: OrganizationGroupListItem[];
-  periodOptions: { value: string; label: string }[];
-  periodFilter: string;
-  onPeriodFilterChange: (value: string) => void;
-  status: EvaluationStatus | "all";
-  onStatusChange: (value: EvaluationStatus | "all") => void;
-  onReset: () => void;
-};
-
-function EvaluationFiltersToolbar({
-  query,
-  onQueryChange,
-  queryPlaceholder,
-  queryAriaLabel,
-  filterOpen,
-  onFilterOpenChange,
-  organizationId,
-  onOrganizationIdChange,
-  organizationGroupId,
-  onOrganizationGroupIdChange,
-  organizations,
-  organizationGroups,
-  periodOptions,
-  periodFilter,
-  onPeriodFilterChange,
-  status,
-  onStatusChange,
-  onReset,
-}: EvaluationFiltersToolbarProps) {
-  return (
-    <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center md:w-auto">
-      <CollectionSearchField
-        placeholder={queryPlaceholder}
-        value={query}
-        onChange={(event) => onQueryChange(event.target.value)}
-        aria-label={queryAriaLabel}
-      />
-
-      <EvaluationFiltersSidebar
-        open={filterOpen}
-        onOpenChange={onFilterOpenChange}
-        organizationId={organizationId}
-        onOrganizationIdChange={onOrganizationIdChange}
-        organizationGroupId={organizationGroupId}
-        onOrganizationGroupIdChange={onOrganizationGroupIdChange}
-        organizations={organizations}
-        organizationGroups={organizationGroups}
-        periodOptions={periodOptions}
-        periodFilter={periodFilter}
-        onPeriodFilterChange={onPeriodFilterChange}
-        status={status}
-        onStatusChange={onStatusChange}
-        onReset={onReset}
-      />
-    </div>
-  );
-}
-
 export default function EvaluationsPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -319,6 +116,7 @@ export default function EvaluationsPage() {
   const [organizationId, setOrganizationId] = useState("all");
   const [organizationGroupId, setOrganizationGroupId] = useState("all");
   const [periodFilter, setPeriodFilter] = useState("all");
+  const [availablePeriods, setAvailablePeriods] = useState<string[]>([]);
   const [status, setStatus] = useState<EvaluationStatus | "all">("all");
   const [filterOpen, setFilterOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -422,12 +220,14 @@ export default function EvaluationsPage() {
   useEffect(() => {
     if (!token) {
       setEvaluations([]);
+      setAvailablePeriods([]);
       setLoading(false);
       return;
     }
 
     if (requiresScopeSelection) {
       setEvaluations([]);
+      setAvailablePeriods([]);
       setLoading(false);
       return;
     }
@@ -449,7 +249,9 @@ export default function EvaluationsPage() {
       limit,
     })
       .then((response) => {
-        setEvaluations(response.data ?? []);
+        const responseEvaluations = response.data ?? [];
+        setEvaluations(responseEvaluations);
+        setAvailablePeriods(response.periods ?? []);
         setTotal(response.total ?? 0);
         setPage(response.page ?? page);
       })
@@ -563,11 +365,12 @@ export default function EvaluationsPage() {
   ];
 
   const periodOptions = useMemo(
-    () => [
-      { value: "all", label: "Semua periode" },
-      ...getSelectableAssessmentCycles(currentAssessmentCycle()),
-    ],
-    [],
+    () =>
+      getEvaluationPeriodFilterOptions(
+        availablePeriods,
+        getAssessmentCycleFilterOptions(),
+      ),
+    [availablePeriods],
   );
   const createPeriodOptions = useMemo(
     () => getSelectableAssessmentCycles(currentAssessmentCycle()),

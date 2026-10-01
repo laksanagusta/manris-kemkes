@@ -143,6 +143,7 @@ export function WorkingPaperProgressCollapsible({
         </CollapsibleCard.Trigger>
         <CollapsibleCard.Actions className="pr-4">
           <PopoverSelectField
+            fitContent
             value={activePeriodFilter}
             onValueChange={setPeriodFilter}
             options={[
@@ -151,7 +152,7 @@ export function WorkingPaperProgressCollapsible({
             ]}
             placeholder="Semua periode"
             ariaLabel="Filter periode progress kertas kerja"
-            triggerClassName="h-8 w-[140px] px-2 text-xs sm:w-[160px]"
+            triggerClassName="h-8 px-2 text-xs"
           />
         </CollapsibleCard.Actions>
       </div>
@@ -244,7 +245,7 @@ function LatestProgressTable({
                   <Progress
                     value={row.progressPercent}
                     aria-label={`Progress ${row.orgName} ${row.progressPercent}%`}
-                    className="h-2"
+                    className="h-3 [&_[data-slot=progress-indicator]]:bg-success"
                   />
                   <span className="w-10 shrink-0 text-right font-mono text-xs tabular-nums text-muted-foreground">
                     {row.progressPercent}%

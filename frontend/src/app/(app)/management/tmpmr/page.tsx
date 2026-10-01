@@ -9,7 +9,6 @@ import {
   Loader2,
   Plus,
   RefreshCw,
-  Search,
   SlidersHorizontal,
 } from "@/components/shared/icons";
 
@@ -20,7 +19,6 @@ import type { TMPMRAssessment, TMPMRStatus } from "@/types/tmpmr";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -43,6 +41,7 @@ import {
   shouldShowCollectionPagination,
   CollectionToolbar,
   CollectionEmptyState,
+  CollectionSearchField,
   KpiCard,
   MetricGrid,
   PageStack,
@@ -216,20 +215,18 @@ export default function TMPMRListPage() {
       <CollectionToolbar
         className="w-full"
         leading={
-          <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
-            <div className="relative min-w-0 flex-none w-full sm:w-80">
-              <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                id="tmpmr-search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Cari organisasi, skor, maturity level, atau periode"
-                className=""
-              />
-            </div>
+          <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+            <CollectionSearchField
+              id="tmpmr-search"
+              containerClassName="w-full sm:w-[28rem] sm:flex-none"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              placeholder="Cari organisasi, skor, maturity level, atau periode"
+              aria-label="Cari TMPMR"
+            />
 
             <Select value={periodFilter} onValueChange={setPeriodFilter}>
-              <SelectTrigger id="tmpmr-period" className="w-full sm:w-44">
+              <SelectTrigger id="tmpmr-period" className="w-full sm:w-fit">
                 <SelectValue placeholder="Semua periode" />
               </SelectTrigger>
               <SelectContent>
@@ -246,7 +243,7 @@ export default function TMPMRListPage() {
               value={statusFilter}
               onValueChange={(value) => setStatusFilter(value as TMPMRStatus | "all")}
             >
-              <SelectTrigger id="tmpmr-status" className="w-full sm:w-40">
+              <SelectTrigger id="tmpmr-status" className="w-full sm:w-fit">
                 <SelectValue placeholder="Semua status" />
               </SelectTrigger>
               <SelectContent>

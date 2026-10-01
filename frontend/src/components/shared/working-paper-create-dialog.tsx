@@ -17,7 +17,18 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Popover,
   PopoverContent,
@@ -28,6 +39,7 @@ import { cn } from "@/lib/utils";
 export type WorkingPaperPeriodOption = {
   value: string;
   label: string;
+  isCurrent?: boolean;
 };
 
 function WorkingPaperPeriodPicker({
@@ -63,6 +75,14 @@ function WorkingPaperPeriodPicker({
           >
             {selected?.label ?? "Pilih kuartal"}
           </span>
+          {selected?.isCurrent ? (
+            <Badge
+              variant="secondary"
+              className="shrink-0 border-info-foreground/20 bg-info-foreground/5 text-info-foreground"
+            >
+              Kuartal berjalan
+            </Badge>
+          ) : null}
           <ChevronDown className="pointer-events-none size-4 shrink-0 opacity-60 transition-transform duration-150 ease-(--ease-out) group-data-[state=open]/risk-select:rotate-180 motion-reduce:transition-none" />
         </Button>
       </PopoverTrigger>
@@ -100,8 +120,16 @@ function WorkingPaperPeriodPicker({
                     isSelected ? "opacity-100" : "opacity-0",
                   )}
                 />
-                <span className="min-w-0 flex-1 truncate">
-                  {option.label}
+                <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
+                  <span className="truncate">{option.label}</span>
+                  {option.isCurrent ? (
+                    <Badge
+                      variant="secondary"
+                      className="shrink-0 border-info-foreground/20 bg-info-foreground/5 text-info-foreground"
+                    >
+                      Kuartal berjalan
+                    </Badge>
+                  ) : null}
                 </span>
               </button>
             );
@@ -142,6 +170,16 @@ export function WorkingPaperCreateDialog({
   periodOptions: WorkingPaperPeriodOption[];
 }) {
   const router = useRouter();
+  const [confirmCurrentPeriodOpen, setConfirmCurrentPeriodOpen] =
+    useState(false);
+  const selectedOption = periodOptions.find(
+    (option) => option.value === selectedPeriod,
+  );
+
+  const continueToCreate = () => {
+    onOpenChange(false);
+    router.push(`/risk/working-papers/new?cycle=${selectedPeriod}`);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -152,14 +190,19 @@ export function WorkingPaperCreateDialog({
             event.preventDefault();
             if (!selectedPeriod) return;
 
-            onOpenChange(false);
-            router.push(`/risk/working-papers/new?cycle=${selectedPeriod}`);
+            if (selectedOption?.isCurrent) {
+              setConfirmCurrentPeriodOpen(true);
+              return;
+            }
+
+            continueToCreate();
           }}
         >
           <DialogHeader>
             <DialogTitle className="text-base">Pilih Periode</DialogTitle>
             <DialogDescription className="max-w-[38ch]">
-              Tentukan kuartal untuk kertas kerja yang akan dibuat.
+              Tentukan kuartal untuk kertas kerja. Kuartal berjalan tersedia
+              mulai bulan ketiga.
             </DialogDescription>
           </DialogHeader>
 
@@ -190,6 +233,27 @@ export function WorkingPaperCreateDialog({
           </DialogFooter>
         </form>
       </DialogContent>
+      <AlertDialog
+        open={confirmCurrentPeriodOpen}
+        onOpenChange={setConfirmCurrentPeriodOpen}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Periode masih berjalan</AlertDialogTitle>
+            <AlertDialogDescription>
+              Kertas Kerja akan dibuat untuk {selectedPeriod}, yang masih
+              berlangsung. Data risiko periode ini dapat berubah sampai kuartal
+              berakhir. Lanjutkan?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Batal</AlertDialogCancel>
+            <AlertDialogAction onClick={continueToCreate}>
+              Lanjutkan
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Dialog>
   );
 }

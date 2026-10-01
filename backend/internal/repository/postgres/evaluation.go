@@ -303,6 +303,47 @@ func (r *evaluationRepository) List(ctx context.Context, filter repository.Evalu
 	return items, total, nil
 }
 
+func (r *evaluationRepository) ListPeriods(ctx context.Context, organizationIDs []uuid.UUID) ([]string, error) {
+	query := `
+		SELECT DISTINCT e.period
+		FROM evaluations e
+		WHERE NULLIF(BTRIM(e.period), '') IS NOT NULL
+	`
+	args := make([]any, 0, len(organizationIDs))
+	if organizationIDs != nil {
+		if len(organizationIDs) == 0 {
+			return []string{}, nil
+		}
+
+		placeholders := make([]string, 0, len(organizationIDs))
+		for _, organizationID := range organizationIDs {
+			placeholders = append(placeholders, fmt.Sprintf("$%d", len(args)+1))
+			args = append(args, organizationID)
+		}
+		query += fmt.Sprintf(" AND e.organization_id IN (%s)", strings.Join(placeholders, ","))
+	}
+	query += " ORDER BY e.period"
+
+	rows, err := r.pool.Query(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("list evaluation periods: %w", err)
+	}
+	defer rows.Close()
+
+	periods := make([]string, 0)
+	for rows.Next() {
+		var period string
+		if err := rows.Scan(&period); err != nil {
+			return nil, fmt.Errorf("scan evaluation period: %w", err)
+		}
+		periods = append(periods, period)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate evaluation periods: %w", err)
+	}
+	return periods, nil
+}
+
 func (r *evaluationRepository) ExistsByOrgPeriodTemplate(ctx context.Context, orgID uuid.UUID, period string, templateID uuid.UUID, excludeID *uuid.UUID) (bool, error) {
 	query := `
 		SELECT EXISTS(

@@ -64,6 +64,7 @@ export type Evaluation = {
 
 export type PaginatedEvaluationResponse = {
   data: Evaluation[];
+  periods: string[];
   total: number;
   page: number;
   limit: number;

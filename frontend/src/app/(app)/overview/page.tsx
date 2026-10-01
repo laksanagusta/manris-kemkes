@@ -216,7 +216,6 @@ export default function DashboardPage() {
             data={riskCategoryData}
             loading={riskCategoryLoading}
             error={riskCategoryError}
-            cycle={currentCycle}
             onRetry={retryDashboard}
           />
         </div>

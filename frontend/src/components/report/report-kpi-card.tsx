@@ -49,7 +49,7 @@ export function ReportKpiCard({
             </div>
             <div className="space-y-2">
               <Skeleton className="h-7 w-16" />
-              <Skeleton className="h-2 w-full rounded-full" />
+              <Skeleton className="h-3 w-full rounded-full" />
             </div>
             <div className="space-y-1">
               <Skeleton className="h-4 w-48 max-w-full" />
@@ -67,7 +67,7 @@ export function ReportKpiCard({
       ? "var(--destructive)"
       : clampedProgress >= 100
         ? "var(--color-success)"
-        : "var(--primary)";
+        : "var(--color-violet-400)";
   const comparisonContent = comparison ? (
     <Tooltip>
       <TooltipTrigger
@@ -109,7 +109,7 @@ export function ReportKpiCard({
           aria-valuemax={100}
           aria-valuenow={progress == null ? undefined : clampedProgress}
           aria-valuetext={value}
-          className="h-2 w-full overflow-hidden rounded-full bg-muted"
+          className="h-3 w-full overflow-hidden rounded-full bg-muted"
         >
           {progress != null ? (
             <span

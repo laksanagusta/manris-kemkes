@@ -115,11 +115,11 @@ export function OrganizationGroupPicker({
           disabled={disabled}
           className={cn(
             controlHeight,
-            "w-full min-w-0 justify-between overflow-hidden",
+            "w-full min-w-0 justify-between",
             className,
           )}
         >
-          <span className="min-w-0 flex-1 truncate text-left">
+          <span className="min-w-0 flex-1 overflow-x-auto text-left whitespace-nowrap [scrollbar-width:none]">
             {selectedGroup
               ? `${selectedGroup.name} · ${selectedGroup.ownerOrganizationName}`
               : placeholder}
@@ -178,10 +178,10 @@ export function OrganizationGroupPicker({
                     />
                     <Users className="mt-0.5 size-3.5 shrink-0 text-muted-foreground/80" />
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate font-medium">
+                      <span className="block overflow-x-auto font-medium whitespace-nowrap [scrollbar-width:none]">
                         {group.name}
                       </span>
-                      <span className="mt-0.5 block truncate text-[10px] text-muted-foreground">
+                      <span className="mt-0.5 block overflow-x-auto text-[10px] text-muted-foreground whitespace-nowrap [scrollbar-width:none]">
                         {group.ownerOrganizationName} · {group.memberCount} unit
                       </span>
                     </span>

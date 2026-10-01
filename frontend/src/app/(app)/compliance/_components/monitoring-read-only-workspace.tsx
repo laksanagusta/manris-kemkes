@@ -29,11 +29,9 @@ import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 import { getRiskLevelFromNilai, levelToColor } from "@/lib/risk";
 import { formatMonitoringNilai } from "@/lib/risk-register-monitoring";
 import {
-  ActionButton,
   CollapsibleCard,
   CollectionEmptyState,
   CollectionErrorState,
-  CollectionFilterTrigger,
   CollectionLoadingState,
   CollectionPagination,
   CollectionSearchField,
@@ -47,12 +45,7 @@ import {
   PopoverSelectField,
 } from "@/components/shared/design-system";
 import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
 import { ArrowRight } from "@/components/shared/icons";
 import {
   Table,
@@ -365,7 +358,6 @@ export function MonitoringReadOnlyWorkspace() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [filterOpen, setFilterOpen] = useState(false);
 
   const accessibleOrganizations = useMemo(() => {
     if (user?.isGlobal) return organizations;
@@ -526,8 +518,10 @@ export function MonitoringReadOnlyWorkspace() {
     setCycle("all");
     setOrganizationId("all");
     setPage(1);
-    setFilterOpen(false);
   };
+
+  const hasActiveFilters =
+    Boolean(search) || status !== "all" || cycle !== "all" || organizationId !== "all";
 
   const handleRowKeyDown = (
     event: React.KeyboardEvent<HTMLTableRowElement>,
@@ -571,8 +565,9 @@ export function MonitoringReadOnlyWorkspace() {
                 aria-label="Cari kode atau risiko"
               />
 
-              <div className="flex min-w-0 flex-col gap-2 sm:flex-row">
+              <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
                 <PopoverSelectField
+                  fitContent
                   value={cycle}
                   onValueChange={(value) => {
                     setCycle(value);
@@ -581,48 +576,32 @@ export function MonitoringReadOnlyWorkspace() {
                   options={cycleOptions}
                   placeholder="Siklus"
                   ariaLabel="Pilih siklus pemantauan"
-                  triggerClassName="w-full sm:w-36"
+                  triggerClassName="w-full sm:w-fit"
                 />
 
-                <Popover open={filterOpen} onOpenChange={setFilterOpen}>
-                  <PopoverTrigger asChild>
-                    <CollectionFilterTrigger />
-                  </PopoverTrigger>
-                  <PopoverContent align="end" sideOffset={8} className="w-72">
-                    <div className="space-y-4">
-                      <div>
-                        <h3 className="text-sm font-medium text-foreground">
-                          Filter Pemantauan
-                        </h3>
-                        <p className="mt-1 text-xs text-secondary-foreground">
-                          Saring berdasarkan status transaksi.
-                        </p>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="monitoring-status-filter">Status</Label>
-                        <PopoverSelectField
-                          id="monitoring-status-filter"
-                          value={status}
-                          onValueChange={(value) => {
-                            setStatus(value as MonitoringStatusFilter);
-                            setPage(1);
-                          }}
-                          options={STATUS_OPTIONS}
-                          placeholder="Semua status"
-                          triggerClassName="w-full"
-                        />
-                      </div>
-                      <div className="flex items-center justify-between gap-3 pt-1">
-                        <ActionButton size="sm" variant="ghost" onClick={resetFilters}>
-                          Reset
-                        </ActionButton>
-                        <ActionButton size="sm" onClick={() => setFilterOpen(false)}>
-                          Terapkan
-                        </ActionButton>
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                <PopoverSelectField
+                  fitContent
+                  value={status}
+                  onValueChange={(value) => {
+                    setStatus(value as MonitoringStatusFilter);
+                    setPage(1);
+                  }}
+                  options={STATUS_OPTIONS}
+                  placeholder="Semua status"
+                  ariaLabel="Filter status pemantauan"
+                  triggerClassName="w-full sm:w-fit"
+                />
+
+                {hasActiveFilters ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={resetFilters}
+                  >
+                    Reset
+                  </Button>
+                ) : null}
               </div>
             </div>
           }

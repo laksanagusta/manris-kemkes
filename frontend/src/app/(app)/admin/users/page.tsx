@@ -18,7 +18,6 @@ import {
   Loader2,
   MinusCircle,
   Plus,
-  Search,
   MoreHorizontal,
   ShieldCheck,
   ShieldX,
@@ -32,6 +31,7 @@ import {
   CollectionPagination,
   CollectionToolbar,
   CollectionEmptyState,
+  CollectionSearchField,
   KpiCard,
   MetricGrid,
   PageStack,
@@ -39,7 +39,6 @@ import {
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -417,19 +416,17 @@ export default function UsersManagementPage() {
       <CollectionToolbar
         className="w-full"
         leading={
-          <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
-            <div className="relative min-w-0 w-full sm:w-80 sm:flex-none">
-              <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Cari pengguna, NIP, atau email"
-                value={search}
-                onChange={(event) => {
-                  setSearch(event.target.value);
-                  setPage(1);
-                }}
-                className=""
-              />
-            </div>
+          <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+            <CollectionSearchField
+              containerClassName="w-full sm:w-80 sm:flex-none"
+              placeholder="Cari pengguna, NIP, atau email"
+              aria-label="Cari pengguna, NIP, atau email"
+              value={search}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(1);
+              }}
+            />
             <Select
               value={statusFilter}
               onValueChange={(value) => {
@@ -437,7 +434,7 @@ export default function UsersManagementPage() {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="w-full sm:w-40">
+              <SelectTrigger className="w-full sm:w-fit">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -454,7 +451,7 @@ export default function UsersManagementPage() {
                 setPage(1);
               }}
             >
-              <SelectTrigger className="w-full sm:w-36">
+              <SelectTrigger className="w-full sm:w-fit">
                 <SelectValue placeholder="Role" />
               </SelectTrigger>
               <SelectContent>

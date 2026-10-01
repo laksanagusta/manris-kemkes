@@ -612,7 +612,7 @@ export function PlanningManagementPage() {
       />
 
       <div className="space-y-4">
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-end">
+      <div className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center md:justify-end">
         <CollectionSearchField
           id="planning-search"
           value={search}
@@ -621,7 +621,7 @@ export function PlanningManagementPage() {
         />
 
         <Select value={periodFilter} onValueChange={setPeriodFilter}>
-          <SelectTrigger className="w-full min-w-[180px] md:w-44">
+          <SelectTrigger className="w-full md:w-fit">
             <SelectValue placeholder="Semua periode" />
           </SelectTrigger>
           <SelectContent>
@@ -635,7 +635,7 @@ export function PlanningManagementPage() {
         </Select>
 
         <Select value={organizationFilter} onValueChange={setOrganizationFilter}>
-          <SelectTrigger className="w-full min-w-[180px] md:w-44">
+          <SelectTrigger className="w-full md:w-fit">
             <SelectValue placeholder="Semua satker" />
           </SelectTrigger>
           <SelectContent>

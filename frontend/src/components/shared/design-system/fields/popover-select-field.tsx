@@ -28,6 +28,7 @@ export type PopoverSelectFieldProps = {
   ariaLabel?: string;
   disabled?: boolean;
   invalid?: boolean;
+  fitContent?: boolean;
   triggerClassName?: string;
   contentClassName?: string;
   optionClassName?: string;
@@ -45,12 +46,18 @@ export function PopoverSelectField({
   ariaLabel,
   disabled = false,
   invalid = false,
+  fitContent = false,
   triggerClassName,
   contentClassName,
   optionClassName,
   emptyMessage = "Tidak ada opsi.",
 }: PopoverSelectFieldProps) {
   const selected = options.find((option) => option.value === value);
+  const sizingLabel = options.reduce(
+    (longest, option) =>
+      option.label.length > longest.length ? option.label : longest,
+    selected?.label ?? placeholder,
+  );
 
   return (
     <DropdownMenu>
@@ -64,14 +71,32 @@ export function PopoverSelectField({
           aria-invalid={invalid || undefined}
           disabled={disabled}
           className={cn(
-            "group/popover-select w-full justify-between active:translate-y-0 active:scale-100",
+            "group/popover-select justify-between active:translate-y-0 active:scale-100",
+            fitContent
+              ? "grid w-max max-w-full grid-cols-[max-content_auto] gap-x-2"
+              : "w-full",
             triggerClassName,
           )}
         >
-          <span className="min-w-0 flex-1 truncate text-left">
+          {fitContent ? (
+            <span
+              aria-hidden="true"
+              className="pointer-events-none invisible col-start-1 row-start-1 whitespace-nowrap text-left"
+            >
+              {sizingLabel}
+            </span>
+          ) : null}
+          <span
+            className={cn(
+              "text-left",
+              fitContent
+                ? "col-start-1 row-start-1 whitespace-nowrap"
+                : "min-w-0 flex-1 truncate",
+            )}
+          >
             {selected?.label ?? placeholder}
           </span>
-          <ChevronDown className="pointer-events-none size-4 shrink-0 opacity-60 transition-transform duration-150 ease-(--ease-out) group-data-[state=open]/popover-select:rotate-180 motion-reduce:transition-none" />
+          <ChevronDown className="pointer-events-none col-start-2 row-start-1 size-4 shrink-0 opacity-60 transition-transform duration-150 ease-(--ease-out) group-data-[state=open]/popover-select:rotate-180 motion-reduce:transition-none" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -96,7 +121,7 @@ export function PopoverSelectField({
               <DropdownMenuRadioItem
                 key={option.value}
                 value={option.value}
-                className={optionClassName}
+                className={cn(fitContent && "whitespace-nowrap", optionClassName)}
               >
                 {option.label}
               </DropdownMenuRadioItem>

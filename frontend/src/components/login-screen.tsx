@@ -50,21 +50,21 @@ export default function LoginScreen() {
 
       <div className="relative w-full max-w-md px-4 motion-safe:animate-fade-in">
         <div className="flex flex-col gap-6">
-          <header className="flex flex-col items-center gap-2 text-center">
-            <span className="font-logo text-[20px] leading-5 font-semibold lowercase tracking-[-0.4px] text-foreground">Manris</span>
-            <h1 className="text-[20px] leading-5 font-medium tracking-tight text-balance">Masuk untuk melanjutkan</h1>
+          <header className="flex flex-col items-center gap-4 text-center">
+            <span className="font-logo text-[24px] leading-6 font-semibold lowercase tracking-[-0.4px] text-tertiary-foreground underline decoration-dashed decoration-2 underline-offset-4">Manris</span>
+            <h1 className="text-base leading-5 font-medium tracking-tight text-balance">Masuk untuk melanjutkan</h1>
           </header>
-          <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <FieldGroup className="gap-2">
               {error ? <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert> : null}
               <Field>
                 <FieldLabel htmlFor="nip" className="sr-only">NIP</FieldLabel>
-                <Input id="nip" name="nip" className="h-11 bg-white dark:bg-white" placeholder="Masukkan NIP" autoComplete="username" inputMode="numeric" required value={nip} onChange={(event) => setNip(event.target.value)} />
+                <Input id="nip" name="nip" className="h-11 bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500" placeholder="Masukkan NIP" autoComplete="username" inputMode="numeric" required value={nip} onChange={(event) => setNip(event.target.value)} />
               </Field>
               <Field>
                 <FieldLabel htmlFor="password" className="sr-only">Password</FieldLabel>
-                <InputGroup className="h-11 bg-white dark:bg-white">
-                  <InputGroupInput id="password" name="password" type={showPassword ? "text" : "password"} className="h-11 bg-transparent dark:bg-transparent" placeholder="Masukkan password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} />
+                <InputGroup className="h-11 bg-white dark:bg-white dark:text-neutral-900">
+                  <InputGroupInput id="password" name="password" type={showPassword ? "text" : "password"} className="h-11 bg-transparent dark:bg-transparent dark:text-neutral-900 dark:placeholder:text-neutral-500" placeholder="Masukkan password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} />
                   <InputGroupAddon align="inline-end" className="py-0">
                     <InputGroupButton aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"} aria-pressed={showPassword} onClick={() => setShowPassword((value) => !value)} size="icon-xs" className="h-11 w-11 hover:bg-transparent hover:text-inherit">
                       {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}

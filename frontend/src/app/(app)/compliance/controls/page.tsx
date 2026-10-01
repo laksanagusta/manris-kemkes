@@ -21,18 +21,17 @@ import { cn } from "@/lib/utils";
 import {
   ShieldCheck,
   Plus,
-  Search,
   ChevronRight,
   ChevronDown,
   XCircle,
   Calendar,
   User,
 } from "@/components/shared/icons";
-import { Input } from "@/components/ui/input";
 import {
   CollectionPageHeader,
   CollectionToolbar,
   CollectionEmptyState,
+  CollectionSearchField,
   PageStack,
 } from "@/components/shared/design-system";
 
@@ -78,15 +77,13 @@ export default function ControlsPage() {
       <CollectionToolbar
         className="w-full"
         leading={
-          <div className="relative min-w-0 w-full sm:w-80 sm:flex-none">
-            <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              placeholder="Cari kontrol..."
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              className=""
-            />
-          </div>
+          <CollectionSearchField
+            containerClassName="sm:w-80 sm:flex-none"
+            aria-label="Cari kontrol"
+            placeholder="Cari kontrol..."
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
         }
         actions={
           (!user?.isGlobal && !user?.organizationId) ? null : (

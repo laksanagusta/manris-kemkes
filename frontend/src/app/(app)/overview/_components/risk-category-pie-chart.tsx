@@ -3,7 +3,6 @@
 import { useMemo, useState } from "react";
 import { Pie, PieChart, Sector } from "recharts";
 import type { PieSectorShapeProps } from "recharts/types/polar/Pie";
-import { Badge } from "@/components/ui/badge";
 import {
   OverviewPanelState,
   StandardCard,
@@ -23,7 +22,6 @@ interface RiskCategoryPieChartProps {
   data: RiskCategoryDatum;
   loading?: boolean;
   error?: boolean;
-  cycle?: string;
   onRetry?: () => void;
 }
 
@@ -60,7 +58,6 @@ export function RiskCategoryPieChart({
   data,
   loading,
   error,
-  cycle,
   onRetry,
 }: RiskCategoryPieChartProps) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -86,7 +83,6 @@ export function RiskCategoryPieChart({
   return (
     <StandardCard
       title={<span className="text-sm">Distribusi Kategori Risiko</span>}
-      action={cycle ? <Badge variant="outline">{cycle}</Badge> : undefined}
       className="h-full"
       contentClassName="flex min-h-0 flex-1 flex-col gap-4 pt-0"
     >

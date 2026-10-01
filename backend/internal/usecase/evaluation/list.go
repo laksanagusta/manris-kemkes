@@ -30,10 +30,11 @@ type ListInput struct {
 }
 
 type ListOutput struct {
-	Data  []*entity.Evaluation `json:"data"`
-	Total int                  `json:"total"`
-	Page  int                  `json:"page"`
-	Limit int                  `json:"limit"`
+	Data    []*entity.Evaluation `json:"data"`
+	Periods []string             `json:"periods"`
+	Total   int                  `json:"total"`
+	Page    int                  `json:"page"`
+	Limit   int                  `json:"limit"`
 }
 
 func (uc *ListUseCase) Execute(ctx context.Context, input ListInput) (*ListOutput, error) {
@@ -72,9 +73,16 @@ func (uc *ListUseCase) Execute(ctx context.Context, input ListInput) (*ListOutpu
 	if err != nil {
 		return nil, err
 	}
+	periods, err := uc.repo.ListPeriods(ctx, orgIDs)
+	if err != nil {
+		return nil, err
+	}
 	if items == nil {
 		items = []*entity.Evaluation{}
 	}
+	if periods == nil {
+		periods = []string{}
+	}
 
-	return &ListOutput{Data: items, Total: total, Page: page, Limit: limit}, nil
+	return &ListOutput{Data: items, Periods: periods, Total: total, Page: page, Limit: limit}, nil
 }

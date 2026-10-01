@@ -138,6 +138,7 @@ import {
   currentMonitoringCycle,
   getDefaultMonitoringCycle,
   getSelectableMonitoringCycles,
+  getSelectableMonitoringCyclesForDate,
   isMonitoringCycleApplicable,
   isMonitoringCycleAfterPreviousEligible,
 } from "@/lib/risk-cycle-options";
@@ -914,7 +915,7 @@ export default function RiskInputPage() {
   const riskCode = watch("riskCode") ?? "";
   const monitoringCycleOptions = useMemo(
     () =>
-      getSelectableMonitoringCycles(currentMonitoringCycle()).map((cycle) => ({
+      getSelectableMonitoringCyclesForDate().map((cycle) => ({
         ...cycle,
         status: getMonitoringCycleBadgeStatus(
           monitoringCycleStatuses[cycle.value],
@@ -3658,7 +3659,8 @@ export default function RiskInputPage() {
               <DialogHeader>
                 <DialogTitle>Konfirmasi Pemantauan</DialogTitle>
                 <DialogDescription>
-                  Pilih periode untuk memulai pemantauan risiko ini.
+                  Pilih periode untuk memulai pemantauan risiko ini. Kuartal
+                  berjalan tersedia mulai bulan ketiga.
                 </DialogDescription>
               </DialogHeader>
               <div className="space-y-5">

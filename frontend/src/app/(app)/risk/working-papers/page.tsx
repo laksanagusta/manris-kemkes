@@ -16,40 +16,30 @@ import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 import { WorkingPaperProgressCollapsible } from "./_components/working-paper-progress-collapsible";
 
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Table,
   TableBody,
   TableCell,
   TableRow,
 } from "@/components/ui/table";
-import { ChevronRight, Plus } from "@/components/shared/icons";
+import { Calendar as CalendarIcon, ChevronRight, Plus } from "@/components/shared/icons";
 import { Badge } from "@/components/ui/badge";
 import {
   currentAssessmentCycle,
+  getAssessmentCycleFilterOptions,
+  getSelectableMonitoringCyclesForDate,
   shiftAssessmentCycle,
 } from "@/lib/risk-cycle-options";
 import {
   CollectionEmptyState,
   CollectionErrorState,
-  CollectionFilterInput,
-  CollectionFilterTrigger,
   CollectionLoadingState,
   CollectionPagination,
   CollectionPageHeader,
+  PopoverSelectField,
   CollectionSearchField,
   CollectionTableCard,
   CollectionTableHead,
@@ -67,6 +57,31 @@ import {
 } from "@/components/shared/working-paper-create-dialog";
 
 type WorkingPaperStatusFilter = "all" | WorkingPaperStatus;
+
+const createdAtFilterFormatter = new Intl.DateTimeFormat("id-ID", {
+  dateStyle: "medium",
+});
+
+function parseDateFilterValue(value: string): Date | undefined {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return undefined;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+
+  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
+    ? date
+    : undefined;
+}
+
+function formatDateFilterValue(date?: Date): string {
+  if (!date) return "";
+
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
 
 function getWorkingPaperStatusFilter(
   value: string | null,
@@ -107,131 +122,16 @@ const statusTones = {
   cancelled: "danger",
 } as const;
 
-type WorkingPaperFiltersSidebarProps = {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  statusFilter: WorkingPaperStatusFilter;
-  onStatusFilterChange: (value: WorkingPaperStatusFilter) => void;
-  assessmentCycleFilter: string;
-  onAssessmentCycleFilterChange: (value: string) => void;
-  createdAtFilter: string;
-  onCreatedAtFilterChange: (value: string) => void;
-  onReset: () => void;
-};
-
-function WorkingPaperFiltersSidebar({
-  open,
-  onOpenChange,
-  statusFilter,
-  onStatusFilterChange,
-  assessmentCycleFilter,
-  onAssessmentCycleFilterChange,
-  createdAtFilter,
-  onCreatedAtFilterChange,
-  onReset,
-}: WorkingPaperFiltersSidebarProps) {
-  return (
-    <Popover open={open} onOpenChange={onOpenChange}>
-      <PopoverTrigger asChild>
-        <CollectionFilterTrigger />
-      </PopoverTrigger>
-      <PopoverContent
-        align="end"
-        sideOffset={8}
-        className="w-[22rem]"
-      >
-        <div className="space-y-4">
-          <div>
-            <h4 className="text-sm font-medium">Filter Kertas Kerja</h4>
-            <p className="mt-1 text-xs text-secondary-foreground">
-              Atur status, siklus asesmen, dan tanggal dibuat.
-            </p>
-          </div>
-
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-foreground">
-                Status
-              </Label>
-              <Select
-                value={statusFilter}
-                onValueChange={(value) =>
-                  onStatusFilterChange(value as WorkingPaperStatusFilter)
-                }
-              >
-                <SelectTrigger className="">
-                  <SelectValue placeholder="Semua status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua status</SelectItem>
-                  <SelectItem value="draft">Draft</SelectItem>
-                  <SelectItem value="signing">Proses TTE</SelectItem>
-                  <SelectItem value="completed">Selesai</SelectItem>
-                  <SelectItem value="cancelled">Dibatalkan</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-foreground">
-                Siklus Asesmen
-              </Label>
-              <CollectionFilterInput
-                value={assessmentCycleFilter}
-                onChange={(event) =>
-                  onAssessmentCycleFilterChange(event.target.value)
-                }
-                placeholder="Filter siklus asesmen"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-foreground">
-                Tanggal Dibuat
-              </Label>
-              <CollectionFilterInput
-                type="date"
-                value={createdAtFilter}
-                onChange={(event) => onCreatedAtFilterChange(event.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between pt-4">
-            <Button
-              type="button"
-              variant="ghost"
-              size="default"
-              onClick={onReset}
-              className=""
-            >
-              Reset
-            </Button>
-            <AccentButton
-              type="button"
-              size="default"
-              onClick={() => onOpenChange(false)}
-            >
-              Terapkan
-            </AccentButton>
-          </div>
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
 type WorkingPaperFiltersToolbarProps = {
   search: string;
   onSearchChange: (value: string) => void;
   searchPlaceholder: string;
   searchAriaLabel: string;
-  filterOpen: boolean;
-  onFilterOpenChange: (open: boolean) => void;
   statusFilter: WorkingPaperStatusFilter;
   onStatusFilterChange: (value: WorkingPaperStatusFilter) => void;
   assessmentCycleFilter: string;
   onAssessmentCycleFilterChange: (value: string) => void;
+  assessmentCycleOptions: { value: string; label: string }[];
   createdAtFilter: string;
   onCreatedAtFilterChange: (value: string) => void;
   onReset: () => void;
@@ -242,18 +142,23 @@ function WorkingPaperFiltersToolbar({
   onSearchChange,
   searchPlaceholder,
   searchAriaLabel,
-  filterOpen,
-  onFilterOpenChange,
   statusFilter,
   onStatusFilterChange,
   assessmentCycleFilter,
   onAssessmentCycleFilterChange,
+  assessmentCycleOptions,
   createdAtFilter,
   onCreatedAtFilterChange,
   onReset,
 }: WorkingPaperFiltersToolbarProps) {
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const createdAtDate = parseDateFilterValue(createdAtFilter);
+  const hasActiveFilters = Boolean(
+    search || statusFilter !== "all" || assessmentCycleFilter || createdAtFilter,
+  );
+
   return (
-    <div className="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:items-center">
+    <div className="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
       <CollectionSearchField
         containerClassName="w-full sm:w-80 sm:flex-none"
         value={search}
@@ -262,17 +167,77 @@ function WorkingPaperFiltersToolbar({
         aria-label={searchAriaLabel}
       />
 
-      <WorkingPaperFiltersSidebar
-        open={filterOpen}
-        onOpenChange={onFilterOpenChange}
-        statusFilter={statusFilter}
-        onStatusFilterChange={onStatusFilterChange}
-        assessmentCycleFilter={assessmentCycleFilter}
-        onAssessmentCycleFilterChange={onAssessmentCycleFilterChange}
-        createdAtFilter={createdAtFilter}
-        onCreatedAtFilterChange={onCreatedAtFilterChange}
-        onReset={onReset}
-      />
+      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+        <PopoverSelectField
+          fitContent
+          value={statusFilter}
+          onValueChange={(value) =>
+            onStatusFilterChange(value as WorkingPaperStatusFilter)
+          }
+          options={[
+            { value: "all", label: "Semua status" },
+            ...Object.entries(statusLabels).map(([value, label]) => ({
+              value,
+              label,
+            })),
+          ]}
+          placeholder="Semua status"
+          ariaLabel="Filter status kertas kerja"
+          triggerClassName="w-full sm:w-fit"
+        />
+
+        <PopoverSelectField
+          fitContent
+          value={assessmentCycleFilter || "all"}
+          onValueChange={(value) =>
+            onAssessmentCycleFilterChange(value === "all" ? "" : value)
+          }
+          options={assessmentCycleOptions}
+          placeholder="Semua Periode"
+          ariaLabel="Filter siklus asesmen"
+          triggerClassName="w-full sm:w-fit"
+        />
+
+        <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              aria-label={
+                createdAtDate
+                  ? `Filter tanggal dibuat, ${createdAtFilterFormatter.format(createdAtDate)}`
+                  : "Filter tanggal dibuat"
+              }
+              className="w-full justify-start text-left font-normal sm:w-[168px]"
+            >
+              <CalendarIcon aria-hidden="true" data-icon="inline-start" />
+              {createdAtDate
+                ? createdAtFilterFormatter.format(createdAtDate)
+                : "Tanggal dibuat"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-auto p-0">
+            <Calendar
+              mode="single"
+              selected={createdAtDate}
+              onSelect={(date) => {
+                onCreatedAtFilterChange(formatDateFilterValue(date));
+                setDatePickerOpen(false);
+              }}
+            />
+          </PopoverContent>
+        </Popover>
+
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={onReset}
+          disabled={!hasActiveFilters}
+        >
+          Reset
+        </Button>
+      </div>
     </div>
   );
 }
@@ -447,7 +412,6 @@ export default function WorkingPapersPage() {
   const [statusFilter, setStatusFilter] = useState<WorkingPaperStatusFilter>(
     () => getWorkingPaperStatusFilter(searchParams.get("status")),
   );
-  const [filterOpen, setFilterOpen] = useState(false);
   const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
   const [assessmentCycleFilter, setAssessmentCycleFilter] = useState(
     () => searchParams.get("assessment_cycle") ?? "",
@@ -468,17 +432,26 @@ export default function WorkingPapersPage() {
     assessmentCycleFilter,
     500,
   );
+  const assessmentCycleOptions = getAssessmentCycleFilterOptions(
+    new Date(),
+    assessmentCycleFilter,
+  );
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState("");
   const [exportingPaperId, setExportingPaperId] = useState<string | null>(null);
 
-  const periodOptions: { value: string; label: string }[] = (() => {
+  const periodOptions: {
+    value: string;
+    label: string;
+    isCurrent?: boolean;
+  }[] = (() => {
     const currentCycle = currentAssessmentCycle();
-    return [-1, 0, 1].map((delta) => {
-      const value = shiftAssessmentCycle(currentCycle, delta);
-      return { value, label: value };
-    });
+    const monitoringCycles = getSelectableMonitoringCyclesForDate();
+    return monitoringCycles.map((cycle) => ({
+      ...cycle,
+      isCurrent: cycle.value === currentCycle,
+    }));
   })();
 
   const handleResetFilters = () => {
@@ -670,8 +643,6 @@ export default function WorkingPapersPage() {
             }}
             searchPlaceholder="Cari judul kertas kerja..."
             searchAriaLabel="Cari judul kertas kerja"
-            filterOpen={filterOpen}
-            onFilterOpenChange={setFilterOpen}
             statusFilter={statusFilter}
             onStatusFilterChange={(value) => {
               setStatusFilter(value);
@@ -682,6 +653,7 @@ export default function WorkingPapersPage() {
               setAssessmentCycleFilter(value);
               setPage(1);
             }}
+            assessmentCycleOptions={assessmentCycleOptions}
             createdAtFilter={createdAtFilter}
             onCreatedAtFilterChange={(value) => {
               setCreatedAtFilter(value);
@@ -693,7 +665,10 @@ export default function WorkingPapersPage() {
         actions={
           <AccentButton
             onClick={() => {
-              setSelectedPeriod(currentAssessmentCycle());
+              setSelectedPeriod(
+                getSelectableMonitoringCyclesForDate()[0]?.value ??
+                  shiftAssessmentCycle(currentAssessmentCycle(), -1),
+              );
               setCreateModalOpen(true);
             }}
           >

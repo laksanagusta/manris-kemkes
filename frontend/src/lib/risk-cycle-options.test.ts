@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  getAssessmentCycleFilterOptions,
   currentAssessmentCycle,
   currentMonitoringCycle,
   getSelectableAssessmentCycles,
@@ -20,6 +21,25 @@ test("getSelectableAssessmentCycles returns adjacent quarters", () => {
     { value: "2026-Q1", label: "2026-Q1" },
     { value: "2026-Q2", label: "2026-Q2" },
   ]);
+});
+
+test("getAssessmentCycleFilterOptions lists available quarters and keeps the selected cycle", () => {
+  assert.deepEqual(
+    getAssessmentCycleFilterOptions(new Date("2026-10-01T00:00:00Z")),
+    [
+      { value: "all", label: "Semua Periode" },
+      { value: "2026-Q2", label: "2026-Q2" },
+      { value: "2026-Q3", label: "2026-Q3" },
+      { value: "2026-Q4", label: "2026-Q4" },
+    ],
+  );
+  assert.deepEqual(
+    getAssessmentCycleFilterOptions(
+      new Date("2026-10-01T00:00:00Z"),
+      "2025-Q4",
+    ).at(-1),
+    { value: "2025-Q4", label: "2025-Q4" },
+  );
 });
 
 test("currentAssessmentCycle follows date", () => {

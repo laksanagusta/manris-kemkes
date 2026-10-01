@@ -29,6 +29,10 @@ export function currentMonitoringCycle(referenceDate = new Date()) {
   return currentAssessmentCycle(referenceDate);
 }
 
+export function isCurrentMonitoringCycleAvailable(referenceDate = new Date()) {
+  return referenceDate.getMonth() % 3 === 2;
+}
+
 export function shiftAssessmentCycle(cycle: string, delta: number) {
   const { year, quarter } = normalizeQuarterCycle(cycle);
   const index = year * 4 + quarter + delta;
@@ -45,11 +49,12 @@ export function getDefaultMonitoringCycle(
   riskEffectiveCycle?: string | null,
 ) {
   const previousCycle = shiftMonitoringCycle(currentCycle, -1);
-  return isMonitoringCycleAfterPreviousEligible(
-    currentCycle,
-    previousCycleStatus,
-    riskEffectiveCycle,
-  )
+  return isCurrentMonitoringCycleAvailable() &&
+    isMonitoringCycleAfterPreviousEligible(
+      currentCycle,
+      previousCycleStatus,
+      riskEffectiveCycle,
+    )
     ? currentCycle
     : previousCycle;
 }
@@ -101,6 +106,31 @@ export function getSelectableAssessmentCycles(
   });
 }
 
+export function getAssessmentCycleFilterOptions(
+  referenceDate = new Date(),
+  selectedCycle = "",
+): AssessmentCycleOption[] {
+  const start = normalizeQuarterCycle("2026-Q2");
+  const current = normalizeQuarterCycle(currentAssessmentCycle(referenceDate));
+  const cycles: AssessmentCycleOption[] = [];
+
+  for (let year = start.year; year <= current.year; year += 1) {
+    const firstQuarter = year === start.year ? start.quarter + 1 : 1;
+    const lastQuarter = year === current.year ? current.quarter + 1 : 4;
+
+    for (let quarter = firstQuarter; quarter <= lastQuarter; quarter += 1) {
+      const value = `${year}-Q${quarter}`;
+      cycles.push({ value, label: value });
+    }
+  }
+
+  if (selectedCycle && !cycles.some((cycle) => cycle.value === selectedCycle)) {
+    cycles.push({ value: selectedCycle, label: selectedCycle });
+  }
+
+  return [{ value: "all", label: "Semua Periode" }, ...cycles];
+}
+
 export function getSelectableMonitoringCycles(
   currentCycle: string,
 ): AssessmentCycleOption[] {
@@ -111,4 +141,17 @@ export function getSelectableMonitoringCycles(
       label: value,
     };
   });
+}
+
+export function getSelectableMonitoringCyclesForDate(
+  referenceDate = new Date(),
+): AssessmentCycleOption[] {
+  const currentCycle = currentMonitoringCycle(referenceDate);
+  const cycles = [shiftMonitoringCycle(currentCycle, -1)];
+
+  if (isCurrentMonitoringCycleAvailable(referenceDate)) {
+    cycles.push(currentCycle);
+  }
+
+  return cycles.map((value) => ({ value, label: value }));
 }
