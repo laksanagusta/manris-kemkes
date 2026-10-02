@@ -46,6 +46,7 @@ import {
   CollectionPageHeaderExample,
   CollapsibleCardExample,
   FilterPopoverExample,
+  IconographyExample,
   OverviewDashboardExample,
   RiskDetailDrawerExample,
 } from "@/components/shared/design-system/examples";
@@ -67,6 +68,15 @@ export default function DesignSystemPage() {
         </p>
         <p className="text-muted-foreground">Tombol outline, ghost, dan secondary memakai hover #e5e5e5 serta active #dddddd, termasuk saat kontrol terbuka. Tombol primary disabled memakai latar disabled-surface (muted), dengan teks dan ikon disabled-foreground tanpa pengurangan opacity pada kedua tema.</p>
       </header>
+
+      <section className="flex flex-col gap-4">
+        <h2 className="text-lg font-medium">Ikonografi</h2>
+        <p className="text-sm text-muted-foreground">
+          Semua ikon aplikasi menggunakan Hugeicons melalui shared icon layer,
+          kecuali ikon chevron yang tetap memakai Lucide.
+        </p>
+        <IconographyExample />
+      </section>
 
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-medium">Settings modal</h2>
@@ -136,7 +146,7 @@ export default function DesignSystemPage() {
 
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-medium">Toast (Sonner)</h2>
-        <p className="text-sm text-muted-foreground">Semua toast memakai Sonner melalui satu Toaster global di root layout, mengikuti tema aplikasi dengan surface neutral dan ikon status Lucide di kanan bawah. Pilih pesan, berhasil, gagal, informasi, atau peringatan sesuai hasil aksi. Proses async memakai toast.promise agar status memproses berakhir dengan berhasil atau gagal; validasi field wajib tetap inline.</p>
+        <p className="text-sm text-muted-foreground">Semua toast memakai Sonner melalui satu Toaster global di root layout, mengikuti tema aplikasi dengan surface neutral dan ikon status Hugeicons di kanan bawah. Pilih pesan, berhasil, gagal, informasi, atau peringatan sesuai hasil aksi. Proses async memakai toast.promise agar status memproses berakhir dengan berhasil atau gagal; validasi field wajib tetap inline.</p>
         <ToastExample />
       </section>
 
@@ -144,16 +154,16 @@ export default function DesignSystemPage() {
         <h2 className="text-lg font-medium">Formulir</h2>
         <p className="text-sm text-muted-foreground">Error validasi diteruskan ke kontrol melalui aria-invalid atau prop invalid agar border merah terlihat. List dan tabel menampilkan border pada kotak kontennya saja, termasuk border merah saat invalid; tombol tambah memakai variant ghost tanpa border terlihat. Input baris tetap memakai tampilan standar, dengan pesan error pada baris terkait.</p>
         <p className="text-sm text-muted-foreground">Header login menampilkan wordmark Manris berukuran 24px dengan teks `text-tertiary-foreground` dan underline putus-putus 2px ber-offset 4px, di atas judul “Masuk untuk melanjutkan” berukuran 16px. Jarak di antara keduanya adalah 16px (`gap-4`); jarak dari grup kredensial ke tombol aksi juga 16px (`gap-4`).</p>
-        <p className="text-sm text-muted-foreground">Bagian formulir memakai jarak dan inset Card bawaan; judul dan deskripsi berada di CardHeader, diikuti isian dalam CardContent.</p>
+        <p className="text-sm text-muted-foreground">Bagian formulir memakai jarak dan inset Card bawaan; judul dan deskripsi berada di CardHeader, diikuti isian dalam CardContent. Panel Properti di sisi kanan form risiko baru menampilkan Status, Kode risiko, Versi, dan Periode untuk nilai siklus asesmen.</p>
         <p className="text-sm text-muted-foreground">Halaman detail formulir dokumen memakai kontainer `w-full max-w-6xl mx-auto`: konten bertambah mengikuti ruang shell sampai batas 1152px, lalu tetap terpusat. Pada viewport sempit kontainer menyusut tanpa lebar tetap; margin internal bagian menjaga bidang isian dan teks tetap sejajar.</p>
-        <p className="text-sm text-muted-foreground">Form registrasi publik memakai shell autentikasi yang sama dengan login: tanpa Card, kolom tengah `max-w-3xl`, latar dan wordmark yang sama, serta judul 16px. Header dan deskripsi registrasi rata kiri, sejajar dengan label field. Semua field tetap berlabel terlihat, tersusun dua kolom pada layar medium ke atas dan satu kolom pada layar sempit, dengan jarak `gap-2`. Input, InputGroup, dan combobox setinggi 44px bersurface putih; teks isian berwarna neutral gelap dan placeholder muted agar tetap terbaca pada kedua tema. Alert berada di urutan awal form dan membentang pada kedua kolom. Tombol Daftar sekarang dan tautan “Sudah punya akun? Masuk” memakai tinggi 44px, lebar penuh, bentuk pill, dan jarak 4px; action sekunder memakai outline. Deskripsi persetujuan admin tetap ditampilkan.</p>
+        <p className="text-sm text-muted-foreground">Form registrasi publik memakai shell autentikasi yang sama dengan login: tanpa Card, kolom tengah `max-w-3xl`, latar dan wordmark yang sama, serta judul 16px. Header dan deskripsi registrasi rata kiri, sejajar dengan label field. Semua field tetap berlabel terlihat, tersusun dua kolom pada layar medium ke atas dan satu kolom pada layar sempit, dengan jarak kolom 8px dan jarak baris 16px. Input, InputGroup, dan combobox setinggi 44px bersurface putih; teks isian berwarna neutral gelap dan placeholder muted agar tetap terbaca pada kedua tema. Alert berada di urutan awal form dan membentang pada kedua kolom. Tombol Daftar sekarang dan tautan “Sudah punya akun? Masuk” memakai tinggi 44px, lebar penuh, bentuk pill, dan jarak 4px; action sekunder memakai outline. Deskripsi persetujuan admin tetap ditampilkan.</p>
         <p className="text-sm text-muted-foreground">Aksi formulir mengonfirmasi data yang berhasil disimpan dan menampilkan pesan kegagalan yang bisa ditindaklanjuti. Isian wajib memberi pesan inline pada kontrol terkait. Skor risiko yang terisi otomatis ditandai sebagai nilai awal dan menjelaskan apa yang perlu dipastikan sebelum finalisasi.</p>
         <p className="text-sm text-muted-foreground">Pemilih periode pemantauan menampilkan status tiap kuartal sebagai Badge: Belum dipantau, Sedang dipantau, Selesai, Kuartal berjalan, atau Tidak berlaku. Kuartal sebelumnya menjadi pilihan awal; opsi kuartal berjalan baru muncul pada bulan ketiga kuartal tersebut. Modal menjelaskan periode yang masih berlangsung, dan meminta kuartal sebelumnya diselesaikan bila masih menjadi kewajiban. Pemilih periode Kertas Kerja hanya menampilkan kuartal sebelumnya dan kuartal berjalan mulai bulan ketiganya, menandai kuartal berjalan, dan meminta konfirmasi sebelum melanjutkan.</p>
         <MonitoringCycleSelectExample />
         <Card>
           <CardHeader>
             <CardTitle>Kontrol bawaan</CardTitle>
-            <CardDescription>Label, input, textarea, checkbox, dan switch memakai komposisi bawaan shadcn. Semua input teks, textarea, input group, select, dan combobox nonaktif memakai surface `disabled-input-surface` (#fafafa pada tema terang); tema gelap memakai surface muted yang sesuai. Field NIP dan Password pada login memakai tinggi 44px dan surface putih tanpa label terlihat di atas input; teks isian tetap neutral gelap dan placeholder muted pada kedua tema agar kontrasnya terjaga. Jarak antarfield memakai `gap-2`, sementara jarak dari grup field ke tombol aksi memakai `gap-4`. FieldLabel tetap tersedia sebagai nama aksesibel yang hanya dibaca screen reader. Tombol visibilitas password juga setinggi 44px tanpa perubahan warna atau latar saat hover. Petunjuk reset password berada di bawah input dengan teks 12px `text-tertiary-foreground`.</CardDescription>
+            <CardDescription>Label, input, textarea, checkbox, dan switch memakai komposisi bawaan shadcn. Semua input teks, textarea, input group, select, dan combobox nonaktif memakai surface `disabled-input-surface` (#fafafa pada tema terang); tema gelap memakai surface muted yang sesuai. Form Piagam Manris memberi input, textarea, dan select latar putih pada kedua tema agar isian tampak berbeda dari latar halaman. Field NIP dan Password pada login juga memakai tinggi 44px dan surface putih tanpa label terlihat di atas input; teks isian tetap neutral gelap dan placeholder muted pada kedua tema agar kontrasnya terjaga. Jarak antarfield memakai `gap-2`, sementara jarak dari grup field ke tombol aksi memakai `gap-4`. FieldLabel tetap tersedia sebagai nama aksesibel yang hanya dibaca screen reader. Tombol visibilitas password pada login dan registrasi setinggi 44px tanpa perubahan warna atau latar saat hover pada kedua tema. Petunjuk reset password berada di bawah input dengan teks 12px `text-tertiary-foreground`.</CardDescription>
           </CardHeader>
           <CardContent>
             <FieldGroup>
@@ -161,27 +171,27 @@ export default function DesignSystemPage() {
               <FieldLabel htmlFor="design-system-name">Nama risiko</FieldLabel>
               <Input id="design-system-name" placeholder="Masukkan nama risiko" />
             </Field>
-            <FieldGroup className="grid gap-2 md:grid-cols-2">
+            <FieldGroup className="grid gap-x-2 gap-y-4 md:grid-cols-2">
               <Field>
                 <FieldLabel htmlFor="design-system-register-name">Nama lengkap</FieldLabel>
-                <Input id="design-system-register-name" className="h-11 bg-white dark:bg-white" placeholder="Contoh: Dr. Andi Pratama, M.Kes" />
+                <Input id="design-system-register-name" className="h-11 bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500" />
               </Field>
               <Field>
                 <FieldLabel htmlFor="design-system-register-email">Email</FieldLabel>
-                <Input id="design-system-register-email" type="email" className="h-11 bg-white dark:bg-white" placeholder="nama@kemenkes.go.id" />
+                <Input id="design-system-register-email" type="email" className="h-11 bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500" placeholder="nama@kemenkes.go.id" />
               </Field>
             </FieldGroup>
             <FieldGroup className="gap-2">
               <Field>
                 <FieldLabel htmlFor="design-system-login-nip" className="sr-only">NIP (login)</FieldLabel>
-                <Input id="design-system-login-nip" className="h-11 bg-white dark:bg-white" placeholder="Masukkan NIP" />
+                <Input id="design-system-login-nip" className="h-11 bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500" placeholder="Masukkan NIP" />
               </Field>
               <Field>
                 <FieldLabel htmlFor="design-system-login-password" className="sr-only">Password (login)</FieldLabel>
                 <InputGroup className="h-11 bg-white dark:bg-white">
-                  <InputGroupInput id="design-system-login-password" type="password" className="h-11 bg-transparent dark:bg-transparent" placeholder="Masukkan password" />
+                  <InputGroupInput id="design-system-login-password" type="password" className="h-11 bg-transparent dark:bg-transparent dark:text-neutral-900 dark:placeholder:text-neutral-500" placeholder="Masukkan password" />
                   <InputGroupAddon align="inline-end" className="py-0">
-                    <InputGroupButton size="icon-xs" className="h-11 w-11 hover:bg-transparent hover:text-inherit" aria-label="Tampilkan password"><Eye aria-hidden="true" /></InputGroupButton>
+                    <InputGroupButton size="icon-xs" className="h-11 w-11 hover:bg-transparent! dark:hover:bg-transparent! hover:text-inherit! dark:hover:text-inherit!" aria-label="Tampilkan password"><Eye aria-hidden="true" /></InputGroupButton>
                   </InputGroupAddon>
                 </InputGroup>
                 <FieldDescription className="text-xs text-tertiary-foreground">Hubungi administrator jika perlu reset</FieldDescription>
@@ -191,6 +201,24 @@ export default function DesignSystemPage() {
               <FieldLabel htmlFor="design-system-description">Deskripsi</FieldLabel>
               <Textarea id="design-system-description" placeholder="Jelaskan risiko" />
             </Field>
+            <FieldGroup className="gap-3 rounded-xl border border-border/70 bg-background p-4">
+              <Field>
+                <FieldLabel htmlFor="design-system-charter-title">Judul Piagam</FieldLabel>
+                <Input
+                  id="design-system-charter-title"
+                  className="bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500"
+                  placeholder="Piagam Manajemen Risiko 2026"
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="design-system-charter-scope">Ruang lingkup</FieldLabel>
+                <Textarea
+                  id="design-system-charter-scope"
+                  className="bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500"
+                  placeholder="Tuliskan ruang lingkup penerapan manajemen risiko."
+                />
+              </Field>
+            </FieldGroup>
             <Field>
               <FieldLabel htmlFor="design-system-disabled-input">Input nonaktif</FieldLabel>
               <Input id="design-system-disabled-input" disabled defaultValue="Risiko sudah terkunci" />
@@ -295,7 +323,7 @@ export default function DesignSystemPage() {
         </p>
         <IncidentFormModalExample />
         <h3 className="text-sm font-medium">Daftar rencana mitigasi</h3>
-        <p className="max-w-2xl text-sm text-muted-foreground">Rencana mitigasi pada form Risiko dan bagian substansi Risiko Pemantauan memakai komponen MitigationPlanList yang sama, dengan baris abu-abu membulat, ikon di kiri, rencana dan PIC, serta badge tipe putih di kanan. Daftar hanya menampilkan isian langkah pertama; rincian langkah kedua tetap di modal. PIC memakai shadcn DropdownMenu dengan ukuran dan layout bawaan serta trigger outline yang sama seperti tipe mitigasi, ditambah kolom pencarian tanpa ikon, inset horizontal sejajar dengan opsi, dan tanpa padding vertikal tambahan; tombol clear Lucide X muncul saat pencarian berisi teks. Pencarian user berjalan ke server setelah jeda 300ms, dan input tetap bisa diketik tanpa tertangkap navigasi menu. Avatar Dither Kit berukuran 18px dan polanya dihasilkan dari nama PIC; PIC wajib dipilih sebelum lanjut atau simpan. Pada langkah pertama, rencana penanganan selebar penuh, sedangkan PIC dan tipe mitigasi berdampingan mulai breakpoint sm dan menumpuk di layar kecil. Klik baris untuk edit, atau gunakan menu aksi untuk edit dan hapus. Pilihan tipe memakai dropdown radio bersama. Tambah atau edit membuka modal dua langkah seperti Catat Kejadian: rencana, PIC, dan tipe pada langkah pertama; seluruh rincian pada langkah kedua. Kembali mempertahankan isian, Batal atau menutup modal membuang perubahan, dan Simpan memperbarui daftar.</p>
+        <p className="max-w-2xl text-sm text-muted-foreground">Rencana mitigasi pada form Risiko dan bagian substansi Risiko Pemantauan memakai komponen MitigationPlanList yang sama, dengan baris abu-abu membulat, ikon di kiri, rencana dan PIC, serta badge tipe putih di kanan. Daftar hanya menampilkan isian langkah pertama; rincian langkah kedua tetap di modal. PIC memakai shadcn DropdownMenu dengan ukuran dan layout bawaan serta trigger outline yang sama seperti tipe mitigasi, ditambah kolom pencarian tanpa ikon, inset horizontal sejajar dengan opsi, dan tanpa padding vertikal tambahan; tombol clear Hugeicons X muncul saat pencarian berisi teks. Pencarian user berjalan ke server setelah jeda 300ms, dan input tetap bisa diketik tanpa tertangkap navigasi menu. Avatar Dither Kit berukuran 18px dan polanya dihasilkan dari nama PIC; PIC wajib dipilih sebelum lanjut atau simpan. Pada langkah pertama, rencana penanganan selebar penuh, sedangkan PIC dan tipe mitigasi berdampingan mulai breakpoint sm dan menumpuk di layar kecil. Klik baris untuk edit, atau gunakan menu aksi untuk edit dan hapus. Pilihan tipe memakai dropdown radio bersama. Tambah atau edit membuka modal dua langkah seperti Catat Kejadian: rencana, PIC, dan tipe pada langkah pertama; seluruh rincian pada langkah kedua. Kembali mempertahankan isian, Batal atau menutup modal membuang perubahan, dan Simpan memperbarui daftar.</p>
         <MitigationPlanListExample />
       </section>
 
@@ -316,6 +344,7 @@ export default function DesignSystemPage() {
           hanya dipakai saat ruang memang terbatas. Register Risiko menampilkan field Status, Periode, dan Kategori secara inline di samping search; filter Periode memakai PopoverSelectField dengan opsi Semua Periode dan kuartal YYYY-QN berurutan mulai dari 2026-Q2 sampai periode berjalan. Menu periode membuka ke bawah. Risk Events menambahkan field Tingkat, dan Penanganan menambahkan Status serta Periode. Kertas Kerja dan Pemantauan menampilkan search, Status, serta Periode langsung di toolbar; filter Tanggal Dibuat Kertas Kerja memakai trigger outline berikon kalender dan Calendar shadcn di dalam Popover. Dropdown filter ringkas menggunakan opsi terpanjang untuk menentukan lebar, lalu menjaga label satu baris tanpa pemotongan; menu dibatasi lebar viewport meskipun label opsi panjang, lalu dapat digulir horizontal agar seluruh label tetap terbaca. Pada PopoverSelectField dengan lebar trigger tetap, label terpilih yang terlalu panjang dipotong di trigger dan label opsi membungkus di dalam menu. Toolbar membungkus filter saat ruang terbatas. Semua filter periode memakai dropdown Semua Periode, opsi YYYY-QN yang tersedia, dan label periode historis unik yang ada pada data koleksi; pengguna tidak diminta mengetik periode. Filter tanggal memakai Calendar shadcn di dalam Popover. Halaman koleksi lain dapat memakai CollectionFilterPopover untuk filter yang memerlukan ruang tambahan. Table shell dan pagination memakai komponen shared. Empty state hasil pencarian atau filter selalu
           menjelaskan kondisinya dengan judul 14px medium, subtitle 12px muted,
           jarak 4px, dan langkah berikutnya.
+          Filter laporan kuartalan menggunakan Card tersendiri. Periode laporan, Periode pembanding, Grup, dan Unit memakai label muted 12px, jarak label 6px, serta kontrol 36px yang sejajar. Setiap pasangan periode selebar 11rem pada desktop; pemilih scope memakai ruang sisanya. Field Unit compact memakai border input bawaan dan label Grup tidak menampilkan badge jumlah. Ringkasan scope singkat dan Atur ulang filter berada pada baris bawah tanpa divider. Pilihan diterapkan langsung; Atur ulang filter memulihkan periode dan scope default. Dropdown Ekspor di CardAction selebar 22rem, dibatasi viewport, dan menjaga label satu baris dengan scroll horizontal bila diperlukan. Layout bertumpuk di layar kecil, dua kolom di layar medium, dan tiga kolom di desktop.
         </p>
         <CollectionPageHeaderExample />
         <CollectionLayoutExample />
@@ -422,7 +451,7 @@ export default function DesignSystemPage() {
           Empat Card KPI tetap memakai padding bawaan 16px, judul secondary 14px, nilai semibold 24px,
           dan track progres 12px (h-3). Progres parsial memakai violet-400, capaian 100% success,
           dan risiko di atas selera destructive. Indikator pembanding, tooltip, tautan analisis, dan dialog
-          definisi metrik tetap tersedia. Toolbar memakai pasangan Periode dan Pembanding dengan label di atas.
+          definisi metrik tetap tersedia. Card filter memakai label Periode laporan, Periode pembanding, Grup, dan Unit dengan ukuran serta alignment yang sama. Atur ulang filter memulihkan periode dan scope default. Perubahan diterapkan langsung. Menu Ekspor memakai label Unduh ringkasan dan analisis (PDF) dan Unduh laporan lengkap (Excel), dengan lebar yang menjaga teks satu baris. Layout mengikuti pola responsif filter di atas.
           Kedua tabel menutup di batas bawah Card dengan footer pagination yang menempel setelah baris.
           Tabel unit mempertahankan RadialBarChart 40px beserta pembilang dan penyebut; arc parsial memakai violet-400, track muted, dan capaian 100% success. Daftar risiko memakai
           collapsible card dengan loading, error/retry, dan empty state. Detail unit dimuat ketika drawer dibuka;
@@ -433,7 +462,7 @@ export default function DesignSystemPage() {
 
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-medium">Ringkasan pemantauan kuartalan</h2>
-        <p className="text-pretty text-sm text-muted-foreground">Ring utama dan keterangan angka berada di kiri; sorotan prioritas dan insight lain berada di kanan dengan surface `bg-card-subtle-surface`. Label “Prioritas pemantauan” memakai 12px medium dengan warna muted. Ikon info menempel dekat dengan label, dengan target klik tetap 40px. Pada layar kecil kolom bertumpuk. Ring menunjukkan penyelesaian pemantauan final, bukan kesehatan risiko. Angka memakai tabular-nums, tanpa animasi masuk. Contoh berikut memakai data ilustrasi.</p>
+        <p className="text-pretty text-sm text-muted-foreground">Ring utama dan keterangan angka berada di kiri; sorotan prioritas dan insight lain berada di kanan dengan surface `bg-card-subtle-surface`. Kartu menampilkan kuartal sebelum kuartal aktif; badge menunjukkan periode yang diringkas. Label “Prioritas pemantauan” memakai 12px medium dengan warna muted. Ikon info menempel dekat dengan label, dengan target klik tetap 40px. Pada layar kecil kolom bertumpuk. Ring menunjukkan penyelesaian pemantauan final, bukan kesehatan risiko. Angka memakai tabular-nums, tanpa animasi masuk. Contoh berikut memakai data ilustrasi.</p>
         <MonitoringInsightCard cycle="2026-Q3" total={50} finalized={40} highPending={3} increased={2} overdue={5} />
       </section>
 

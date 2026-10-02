@@ -120,16 +120,16 @@ export function ReportScopePicker({
     <div className={className}>
       <div
         className={cn(
-          "grid gap-3",
+          density === "compact" ? "grid gap-4" : "grid gap-3",
           orientation === "vertical"
             ? "grid-cols-1"
             : "md:grid-cols-[0.95fr_1.15fr] md:items-start",
         )}
       >
-        <div className="min-w-0 space-y-2">
+        <div className={cn("min-w-0", density === "compact" ? "space-y-1.5" : "space-y-2")}>
           <div className="flex items-center justify-between gap-3">
-            <p className="text-sm font-medium text-foreground">Group</p>
-            {hasRealGroup ? (
+            <p className={density === "compact" ? "text-xs text-muted-foreground" : "text-sm font-medium text-foreground"}>Grup</p>
+            {hasRealGroup && density !== "compact" ? (
               <Badge variant="outline" className="">
                 {selectedGroupMembers.length}
               </Badge>
@@ -166,8 +166,8 @@ export function ReportScopePicker({
           />
         </div>
 
-        <div className="min-w-0 space-y-2">
-          <p className="text-sm font-medium text-foreground">Unit</p>
+        <div className={cn("min-w-0", density === "compact" ? "space-y-1.5" : "space-y-2")}>
+          <p className={density === "compact" ? "text-xs text-muted-foreground" : "text-sm font-medium text-foreground"}>Unit</p>
           <OrganizationPicker
             value={selectedUnitIds[0] ?? ""}
             organizations={selectedGroupMemberOrganizations}

@@ -686,7 +686,7 @@ export default function RiskCharterDetailPage() {
                 rows={1}
                 placeholder="Judul Piagam"
                 aria-invalid={Boolean(errors.title)}
-                className="resize-none overflow-hidden focus-visible:border-0 focus-visible:ring-0"
+                className="resize-none overflow-hidden bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500 focus-visible:border-0 focus-visible:ring-0"
               />
             ) : (
               <h1 className="break-words whitespace-pre-wrap text-2xl font-semibold leading-tight tracking-tight text-foreground lg:text-3xl">
@@ -710,7 +710,7 @@ export default function RiskCharterDetailPage() {
                 aria-labelledby="charter-scope-label"
                 {...form.register("scope")}
                 placeholder="Tuliskan ruang lingkup penerapan manajemen risiko."
-                className="resize-none"
+                className="resize-none bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500"
               />
             ) : (
               <ReadOnlyValue>{watched.scope}</ReadOnlyValue>
@@ -769,7 +769,7 @@ export default function RiskCharterDetailPage() {
                 aria-labelledby="charter-internal-context-label"
                 {...form.register("internalContext")}
                 placeholder="Tuliskan kondisi internal yang memengaruhi pengelolaan risiko."
-                className="resize-none"
+                className="resize-none bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500"
               />
             ) : (
               <ReadOnlyValue>{watched.internalContext}</ReadOnlyValue>
@@ -789,7 +789,7 @@ export default function RiskCharterDetailPage() {
                 aria-labelledby="charter-external-context-label"
                 {...form.register("externalContext")}
                 placeholder="Tuliskan kondisi eksternal yang memengaruhi pengelolaan risiko."
-                className="resize-none"
+                className="resize-none bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500"
               />
             ) : (
               <ReadOnlyValue>{watched.externalContext}</ReadOnlyValue>
@@ -908,6 +908,7 @@ export default function RiskCharterDetailPage() {
                   <Label htmlFor="legal-reference-modal">Referensi</Label>
                   <Input
                     id="legal-reference-modal"
+                    className="bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500"
                     autoFocus
                     value={listEditor.values.reference}
                     placeholder="Contoh: KMK Nomor HK.01.07/..."
@@ -930,6 +931,7 @@ export default function RiskCharterDetailPage() {
                   <Label htmlFor="legal-provision-modal">Ketentuan relevan</Label>
                   <Input
                     id="legal-provision-modal"
+                    className="bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500"
                     value={listEditor.values.provision}
                     placeholder="Pasal atau pokok ketentuan"
                     onChange={(event) =>
@@ -956,6 +958,7 @@ export default function RiskCharterDetailPage() {
                   <Label htmlFor="stakeholder-name-modal">Nama pihak</Label>
                   <Input
                     id="stakeholder-name-modal"
+                    className="bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500"
                     autoFocus
                     value={listEditor.values.name}
                     placeholder="Nama instansi atau pihak"
@@ -980,7 +983,7 @@ export default function RiskCharterDetailPage() {
                     id="stakeholder-relationship-modal"
                     value={listEditor.values.relationship}
                     placeholder="Kepentingan, ekspektasi, atau peran"
-                    className="resize-none"
+                    className="resize-none bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500"
                     onChange={(event) =>
                       setListEditor((current) =>
                         current?.kind === "stakeholder"
@@ -1019,7 +1022,10 @@ export default function RiskCharterDetailPage() {
                       )
                     }
                   >
-                    <SelectTrigger id="upr-role-modal" className="w-full">
+                    <SelectTrigger
+                      id="upr-role-modal"
+                      className="w-full bg-white dark:bg-white dark:text-neutral-900 dark:data-placeholder:text-neutral-500"
+                    >
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1202,7 +1208,7 @@ export default function RiskCharterDetailPage() {
                 value={revisionReason}
                 onChange={(event) => setRevisionReason(event.target.value)}
                 placeholder="Jelaskan perubahan yang mendasari revisi ini."
-                className="resize-none"
+                className="resize-none bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500"
               />
               <p className="text-xs text-secondary-foreground">Minimal 10 karakter.</p>
             </div>

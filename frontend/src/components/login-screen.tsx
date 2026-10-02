@@ -66,7 +66,7 @@ export default function LoginScreen() {
                 <InputGroup className="h-11 bg-white dark:bg-white dark:text-neutral-900">
                   <InputGroupInput id="password" name="password" type={showPassword ? "text" : "password"} className="h-11 bg-transparent dark:bg-transparent dark:text-neutral-900 dark:placeholder:text-neutral-500" placeholder="Masukkan password" autoComplete="current-password" required value={password} onChange={(event) => setPassword(event.target.value)} />
                   <InputGroupAddon align="inline-end" className="py-0">
-                    <InputGroupButton aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"} aria-pressed={showPassword} onClick={() => setShowPassword((value) => !value)} size="icon-xs" className="h-11 w-11 hover:bg-transparent hover:text-inherit">
+                    <InputGroupButton aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"} aria-pressed={showPassword} onClick={() => setShowPassword((value) => !value)} size="icon-xs" className="h-11 w-11 hover:bg-transparent! dark:hover:bg-transparent! hover:text-inherit! dark:hover:text-inherit!">
                       {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
                     </InputGroupButton>
                   </InputGroupAddon>

@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useState, type ReactNode } from "react";
 import { useTheme } from "next-themes";
-import { Monitor, Moon, Sun } from "lucide-react";
+import { Monitor, Moon, Sun } from "@/components/shared/icons";
 import { SettingsDialog, type SettingsSection } from "@/components/shared/design-system/layout/settings-dialog";
 import { AccountSettings } from "./account-settings";
 import { Card, CardContent } from "@/components/ui/card";

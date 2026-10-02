@@ -30,7 +30,8 @@ export function IconographyExample() {
       </div>
       <p className="text-xs text-muted-foreground">
         Semua ikon aplikasi menggunakan Hugeicons melalui shared icon layer,
-        dengan ukuran dari utility class dan warna mengikuti currentColor.
+        kecuali ikon chevron yang tetap memakai Lucide. Ukuran mengikuti utility
+        class dan warna mengikuti currentColor.
       </p>
     </div>
   );

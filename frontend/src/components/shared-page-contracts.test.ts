@@ -847,12 +847,12 @@ test("risk score selection uses the shared accessible heatmap picker", () => {
   assert.doesNotMatch(riskScoreHeatmapPicker, /bg-muted px-2\.5 py-1 font-mono/);
 });
 
-test("risk property metadata labels the cycle as monitoring period", () => {
+test("risk property metadata labels the cycle as period", () => {
   assert.match(
     riskRegisterForm,
-    /<dt className="text-\[13px\] text-muted-foreground">Periode pemantauan<\/dt>/,
+    /<dt className="text-\[13px\] text-muted-foreground">Periode<\/dt>/,
   );
-  assert.doesNotMatch(riskRegisterForm, />Periode asesmen<\/dt>/);
+  assert.doesNotMatch(riskRegisterForm, />Periode pemantauan<\/dt>/);
 });
 
 test("risk activity surfaces use catatan terminology", () => {

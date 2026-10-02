@@ -153,7 +153,8 @@ export function OrganizationPicker({
           ref={comboboxAnchor}
           className={cn(
             controlHeight,
-            "w-full min-w-0 flex-nowrap overflow-x-auto border-0 bg-card text-sm [scrollbar-width:none]",
+            "w-full min-w-0 flex-nowrap overflow-x-auto bg-card text-sm [scrollbar-width:none]",
+            density !== "compact" && "border-0",
             className,
           )}
         >

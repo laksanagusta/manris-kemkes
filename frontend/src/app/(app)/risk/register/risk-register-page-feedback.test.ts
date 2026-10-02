@@ -170,7 +170,7 @@ test("risk context panel exposes compact risk properties", () => {
   assert.match(riskFormPage, /<dt className="text-\[13px\] text-muted-foreground">Status<\/dt>/);
   assert.match(riskFormPage, /<dt className="text-\[13px\] text-muted-foreground">Kode risiko<\/dt>/);
   assert.match(riskFormPage, /<dt className="text-\[13px\] text-muted-foreground">Versi<\/dt>/);
-  assert.match(riskFormPage, /<dt className="text-\[13px\] text-muted-foreground">Periode asesmen<\/dt>/);
+  assert.match(riskFormPage, /<dt className="text-\[13px\] text-muted-foreground">Periode<\/dt>/);
   assert.match(riskFormPage, /riskVersionNumber/);
   assert.match(riskFormPage, /assessmentCycleDisplay/);
 });
@@ -309,7 +309,7 @@ test("risk form keeps code and assessment period in the context panel only", () 
   assert.doesNotMatch(identificationSection, />\s*Kode Risiko\s*</);
   assert.doesNotMatch(identificationSection, />\s*Periode\s*</);
   assert.match(riskFormPage, /<dt className="text-\[13px\] text-muted-foreground">Kode risiko<\/dt>/);
-  assert.match(riskFormPage, /<dt className="text-\[13px\] text-muted-foreground">Periode asesmen<\/dt>/);
+  assert.match(riskFormPage, /<dt className="text-\[13px\] text-muted-foreground">Periode<\/dt>/);
 });
 
 test("RO picker remains independently locked when reused", () => {
