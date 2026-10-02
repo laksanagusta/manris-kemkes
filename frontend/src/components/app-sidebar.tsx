@@ -339,12 +339,18 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
 
   return (
     <Sidebar
-      className="md:top-14 md:h-[calc(100svh-3.5rem)] md:border-r-[0.5px] md:border-border"
+      className="md:top-0 md:h-svh md:border-r-[0.5px] md:border-border"
       collapsible="icon"
       variant="sidebar"
     >
-      <SidebarHeader className="h-14 justify-center px-3 md:hidden">
-        <SidebarMenu>
+      <SidebarHeader className="h-14 justify-center px-2">
+        <Link
+          href="/overview"
+          className="font-logo hidden min-w-0 items-center rounded-md px-2 py-1 text-2xl leading-7 font-semibold lowercase tracking-[-0.4px] text-foreground outline-hidden transition-colors duration-150 hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-ring md:flex md:group-data-[state=collapsed]/sidebar-wrapper:hidden"
+        >
+          <span className="min-w-0 truncate">Manrisk</span>
+        </Link>
+        <SidebarMenu className="md:hidden">
           <SidebarMenuItem>
             <SidebarMenuButton asChild size="lg" tooltip="Manrisk">
               <Link href="/overview">
@@ -356,7 +362,7 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
                   priority
                   className="size-5 shrink-0 object-contain"
                 />
-                <span className="text-base font-normal text-sidebar-foreground group-data-[collapsible=icon]:hidden">
+                <span className="text-lg leading-6 font-normal text-sidebar-foreground group-data-[collapsible=icon]:hidden">
                   Manrisk
                 </span>
               </Link>

@@ -10,6 +10,7 @@ import {
   DashboardKpiCard,
   MetricGrid,
   PageStack,
+  CollectionPageHeader,
 } from "@/components/shared/design-system";
 import type {
   DashboardRiskCategoryItem,
@@ -186,6 +187,7 @@ export default function DashboardPage() {
 
   return (
     <PageStack className="space-y-5 lg:space-y-6">
+      <CollectionPageHeader title="Dashboard" showTitle />
       <section
         data-dashboard-section="kpis"
         aria-label="Ringkasan metrik risiko"

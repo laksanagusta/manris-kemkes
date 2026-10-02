@@ -84,6 +84,7 @@ import {
   ActionIconButton,
   AccentButton,
   CollectionDialogCancel,
+  CollectionPageHeader,
   FieldErrorMessage,
   IllustratedEmptyState,
   Input,
@@ -2617,6 +2618,19 @@ export default function RiskInputPage() {
   return (
     <TooltipProvider>
       <FormPage className="risk-form-filter-controls space-y-6">
+        <CollectionPageHeader
+          title={
+            riskId || selectedRiskId
+              ? riskCode || "Detail Risiko"
+              : "Tambah Risiko"
+          }
+          subtitle={
+            riskId || selectedRiskId
+              ? "Tinjau informasi, penilaian, dan penanganan risiko."
+              : "Identifikasi konteks, penyebab, dampak, dan penanganan risiko."
+          }
+          showTitle
+        />
         <div className="flex flex-wrap items-center justify-end gap-2">
           {returnTo !== "/risk/register" ? (
             <ActionButton asChild variant="outline">
