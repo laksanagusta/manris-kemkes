@@ -455,7 +455,7 @@ export function OrganizationGroupManagement({
               aria-label="Cari grup organisasi"
               containerClassName="sm:w-[260px]"
             />
-            <Button size="sm" variant="outline" onClick={openCreateDialog}>
+            <Button size="default" variant="outline" onClick={openCreateDialog}>
               <Plus data-icon="inline-start" />
               Tambah Grup
             </Button>

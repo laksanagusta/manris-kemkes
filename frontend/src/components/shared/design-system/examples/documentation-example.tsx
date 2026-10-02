@@ -2,11 +2,11 @@ import Link from "next/link";
 import { ArticleContent, type DocumentationArticle } from "@/components/documentation/article-content";
 
 export const documentationExampleArticle: DocumentationArticle = {
-  slug: "example", title: "Mulai menggunakan Manris", category: "MULAI DI SINI",
-  description: "Pelajari urutan kerja di Manris, dari pencatatan risiko hingga pemantauan dan pelaporan berkala.",
+  slug: "example", title: "Mulai menggunakan Manrisk", category: "MULAI DI SINI",
+  description: "Pelajari urutan kerja di Manrisk, dari pencatatan risiko hingga pemantauan dan pelaporan berkala.",
   access: "Menu yang tampil mengikuti hak akses dan cakupan organisasi akun Anda.",
   sections: [
-    { id: "contoh-alur", title: "Pahami alur kerja", image: { src: "/documentation/screens/dashboard-start.png", alt: "Dashboard Manris dengan ringkasan risiko, grafik, dan peta risiko", caption: "Dashboard Manris menampilkan ringkasan dan tren untuk cakupan serta periode yang dipilih.", width: 3420, height: 1906 }, diagram: [
+    { id: "contoh-alur", title: "Pahami alur kerja", image: { src: "/documentation/screens/dashboard-start.png", alt: "Dashboard Manrisk dengan ringkasan risiko, grafik, dan peta risiko", caption: "Dashboard Manrisk menampilkan ringkasan dan tren untuk cakupan serta periode yang dipilih.", width: 3420, height: 1906 }, diagram: [
       { title: "Identifikasi", detail: "Catat profil dan nilai risiko." },
       { title: "Penanganan", detail: "Susun dan laporkan mitigasi." },
       { title: "Pemantauan", detail: "Nilai kondisi setiap periode." },

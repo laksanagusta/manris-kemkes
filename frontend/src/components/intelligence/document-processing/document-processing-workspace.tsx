@@ -59,7 +59,7 @@ export function DocumentProcessingWorkspace({
   reportedFindingIds,
   analysisMode,
   heading = "Analisis dokumen menjadi temuan risiko",
-  description = "Unggah satu dokumen. Manris akan mengelompokkan halaman dan menghubungkan temuan dengan sumbernya.",
+  description = "Unggah satu dokumen. Manrisk akan mengelompokkan halaman dan menghubungkan temuan dengan sumbernya.",
 }: {
   authToken?: string;
   organizationId?: string;
@@ -241,10 +241,10 @@ export function DocumentProcessingWorkspace({
           ) : null}
         </AnimatePresence>
 
-        <div className="mb-8 max-w-2xl space-y-2 sm:mb-10">
-          <h2 className="text-base font-medium tracking-[-0.015em] text-foreground">
+        <div className="mb-6 max-w-2xl space-y-1 sm:mb-8">
+          <h1 className="page-title">
             {heading}
-          </h2>
+          </h1>
           <p className="text-sm leading-6 text-secondary-foreground">
             {description}
           </p>

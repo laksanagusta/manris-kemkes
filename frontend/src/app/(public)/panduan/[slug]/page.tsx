@@ -12,9 +12,9 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: DocumentationRouteProps): Promise<Metadata> {
   const { slug } = await params;
   const article = getDocumentationArticle(slug);
-  if (!article) return { title: "Halaman tidak ditemukan | Panduan Manris" };
+  if (!article) return { title: "Halaman tidak ditemukan | Panduan Manrisk" };
   return {
-    title: `${article.title} | Panduan Manris`,
+    title: `${article.title} | Panduan Manrisk`,
     description: article.description,
   };
 }

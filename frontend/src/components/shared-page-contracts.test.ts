@@ -614,7 +614,7 @@ test("sidebar hierarchy prioritizes operations and consolidates administration",
   assert.match(appSidebar, /MonitorDot/);
   assert.match(
     appNavigation,
-    /label: "Piagam Manris"[\s\S]*label: "Eskalasi Risiko"/,
+    /label: "Piagam Manrisk"[\s\S]*label: "Eskalasi Risiko"/,
   );
   assert.doesNotMatch(mainMenuSource, /label: "Struktur Kinerja"/);
   assert.doesNotMatch(mainMenuSource, /label: "Evaluasi"/);

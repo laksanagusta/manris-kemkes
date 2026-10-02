@@ -253,7 +253,7 @@ export default function RiskChartersPage() {
 
   return (
     <PageStack>
-      <CollectionPageHeader title="Piagam Manris" />
+      <CollectionPageHeader title="Piagam Manrisk" />
 
       {error ? (
         <CollectionErrorState message={error} onReload={() => loadData()} />
@@ -309,7 +309,7 @@ export default function RiskChartersPage() {
       <CollectionTableCard>
         {filteredItems.length === 0 ? (
           <CollectionEmptyState
-            title={items.length === 0 ? "Belum ada piagam Manris" : "Tidak ada piagam yang cocok"}
+            title={items.length === 0 ? "Belum ada piagam Manrisk" : "Tidak ada piagam yang cocok"}
             description={
               items.length === 0
                 ? "Buat piagam untuk menetapkan arah dan mandat manajemen risiko."

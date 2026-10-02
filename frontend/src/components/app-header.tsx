@@ -12,10 +12,13 @@ export function AppHeader() {
   const pathname = usePathname();
   const actions = useHeaderActions();
   const { title, subtitle } = getAppPageMeta(pathname);
-  const isCharterDetail = /^\/management\/charters\/[^/]+$/.test(pathname);
+  const isCharterDetail =
+    /^\/management\/charters\/[^/]+$/.test(pathname) &&
+    pathname !== "/management/charters/new";
 
   if (
     pathname === "/overview" ||
+    pathname === "/design-system" ||
     pathname === "/risk/register/new" ||
     pathname === "/risk/register/import-sop" ||
     pathname === "/compliance/penanganan/impor"
@@ -28,7 +31,7 @@ export function AppHeader() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl">
+    <div className="w-full">
       <CollectionPageHeader
         title={title}
         subtitle={subtitle}
@@ -43,7 +46,7 @@ export function AppHeader() {
             />
           </>
         }
-        className="mb-6 w-full"
+        className="mb-4 w-full"
       />
     </div>
   );

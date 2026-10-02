@@ -11,7 +11,7 @@ test("keeps the login surface free of the card wrapper and logo", () => {
   assert.match(source, /<h1 className="text-\[20px\] leading-5 font-medium tracking-tight text-balance">/);
   assert.match(
     source,
-    /<span className="font-logo text-\[20px\] leading-5 font-semibold lowercase tracking-\[-0\.4px\] text-foreground">\s*Manris\s*<\/span>/,
+    /<span className="font-logo text-\[20px\] leading-5 font-semibold lowercase tracking-\[-0\.4px\] text-foreground">\s*Manrisk\s*<\/span>/,
   );
   assert.match(source, /<form onSubmit=\{handleSubmit\} className="flex flex-col gap-4">/);
   assert.match(

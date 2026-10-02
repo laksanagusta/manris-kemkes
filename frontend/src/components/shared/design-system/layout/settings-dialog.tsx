@@ -48,7 +48,7 @@ export function SettingsDialog({ open, onOpenChange, section, onSectionChange, c
           <div className="min-h-0 overflow-y-auto overscroll-contain px-5 py-6 md:px-10 md:py-8">
             <DialogHeader className="mb-8 pr-8">
               <DialogTitle>{sections.find((item) => item.id === section)?.label}</DialogTitle>
-              <DialogDescription>{section === "account" ? "Kelola profil akun Anda." : section === "security" ? "Kelola keamanan dan password akun Anda." : "Sesuaikan tampilan Manris pada perangkat ini."}</DialogDescription>
+              <DialogDescription>{section === "account" ? "Kelola profil akun Anda." : section === "security" ? "Kelola keamanan dan password akun Anda." : "Sesuaikan tampilan Manrisk pada perangkat ini."}</DialogDescription>
             </DialogHeader>
             {children}
           </div>

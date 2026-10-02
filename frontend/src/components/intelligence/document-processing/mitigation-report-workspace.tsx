@@ -101,7 +101,7 @@ export function MitigationReportWorkspace({
         organizationId={organizationId}
         analysisMode="mitigation_report_mapper"
         heading="Impor laporan mitigasi"
-        description="Unggah satu laporan. Manris akan mencocokkan isinya dengan task penanganan yang masih terbuka."
+        description="Unggah satu laporan. Manrisk akan mencocokkan isinya dengan task penanganan yang masih terbuka."
         onUseMitigationReport={openReport}
         reportedFindingIds={reportedFindingIds}
       />

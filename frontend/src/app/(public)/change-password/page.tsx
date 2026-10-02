@@ -107,8 +107,8 @@ export default function ChangePasswordPage() {
 
       <div className="relative z-10 w-full max-w-md px-4 animate-fade-in">
         <div className="mb-8 text-center">
-          <Image src="/logo.svg" alt="MANRIS logo" width={44} height={44} className="mx-auto" />
-          <h1 className="text-xl font-semibold">MANRIS</h1>
+          <Image src="/logo.svg" alt="MANRISK logo" width={44} height={44} className="mx-auto" />
+          <h1 className="text-xl font-semibold">MANRISK</h1>
           <p className="text-muted-foreground">
             {isSetupFlow
               ? "Aktivasi akun pada login pertama"

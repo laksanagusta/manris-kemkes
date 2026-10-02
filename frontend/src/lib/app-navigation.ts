@@ -21,7 +21,7 @@ export const mainMenuItems: MainMenuGroup[] = [
     title: "TATA KELOLA RISIKO",
     items: [
       {
-        label: "Piagam Manris",
+        label: "Piagam Manrisk",
         href: "/management/charters",
         icon: "Certificate01",
         matchHrefs: ["/management/charters"],
@@ -187,10 +187,10 @@ export function getBreadcrumbItems(
     );
   }
 
-  const charterParent = parentBreadcrumb("Piagam Manris", "/management/charters");
+  const charterParent = parentBreadcrumb("Piagam Manrisk", "/management/charters");
   if (route === "/management/charters") return [charterParent];
   if (route === "/management/charters/new") {
-    return detailBreadcrumb(charterParent, "Buat Piagam Manris");
+    return detailBreadcrumb(charterParent, "Buat Piagam Manrisk");
   }
   if (/^\/management\/charters\/[^/]+$/.test(route)) {
     return detailBreadcrumb(charterParent, dynamicLabel ?? "Detail Piagam");
@@ -307,8 +307,8 @@ export const breadcrumbMap: Record<string, string> = {
   "/settings": "Pengaturan",
   "/settings/groups": "Grup",
   "/management": "Tata Kelola Risiko",
-  "/management/charters": "Piagam Manris",
-  "/management/charters/new": "Buat Piagam Manris",
+  "/management/charters": "Piagam Manrisk",
+  "/management/charters/new": "Buat Piagam Manrisk",
   "/risk/cascading": "Eskalasi Risiko",
   "/management/planning": "Struktur Kinerja & RO",
   "/management/tmpmr": "TMPMR",
@@ -399,11 +399,11 @@ export const appPageMeta: Record<string, AppPageMeta> = {
     subtitle: "Ubah transkrip rapat menjadi risiko dan tindak lanjut terstruktur.",
   },
   "/management/charters": {
-    title: "Piagam Manris",
+    title: "Piagam Manrisk",
     subtitle: "Tetapkan arah, mandat, dan ruang lingkup manajemen risiko.",
   },
   "/management/charters/new": {
-    title: "Buat Piagam Manris",
+    title: "Buat Piagam Manrisk",
     subtitle: "Susun piagam sebagai dasar pelaksanaan manajemen risiko.",
   },
   "/management/planning": {
@@ -428,7 +428,7 @@ export const appPageMeta: Record<string, AppPageMeta> = {
   },
   "/panduan/risiko": {
     title: "Panduan Risiko",
-    subtitle: "Pelajari tahapan dan prinsip pengelolaan risiko di Manris.",
+    subtitle: "Pelajari tahapan dan prinsip pengelolaan risiko di Manrisk.",
   },
   "/reports": {
     title: "Ringkasan Risiko",

@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Manris",
+  title: "Manrisk",
   description:
     "Platform SaaS manajemen risiko",
   icons: {

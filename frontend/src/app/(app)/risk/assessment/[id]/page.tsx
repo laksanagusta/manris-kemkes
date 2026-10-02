@@ -1568,7 +1568,7 @@ export default function AssessmentFormPage() {
         </div>
 
         {/* Right Column / Side Panel */}
-        <aside className="min-w-0 xl:sticky xl:top-14 xl:self-start">
+        <aside className="min-w-0 xl:sticky xl:top-6 xl:self-start">
           <div className="space-y-6">
             <Card className="overflow-hidden transition-colors duration-300">
               <CardContent className="">

@@ -24,7 +24,7 @@ export function SidebarMotionExample() {
       <SidebarProvider className="min-h-0 w-full">
         <div className="flex w-full max-w-xs flex-col gap-1 rounded-lg border-[0.5px] border-border bg-sidebar py-2">
           <div className="font-logo px-4 py-3 text-xl font-semibold lowercase tracking-[-0.4px] text-sidebar-foreground">
-            Manris
+            Manrisk
           </div>
           <SidebarGroup>
             <SidebarMenu className="gap-1">

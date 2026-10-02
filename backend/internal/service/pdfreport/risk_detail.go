@@ -34,7 +34,7 @@ func (r *pdfReportRenderer) RenderRiskDetail(_ context.Context, data *entity.Ris
 	pdf.SetAutoPageBreak(true, 20)
 	pdf.SetTitle(data.Title, false)
 	pdf.SetSubject("Lampiran detail risiko", false)
-	pdf.SetAuthor("MANRIS v2", false)
+	pdf.SetAuthor("MANRISK v2", false)
 	pdf.SetFont("Arial", "", riskDetailBodyFontSize)
 	pdf.AddPage()
 

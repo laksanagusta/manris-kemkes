@@ -1039,7 +1039,7 @@ function buildTandaTanganSheet(
   const footerCell = ws.getCell(`A${footerRowNum}`);
   footerCell.value = workingPaper.tte_skipped
     ? "Kertas kerja ini selesai tanpa tanda tangan elektronik (TTE dilewati)"
-    : "Dokumen ini ditandatangani secara elektronik melalui Manris";
+    : "Dokumen ini ditandatangani secara elektronik melalui Manrisk";
   footerCell.font = { name: BASE_FONT_NAME, italic: true, size: 10, color: { argb: "FF666666" } };
   footerCell.alignment = { horizontal: "center", vertical: "middle" };
 }

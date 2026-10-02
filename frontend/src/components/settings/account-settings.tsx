@@ -195,7 +195,7 @@ export function AccountSettings({ view = "account" }: { view?: "account" | "secu
               <FieldGroup className="mt-4">
                 {([
                   ["name", "Nama lengkap", "Nama lengkap", true],
-                  ["email", "Email", "nama@manris.local", true],
+                  ["email", "Email", "nama@manrisk.local", true],
                   ["nip", "NIP", "Nomor induk pegawai", true],
                   ["jabatan", "Jabatan", "Jabatan", false],
                   ["pangkat", "Pangkat", "Pangkat / golongan", false],
