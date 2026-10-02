@@ -6,7 +6,7 @@ import {
   FileSpreadsheet,
   FileText,
   Loader2,
-} from "lucide-react";
+} from "@/components/shared/icons";
 import { toast } from "sonner";
 import { api, API_BASE } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Search, ShieldCheck, SlidersHorizontal, UserRound } from "lucide-react";
+import { Search, ShieldCheck, SlidersHorizontal, UserRound } from "@/components/shared/icons";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";

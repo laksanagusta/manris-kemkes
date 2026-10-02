@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { StandardCard } from "../layout/standard-card";
 import { OverviewPanelState } from "./overview-panel-state";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Info } from "lucide-react";
+import { Info } from "@/components/shared/icons";
 
 export interface MonitoringInsightCardProps {
   cycle: string;

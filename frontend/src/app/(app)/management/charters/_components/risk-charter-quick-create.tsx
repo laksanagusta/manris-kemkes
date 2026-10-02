@@ -193,6 +193,7 @@ export function RiskCharterQuickCreate({
         <Label htmlFor="charter-title">Judul Piagam</Label>
         <Input
           id="charter-title"
+          className="bg-white dark:bg-white"
           autoFocus
           maxLength={120}
           value={title}

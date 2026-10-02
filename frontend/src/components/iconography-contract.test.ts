@@ -15,12 +15,39 @@ function collectSourceFiles(directory: string): string[] {
   });
 }
 
-test("application icons use Lucide", () => {
+test("application icons use Hugeicons except chevrons", () => {
   const files = collectSourceFiles(sourceRoot);
+  const iconLayer = path.join(sourceRoot, "shared/icons.tsx");
   const directHugeiconsImports = files.filter((file) =>
     /@hugeicons\/(react|core-free-icons)/.test(readFileSync(file, "utf8")),
   );
+  const iconLayerSource = readFileSync(iconLayer, "utf8");
+  const directLucideImports = files.filter(
+    (file) =>
+      file !== iconLayer &&
+      !file.endsWith(".test.ts") &&
+      /from ["']lucide-react["']/.test(readFileSync(file, "utf8")),
+  );
+  const lucideExports = [...iconLayerSource.matchAll(/export \{([\s\S]*?)\} from "lucide-react"/g)]
+    .flatMap((match) => match[1].split(","))
+    .map((name) => name.trim())
+    .filter(Boolean)
+    .sort();
 
-  assert.deepEqual(directHugeiconsImports, []);
-  assert.match(readFileSync(path.join(sourceRoot, "shared/icons.tsx"), "utf8"), /lucide-react/);
+  assert.deepEqual(directHugeiconsImports, [iconLayer]);
+  assert.deepEqual(directLucideImports, []);
+  assert.deepEqual(
+    lucideExports,
+    [
+      "ChevronDown",
+      "ChevronDownIcon",
+      "ChevronLeft",
+      "ChevronLeftIcon",
+      "ChevronRight",
+      "ChevronRightIcon",
+      "ChevronsUpDown",
+      "ChevronUp",
+      "ChevronUpIcon",
+    ].sort(),
+  );
 });

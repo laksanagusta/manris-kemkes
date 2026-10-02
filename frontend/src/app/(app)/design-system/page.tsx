@@ -46,6 +46,7 @@ import {
   CollectionPageHeaderExample,
   CollapsibleCardExample,
   FilterPopoverExample,
+  IconographyExample,
   OverviewDashboardExample,
   RiskDetailDrawerExample,
 } from "@/components/shared/design-system/examples";
@@ -67,6 +68,15 @@ export default function DesignSystemPage() {
         </p>
         <p className="text-muted-foreground">Tombol outline, ghost, dan secondary memakai hover #e5e5e5 serta active #dddddd, termasuk saat kontrol terbuka. Tombol primary disabled memakai latar disabled-surface (muted), dengan teks dan ikon disabled-foreground tanpa pengurangan opacity pada kedua tema.</p>
       </header>
+
+      <section className="flex flex-col gap-4">
+        <h2 className="text-lg font-medium">Ikonografi</h2>
+        <p className="text-sm text-muted-foreground">
+          Semua ikon aplikasi menggunakan Hugeicons melalui shared icon layer,
+          kecuali ikon chevron yang tetap memakai Lucide.
+        </p>
+        <IconographyExample />
+      </section>
 
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-medium">Settings modal</h2>
@@ -136,7 +146,7 @@ export default function DesignSystemPage() {
 
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-medium">Toast (Sonner)</h2>
-        <p className="text-sm text-muted-foreground">Semua toast memakai Sonner melalui satu Toaster global di root layout, mengikuti tema aplikasi dengan surface neutral dan ikon status Lucide di kanan bawah. Pilih pesan, berhasil, gagal, informasi, atau peringatan sesuai hasil aksi. Proses async memakai toast.promise agar status memproses berakhir dengan berhasil atau gagal; validasi field wajib tetap inline.</p>
+        <p className="text-sm text-muted-foreground">Semua toast memakai Sonner melalui satu Toaster global di root layout, mengikuti tema aplikasi dengan surface neutral dan ikon status Hugeicons di kanan bawah. Pilih pesan, berhasil, gagal, informasi, atau peringatan sesuai hasil aksi. Proses async memakai toast.promise agar status memproses berakhir dengan berhasil atau gagal; validasi field wajib tetap inline.</p>
         <ToastExample />
       </section>
 
@@ -153,7 +163,7 @@ export default function DesignSystemPage() {
         <Card>
           <CardHeader>
             <CardTitle>Kontrol bawaan</CardTitle>
-            <CardDescription>Label, input, textarea, checkbox, dan switch memakai komposisi bawaan shadcn. Semua input teks, textarea, input group, select, dan combobox nonaktif memakai surface `disabled-input-surface` (#fafafa pada tema terang); tema gelap memakai surface muted yang sesuai. Field NIP dan Password pada login memakai tinggi 44px dan surface putih tanpa label terlihat di atas input; teks isian tetap neutral gelap dan placeholder muted pada kedua tema agar kontrasnya terjaga. Jarak antarfield memakai `gap-2`, sementara jarak dari grup field ke tombol aksi memakai `gap-4`. FieldLabel tetap tersedia sebagai nama aksesibel yang hanya dibaca screen reader. Tombol visibilitas password pada login dan registrasi setinggi 44px tanpa perubahan warna atau latar saat hover pada kedua tema. Petunjuk reset password berada di bawah input dengan teks 12px `text-tertiary-foreground`.</CardDescription>
+            <CardDescription>Label, input, textarea, checkbox, dan switch memakai komposisi bawaan shadcn. Semua input teks, textarea, input group, select, dan combobox nonaktif memakai surface `disabled-input-surface` (#fafafa pada tema terang); tema gelap memakai surface muted yang sesuai. Form Piagam Manris memberi input, textarea, dan select latar putih pada kedua tema agar isian tampak berbeda dari latar halaman. Field NIP dan Password pada login juga memakai tinggi 44px dan surface putih tanpa label terlihat di atas input; teks isian tetap neutral gelap dan placeholder muted pada kedua tema agar kontrasnya terjaga. Jarak antarfield memakai `gap-2`, sementara jarak dari grup field ke tombol aksi memakai `gap-4`. FieldLabel tetap tersedia sebagai nama aksesibel yang hanya dibaca screen reader. Tombol visibilitas password pada login dan registrasi setinggi 44px tanpa perubahan warna atau latar saat hover pada kedua tema. Petunjuk reset password berada di bawah input dengan teks 12px `text-tertiary-foreground`.</CardDescription>
           </CardHeader>
           <CardContent>
             <FieldGroup>
@@ -191,6 +201,24 @@ export default function DesignSystemPage() {
               <FieldLabel htmlFor="design-system-description">Deskripsi</FieldLabel>
               <Textarea id="design-system-description" placeholder="Jelaskan risiko" />
             </Field>
+            <FieldGroup className="gap-3 rounded-xl border border-border/70 bg-background p-4">
+              <Field>
+                <FieldLabel htmlFor="design-system-charter-title">Judul Piagam</FieldLabel>
+                <Input
+                  id="design-system-charter-title"
+                  className="bg-white dark:bg-white"
+                  placeholder="Piagam Manajemen Risiko 2026"
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="design-system-charter-scope">Ruang lingkup</FieldLabel>
+                <Textarea
+                  id="design-system-charter-scope"
+                  className="bg-white dark:bg-white"
+                  placeholder="Tuliskan ruang lingkup penerapan manajemen risiko."
+                />
+              </Field>
+            </FieldGroup>
             <Field>
               <FieldLabel htmlFor="design-system-disabled-input">Input nonaktif</FieldLabel>
               <Input id="design-system-disabled-input" disabled defaultValue="Risiko sudah terkunci" />
@@ -295,7 +323,7 @@ export default function DesignSystemPage() {
         </p>
         <IncidentFormModalExample />
         <h3 className="text-sm font-medium">Daftar rencana mitigasi</h3>
-        <p className="max-w-2xl text-sm text-muted-foreground">Rencana mitigasi pada form Risiko dan bagian substansi Risiko Pemantauan memakai komponen MitigationPlanList yang sama, dengan baris abu-abu membulat, ikon di kiri, rencana dan PIC, serta badge tipe putih di kanan. Daftar hanya menampilkan isian langkah pertama; rincian langkah kedua tetap di modal. PIC memakai shadcn DropdownMenu dengan ukuran dan layout bawaan serta trigger outline yang sama seperti tipe mitigasi, ditambah kolom pencarian tanpa ikon, inset horizontal sejajar dengan opsi, dan tanpa padding vertikal tambahan; tombol clear Lucide X muncul saat pencarian berisi teks. Pencarian user berjalan ke server setelah jeda 300ms, dan input tetap bisa diketik tanpa tertangkap navigasi menu. Avatar Dither Kit berukuran 18px dan polanya dihasilkan dari nama PIC; PIC wajib dipilih sebelum lanjut atau simpan. Pada langkah pertama, rencana penanganan selebar penuh, sedangkan PIC dan tipe mitigasi berdampingan mulai breakpoint sm dan menumpuk di layar kecil. Klik baris untuk edit, atau gunakan menu aksi untuk edit dan hapus. Pilihan tipe memakai dropdown radio bersama. Tambah atau edit membuka modal dua langkah seperti Catat Kejadian: rencana, PIC, dan tipe pada langkah pertama; seluruh rincian pada langkah kedua. Kembali mempertahankan isian, Batal atau menutup modal membuang perubahan, dan Simpan memperbarui daftar.</p>
+        <p className="max-w-2xl text-sm text-muted-foreground">Rencana mitigasi pada form Risiko dan bagian substansi Risiko Pemantauan memakai komponen MitigationPlanList yang sama, dengan baris abu-abu membulat, ikon di kiri, rencana dan PIC, serta badge tipe putih di kanan. Daftar hanya menampilkan isian langkah pertama; rincian langkah kedua tetap di modal. PIC memakai shadcn DropdownMenu dengan ukuran dan layout bawaan serta trigger outline yang sama seperti tipe mitigasi, ditambah kolom pencarian tanpa ikon, inset horizontal sejajar dengan opsi, dan tanpa padding vertikal tambahan; tombol clear Hugeicons X muncul saat pencarian berisi teks. Pencarian user berjalan ke server setelah jeda 300ms, dan input tetap bisa diketik tanpa tertangkap navigasi menu. Avatar Dither Kit berukuran 18px dan polanya dihasilkan dari nama PIC; PIC wajib dipilih sebelum lanjut atau simpan. Pada langkah pertama, rencana penanganan selebar penuh, sedangkan PIC dan tipe mitigasi berdampingan mulai breakpoint sm dan menumpuk di layar kecil. Klik baris untuk edit, atau gunakan menu aksi untuk edit dan hapus. Pilihan tipe memakai dropdown radio bersama. Tambah atau edit membuka modal dua langkah seperti Catat Kejadian: rencana, PIC, dan tipe pada langkah pertama; seluruh rincian pada langkah kedua. Kembali mempertahankan isian, Batal atau menutup modal membuang perubahan, dan Simpan memperbarui daftar.</p>
         <MitigationPlanListExample />
       </section>
 
