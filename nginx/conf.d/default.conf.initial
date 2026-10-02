@@ -2,14 +2,14 @@
 # Usage:
 #   1. Copy this to default.conf: cp default.conf.initial default.conf
 #   2. Start services: docker compose up -d
-#   3. Obtain certs: docker compose run --rm --entrypoint /bin/sh certbot -c 'certbot certonly --webroot -w /var/www/certbot -d api-manris.dikalaksana.com -d manris.dikalaksana.com --email your@email.com --agree-tos --no-eff-email'
+#   3. Obtain certs: docker compose run --rm --entrypoint /bin/sh certbot -c 'certbot certonly --webroot -w /var/www/certbot -d api-manrisk.dikalaksana.com -d manrisk.dikalaksana.com --email your@email.com --agree-tos --no-eff-email'
 #   4. Upload the SSL config from the local repo to nginx/conf.d/default.conf
 #   5. Reload nginx: docker compose exec nginx nginx -s reload
 
 # Backend API
 server {
     listen 80;
-    server_name api-manris.dikalaksana.com;
+    server_name api-manrisk.dikalaksana.com;
 
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
@@ -27,7 +27,7 @@ server {
 # Frontend
 server {
     listen 80;
-    server_name manris.dikalaksana.com;
+    server_name manrisk.dikalaksana.com;
 
     location /.well-known/acme-challenge/ {
         root /var/www/certbot;
