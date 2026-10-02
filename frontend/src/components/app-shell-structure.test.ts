@@ -30,7 +30,7 @@ test("uses a white application canvas and larger wordmark", () => {
   );
   assert.match(
     sidebarSource,
-    /className="text-lg font-semibold text-sidebar-foreground group-data-\[collapsible=icon\]:hidden">\s*Manris\s*</,
+    /className="text-lg font-semibold text-sidebar-foreground group-data-\[collapsible=icon\]:hidden">\s*Manrisk\s*</,
   );
   assert.match(
     sidebarSource,
@@ -59,7 +59,7 @@ test("uses blended gray navigation highlights", () => {
   );
 });
 
-test("preserves Manris shell behavior", () => {
+test("preserves Manrisk shell behavior", () => {
   assert.match(shellSource, /api\s*\.get<\{ Count: number \}>/);
   assert.match(shellSource, /api\s*\.get<\{ count: number \}>/);
   assert.match(shellSource, /<AppSidebar inboxBadge=/);

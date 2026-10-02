@@ -20,7 +20,7 @@ export function SettingsModalExample() {
           <CardContent>
             <FieldGroup>
               <Field orientation="responsive"><FieldLabel htmlFor="settings-example-name">Nama lengkap</FieldLabel><Input id="settings-example-name" defaultValue="Dika Laksana" /></Field>
-              <Field orientation="responsive"><FieldLabel htmlFor="settings-example-email">Email</FieldLabel><Input id="settings-example-email" defaultValue="nama@manris.local" /></Field>
+              <Field orientation="responsive"><FieldLabel htmlFor="settings-example-email">Email</FieldLabel><Input id="settings-example-email" defaultValue="nama@manrisk.local" /></Field>
             </FieldGroup>
           </CardContent>
         </Card>

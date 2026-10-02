@@ -164,7 +164,7 @@ export default function RegisterScreen() {
       <div className="relative w-full max-w-3xl px-4 py-8 motion-safe:animate-fade-in">
         <div className="flex flex-col gap-6">
           <header className="flex w-full flex-col items-start gap-4 text-left">
-            <span className="font-logo text-[24px] leading-6 font-semibold lowercase tracking-[-0.4px] text-tertiary-foreground underline decoration-dashed decoration-2 underline-offset-4">Manris</span>
+            <span className="font-logo text-[24px] leading-6 font-semibold lowercase tracking-[-0.4px] text-tertiary-foreground underline decoration-dashed decoration-2 underline-offset-4">Manrisk</span>
             <h1 className="text-base leading-5 font-medium tracking-tight text-balance">Buat akun baru</h1>
             <div className="flex w-full flex-col gap-1 text-left text-sm text-muted-foreground">
               <p>Akun yang dibuat akan berstatus menunggu aktivasi sampai admin menyetujui registrasi.</p>

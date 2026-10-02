@@ -11,7 +11,7 @@ import {
 export async function createQuarterlyReportWorkbook(report: QuarterlyReport) {
   const { default: ExcelJS } = await import("exceljs");
   const workbook = new ExcelJS.Workbook();
-  workbook.creator = "Manris";
+  workbook.creator = "Manrisk";
   workbook.created = new Date();
   workbook.title = `Laporan ${report.cycle}`;
   const analysis = buildQuarterlyAnalysis(report);

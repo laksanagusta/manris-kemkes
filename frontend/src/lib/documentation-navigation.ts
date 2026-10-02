@@ -4,7 +4,7 @@ export const documentationGroups = [
     { slug: "akses-akun", title: "Akses akun" },
   ] },
   { title: "TATA KELOLA", items: [
-    { slug: "piagam-manris", title: "Piagam Manris" },
+    { slug: "piagam-manris", title: "Piagam Manrisk" },
     { slug: "eskalasi-risiko", title: "Eskalasi Risiko" },
   ] },
   { title: "MANAJEMEN RISIKO", items: [

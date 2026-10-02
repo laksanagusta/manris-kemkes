@@ -2,10 +2,10 @@ import type { DocumentationArticle } from "@/components/documentation/article-co
 
 export const documentationArticles: DocumentationArticle[] = [
   {
-    slug: "pengenalan", title: "Panduan penggunaan Manris", category: "MULAI DI SINI",
-    description: "Kenali fungsi utama Manris dan ikuti alur risiko dari identifikasi hingga pelaporan.", access: "Menu yang tampil mengikuti hak akses dan cakupan organisasi akun Anda.",
+    slug: "pengenalan", title: "Panduan penggunaan Manrisk", category: "MULAI DI SINI",
+    description: "Kenali fungsi utama Manrisk dan ikuti alur risiko dari identifikasi hingga pelaporan.", access: "Menu yang tampil mengikuti hak akses dan cakupan organisasi akun Anda.",
     sections: [
-      { id: "alur-manris", title: "Ikuti alur pengelolaan risiko", paragraphs: ["Manris membantu Anda mencatat risiko, menilai tingkatnya, merencanakan penanganan, lalu memantau perubahan dalam setiap siklus. Catat kejadian nyata secara terpisah dan gunakan laporan untuk meninjau hasil.", "Menu Dashboard, Risiko, Kejadian Risiko, Penanganan, Pemantauan, Kertas Kerja, Tanda tangan, Laporan, Tata Kelola, dan Otomasi tersedia sesuai hak akses Anda.", "Angka dan baris pada screenshot adalah snapshot saat dokumentasi disusun. Tampilan aktual mengikuti akun, organisasi, dan periode yang dipilih."], image: { src: "/documentation/screens/dashboard-start.png", alt: "Dashboard Manris dengan ringkasan risiko, grafik, dan peta risiko", caption: "Dashboard Manris menampilkan ringkasan dan tren untuk cakupan serta periode yang dipilih.", width: 3420, height: 1904 }, diagram: [
+      { id: "alur-manris", title: "Ikuti alur pengelolaan risiko", paragraphs: ["Manrisk membantu Anda mencatat risiko, menilai tingkatnya, merencanakan penanganan, lalu memantau perubahan dalam setiap siklus. Catat kejadian nyata secara terpisah dan gunakan laporan untuk meninjau hasil.", "Menu Dashboard, Risiko, Kejadian Risiko, Penanganan, Pemantauan, Kertas Kerja, Tanda tangan, Laporan, Tata Kelola, dan Otomasi tersedia sesuai hak akses Anda.", "Angka dan baris pada screenshot adalah snapshot saat dokumentasi disusun. Tampilan aktual mengikuti akun, organisasi, dan periode yang dipilih."], image: { src: "/documentation/screens/dashboard-start.png", alt: "Dashboard Manrisk dengan ringkasan risiko, grafik, dan peta risiko", caption: "Dashboard Manrisk menampilkan ringkasan dan tren untuk cakupan serta periode yang dipilih.", width: 3420, height: 1904 }, diagram: [
         { title: "Identifikasi", detail: "Catat profil, penyebab, dampak, dan skor risiko." },
         { title: "Penanganan", detail: "Susun rencana dan catat progres mitigasi." },
         { title: "Pemantauan", detail: "Perbarui penilaian pada siklus berjalan." },
@@ -21,18 +21,18 @@ export const documentationArticles: DocumentationArticle[] = [
   },
   {
     slug: "akses-akun", title: "Masuk dan akses akun", category: "MULAI DI SINI",
-    description: "Masuk memakai NIP dan password, daftar akun unit kerja, atau ubah password setelah masuk.", access: "Akun Manris; registrasi baru harus menunggu persetujuan administrator.",
+    description: "Masuk memakai NIP dan password, daftar akun unit kerja, atau ubah password setelah masuk.", access: "Akun Manrisk; registrasi baru harus menunggu persetujuan administrator.",
     sections: [
-      { id: "masuk", title: "Masuk ke Manris", steps: [
-        { title: "Buka halaman Masuk", detail: "Masukkan NIP dan password akun Manris Anda." },
+      { id: "masuk", title: "Masuk ke Manrisk", steps: [
+        { title: "Buka halaman Masuk", detail: "Masukkan NIP dan password akun Manrisk Anda." },
         { title: "Tampilkan password bila perlu", detail: "Pilih ikon mata di samping kolom password untuk memeriksa teks yang dimasukkan. Pilih lagi untuk menyembunyikannya." },
-        { title: "Pilih Masuk", detail: "Jika kredensial benar, Manris membuka halaman yang sesuai dengan status akun. Ikuti instruksi perubahan password jika layar tersebut muncul." },
-      ], image: { src: "/documentation/akses-akun.png", alt: "Halaman masuk Manris dengan kolom NIP dan password", caption: "Masukkan NIP dan password. Anda dapat menampilkan password sebelum masuk.", width: 653, height: 977 } },
+        { title: "Pilih Masuk", detail: "Jika kredensial benar, Manrisk membuka halaman yang sesuai dengan status akun. Ikuti instruksi perubahan password jika layar tersebut muncul." },
+      ], image: { src: "/documentation/akses-akun.png", alt: "Halaman masuk Manrisk dengan kolom NIP dan password", caption: "Masukkan NIP dan password. Anda dapat menampilkan password sebelum masuk.", width: 653, height: 977 } },
       { id: "daftar-akun", title: "Daftar akun unit kerja", steps: [
         { title: "Buka Daftar akun dari halaman Masuk", detail: "Isi nama lengkap, email, unit kerja, NIP, dan password. Jabatan dan pangkat dapat diisi bila diminta." },
         { title: "Cari dan pilih unit kerja", detail: "Gunakan pencarian pada pilihan Unit kerja, lalu pilih organisasi yang sesuai dengan tempat Anda bertugas." },
         { title: "Kirim registrasi dan tunggu aktivasi", detail: "Password harus memiliki minimal 8 karakter dan kolom konfirmasi harus cocok. Setelah registrasi berhasil, administrator perlu menyetujui akun sebelum Anda dapat masuk." },
-      ], image: { src: "/documentation/screens/registrasi-akun.png", alt: "Form pendaftaran akun unit kerja dari aplikasi Manris", caption: "Form pendaftaran akun dari aplikasi Manris. Kolom yang tersedia mengikuti aturan registrasi yang aktif.", width: 1145, height: 760 }, note: "Jangan bagikan password melalui email atau chat. Jika password perlu diatur ulang, hubungi administrator." },
+      ], image: { src: "/documentation/screens/registrasi-akun.png", alt: "Form pendaftaran akun unit kerja dari aplikasi Manrisk", caption: "Form pendaftaran akun dari aplikasi Manrisk. Kolom yang tersedia mengikuti aturan registrasi yang aktif.", width: 1145, height: 760 }, note: "Jangan bagikan password melalui email atau chat. Jika password perlu diatur ulang, hubungi administrator." },
       { id: "ubah-password", title: "Ubah password", paragraphs: ["Jika aplikasi meminta Anda membuat password baru, selesaikan perubahan sebelum membuka halaman kerja. Untuk mengganti password setelah masuk, buka Pengaturan lalu pilih Keamanan."], steps: [
         { title: "Masukkan password saat ini", detail: "Buka kolom password saat ini dan isi kredensial yang digunakan untuk masuk." },
         { title: "Buat dan konfirmasi password baru", detail: "Ikuti aturan yang ditampilkan dan pastikan kedua kolom password baru sama." },
@@ -42,15 +42,15 @@ export const documentationArticles: DocumentationArticle[] = [
     ],
   },
   {
-    slug: "piagam-manris", title: "Membuat dan memperbarui Piagam Manris", category: "TATA KELOLA",
+    slug: "piagam-manris", title: "Membuat dan memperbarui Piagam Manrisk", category: "TATA KELOLA",
     description: "Susun piagam manajemen risiko untuk tahun berjalan, lalu jaga riwayat revisinya.", access: "Pengguna dengan akses Tata Kelola Risiko pada organisasi yang dipilih.",
     sections: [
-      { id: "daftar-piagam", title: "Buka daftar Piagam Manris", steps: [
-        { title: "Pilih Piagam Manris", detail: "Daftar menampilkan piagam yang dapat Anda akses, beserta organisasi, periode, dan statusnya." },
+      { id: "daftar-piagam", title: "Buka daftar Piagam Manrisk", steps: [
+        { title: "Pilih Piagam Manrisk", detail: "Daftar menampilkan piagam yang dapat Anda akses, beserta organisasi, periode, dan statusnya." },
         { title: "Periksa piagam aktif", detail: "Pastikan organisasi dan periode pada piagam yang akan ditinjau sudah sesuai." },
-      ], image: { src: "/documentation/screens/piagam-list.png", alt: "Daftar Piagam Manris dengan status dan periode", caption: "Snapshot daftar piagam menampilkan organisasi, periode, status aktif, dan waktu pembaruan.", width: 3420, height: 1904 } },
+      ], image: { src: "/documentation/screens/piagam-list.png", alt: "Daftar Piagam Manrisk dengan status dan periode", caption: "Snapshot daftar piagam menampilkan organisasi, periode, status aktif, dan waktu pembaruan.", width: 3420, height: 1904 } },
       { id: "buat-piagam", title: "Buat draf Piagam", steps: [
-        { title: "Buka Piagam Manris", detail: "Pilih Piagam Manris pada kelompok Tata Kelola Risiko." },
+        { title: "Buka Piagam Manrisk", detail: "Pilih Piagam Manrisk pada kelompok Tata Kelola Risiko." },
         { title: "Pilih Buat Piagam", detail: "Masukkan judul piagam. Judul membantu membedakan piagam organisasi dan tahun berlakunya." },
         { title: "Buka draf dan lengkapi isinya", detail: "Lengkapi bagian piagam, antara lain dasar hukum, stakeholder, dan struktur Unit Pengelola Risiko (UPR). Simpan perubahan selama status masih Draf." },
       ], image: { src: "/documentation/screens/piagam-create-dialog.png", alt: "Dialog Buat Piagam untuk memulai draf", caption: "Masukkan judul untuk membuat draf Piagam pada tahun berjalan.", width: 3420, height: 1904 } },
@@ -63,19 +63,19 @@ export const documentationArticles: DocumentationArticle[] = [
         { title: "Tinjau seluruh isi draf", detail: "Pastikan informasi wajib lengkap. Tombol Finalisasi tetap nonaktif ketika masih ada bagian yang harus diperbaiki." },
         { title: "Pilih Finalisasi dan konfirmasi", detail: "Piagam yang telah difinalisasi menjadi aktif dan terkunci." },
         { title: "Buat revisi jika isi berubah", detail: "Gunakan tindakan Revisi dan tulis alasan sedikitnya 10 karakter. Revisi baru menjadi aktif setelah difinalisasi; piagam aktif sebelumnya tetap berlaku sampai itu terjadi." },
-      ], image: { src: "/documentation/screens/piagam-list-alt.png", alt: "Daftar Piagam Manris sebelum membuka piagam aktif", caption: "Gunakan daftar Piagam Manris untuk membuka piagam yang perlu ditinjau atau direvisi.", width: 3420, height: 1902 }, note: "Simpan perubahan draf sebelum memilih Finalisasi." },
+      ], image: { src: "/documentation/screens/piagam-list-alt.png", alt: "Daftar Piagam Manrisk sebelum membuka piagam aktif", caption: "Gunakan daftar Piagam Manrisk untuk membuka piagam yang perlu ditinjau atau direvisi.", width: 3420, height: 1902 }, note: "Simpan perubahan draf sebelum memilih Finalisasi." },
       { id: "status-piagam", title: "Pahami status Piagam", fields: [
         { name: "Draf", description: "Piagam sedang disusun dan dapat disunting oleh pengguna berizin." },
         { name: "Aktif", description: "Piagam sudah difinalisasi dan menjadi acuan yang berlaku." },
         { name: "Draf revisi", description: "Draf perubahan beserta alasan. Piagam aktif tetap berlaku sampai revisi tersebut difinalisasi." },
-      ], image: { src: "/documentation/screens/piagam-list-status.png", alt: "Daftar Piagam Manris dengan penanda status Aktif", caption: "Status Aktif menandai piagam yang berlaku untuk organisasi dan periode tersebut; isi daftar adalah snapshot.", width: 3420, height: 1904 } },
+      ], image: { src: "/documentation/screens/piagam-list-status.png", alt: "Daftar Piagam Manrisk dengan penanda status Aktif", caption: "Status Aktif menandai piagam yang berlaku untuk organisasi dan periode tersebut; isi daftar adalah snapshot.", width: 3420, height: 1904 } },
     ],
   },
   {
     slug: "eskalasi-risiko", title: "Mengelola eskalasi risiko", category: "TATA KELOLA",
     description: "Tinjau usulan hubungan risiko antarunit dan tindak lanjutnya.", access: "Pengguna yang memiliki akses ke organisasi sumber atau sasaran eskalasi.",
     sections: [
-      { id: "alur-eskalasi", title: "Pahami alur eskalasi", paragraphs: ["Eskalasi menghubungkan risiko lintas organisasi agar unit yang memerlukan koordinasi dapat meninjaunya. Catatan eskalasi menyimpan risiko sumber, organisasi sasaran, jenis eskalasi, analisis, keputusan, dan status."], image: { src: "/documentation/screens/eskalasi-risiko.png", alt: "Halaman Eskalasi Risiko dari aplikasi Manris", caption: "Daftar Eskalasi Risiko dari aplikasi Manris; isi daftar mengikuti akses akun Anda.", width: 1145, height: 760 }, diagram: [
+      { id: "alur-eskalasi", title: "Pahami alur eskalasi", paragraphs: ["Eskalasi menghubungkan risiko lintas organisasi agar unit yang memerlukan koordinasi dapat meninjaunya. Catatan eskalasi menyimpan risiko sumber, organisasi sasaran, jenis eskalasi, analisis, keputusan, dan status."], image: { src: "/documentation/screens/eskalasi-risiko.png", alt: "Halaman Eskalasi Risiko dari aplikasi Manrisk", caption: "Daftar Eskalasi Risiko dari aplikasi Manrisk; isi daftar mengikuti akses akun Anda.", width: 1145, height: 760 }, diagram: [
         { title: "Usulkan", detail: "Pilih risiko sumber dan organisasi sasaran." },
         { title: "Tinjau", detail: "Organisasi sasaran menganalisis usulan." },
         { title: "Putuskan", detail: "Terima atau tolak dengan konteks yang tersedia." },
@@ -113,9 +113,9 @@ export const documentationArticles: DocumentationArticle[] = [
         { title: "Buka menu Risiko", detail: "Ringkasan pemantauan kuartal ini dan tabel risiko tampil sesuai organisasi serta izin akun Anda." },
         { title: "Pilih risiko yang akan dikerjakan", detail: "Gunakan kolom pencarian atau filter untuk menemukan profil sebelum membuka atau membuat risiko." },
       ], image: { src: "/documentation/screens/risiko-overview.png", alt: "Halaman Risiko dengan ringkasan pemantauan kuartal dan daftar risiko", caption: "Snapshot halaman Risiko menggabungkan ringkasan kuartal dengan daftar profil sesuai cakupan akun.", width: 3420, height: 1904 } },
-      { id: "impor-risiko", title: "Impor risiko dengan template", paragraphs: ["Gunakan Import Risiko untuk memasukkan beberapa profil sekaligus dari file template. Template diunduh dari halaman ini; setelah diisi dan diunggah, Manris mem-parsing serta memvalidasi baris di backend. Periksa hasilnya sebelum mengirim risiko."], steps: [
+      { id: "impor-risiko", title: "Impor risiko dengan template", paragraphs: ["Gunakan Import Risiko untuk memasukkan beberapa profil sekaligus dari file template. Template diunduh dari halaman ini; setelah diisi dan diunggah, Manrisk mem-parsing serta memvalidasi baris di backend. Periksa hasilnya sebelum mengirim risiko."], steps: [
         { title: "Unduh dan isi template", detail: "Pilih Download template, lalu isi lembar kerja mengikuti kolom yang disediakan." },
-        { title: "Unggah file ke Import Risiko", detail: "Dari menu Risiko, buka Import Risiko dan pilih file template. Manris menampilkan status serta catatan validasi untuk setiap baris." },
+        { title: "Unggah file ke Import Risiko", detail: "Dari menu Risiko, buka Import Risiko dan pilih file template. Manrisk menampilkan status serta catatan validasi untuk setiap baris." },
         { title: "Periksa baris yang siap dikirim", detail: "Tinjau nama risiko, status, dan catatan. Baris yang bermasalah perlu diperbaiki di file lalu diunggah kembali; hanya baris valid yang dapat dikirim." },
         { title: "Kirim dan periksa hasil", detail: "Pilih Submit Risiko setelah ada baris valid. Ringkasan hasil menunjukkan jumlah yang berhasil dibuat dan yang gagal." },
       ], image: { src: "/documentation/screens/import-risiko.png", alt: "Halaman Import Risiko dengan tombol unduh template, area unggah, dan keadaan review kosong", caption: "Tampilan awal sebelum file diunggah. Tabel review muncul setelah parsing, dan Submit Risiko aktif ketika tersedia baris valid.", width: 3420, height: 1904 } },
@@ -291,7 +291,7 @@ export const documentationArticles: DocumentationArticle[] = [
         { title: "Buka Kertas Kerja pada giliran Anda", detail: "Urutan penandatangan tampil pada timeline. Anda hanya dapat menandatangani ketika menjadi penandatangan aktif." },
         { title: "Periksa isi dan roster", detail: "Bacalah dokumen dan pastikan profil risiko serta pengamatan untuk siklus tersebut sudah final." },
         { title: "Tandatangani", detail: "Pilih tindakan tanda tangan pada halaman dokumen. Setelah tercatat, giliran berpindah ke penandatangan berikutnya." },
-      ], image: { src: "/documentation/screens/tanda-tangan.png", alt: "Halaman Persetujuan dan TTE dari aplikasi Manris", caption: "Halaman Persetujuan & TTE dari aplikasi Manris saat tidak ada permintaan yang sesuai filter.", width: 1145, height: 760 } },
+      ], image: { src: "/documentation/screens/tanda-tangan.png", alt: "Halaman Persetujuan dan TTE dari aplikasi Manrisk", caption: "Halaman Persetujuan & TTE dari aplikasi Manrisk saat tidak ada permintaan yang sesuai filter.", width: 1145, height: 760 } },
       { id: "blocker-tte", title: "Jika tindakan TTE belum tersedia", paragraphs: ["Pembuat kertas kerja hanya dapat memulai TTE jika semua risiko di roster telah final dan tidak ada pemantauan yang tertinggal. Penandatangan dapat menandatangani setelah proses dimulai, urutannya tiba, dan ia adalah akun penandatangan yang ditunjuk."], note: "TTE Kertas Kerja memiliki urutan dan prasyarat sendiri. Proses ini terpisah dari finalisasi profil risiko." },
       { id: "status-tte", title: "Status permintaan dan penandatangan", fields: [
         { name: "Persetujuan saya", description: "Permintaan yang menunggu tindakan review dari akun Anda." },
@@ -305,7 +305,7 @@ export const documentationArticles: DocumentationArticle[] = [
     slug: "dashboard", title: "Membaca Dashboard", category: "DOKUMEN & PELAPORAN",
     description: "Baca ringkasan jumlah, tingkat, kategori, tren, dan distribusi risiko pada periode aktif.", access: "Pengguna yang memiliki akses Dashboard sesuai organisasi yang dicakup akunnya.",
     sections: [
-      { id: "ringkasan-dashboard", title: "Mulai dari ringkasan utama", paragraphs: ["Kartu ringkasan menunjukkan total risiko, jumlah yang memerlukan perhatian berdasarkan tingkat, mitigasi yang belum dilaporkan, dan tugas mitigasi yang melewati tenggat. Baca label dan keterangan setiap angka bersama-sama."], image: { src: "/documentation/screens/dashboard-start.png", alt: "Dashboard Manris dengan kartu ringkasan, tren, kategori, dan peta risiko", caption: "Dashboard Manris menampilkan ringkasan, grafik, distribusi kategori, komposisi level, dan peta risiko.", width: 3420, height: 1904 } },
+      { id: "ringkasan-dashboard", title: "Mulai dari ringkasan utama", paragraphs: ["Kartu ringkasan menunjukkan total risiko, jumlah yang memerlukan perhatian berdasarkan tingkat, mitigasi yang belum dilaporkan, dan tugas mitigasi yang melewati tenggat. Baca label dan keterangan setiap angka bersama-sama."], image: { src: "/documentation/screens/dashboard-start.png", alt: "Dashboard Manrisk dengan kartu ringkasan, tren, kategori, dan peta risiko", caption: "Dashboard Manrisk menampilkan ringkasan, grafik, distribusi kategori, komposisi level, dan peta risiko.", width: 3420, height: 1904 } },
       { id: "tren-dashboard", title: "Baca grafik tren dan kategori", fields: [
         { name: "Tren jumlah risiko", description: "Perubahan total risiko dari satu kuartal ke kuartal berikutnya." },
         { name: "Distribusi kategori", description: "Pembagian risiko menurut kategori. Pilih kategori untuk memusatkan ringkasan sesuai interaksi yang tersedia." },
@@ -327,14 +327,14 @@ export const documentationArticles: DocumentationArticle[] = [
         { title: "Buka Laporan", detail: "Laporan menampilkan periode kuartal yang sudah selesai secara bawaan." },
         { title: "Pilih periode dan pembanding", detail: "Gunakan pemilih Periode untuk menentukan kuartal laporan serta Pembanding untuk memilih periode yang ingin dibandingkan." },
         { title: "Batasi unit bila diperlukan", detail: "Gunakan filter organisasi untuk melihat unit atau kelompok yang termasuk cakupan Anda." },
-      ], image: { src: "/documentation/screens/laporan-q3.png", alt: "Laporan kuartalan Manris dengan metrik, tren, mitigasi, dan kejadian", caption: "Snapshot laporan kuartal yang membandingkan indikator risiko, target, mitigasi, pemantauan, dan kejadian.", width: 3420, height: 1904 } },
+      ], image: { src: "/documentation/screens/laporan-q3.png", alt: "Laporan kuartalan Manrisk dengan metrik, tren, mitigasi, dan kejadian", caption: "Snapshot laporan kuartal yang membandingkan indikator risiko, target, mitigasi, pemantauan, dan kejadian.", width: 3420, height: 1904 } },
       { id: "baca-laporan", title: "Baca komponen laporan", fields: [
         { name: "Risiko di atas selera risiko", description: "Profil yang skornya melampaui batas selera organisasi pada periode terpilih." },
         { name: "Target tercapai", description: "Hasil observasi akhir yang dibandingkan dengan target penurunan yang berlaku." },
         { name: "Mitigasi terlapor", description: "Laporan progres penanganan dalam periode. Angka ini mengukur pelaporan, bukan berarti setiap tugas selesai." },
         { name: "Pemantauan final", description: "Profil dalam cakupan yang memiliki hasil pengamatan final pada kuartal tersebut." },
         { name: "Kejadian dan kerugian", description: "Ringkasan kejadian berdasarkan tanggal kejadian serta nilai finansial yang diketahui." },
-      ], image: { src: "/documentation/screens/laporan-q2.png", alt: "Laporan kuartalan Manris dengan cakupan data berbeda", caption: "Snapshot periode lain untuk membandingkan ringkasan. Isi aktual mengikuti periode serta cakupan organisasi yang dipilih.", width: 3420, height: 1904 } },
+      ], image: { src: "/documentation/screens/laporan-q2.png", alt: "Laporan kuartalan Manrisk dengan cakupan data berbeda", caption: "Snapshot periode lain untuk membandingkan ringkasan. Isi aktual mengikuti periode serta cakupan organisasi yang dipilih.", width: 3420, height: 1904 } },
       { id: "detail-unit", title: "Periksa unit dan risiko", steps: [
         { title: "Bandingkan unit", detail: "Tabel unit mencakup organisasi yang berada dalam cakupan izin Anda. Unit tanpa data pada periode itu ditandai Belum ada data." },
         { title: "Buka detail unit", detail: "Pilih unit untuk melihat daftar risiko, mitigasi, dan kejadian terkait tanpa mengubah filter utama." },
@@ -349,7 +349,7 @@ export const documentationArticles: DocumentationArticle[] = [
   },
   {
     slug: "mom", title: "Membuat notulen dan mengolah transkrip", category: "OTOMASI",
-    description: "Gunakan MoM untuk menyiapkan notulen, mencari catatan, dan mengubah pembahasan menjadi tindak lanjut.", access: "Akses MoM bergantung pada izin akun dan pengaktifan fitur di lingkungan Manris.",
+    description: "Gunakan MoM untuk menyiapkan notulen, mencari catatan, dan mengubah pembahasan menjadi tindak lanjut.", access: "Akses MoM bergantung pada izin akun dan pengaktifan fitur di lingkungan Manrisk.",
     sections: [
       { id: "daftar-mom", title: "Cari dan kelola notulen", steps: [
         { title: "Buka menu MoM", detail: "Daftar menampilkan notulen yang berada dalam cakupan akses akun Anda." },
@@ -360,7 +360,7 @@ export const documentationArticles: DocumentationArticle[] = [
         { title: "Pilih Buat Notulen", detail: "Masukkan judul rapat serta waktu dan peserta sesuai isian form." },
         { title: "Tambahkan hasil pembahasan", detail: "Susun ringkasan, keputusan, serta tindak lanjut dan PIC agar rapat dapat ditinjau kembali." },
         { title: "Simpan notulen", detail: "Buka daftar MoM untuk memastikan catatan muncul dengan judul yang dapat dicari." },
-      ], image: { src: "/documentation/screens/mom.png", alt: "Form Buat Notulen pada MoM Manris", caption: "Form Buat Notulen untuk mencatat hasil rapat dan tindak lanjut.", width: 1145, height: 760 } },
+      ], image: { src: "/documentation/screens/mom.png", alt: "Form Buat Notulen pada MoM Manrisk", caption: "Form Buat Notulen untuk mencatat hasil rapat dan tindak lanjut.", width: 1145, height: 760 } },
       { id: "analisis-transkrip", title: "Gunakan MoM Intelligence", steps: [
         { title: "Buka MoM Intelligence", detail: "Fitur ini dapat diakses dari kelompok Intelligence jika aktif di lingkungan akun Anda." },
         { title: "Masukkan transkrip", detail: "Tinjau dan hilangkan informasi rapat yang tidak perlu sebelum menggunakan teks sebagai bahan analisis." },
@@ -371,7 +371,7 @@ export const documentationArticles: DocumentationArticle[] = [
   },
   {
     slug: "istilah-dan-kendala", title: "Istilah dan kendala umum", category: "BANTUAN",
-    description: "Gunakan arti status yang konsisten dan langkah berikut untuk memeriksa kendala penggunaan Manris.", access: "Terbuka untuk pengguna Manris.",
+    description: "Gunakan arti status yang konsisten dan langkah berikut untuk memeriksa kendala penggunaan Manrisk.", access: "Terbuka untuk pengguna Manrisk.",
     sections: [
       { id: "istilah-status", title: "Istilah status", fields: [
         { name: "Draf / Draft", description: "Data sedang disusun dan belum difinalisasi." },

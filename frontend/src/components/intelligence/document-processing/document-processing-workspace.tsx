@@ -59,7 +59,7 @@ export function DocumentProcessingWorkspace({
   reportedFindingIds,
   analysisMode,
   heading = "Analisis dokumen menjadi temuan risiko",
-  description = "Unggah satu dokumen. Manris akan mengelompokkan halaman dan menghubungkan temuan dengan sumbernya.",
+  description = "Unggah satu dokumen. Manrisk akan mengelompokkan halaman dan menghubungkan temuan dengan sumbernya.",
 }: {
   authToken?: string;
   organizationId?: string;

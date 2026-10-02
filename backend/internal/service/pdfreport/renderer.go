@@ -667,7 +667,7 @@ func joinStrings(strs []string, sep string) string {
 func (r *pdfReportRenderer) addPageNumbers(m core.Maroto) {
 	footerRow := row.New(8)
 	footerRow.Add(col.New(gridSize).Add(text.New(
-		"Laporan Risiko - Manris v2",
+		"Laporan Risiko - Manrisk v2",
 		props.Text{
 			Size:   FontSizeLabel,
 			Align:  align.Left,
@@ -2042,7 +2042,7 @@ func (r *pdfReportRenderer) addTMPMRImprovementPriorities(m core.Maroto, data *e
 func (r *pdfReportRenderer) addFormalPageNumbers(m core.Maroto) {
 	footerRow := row.New(8)
 	footerRow.Add(col.New(gridSize).Add(text.New(
-		"Laporan Formal KMK - Manris v2",
+		"Laporan Formal KMK - Manrisk v2",
 		props.Text{
 			Size:   FontSizeLabel,
 			Align:  align.Left,

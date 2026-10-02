@@ -22,7 +22,7 @@ export function AppTopbar() {
             href="/overview"
             className="font-logo flex min-w-0 items-center rounded-md px-2 py-1 text-[20px] leading-5 font-semibold lowercase tracking-[-0.4px] text-foreground outline-hidden transition-colors duration-150 hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-ring md:group-data-[state=collapsed]/sidebar-wrapper:hidden"
           >
-            <span className="min-w-0 truncate">Manris</span>
+            <span className="min-w-0 truncate">Manrisk</span>
           </Link>
         </div>
 
@@ -33,7 +33,7 @@ export function AppTopbar() {
               href="/overview"
               className="font-logo flex min-w-0 items-center gap-2 rounded-md px-1.5 py-1 text-[20px] leading-5 font-semibold lowercase tracking-[-0.4px] text-foreground outline-hidden transition-colors duration-150 hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-ring md:hidden"
             >
-              <span className="truncate">Manris</span>
+              <span className="truncate">Manrisk</span>
             </Link>
           </div>
 

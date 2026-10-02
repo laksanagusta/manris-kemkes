@@ -29,7 +29,7 @@ export function TypographyExample() {
                 className="size-5 object-contain"
               />
               <p className="font-logo text-[20px] leading-5 font-semibold lowercase tracking-[-0.4px] text-foreground">
-                Manris
+                Manrisk
               </p>
             </div>
             <p className="font-mono text-[11px] text-muted-foreground">

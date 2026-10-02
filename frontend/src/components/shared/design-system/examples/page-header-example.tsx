@@ -4,7 +4,7 @@ export function PageHeaderExample() {
   return (
     <PageHeader
       eyebrow="Design System"
-      title="Manris Design System"
+      title="Manrisk Design System"
     />
   );
 }

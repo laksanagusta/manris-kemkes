@@ -43,7 +43,7 @@ func (r *quarterlyReportPDFRenderer) RenderQuarterly(ctx context.Context, data *
 		WithOrientation(orientation.Horizontal).WithLeftMargin(12).WithRightMargin(12).
 		WithTopMargin(12).WithBottomMargin(16).
 		WithDefaultFont(&props.Font{Family: fontfamily.Arial, Size: 9}).Build())
-	_ = m.RegisterFooter(row.New(8).Add(col.New(12).Add(text.New("Manris - Laporan evaluasi kuartal | Salinan data saat ekspor", props.Text{Size: 8, Color: MutedText}))))
+	_ = m.RegisterFooter(row.New(8).Add(col.New(12).Add(text.New("Manrisk - Laporan evaluasi kuartal | Salinan data saat ekspor", props.Text{Size: 8, Color: MutedText}))))
 	summary := service.SummarizeQuarterlyReport(data)
 	prior := service.SummarizeQuarterlyReport(&entity.QuarterlyReportData{Cycle: data.ComparisonCycle, GeneratedAt: data.GeneratedAt, Risks: data.PreviousRisks, Tasks: data.PreviousTasks})
 	quarterlyText(m, "Laporan evaluasi kuartal - "+data.Cycle, true)

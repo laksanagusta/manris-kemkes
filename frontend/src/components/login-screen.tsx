@@ -51,7 +51,7 @@ export default function LoginScreen() {
       <div className="relative w-full max-w-md px-4 motion-safe:animate-fade-in">
         <div className="flex flex-col gap-6">
           <header className="flex flex-col items-center gap-4 text-center">
-            <span className="font-logo text-[24px] leading-6 font-semibold lowercase tracking-[-0.4px] text-tertiary-foreground underline decoration-dashed decoration-2 underline-offset-4">Manris</span>
+            <span className="font-logo text-[24px] leading-6 font-semibold lowercase tracking-[-0.4px] text-tertiary-foreground underline decoration-dashed decoration-2 underline-offset-4">Manrisk</span>
             <h1 className="text-base leading-5 font-medium tracking-tight text-balance">Masuk untuk melanjutkan</h1>
           </header>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">

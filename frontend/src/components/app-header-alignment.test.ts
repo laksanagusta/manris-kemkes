@@ -54,7 +54,7 @@ test("uses the compact 56px global topbar geometry", () => {
   );
   assert.match(
     appTopbarSource,
-    /font-logo[\s\S]*lowercase tracking-\[-0\.4px\][\s\S]*>Manris<\/span>/,
+    /font-logo[\s\S]*lowercase tracking-\[-0\.4px\][\s\S]*>Manrisk<\/span>/,
   );
   assert.doesNotMatch(appTopbarSource, /accessibleOrgIds/);
   assert.doesNotMatch(appTopbarSource, /Pilih organisasi/);

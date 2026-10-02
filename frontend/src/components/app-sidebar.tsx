@@ -346,7 +346,7 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
       <SidebarHeader className="h-14 justify-center px-3 md:hidden">
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild size="lg" tooltip="Manris">
+            <SidebarMenuButton asChild size="lg" tooltip="Manrisk">
               <Link href="/overview">
                 <Image
                   src="/logo.svg"
@@ -357,7 +357,7 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
                   className="size-5 shrink-0 object-contain"
                 />
                 <span className="text-base font-normal text-sidebar-foreground group-data-[collapsible=icon]:hidden">
-                  Manris
+                  Manrisk
                 </span>
               </Link>
             </SidebarMenuButton>

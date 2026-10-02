@@ -54,7 +54,7 @@ export default function ImportSopPage() {
         organizationId={user?.organizationId || undefined}
         analysisMode="sop_risk_universe"
         heading="Ekstrak risiko dari SOP"
-        description="Unggah satu SOP. Manris akan menemukan kandidat risiko, kontrol, dan langkah proses beserta sumbernya."
+        description="Unggah satu SOP. Manrisk akan menemukan kandidat risiko, kontrol, dan langkah proses beserta sumbernya."
         onUseRiskDraft={setSelectedFinding}
         reportedFindingIds={reportedFindingIds}
       />

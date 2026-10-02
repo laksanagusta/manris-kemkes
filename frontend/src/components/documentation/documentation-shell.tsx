@@ -23,7 +23,7 @@ function DocumentationSidebar() {
       <SidebarHeader className="flex-row items-center px-4 py-6 text-pretty">
         <Link href="/panduan/pengenalan" onClick={() => setOpenMobile(false)}
           className="font-logo flex min-h-10 min-w-0 flex-1 items-center gap-2 rounded-md text-[20px] font-semibold lowercase tracking-[-0.4px] outline-hidden focus-visible:ring-2 focus-visible:ring-ring">
-          Manris
+          Manrisk
           <span className="ml-auto text-xs font-normal tracking-normal text-muted-foreground">panduan</span>
         </Link>
         {isMobile && <Button variant="ghost" size="icon" aria-label="Tutup menu panduan" onClick={() => setOpenMobile(false)}><Icons.X aria-hidden="true" /></Button>}
@@ -64,7 +64,7 @@ export function DocumentationShell({ children }: { children: ReactNode }) {
         <DocumentationSidebar />
         <SidebarInset className="min-w-0">
           <div className="flex items-center justify-between px-5 pt-4 md:hidden">
-            <span className="text-sm font-medium">Panduan Manris</span>
+            <span className="text-sm font-medium">Panduan Manrisk</span>
             <SidebarTrigger aria-label="Buka menu panduan" />
           </div>
           <main id="isi-panduan" tabIndex={-1} className="min-w-0 outline-none">{children}</main>
