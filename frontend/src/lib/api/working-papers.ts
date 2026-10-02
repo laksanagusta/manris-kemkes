@@ -35,11 +35,11 @@ export async function listWorkingPaperAssessmentCycles(
 ): Promise<string[]> {
   const pageSize = 100;
   const firstPage = await listWorkingPapers(token, { page: 1, limit: pageSize });
-  const cycles = new Set(
-    firstPage.data
-      .map((paper) => paper.assessment_cycle.trim())
-      .filter(Boolean),
-  );
+  const cycles = new Set<string>();
+  for (const paper of firstPage.data) {
+    const cycle = paper.assessment_cycle?.trim();
+    if (cycle) cycles.add(cycle);
+  }
   const pageCount = Math.ceil(firstPage.total / pageSize);
 
   for (let startPage = 2; startPage <= pageCount; startPage += 5) {
@@ -55,7 +55,7 @@ export async function listWorkingPaperAssessmentCycles(
 
     for (const response of responses) {
       for (const paper of response.data) {
-        const cycle = paper.assessment_cycle.trim();
+        const cycle = paper.assessment_cycle?.trim();
         if (cycle) cycles.add(cycle);
       }
     }
