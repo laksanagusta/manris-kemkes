@@ -1233,7 +1233,7 @@ export default function AssessmentFormPage() {
                 </CollapsibleCard.Actions>
               </CollapsibleCard.Trigger>
               <CollapsibleCard.Content>
-              <CollapsibleCard.Body className="space-y-5 border-t-0 px-5 py-5 text-sm">
+              <CardContent className="space-y-5 px-5 py-5 text-sm">
                   <div className="grid min-w-0 gap-6">
                   {(() => {
                     const mitigations =
@@ -1289,6 +1289,7 @@ export default function AssessmentFormPage() {
                     <RiskScorePickerTrigger
                       id="risk-score-picker"
                       title="Skor risiko observasi"
+                      presentation="card"
                       probability={probability}
                       impact={impact}
                       onClick={() => setScorePickerOpen(true)}
@@ -1373,7 +1374,7 @@ export default function AssessmentFormPage() {
                     </FieldErrorMessage>
                   </div>
                   </div>
-                </CollapsibleCard.Body>
+                </CardContent>
               </CollapsibleCard.Content>
             </CollapsibleCard.Root>
 
@@ -1416,7 +1417,7 @@ export default function AssessmentFormPage() {
                 </CollapsibleCard.Actions>
               </CollapsibleCard.Trigger>
               <CollapsibleCard.Content>
-                <CollapsibleCard.Body className="space-y-5 border-t-0 px-5 py-5 text-sm">
+                <CardContent className="space-y-5 px-5 py-5 text-sm">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="space-y-1">
                       <Label className="text-sm font-medium text-foreground">
@@ -1462,7 +1463,7 @@ export default function AssessmentFormPage() {
                     disabled={isAssessmentLocked || !substanceEditEnabled}
                     loadPicOptions={loadPicOptions}
                   />
-                </CollapsibleCard.Body>
+                </CardContent>
               </CollapsibleCard.Content>
             </CollapsibleCard.Root>
 
@@ -1503,7 +1504,7 @@ export default function AssessmentFormPage() {
                     </CollapsibleCard.Actions>
                   </CollapsibleCard.Trigger>
                   <CollapsibleCard.Content>
-                    <CollapsibleCard.Body className="space-y-5 border-t-0 px-5 py-5 text-sm">
+                    <CardContent className="space-y-5 px-5 py-5 text-sm">
                       <div className="space-y-3">
                       <div className="space-y-1.5">
                         <Label className="text-sm font-medium text-foreground">
@@ -1559,7 +1560,7 @@ export default function AssessmentFormPage() {
                         dndGroup="assessment-approval-line"
                       />
                       </div>
-                    </CollapsibleCard.Body>
+                    </CardContent>
                   </CollapsibleCard.Content>
                 </CollapsibleCard.Root>
               )}

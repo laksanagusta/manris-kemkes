@@ -26,6 +26,11 @@ import type {
 } from "@/types/working-paper";
 import type { UserPickerOption } from "@/lib/risk-register-user-picker";
 import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
+import {
+  currentMonitoringCycle,
+  isCurrentMonitoringCycleAvailable,
+  shiftMonitoringCycle,
+} from "@/lib/risk-cycle-options";
 
 import { FormPage, FormSection } from "@/components/shared/form-shell";
 import {
@@ -112,10 +117,15 @@ export default function CreateWorkingPaperPage() {
   const searchParams = useSearchParams();
   const { token, user } = useAuth();
 
-  const assessmentCycle = normalizeAssessmentCycle(
-    searchParams.get("cycle") ??
-      `${new Date().getFullYear()}-Q${Math.floor(new Date().getMonth() / 3) + 1}`,
+  const currentCycle = currentMonitoringCycle();
+  const previousCycle = shiftMonitoringCycle(currentCycle, -1);
+  const requestedCycle = normalizeAssessmentCycle(
+    searchParams.get("cycle") ?? previousCycle,
   );
+  const assessmentCycle =
+    requestedCycle === currentCycle && !isCurrentMonitoringCycleAvailable()
+      ? previousCycle
+      : requestedCycle;
 
   const [loadingPreview, setLoadingPreview] = useState(true);
   const [preview, setPreview] =

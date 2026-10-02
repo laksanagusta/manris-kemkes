@@ -23,5 +23,6 @@ type EvaluationRepository interface {
 	GetByID(ctx context.Context, id uuid.UUID) (*entity.Evaluation, error)
 	Update(ctx context.Context, evaluation *entity.Evaluation) error
 	List(ctx context.Context, filter EvaluationListFilter) ([]*entity.Evaluation, int, error)
+	ListPeriods(ctx context.Context, organizationIDs []uuid.UUID) ([]string, error)
 	ExistsByOrgPeriodTemplate(ctx context.Context, orgID uuid.UUID, period string, templateID uuid.UUID, excludeID *uuid.UUID) (bool, error)
 }

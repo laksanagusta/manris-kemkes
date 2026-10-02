@@ -591,7 +591,7 @@ export function RiskCycleDetailReport({
             <div className="flex min-w-0 flex-1 flex-col gap-3">
               <div className="flex flex-wrap items-center gap-3">
                 <Select value={fromCycle} onValueChange={setFromCycle}>
-                  <SelectTrigger className={cn(compactSelectTriggerClass, "w-40")}>
+                  <SelectTrigger className={cn(compactSelectTriggerClass, "w-fit")}>
                     <SelectValue placeholder="Periode awal" />
                   </SelectTrigger>
                   <SelectContent>
@@ -603,7 +603,7 @@ export function RiskCycleDetailReport({
                   </SelectContent>
                 </Select>
                 <Select value={toCycle} onValueChange={setToCycle}>
-                  <SelectTrigger className={cn(compactSelectTriggerClass, "w-40")}>
+                  <SelectTrigger className={cn(compactSelectTriggerClass, "w-fit")}>
                     <SelectValue placeholder="Periode akhir" />
                   </SelectTrigger>
                   <SelectContent>
@@ -645,7 +645,7 @@ export function RiskCycleDetailReport({
                   value={includeStable ? "show" : "hide"}
                   onValueChange={(value) => setIncludeStable(value === "show")}
                 >
-                  <SelectTrigger className={cn(compactSelectTriggerClass, "w-40")}>
+                  <SelectTrigger className={cn(compactSelectTriggerClass, "w-fit")}>
                     <SelectValue placeholder="Stable rows" />
                   </SelectTrigger>
                   <SelectContent>

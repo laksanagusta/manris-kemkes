@@ -39,6 +39,7 @@ import type {
 } from "@/types/quarterly-report";
 import { ReportScopePicker } from "@/components/report/report-scope-picker";
 import { ReportKpiCard } from "@/components/report/report-kpi-card";
+import { ReportSummaryCard, ReportSummaryMetrics } from "@/components/report/report-summary-card";
 import { QuarterlyReportDashboard } from "@/components/report/quarterly-report-dashboard";
 import {
   CollectionToolbar,
@@ -152,9 +153,18 @@ function LoadingReport() {
         ))}
       </div>
       {[
-        "Perubahan risiko dan pencapaian target",
-        "Pelaporan mitigasi",
-        "Kejadian dan dampak aktual",
+        { title: "Perubahan risiko", labels: ["Memburuk", "Membaik", "Tetap", "Baru"] },
+        { title: "Pencapaian target", labels: ["Tercapai", "Belum tercapai", "Belum dapat dinilai"] },
+        { title: "Pelaporan mitigasi", labels: ["Terlapor", "Belum terlapor", "Melewati tenggat", "Tidak dilaporkan", "Dilewati"] },
+        { title: "Kejadian dan dampak aktual", labels: ["Kerugian diketahui", "Nilai belum diketahui", "Belum terhubung"] },
+      ].map(({ title, labels }) => (
+        <ReportSummaryCard key={title} title={title} aria-busy="true">
+          <ReportSummaryMetrics
+            items={labels.map((label) => ({ label, value: <Skeleton className="h-9 w-16" /> }))}
+          />
+        </ReportSummaryCard>
+      ))}
+      {[
         "Perbandingan unit",
         "Risiko yang perlu ditindaklanjuti",
       ].map((title) => (

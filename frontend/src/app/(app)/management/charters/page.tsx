@@ -263,7 +263,7 @@ export default function RiskChartersPage() {
       <CollectionToolbar
         className="w-full"
         leading={
-          <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
             <CollectionSearchField
               id="charter-search"
               value={search}
@@ -271,7 +271,7 @@ export default function RiskChartersPage() {
               placeholder="Cari judul, organisasi, UPR, atau tahun"
             />
             <Select value={periodFilter} onValueChange={setPeriodFilter}>
-              <SelectTrigger className="w-full sm:w-56">
+              <SelectTrigger className="w-full sm:w-fit">
                 <SelectValue placeholder="Semua periode" />
               </SelectTrigger>
               <SelectContent>

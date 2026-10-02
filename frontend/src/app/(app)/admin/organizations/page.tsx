@@ -22,11 +22,11 @@ import {
   CollectionPagination,
   CollectionToolbar,
   CollectionEmptyState,
+  CollectionSearchField,
   KpiCard,
   MetricGrid,
   PageStack,
 } from "@/components/shared/design-system";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -37,7 +37,6 @@ import {
 } from "@/components/ui/table";
 import {
   Plus,
-  Search,
   Building2,
   Loader2,
 } from "@/components/shared/icons";
@@ -359,18 +358,16 @@ export default function OrganizationsManagementPage() {
         <CollectionToolbar
           className="w-full"
           leading={
-            <div className="relative min-w-0 w-full sm:w-80 sm:flex-none">
-              <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                placeholder="Cari organisasi..."
-                value={search}
-                onChange={(event) => {
-                  setSearch(event.target.value);
-                  setPage(1);
-                }}
-                className=""
-              />
-            </div>
+            <CollectionSearchField
+              containerClassName="w-full sm:w-80 sm:flex-none"
+              placeholder="Cari organisasi..."
+              aria-label="Cari organisasi"
+              value={search}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(1);
+              }}
+            />
           }
           actions={
             <Button

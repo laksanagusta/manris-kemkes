@@ -74,8 +74,9 @@ export default function RiskEventsPage() {
                 placeholder="Cari kode, kejadian, atau risiko"
                 aria-label="Cari kejadian atau risiko"
               />
-              <div className="w-full sm:w-36">
+              <div className="w-full sm:w-fit">
                 <PopoverSelectField
+                  fitContent
                   value={severityFilter}
                   onValueChange={(value) =>
                     setSeverityFilter(value as RiskEventSeverity | "all")
