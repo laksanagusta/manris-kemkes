@@ -41,13 +41,13 @@ Add A records pointing to your Droplet's IP:
 
 | Record Type | Hostname              | Value           | TTL  |
 |-------------|-----------------------|-----------------|------|
-| A           | api-manris.dikalaksana.com | YOUR_DROPLET_IP | 3600 |
-| A           | manris.dikalaksana.com     | YOUR_DROPLET_IP | 3600 |
+| A           | api-manrisk.dikalaksana.com | YOUR_DROPLET_IP | 3600 |
+| A           | manrisk.dikalaksana.com     | YOUR_DROPLET_IP | 3600 |
 
 **Verify DNS propagation:**
 ```bash
-dig api-manris.dikalaksana.com +short
-dig manris.dikalaksana.com +short
+dig api-manrisk.dikalaksana.com +short
+dig manrisk.dikalaksana.com +short
 ```
 
 ### Docker Hub Account
@@ -120,7 +120,7 @@ This installs Docker, creates directories, and configures the firewall.
    OPENAI_API_KEY=sk-your-real-openai-key-here
    
    # Verify CORS_ORIGINS matches your domain
-   CORS_ORIGINS=https://manris.dikalaksana.com
+   CORS_ORIGINS=https://manrisk.dikalaksana.com
    ```
 
 3. **Upload files to Droplet:**
@@ -161,15 +161,15 @@ Request Let's Encrypt certificates:
 ```bash
 docker compose run --rm --entrypoint /bin/sh certbot -c \
   'certbot certonly --webroot -w /var/www/certbot \
-    -d api-manris.dikalaksana.com \
-    -d manris.dikalaksana.com \
+    -d api-manrisk.dikalaksana.com \
+    -d manrisk.dikalaksana.com \
     --email your@email.com --agree-tos --no-eff-email'
 ```
 
 **Troubleshooting:**
-- If this fails, verify DNS is propagated: `dig api-manris.dikalaksana.com +short`
+- If this fails, verify DNS is propagated: `dig api-manrisk.dikalaksana.com +short`
 - Check nginx logs: `docker compose logs nginx`
-- Verify HTTP is accessible: `curl -I http://api-manris.dikalaksana.com`
+- Verify HTTP is accessible: `curl -I http://api-manrisk.dikalaksana.com`
 
 ### Step 5: Enable SSL Configuration
 
@@ -181,8 +181,8 @@ ssh root@YOUR_DROPLET_IP 'cd /opt/manris && docker compose exec nginx nginx -t &
 
 Verify HTTPS works:
 ```bash
-curl -I https://api-manris.dikalaksana.com/api/health
-curl -I https://manris.dikalaksana.com
+curl -I https://api-manrisk.dikalaksana.com/api/health
+curl -I https://manrisk.dikalaksana.com
 ```
 
 ### Step 6: Set Up Automatic Renewal
@@ -196,6 +196,20 @@ Verify cron job:
 ```bash
 crontab -l
 ```
+
+---
+
+## Migrating an Existing Deployment to the Manrisk Domains
+
+The current production hostnames are `manris.dikalaksana.com` and `api-manris.dikalaksana.com`. Keep both old DNS records and the existing certificate covering both old hostnames active during the transition.
+
+1. Add A records for `manrisk.dikalaksana.com` and `api-manrisk.dikalaksana.com`, pointing to the current Droplet IP. Confirm both resolve before continuing.
+2. In the live Nginx config, temporarily add both new hostnames to the port 80 server's `server_name`. Keep the existing HTTPS server blocks unchanged, then validate and reload Nginx. This lets Let's Encrypt reach the HTTP challenge for the new names without interrupting the old HTTPS sites.
+3. Request a separate certificate for `api-manrisk.dikalaksana.com` and `manrisk.dikalaksana.com` using the Certbot command in Step 4 above. The new certificate should use the `api-manrisk.dikalaksana.com` lineage expected by `nginx/conf.d/default.conf`.
+4. Set production `CORS_ORIGINS` to accept both `https://manris.dikalaksana.com` and `https://manrisk.dikalaksana.com` while old clients may still be open. The checked-in `.env.example` shows the final new origin; remove the old origin after the migration window.
+5. Deploy the updated Nginx config and rebuild/deploy the frontend. The GitHub Actions workflow now builds it with the new API URL; changing only the server-side environment does not update this build-time setting.
+6. Verify HTTPS on both new hostnames, sign in, and check API requests and file uploads/downloads. The old web hostname redirects to the new site, while the old API hostname continues proxying during the transition.
+7. After old API traffic has stopped, remove the old API proxy and certificate references from Nginx, remove the old frontend origin from `CORS_ORIGINS`, and then retire the old DNS records and certificate.
 
 ---
 
@@ -252,7 +266,7 @@ docker compose up -d backend frontend
 **Verify rollback:**
 ```bash
 docker compose ps
-curl https://api-manris.dikalaksana.com/api/health
+curl https://api-manrisk.dikalaksana.com/api/health
 ```
 
 ---
@@ -336,10 +350,10 @@ df -h
 ### Health Checks
 ```bash
 # Backend API
-curl https://api-manris.dikalaksana.com/api/health
+curl https://api-manrisk.dikalaksana.com/api/health
 
 # Frontend
-curl -I https://manris.dikalaksana.com
+curl -I https://manrisk.dikalaksana.com
 
 # Database connection
 docker compose exec postgres psql -U manris -d manris -c "SELECT version();"
