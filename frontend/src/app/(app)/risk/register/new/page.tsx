@@ -3347,7 +3347,7 @@ export default function RiskInputPage() {
                           </dd>
                         </div>
                         <div className="flex items-center justify-between gap-4">
-                          <dt className="text-[13px] text-muted-foreground">Periode pemantauan</dt>
+                          <dt className="text-[13px] text-muted-foreground">Periode</dt>
                           <dd className="shrink-0 text-right font-mono text-foreground">
                             {assessmentCycleDisplay || "-"}
                           </dd>

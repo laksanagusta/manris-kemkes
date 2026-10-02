@@ -163,21 +163,20 @@ export default function RegisterScreen() {
 
       <div className="relative w-full max-w-3xl px-4 py-8 motion-safe:animate-fade-in">
         <div className="flex flex-col gap-6">
-          <header className="flex flex-col items-start gap-4 text-left">
+          <header className="flex w-full flex-col items-start gap-4 text-left">
             <span className="font-logo text-[24px] leading-6 font-semibold lowercase tracking-[-0.4px] text-tertiary-foreground underline decoration-dashed decoration-2 underline-offset-4">Manris</span>
             <h1 className="text-base leading-5 font-medium tracking-tight text-balance">Buat akun baru</h1>
-            <div className="flex flex-col gap-1 text-sm text-muted-foreground">
-              <p>Registrasi mandiri untuk pengguna unit kerja</p>
+            <div className="flex w-full flex-col gap-1 text-left text-sm text-muted-foreground">
               <p>Akun yang dibuat akan berstatus menunggu aktivasi sampai admin menyetujui registrasi.</p>
             </div>
           </header>
           <form id="registration-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <FieldGroup className="grid gap-2 md:grid-cols-2">
+            <FieldGroup className="grid gap-x-2 gap-y-4 md:grid-cols-2">
               {error ? <Alert variant="destructive" className="md:col-span-2"><AlertDescription>{error}</AlertDescription></Alert> : null}
               {success ? <Alert className="md:col-span-2"><AlertDescription>{success}</AlertDescription></Alert> : null}
               <Field>
                 <FieldLabel htmlFor="name">Nama lengkap</FieldLabel>
-                <Input id="name" className="h-11 bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500" value={name} onChange={(event) => setName(event.target.value)} placeholder="Contoh: Dr. Andi Pratama, M.Kes" required />
+                <Input id="name" className="h-11 bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500" value={name} onChange={(event) => setName(event.target.value)} required />
               </Field>
               <Field>
                 <FieldLabel htmlFor="email">Email</FieldLabel>
@@ -231,14 +230,14 @@ export default function RegisterScreen() {
                 <FieldLabel htmlFor="password">Password</FieldLabel>
                 <InputGroup className="h-11 bg-white dark:bg-white dark:text-neutral-900">
                   <InputGroupInput id="password" className="h-11 bg-transparent dark:bg-transparent dark:text-neutral-900 dark:placeholder:text-neutral-500" type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Buat password sendiri" required />
-                  <InputGroupAddon align="inline-end" className="py-0"><InputGroupButton size="icon-xs" className="h-11 w-11 hover:bg-transparent hover:text-inherit" aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"} aria-pressed={showPassword} onClick={() => setShowPassword((current) => !current)}>{showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}</InputGroupButton></InputGroupAddon>
+                  <InputGroupAddon align="inline-end" className="py-0"><InputGroupButton size="icon-xs" className="h-11 w-11 hover:bg-transparent! dark:hover:bg-transparent! hover:text-inherit! dark:hover:text-inherit!" aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"} aria-pressed={showPassword} onClick={() => setShowPassword((current) => !current)}>{showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}</InputGroupButton></InputGroupAddon>
                 </InputGroup>
               </Field>
               <Field>
                 <FieldLabel htmlFor="confirmPassword">Konfirmasi password</FieldLabel>
                 <InputGroup className="h-11 bg-white dark:bg-white dark:text-neutral-900">
                   <InputGroupInput id="confirmPassword" className="h-11 bg-transparent dark:bg-transparent dark:text-neutral-900 dark:placeholder:text-neutral-500" type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Ulangi password" required />
-                  <InputGroupAddon align="inline-end" className="py-0"><InputGroupButton size="icon-xs" className="h-11 w-11 hover:bg-transparent hover:text-inherit" aria-label={showConfirmPassword ? "Sembunyikan konfirmasi password" : "Tampilkan konfirmasi password"} aria-pressed={showConfirmPassword} onClick={() => setShowConfirmPassword((current) => !current)}>{showConfirmPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}</InputGroupButton></InputGroupAddon>
+                  <InputGroupAddon align="inline-end" className="py-0"><InputGroupButton size="icon-xs" className="h-11 w-11 hover:bg-transparent! dark:hover:bg-transparent! hover:text-inherit! dark:hover:text-inherit!" aria-label={showConfirmPassword ? "Sembunyikan konfirmasi password" : "Tampilkan konfirmasi password"} aria-pressed={showConfirmPassword} onClick={() => setShowConfirmPassword((current) => !current)}>{showConfirmPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}</InputGroupButton></InputGroupAddon>
                 </InputGroup>
               </Field>
             </FieldGroup>

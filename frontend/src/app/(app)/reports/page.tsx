@@ -24,7 +24,6 @@ import {
   needsExplicitReportOrgSelection,
 } from "@/lib/report-scope";
 import {
-  copyReportsFilterScope,
   resolveDefaultReportsFilterScope,
   type ReportsFilterScope,
 } from "@/lib/reports-filter-sheet";
@@ -43,11 +42,16 @@ import { ReportSummaryCard, ReportSummaryMetrics } from "@/components/report/rep
 import { QuarterlyReportDashboard } from "@/components/report/quarterly-report-dashboard";
 import {
   CollectionToolbar,
-  CollectionFilterPopover,
   ReportEmptyState,
 } from "@/components/shared/design-system";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import {
+  Card,
+  CardAction,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
@@ -88,9 +92,9 @@ function PeriodPicker({
   const currentYear = Number(current.slice(0, 4));
   const [year, quarter] = cycle.split("-Q");
   return (
-    <div className="flex flex-col items-start gap-1.5">
-      <span className="text-xs text-muted-foreground">{label}</span>
-      <div className="flex items-center gap-2">
+    <div className="min-w-0 space-y-1.5">
+      <p className="text-xs text-muted-foreground">{label}</p>
+      <div className="grid grid-cols-[minmax(0,1fr)_4.5rem] gap-2">
         <Select
           value={year}
           onValueChange={(value) =>
@@ -99,7 +103,7 @@ function PeriodPicker({
             )
           }
         >
-          <SelectTrigger aria-label={`Tahun ${label.toLowerCase()}`}>
+          <SelectTrigger className="h-9! w-full" aria-label={`Tahun ${label.toLowerCase()}`}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -116,7 +120,7 @@ function PeriodPicker({
           value={quarter}
           onValueChange={(value) => onChange(`${year}-Q${value}`)}
         >
-          <SelectTrigger aria-label={`Kuartal ${label.toLowerCase()}`}>
+          <SelectTrigger className="h-9! w-full" aria-label={`Kuartal ${label.toLowerCase()}`}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -191,8 +195,6 @@ export default function ReportsPage() {
   );
   const [groups, setGroups] = useState<OrganizationGroupListItem[]>([]);
   const [scope, setScope] = useState<ReportsFilterScope>(EMPTY_SCOPE);
-  const [draft, setDraft] = useState<ReportsFilterScope>(EMPTY_SCOPE);
-  const [filterOpen, setFilterOpen] = useState(false);
   const [metadataReady, setMetadataReady] = useState(false);
   const [metadataError, setMetadataError] = useState<string | null>(null);
   const [reportData, setReport] = useState<QuarterlyReportOverview | null>(null);
@@ -203,7 +205,8 @@ export default function ReportsPage() {
   const [metadataRetry, setMetadataRetry] = useState(0);
   const [exporting, setExporting] = useState<string | null>(null);
   const needsSelection =
-    needsExplicitReportOrgSelection(user) && scope.organizationIds.length === 0;
+    scope.organizationIds.length === 0 &&
+    (needsExplicitReportOrgSelection(user) || Boolean(scope.organizationGroupId));
 
   useEffect(() => {
     if (!token || !user) return;
@@ -235,7 +238,6 @@ export default function ReportsPage() {
         setGroups(buildSelectableReportOrganizationGroups(user, allGroups));
         const initial = resolveDefaultReportsFilterScope(user, allowed);
         setScope(initial);
-        setDraft(copyReportsFilterScope(initial));
         setMetadataReady(true);
       })
       .catch((error: unknown) => {
@@ -243,7 +245,7 @@ export default function ReportsPage() {
           setMetadataError(
             error instanceof Error
               ? error.message
-              : "Gagal memuat scope organisasi.",
+              : "Coba lagi untuk memuat daftar unit dan grup.",
           );
           setLoading(false);
         }
@@ -362,112 +364,99 @@ export default function ReportsPage() {
   }
   return (
     <div className="w-full min-w-0 space-y-6">
-      <CollectionToolbar
-        leading={
-          <div className="flex flex-wrap items-center gap-3">
-            <PeriodPicker label="Periode" cycle={cycle} onChange={setCycle} />
+      <Card>
+        <CardHeader>
+          <CardTitle className="row-span-2 self-center text-sm">Filter laporan</CardTitle>
+          <CardAction>
+            <CollectionToolbar
+              className="w-fit"
+              actions={
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      disabled={!report || loading || Boolean(exporting)}
+                    >
+                      {exporting ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <Download className="size-4" />
+                      )}
+                      Ekspor
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-88 max-w-[calc(100vw-2rem)] overflow-x-auto">
+                    <DropdownMenuItem className="whitespace-nowrap" onClick={() => void exportReport("pdf")}>
+                      <FileText />
+                      Unduh ringkasan dan analisis (PDF)
+                    </DropdownMenuItem>
+                    <DropdownMenuItem className="whitespace-nowrap" onClick={() => void exportReport("xlsx")}>
+                      <FileSpreadsheet />
+                      Unduh laporan lengkap (Excel)
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              }
+            />
+          </CardAction>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-[11rem_11rem_minmax(0,1fr)]">
+            <PeriodPicker label="Periode laporan" cycle={cycle} onChange={setCycle} />
             <PeriodPicker
-              label="Pembanding"
+              label="Periode pembanding"
               cycle={comparisonCycle}
               onChange={setComparisonOverride}
             />
-            <CollectionFilterPopover
-              open={filterOpen}
-              onOpenChange={(open) => {
-                setFilterOpen(open);
-                if (open) setDraft(copyReportsFilterScope(scope));
-              }}
-              triggerProps={{
-                "aria-label": "Buka filter laporan",
-                disabled: !metadataReady || Boolean(exporting),
-              }}
-              footer={
-                <div className="flex justify-between gap-2">
-                  <Button
-                    variant="ghost"
-                    onClick={() =>
-                      setDraft(
-                        resolveDefaultReportsFilterScope(user, organizations),
-                      )
-                    }
-                  >
-                    Reset
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setScope(copyReportsFilterScope(draft));
-                      setFilterOpen(false);
-                    }}
-                    disabled={
-                      Boolean(draft.organizationGroupId) &&
-                      !draft.organizationIds.length
-                    }
-                  >
-                    Terapkan
-                  </Button>
-                </div>
+            <ReportScopePicker
+              organizationId={scope.organizationId}
+              onOrganizationChange={(organizationId) =>
+                setScope((value) => ({ ...value, organizationId }))
               }
-            >
-              <h2 className="text-sm font-medium">Filter laporan</h2>
-              <ReportScopePicker
-                organizationId={draft.organizationId}
-                onOrganizationChange={(organizationId) =>
-                  setDraft((value) => ({ ...value, organizationId }))
-                }
-                selectedOrganizationIds={draft.organizationIds}
-                onSelectedOrganizationIdsChange={(organizationIds) =>
-                  setDraft((value) => ({ ...value, organizationIds }))
-                }
-                organizations={organizations}
-                organizationGroupId={draft.organizationGroupId}
-                onOrganizationGroupChange={(organizationGroupId) =>
-                  setDraft((value) => ({ ...value, organizationGroupId }))
-                }
-                organizationGroups={groups}
-                orientation="vertical"
-                density="compact"
-              />
-              {!draft.organizationIds.length && (
-                <p className="text-xs text-muted-foreground">
-                  {draft.organizationGroupId
-                    ? "Pilih sedikitnya satu unit dalam grup."
-                    : "Tanpa pilihan unit, laporan mencakup semua unit yang dapat diakses."}
-                </p>
-              )}
-            </CollectionFilterPopover>
+              selectedOrganizationIds={scope.organizationIds}
+              onSelectedOrganizationIdsChange={(organizationIds) =>
+                setScope((value) => ({ ...value, organizationIds }))
+              }
+              organizations={organizations}
+              organizationGroupId={scope.organizationGroupId}
+              onOrganizationGroupChange={(organizationGroupId) =>
+                setScope((value) => ({ ...value, organizationGroupId }))
+              }
+              organizationGroups={groups}
+              className="min-w-0 md:col-span-2 xl:col-span-1"
+              orientation="inline"
+              density="compact"
+              disabled={!metadataReady || Boolean(exporting)}
+            />
           </div>
-        }
-        actions={
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                disabled={!report || loading || Boolean(exporting)}
-              >
-                {exporting ? (
-                  <Loader2 className="size-4 animate-spin" />
-                ) : (
-                  <Download className="size-4" />
-                )}
-                Ekspor
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => void exportReport("pdf")}>
-                <FileText />
-                Ringkasan dan analisis (PDF)
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => void exportReport("xlsx")}>
-                <FileSpreadsheet />
-                Laporan lengkap · 5 sheet (Excel)
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        }
-      />
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <p className="text-xs text-muted-foreground tabular-nums" aria-live="polite">
+              {scope.organizationIds.length
+                ? `${scope.organizationIds.length} unit dipilih`
+                : scope.organizationGroupId
+                  ? "Pilih minimal satu unit dari grup ini."
+                  : needsExplicitReportOrgSelection(user)
+                    ? "Pilih unit untuk menampilkan laporan."
+                    : "Menampilkan semua unit yang dapat diakses"}
+            </p>
+            <Button
+              variant="ghost"
+              className="sm:shrink-0"
+              onClick={() => {
+                setCycle(completedReportCycle());
+                setComparisonOverride("");
+                setScope(resolveDefaultReportsFilterScope(user, organizations));
+              }}
+              disabled={!metadataReady || Boolean(exporting)}
+            >
+              Atur ulang filter
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
       {metadataError ? (
         <Alert variant="destructive">
-          <AlertTitle>Scope organisasi gagal dimuat</AlertTitle>
+          <AlertTitle>Unit dan grup gagal dimuat</AlertTitle>
           <AlertDescription>
             <p>{metadataError}</p>
             <Button
@@ -481,7 +470,7 @@ export default function ReportsPage() {
       ) : needsSelection && metadataReady ? (
         <ReportEmptyState
           title="Pilih unit laporan"
-          description="Pilih satu atau beberapa unit yang dapat diakses melalui filter laporan."
+          description="Pilih satu atau beberapa unit di filter untuk menampilkan laporan."
         />
       ) : reportError ? (
         <Alert variant="destructive">

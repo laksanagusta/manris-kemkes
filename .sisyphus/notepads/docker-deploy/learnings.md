@@ -76,7 +76,7 @@ Example: `DATABASE_URL=postgres://user:pass@host:5432/manris?sslmode=disable`
 All vars use placeholder values:
 - Database: PostgreSQL connection with service-based hostname `postgres:5432`
 - Backend: PORT, JWT_SECRET, JWT_EXPIRY_HOURS, CORS_ORIGINS, OPENAI_API_KEY
-- Frontend: NEXT_PUBLIC_API_URL (https://api-manris.marvcore.com/api/v1)
+- Frontend: NEXT_PUBLIC_API_URL (https://api-manris.dikalaksana.com/api/v1)
 
 ### Key Insight
 - Docker production should use `postgres` as hostname (Docker Compose service name)
@@ -125,7 +125,7 @@ DOCKER_USERNAME, DOCKER_PASSWORD, SSH_HOST, SSH_USER, SSH_KEY
 ### SSL Setup Flow
 1. Copy `default.conf.initial` → `default.conf`
 2. Start all services
-3. Run certbot: `docker compose run --rm certbot certonly --webroot -w /var/www/certbot -d api-manris.marvcore.com -d manris.marvcore.com`
+3. Run certbot: `docker compose run --rm certbot certonly --webroot -w /var/www/certbot -d api-manris.dikalaksana.com -d manris.dikalaksana.com`
 4. Restore SSL config: `git checkout nginx/conf.d/default.conf`
 5. Reload: `docker compose exec nginx nginx -s reload`
 

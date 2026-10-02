@@ -3,7 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
-import { currentMonitoringCycle } from "@/lib/risk-cycle-options";
+import {
+  currentMonitoringCycle,
+  shiftMonitoringCycle,
+} from "@/lib/risk-cycle-options";
 import { getRiskLevelFromNilai } from "@/lib/risk";
 import type { Risk } from "@/types/risk";
 import { MonitoringInsightCard } from "@/components/shared/design-system/domain/monitoring-insight-card";
@@ -13,7 +16,9 @@ const levels = ["sangat_rendah", "rendah", "sedang", "tinggi", "sangat_tinggi"];
 
 export function RegisterMonitoringInsights({ refreshKey }: { refreshKey: unknown }) {
   const { token } = useAuth();
-  const [cycle] = useState(() => currentMonitoringCycle());
+  const [cycle] = useState(() =>
+    shiftMonitoringCycle(currentMonitoringCycle(), -1),
+  );
   const [risks, setRisks] = useState<SnapshotRisk[]>([]);
   const [overdue, setOverdue] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);

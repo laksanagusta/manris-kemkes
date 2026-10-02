@@ -24,7 +24,7 @@ export function MonitoringInsightCard({ cycle, total, finalized, highPending, in
   const circumference = 2 * Math.PI * 78;
 
   return (
-    <StandardCard title={<span className="text-sm">Pemantauan Kuartal Ini</span>} action={<Badge variant="outline">{cycle}</Badge>}>
+    <StandardCard title={<span className="text-sm">Pemantauan Kuartal Sebelumnya</span>} action={<Badge variant="outline">{cycle}</Badge>}>
       {loading ? (
         <OverviewPanelState state="loading" message="Memuat ringkasan pemantauan..." />
       ) : error ? (
@@ -32,7 +32,7 @@ export function MonitoringInsightCard({ cycle, total, finalized, highPending, in
       ) : (
         <div className="grid items-center gap-6 md:grid-cols-[minmax(15rem,1fr)_minmax(0,2fr)] lg:gap-10">
           <div className="flex flex-col items-center gap-3 text-center">
-            <div className="relative size-48" role="progressbar" aria-label="Pemantauan final" aria-valuemin={0} aria-valuemax={100} aria-valuenow={total ? percent : undefined} aria-valuetext={total ? `${finalized} dari ${total} risiko sudah dipantau final` : "Belum ada risiko aktif berprofil final"}>
+            <div className="relative size-48" role="progressbar" aria-label={`Pemantauan final ${cycle}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={total ? percent : undefined} aria-valuetext={total ? `${finalized} dari ${total} risiko sudah dipantau final pada ${cycle}` : `Belum ada risiko aktif berprofil final pada ${cycle}`}>
               <svg viewBox="0 0 192 192" className="size-full -rotate-90" aria-hidden="true">
                 <circle cx="96" cy="96" r="78" fill="none" stroke="var(--sunken)" strokeWidth="18" />
                 {total > 0 && percent > 0 && <circle cx="96" cy="96" r="78" fill="none" stroke="var(--risk-low)" strokeWidth="18" strokeLinecap="round" strokeDasharray={`${circumference * (finalized / total)} ${circumference}`} />}
@@ -44,7 +44,7 @@ export function MonitoringInsightCard({ cycle, total, finalized, highPending, in
             </div>
             <Badge variant={total && finalized === total ? "secondary" : "outline"}>{!total ? "Belum ada risiko" : finalized === total ? "Seluruhnya final" : "Masih berjalan"}</Badge>
             <div className="flex items-center justify-center gap-1.5">
-              <p className="text-pretty text-sm text-muted-foreground"><span className="font-medium text-foreground tabular-nums">{finalized} dari {total}</span> risiko sudah dipantau</p>
+              <p className="text-pretty text-sm text-muted-foreground"><span className="font-medium text-foreground tabular-nums">{finalized} dari {total}</span> risiko sudah dipantau pada {cycle}</p>
               <Tooltip>
                 <TooltipTrigger asChild><button type="button" aria-label="Cara menghitung persentase pemantauan" className="-ml-2 flex size-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring"><Info className="size-4" strokeWidth={1.5} /></button></TooltipTrigger>
                 <TooltipContent>Persentase profil risiko final yang masih aktif dengan hasil pemantauan final pada {cycle}. Setiap risiko dihitung sekali. Ini mengukur penyelesaian pemantauan.</TooltipContent>
@@ -56,8 +56,8 @@ export function MonitoringInsightCard({ cycle, total, finalized, highPending, in
               <p className="text-xs font-medium text-muted-foreground">Prioritas pemantauan</p>
               <p className="mt-1 text-2xl font-semibold tracking-tight tabular-nums">{highPending} <span className="text-base font-normal">risiko tinggi & ekstrem belum dipantau</span></p>
             </div>
-            <p className="rounded-xl bg-card-subtle-surface p-4 text-pretty text-sm"><span className="font-semibold tabular-nums">{total - finalized}</span> risiko belum memiliki pemantauan final pada kuartal ini.</p>
-            <p className="rounded-xl bg-card-subtle-surface p-4 text-pretty text-sm"><span className="font-semibold tabular-nums">{increased}</span> risiko naik level dibandingkan profil awal kuartal.</p>
+            <p className="rounded-xl bg-card-subtle-surface p-4 text-pretty text-sm"><span className="font-semibold tabular-nums">{total - finalized}</span> risiko belum memiliki pemantauan final pada {cycle}.</p>
+            <p className="rounded-xl bg-card-subtle-surface p-4 text-pretty text-sm"><span className="font-semibold tabular-nums">{increased}</span> risiko naik level dibandingkan profil awal {cycle}.</p>
             <div className="rounded-xl bg-card-subtle-surface p-4">
               <p className="text-pretty text-sm">{overdue === null ? "Data tenggat mitigasi tidak dapat dimuat." : <><span className="font-semibold tabular-nums">{overdue}</span> tugas mitigasi melewati tenggat.</>}</p>
               <p className="mt-1 text-xs text-muted-foreground">Mencakup semua periode tugas mitigasi.</p>
