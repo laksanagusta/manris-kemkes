@@ -30,6 +30,40 @@ export async function listWorkingPapers(
   return api.get<WorkingPaperListResponse>(`/working-papers${qs ? `?${qs}` : ""}`, token);
 }
 
+export async function listWorkingPaperAssessmentCycles(
+  token: string,
+): Promise<string[]> {
+  const pageSize = 100;
+  const firstPage = await listWorkingPapers(token, { page: 1, limit: pageSize });
+  const cycles = new Set(
+    firstPage.data
+      .map((paper) => paper.assessment_cycle.trim())
+      .filter(Boolean),
+  );
+  const pageCount = Math.ceil(firstPage.total / pageSize);
+
+  for (let startPage = 2; startPage <= pageCount; startPage += 5) {
+    const pages = Array.from(
+      { length: Math.min(5, pageCount - startPage + 1) },
+      (_, index) => startPage + index,
+    );
+    const responses = await Promise.all(
+      pages.map((page) =>
+        listWorkingPapers(token, { page, limit: pageSize }),
+      ),
+    );
+
+    for (const response of responses) {
+      for (const paper of response.data) {
+        const cycle = paper.assessment_cycle.trim();
+        if (cycle) cycles.add(cycle);
+      }
+    }
+  }
+
+  return [...cycles];
+}
+
 export async function getWorkingPaper(id: string, token: string): Promise<WorkingPaper> {
   return api.get<WorkingPaper>(`/working-papers/${id}`, token);
 }

@@ -70,6 +70,44 @@ type MitigationTaskRow = MitigationTask & {
   title: string;
 };
 
+async function listMitigationTaskPeriods(token: string): Promise<string[]> {
+  const pageSize = 100;
+  const firstPage = await api.get<{
+    data: MitigationTask[];
+    total: number;
+  }>(`/mitigation-tasks/all?page=1&limit=${pageSize}`, token);
+  const periods = new Set(
+    firstPage.data
+      .map((task) => task.periodLabel.trim())
+      .filter(Boolean),
+  );
+  const pageCount = Math.ceil(firstPage.total / pageSize);
+
+  for (let startPage = 2; startPage <= pageCount; startPage += 5) {
+    const pages = Array.from(
+      { length: Math.min(5, pageCount - startPage + 1) },
+      (_, index) => startPage + index,
+    );
+    const responses = await Promise.all(
+      pages.map((page) =>
+        api.get<{ data: MitigationTask[]; total: number }>(
+          `/mitigation-tasks/all?page=${page}&limit=${pageSize}`,
+          token,
+        ),
+      ),
+    );
+
+    for (const response of responses) {
+      for (const task of response.data) {
+        const period = task.periodLabel.trim();
+        if (period) periods.add(period);
+      }
+    }
+  }
+
+  return [...periods];
+}
+
 function getMitigationStatusTone(status: MitigationTaskRow["status"]) {
   if (status === "done") return "success";
   if (status === "overdue") return "danger";
@@ -154,6 +192,7 @@ export function MitigationMonitoringPanel() {
   const { page, limit } = queryState;
 
   const [mitigations, setMitigations] = useState<MitigationTaskRow[]>([]);
+  const [availablePeriods, setAvailablePeriods] = useState<string[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [detailTask, setDetailTask] = useState<MitigationTaskRow | null>(null);
@@ -174,6 +213,27 @@ export function MitigationMonitoringPanel() {
   const [period, setPeriod] = useState(queryState.period ?? "");
 
   useEffect(() => {
+    if (!token) {
+      setAvailablePeriods([]);
+      return;
+    }
+
+    setAvailablePeriods([]);
+    let cancelled = false;
+    listMitigationTaskPeriods(token)
+      .then((periods) => {
+        if (!cancelled) setAvailablePeriods(periods);
+      })
+      .catch((error) => {
+        console.error("Failed to load mitigation task periods", error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
+
+  useEffect(() => {
     setSearch(queryState.search);
   }, [queryState.search]);
 
@@ -184,8 +244,8 @@ export function MitigationMonitoringPanel() {
   const debouncedSearch = useDebouncedValue(search, 500);
   const debouncedPeriod = useDebouncedValue(period, 400);
   const periodFilterOptions = useMemo(
-    () => getAssessmentCycleFilterOptions(new Date(), period),
-    [period],
+    () => getAssessmentCycleFilterOptions(new Date(), period, availablePeriods),
+    [availablePeriods, period],
   );
 
   const formErrors = useMemo(

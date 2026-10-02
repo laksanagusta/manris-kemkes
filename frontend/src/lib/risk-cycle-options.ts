@@ -109,26 +109,47 @@ export function getSelectableAssessmentCycles(
 export function getAssessmentCycleFilterOptions(
   referenceDate = new Date(),
   selectedCycle = "",
+  persistedCycles: string[] = [],
 ): AssessmentCycleOption[] {
   const start = normalizeQuarterCycle("2026-Q2");
   const current = normalizeQuarterCycle(currentAssessmentCycle(referenceDate));
-  const cycles: AssessmentCycleOption[] = [];
+  const cycleValues = new Set<string>();
 
   for (let year = start.year; year <= current.year; year += 1) {
     const firstQuarter = year === start.year ? start.quarter + 1 : 1;
     const lastQuarter = year === current.year ? current.quarter + 1 : 4;
 
     for (let quarter = firstQuarter; quarter <= lastQuarter; quarter += 1) {
-      const value = `${year}-Q${quarter}`;
-      cycles.push({ value, label: value });
+      cycleValues.add(`${year}-Q${quarter}`);
     }
   }
 
-  if (selectedCycle && !cycles.some((cycle) => cycle.value === selectedCycle)) {
-    cycles.push({ value: selectedCycle, label: selectedCycle });
+  for (const cycle of persistedCycles) {
+    const period = cycle.trim();
+    if (period) cycleValues.add(period);
   }
 
-  return [{ value: "all", label: "Semua Periode" }, ...cycles];
+  if (selectedCycle) {
+    cycleValues.add(selectedCycle);
+  }
+
+  const cycles = [...cycleValues].sort((left, right) => {
+    try {
+      const leftCycle = normalizeQuarterCycle(left);
+      const rightCycle = normalizeQuarterCycle(right);
+      return (
+        leftCycle.year * 4 + leftCycle.quarter -
+        (rightCycle.year * 4 + rightCycle.quarter)
+      );
+    } catch {
+      return left.localeCompare(right);
+    }
+  });
+
+  return [
+    { value: "all", label: "Semua Periode" },
+    ...cycles.map((value) => ({ value, label: value })),
+  ];
 }
 
 export function getSelectableMonitoringCycles(

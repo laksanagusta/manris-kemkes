@@ -10,7 +10,10 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
-import { listWorkingPapers } from "@/lib/api/working-papers";
+import {
+  listWorkingPaperAssessmentCycles,
+  listWorkingPapers,
+} from "@/lib/api/working-papers";
 import type { WorkingPaper, WorkingPaperStatus } from "@/types/working-paper";
 import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 import { WorkingPaperProgressCollapsible } from "./_components/working-paper-progress-collapsible";
@@ -406,6 +409,9 @@ export default function WorkingPapersPage() {
   const [isPending, startTransition] = useTransition();
 
   const [papers, setPapers] = useState<WorkingPaper[]>([]);
+  const [availableAssessmentCycles, setAvailableAssessmentCycles] = useState<
+    string[]
+  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -435,11 +441,33 @@ export default function WorkingPapersPage() {
   const assessmentCycleOptions = getAssessmentCycleFilterOptions(
     new Date(),
     assessmentCycleFilter,
+    availableAssessmentCycles,
   );
 
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [selectedPeriod, setSelectedPeriod] = useState("");
   const [exportingPaperId, setExportingPaperId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!token) {
+      setAvailableAssessmentCycles([]);
+      return;
+    }
+
+    setAvailableAssessmentCycles([]);
+    let cancelled = false;
+    listWorkingPaperAssessmentCycles(token)
+      .then((cycles) => {
+        if (!cancelled) setAvailableAssessmentCycles(cycles);
+      })
+      .catch((error) => {
+        console.error("Failed to load working paper assessment cycles", error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
   const periodOptions: {
     value: string;
