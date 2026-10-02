@@ -14,6 +14,17 @@ import { MonitoringInsightCard } from "@/components/shared/design-system/domain/
 type SnapshotRisk = Risk & { archivedAt?: string | null };
 const levels = ["sangat_rendah", "rendah", "sedang", "tinggi", "sangat_tinggi"];
 
+function isArchivedByCycleEnd(archivedAt: string | null | undefined, cycle: string) {
+  if (!archivedAt) return false;
+
+  const match = /^(\d{4})-Q([1-4])$/.exec(cycle);
+  const archivedDate = new Date(archivedAt);
+  if (!match || Number.isNaN(archivedDate.getTime())) return true;
+
+  const nextCycleStart = new Date(Number(match[1]), Number(match[2]) * 3, 1);
+  return archivedDate.getTime() < nextCycleStart.getTime();
+}
+
 export function RegisterMonitoringInsights({ refreshKey }: { refreshKey: unknown }) {
   const { token } = useAuth();
   const [cycle] = useState(() =>
@@ -44,7 +55,9 @@ export function RegisterMonitoringInsights({ refreshKey }: { refreshKey: unknown
   const insight = useMemo(() => {
     const unique = new Map<string, SnapshotRisk>();
     for (const risk of risks) {
-      if (!risk.archivedAt && risk.status === "final") unique.set(risk.versionGroupId || risk.id, risk);
+      if (!isArchivedByCycleEnd(risk.archivedAt, cycle) && risk.status === "final") {
+        unique.set(risk.versionGroupId || risk.id, risk);
+      }
     }
     const active = [...unique.values()];
     // The cycle-snapshot endpoint attaches only finalized observations.

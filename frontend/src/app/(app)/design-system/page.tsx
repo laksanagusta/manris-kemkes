@@ -174,22 +174,22 @@ export default function DesignSystemPage() {
             <FieldGroup className="grid gap-x-2 gap-y-4 md:grid-cols-2">
               <Field>
                 <FieldLabel htmlFor="design-system-register-name">Nama lengkap</FieldLabel>
-                <Input id="design-system-register-name" className="h-11 bg-white dark:bg-white" />
+                <Input id="design-system-register-name" className="h-11 bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500" />
               </Field>
               <Field>
                 <FieldLabel htmlFor="design-system-register-email">Email</FieldLabel>
-                <Input id="design-system-register-email" type="email" className="h-11 bg-white dark:bg-white" placeholder="nama@kemenkes.go.id" />
+                <Input id="design-system-register-email" type="email" className="h-11 bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500" placeholder="nama@kemenkes.go.id" />
               </Field>
             </FieldGroup>
             <FieldGroup className="gap-2">
               <Field>
                 <FieldLabel htmlFor="design-system-login-nip" className="sr-only">NIP (login)</FieldLabel>
-                <Input id="design-system-login-nip" className="h-11 bg-white dark:bg-white" placeholder="Masukkan NIP" />
+                <Input id="design-system-login-nip" className="h-11 bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500" placeholder="Masukkan NIP" />
               </Field>
               <Field>
                 <FieldLabel htmlFor="design-system-login-password" className="sr-only">Password (login)</FieldLabel>
                 <InputGroup className="h-11 bg-white dark:bg-white">
-                  <InputGroupInput id="design-system-login-password" type="password" className="h-11 bg-transparent dark:bg-transparent" placeholder="Masukkan password" />
+                  <InputGroupInput id="design-system-login-password" type="password" className="h-11 bg-transparent dark:bg-transparent dark:text-neutral-900 dark:placeholder:text-neutral-500" placeholder="Masukkan password" />
                   <InputGroupAddon align="inline-end" className="py-0">
                     <InputGroupButton size="icon-xs" className="h-11 w-11 hover:bg-transparent! dark:hover:bg-transparent! hover:text-inherit! dark:hover:text-inherit!" aria-label="Tampilkan password"><Eye aria-hidden="true" /></InputGroupButton>
                   </InputGroupAddon>
@@ -206,7 +206,7 @@ export default function DesignSystemPage() {
                 <FieldLabel htmlFor="design-system-charter-title">Judul Piagam</FieldLabel>
                 <Input
                   id="design-system-charter-title"
-                  className="bg-white dark:bg-white"
+                  className="bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500"
                   placeholder="Piagam Manajemen Risiko 2026"
                 />
               </Field>
@@ -214,7 +214,7 @@ export default function DesignSystemPage() {
                 <FieldLabel htmlFor="design-system-charter-scope">Ruang lingkup</FieldLabel>
                 <Textarea
                   id="design-system-charter-scope"
-                  className="bg-white dark:bg-white"
+                  className="bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500"
                   placeholder="Tuliskan ruang lingkup penerapan manajemen risiko."
                 />
               </Field>
