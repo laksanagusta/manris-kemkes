@@ -290,7 +290,7 @@ export default function RiskCascadingPage() {
             </colgroup>
             <CollectionTableHeader>
               <CollectionTableHeaderRow>
-                  <CollectionTableHead className="px-24">
+                  <CollectionTableHead className="">
                     Risiko
                   </CollectionTableHead>
                   <CollectionTableHead >
@@ -334,7 +334,7 @@ export default function RiskCascadingPage() {
                       statusLabels[item.status] || item.status;
                     return (
                       <TableRow key={item.id}>
-                        <TableCell className="px-24">
+                        <TableCell className="">
                           <div className="space-y-1">
                             <p className="font-medium text-foreground">
                               {formatCascadeTitle(item)}

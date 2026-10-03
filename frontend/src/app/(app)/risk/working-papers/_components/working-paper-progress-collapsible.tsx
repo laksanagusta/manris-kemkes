@@ -208,7 +208,7 @@ function LatestProgressTable({
         </colgroup>
         <CollectionTableHeader density="compact">
           <CollectionTableHeaderRow>
-            <CollectionTableHead className="px-24">
+            <CollectionTableHead className="">
               Organisasi
             </CollectionTableHead>
             <CollectionTableHead >Periode</CollectionTableHead>
@@ -232,7 +232,7 @@ function LatestProgressTable({
                 className="h-12 transition-colors hover:bg-muted/70"
               >
               <TableCell
-                className="truncate px-24"
+                className="truncate"
                 title={row.orgName}
               >
                 {row.orgName}

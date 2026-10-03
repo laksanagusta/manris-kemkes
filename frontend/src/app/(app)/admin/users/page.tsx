@@ -479,7 +479,7 @@ export default function UsersManagementPage() {
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead className="px-24 whitespace-nowrap">User</TableHead>
+                <TableHead className="whitespace-nowrap">User</TableHead>
                 <TableHead className="w-32 whitespace-nowrap">Phone</TableHead>
                 <TableHead className="w-32 whitespace-nowrap">NIP</TableHead>
                 <TableHead className="w-28 whitespace-nowrap">Role</TableHead>
@@ -514,7 +514,7 @@ export default function UsersManagementPage() {
                       key={managedUser.id}
                       className="transition-colors hover:bg-muted/30"
                     >
-                      <TableCell className="max-w-[250px] px-24">
+                      <TableCell className="max-w-[250px]">
                         <div className="flex items-center gap-3">
                           <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-medium text-primary">
                             {getInitials(managedUser.name)}

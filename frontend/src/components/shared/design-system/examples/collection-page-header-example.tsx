@@ -13,6 +13,7 @@ export function CollectionPageHeaderExample() {
       title="Daftar Risiko"
       subtitle="Kelola identifikasi, status, dan siklus pemantauan risiko."
       showTitle
+      actionsPlacement="title"
       actions={
         <>
           <ActionButton>Import Risiko</ActionButton>

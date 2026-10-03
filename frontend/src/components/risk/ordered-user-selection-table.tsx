@@ -142,7 +142,7 @@ function SortableOrderedUserSelectionRow({
           {index + 1}
         </span>
       </TableCell>
-      <TableCell className="align-top px-24">
+      <TableCell className="align-top">
         <div className="flex flex-col gap-2">
           <RemoteUserPicker
             title={`${pickerTitle} ${index + 1}`}
@@ -248,7 +248,7 @@ export function OrderedUserSelectionTable({
             >
               <span className="sr-only">Urutan</span>
             </CollectionTableHead>
-            <CollectionTableHead density="compact" className="w-[360px] px-24">
+            <CollectionTableHead density="compact" className="w-[360px]">
               Nama
             </CollectionTableHead>
             <CollectionTableHead density="compact" className="w-[220px]">

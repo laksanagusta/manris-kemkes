@@ -3,6 +3,12 @@
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import {
+  Activity,
+  AlertTriangle,
+  ClipboardCheck,
+  Target,
+} from "@/components/shared/icons";
+import {
   Pie,
   PieChart,
   PolarAngleAxis,
@@ -418,6 +424,7 @@ export function QuarterlyReportDashboard({
       <ReportSummaryCard
         id="risk-movement"
         title="Perubahan risiko"
+        icon={<Activity aria-hidden="true" />}
       >
         {data.hasRisks ? (
           <ReportSummaryMetrics
@@ -430,7 +437,7 @@ export function QuarterlyReportDashboard({
           <ReportEmptyState description="Belum ada profil final yang berlaku pada periode ini." />
         )}
       </ReportSummaryCard>
-      <ReportSummaryCard id="target-attainment" title="Pencapaian target">
+      <ReportSummaryCard id="target-attainment" title="Pencapaian target" icon={<Target aria-hidden="true" />}>
         {data.hasRisks ? (
           <ReportSummaryMetrics items={[
             { label: "Tercapai", value: s.target.achieved },
@@ -441,7 +448,7 @@ export function QuarterlyReportDashboard({
           <ReportEmptyState description="Belum ada profil final yang berlaku pada periode ini." />
         )}
       </ReportSummaryCard>
-      <ReportSummaryCard id="mitigation-reporting" title="Pelaporan mitigasi">
+      <ReportSummaryCard id="mitigation-reporting" title="Pelaporan mitigasi" icon={<ClipboardCheck aria-hidden="true" />}>
         {taskCounts.total ? (
           <ReportSummaryMetrics
             items={states.map((state) => ({
@@ -453,7 +460,7 @@ export function QuarterlyReportDashboard({
           <ReportEmptyState description="Belum ada tugas mitigasi yang tercatat untuk kuartal ini." />
         )}
       </ReportSummaryCard>
-      <ReportSummaryCard title="Kejadian dan dampak aktual">
+      <ReportSummaryCard title="Kejadian dan dampak aktual" icon={<AlertTriangle aria-hidden="true" />}>
         <ReportSummaryMetrics
           items={[
             {
@@ -581,7 +588,7 @@ export function QuarterlyReportDashboard({
                 </colgroup>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="px-24">Unit</TableHead>
+                    <TableHead className="">Unit</TableHead>
                     <TableHead>Jumlah risiko</TableHead>
                     <TableHead>Di atas selera</TableHead>
                     <TableHead>Target tercapai</TableHead>
@@ -597,7 +604,7 @@ export function QuarterlyReportDashboard({
                     )
                     .map((unit) => (
                       <TableRow key={unit.id}>
-                        <TableCell className="whitespace-normal px-24">
+                        <TableCell className="whitespace-normal">
                           <Button
                             variant="link"
                             className="h-auto whitespace-normal p-0 text-left font-normal"

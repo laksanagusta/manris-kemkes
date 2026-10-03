@@ -269,7 +269,7 @@ function MeetingMinuteDetailContent() {
         }
       />
 
-      <Card className="overflow-hidden">
+      <Card className="mx-auto w-full max-w-4xl overflow-hidden shadow-[0_24px_60px_-24px_rgb(0_0_0/0.2)]">
         <header className="px-6 py-8 md:px-8">
           <h2 className="text-lg font-medium tracking-tight text-foreground">Properti</h2>
 

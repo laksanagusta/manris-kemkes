@@ -22,6 +22,9 @@ export function CollectionPageHeader({
   actionsPlacement?: "header" | "title" | "top";
   className?: string;
 }) {
+  // Subtitles were removed from all page headers by design; the prop is
+  // kept for API compatibility so existing call sites keep compiling.
+  void subtitle;
   const actionsInTitleRow =
     showTitle && actionsPlacement === "title" && Boolean(actions);
   const actionsInTopSlot = actionsPlacement === "top" && Boolean(actions);
@@ -68,11 +71,6 @@ export function CollectionPageHeader({
                       ) : null}
                       <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
                     </div>
-                    {subtitle ? (
-                      <p className="mt-1 text-sm leading-6 text-secondary-foreground text-pretty">
-                        {subtitle}
-                      </p>
-                    ) : null}
                   </div>
                   {actionsInTitleRow ? (
                     <div className="flex shrink-0 flex-wrap items-center gap-2">

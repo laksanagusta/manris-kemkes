@@ -752,7 +752,7 @@ export default function WorkingPapersPage() {
                   </colgroup>
                   <CollectionTableHeader density="compact">
                     <CollectionTableHeaderRow>
-                      <CollectionTableHead className="px-24">
+                      <CollectionTableHead className="">
                         Judul
                       </CollectionTableHead>
                       <CollectionTableHead >
@@ -788,7 +788,7 @@ export default function WorkingPapersPage() {
                           key={paper.id}
                           className="hover:bg-muted/50"
                         >
-                          <TableCell className="min-w-[320px] px-24 align-middle">
+                          <TableCell className="min-w-[320px] align-middle">
                             <Link
                               href={`/risk/working-papers/${paper.id}`}
                               className="block max-w-full whitespace-normal break-words text-sm font-medium leading-relaxed text-foreground transition-colors hover:text-primary"

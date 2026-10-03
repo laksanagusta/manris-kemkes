@@ -13,7 +13,7 @@ export function CollectionTableCard({
     isValidElement(item) && item.type === CollectionPagination;
 
   return (
-    <Card className={className} {...props}>
+    <Card className={className} data-collection-table="" {...props}>
       <CardContent>
         <div className="-m-(--card-spacing) min-w-0">
           {items.filter((item) => !isPagination(item))}

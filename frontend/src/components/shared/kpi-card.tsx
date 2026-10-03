@@ -29,7 +29,7 @@ export function KpiCard({
 }: KpiCardProps) {
   void tone;
   return (
-    <Card className={className} {...rest}>
+    <Card className={cn("gap-2", className)} {...rest}>
       <CardHeader>
         <CardTitle className={cn("text-xs text-muted-foreground", labelClassName)}>
           {label}

@@ -6,11 +6,13 @@ export function OverviewTrendCard({
   title = "Tren Skor Risiko per Semester",
   chart,
   legend,
+  summary,
   children,
 }: {
   title?: ReactNode;
   chart?: ReactNode;
   legend?: ReactNode;
+  summary?: ReactNode;
   children?: ReactNode;
 }) {
   return (
@@ -18,6 +20,7 @@ export function OverviewTrendCard({
       title={<span className="text-sm">{title}</span>}
     >
       <div className="space-y-4">
+        {summary}
         {legend ? (
           <div
             role="list"

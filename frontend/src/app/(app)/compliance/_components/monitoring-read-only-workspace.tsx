@@ -233,7 +233,7 @@ function OrganizationSummaryTable({
         </colgroup>
         <CollectionTableHeader density="compact">
           <CollectionTableHeaderRow>
-            <CollectionTableHead className="px-24">
+            <CollectionTableHead className="">
               Organisasi
             </CollectionTableHead>
             <CollectionTableHead className="text-right">
@@ -250,7 +250,7 @@ function OrganizationSummaryTable({
         <TableBody>
           {summaries.map((summary) => (
             <TableRow key={summary.id}>
-              <TableCell className="px-24">
+              <TableCell className="">
                 <div className="flex items-center gap-2">
                   <span
                     className="truncate text-sm font-medium text-foreground"
@@ -631,7 +631,7 @@ export function MonitoringReadOnlyWorkspace() {
               </colgroup>
               <CollectionTableHeader density="compact">
                 <CollectionTableHeaderRow>
-                  <CollectionTableHead className="px-24">Risiko</CollectionTableHead>
+                  <CollectionTableHead className="">Risiko</CollectionTableHead>
                   <CollectionTableHead >Periode</CollectionTableHead>
                   <CollectionTableHead >Status</CollectionTableHead>
                   <CollectionTableHead >Perubahan Skor</CollectionTableHead>
@@ -666,7 +666,7 @@ export function MonitoringReadOnlyWorkspace() {
                         }}
                         onKeyDown={(event) => handleRowKeyDown(event, row)}
                       >
-                        <TableCell className="min-w-0 max-w-0 overflow-hidden px-24">
+                        <TableCell className="min-w-0 max-w-0 overflow-hidden">
                           <div className="min-w-0">
                             <Link
                               href={actionHref}

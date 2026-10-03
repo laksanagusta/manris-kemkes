@@ -259,7 +259,7 @@ function PlanningHierarchyLoadingState() {
     <Table className="min-w-[880px]">
           <CollectionTableHeader>
             <CollectionTableHeaderRow>
-              <CollectionTableHead className="w-[52%] px-24">
+              <CollectionTableHead className="w-[52%]">
                 Struktur
               </CollectionTableHead>
               <CollectionTableHead className="w-28">
@@ -276,7 +276,7 @@ function PlanningHierarchyLoadingState() {
           <TableBody>
             {Array.from({ length: 4 }).map((_, index) => (
               <TableRow key={index} className="">
-                <TableCell className="align-top px-24 md:pl-6">
+                <TableCell className="align-top md:pl-6">
                   <div className="flex min-w-0 items-center gap-3 py-0.5">
                     <Skeleton className="h-5 w-5" />
                     <div className="min-w-0 space-y-2">
@@ -321,7 +321,7 @@ function PlanningHierarchyTable({
     <Table className="min-w-[880px]">
           <CollectionTableHeader>
             <CollectionTableHeaderRow>
-              <CollectionTableHead className="w-[52%] px-24">
+              <CollectionTableHead className="w-[52%]">
                 Struktur
               </CollectionTableHead>
               <CollectionTableHead className="w-28">
@@ -372,7 +372,7 @@ function PlanningHierarchyRows({
                 depth > 0 && "bg-zinc-50/30",
               )}
             >
-              <TableCell className="align-middle px-24 md:pl-6">
+              <TableCell className="align-middle md:pl-6">
                 <div className="flex h-full min-w-0 items-center">
                   <div
                     className="flex min-w-0 items-center gap-2.5"
@@ -448,7 +448,7 @@ function PlanningHierarchyRows({
                     key={item.id}
                     className="h-12 hover:bg-muted/70"
                   >
-                    <TableCell className="align-middle px-24">
+                    <TableCell className="align-middle">
                       <div className="flex h-full min-w-0 items-center">
                         <div
                           className="flex min-w-0 items-center gap-2.5"

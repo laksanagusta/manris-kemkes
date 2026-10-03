@@ -780,7 +780,7 @@ export function RiskCycleDetailReport({
                     <TableHead className="w-24 whitespace-nowrap">
                       Kode
                     </TableHead>
-                    <TableHead className="px-24 whitespace-nowrap">Risiko</TableHead>
+                    <TableHead className="whitespace-nowrap">Risiko</TableHead>
                     <TableHead className="w-40 whitespace-nowrap">
                       Unit
                     </TableHead>
@@ -832,7 +832,7 @@ export function RiskCycleDetailReport({
                             <TableCell className="">
                               {item.code || "-"}
                             </TableCell>
-                            <TableCell className="max-w-[300px] px-24">
+                            <TableCell className="max-w-[300px]">
                               <div className="space-y-1">
                                 <p className="truncate text-sm font-medium text-foreground">
                                   {item.title || "-"}

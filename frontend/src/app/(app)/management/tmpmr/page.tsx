@@ -312,7 +312,7 @@ export default function TMPMRListPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead className="whitespace-nowrap">Periode</TableHead>
-                    <TableHead className="px-24 whitespace-nowrap">Organisasi</TableHead>
+                    <TableHead className="whitespace-nowrap">Organisasi</TableHead>
                     <TableHead className="whitespace-nowrap">Skor</TableHead>
                     <TableHead className="whitespace-nowrap">Maturity</TableHead>
                     <TableHead className="whitespace-nowrap">Status</TableHead>
@@ -339,7 +339,7 @@ export default function TMPMRListPage() {
                       return (
                         <TableRow key={item.id}>
                           <TableCell className="whitespace-nowrap">{item.period}</TableCell>
-                          <TableCell className="max-w-[240px] px-24 truncate">
+                          <TableCell className="max-w-[240px] truncate">
                             <span className="text-foreground">{orgName}</span>
                           </TableCell>
                           <TableCell className="whitespace-nowrap">

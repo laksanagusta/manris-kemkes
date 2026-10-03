@@ -109,7 +109,7 @@ export default function RiskHistoryPage() {
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
                     <TableHead className="w-20 whitespace-nowrap">Kode</TableHead>
-                    <TableHead className="px-24 whitespace-nowrap">Risiko & Alasan Perubahan</TableHead>
+                    <TableHead className="whitespace-nowrap">Risiko & Alasan Perubahan</TableHead>
                     <TableHead className="w-28 whitespace-nowrap">Versi Lama</TableHead>
                     <TableHead className="text-center w-12 whitespace-nowrap">→</TableHead>
                     <TableHead className="w-28 whitespace-nowrap">Versi Current</TableHead>
@@ -135,7 +135,7 @@ export default function RiskHistoryPage() {
                   ) : historyData.map((history) => (
                     <TableRow key={history.riskId} className="hover:bg-muted/30">
                       <TableCell className="">{history.riskId}</TableCell>
-                      <TableCell className="max-w-[300px] px-24">
+                      <TableCell className="max-w-[300px]">
                         <p className="truncate text-xs font-medium leading-relaxed text-foreground">{history.title}</p>
                         <p className="truncate text-[10px] text-muted-foreground mt-0.5 italic text-primary/70">{history.changeReason}</p>
                       </TableCell>

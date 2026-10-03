@@ -924,14 +924,14 @@ export default function RiskRegisterPage() {
               </colgroup>
               <CollectionTableHeader>
                 <CollectionTableHeaderRow>
-                  <CollectionTableHead className="px-24">
+                  <CollectionTableHead>
                     Risiko
                   </CollectionTableHead>
                   <CollectionTableHead>
                     Kategori
                   </CollectionTableHead>
                   <CollectionTableHead
-                    className="text-right"
+                    className="pe-6 text-right"
                     aria-sort={scoreAriaSort}
                   >
                     <Button
@@ -1049,7 +1049,7 @@ export default function RiskRegisterPage() {
                       <TableRow
                         key={risk.id}
                       >
-                        <TableCell className="px-24">
+                        <TableCell>
                           <div className="flex min-w-0 flex-col items-start gap-1">
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -1072,7 +1072,7 @@ export default function RiskRegisterPage() {
                         <TableCell className="whitespace-nowrap">
                           <RiskCategoryIndicator category={risk.category} />
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="pe-6 text-right">
                           <span className="block text-right text-sm font-medium tabular-nums text-foreground">
                             {formatMonitoringNilai(
                               riskScore,

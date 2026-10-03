@@ -164,7 +164,7 @@ function LoadingReport() {
       ].map(({ title, labels }) => (
         <ReportSummaryCard key={title} title={title} aria-busy="true">
           <ReportSummaryMetrics
-            items={labels.map((label) => ({ label, value: <Skeleton className="h-9 w-16" /> }))}
+            items={labels.map((label) => ({ label, value: <Skeleton className="h-10 w-24" /> }))}
           />
         </ReportSummaryCard>
       ))}

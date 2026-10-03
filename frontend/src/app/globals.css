@@ -78,6 +78,36 @@
 }
 
 :root {
+  --badge-neutral-surface: #fafafa;
+  --badge-neutral-border: #e4e4e7;
+  --badge-neutral-foreground: #71717b;
+  --badge-green-surface: #f3fdf9;
+  --badge-green-border: #a4f4d0;
+  --badge-green-foreground: #007a56;
+  --badge-red-surface: #fef7f7;
+  --badge-red-border: #ffccd3;
+  --badge-red-foreground: #c70036;
+  --badge-blue-surface: #f4fbff;
+  --badge-blue-border: #b8e6ff;
+  --badge-blue-foreground: #0069a8;
+  --badge-yellow-surface: #fffdf2;
+  --badge-yellow-border: #f5e5a4;
+  --badge-yellow-foreground: #8a6500;
+  --badge-amber-surface: #fffbf2;
+  --badge-amber-border: #f8dda4;
+  --badge-amber-foreground: #945b00;
+  --badge-orange-surface: #fff8f3;
+  --badge-orange-border: #ffd4b0;
+  --badge-orange-foreground: #a84b0a;
+  --badge-purple-surface: #faf7ff;
+  --badge-purple-border: #dfceff;
+  --badge-purple-foreground: #7446a8;
+  --badge-pink-surface: #fff7fc;
+  --badge-pink-border: #f7c9e5;
+  --badge-pink-foreground: #a53576;
+  --badge-cyan-surface: #f2fcfc;
+  --badge-cyan-border: #a7e7e7;
+  --badge-cyan-foreground: #087b80;
   --card: oklch(1 0 0);
   --card-foreground: #202020;
   --popover: oklch(1 0 0);
@@ -95,8 +125,11 @@
   --card-subtle-surface: #f6f6f6;
   --secondary-card-surface: #efefef;
   --sunken: #efefef;
-  --table-header: #fcfcfc;
-  --table-header-foreground: var(--secondary-foreground);
+  --table-header: #f7f7f7;
+  --table-divider: #e5e5e5;
+  --table-hover: #fafafa;
+  --table-selected: #f0f4f8;
+  --table-header-foreground: var(--tertiary-foreground);
   --table-footer: #fcfcfc;
   --accent: #e5e5e5;
   --accent-foreground: #202020;
@@ -154,13 +187,49 @@
   --chart-tooltip-background: var(--popover);
   --chart-tooltip-foreground: var(--popover-foreground);
   --chart-tooltip-muted: var(--muted-foreground);
-  --background: #fcfcfc;
+  --background: var(--sidebar);
   --foreground: #202020;
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
+  --badge-neutral-surface: #242426;
+  --badge-neutral-border: #424247;
+  --badge-neutral-foreground: #a3a3ad;
+  --badge-green-surface: #122c24;
+  --badge-green-border: #245944;
+  --badge-green-foreground: #8ce4bc;
+  --badge-red-surface: #321b22;
+  --badge-red-border: #68303f;
+  --badge-red-foreground: #ffa8bb;
+  --badge-blue-surface: #142a36;
+  --badge-blue-border: #2d526b;
+  --badge-blue-foreground: #91d4ff;
+  --badge-yellow-surface: #302b18;
+  --badge-yellow-border: #665a2a;
+  --badge-yellow-foreground: #e9d17a;
+  --badge-amber-surface: #302719;
+  --badge-amber-border: #665032;
+  --badge-amber-foreground: #f3cb83;
+  --badge-orange-surface: #33251e;
+  --badge-orange-border: #704832;
+  --badge-orange-foreground: #ffc494;
+  --badge-purple-surface: #2a2036;
+  --badge-purple-border: #55406d;
+  --badge-purple-foreground: #d1b5f7;
+  --badge-pink-surface: #321f2d;
+  --badge-pink-border: #673f59;
+  --badge-pink-foreground: #f0b0d6;
+  --badge-cyan-surface: #142c2e;
+  --badge-cyan-border: #2b595c;
+  --badge-cyan-foreground: #8ed9dd;
+  --background: var(--sidebar);
   --foreground: oklch(0.985 0 0);
+  --table-header: oklch(0.23 0 0);
+  --table-footer: oklch(0.23 0 0);
+  --table-divider: oklch(1 0 0 / 12%);
+  --table-hover: oklch(0.25 0 0);
+  --table-selected: oklch(0.3 0.015 250);
+  --table-header-foreground: var(--tertiary-foreground);
   --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
@@ -209,9 +278,184 @@
   }
 }
 
+[data-autofill-surface="white"]:-webkit-autofill,
+[data-autofill-surface="white"]:-webkit-autofill:hover,
+[data-autofill-surface="white"]:-webkit-autofill:focus,
+[data-autofill-surface="white"]:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #fff inset !important;
+  box-shadow: 0 0 0 1000px #fff inset !important;
+  -webkit-text-fill-color: #202020 !important;
+  color: #202020 !important;
+  caret-color: #202020;
+}
+
+[data-autofill-surface="white"]:-moz-autofill {
+  box-shadow: 0 0 0 1000px #fff inset !important;
+  color: #202020 !important;
+  caret-color: #202020;
+}
+
+/* Reference table surface: shared by collections, reports, pickers and editors.
+ * Keep registry primitives intact; these are documented application tokens. */
+[data-slot="table"] {
+  background: var(--card);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.5;
+}
+
+[data-slot="table-head"],
+[data-slot="table-cell"] {
+  padding-inline: 20px !important;
+}
+
 [data-slot="table-head"] {
+  height: 36px;
+  padding-block: 0;
   background-color: var(--table-header) !important;
-  color: var(--secondary-foreground) !important;
+  color: var(--table-header-foreground) !important;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* Base-layer importance wins over the stock TableHead's important text utility. */
+@layer base {
+  [data-slot="table-head"] {
+    color: var(--table-header-foreground) !important;
+  }
+}
+
+[data-slot="table-head"] :is(button, span) {
+  font-size: inherit;
+}
+
+[data-slot="table-body"] > [data-slot="table-row"] {
+  height: 56px;
+}
+
+[data-slot="table-cell"] {
+  padding-block: 12px;
+  font-weight: 400;
+}
+
+/* Let empty/loading illustrations and validation messages own their height. */
+[data-slot="table-cell"][colspan] {
+  height: auto;
+}
+
+[data-slot="table-row"] {
+  border-color: var(--table-divider);
+  transition-property: background-color;
+  transition-duration: 120ms;
+}
+
+[data-slot="table-body"] [data-slot="table-row"]:hover {
+  background-color: var(--table-hover);
+}
+
+[data-slot="table-row"][data-state="selected"] {
+  background-color: var(--table-selected);
+}
+
+[data-slot="table"] [data-slot="checkbox"] {
+  width: 18px;
+  height: 18px;
+  border-color: var(--ring);
+  border-radius: 4px;
+}
+
+/* Badge color families share the reference's pale surface, pastel outline and deep text.
+ * Existing domain classes select a hue; chart and score-picker palettes stay separate. */
+[data-slot="badge"] {
+  --badge-surface: var(--badge-neutral-surface);
+  --badge-outline: var(--badge-neutral-border);
+  --badge-ink: var(--badge-neutral-foreground);
+  border-width: 1px;
+  font-weight: 400;
+  transition-property: color, background-color, border-color, box-shadow;
+}
+
+[data-slot="badge"][data-variant="destructive"] {
+  --badge-surface: var(--badge-red-surface);
+  --badge-outline: var(--badge-red-border);
+  --badge-ink: var(--badge-red-foreground);
+}
+
+[data-slot="badge"]:is([class*="bg-green-"], [class*="bg-emerald-"], [class*="bg-risk-low"], [class*="bg-success"], [class*="bg-lime-"]) {
+  --badge-surface: var(--badge-green-surface);
+  --badge-outline: var(--badge-green-border);
+  --badge-ink: var(--badge-green-foreground);
+}
+
+[data-slot="badge"]:is([class*="bg-red-"], [class*="bg-rose-"], [class*="bg-risk-extreme"], [class*="bg-destructive"]) {
+  --badge-surface: var(--badge-red-surface);
+  --badge-outline: var(--badge-red-border);
+  --badge-ink: var(--badge-red-foreground);
+}
+
+[data-slot="badge"]:is([class*="bg-blue-"], [class*="bg-sky-"], [class*="bg-info-foreground"]) {
+  --badge-surface: var(--badge-blue-surface);
+  --badge-outline: var(--badge-blue-border);
+  --badge-ink: var(--badge-blue-foreground);
+}
+
+[data-slot="badge"]:is([class*="bg-yellow-"], [class*="bg-risk-medium"]) {
+  --badge-surface: var(--badge-yellow-surface);
+  --badge-outline: var(--badge-yellow-border);
+  --badge-ink: var(--badge-yellow-foreground);
+}
+
+[data-slot="badge"]:is([class*="bg-amber-"], [class*="bg-warning"]) {
+  --badge-surface: var(--badge-amber-surface);
+  --badge-outline: var(--badge-amber-border);
+  --badge-ink: var(--badge-amber-foreground);
+}
+
+[data-slot="badge"]:is([class*="bg-orange-"], [class*="bg-risk-high"]) {
+  --badge-surface: var(--badge-orange-surface);
+  --badge-outline: var(--badge-orange-border);
+  --badge-ink: var(--badge-orange-foreground);
+}
+
+[data-slot="badge"]:is([class*="bg-purple-"], [class*="bg-violet-"], [class*="bg-indigo-"]) {
+  --badge-surface: var(--badge-purple-surface);
+  --badge-outline: var(--badge-purple-border);
+  --badge-ink: var(--badge-purple-foreground);
+}
+
+[data-slot="badge"]:is([class*="bg-pink-"], [class*="bg-fuchsia-"]) {
+  --badge-surface: var(--badge-pink-surface);
+  --badge-outline: var(--badge-pink-border);
+  --badge-ink: var(--badge-pink-foreground);
+}
+
+[data-slot="badge"]:is([class*="bg-teal-"], [class*="bg-cyan-"]) {
+  --badge-surface: var(--badge-cyan-surface);
+  --badge-outline: var(--badge-cyan-border);
+  --badge-ink: var(--badge-cyan-foreground);
+}
+
+[data-slot="badge"][aria-invalid="true"] {
+  --badge-surface: var(--badge-red-surface);
+  --badge-outline: var(--badge-red-border);
+  --badge-ink: var(--badge-red-foreground);
+}
+
+/* Important base declarations also beat local important Tailwind utilities. */
+@layer base {
+  [data-slot="badge"] {
+    background-color: var(--badge-surface) !important;
+    border-color: var(--badge-outline) !important;
+    color: var(--badge-ink) !important;
+    font-size: 12px !important;
+    line-height: 16px;
+  }
+}
+
+[data-slot="table"] [data-slot="badge"] {
+  height: 22px;
+  border-radius: 8px;
+  padding: 2px 8px;
 }
 
 /* The stock Card edge is a ring, so use the shared surface border. */
@@ -219,26 +463,45 @@
   --tw-ring-color: var(--border);
 }
 
-[data-slot="table-row"] {
-  border-color: var(--separator);
+[data-collection-table] {
+  border-radius: 12px;
+  --tw-ring-color: var(--table-divider);
+  box-shadow: 0 0 0 1px var(--table-divider), 0 1px 2px rgb(0 0 0 / 10%);
 }
 
-[data-slot="table-body"] [data-slot="table-row"]:hover {
-  background-color: var(--sidebar-accent);
+/* Adjacent toolbar + table share one reference panel, including pagination. */
+:where(div, section):has(> [data-slot="collection-toolbar"] + [data-collection-table]) {
+  overflow: clip;
+  border-radius: 12px;
+  background: var(--card);
+  box-shadow: 0 0 0 1px var(--table-divider), 0 1px 2px rgb(0 0 0 / 10%);
 }
 
-[data-slot="table-row"][data-state="selected"] {
-  background-color: var(--active);
+[data-slot="collection-toolbar"]:has(+ [data-collection-table]) {
+  min-height: 48px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--table-divider);
+  margin-block: 0;
+}
+
+[data-slot="collection-toolbar"] + [data-collection-table] {
+  margin-block: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-slot="table-row"] { transition-duration: 0ms; }
 }
 
 [data-slot="separator"] {
   background-color: var(--separator);
 }
 
-@media (min-width: 48rem) {
-  [data-slot="sidebar-container"][data-side="left"] {
-    border-right-width: 0.5px;
-  }
+/* The application sidebar meets the main section without a divider. */
+[data-slot="sidebar-container"][data-side="left"],
+[data-slot="sidebar"][data-mobile="true"] {
+  border: 0 !important;
 }
 
 /* Neutral button interaction colors share the application palette. */

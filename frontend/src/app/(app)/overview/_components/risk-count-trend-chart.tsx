@@ -24,6 +24,7 @@ import type { Risk } from "@/types/risk";
 interface RiskCountTrendChartProps {
   risks: Risk[];
   currentCycle: string;
+  currentTotal?: number;
   loading?: boolean;
   error?: boolean;
   onRetry?: () => void;
@@ -45,6 +46,7 @@ const chartConfig = {
 export function RiskCountTrendChart({
   risks,
   currentCycle,
+  currentTotal,
   loading,
   error,
   onRetry,
@@ -64,7 +66,17 @@ export function RiskCountTrendChart({
   const hasData = chartData.some((d) => d.totalRisks > 0);
 
   return (
-    <OverviewTrendCard title="Tren Jumlah Risiko">
+    <OverviewTrendCard
+      title="Tren Jumlah Risiko"
+      summary={
+        <p className="flex items-baseline gap-2">
+          <span className="text-3xl font-semibold tabular-nums">
+            {currentTotal ?? "—"}
+          </span>
+          <span className="text-sm text-muted-foreground">risiko terdaftar</span>
+        </p>
+      }
+    >
       {loading ? (
         <OverviewPanelState
           state="loading"

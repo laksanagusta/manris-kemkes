@@ -199,7 +199,7 @@ function PredictivePageContent() {
            <TableHeader>
              <TableRow className="hover:bg-transparent">
                <TableHead className="w-20 whitespace-nowrap">Kode</TableHead>
-               <TableHead className="px-24 whitespace-nowrap">Risiko</TableHead>
+               <TableHead className="whitespace-nowrap">Risiko</TableHead>
                <TableHead className="w-24 whitespace-nowrap">Level Saat Ini</TableHead>
                <TableHead className="text-center w-12 whitespace-nowrap">→</TableHead>
                <TableHead className="w-24 whitespace-nowrap">Prediksi Level</TableHead>
@@ -226,7 +226,7 @@ function PredictivePageContent() {
                 <TableCell className="">
                   {pred.riskCode}
                 </TableCell>
-                <TableCell className="max-w-[200px] px-24">
+                <TableCell className="max-w-[200px]">
                   <span className="line-clamp-1 text-foreground">{pred.title}</span>
                 </TableCell>
                 <TableCell>

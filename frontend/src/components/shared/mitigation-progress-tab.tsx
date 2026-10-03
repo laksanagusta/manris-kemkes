@@ -378,7 +378,7 @@ export function MitigationProgressTab({
               <TableHeader>
                 <TableRow className="h-auto text-left">
                   <TableHead className="">Kode</TableHead>
-                  <TableHead className="px-24">Rencana</TableHead>
+                  <TableHead className="">Rencana</TableHead>
                   <TableHead className="">Periode</TableHead>
                   <TableHead className="">Tenggat</TableHead>
                   <TableHead className="">Status</TableHead>
@@ -414,7 +414,7 @@ export function MitigationProgressTab({
                           {task.riskTitle || "—"}
                         </div>
                       </TableCell>
-                      <TableCell className="align-top px-24">
+                      <TableCell className="align-top">
                         <div className="max-w-[360px] text-sm font-medium text-foreground line-clamp-2">
                           {task.mitigationAction || "—"}
                         </div>
