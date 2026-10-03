@@ -121,7 +121,7 @@ function OrgRow({
 
   return (
     <TableRow className="hover:bg-muted/30 transition-colors">
-      <TableCell className="max-w-[220px] px-24">
+      <TableCell className="max-w-[220px]">
         <div className="flex items-center gap-2">
           <Building2 className="size-4 shrink-0 text-muted-foreground" />
           <span className="truncate text-xs font-medium text-foreground">
@@ -386,7 +386,7 @@ export default function OrganizationsManagementPage() {
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead className="w-[220px] px-24 whitespace-nowrap">Nama Organisasi</TableHead>
+                <TableHead className="w-[220px] whitespace-nowrap">Nama Organisasi</TableHead>
                 <TableHead className="w-40 whitespace-nowrap">Parent Unit</TableHead>
                 <TableHead className="w-28 whitespace-nowrap">UPR Level</TableHead>
                 <TableHead className="w-32 whitespace-nowrap">Dibuat</TableHead>

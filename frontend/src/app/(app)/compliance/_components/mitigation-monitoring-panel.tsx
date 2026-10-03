@@ -10,6 +10,7 @@ import {
   CollectionPagination,
   CollectionSearchField,
   CollectionTableCard,
+  CollectionToolbar,
   CollectionTableHead,
   CollectionTableHeader,
   CollectionTableHeaderRow,
@@ -527,192 +528,200 @@ export function MitigationMonitoringPanel() {
       </MetricGrid>
 
       <div className="space-y-4">
-        <div className="flex w-full min-w-0 flex-wrap items-center gap-2 md:ml-auto">
-          <CollectionSearchField
-            containerClassName="w-full sm:w-80 sm:flex-none xl:w-[calc((100%_-_3rem)/4)]"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder="Cari mitigasi..."
-            aria-label="Cari mitigasi"
-          />
-          <div className="w-full sm:w-fit">
-            <PopoverSelectField
-              fitContent
-              value={queryState.status ?? "all"}
-              onValueChange={(value) =>
-                pushQueryState({
-                  status: value as MitigationMonitoringStatusFilter,
-                  page: 1,
-                })
-              }
-              options={[
-                { value: "all", label: "Semua Status" },
-                { value: "pending", label: "Pending" },
-                { value: "overdue", label: "Overdue" },
-                { value: "done", label: "Selesai" },
-                { value: "skipped", label: "Dilewati" },
-                { value: "not_reported", label: "Tidak dilaporkan" },
-              ]}
-              placeholder="Status"
-              ariaLabel="Filter status penanganan"
-              triggerClassName="h-8 rounded-lg bg-card text-sm"
-              optionClassName="whitespace-nowrap"
-            />
-          </div>
-          <PopoverSelectField
-            fitContent
-            value={period || "all"}
-            onValueChange={(value) => setPeriod(value === "all" ? "" : value)}
-            options={periodFilterOptions}
-            placeholder="Semua Periode"
-            ariaLabel="Filter periode penanganan"
-            triggerClassName="h-8 rounded-lg bg-card text-sm"
-          />
-          <ActionButton asChild variant="outline" className="sm:ml-auto">
-            <Link href="/compliance/penanganan/impor">
-              <Upload className="size-3.5" />
-              Import
-            </Link>
-          </ActionButton>
-        </div>
-
-        {loading ? (
-          <CollectionLoadingState message="Memuat data mitigasi..." />
-        ) : mitigations.length === 0 ? (
-          <CollectionEmptyState
-            title={
-              hasActiveFilters
-                ? "Tidak ada penanganan sesuai filter"
-                : "Belum ada rencana penanganan"
-            }
-            description={
-              hasActiveFilters
-                ? "Ubah kata kunci, status, atau periode untuk melihat data lain."
-                : "Rencana penanganan akan muncul di sini setelah tersedia."
-            }
-            action={
-              hasActiveFilters ? (
-                <ActionButton
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setSearch("");
-                    setPeriod("");
+        <CollectionToolbar
+          leading={
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+              <CollectionSearchField
+                containerClassName="w-full sm:w-80 sm:flex-none"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Cari mitigasi..."
+                aria-label="Cari mitigasi"
+              />
+              <div className="w-full sm:w-fit">
+                <PopoverSelectField
+                  fitContent
+                  value={queryState.status ?? "all"}
+                  onValueChange={(value) =>
                     pushQueryState({
-                      search: "",
-                      status: "all",
-                      period: "",
+                      status: value as MitigationMonitoringStatusFilter,
                       page: 1,
-                    });
-                  }}
-                >
-                  Reset filter
-                </ActionButton>
-              ) : undefined
-            }
-          />
-        ) : (
-          <CollectionTableCard>
-          <Table className="min-w-[1180px] table-fixed">
-            <colgroup>
-              <col className="w-[35%]" />
-              <col className="w-[16%]" />
-              <col className="w-[12%]" />
-              <col className="w-[14%]" />
-              <col className="w-[13%]" />
-              <col className="w-[10%]" />
-            </colgroup>
-            <CollectionTableHeader>
-              <CollectionTableHeaderRow className="h-9 hover:bg-transparent">
-                <CollectionTableHead className="px-24">
-                  Rencana Penanganan
-                </CollectionTableHead>
-                <CollectionTableHead >PIC</CollectionTableHead>
-                <CollectionTableHead >Periode</CollectionTableHead>
-                <CollectionTableHead >
-                  Deadline
-                </CollectionTableHead>
-                <CollectionTableHead >Status</CollectionTableHead>
-                <CollectionTableHead className="text-right">
-                  <span className="sr-only">Aksi</span>
-                </CollectionTableHead>
-              </CollectionTableHeaderRow>
-            </CollectionTableHeader>
-            <TableBody>
-              {mitigations.map((item) => {
-                const submissionState =
-                  getMitigationSubmissionActionState(
-                    item.periodEnd,
-                    item.dueDate,
-                  );
+                    })
+                  }
+                  options={[
+                    { value: "all", label: "Semua Status" },
+                    { value: "pending", label: "Pending" },
+                    { value: "overdue", label: "Overdue" },
+                    { value: "done", label: "Selesai" },
+                    { value: "skipped", label: "Dilewati" },
+                    { value: "not_reported", label: "Tidak dilaporkan" },
+                  ]}
+                  placeholder="Status"
+                  ariaLabel="Filter status penanganan"
+                  triggerClassName="h-8 rounded-lg bg-card text-sm"
+                  optionClassName="whitespace-nowrap"
+                />
+              </div>
+              <PopoverSelectField
+                fitContent
+                value={period || "all"}
+                onValueChange={(value) => setPeriod(value === "all" ? "" : value)}
+                options={periodFilterOptions}
+                placeholder="Semua Periode"
+                ariaLabel="Filter periode penanganan"
+                triggerClassName="h-8 rounded-lg bg-card text-sm"
+              />
+            </div>
+          }
+          actions={
+            <ActionButton asChild variant="outline">
+              <Link href="/compliance/penanganan/impor">
+                <Upload className="size-3.5" />
+                Import
+              </Link>
+            </ActionButton>
+          }
+        />
+        <CollectionTableCard>
 
-                return (
-                  <TableRow
-                    key={item.id}
-                    className="group hover:bg-transparent hover:[&>td]:bg-muted/50 [&>td]:transition-[background-color]"
+          {loading ? (
+            <CollectionLoadingState message="Memuat data mitigasi..." />
+          ) : mitigations.length === 0 ? (
+            <CollectionEmptyState
+              title={
+                hasActiveFilters
+                  ? "Tidak ada penanganan sesuai filter"
+                  : "Belum ada rencana penanganan"
+              }
+              description={
+                hasActiveFilters
+                  ? "Ubah kata kunci, status, atau periode untuk melihat data lain."
+                  : "Rencana penanganan akan muncul di sini setelah tersedia."
+              }
+              action={
+                hasActiveFilters ? (
+                  <ActionButton
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setSearch("");
+                      setPeriod("");
+                      pushQueryState({
+                        search: "",
+                        status: "all",
+                        period: "",
+                        page: 1,
+                      });
+                    }}
                   >
-                    <TableCell className="align-middle px-24">
-                      <button
-                        type="button"
-                        onClick={() => handleOpenDetail(item)}
-                        className="block w-full min-w-0 text-left text-sm font-medium leading-5 text-foreground transition-colors hover:text-primary"
-                      >
-                        <span className="block truncate font-medium">
-                          {item.mitigationAction}
-                        </span>
-                        <span className="mt-0.5 block font-mono text-sm leading-5 text-muted-foreground">
-                          {item.riskCode}
-                        </span>
-                      </button>
-                    </TableCell>
-                    <TableCell className="align-middle">
-                      <p className="truncate text-sm font-medium text-muted-foreground">
-                        {item.unit}
-                      </p>
-                    </TableCell>
-                    <TableCell className="align-middle">
-                      <span className="font-mono text-sm text-muted-foreground">
-                        {item.periodLabel || "—"}
-                      </span>
-                    </TableCell>
-                    <TableCell className="align-middle">
-                      <p className="text-muted-foreground">
-                        {formatDate(item.dueDate)}
-                      </p>
-                    </TableCell>
-                    <TableCell className="align-middle">
-                      <Badge variant={toBadgeVariant(getMitigationStatusTone(item.status))}
-                        className={getStatusBadgeClassName(getMitigationStatusTone(item.status))}
-                      >
-                        {getMitigationStatusLabel(item.status)}
-                      </Badge>
-                    </TableCell>
-                  <TableCell className="sticky right-0 z-10 text-right align-middle">
-                    <MitigationRowActions
-                      task={item}
-                      submissionState={submissionState}
-                      onOpenSubmit={() => handleOpenSubmit(item)}
-                    />
-                  </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                    Reset filter
+                  </ActionButton>
+                ) : undefined
+              }
+            />
+          ) : (
+            <Table className="min-w-[1180px] table-fixed">
+              <colgroup>
+                <col className="w-[35%]" />
+                <col className="w-[16%]" />
+                <col className="w-[12%]" />
+                <col className="w-[14%]" />
+                <col className="w-[13%]" />
+                <col className="w-[10%]" />
+              </colgroup>
+              <CollectionTableHeader>
+                <CollectionTableHeaderRow className="h-9 hover:bg-transparent">
+                  <CollectionTableHead className="">
+                    Rencana Penanganan
+                  </CollectionTableHead>
+                  <CollectionTableHead >PIC</CollectionTableHead>
+                  <CollectionTableHead >Periode</CollectionTableHead>
+                  <CollectionTableHead >
+                    Deadline
+                  </CollectionTableHead>
+                  <CollectionTableHead >Status</CollectionTableHead>
+                  <CollectionTableHead className="text-right">
+                    <span className="sr-only">Aksi</span>
+                  </CollectionTableHead>
+                </CollectionTableHeaderRow>
+              </CollectionTableHeader>
+              <TableBody>
+                {mitigations.map((item) => {
+                  const submissionState =
+                    getMitigationSubmissionActionState(
+                      item.periodEnd,
+                      item.dueDate,
+                    );
 
-          <CollectionPagination
-            itemLabel="mitigasi"
-            page={page}
-            pageSize={limit}
-            total={total}
-            disabled={loading}
-            onPageChange={handlePageChange}
-            onPageSizeChange={(nextLimit) => {
-              handleLimitChange(nextLimit);
-            }}
-          />
-          </CollectionTableCard>
-        )}
+                  return (
+                    <TableRow
+                      key={item.id}
+                      className="group hover:bg-transparent hover:[&>td]:bg-muted/50 [&>td]:transition-[background-color]"
+                    >
+                      <TableCell className="align-middle">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenDetail(item)}
+                          className="block w-full min-w-0 text-left text-sm font-medium leading-5 text-foreground transition-colors hover:text-primary"
+                        >
+                          <span className="block truncate font-medium">
+                            {item.mitigationAction}
+                          </span>
+                          <span className="mt-0.5 block font-mono text-sm leading-5 text-muted-foreground">
+                            {item.riskCode}
+                          </span>
+                        </button>
+                      </TableCell>
+                      <TableCell className="align-middle">
+                        <p className="truncate text-sm font-medium text-muted-foreground">
+                          {item.unit}
+                        </p>
+                      </TableCell>
+                      <TableCell className="align-middle">
+                        <span className="font-mono text-sm text-muted-foreground">
+                          {item.periodLabel || "—"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="align-middle">
+                        <p className="text-muted-foreground">
+                          {formatDate(item.dueDate)}
+                        </p>
+                      </TableCell>
+                      <TableCell className="align-middle">
+                        <Badge variant={toBadgeVariant(getMitigationStatusTone(item.status))}
+                          className={getStatusBadgeClassName(getMitigationStatusTone(item.status))}
+                        >
+                          {getMitigationStatusLabel(item.status)}
+                        </Badge>
+                      </TableCell>
+                    <TableCell className="sticky right-0 z-10 text-right align-middle">
+                      <MitigationRowActions
+                        task={item}
+                        submissionState={submissionState}
+                        onOpenSubmit={() => handleOpenSubmit(item)}
+                      />
+                    </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+
+          {!loading && mitigations.length > 0 && (
+            <CollectionPagination
+              itemLabel="mitigasi"
+              page={page}
+              pageSize={limit}
+              total={total}
+              disabled={loading}
+              onPageChange={handlePageChange}
+              onPageSizeChange={(nextLimit) => {
+                handleLimitChange(nextLimit);
+              }}
+            />
+          )}
+        </CollectionTableCard>
       </div>
 
       <MitigationProgressFlowDialog

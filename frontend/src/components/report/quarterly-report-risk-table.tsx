@@ -196,7 +196,7 @@ export function QuarterlyReportRiskTable({
                     </colgroup>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="px-24">Risiko</TableHead>
+                        <TableHead className="">Risiko</TableHead>
                         <TableHead>Profil kuartal</TableHead>
                         <TableHead>Hasil final</TableHead>
                         <TableHead>Target</TableHead>
@@ -210,7 +210,7 @@ export function QuarterlyReportRiskTable({
                         );
                         return (
                           <TableRow key={row.risk.id}>
-                            <TableCell className="whitespace-normal px-24">
+                            <TableCell className="whitespace-normal">
                               <Link
                                 href={`/risk/register/${row.risk.id}`}
                                 className="break-words hover:underline"

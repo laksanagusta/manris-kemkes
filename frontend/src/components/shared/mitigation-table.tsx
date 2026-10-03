@@ -182,7 +182,7 @@ export function MitigationTable({
             </colgroup>
             <CollectionTableHeader density="compact">
               <CollectionTableHeaderRow>
-                <CollectionTableHead className="px-24">
+                <CollectionTableHead className="">
                   Rencana Penanganan
                 </CollectionTableHead>
                 <CollectionTableHead >PIC</CollectionTableHead>
@@ -206,7 +206,7 @@ export function MitigationTable({
                         expanded && "bg-muted/20 hover:bg-muted/20",
                       )}
                     >
-                      <TableCell className="px-24">
+                      <TableCell className="">
                         <div className="space-y-1">
                           <Input
                             value={item.action || ""}

@@ -19,9 +19,22 @@ export const designSystemStatusMapping = [
 ] as const;
 
 export const designSystemRiskLevels = [
-  { label: "Sangat Rendah", variant: "default" },
-  { label: "Rendah", variant: "default" },
-  { label: "Sedang", variant: "default" },
-  { label: "Tinggi", variant: "destructive" },
-  { label: "Sangat Tinggi", variant: "destructive" },
+  { label: "Sangat Rendah", level: "sangat_rendah", variant: "outline" },
+  { label: "Rendah", level: "rendah", variant: "outline" },
+  { label: "Sedang", level: "sedang", variant: "outline" },
+  { label: "Tinggi", level: "tinggi", variant: "outline" },
+  { label: "Sangat Tinggi", level: "sangat_tinggi", variant: "outline" },
+] as const;
+
+export const designSystemBadgePalette = [
+  { label: "Total", className: "bg-secondary" },
+  { label: "Berhasil", className: "bg-green-50" },
+  { label: "Ditolak", className: "bg-red-50" },
+  { label: "Scope Excel Mingguan", className: "bg-sky-50" },
+  { label: "Kuning", className: "bg-yellow-50" },
+  { label: "Amber", className: "bg-amber-50" },
+  { label: "Oranye", className: "bg-orange-50" },
+  { label: "Ungu", className: "bg-violet-50" },
+  { label: "Pink", className: "bg-pink-50" },
+  { label: "Cyan", className: "bg-cyan-50" },
 ] as const;

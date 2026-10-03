@@ -65,6 +65,9 @@ export function getStatusBadgeClassName(
   value: StatusTone | BadgeVariant | string | null | undefined,
 ): string {
   switch ((value ?? "").trim().toLowerCase()) {
+    case "dalam review":
+    case "menunggu":
+    case "berjalan":
     case "progress":
     case "pending":
     case "medium":
@@ -84,6 +87,10 @@ export function getStatusBadgeClassName(
       return "border-transparent bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300";
     case "info":
       return "border-transparent bg-sky-50 text-sky-700 dark:bg-sky-950 dark:text-sky-300";
+    case "berhasil":
+    case "disetujui":
+    case "selesai":
+    case "aktif":
     case "success":
     case "final":
     case "finalized":
@@ -93,6 +100,10 @@ export function getStatusBadgeClassName(
     case "reviewed":
     case "active":
       return "border-transparent bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300";
+    case "ditolak":
+    case "rejected":
+    case "dibatalkan":
+    case "overdue":
     case "danger":
     case "cancel":
     case "cancelled":

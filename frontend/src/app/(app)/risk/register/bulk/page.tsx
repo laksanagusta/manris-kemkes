@@ -325,7 +325,7 @@ export default function BulkRiskRegisterPage() {
                       <CollectionTableHead density="compact">
                         Baris
                       </CollectionTableHead>
-                      <CollectionTableHead density="compact" className="px-24">
+                      <CollectionTableHead density="compact" className="">
                         Risiko
                       </CollectionTableHead>
                       <CollectionTableHead density="compact">
@@ -342,7 +342,7 @@ export default function BulkRiskRegisterPage() {
                       return (
                         <TableRow key={preview.clientKey}>
                           <TableCell>{preview.rowNumber}</TableCell>
-                          <TableCell className="max-w-[320px] px-24 whitespace-normal">
+                          <TableCell className="max-w-[320px] whitespace-normal">
                             <p className="font-medium text-foreground">
                               {preview.raw["RISIKO"] ||
                                 preview.raw["Risiko"] ||

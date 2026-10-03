@@ -588,7 +588,7 @@ export function QuarterlyReportDashboard({
                 </colgroup>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="px-24">Unit</TableHead>
+                    <TableHead className="">Unit</TableHead>
                     <TableHead>Jumlah risiko</TableHead>
                     <TableHead>Di atas selera</TableHead>
                     <TableHead>Target tercapai</TableHead>
@@ -604,7 +604,7 @@ export function QuarterlyReportDashboard({
                     )
                     .map((unit) => (
                       <TableRow key={unit.id}>
-                        <TableCell className="whitespace-normal px-24">
+                        <TableCell className="whitespace-normal">
                           <Button
                             variant="link"
                             className="h-auto whitespace-normal p-0 text-left font-normal"

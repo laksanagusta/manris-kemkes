@@ -115,7 +115,7 @@ export default function RiskEventsPage() {
           </colgroup>
           <CollectionTableHeader>
             <CollectionTableHeaderRow className="h-9 hover:bg-transparent">
-              <CollectionTableHead className="px-24">Kejadian</CollectionTableHead>
+              <CollectionTableHead className="">Kejadian</CollectionTableHead>
               <CollectionTableHead >Tingkat</CollectionTableHead>
               <CollectionTableHead >Risiko terkait</CollectionTableHead>
               <CollectionTableHead >Dicatat oleh</CollectionTableHead>
@@ -160,7 +160,7 @@ export default function RiskEventsPage() {
             ) : (
               filtered.map((item) => (
                 <TableRow key={item.id} className="group hover:bg-transparent">
-                  <TableCell className="px-24 align-middle">
+                  <TableCell className="align-middle">
                     <Link href={`/risk-events/${item.id}`} className="line-clamp-2 text-sm font-medium leading-5 text-foreground transition-colors hover:text-primary">
                       {item.description}
                     </Link>

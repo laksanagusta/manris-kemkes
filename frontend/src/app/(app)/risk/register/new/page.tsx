@@ -2630,67 +2630,70 @@ export default function RiskInputPage() {
               : "Identifikasi konteks, penyebab, dampak, dan penanganan risiko."
           }
           showTitle
-        />
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          {returnTo !== "/risk/register" ? (
-            <ActionButton asChild variant="outline">
-              <Link href={returnTo}>Kembali ke hasil ekstraksi</Link>
-            </ActionButton>
-          ) : null}
-          {canContinueMonitoring && ongoingMonitoring ? (
-            <ActionButton asChild variant="outline" className="px-4">
-              <Link
-                href={`/risk/monitoring/${ongoingMonitoring.id}`}
-                title={`Lanjutkan pemantauan ${ongoingMonitoring.assessmentCycle}`}
-              >
-                Lanjutkan Pemantauan
-              </Link>
-            </ActionButton>
-          ) : canStartMonitoring ? (
-            <ActionButton
-              variant="outline"
-              icon={<RefreshCcw className="size-3.5" strokeWidth={2} />}
-              onClick={handleOpenMonitoringDialog}
-              disabled={isSubmitting || isStartingMonitoring}
-            >
-              Mulai Pemantauan
-            </ActionButton>
-          ) : canManageMonitoring && monitoringLookupStatus === "loading" ? (
-            <ActionButton variant="secondary" loading disabled>
-              Memeriksa pemantauan…
-            </ActionButton>
-          ) : null}
-          {riskStatus === "draft" || !riskId ? (
+          actionsPlacement="title"
+          actions={
             <>
-              <ActionButton
-                variant="outline"
-                loading={isDraftSubmitting}
-                icon={<Save className="size-3.5" />}
-                onClick={() => handleSaveDraftHeaderRef.current()}
-                disabled={isSubmitting}
-              >
-                Simpan draft
-              </ActionButton>
-              <AccentButton
-                icon={
-                  isSubmitting && submitTarget.current === "review" ? (
-                    <Loader2 className="size-3.5 animate-spin" />
-                  ) : (
-                    <Send className="size-3.5" />
-                  )
-                }
-                onClick={() => openSubmitReviewConfirmHeaderRef.current()}
-                aria-disabled={isSubmitting || undefined}
-                disabled={isReviewSubmitting}
-                className={
-                  isDraftSubmitting ? "pointer-events-none" : undefined
-                }
-              >
-                {submitActionLabel}
-              </AccentButton>
+              {returnTo !== "/risk/register" ? (
+                <ActionButton asChild variant="outline">
+                  <Link href={returnTo}>Kembali ke hasil ekstraksi</Link>
+                </ActionButton>
+              ) : null}
+              {canContinueMonitoring && ongoingMonitoring ? (
+                <ActionButton asChild variant="outline" className="px-4">
+                  <Link
+                    href={`/risk/monitoring/${ongoingMonitoring.id}`}
+                    title={`Lanjutkan pemantauan ${ongoingMonitoring.assessmentCycle}`}
+                  >
+                    Lanjutkan Pemantauan
+                  </Link>
+                </ActionButton>
+              ) : canStartMonitoring ? (
+                <ActionButton
+                  variant="outline"
+                  icon={<RefreshCcw className="size-3.5" strokeWidth={2} />}
+                  onClick={handleOpenMonitoringDialog}
+                  disabled={isSubmitting || isStartingMonitoring}
+                >
+                  Mulai Pemantauan
+                </ActionButton>
+              ) : canManageMonitoring && monitoringLookupStatus === "loading" ? (
+                <ActionButton variant="secondary" loading disabled>
+                  Memeriksa pemantauan…
+                </ActionButton>
+              ) : null}
+              {riskStatus === "draft" || !riskId ? (
+                <>
+                  <ActionButton
+                    variant="outline"
+                    loading={isDraftSubmitting}
+                    icon={<Save className="size-3.5" />}
+                    onClick={() => handleSaveDraftHeaderRef.current()}
+                    disabled={isSubmitting}
+                  >
+                    Simpan draft
+                  </ActionButton>
+                  <AccentButton
+                    icon={
+                      isSubmitting && submitTarget.current === "review" ? (
+                        <Loader2 className="size-3.5 animate-spin" />
+                      ) : (
+                        <Send className="size-3.5" />
+                      )
+                    }
+                    onClick={() => openSubmitReviewConfirmHeaderRef.current()}
+                    aria-disabled={isSubmitting || undefined}
+                    disabled={isReviewSubmitting}
+                    className={
+                      isDraftSubmitting ? "pointer-events-none" : undefined
+                    }
+                  >
+                    {submitActionLabel}
+                  </AccentButton>
+                </>
+              ) : null}
             </>
-          ) : null}
-        </div>
+          }
+        />
 
         {loadingVersionId && (
           <div

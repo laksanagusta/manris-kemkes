@@ -1,9 +1,11 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { levelToColor } from "@/lib/risk";
 import { getStatusBadgeClassName } from "@/lib/badge-variant";
 import {
   designSystemBadgeVariants,
+  designSystemBadgePalette,
   designSystemRiskLevels,
   designSystemStatusMapping,
 } from "../data/badge-fixtures";
@@ -11,6 +13,16 @@ import {
 export function BadgeSystemExample() {
   return (
     <div className="space-y-5 rounded-[12px] bg-card p-6 shadow-black">
+      <div>
+        <p className="mb-3 text-xs font-medium text-foreground">Palet referensi · 12px</p>
+        <div className="flex flex-wrap gap-2">
+          {designSystemBadgePalette.map((badge) => (
+            <Badge key={badge.label} variant="outline" className={badge.className}>
+              {badge.label}
+            </Badge>
+          ))}
+        </div>
+      </div>
       <div>
         <p className="mb-3 text-xs font-medium text-foreground">Variant Badge</p>
         <div className="flex flex-wrap gap-2">
@@ -58,7 +70,7 @@ export function BadgeSystemExample() {
         <div className="flex flex-wrap gap-2">
           {designSystemRiskLevels.map((level) => (
             <Badge
-              key={level.label} variant={level.variant} className={getStatusBadgeClassName(level.label)}
+              key={level.label} variant={level.variant} className={levelToColor(level.level)}
             >
               {level.label}
             </Badge>

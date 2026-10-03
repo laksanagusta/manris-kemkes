@@ -569,7 +569,7 @@ export default function InboxPage() {
           <CollectionTableHeader>
             <CollectionTableHeaderRow>
               <CollectionTableHead>Kode</CollectionTableHead>
-              <CollectionTableHead className="px-24">Entitas</CollectionTableHead>
+              <CollectionTableHead className="">Entitas</CollectionTableHead>
               <CollectionTableHead>Jenis</CollectionTableHead>
               <CollectionTableHead>Tanggal</CollectionTableHead>
               <CollectionTableHead>Status</CollectionTableHead>
@@ -624,7 +624,7 @@ export default function InboxPage() {
                     <TableCell>
                       {displayCode || `REQ-${item.id.slice(0, 8)}`}
                     </TableCell>
-                    <TableCell className="px-24">
+                    <TableCell className="">
                       <div className="min-w-0">
                         <Link
                           href={typeConfig.href(entityId)}

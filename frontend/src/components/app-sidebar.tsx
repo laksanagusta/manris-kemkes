@@ -339,7 +339,8 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
 
   return (
     <Sidebar
-      className="md:top-0 md:h-svh md:border-r md:border-border"
+      className="md:top-0 md:h-svh"
+      style={{ border: 0, boxShadow: "none" }}
       collapsible="icon"
       variant="sidebar"
     >

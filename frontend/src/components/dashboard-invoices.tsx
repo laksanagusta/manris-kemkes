@@ -61,7 +61,7 @@ export function DashboardInvoices() {
 					</TableCaption>
 					<TableHeader>
 						<TableRow>
-							<TableHead className="px-24">Customer</TableHead>
+							<TableHead className="">Customer</TableHead>
 							<TableHead>Invoice</TableHead>
 							<TableHead className="pe-6 text-right tabular-nums">
 								Amount
@@ -71,7 +71,7 @@ export function DashboardInvoices() {
 					<TableBody>
 						{invoices.map((inv) => (
 							<TableRow key={inv.id}>
-								<TableCell className="max-w-40 truncate px-24">
+								<TableCell className="max-w-40 truncate">
 									<span className="text-foreground">{inv.customer}</span>
 								</TableCell>
 								<TableCell className="tabular-nums">

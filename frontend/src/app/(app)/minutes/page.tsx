@@ -262,7 +262,7 @@ function MinutesPageContent() {
             </colgroup>
             <CollectionTableHeader>
               <CollectionTableHeaderRow>
-                <CollectionTableHead className="px-24">Judul Notulen</CollectionTableHead>
+                <CollectionTableHead className="">Judul Notulen</CollectionTableHead>
                 <CollectionTableHead >Tanggal</CollectionTableHead>
                 <CollectionTableHead className="text-center">Peserta</CollectionTableHead>
                 <CollectionTableHead >Dibuat Oleh</CollectionTableHead>
@@ -274,7 +274,7 @@ function MinutesPageContent() {
             <TableBody>
               {filteredItems.map((minute) => (
                 <TableRow key={minute.id} className="hover:bg-muted/50">
-                  <TableCell className="max-w-[320px] px-24">
+                  <TableCell className="max-w-[320px]">
                     <Link
                       href={`/minutes/${minute.id}`}
                       className="block truncate text-sm font-normal leading-relaxed text-foreground hover:text-primary"

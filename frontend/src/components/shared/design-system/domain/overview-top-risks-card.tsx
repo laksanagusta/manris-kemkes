@@ -48,7 +48,7 @@ export function OverviewTopRisksCard({
           </colgroup>
           <CollectionTableHeader>
             <CollectionTableHeaderRow className="border-t border-border/60">
-              <CollectionTableHead className="px-24">Risiko</CollectionTableHead>
+              <CollectionTableHead className="">Risiko</CollectionTableHead>
               <CollectionTableHead>Kategori</CollectionTableHead>
               <CollectionTableHead>Probabilitas</CollectionTableHead>
               <CollectionTableHead>Dampak</CollectionTableHead>
@@ -61,7 +61,7 @@ export function OverviewTopRisksCard({
           {visibleRisks.map((risk) => {
             return (
               <TableRow key={risk.id}>
-                <TableCell className="whitespace-normal px-24">
+                <TableCell className="whitespace-normal">
                   <div className="flex min-w-0 flex-col items-start gap-1">
                     <Link
                       href={risk.href}

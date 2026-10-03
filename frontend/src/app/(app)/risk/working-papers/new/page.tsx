@@ -448,7 +448,7 @@ export default function CreateWorkingPaperPage() {
                   <CollectionTableHead className="w-[14%] min-w-0 whitespace-normal text-center">
                     Periode
                   </CollectionTableHead>
-                  <CollectionTableHead className="w-[44%] min-w-0 px-24">
+                  <CollectionTableHead className="w-[44%] min-w-0">
                     Judul risiko
                   </CollectionTableHead>
                   <CollectionTableHead className="w-[24%] min-w-0 whitespace-normal text-center">
@@ -494,7 +494,7 @@ export default function CreateWorkingPaperPage() {
                           {entry.monitoringCycle}
                         </span>
                       </TableCell>
-                      <TableCell className="w-[44%] min-w-0 px-24">
+                      <TableCell className="w-[44%] min-w-0">
                         <span
                           className="block max-w-full truncate text-sm font-medium text-foreground"
                           title={entry.title}

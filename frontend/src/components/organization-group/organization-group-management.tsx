@@ -468,7 +468,7 @@ export function OrganizationGroupManagement({
               <Table className="min-w-[920px]">
                 <TableHeader className="[&_tr]:border-b [&_tr]:border-border/60">
                   <TableRow className="transition-colors hover:bg-transparent">
-                    <CollectionTableHead density="compact" className="w-[30%] whitespace-nowrap px-24 text-left align-middle">
+                    <CollectionTableHead density="compact" className="w-[30%] whitespace-nowrap text-left align-middle">
                       Nama Grup
                     </CollectionTableHead>
                     <CollectionTableHead density="compact" className="w-[30%] whitespace-nowrap text-left align-middle">
@@ -507,7 +507,7 @@ export function OrganizationGroupManagement({
                         key={group.id}
                         className="transition-colors hover:bg-muted/70"
                       >
-                        <TableCell className="align-middle px-24">
+                        <TableCell className="align-middle">
                           <div className="max-w-[250px]">
                             <p className="block truncate text-sm font-medium leading-relaxed text-foreground">
                               {group.name}

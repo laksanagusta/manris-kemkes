@@ -101,7 +101,7 @@ export function FormalReportList({
             <TableRow>
               <TableHead className="whitespace-nowrap">Periode</TableHead>
               <TableHead className="whitespace-nowrap">Organisasi</TableHead>
-              <TableHead className="px-24 whitespace-nowrap">Jenis Laporan</TableHead>
+              <TableHead className="whitespace-nowrap">Jenis Laporan</TableHead>
               <TableHead className="whitespace-nowrap">Status</TableHead>
               <TableHead className="whitespace-nowrap">Generated At</TableHead>
               <TableHead className="text-right whitespace-nowrap">
@@ -140,7 +140,7 @@ export function FormalReportList({
                     <TableCell className="max-w-[240px] truncate">
                       {orgName}
                     </TableCell>
-                    <TableCell className="max-w-[280px] px-24 truncate">
+                    <TableCell className="max-w-[280px] truncate">
                       <span className="text-foreground">
                         {(() => {
                           const summary = parseFormalReportSummary(

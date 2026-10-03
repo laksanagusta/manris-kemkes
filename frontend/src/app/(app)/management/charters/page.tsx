@@ -328,7 +328,7 @@ export default function RiskChartersPage() {
             </colgroup>
             <CollectionTableHeader density="compact">
               <CollectionTableHeaderRow>
-                <CollectionTableHead className="px-24">
+                <CollectionTableHead className="">
                   Judul Piagam
                 </CollectionTableHead>
                 <CollectionTableHead >UPR</CollectionTableHead>
@@ -346,7 +346,7 @@ export default function RiskChartersPage() {
                   key={item.id}
                   className="h-10 hover:bg-transparent hover:[&>td]:bg-muted/50 [&>td]:transition-[background-color]"
                 >
-                  <TableCell className="max-w-[280px] px-24 truncate align-middle">
+                  <TableCell className="max-w-[280px] truncate align-middle">
                     <div className="min-w-0">
                       <Link
                         href={`/management/charters/${item.id}`}
