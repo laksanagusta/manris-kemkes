@@ -11,6 +11,17 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async headers() {
+    // Dev-only: Turbopack keeps stable chunk URLs, so force browsers to
+    // refetch compiled assets instead of serving stale cached CSS/JS.
+    if (process.env.NODE_ENV !== "development") return [];
+    return [
+      {
+        source: "/_next/static/:path*",
+        headers: [{ key: "Cache-Control", value: "no-store" }],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

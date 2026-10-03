@@ -137,7 +137,7 @@ test("keeps the canonical header title at the shared page-title scale", () => {
     collectionHeaderSource,
     /<h1 className="page-title">/,
   );
-  assert.match(
+  assert.doesNotMatch(
     collectionHeaderSource,
     /className="mt-1 text-sm leading-6 text-secondary-foreground text-pretty"/,
   );

@@ -4,29 +4,31 @@ import test from "node:test";
 
 const source = readFileSync(new URL("./login-screen.tsx", import.meta.url), "utf8");
 
-test("keeps the login surface free of the card wrapper and logo", () => {
+test("uses the split-screen login layout with a brand panel", () => {
   assert.doesNotMatch(source, /from "next\/image"/);
   assert.doesNotMatch(source, /<Card(?:\s|>)/);
   assert.doesNotMatch(source, /logo\.svg/);
-  assert.match(source, /<h1 className="text-\[20px\] leading-5 font-medium tracking-tight text-balance">/);
-  assert.match(
-    source,
-    /<span className="font-logo text-\[20px\] leading-5 font-semibold lowercase tracking-\[-0\.4px\] text-foreground">\s*Manrisk\s*<\/span>/,
-  );
-  assert.match(source, /<form onSubmit=\{handleSubmit\} className="flex flex-col gap-4">/);
-  assert.match(
-    source,
-    /id="nip"[\s\S]*?className="h-9 bg-white dark:bg-white"/,
-  );
-  assert.match(
-    source,
-    /<InputGroup className="h-9 bg-white dark:bg-white">[\s\S]*?id="password"[\s\S]*?className="h-9 bg-transparent dark:bg-transparent"/,
-  );
-  assert.doesNotMatch(source, /ArrowRight/);
-  assert.match(source, /className="h-9 w-full rounded-full"/);
-  assert.match(source, /<div className="flex items-center justify-center">/);
-  assert.match(
-    source,
-    /<span className="mx-2 inline-flex items-center leading-none text-muted-foreground\/40">\s*•\s*<\/span>/,
-  );
+  assert.match(source, /<aside className="hidden w-\[38%\][\s\S]*?bg-neutral-900/);
+  assert.match(source, /Masuk ke Manrisk/);
+  assert.match(source, /Isi NIP dan password untuk melanjutkan\./);
+  assert.match(source, /<form onSubmit=\{handleSubmit\} className="mt-8 flex flex-col gap-5">/);
+});
+
+test("keeps the NIP and password fields functional", () => {
+  assert.match(source, /id="nip"[\s\S]*?autoComplete="username"/);
+  assert.match(source, /id="password"[\s\S]*?autoComplete="current-password"/);
+  assert.match(source, /aria-label=\{showPassword \? "Sembunyikan password" : "Tampilkan password"\}/);
+  assert.match(source, /<Button type="submit" className="h-12 w-full rounded-lg"/);
+  assert.match(source, /<Link href="\/register"[\s\S]*?>\s*Daftar\s*<\/Link>/);
+});
+
+test("keeps brand navigation and help affordances", () => {
+  assert.doesNotMatch(source, /Kembali ke beranda/);
+  assert.match(source, /<Link href="\/panduan"[\s\S]*?>\s*Docs\s*<\/Link>/);
+  assert.match(source, /Kendala masuk\? Hubungi administrator\./);
+});
+
+test("aligns the form top with the brand headline", () => {
+  assert.match(source, /<div aria-hidden="true" className="hidden h-7 md:block" \/>/);
+  assert.match(source, /<div className="md:mt-10">/);
 });

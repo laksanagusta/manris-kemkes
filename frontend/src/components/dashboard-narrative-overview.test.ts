@@ -29,21 +29,18 @@ const designSystemPage = read("../app/(app)/design-system/page.tsx");
 const designDocument = read("../../../DESIGN.md");
 
 test("overview follows the approved narrative order", () => {
-  const kpis = overviewPage.indexOf('data-dashboard-section="kpis"');
   const trend = overviewPage.indexOf('data-dashboard-section="trend"');
   const composition = overviewPage.indexOf(
     'data-dashboard-section="composition"',
   );
 
-  assert.ok(kpis >= 0);
-  assert.ok(trend > kpis);
+  assert.doesNotMatch(overviewPage, /data-dashboard-section="kpis"/);
+  assert.doesNotMatch(overviewPage, /<MetricGrid[\s>]/);
+  assert.doesNotMatch(overviewPage, /<DashboardKpiCard[\s>]/);
+  assert.ok(trend >= 0);
   assert.ok(composition > trend);
-  assert.match(overviewPage, /title: "Total"/);
-  assert.match(overviewPage, /title: "Prioritas"/);
-  assert.match(overviewPage, /title: "Mitigasi belum terlapor"/);
-  assert.match(overviewPage, /title: "Eksposur"/);
+  assert.match(overviewPage, /currentTotal=\{totalRisks\}/);
   assert.doesNotMatch(overviewPage, /Total Risiko|Risiko Tinggi & Sangat Tinggi|Penanganan Overdue|Risk Exposure/);
-  assert.doesNotMatch(overviewPage, /<CollectionPageHeader[\s>]/);
   assert.doesNotMatch(overviewPage, /data-dashboard-section="multi-phase"/);
   assert.match(
     appHeader,
@@ -51,25 +48,23 @@ test("overview follows the approved narrative order", () => {
   );
 });
 
-test("overview KPI labels name their metric clearly", () => {
-  for (const label of ["Total", "Prioritas", "Mitigasi belum terlapor", "Eksposur"]) {
-    assert.match(overviewPage, new RegExp(`title: "${label}"`));
-  }
-  assert.doesNotMatch(
-    overviewPage,
-    /Total Risiko|Risiko Tinggi & Sangat Tinggi|Penanganan Overdue|Risk Exposure/,
-  );
+test("overview shows the current total below the risk-count trend header", () => {
+  assert.match(trendCard, /currentTotal\?: number/);
+  assert.match(trendCard, /summary=\{/);
+  assert.match(trendCard, /\{currentTotal \?\? "—"\}/);
+  assert.match(trendCard, /risiko terdaftar/);
 });
 
-test("unreported mitigation KPI uses its dedicated dashboard metric", () => {
-  assert.match(overviewPage, /unreportedMitigations: number/);
-  assert.match(overviewPage, /const unreportedMitigations = summary\?\.unreportedMitigations/);
-  assert.match(overviewPage, /String\(unreportedMitigations\)/);
-  assert.doesNotMatch(overviewPage, /const overdueMitigations = summary\?\.overdueMitigations/);
+test("overview summary fetch only tracks the current total", () => {
+  assert.match(overviewPage, /totalRisks: number/);
+  assert.match(overviewPage, /const totalRisks = summary\?\.totalRisks/);
+  assert.doesNotMatch(overviewPage, /unreportedMitigations/);
+  assert.doesNotMatch(overviewPage, /overdueMitigations/);
+  assert.doesNotMatch(overviewPage, /highExtreme/);
 });
 
 test("overview and catalogue use the same dashboard primitives", () => {
-  assert.match(overviewPage, /<DashboardKpiCard[\s>]/);
+  assert.doesNotMatch(overviewPage, /<DashboardKpiCard[\s>]/);
   assert.match(catalogue, /<DashboardKpiCard[\s>]/);
   assert.match(currentHeatmap, /<RiskHeatmapGrid[\s>]/);
   assert.match(catalogue, /<RiskHeatmapGrid[\s>]/);
@@ -150,11 +145,11 @@ test("narrative overview is documented in both design-system surfaces", () => {
   assert.match(designSystemPage, /Narrative Overview/);
   assert.match(
     designSystemPage,
-    /kondisi KPI, tren jumlah risiko, distribusi kategori saat ini, komposisi tingkat risiko lintas empat kuartal, lalu heatmap kuartal berjalan/i,
+    /tren jumlah risiko dengan total saat ini di bawah header kartu, distribusi kategori saat ini, komposisi tingkat risiko lintas empat kuartal, lalu heatmap kuartal berjalan/i,
   );
   assert.match(
     designDocument,
-    /overview orders KPI condition, total-risk trend, current risk-category distribution, four-quarter risk-level composition, and current heatmap/i,
+    /overview orders the total-risk trend \(current total below its header\), current risk-category distribution, four-quarter risk-level composition, and current heatmap/i,
   );
   assert.match(
     designDocument,

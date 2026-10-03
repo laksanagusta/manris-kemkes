@@ -95,7 +95,7 @@
   --card-subtle-surface: #f6f6f6;
   --secondary-card-surface: #efefef;
   --sunken: #efefef;
-  --table-header: #fcfcfc;
+  --table-header: #f6f6f6;
   --table-header-foreground: var(--secondary-foreground);
   --table-footer: #fcfcfc;
   --accent: #e5e5e5;
@@ -209,6 +209,23 @@
   }
 }
 
+[data-autofill-surface="white"]:-webkit-autofill,
+[data-autofill-surface="white"]:-webkit-autofill:hover,
+[data-autofill-surface="white"]:-webkit-autofill:focus,
+[data-autofill-surface="white"]:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px #fff inset !important;
+  box-shadow: 0 0 0 1000px #fff inset !important;
+  -webkit-text-fill-color: #202020 !important;
+  color: #202020 !important;
+  caret-color: #202020;
+}
+
+[data-autofill-surface="white"]:-moz-autofill {
+  box-shadow: 0 0 0 1000px #fff inset !important;
+  color: #202020 !important;
+  caret-color: #202020;
+}
+
 [data-slot="table-head"] {
   background-color: var(--table-header) !important;
   color: var(--secondary-foreground) !important;
@@ -220,7 +237,7 @@
 }
 
 [data-slot="table-row"] {
-  border-color: var(--separator);
+  border-color: var(--border);
 }
 
 [data-slot="table-body"] [data-slot="table-row"]:hover {

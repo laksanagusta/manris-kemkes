@@ -7,8 +7,6 @@ import { RiskCategoryPieChart } from "./_components/risk-category-pie-chart";
 import { RiskCompositionTrendChart } from "./_components/risk-composition-trend-chart";
 import { CurrentRiskHeatmap } from "./_components/current-risk-heatmap";
 import {
-  DashboardKpiCard,
-  MetricGrid,
   PageStack,
   CollectionPageHeader,
 } from "@/components/shared/design-system";
@@ -25,9 +23,6 @@ import { currentAssessmentCycle, shiftAssessmentCycle } from "@/lib/risk-cycle-o
 
 type DashboardSummary = {
   totalRisks: number;
-  highExtreme: number;
-  overdueMitigations: number;
-  unreportedMitigations: number;
 };
 
 function currentGlobalCycle() {
@@ -38,8 +33,6 @@ export default function DashboardPage() {
   const { token } = useAuth();
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [trendRisks, setTrendRisks] = useState<Risk[]>([]);
-  const [summaryLoading, setSummaryLoading] = useState(true);
-  const [summaryError, setSummaryError] = useState(false);
   const [trendLoading, setTrendLoading] = useState(true);
   const [trendError, setTrendError] = useState(false);
   const [riskCategoryData, setRiskCategoryData] = useState<
@@ -70,10 +63,6 @@ export default function DashboardPage() {
       })
       .catch((error) => {
         console.error(error);
-        if (!cancelled) setSummaryError(true);
-      })
-      .finally(() => {
-        if (!cancelled) setSummaryLoading(false);
       });
 
     void Promise.all(
@@ -127,17 +116,12 @@ export default function DashboardPage() {
   }, [token, currentCycle, trendCycles, reloadKey]);
 
   const totalRisks = summary?.totalRisks;
-  const highExtreme = summary?.highExtreme;
-  const overdueMitigations = summary?.overdueMitigations;
-  const unreportedMitigations = summary?.unreportedMitigations;
   const currentHeatmapMatrix = useMemo(
     () => buildCurrentRiskHeatmapMatrix(trendRisks, currentCycle),
     [trendRisks, currentCycle],
   );
   const retryDashboard = () => {
     setSummary(null);
-    setSummaryLoading(true);
-    setSummaryError(false);
     setTrendRisks([]);
     setTrendLoading(true);
     setTrendError(false);
@@ -146,58 +130,9 @@ export default function DashboardPage() {
     setRiskCategoryError(false);
     setReloadKey((value) => value + 1);
   };
-  const kpiCards = [
-    {
-      title: "Total",
-      value: totalRisks === undefined ? "—" : String(totalRisks),
-      detail: "risiko terdaftar",
-      trend: "up",
-      loading: summaryLoading,
-      error: summaryError,
-    },
-    {
-      title: "Prioritas",
-      value: highExtreme === undefined ? "—" : String(highExtreme),
-      detail: "risiko tinggi & ekstrem",
-      trend: "up",
-      loading: summaryLoading,
-      error: summaryError,
-    },
-    {
-      title: "Mitigasi belum terlapor",
-      value:
-        unreportedMitigations === undefined
-          ? "—"
-          : String(unreportedMitigations),
-      detail: "tugas tanpa laporan",
-      trend: "down",
-      loading: summaryLoading,
-      error: summaryError,
-    },
-    {
-      title: "Mitigasi overdue",
-      value:
-        overdueMitigations === undefined ? "—" : String(overdueMitigations),
-      detail: "tugas melewati tenggat",
-      trend: "up",
-      loading: summaryLoading,
-      error: summaryError,
-    },
-  ] as const;
-
   return (
     <PageStack className="space-y-5 lg:space-y-6">
       <CollectionPageHeader title="Dashboard" showTitle />
-      <section
-        data-dashboard-section="kpis"
-        aria-label="Ringkasan metrik risiko"
-      >
-        <MetricGrid className="gap-3">
-          {kpiCards.map((kpi) => (
-            <DashboardKpiCard key={kpi.title} {...kpi} />
-          ))}
-        </MetricGrid>
-      </section>
 
       <section
         data-dashboard-section="trend"
@@ -208,6 +143,7 @@ export default function DashboardPage() {
           <RiskCountTrendChart
             risks={trendRisks}
             currentCycle={currentCycle}
+            currentTotal={totalRisks}
             loading={trendLoading}
             error={trendError}
             onRetry={retryDashboard}
