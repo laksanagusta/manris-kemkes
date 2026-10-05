@@ -111,7 +111,7 @@ export default function LoginScreen() {
                     name="password"
                     type={showPassword ? "text" : "password"}
                     data-autofill-surface="white"
-                    className="h-12 rounded-lg bg-transparent text-neutral-900 placeholder:text-neutral-400"
+                    className="h-auto self-stretch rounded-lg bg-transparent text-neutral-900 placeholder:text-neutral-400"
                     placeholder="Masukkan password"
                     autoComplete="current-password"
                     required
