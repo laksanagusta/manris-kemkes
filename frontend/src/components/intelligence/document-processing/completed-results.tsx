@@ -22,9 +22,11 @@ export function FindingsReviewPanel({
   job,
   onUseRiskDraft,
   onUseMitigationReport,
+  onUseRiskEvent,
   reportedFindingIds,
   onStartNew,
 }: {
+  onUseRiskEvent?: (finding: Finding) => void;
   job: ProcessingJob;
   onUseRiskDraft?: (finding: Finding) => void;
   onUseMitigationReport?: (finding: Finding) => void;
@@ -37,7 +39,7 @@ export function FindingsReviewPanel({
     <motion.section
       initial={reduceMotion ? { opacity: 0 } : { opacity: 0, transform: "translateY(10px) scale(0.98)" }}
       animate={reduceMotion ? { opacity: 1 } : { opacity: 1, transform: "translateY(0) scale(1)" }}
-      transition={{ duration: reduceMotion ? 0.12 : 0.2, ease: [0.23, 1, 0.32, 1] }}
+      transition={{ duration: reduceMotion ? 0 : 0.2, ease: [0.23, 1, 0.32, 1] }}
       className="space-y-4"
       aria-labelledby="findings-title"
     >
@@ -47,7 +49,7 @@ export function FindingsReviewPanel({
             Temuan untuk ditinjau
           </h2>
           <p className="mt-1 text-xs text-secondary-foreground">
-            Buka rincian sumber dan tindakan sebelum membuat draf risiko.
+            {job.mode === "risk_event_extraction" ? "Periksa fakta dan sumber sebelum menyimpan kejadian." : "Buka rincian sumber dan tindakan sebelum membuat draf risiko."}
           </p>
         </div>
         <Button type="button" variant="outline" size="sm" className="" onClick={onStartNew}>
@@ -65,6 +67,8 @@ export function FindingsReviewPanel({
       <div className="space-y-3">
         {job.findings.map((finding) => {
           const meta = severityMeta(finding.severity);
+          const isRiskEvent = finding.kind === "risk-event";
+          const missingSeverity = isRiskEvent && !finding.eventDraft?.event.severity;
           const isMitigationReport = finding.kind === "mitigation-report";
           const isReported = reportedFindingIds?.has(finding.id) ?? false;
           return (
@@ -74,12 +78,12 @@ export function FindingsReviewPanel({
             >
               <div className="w-full text-left">
                 <div className="flex items-start gap-3">
-                  <span className={cn("mt-1.5 size-2 shrink-0 rounded-full", meta.dot)} />
+                  <span className={cn("mt-1.5 size-2 shrink-0 rounded-full", missingSeverity ? "bg-muted-foreground" : meta.dot)} />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <h4 className="text-sm font-medium text-foreground">{finding.title}</h4>
-                      <Badge variant={toBadgeVariant(meta.tone)} className={getStatusBadgeClassName(meta.tone)}>
-                        {meta.label}
+                      <Badge variant={toBadgeVariant(missingSeverity ? "neutral" : meta.tone)} className={getStatusBadgeClassName(missingSeverity ? "neutral" : meta.tone)}>
+                        {missingSeverity ? "Tingkat belum tercantum" : isRiskEvent && finding.eventDraft?.event.severity === "extreme" ? "Ekstrem" : meta.label}
                       </Badge>
                     </div>
                   </div>
@@ -89,9 +93,16 @@ export function FindingsReviewPanel({
               <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                 <span className="tabular-nums">Keyakinan {Math.round(finding.confidence * 100)}%</span>
               </div>
+              {isRiskEvent && finding.eventDraft?.missingFields.length ? (
+                <p className="mt-2 text-xs text-muted-foreground">Belum tercantum: {finding.eventDraft.missingFields.join(", ")}.</p>
+              ) : null}
               <FindingSourceDisclosure finding={finding} />
               <footer className="-mx-4 -mb-4 mt-4 flex flex-wrap justify-end gap-2 border-t border-border/70 bg-table-header px-4 py-3">
-                {isMitigationReport && onUseMitigationReport ? (
+                {isRiskEvent && onUseRiskEvent ? (
+                  <Button type="button" variant="outline" size="xs" disabled={isReported || job.status !== "completed"} onClick={() => onUseRiskEvent(finding)}>
+                    {isReported ? "Sudah disimpan" : "Tinjau kejadian"}
+                  </Button>
+                ) : isMitigationReport && onUseMitigationReport ? (
                   <Button
                     type="button"
                     variant="outline"
@@ -122,8 +133,8 @@ export function FindingsReviewPanel({
 
       {job.findings.length === 0 ? (
         <IllustratedEmptyState
-          title="Tidak ada temuan"
-          description="Proses ini belum menghasilkan temuan yang dapat ditinjau."
+          title={job.mode === "risk_event_extraction" && job.status === "completed" ? "Tidak ada kejadian aktual ditemukan" : "Tidak ada temuan"}
+          description={job.mode === "risk_event_extraction" && job.status === "completed" ? "Dokumen belum menghasilkan kandidat kejadian yang sudah terjadi dengan kutipan pendukung. Coba dokumen lain." : "Proses ini belum menghasilkan temuan yang dapat ditinjau."}
           className="mt-4"
         />
       ) : null}
@@ -165,8 +176,12 @@ function FindingSourceDisclosure({ finding }: { finding: Finding }) {
           aria-hidden={!open}
         >
           <div className="mt-3 space-y-1 text-xs text-muted-foreground">
-            <p>{finding.source.documentName} · halaman {finding.source.pageNumber}</p>
-            <blockquote className="italic">“{finding.source.quote}”</blockquote>
+            {(finding.sources ?? [finding.source]).map((source, index) => (
+              <div key={`${source.location}-${index}`}>
+                <p>{source.documentName} · {source.location || "Lokasi tidak tercantum"}</p>
+                <blockquote className="whitespace-pre-wrap italic">“{source.quote}”</blockquote>
+              </div>
+            ))}
             <p><span className="font-medium text-foreground">Tindakan disarankan:</span> {finding.recommendedAction}</p>
           </div>
         </div>

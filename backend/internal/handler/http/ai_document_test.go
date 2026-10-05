@@ -100,3 +100,39 @@ func newDocumentIntelligenceMultipartRequest(path, filename, mode string, conten
 	req.Header.Set(fiber.HeaderContentType, writer.FormDataContentType())
 	return req, nil
 }
+
+func TestRiskEventExtractionEnforcesOneMBLimit(t *testing.T) {
+	handler := &AIHandler{}
+	app := fiber.New()
+	app.Post("/analyze", handler.AnalyzeDocumentIntelligence)
+	req, err := newDocumentIntelligenceMultipartRequest("/analyze", "events.pdf", "risk_event_extraction", bytes.Repeat([]byte("x"), 1024*1024+1))
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != fiber.StatusRequestEntityTooLarge {
+		t.Fatalf("status = %d", resp.StatusCode)
+	}
+}
+
+func TestRiskEventExtractionRequiresAccessScope(t *testing.T) {
+	handler := &AIHandler{}
+	app := fiber.New()
+	app.Post("/analyze", handler.AnalyzeDocumentIntelligence)
+	req, err := newDocumentIntelligenceMultipartRequest("/analyze", "events.pdf", "risk_event_extraction", []byte("%PDF-1.4"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := app.Test(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode != fiber.StatusForbidden {
+		t.Fatalf("status = %d", resp.StatusCode)
+	}
+}

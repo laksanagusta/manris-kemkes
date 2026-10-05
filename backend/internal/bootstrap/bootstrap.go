@@ -27,6 +27,7 @@ import (
 	mmuc "github.com/manris/backend/internal/usecase/meeting_minute"
 	mtuc "github.com/manris/backend/internal/usecase/mitigation_task"
 	organizationuc "github.com/manris/backend/internal/usecase/organization"
+	organizationapikeyuc "github.com/manris/backend/internal/usecase/organization_api_key"
 	organizationgroupuc "github.com/manris/backend/internal/usecase/organizationgroup"
 	planninguc "github.com/manris/backend/internal/usecase/planning"
 	reportuc "github.com/manris/backend/internal/usecase/report"
@@ -74,7 +75,8 @@ type Container struct {
 	RiskEventRepository            domainrepo.RiskEventRepository
 
 	// Domain Services
-	OrgHierarchySvc *domainsvc.OrganizationHierarchy
+	OrgHierarchySvc           *domainsvc.OrganizationHierarchy
+	OrganizationAPIKeyService *organizationapikeyuc.Service
 
 	// System Settings Services
 	SystemSettingGetUC    *systemsettinguc.GetSettingService
@@ -289,6 +291,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	// ============================================================================
 
 	c.UserRepository = postgresrepo.NewUserRepository(pool)
+	c.OrganizationAPIKeyService = organizationapikeyuc.NewService(postgresrepo.NewOrganizationAPIKeyRepository(pool), c.UserRepository)
 	c.OrgRepository = postgresrepo.NewOrganizationRepository(pool)
 	c.OrgGroupRepository = postgresrepo.NewOrganizationGroupRepository(pool)
 	c.RiskRepository = postgresrepo.NewRiskRepository(pool)

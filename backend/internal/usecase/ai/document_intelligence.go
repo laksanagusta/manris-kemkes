@@ -159,6 +159,12 @@ func (uc *AnalyzeDocumentIntelligenceUseCase) Execute(ctx context.Context, input
 
 	normalizeDocumentIntelligenceResult(result)
 	result.Mode = input.Mode
+	if input.Mode == entity.DocumentModeRiskEventExtraction {
+		if result.Kejadian == nil {
+			return nil, domainerrors.ErrInternal
+		}
+		normalizeRiskEventExtraction(result.Kejadian, input.DocumentText)
+	}
 	return result, nil
 }
 

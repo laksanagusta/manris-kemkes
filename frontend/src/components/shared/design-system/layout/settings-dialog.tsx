@@ -1,15 +1,16 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Search, ShieldCheck, SlidersHorizontal, UserRound } from "@/components/shared/icons";
+import { KeyRound, Search, ShieldCheck, SlidersHorizontal, UserRound } from "@/components/shared/icons";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 
-export type SettingsSection = "account" | "security" | "preferences";
+export type SettingsSection = "account" | "security" | "preferences" | "api-key";
 const sections = [
   { id: "account" as const, label: "Account", icon: UserRound, keywords: "profil nama email nip jabatan pangkat password keamanan" },
   { id: "security" as const, label: "Keamanan", icon: ShieldCheck, keywords: "password kata sandi keamanan" },
+  { id: "api-key" as const, label: "API key", icon: KeyRound, keywords: "integrasi heatmap peta risiko generate regenerate organisasi" },
   { id: "preferences" as const, label: "Preferences", icon: SlidersHorizontal, keywords: "tema tampilan terang gelap sistem" },
 ];
 
@@ -48,7 +49,7 @@ export function SettingsDialog({ open, onOpenChange, section, onSectionChange, c
           <div className="min-h-0 overflow-y-auto overscroll-contain px-5 py-6 md:px-10 md:py-8">
             <DialogHeader className="mb-8 pr-8">
               <DialogTitle>{sections.find((item) => item.id === section)?.label}</DialogTitle>
-              <DialogDescription>{section === "account" ? "Kelola profil akun Anda." : section === "security" ? "Kelola keamanan dan password akun Anda." : "Sesuaikan tampilan Manrisk pada perangkat ini."}</DialogDescription>
+              <DialogDescription>{section === "account" ? "Kelola profil akun Anda." : section === "security" ? "Kelola keamanan dan password akun Anda." : section === "api-key" ? "Kelola akses aplikasi eksternal ke peta risiko organisasi." : "Sesuaikan tampilan Manrisk pada perangkat ini."}</DialogDescription>
             </DialogHeader>
             {children}
           </div>

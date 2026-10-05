@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/manris/backend/internal/domain/entity"
 	domainerrors "github.com/manris/backend/internal/domain/errors"
@@ -32,18 +33,22 @@ func (r *riskEventRepository) Create(ctx context.Context, event *entity.RiskEven
 			impact_types, other_impact_type, actual_impact, immediate_response, post_response_condition,
 			"where", who, why_how, financial_loss, financial_loss_known,
 			disruption_duration, extraordinary_reason, ongoing_action, evidence_url,
-			created_by, updated_by
+			created_by, updated_by, source_document_name, source_refs, extraction_key
 		) VALUES (
 			LEFT($1, 120), $1, $2, $3, 'recorded', $4, $5,
-			$6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $4, NULL
+			$6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $4, NULL, $20, $21, NULLIF($22, '')
 		)
 		RETURNING id, created_at, updated_at
 	`, event.Description, event.OccurredAt, event.Severity, event.CreatedBy, event.OrganizationID,
 		event.ImpactTypes, event.OtherImpactType, event.ActualImpact, event.ImmediateResponse, event.PostResponseCondition,
 		event.Location, event.AffectedParties, event.SuspectedCause, event.FinancialLoss, event.FinancialLossKnown,
-		event.DisruptionDuration, event.ExtraordinaryReason, event.OngoingAction, event.EvidenceURL,
+		event.DisruptionDuration, event.ExtraordinaryReason, event.OngoingAction, event.EvidenceURL, event.SourceDocumentName, event.SourceRefs, event.ExtractionKey,
 	).Scan(&event.ID, &event.CreatedAt, &event.UpdatedAt)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.ConstraintName == "incidents_extraction_key_unique" {
+			return domainerrors.Wrap(domainerrors.ErrInvalidInput, "Kandidat ini sudah disimpan sebagai kejadian.")
+		}
 		return fmt.Errorf("insert risk event: %w", err)
 	}
 
@@ -74,7 +79,7 @@ const riskEventSelect = `
 		i.why_how, i.financial_loss, i.financial_loss_known, i.disruption_duration,
 		i.extraordinary_reason, i.ongoing_action, i.evidence_url, i.organization_id,
 		COALESCE(o.name,''), i.created_by, COALESCE(u.name,''), i.updated_by,
-		i.created_at, i.updated_at
+		i.created_at, i.updated_at, i.source_document_name, i.source_refs, COALESCE(i.extraction_key,'')
 	FROM incidents i
 	LEFT JOIN organizations o ON o.id=i.organization_id
 	LEFT JOIN users u ON u.id=i.created_by`
@@ -86,7 +91,7 @@ func scanRiskEvent(row pgx.Row) (*entity.RiskEvent, error) {
 		&event.Location, &event.AffectedParties, &event.SuspectedCause, &event.FinancialLoss,
 		&event.FinancialLossKnown, &event.DisruptionDuration, &event.ExtraordinaryReason,
 		&event.OngoingAction, &event.EvidenceURL, &event.OrganizationID, &event.OrganizationName,
-		&event.CreatedBy, &event.CreatedByName, &event.UpdatedBy, &event.CreatedAt, &event.UpdatedAt)
+		&event.CreatedBy, &event.CreatedByName, &event.UpdatedBy, &event.CreatedAt, &event.UpdatedAt, &event.SourceDocumentName, &event.SourceRefs, &event.ExtractionKey)
 	return &event, err
 }
 

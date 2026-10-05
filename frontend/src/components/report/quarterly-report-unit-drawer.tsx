@@ -95,7 +95,7 @@ export function QuarterlyReportUnitDrawer({
         <DrawerHeader>
           <DrawerTitle>{unit?.name ?? "Detail unit"}</DrawerTitle>
           <DrawerDescription>
-            {cycle} · Detail dalam scope laporan aktif.
+            {cycle} · Detail untuk pilihan unit laporan aktif.
           </DrawerDescription>
         </DrawerHeader>
         <DrawerBody className="space-y-5">
@@ -276,7 +276,7 @@ export function QuarterlyReportUnitDrawer({
                       ) : (
                         <p className="text-xs text-muted-foreground">
                           {eventHasRiskLinks(event)
-                            ? "Risiko terkait berada di luar scope laporan."
+                            ? "Risiko terkait berada di luar pilihan unit laporan."
                             : "Belum terhubung ke register"}
                         </p>
                       )}

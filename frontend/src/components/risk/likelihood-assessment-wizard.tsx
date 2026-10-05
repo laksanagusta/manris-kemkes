@@ -579,7 +579,7 @@ export function LikelihoodAssessmentWizard({
               disabled={disabled}
               onClick={() => setSelectedLevel(val)}
               className={cn(
-                "h-9 rounded-lg border text-xs font-semibold transition-all",
+                "h-9 rounded-lg border text-xs font-semibold transition-[background-color,border-color,color,box-shadow]",
                 val === selectedLevel
                   ? "border-primary bg-primary text-primary-foreground shadow-sm"
                   : "border-border bg-muted/30 hover:bg-muted/50 text-muted-foreground"

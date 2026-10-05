@@ -2,6 +2,7 @@
 
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { ManriskMark } from "@/components/manrisk-mark";
 import {
   ChevronsUpDown,
   Eye,
@@ -161,10 +162,10 @@ export default function RegisterScreen() {
       </div>
       <div className="pointer-events-none absolute inset-0 opacity-[0.02]" aria-hidden="true" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)", backgroundSize: "64px 64px" }} />
 
-      <div className="relative w-full max-w-3xl px-4 py-8 motion-safe:animate-fade-in">
+      <div data-motion-page className="relative w-full max-w-3xl px-4 py-8 motion-safe:animate-fade-in">
         <div className="flex flex-col gap-6">
           <header className="flex w-full flex-col items-start gap-4 text-left">
-            <span className="font-logo text-[24px] leading-6 font-semibold lowercase tracking-[-0.4px] text-tertiary-foreground underline decoration-dashed decoration-2 underline-offset-4">Manrisk</span>
+            <span className="inline-flex items-center gap-2"><ManriskMark /><span className="font-logo text-[24px] leading-6 font-semibold lowercase tracking-[-0.4px] text-tertiary-foreground underline decoration-dashed decoration-2 underline-offset-4">Manrisk</span></span>
             <h1 className="text-base leading-5 font-medium tracking-tight text-balance">Buat akun baru</h1>
             <div className="flex w-full flex-col gap-1 text-left text-sm text-muted-foreground">
               <p>Akun yang dibuat akan berstatus menunggu aktivasi sampai admin menyetujui registrasi.</p>

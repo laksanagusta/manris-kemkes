@@ -5,6 +5,7 @@ import { useTheme } from "next-themes";
 import { Monitor, Moon, Sun } from "@/components/shared/icons";
 import { SettingsDialog, type SettingsSection } from "@/components/shared/design-system/layout/settings-dialog";
 import { AccountSettings } from "./account-settings";
+import { APIKeySettings } from "./api-key-settings";
 import { Card, CardContent } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -48,7 +49,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   return <SettingsContext.Provider value={{ openSettings }}>
       {children}
       <SettingsDialog open={open} onOpenChange={setOpen} section={section} onSectionChange={setSection}>
-        {section === "account" ? <AccountSettings /> : section === "security" ? <AccountSettings view="security" /> : <PreferencesSettings />}
+        {open && (section === "account" ? <AccountSettings /> : section === "security" ? <AccountSettings view="security" /> : section === "api-key" ? <APIKeySettings /> : <PreferencesSettings />)}
       </SettingsDialog>
   </SettingsContext.Provider>;
 }

@@ -51,7 +51,7 @@ export function RiskRatingSlider({
       <div
         className={cn(
           "pointer-events-none absolute top-0 z-10 h-10 rounded-lg motion-reduce:transition-none",
-          mounted && "transition-all duration-300 ease-out",
+          mounted && "transition-[left,transform,width,background-color,border-color,color,box-shadow] duration-300 ease-out",
         )}
         style={{
           left: indicator.left,
@@ -72,7 +72,7 @@ export function RiskRatingSlider({
                 disabled={disabled}
                 onClick={() => onChange(val)}
                 className={cn(
-                  "relative z-20 h-10 rounded-lg border text-sm font-semibold transition-all duration-200 motion-reduce:transition-none",
+                  "relative z-20 h-10 rounded-lg border text-sm font-semibold transition-[left,transform,width,background-color,border-color,color,box-shadow] duration-200 motion-reduce:transition-none",
                   val === value
                     ? "border-transparent text-white shadow-sm"
                     : "border-border/50 bg-muted/30 text-foreground hover:bg-muted/50",

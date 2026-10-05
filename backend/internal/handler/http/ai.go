@@ -411,6 +411,10 @@ func (h *AIHandler) AnalyzeDocumentIntelligence(c *fiber.Ctx) error {
 		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "mode analisis dokumen tidak valid")
 	}
 
+	if mode == entity.DocumentModeRiskEventExtraction && fileHeader.Size > 1024*1024 {
+		return sendProblemDetails(c, fiber.StatusRequestEntityTooLarge, "File Terlalu Besar", "https://api.manris.com/errors/file-too-large", "Ukuran file melebihi batas 1 MB.")
+	}
+
 	scope := middleware.GetAccessScope(c)
 	if scope == nil {
 		return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", "cakupan akses tidak tersedia")

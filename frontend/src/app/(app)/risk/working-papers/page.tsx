@@ -314,7 +314,7 @@ function WorkingPaperSigningProgress({
     <div className="mt-3 flex items-center gap-3">
       <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
         <div
-          className="h-full rounded-full bg-emerald-500 transition-all"
+          className="h-full rounded-full bg-emerald-500 transition-[width]"
           style={{ width: `${progressPercent}%` }}
         />
       </div>

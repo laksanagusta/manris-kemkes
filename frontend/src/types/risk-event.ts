@@ -3,7 +3,12 @@ export type RiskEventCondition = "recovered" | "controlled" | "ongoing" | "worse
 
 export interface RiskEventRiskLink { id: string; code: string; title: string }
 
+export interface RiskEventSourceRef { quote: string; location?: string }
+
 export interface RiskEvent {
+  sourceDocumentName?: string;
+  sourceRefs?: RiskEventSourceRef[];
+  extractionKey?: string;
   id: string;
   code: string;
   description: string;
@@ -34,6 +39,9 @@ export interface RiskEvent {
 }
 
 export interface CreateRiskEventInput {
+  sourceDocumentName?: string;
+  sourceRefs?: RiskEventSourceRef[];
+  extractionKey?: string;
   description: string;
   occurredAt: string;
   impactTypes: string[];

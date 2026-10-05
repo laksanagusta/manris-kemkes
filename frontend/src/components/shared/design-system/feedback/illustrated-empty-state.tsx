@@ -58,6 +58,7 @@ export function IllustratedEmptyState({
 
   return (
     <Empty
+      data-motion-feedback-state
       className={cn(
         "flex-none gap-1 rounded-none border-0 p-0 text-center",
         isLeftAligned && "items-start text-left",

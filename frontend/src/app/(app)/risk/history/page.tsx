@@ -78,7 +78,7 @@ export default function RiskHistoryPage() {
                 key={ver.id}
                 onClick={() => setSelectedVersion(ver.id)}
                 className={cn(
-                  "relative flex items-center justify-between w-full p-3 rounded-lg text-left transition-all z-10 shadow-black",
+                  "relative flex items-center justify-between w-full p-3 rounded-lg text-left transition-[background-color,color,box-shadow] z-10 shadow-black",
                   selectedVersion === ver.id
                     ? "bg-primary/10"
                     : "bg-card/80 hover:bg-muted/50",

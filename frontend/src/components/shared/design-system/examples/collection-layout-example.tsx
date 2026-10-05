@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { RiskExportButton } from "../actions/risk-export-button";
+import { toast } from "sonner";
 
 import {
   AccentButton,
@@ -16,7 +18,6 @@ import {
   MetricGrid,
   PageStack,
 } from "@/components/shared/design-system";
-import { ActionButton } from "@/components/shared/design-system";
 
 export function CollectionLayoutExample() {
   const [search, setSearch] = useState("");
@@ -36,7 +37,7 @@ export function CollectionLayoutExample() {
       </MetricGrid>
       <div className="space-y-2">
         <p className="text-xs font-medium text-muted-foreground">
-          Filter kiri, action kanan
+          Filter kiri, action kanan · ekspor seluruh hasil filter
         </p>
         <CollectionToolbar
           leading={
@@ -52,9 +53,7 @@ export function CollectionLayoutExample() {
           }
           actions={
             <>
-              <ActionButton variant="outline">
-                Export data
-              </ActionButton>
+              <RiskExportButton onClick={() => toast.info("Ekspor Excel mengikuti semua hasil filter aktif, termasuk halaman lain.")} />
               <AccentButton>Buat item</AccentButton>
             </>
           }

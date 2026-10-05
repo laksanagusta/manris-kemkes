@@ -36,6 +36,7 @@ type FormSectionProps = {
 export function FormPage({ children, className }: FormPageProps) {
   return (
     <div
+      data-motion-page
       className={cn(
         "w-full min-w-0 animate-fade-in space-y-6 pb-20 [&>header+*]:!mt-0",
         className,

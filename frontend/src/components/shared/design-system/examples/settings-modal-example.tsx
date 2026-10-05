@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
+import { APIKeySettingsExample } from "./api-key-settings-example";
 
 export function SettingsModalExample() {
   const [open, setOpen] = useState(false);
@@ -41,7 +42,7 @@ export function SettingsModalExample() {
             </CardContent>
           </Card>
         </section>
-      ) : (
+      ) : section === "api-key" ? <APIKeySettingsExample /> : (
         <section className="space-y-3">
           <h2 className="text-sm text-muted-foreground">Tampilan</h2>
           <Card><CardContent><Field orientation="responsive"><FieldLabel htmlFor="settings-example-theme">Tema</FieldLabel><Input id="settings-example-theme" defaultValue="Terang" /></Field></CardContent></Card>

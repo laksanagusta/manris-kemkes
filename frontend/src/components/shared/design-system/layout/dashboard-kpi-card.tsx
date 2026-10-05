@@ -1,5 +1,7 @@
 "use client";
 
+import { MotionNumber } from "@/components/shared/design-system/motion/motion-primitives";
+
 import { TrendingDown, TrendingUp } from "@/components/shared/icons";
 
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -44,7 +46,7 @@ export function DashboardKpiCard({
           </>
         ) : (
           <>
-            <div className="text-2xl font-semibold tabular-nums">{error ? "—" : value}</div>
+            <div className="text-2xl font-semibold tabular-nums"><MotionNumber value={error ? "—" : value} /></div>
             {detail ? <p className="text-xs text-muted-foreground">{detail}</p> : null}
           </>
         )}

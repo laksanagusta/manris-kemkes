@@ -18,13 +18,11 @@ export function DirtyActionBar({
 }) {
   return (
     <div
+      data-open={visible}
       aria-hidden={!visible}
       inert={!visible}
       className={cn(
-        "pointer-events-none fixed inset-x-4 bottom-5 z-40 transition-[opacity,transform] duration-200 ease-(--ease-out) motion-reduce:transition-opacity md:right-6 md:left-[calc(var(--sidebar-width)+1.5rem)] md:group-data-[state=collapsed]:left-[calc(var(--sidebar-width-icon)+1.5rem)]",
-        visible
-          ? "translate-y-0 opacity-100"
-          : "translate-y-2 opacity-0 motion-reduce:translate-y-0",
+        "t-panel-slide pointer-events-none fixed inset-x-4 bottom-5 z-40 [--panel-translate-y:8px] [--panel-open-dur:200ms] [--panel-close-dur:150ms] md:right-6 md:left-[calc(var(--sidebar-width)+1.5rem)] md:group-data-[state=collapsed]:left-[calc(var(--sidebar-width-icon)+1.5rem)]",
         className,
       )}
     >

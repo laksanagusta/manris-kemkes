@@ -308,6 +308,21 @@ function mapResponseToFindings(
   const result = response.result;
 
   switch (response.mode) {
+    case "risk_event_extraction":
+      return (result.kejadian?.items ?? []).map((item) => ({
+        id: "api-finding-event-" + item.clientKey,
+        kind: "risk-event" as const,
+        eventDraft: item,
+        title: item.event.description || "Kandidat kejadian",
+        summary: item.event.actualImpact || "Dampak aktual belum tercantum dalam dokumen.",
+        severity: item.event.severity === "extreme" ? "critical" as const : item.event.severity === "high" ? "high" as const : item.event.severity === "medium" ? "medium" as const : "low" as const,
+        category: "Kejadian aktual",
+        source: sourceFor(document, item.sourceRefs[0]),
+        sources: item.sourceRefs.map((ref) => sourceFor(document, ref)),
+        confidence: normalizeConfidence(item.confidence),
+        recommendedAction: "Periksa fakta, lengkapi informasi yang belum tercantum, dan pilih risiko terkait secara manual.",
+        groupId,
+      }));
     case "sop_risk_universe": {
       const stages = result.sop?.processStages ?? [];
       return stages.flatMap((stage, stageIndex) =>

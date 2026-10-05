@@ -115,7 +115,7 @@ export function RiskMovementSnapshot({
                 data-testid={`movement-${item.key}`}
                 className={cn(
                   "group flex flex-col gap-3 rounded-lg border p-4",
-                  "transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md",
+                  "transition-[transform,box-shadow,border-color] duration-200 hover:-translate-y-0.5 hover:shadow-md",
                   config.bgClass,
                   config.borderClass,
                 )}

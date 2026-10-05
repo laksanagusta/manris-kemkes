@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { ManriskMark } from "@/components/manrisk-mark";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "@/components/shared/icons";
 import { useAuth } from "@/contexts/auth-context";
@@ -43,8 +44,9 @@ export default function LoginScreen() {
     <div className="flex min-h-svh bg-white">
       <aside className="hidden w-[38%] shrink-0 flex-col justify-between bg-neutral-900 px-10 py-10 text-white md:flex lg:px-14">
         <div className="flex flex-col gap-10">
-          <span className="font-logo text-[22px] font-semibold lowercase leading-7 tracking-[-0.4px]">
-            manrisk
+          <span className="font-logo inline-flex items-center gap-2 text-[22px] font-semibold lowercase leading-7 tracking-[-0.4px]">
+            <ManriskMark inverted />
+            <span>manrisk</span>
           </span>
           <p className="max-w-md text-balance text-4xl font-medium leading-[1.2] tracking-tight">
             Seluruh siklus manajemen risiko dalam satu tempat.
@@ -62,11 +64,12 @@ export default function LoginScreen() {
         </div>
       </aside>
 
-      <main className="flex min-w-0 flex-1 items-center px-6 py-10 md:items-start md:px-12 lg:justify-start lg:pl-24">
+      <main data-motion-page className="flex min-w-0 flex-1 items-center px-6 py-10 md:items-start md:px-12 lg:justify-start lg:pl-24">
         <div className="w-full max-w-md">
           <div className="mb-8 md:hidden">
-            <span className="font-logo text-[22px] font-semibold lowercase leading-7 tracking-[-0.4px] text-neutral-900">
-              manrisk
+            <span className="font-logo inline-flex items-center gap-2 text-[22px] font-semibold lowercase leading-7 tracking-[-0.4px] text-neutral-900">
+              <ManriskMark className="dark:invert-0" />
+              <span>manrisk</span>
             </span>
           </div>
           <div aria-hidden="true" className="hidden h-7 md:block" />

@@ -3,7 +3,8 @@ import { Agentation } from "agentation";
 import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/contexts/auth-context";
-import { Toaster } from "@/components/ui/sonner";
+import { AppToaster } from "@/components/app-toaster";
+import { MotionFeedback } from "@/components/shared/design-system/motion/motion-feedback";
 import { SuppressRadixWarnings } from "@/components/suppress-radix-warnings";
 import "./globals.css";
 import { cn } from "@/lib/utils";
@@ -16,7 +17,7 @@ export const metadata: Metadata = {
     "Platform SaaS manajemen risiko",
   icons: {
     icon: {
-      url: "/icon.svg",
+      url: "/manrisk-favicon.svg",
       type: "image/svg+xml",
     },
   },
@@ -33,7 +34,8 @@ export default function RootLayout({
         <ThemeProvider>
           <AuthProvider>
             {children}
-            <Toaster />
+            <AppToaster />
+            <MotionFeedback />
             <SuppressRadixWarnings />
             {process.env.NODE_ENV === "development" && <Agentation />}
           </AuthProvider>

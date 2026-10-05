@@ -57,6 +57,7 @@ func main() {
 
 	// Auth handlers (Clean Architecture)
 	cleanAuthHandler := httpHandler.NewAuthHandler(container.AuthLoginUC, container.AuthRegisterUC, container.AuthMeUC, container.AuthUpdateProfileUC, container.AuthChangePasswordUC)
+	organizationAPIKeyHandler := httpHandler.NewOrganizationAPIKeyHandler(container.OrganizationAPIKeyService)
 
 	// AI handlers (Clean Architecture)
 	cleanAIHandler := httpHandler.NewAIHandler(
@@ -212,7 +213,13 @@ func main() {
 	authProtected.Put("/me", middleware.RequireFullSession(), cleanAuthHandler.UpdateProfile)
 	authProtected.Post("/change-password", cleanAuthHandler.ChangePassword)
 
+	// Only this existing heatmap endpoint accepts an organization API key.
+	api.Get("/dashboard/heatmap", organizationAPIKeyHandler.Heatmap(cleanRiskHandler.HeatmapData))
+
 	protected := api.Group("", middleware.AuthRequired(cfg.JWTSecret), middleware.RequireFullSession(), middleware.ResolveOrgScope(container.OrgHierarchySvc))
+	protected.Get("/organization-api-key", organizationAPIKeyHandler.Get)
+	protected.Post("/organization-api-key/generate", organizationAPIKeyHandler.Generate)
+	protected.Post("/organization-api-key/regenerate", organizationAPIKeyHandler.Regenerate)
 
 	// Postgres Pro diagnostics endpoint (Clean Architecture)
 	protected.Get("/system/slow-queries", cleanSystemHandler.GetSlowQueries)

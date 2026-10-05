@@ -163,7 +163,7 @@ export function RiskHeatmap({
                         key={colIdx}
                         data-testid="heatmap-cell"
                         className={cn(
-                          "relative flex items-center justify-center rounded-md text-xs font-bold transition-all hover:shadow-md",
+                          "relative flex items-center justify-center rounded-md text-xs font-bold transition-[background-color,color,box-shadow] hover:shadow-md",
                           compact ? "aspect-square hover:scale-[1.03]" : "aspect-[4/3] hover:scale-[1.08]",
                           heatmapLevelColors[level],
                         )}

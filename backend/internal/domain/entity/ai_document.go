@@ -8,6 +8,7 @@ import (
 type DocumentAnalysisMode string
 
 const (
+	DocumentModeRiskEventExtraction    DocumentAnalysisMode = "risk_event_extraction"
 	DocumentModeSOPRiskUniverse        DocumentAnalysisMode = "sop_risk_universe"
 	DocumentModeAuditFindingMapper     DocumentAnalysisMode = "audit_finding_mapper"
 	DocumentModeStrategicObjectiveRisk DocumentAnalysisMode = "strategic_objective_risk"
@@ -16,7 +17,7 @@ const (
 
 func IsValidDocumentAnalysisMode(mode DocumentAnalysisMode) bool {
 	switch mode {
-	case DocumentModeSOPRiskUniverse,
+	case DocumentModeRiskEventExtraction, DocumentModeSOPRiskUniverse,
 		DocumentModeAuditFindingMapper,
 		DocumentModeStrategicObjectiveRisk,
 		DocumentModeMitigationReportMapper:
@@ -190,6 +191,7 @@ type MitigationReportMapperResult struct {
 }
 
 type DocumentIntelligenceResult struct {
+	Kejadian   *RiskEventExtractionResult    `json:"kejadian,omitempty"`
 	Mode       DocumentAnalysisMode          `json:"mode"`
 	SOP        *SOPRiskUniverseResult        `json:"sop,omitempty"`
 	Audit      *AuditFindingMapperResult     `json:"audit,omitempty"`

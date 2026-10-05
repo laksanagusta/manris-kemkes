@@ -112,7 +112,7 @@ export default function ControlsPage() {
           const effectiveCount = control.tests ? control.tests.filter((t: any) => t.result === "Efektif").length : 0;
 
           return (
-            <Card key={control.id} className="transition-all">
+            <Card key={control.id} className="transition-[background-color,border-color,box-shadow]">
               <CardContent className="">
                 {/* Main row */}
                 <button

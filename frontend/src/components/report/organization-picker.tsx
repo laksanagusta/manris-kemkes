@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronsUpDown, Search } from "@/components/shared/icons";
+import { Check, ChevronsUpDown, Search, X } from "@/components/shared/icons";
 
 import type { OrganizationListItem } from "@/lib/api/organizations";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,7 @@ interface OrganizationPickerProps {
   emptyMessage?: string;
   className?: string;
   disabled?: boolean;
+  "aria-label"?: string;
   "aria-describedby"?: string;
   "aria-invalid"?: boolean | "false" | "true";
   "aria-required"?: boolean | "false" | "true";
@@ -79,6 +80,7 @@ export function OrganizationPicker({
   emptyMessage = "Tidak ada unit ditemukan.",
   className,
   disabled,
+  "aria-label": ariaLabel = "Unit laporan",
   "aria-describedby": ariaDescribedby,
   "aria-invalid": ariaInvalid,
   "aria-required": ariaRequired,
@@ -88,8 +90,10 @@ export function OrganizationPicker({
   density = "default",
 }: OrganizationPickerProps) {
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const reviewListRef = useRef<HTMLUListElement | null>(null);
   const comboboxAnchor = useComboboxAnchor();
   const [open, setOpen] = useState(false);
+  const [reviewOpen, setReviewOpen] = useState(false);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 500);
 
@@ -102,17 +106,17 @@ export function OrganizationPicker({
   );
 
   const filteredOptions = useMemo(() => {
-    const query = debouncedSearch.trim().toLowerCase();
-    if (!query) return [];
+    const query = (multiSelect ? search : debouncedSearch).trim().toLowerCase();
+    if (!query) return multiSelect ? options : [];
 
-    return options
+    const matches = options
       .filter((option) =>
         `${option.name} ${option.location ?? ""} ${option.uprLevel ?? ""}`
           .toLowerCase()
           .includes(query),
-      )
-      .slice(0, 5);
-  }, [debouncedSearch, options]);
+      );
+    return multiSelect ? matches : matches.slice(0, 5);
+  }, [debouncedSearch, search, multiSelect, options]);
 
   const selectedOption = options.find((option) => option.id === value);
   const allowedSelectedValues = filterAllowedValues(
@@ -135,6 +139,7 @@ export function OrganizationPicker({
 
   if (multiSelect) {
     return (
+      <div className="space-y-2">
       <Combobox
         multiple
         autoHighlight
@@ -174,6 +179,12 @@ export function OrganizationPicker({
                   </ComboboxChip>
                 ) : null}
                 <ComboboxChipsInput
+                  ref={inputRef}
+                  id={id}
+                  aria-label={ariaLabel}
+                  aria-describedby={ariaDescribedby}
+                  aria-invalid={ariaInvalid}
+                  aria-required={ariaRequired}
                   placeholder={values.length === 0 ? placeholder : searchPlaceholder}
                   className="min-w-0 flex-1 text-sm"
                 />
@@ -181,7 +192,7 @@ export function OrganizationPicker({
             )}
           </ComboboxValue>
         </ComboboxChips>
-        <ComboboxContent anchor={comboboxAnchor} className="min-w-[420px]">
+        <ComboboxContent anchor={comboboxAnchor} className="max-w-[calc(100vw-2rem)]">
           <ComboboxEmpty>
             <IllustratedEmptyState
               title={search.trim() ? emptyMessage : "Ketik untuk mencari unit."}
@@ -200,6 +211,28 @@ export function OrganizationPicker({
           </ComboboxList>
         </ComboboxContent>
       </Combobox>
+      <Popover open={reviewOpen} onOpenChange={setReviewOpen}>
+        <PopoverTrigger asChild>
+          <Button variant="outline" size="sm" disabled={disabled || !allowedSelectedValues.length} aria-label={`Tinjau ${allowedSelectedValues.length} unit terpilih`}>
+            Tinjau {allowedSelectedValues.length} unit terpilih
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent align="start" className="w-80 max-w-[calc(100vw-2rem)]">
+          <p className="mb-3 text-sm font-medium">Unit terpilih</p>
+          <ScrollArea className="max-h-64 overflow-y-auto">
+            <ul ref={reviewListRef} className="space-y-2">
+              {allowedSelectedValues.map((unitId) => <li key={unitId} className="flex items-center justify-between gap-3">
+                <span className="min-w-0 break-words text-sm">{optionNameById.get(unitId)}</span>
+                <Button variant="ghost" size="icon-sm" disabled={disabled} aria-label={`Hapus ${optionNameById.get(unitId)} dari pilihan`} onClick={() => { onSelectedValuesChange?.(allowedSelectedValues.filter((value) => value !== unitId)); if (allowedSelectedValues.length === 1) { setReviewOpen(false); requestAnimationFrame(() => inputRef.current?.focus()); } else { requestAnimationFrame(() => reviewListRef.current?.querySelector<HTMLButtonElement>("button")?.focus()); } }}>
+                  <X aria-hidden="true" />
+                </Button>
+              </li>)}
+            </ul>
+          </ScrollArea>
+          <Button variant="outline" size="sm" className="mt-3" disabled={disabled} onClick={() => { onSelectedValuesChange?.([]); setReviewOpen(false); requestAnimationFrame(() => inputRef.current?.focus()); }}>Kosongkan pilihan</Button>
+        </PopoverContent>
+      </Popover>
+      </div>
     );
   }
 
@@ -219,6 +252,7 @@ export function OrganizationPicker({
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          aria-label={ariaLabel}
           aria-describedby={ariaDescribedby}
           aria-invalid={ariaInvalid}
           aria-required={ariaRequired}
