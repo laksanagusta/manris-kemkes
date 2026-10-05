@@ -15,6 +15,7 @@ import {
   CollectionSearchField, CollectionTableCard, PopoverSelectField,
   CollectionTableHead, CollectionTableHeader, CollectionTableHeaderRow, CollectionToolbar, PageStack,
 } from "@/components/shared/design-system";
+import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { Plus } from "@/components/shared/icons";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 
@@ -96,12 +97,15 @@ export default function RiskEventsPage() {
             </div>
           }
           actions={
+            <>
+            {!isAIFeaturesDisabled() ? <ActionButton variant="outline" asChild><Link href="/risk-events/impor">Ekstrak dokumen</Link></ActionButton> : null}
             <AccentButton
               icon={<Plus className="size-3.5" />}
               onClick={() => setFormOpen(true)}
             >
               Catat Kejadian
             </AccentButton>
+            </>
           }
         />
         <CollectionTableCard>

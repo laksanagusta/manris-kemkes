@@ -60,12 +60,14 @@ export function MonitoringCycleSelect({
   options,
   onValueChange,
   disabled = false,
+  contentClassName,
 }: {
   id?: string;
   value: string;
   options: readonly MonitoringCycleSelectOption[];
   onValueChange: (value: string) => void;
   disabled?: boolean;
+  contentClassName?: string;
 }) {
   const selected = options.find((option) => option.value === value);
 
@@ -88,7 +90,7 @@ export function MonitoringCycleSelect({
           <ChevronDown className="size-4 shrink-0 opacity-60" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent className="w-[var(--radix-dropdown-menu-trigger-width)]">
+      <DropdownMenuContent className={`w-[var(--radix-dropdown-menu-trigger-width)] ${contentClassName ?? ""}`}>
         <DropdownMenuRadioGroup value={value} onValueChange={onValueChange}>
           {options.map((option) => (
             <DropdownMenuRadioItem

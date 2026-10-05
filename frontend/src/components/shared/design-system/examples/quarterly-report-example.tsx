@@ -1,5 +1,10 @@
 "use client";
 
+import { useState } from "react";
+import { toast } from "sonner";
+import { ReportFilterPanel } from "@/components/report/report-filter-panel";
+import type { ReportsFilterScope } from "@/lib/reports-filter-sheet";
+import type { OrganizationGroupListItem } from "@/lib/api/organization-groups";
 import { QuarterlyReportDashboard } from "@/components/report/quarterly-report-dashboard";
 import type {
   QuarterlyReport,
@@ -39,6 +44,7 @@ const risks: QuarterlyRisk[] = [
     archivedInPeriod: true,
   },
 ];
+risks.push({ ...risks[0], id: "example-risk-c", versionGroupId: "group-c", title: "Keterlambatan tindak lanjut evaluasi", code: "OP-003", organizationId: "example-unit-b", orgName: "Direktorat B", nilai: 12, monitoringObservedNilai: 12 });
 const report: QuarterlyReport = {
   cycle: "2026-Q2",
   comparisonCycle: "2026-Q1",
@@ -48,6 +54,7 @@ const report: QuarterlyReport = {
   organizations: [
     { id: "example-unit-a", name: "Direktorat A" },
     { id: "example-unit-b", name: "Direktorat B" },
+    { id: "example-unit-c", name: "Direktorat C" },
   ],
   risks,
   previousRisks: [
@@ -74,6 +81,7 @@ const report: QuarterlyReport = {
       riskCode: "OP-001",
       evidenceUrl: "https://example.com/bukti",
     } as QuarterlyTask,
+    { id: "example-task-overdue", riskId: "example-risk-c", versionGroupId: "group-c", organizationId: "example-unit-b", status: "pending", dueDate: "2026-06-15", mitigationAction: "Koordinasi tindak lanjut evaluasi", riskTitle: "Keterlambatan tindak lanjut evaluasi" } as QuarterlyTask,
   ],
   events: [
     {
@@ -98,6 +106,62 @@ const report: QuarterlyReport = {
     },
   ],
 };
+const exampleOrganizations = report.organizations.map((unit) => ({
+  ...unit,
+  createdAt: report.generatedAt,
+}));
+const exampleGroups: OrganizationGroupListItem[] = [{
+  id: "example-report-group",
+  name: "Direktorat program",
+  description: "",
+  ownerOrganizationId: "example-unit-a",
+  ownerOrganizationName: "Direktorat A",
+  memberCount: 2,
+  members: report.organizations.slice(0, 2),
+  createdAt: report.generatedAt,
+  updatedAt: report.generatedAt,
+}];
+const exampleScope: ReportsFilterScope = {
+  organizationId: "",
+  organizationGroupId: "",
+  organizationIds: report.organizations.map((unit) => unit.id),
+};
+
 export function QuarterlyReportExample() {
-  return <QuarterlyReportDashboard report={report} />;
+  const [cycle, setCycle] = useState(report.cycle);
+  const [comparisonCycle, setComparisonCycle] = useState(report.comparisonCycle);
+  const [scope, setScope] = useState(exampleScope);
+
+  return (
+    <div className="space-y-6">
+      <p className="text-xs text-muted-foreground">
+        Contoh filter interaktif. Ringkasan memakai data ilustrasi tetap; ekspor dinonaktifkan.
+      </p>
+      <ReportFilterPanel
+        cycle={cycle}
+        comparisonCycle={comparisonCycle}
+        onCycleChange={setCycle}
+        onComparisonCycleChange={setComparisonCycle}
+        scope={scope}
+        onScopeChange={setScope}
+        organizations={exampleOrganizations}
+        groups={exampleGroups}
+        scopeSummary={scope.organizationIds.length
+          ? `${scope.organizationIds.length} unit dipilih`
+          : scope.organizationGroupId ? "Pilih minimal satu unit dari grup ini." : "Semua unit contoh"}
+        scopeReady
+        loading={false}
+        exporting={null}
+        canExport={false}
+        onExport={() => {}}
+        onReload={() => toast.info("Contoh memakai data ilustrasi tetap.")}
+        onReset={() => {
+          setCycle(report.cycle);
+          setComparisonCycle(report.comparisonCycle);
+          setScope(exampleScope);
+        }}
+      />
+      <QuarterlyReportDashboard report={report} />
+    </div>
+  );
 }

@@ -1,17 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronsUpDown, Search, Users } from "@/components/shared/icons";
+import { useEffect, useMemo, useState } from "react";
 
 import type { OrganizationGroupListItem } from "@/lib/api/organization-groups";
-import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { SearchInput } from "@/components/shared/search-input";
-import { IllustratedEmptyState } from "@/components/shared/design-system/feedback/illustrated-empty-state";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { cn } from "@/lib/utils";
+import { SearchableDropdownPicker } from "@/components/shared/searchable-dropdown-picker";
 
 interface OrganizationGroupPickerProps {
+  id?: string;
+  "aria-label"?: string;
   value: string;
   groups: OrganizationGroupListItem[];
   onChange: (groupId: string) => void;
@@ -41,6 +37,8 @@ function useDebouncedValue<T>(value: T, delay: number) {
 }
 
 export function OrganizationGroupPicker({
+  id,
+  "aria-label": ariaLabel = "Grup laporan",
   value,
   groups,
   onChange,
@@ -54,7 +52,6 @@ export function OrganizationGroupPicker({
   allOptionValue = "all",
   density = "default",
 }: OrganizationGroupPickerProps) {
-  const inputRef = useRef<HTMLInputElement | null>(null);
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 500);
@@ -86,112 +83,39 @@ export function OrganizationGroupPicker({
     });
   }, [allOptionValue, debouncedSearch, options]);
 
-  const selectedGroup = options.find((group) => group.id === value);
+  const selectedGroup = options.find((group) => group.id === value) ?? null;
   const controlHeight = density === "compact" ? "h-9" : "h-10";
 
-  useEffect(() => {
-    if (!open) return;
-    const frame = window.requestAnimationFrame(() => {
-      inputRef.current?.focus();
-      inputRef.current?.select();
-    });
-
-    return () => window.cancelAnimationFrame(frame);
-  }, [open]);
-
   return (
-    <Popover
+    <SearchableDropdownPicker
+      id={id}
+      title={ariaLabel}
+      description="Cari dan pilih grup laporan."
+      placeholder={placeholder}
+      value={value}
+      selectedOption={selectedGroup}
+      options={filteredGroups}
+      getOptionValue={(group) => group.id}
+      renderValue={(group) => (
+        <span className="min-w-0 flex-1 truncate text-left">
+          {`${group.name}${group.ownerOrganizationName ? ` · ${group.ownerOrganizationName}` : ""}`}
+        </span>
+      )}
+      renderOption={(group) => <span className="truncate">{group.name}</span>}
+      onSelect={(group) => onChange(group.id)}
       open={open}
       onOpenChange={(nextOpen) => {
         setOpen(nextOpen);
         if (!nextOpen) setSearch("");
       }}
-    >
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          disabled={disabled}
-          className={cn(
-            controlHeight,
-            "w-full min-w-0 justify-between",
-            className,
-          )}
-        >
-          <span className="min-w-0 flex-1 overflow-x-auto text-left whitespace-nowrap [scrollbar-width:none]">
-            {selectedGroup
-              ? `${selectedGroup.name} · ${selectedGroup.ownerOrganizationName}`
-              : placeholder}
-          </span>
-          <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent
-        className="w-[min(var(--radix-popover-trigger-width),620px)] overflow-hidden"
-        align="start"
-      >
-        <div className="flex items-center border-b px-3">
-          <Search className="mr-2 size-3.5 shrink-0 text-muted-foreground" />
-          <SearchInput
-            ref={inputRef}
-            type="search"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            placeholder={searchPlaceholder}
-            className={cn(
-              controlHeight,
-              "rounded-none border-0 bg-transparent px-0 py-2 text-xs !shadow-none",
-            )}
-          />
-        </div>
-        <ScrollArea className="h-56">
-          <div className="p-1">
-            {filteredGroups.length === 0 ? (
-              <IllustratedEmptyState
-                title={emptyMessage}
-                size="compact"
-                className="py-2"
-              />
-            ) : (
-              filteredGroups.map((group) => {
-                const isSelected = group.id === value;
-
-                return (
-                  <button
-                    key={group.id}
-                    type="button"
-                    className={cn(
-                      "relative flex w-full cursor-pointer select-none items-start gap-2 rounded-sm px-2 py-2 text-left text-xs outline-none transition-colors hover:bg-accent hover:text-accent-foreground",
-                      isSelected && "bg-accent text-accent-foreground",
-                    )}
-                    onClick={() => {
-                      onChange(group.id);
-                      setOpen(false);
-                    }}
-                  >
-                    <Check
-                      className={cn(
-                        "mt-0.5 size-3.5 shrink-0",
-                        isSelected ? "opacity-100" : "opacity-0",
-                      )}
-                    />
-                    <Users className="mt-0.5 size-3.5 shrink-0 text-muted-foreground/80" />
-                    <span className="min-w-0 flex-1">
-                      <span className="block overflow-x-auto font-medium whitespace-nowrap [scrollbar-width:none]">
-                        {group.name}
-                      </span>
-                      <span className="mt-0.5 block overflow-x-auto text-[10px] text-muted-foreground whitespace-nowrap [scrollbar-width:none]">
-                        {group.ownerOrganizationName} · {group.memberCount} unit
-                      </span>
-                    </span>
-                  </button>
-                );
-              })
-            )}
-          </div>
-        </ScrollArea>
-      </PopoverContent>
-    </Popover>
+      search={search}
+      onSearchChange={setSearch}
+      searchPlaceholder={searchPlaceholder}
+      emptyMessage={emptyMessage}
+      disabled={disabled}
+      className={className}
+      triggerClassName={controlHeight}
+      focusSearchOnOpen
+    />
   );
 }

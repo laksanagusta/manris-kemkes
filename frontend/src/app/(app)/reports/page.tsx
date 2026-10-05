@@ -1,14 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import {
-  Download,
-  FileSpreadsheet,
-  FileText,
-  Loader2,
-} from "@/components/shared/icons";
 import { toast } from "sonner";
-import { api, API_BASE } from "@/lib/api";
+import { api, API_BASE, ApiError } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 import {
   listAllOrganizations,
@@ -36,143 +30,41 @@ import type {
   QuarterlyReport,
   QuarterlyReportOverview,
 } from "@/types/quarterly-report";
-import { ReportScopePicker } from "@/components/report/report-scope-picker";
-import { ReportKpiCard } from "@/components/report/report-kpi-card";
+import { reportErrorMessage } from "@/lib/report-feedback";
+import { parseReportPreferences } from "@/lib/report-preferences";
+import { ReportFilterPanel, type ReportExportFormat } from "@/components/report/report-filter-panel";
+import { ReportOverviewSkeleton } from "@/components/report/report-overview-cards";
 import { ReportSummaryCard, ReportSummaryMetrics } from "@/components/report/report-summary-card";
 import { QuarterlyReportDashboard } from "@/components/report/quarterly-report-dashboard";
-import {
-  CollectionToolbar,
-  ReportEmptyState,
-} from "@/components/shared/design-system";
+import { ReportEmptyState } from "@/components/shared/design-system";
 import { Button } from "@/components/ui/button";
 import {
   Card,
-  CardAction,
   CardHeader,
   CardTitle,
   CardContent,
 } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 const EMPTY_SCOPE: ReportsFilterScope = {
   organizationId: "",
   organizationGroupId: "",
   organizationIds: [],
 };
-const titles = [
-  "Risiko di atas selera risiko",
-  "Target tercapai",
-  "Mitigasi terlapor",
-  "Pemantauan final",
-];
-function PeriodPicker({
-  label,
-  cycle,
-  onChange,
-}: {
-  label: string;
-  cycle: string;
-  onChange: (cycle: string) => void;
-}) {
-  const current = currentReportCycle();
-  const currentYear = Number(current.slice(0, 4));
-  const [year, quarter] = cycle.split("-Q");
-  return (
-    <div className="min-w-0 space-y-1.5">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <div className="grid grid-cols-[minmax(0,1fr)_4.5rem] gap-2">
-        <Select
-          value={year}
-          onValueChange={(value) =>
-            onChange(
-              `${value}-Q${value === String(currentYear) && Number(quarter) > Number(current.slice(-1)) ? current.slice(-1) : quarter}`,
-            )
-          }
-        >
-          <SelectTrigger className="h-9! w-full" aria-label={`Tahun ${label.toLowerCase()}`}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {Array.from({ length: currentYear - 1999 }, (_, i) =>
-              String(currentYear - i),
-            ).map((value) => (
-              <SelectItem key={value} value={value}>
-                {value}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select
-          value={quarter}
-          onValueChange={(value) => onChange(`${year}-Q${value}`)}
-        >
-          <SelectTrigger className="h-9! w-full" aria-label={`Kuartal ${label.toLowerCase()}`}>
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            {[1, 2, 3, 4].map((value) => (
-              <SelectItem
-                key={value}
-                value={String(value)}
-                disabled={
-                  Number(year) === currentYear &&
-                  value > Number(current.slice(-1))
-                }
-              >
-                Q{value}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
-    </div>
-  );
-}
 function LoadingReport() {
   return (
-    <div className="space-y-6" aria-label="Memuat laporan" aria-busy="true">
-      <div className="grid gap-4 sm:grid-cols-2">
-        {titles.map((title) => (
-          <ReportKpiCard
-            key={title}
-            title={title}
-            value="—"
-            rows={[]}
-            loading
-          />
-        ))}
-      </div>
-      {[
-        { title: "Perubahan risiko", labels: ["Memburuk", "Membaik", "Tetap", "Baru"] },
-        { title: "Pencapaian target", labels: ["Tercapai", "Belum tercapai", "Belum dapat dinilai"] },
-        { title: "Pelaporan mitigasi", labels: ["Terlapor", "Belum terlapor", "Melewati tenggat", "Tidak dilaporkan", "Dilewati"] },
-        { title: "Kejadian dan dampak aktual", labels: ["Kerugian diketahui", "Nilai belum diketahui", "Belum terhubung"] },
-      ].map(({ title, labels }) => (
-        <ReportSummaryCard key={title} title={title} aria-busy="true">
-          <ReportSummaryMetrics
-            items={labels.map((label) => ({ label, value: <Skeleton className="h-10 w-24" /> }))}
-          />
-        </ReportSummaryCard>
-      ))}
+    <div className="space-y-8" aria-label="Memuat laporan" aria-busy="true">
+      <ReportOverviewSkeleton />
+      <ReportSummaryCard title="Kejadian dan dampak aktual" aria-busy="true">
+        <ReportSummaryMetrics items={["Kerugian", "Nilai belum diketahui", "Belum terhubung"].map((label) => ({ label, value: <Skeleton className="h-8 w-24" /> }))} />
+        <Skeleton className="h-48 w-full" />
+      </ReportSummaryCard>
       {[
         "Perbandingan unit",
         "Risiko yang perlu ditindaklanjuti",
       ].map((title) => (
-        <Card key={title}>
+        <Card data-report-card="" key={title}>
           <CardHeader>
             <CardTitle className="text-sm">{title}</CardTitle>
           </CardHeader>
@@ -195,6 +87,8 @@ export default function ReportsPage() {
   );
   const [groups, setGroups] = useState<OrganizationGroupListItem[]>([]);
   const [scope, setScope] = useState<ReportsFilterScope>(EMPTY_SCOPE);
+  const preferencesKey = user ? `manris-report-filters:${user.id}:${user.organizationId ?? "global"}` : "";
+  const [restoredFor, setRestoredFor] = useState("");
   const [metadataReady, setMetadataReady] = useState(false);
   const [metadataError, setMetadataError] = useState<string | null>(null);
   const [reportData, setReport] = useState<QuarterlyReportOverview | null>(null);
@@ -203,7 +97,7 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [retry, setRetry] = useState(0);
   const [metadataRetry, setMetadataRetry] = useState(0);
-  const [exporting, setExporting] = useState<string | null>(null);
+  const [exporting, setExporting] = useState<ReportExportFormat | null>(null);
   const needsSelection =
     scope.organizationIds.length === 0 &&
     (needsExplicitReportOrgSelection(user) || Boolean(scope.organizationGroupId));
@@ -235,17 +129,20 @@ export default function ReportsPage() {
         if (cancelled) return;
         const allowed = buildSelectableReportOrganizations(user, items);
         setOrganizations(allowed);
-        setGroups(buildSelectableReportOrganizationGroups(user, allGroups));
-        const initial = resolveDefaultReportsFilterScope(user, allowed);
-        setScope(initial);
+        const allowedGroups = buildSelectableReportOrganizationGroups(user, allGroups);
+        setGroups(allowedGroups);
+        let preferences = null;
+        try { preferences = parseReportPreferences(localStorage.getItem(preferencesKey), currentReportCycle(), allowed, allowedGroups); } catch { /* Storage may be unavailable. Keep the default filters. */ }
+        setCycle(preferences?.cycle ?? completedReportCycle());
+        setComparisonOverride(preferences?.comparisonOverride ?? "");
+        setScope(preferences?.scope ?? resolveDefaultReportsFilterScope(user, allowed));
+        setRestoredFor(preferencesKey);
         setMetadataReady(true);
       })
       .catch((error: unknown) => {
         if (!cancelled) {
           setMetadataError(
-            error instanceof Error
-              ? error.message
-              : "Coba lagi untuk memuat daftar unit dan grup.",
+            reportErrorMessage(error, "Unit dan grup belum dapat dimuat. Coba lagi."),
           );
           setLoading(false);
         }
@@ -253,7 +150,12 @@ export default function ReportsPage() {
     return () => {
       cancelled = true;
     };
-  }, [token, user, metadataRetry]);
+  }, [token, user, metadataRetry, preferencesKey]);
+
+  useEffect(() => {
+    if (!metadataReady || !user || restoredFor !== preferencesKey) return;
+    try { localStorage.setItem(preferencesKey, JSON.stringify({ cycle, comparisonOverride, scope })); } catch { /* Reporting still works when storage is unavailable. */ }
+  }, [metadataReady, user, restoredFor, preferencesKey, cycle, comparisonOverride, scope]);
 
   const query = useMemo(() => {
     const params = new URLSearchParams({
@@ -264,7 +166,7 @@ export default function ReportsPage() {
       params.set("org_id", scope.organizationIds.join(","));
     return params.toString();
   }, [cycle, comparisonCycle, scope.organizationIds]);
-  const report = loadedQuery === query ? reportData : null;
+  const report = restoredFor === preferencesKey && loadedQuery === query ? reportData : null;
   useEffect(() => {
     if (!token || !metadataReady || needsSelection) {
       setReport(null);
@@ -285,7 +187,7 @@ export default function ReportsPage() {
       .catch((error: unknown) => {
         if (!cancelled)
           setReportError(
-            error instanceof Error ? error.message : "Gagal memuat laporan.",
+            reportErrorMessage(error, "Laporan belum dapat dimuat. Coba lagi; filter tetap tersimpan."),
           );
       })
       .finally(() => {
@@ -313,7 +215,7 @@ export default function ReportsPage() {
     [query, token],
   );
 
-  async function exportReport(format: "xlsx" | "pdf") {
+  async function exportReport(format: ReportExportFormat) {
     if (!report || !token || exporting) return;
     const snapshot = report;
     setExporting(format);
@@ -322,9 +224,7 @@ export default function ReportsPage() {
       if (format === "xlsx") {
         const fullReport = await loadReportDetails();
         if (fullReport.snapshotHash !== snapshot.snapshotHash) {
-          throw new Error(
-            "Data laporan berubah. Muat ulang laporan sebelum mengekspor.",
-          );
+          throw new ApiError("Data laporan berubah", 409);
         }
         const { createQuarterlyReportWorkbook } =
           await import("@/lib/quarterly-report-export");
@@ -342,8 +242,7 @@ export default function ReportsPage() {
           { headers: { Authorization: `Bearer ${token}` } },
         );
         if (!response.ok) {
-          const problem = await response.json().catch(() => ({}));
-          throw new Error(problem.detail || "Gagal membuat PDF laporan.");
+          throw new ApiError("Ekspor PDF gagal", response.status);
         }
         blob = await response.blob();
       }
@@ -356,7 +255,7 @@ export default function ReportsPage() {
       toast.success(`Laporan ${format.toUpperCase()} berhasil diunduh`);
     } catch (error) {
       toast.error(
-        error instanceof Error ? error.message : "Gagal mengekspor laporan.",
+        reportErrorMessage(error, "Ekspor belum dapat diunduh. Coba lagi atau muat ulang data."),
       );
     } finally {
       setExporting(null);
@@ -364,96 +263,38 @@ export default function ReportsPage() {
   }
   return (
     <div className="w-full min-w-0 space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle className="row-span-2 self-center text-sm">Filter laporan</CardTitle>
-          <CardAction>
-            <CollectionToolbar
-              className="w-fit"
-              actions={
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="outline"
-                      disabled={!report || loading || Boolean(exporting)}
-                    >
-                      {exporting ? (
-                        <Loader2 className="size-4 animate-spin" />
-                      ) : (
-                        <Download className="size-4" />
-                      )}
-                      Ekspor
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-88 max-w-[calc(100vw-2rem)] overflow-x-auto">
-                    <DropdownMenuItem className="whitespace-nowrap" onClick={() => void exportReport("pdf")}>
-                      <FileText />
-                      Unduh ringkasan dan analisis (PDF)
-                    </DropdownMenuItem>
-                    <DropdownMenuItem className="whitespace-nowrap" onClick={() => void exportReport("xlsx")}>
-                      <FileSpreadsheet />
-                      Unduh laporan lengkap (Excel)
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              }
-            />
-          </CardAction>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-[11rem_11rem_minmax(0,1fr)]">
-            <PeriodPicker label="Periode laporan" cycle={cycle} onChange={setCycle} />
-            <PeriodPicker
-              label="Periode pembanding"
-              cycle={comparisonCycle}
-              onChange={setComparisonOverride}
-            />
-            <ReportScopePicker
-              organizationId={scope.organizationId}
-              onOrganizationChange={(organizationId) =>
-                setScope((value) => ({ ...value, organizationId }))
-              }
-              selectedOrganizationIds={scope.organizationIds}
-              onSelectedOrganizationIdsChange={(organizationIds) =>
-                setScope((value) => ({ ...value, organizationIds }))
-              }
-              organizations={organizations}
-              organizationGroupId={scope.organizationGroupId}
-              onOrganizationGroupChange={(organizationGroupId) =>
-                setScope((value) => ({ ...value, organizationGroupId }))
-              }
-              organizationGroups={groups}
-              className="min-w-0 md:col-span-2 xl:col-span-1"
-              orientation="inline"
-              density="compact"
-              disabled={!metadataReady || Boolean(exporting)}
-            />
-          </div>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <p className="text-xs text-muted-foreground tabular-nums" aria-live="polite">
-              {scope.organizationIds.length
-                ? `${scope.organizationIds.length} unit dipilih`
-                : scope.organizationGroupId
-                  ? "Pilih minimal satu unit dari grup ini."
-                  : needsExplicitReportOrgSelection(user)
-                    ? "Pilih unit untuk menampilkan laporan."
-                    : "Menampilkan semua unit yang dapat diakses"}
-            </p>
-            <Button
-              variant="ghost"
-              className="sm:shrink-0"
-              onClick={() => {
-                setCycle(completedReportCycle());
-                setComparisonOverride("");
-                setScope(resolveDefaultReportsFilterScope(user, organizations));
-              }}
-              disabled={!metadataReady || Boolean(exporting)}
-            >
-              Atur ulang filter
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      <ReportFilterPanel
+        cycle={cycle}
+        comparisonCycle={comparisonCycle}
+        onCycleChange={setCycle}
+        onComparisonCycleChange={setComparisonOverride}
+        scope={scope}
+        onScopeChange={setScope}
+        organizations={organizations}
+        groups={groups}
+        scopeSummary={
+          !metadataReady
+            ? metadataError ? "Pilihan unit belum tersedia" : "Memuat pilihan unit..."
+            : scope.organizationIds.length
+              ? `${scope.organizationIds.length} unit dipilih`
+              : scope.organizationGroupId
+                ? "Pilih minimal satu unit dari grup ini."
+                : needsExplicitReportOrgSelection(user)
+                  ? "Pilih unit untuk menampilkan laporan."
+                  : "Semua unit yang dapat diakses"
+        }
+        scopeReady={metadataReady}
+        loading={loading}
+        exporting={exporting}
+        canExport={Boolean(report)}
+        onExport={(format) => void exportReport(format)}
+        onReload={() => setRetry((value) => value + 1)}
+        onReset={() => {
+          setCycle(completedReportCycle());
+          setComparisonOverride("");
+          setScope(resolveDefaultReportsFilterScope(user, organizations));
+        }}
+      />
       {metadataError ? (
         <Alert variant="destructive">
           <AlertTitle>Unit dan grup gagal dimuat</AlertTitle>
@@ -488,13 +329,11 @@ export default function ReportsPage() {
       ) : loading || !metadataReady ? (
         <LoadingReport />
       ) : report ? (
-        <>
-          <QuarterlyReportDashboard
-            key={`${report.cycle}:${report.comparisonCycle}:${report.units.map((unit) => unit.id).join(",")}:${report.snapshotHash}`}
-            overview={report}
-            loadDetails={loadReportDetails}
-          />
-        </>
+        <QuarterlyReportDashboard
+          key={`${report.cycle}:${report.comparisonCycle}:${report.units.map((unit) => unit.id).join(",")}:${report.snapshotHash}`}
+          overview={report}
+          loadDetails={loadReportDetails}
+        />
       ) : null}
     </div>
   );

@@ -11,6 +11,8 @@ import {
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
+import type { Risk } from "@/types/risk";
+import { RiskExportButton } from "@/components/shared/design-system/actions/risk-export-button";
 import {
   archiveRisk,
   listRiskRegister,
@@ -118,14 +120,15 @@ import {
 } from "@/components/shared/design-system";
 import {
   Plus,
-  ChevronUp,
-  ChevronDown,
   Trash2,
   Upload,
   Archive,
   RefreshCcw,
   RotateCcw,
 } from "@/components/shared/icons";
+
+import { readMotionDuration } from "@/lib/motion-timing";
+import { RegisterSortIcon } from "@/components/shared/design-system/motion/register-motion";
 
 const registerStatusTone: Record<string, StatusTone> = {
   draft: "neutral",
@@ -220,6 +223,7 @@ function RiskRegisterFilterToolbar({
           ]}
           placeholder="Status"
           ariaLabel="Filter status risiko"
+          contentClassName="register-motion-menu"
           triggerClassName="h-8 rounded-lg bg-card text-sm"
         />
       </div>
@@ -236,6 +240,7 @@ function RiskRegisterFilterToolbar({
           ariaLabel="Filter periode kuartal"
           side="bottom"
           avoidCollisions={false}
+          contentClassName="register-motion-menu"
           triggerClassName="h-8 rounded-lg bg-card text-sm"
         />
       </div>
@@ -258,6 +263,7 @@ function RiskRegisterFilterToolbar({
           ]}
           placeholder="Kategori"
           ariaLabel="Filter kategori risiko"
+          contentClassName="register-motion-menu"
           triggerClassName="h-8 rounded-lg bg-card text-sm"
         />
       </div>
@@ -290,7 +296,7 @@ function RiskRowActions({
           aria-label={`Aksi risiko ${risk.code || risk.title || risk.id}`}
         />
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-52">
+      <DropdownMenuContent align="end" className="register-motion-menu w-52">
         {onContinueMonitoring && (
           <DropdownMenuItem onClick={onContinueMonitoring}>
             <RefreshCcw className="size-3.5" />
@@ -335,6 +341,9 @@ export default function RiskRegisterPage() {
   const isApplyingSearchParamsRef = useRef(false);
   const [risks, setRisks] = useState<RiskListItem[]>([]);
   const [drafts, setDrafts] = useState<RiskListItem[]>([]);
+  const [actionRisk, setActionRisk] = useState<RiskListItem | null>(null);
+  const [archiveReasonInvalid, setArchiveReasonInvalid] = useState(false);
+  const archiveReasonRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState(
@@ -386,6 +395,8 @@ export default function RiskRegisterPage() {
         .limit,
   );
   const [registerTotal, setRegisterTotal] = useState(0);
+  const [exporting, setExporting] = useState(false);
+  const exportInProgressRef = useRef(false);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedRiskForReassessment, setSelectedRiskForReassessment] =
     useState<RiskListItem | null>(null);
@@ -513,6 +524,48 @@ export default function RiskRegisterPage() {
     setPage(allRisksResponse.page ?? page);
     setLimit(allRisksResponse.limit ?? limit);
 
+  };
+
+  const handleExport = async () => {
+    if (!token || exportInProgressRef.current) return;
+    exportInProgressRef.current = true;
+    setExporting(true);
+    // Capture filters before awaiting so pagination and detail requests use one scope.
+    const filters = {
+      q: search.trim() || undefined,
+      lifecycle: lifecycleFilter,
+      status: statusFilter === "all" ? undefined : statusFilter,
+      category: categoryFilter === "all" ? undefined : categoryFilter,
+      assessment_cycle: assessmentCycleFilter.trim() || undefined,
+      created_at: createdAtFilter.trim() || undefined,
+      sort_by: sortBy,
+      sort_order: sortOrder,
+      limit: 100,
+    };
+    try {
+      const { collectRiskExportItems, toRiskProfileExportRow } = await import("@/lib/risk-profile-export");
+      const items = await collectRiskExportItems((page) => listRiskRegister(token, { ...filters, page }));
+      if (!items.length) {
+        toast.info("Tidak ada risiko yang sesuai filter untuk diekspor.");
+        return;
+      }
+      // The paginated list omits mitigation owners and priority; load full details in bounded batches.
+      const details: Risk[] = [];
+      for (let offset = 0; offset < items.length; offset += 6) {
+        details.push(...await Promise.all(items.slice(offset, offset + 6).map(async (item) => {
+          const detail = await api.get<Risk>(`/risks/${item.id}`, token);
+          return { ...detail, orgName: detail.orgName ?? item.orgName };
+        })));
+      }
+      const { exportRiskProfile } = await import("@/lib/working-paper-export");
+      await exportRiskProfile(details.map(toRiskProfileExportRow), assessmentCycleFilter);
+      toast.success(`Excel berisi ${details.length} risiko berhasil diunduh.`);
+    } catch {
+      toast.error("Ekspor risiko gagal. Muat ulang data dan coba lagi.");
+    } finally {
+      exportInProgressRef.current = false;
+      setExporting(false);
+    }
   };
 
   useEffect(() => {
@@ -656,20 +709,37 @@ export default function RiskRegisterPage() {
   ]);
 
 
+  useEffect(() => {
+    if (riskToArchive) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const closeMs = readMotionDuration(document.documentElement, "--modal-close-dur", 150);
+    const timer = window.setTimeout(() => {
+      setArchiveReason("");
+      setArchiveNote("");
+      setArchiveReasonInvalid(false);
+    }, reduced ? 0 : closeMs);
+    return () => window.clearTimeout(timer);
+  }, [riskToArchive]);
+
   const handleArchiveRisk = async () => {
     if (!token || !riskToArchive) {
       toast.error("Sesi login tidak ditemukan.");
       return;
     }
     if (!archiveReason.trim()) {
-      toast.error("Alasan arsip wajib diisi.");
+      setArchiveReasonInvalid(true);
+      const input = archiveReasonRef.current;
+      if (input) {
+        input.classList.remove("is-shaking");
+        void input.offsetWidth;
+        input.classList.add("is-shaking");
+        input.focus();
+      }
       return;
     }
 
     const current = riskToArchive;
     setRiskToArchive(null);
-    setArchiveReason("");
-    setArchiveNote("");
 
     toast.promise(
       (async () => {
@@ -831,20 +901,20 @@ export default function RiskRegisterPage() {
     drafts.length === 0
   ) {
     return (
-      <PageStack>
-        <CollectionLoadingState message="Memuat daftar risiko..." />
+      <PageStack data-register-motion data-busy={loading || isPending}>
+        <div data-register-state><CollectionLoadingState message="Memuat daftar risiko..." /></div>
       </PageStack>
     );
   }
 
   if (error) {
     return (
-      <PageStack>
-        <CollectionErrorState
+      <PageStack data-register-motion data-busy={loading || isPending}>
+        <div data-register-state><CollectionErrorState
           title="Gagal Memuat Data"
           message={error}
           onReload={() => window.location.reload()}
-        />
+        /></div>
       </PageStack>
     );
   }
@@ -862,7 +932,7 @@ export default function RiskRegisterPage() {
     Boolean(assessmentCycleFilter.trim()) ||
     Boolean(createdAtFilter.trim());
   return (
-    <PageStack>
+    <PageStack data-register-motion data-busy={loading || isPending}>
       <CollectionPageHeader title="Risiko" />
       <RegisterMonitoringInsights refreshKey={risks} />
       <div className="space-y-4">
@@ -884,6 +954,11 @@ export default function RiskRegisterPage() {
           }
           actions={
             <>
+              <RiskExportButton
+                loading={exporting}
+                disabled={loading || !!error || registerTotal === 0 || isPending || search !== deferredSearch || assessmentCycleFilter !== deferredAssessmentCycleFilter}
+                onClick={() => void handleExport()}
+              />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <ActionButton variant="outline" className="gap-2">
@@ -891,7 +966,7 @@ export default function RiskRegisterPage() {
                     Import Risiko
                   </ActionButton>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuContent align="end" className="register-motion-menu w-56">
                   <DropdownMenuItem asChild>
                     <Link href="/risk/register/bulk">Import file/template</Link>
                   </DropdownMenuItem>
@@ -951,12 +1026,7 @@ export default function RiskRegisterPage() {
                         }
                       }}
                   >
-                      {sortBy === "nilai" &&
-                        (sortOrder === "desc" ? (
-                          <ChevronDown aria-hidden="true" data-icon="inline-start" />
-                        ) : (
-                          <ChevronUp aria-hidden="true" data-icon="inline-start" />
-                        ))}
+                      {sortBy === "nilai" && <RegisterSortIcon descending={sortOrder === "desc"} />}
                       Skor
                     </Button>
                   </CollectionTableHead>
@@ -981,7 +1051,7 @@ export default function RiskRegisterPage() {
                       colSpan={7}
                       className="text-left text-muted-foreground"
                     >
-                      <div className="flex min-h-24 flex-col items-center justify-center gap-1 py-6 text-center">
+                      <div data-register-state className="flex min-h-24 flex-col items-center justify-center gap-1 py-6 text-center">
                         <EmptyStateIllustration className="mb-1 max-w-64" />
                         <p className="font-normal text-foreground">
                           {hasAppliedFilters
@@ -1060,7 +1130,7 @@ export default function RiskRegisterPage() {
                                   {risk.title || "-"}
                                 </Link>
                               </TooltipTrigger>
-                              <TooltipContent side="top" align="start">
+                              <TooltipContent className="register-motion-tooltip" side="top" align="start">
                                 {risk.title || "-"}
                               </TooltipContent>
                             </Tooltip>
@@ -1128,7 +1198,7 @@ export default function RiskRegisterPage() {
                               side="bottom"
                               align="start"
                               sideOffset={8}
-                              className="block w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-border bg-sidebar p-1 text-foreground shadow-lg [&>span]:!hidden"
+                              className="register-motion-tooltip block w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-border bg-sidebar p-1 text-foreground shadow-lg [&>span]:!hidden"
                             >
                               <div>
                                 <div className="flex items-center justify-between gap-3 px-2 pb-2 pt-2">
@@ -1207,17 +1277,17 @@ export default function RiskRegisterPage() {
                               }
                               onArchive={
                                 canArchive
-                                  ? () => setRiskToArchive(risk)
+                                  ? () => { setArchiveReason(""); setArchiveNote(""); setArchiveReasonInvalid(false); setActionRisk(risk); setRiskToArchive(risk); }
                                   : undefined
                               }
                               onRestore={
                                 canRestore
-                                  ? () => setRiskToRestore(risk)
+                                  ? () => { setActionRisk(risk); setRiskToRestore(risk); }
                                   : undefined
                               }
                               onDeleteDraft={
                                 risk.status === "draft"
-                                  ? () => setRiskToDeleteDraft(risk)
+                                  ? () => { setActionRisk(risk); setRiskToDeleteDraft(risk); }
                                   : undefined
                               }
                             />
@@ -1245,7 +1315,7 @@ export default function RiskRegisterPage() {
       </div>
 
       <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
-        <AlertDialogContent className="max-w-lg no-scrollbar">
+        <AlertDialogContent className="register-motion-dialog max-w-lg no-scrollbar">
           <AlertDialogHeader>
             <AlertDialogTitle>Konfirmasi Pemantauan</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1290,6 +1360,7 @@ export default function RiskRegisterPage() {
                 Periode Pemantauan
               </Label>
               <MonitoringCycleSelect
+                contentClassName="register-motion-menu"
                 id="monitoring-cycle"
                 value={selectedAssessmentCycle}
                 onValueChange={setSelectedAssessmentCycle}
@@ -1326,7 +1397,6 @@ export default function RiskRegisterPage() {
             <AlertDialogCancel
               variant="outline"
               size="default"
-              className="border-0 shadow-black"
             >
               Batal
             </AlertDialogCancel>
@@ -1353,12 +1423,10 @@ export default function RiskRegisterPage() {
         onOpenChange={(open) => {
           if (!open) {
             setRiskToArchive(null);
-            setArchiveReason("");
-            setArchiveNote("");
           }
         }}
       >
-        <DialogContent className="max-w-lg no-scrollbar" showCloseButton={false}>
+        <DialogContent className="register-motion-dialog max-w-lg no-scrollbar" showCloseButton={false}>
           <div className="flex min-h-0 flex-col gap-5">
             <DialogHeader>
               <DialogTitle>Arsipkan Risiko?</DialogTitle>
@@ -1372,10 +1440,10 @@ export default function RiskRegisterPage() {
                   Risiko
                 </p>
                 <p className="text-sm font-medium text-foreground">
-                  {riskToArchive?.title || "Tanpa judul"}
+                  {(riskToArchive ?? actionRisk)?.title || "Tanpa judul"}
                 </p>
                 <p className="font-mono text-xs text-tertiary-foreground">
-                  {riskToArchive?.code || riskToArchive?.id}
+                  {(riskToArchive ?? actionRisk)?.code || (riskToArchive ?? actionRisk)?.id}
                 </p>
               </div>
               <div className="flex flex-col gap-2">
@@ -1386,13 +1454,19 @@ export default function RiskRegisterPage() {
                   </span>
                 </Label>
                 <Input
+                  data-motion-validation="manual"
                   id="archive-reason"
+                  ref={archiveReasonRef}
+                  aria-invalid={archiveReasonInvalid || undefined}
+                  aria-describedby={archiveReasonInvalid ? "archive-reason-error" : undefined}
+                  onAnimationEnd={() => archiveReasonRef.current?.classList.remove("is-shaking")}
                   value={archiveReason}
-                  onChange={(event) => setArchiveReason(event.target.value)}
+                  onChange={(event) => { setArchiveReason(event.target.value); setArchiveReasonInvalid(false); archiveReasonRef.current?.classList.remove("is-shaking"); }}
                   placeholder="Masukkan alasan pengarsipan"
-                  className=""
+                  className="t-input"
                   required
                 />
+                {archiveReasonInvalid && <p id="archive-reason-error" role="alert" className="text-sm text-destructive">Alasan arsip wajib diisi.</p>}
               </div>
               <div className="flex flex-col gap-2">
                 <Label className="text-sm" htmlFor="archive-note">
@@ -1426,7 +1500,7 @@ export default function RiskRegisterPage() {
         open={!!riskToDeleteDraft}
         onOpenChange={(open) => !open && setRiskToDeleteDraft(null)}
       >
-        <DialogContent>
+        <DialogContent className="register-motion-dialog">
           <DialogHeader>
             <DialogTitle>Hapus Draft Risiko?</DialogTitle>
             <DialogDescription>
@@ -1435,10 +1509,10 @@ export default function RiskRegisterPage() {
           </DialogHeader>
           <div className="space-y-0.5 py-1 text-sm">
             <p className="font-medium">
-              {riskToDeleteDraft?.title || "Tanpa judul"}
+              {(riskToDeleteDraft ?? actionRisk)?.title || "Tanpa judul"}
             </p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              {riskToDeleteDraft?.code || riskToDeleteDraft?.id}
+              {(riskToDeleteDraft ?? actionRisk)?.code || (riskToDeleteDraft ?? actionRisk)?.id}
             </p>
           </div>
           <DialogFooter>
@@ -1460,7 +1534,7 @@ export default function RiskRegisterPage() {
         open={!!riskToRestore}
         onOpenChange={(open) => !open && setRiskToRestore(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="register-motion-dialog">
           <AlertDialogHeader>
             <AlertDialogTitle>Pulihkan Risiko?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -1470,10 +1544,10 @@ export default function RiskRegisterPage() {
           </AlertDialogHeader>
           <div className="rounded-lg ring-1 ring-inset ring-border bg-muted px-3 py-2 text-sm">
             <p className="font-medium">
-              {riskToRestore?.title || "Tanpa judul"}
+              {(riskToRestore ?? actionRisk)?.title || "Tanpa judul"}
             </p>
             <p className="text-xs text-muted-foreground">
-              {riskToRestore?.code || riskToRestore?.id}
+              {(riskToRestore ?? actionRisk)?.code || (riskToRestore ?? actionRisk)?.id}
             </p>
           </div>
           <AlertDialogFooter>

@@ -1,4 +1,5 @@
 export type DocumentAnalysisMode =
+  | "risk_event_extraction"
   | "sop_risk_universe"
   | "audit_finding_mapper"
   | "strategic_objective_risk"
@@ -118,7 +119,16 @@ export interface MitigationReportMapperResult {
   taskMatches: MitigationTaskReportSuggestion[];
 }
 
+export interface RiskEventExtractionItem {
+  clientKey: string;
+  event: Partial<Omit<import("./risk-event").CreateRiskEventInput, "financialLoss" | "financialLossKnown">> & { financialLoss?: number | null; financialLossKnown?: boolean | null };
+  sourceRefs: DocumentSourceRef[];
+  missingFields: string[];
+  confidence: number;
+}
+
 export interface DocumentIntelligenceResult {
+  kejadian?: { items: RiskEventExtractionItem[] };
   mode: DocumentAnalysisMode;
   sop?: SOPRiskUniverseResult;
   audit?: AuditFindingMapperResult;

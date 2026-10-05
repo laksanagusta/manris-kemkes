@@ -43,14 +43,14 @@ export function loadProcessingJobs(): ProcessingJob[] {
   }
 }
 
-export function loadLatestProcessingJob(mode?: string) {
+export function loadLatestProcessingJob(mode?: string, storageScope?: string) {
   return loadProcessingJobs().find(
-    (job) => (!mode || job.mode === mode) &&
+    (job) => (!mode || job.mode === mode) && job.storageScope === storageScope &&
       ["completed", "partial", "failed", "cancelled"].includes(job.status),
   );
 }
 
-export function clearProcessingJobs(mode?: string) {
+export function clearProcessingJobs(mode?: string, storageScope?: string) {
   const storage = getStorage();
   if (!storage) return;
   try {
@@ -59,7 +59,7 @@ export function clearProcessingJobs(mode?: string) {
       return;
     }
 
-    const remaining = loadProcessingJobs().filter((job) => job.mode !== mode);
+    const remaining = loadProcessingJobs().filter((job) => job.mode !== mode || job.storageScope !== storageScope);
     if (remaining.length === 0) {
       storage.removeItem(PROCESSING_STORAGE_KEY);
       return;
@@ -70,8 +70,8 @@ export function clearProcessingJobs(mode?: string) {
   }
 }
 
-export function markProcessingFindingHandled(mode: string, findingId: string) {
-  const job = loadLatestProcessingJob(mode);
+export function markProcessingFindingHandled(mode: string, findingId: string, storageScope?: string) {
+  const job = loadLatestProcessingJob(mode, storageScope);
   if (!job || job.handledFindingIds?.includes(findingId)) return;
   saveProcessingJob({
     ...job,

@@ -462,11 +462,11 @@ function buildProfilRisikoSheet(
   workbook: ExcelJS.Workbook,
   risks: ExportableRiskRow[],
   signatories: WorkingPaperSignatory[],
-  metadata: WorkingPaperSheetMetadata,
+  metadata?: WorkingPaperSheetMetadata,
 ): void {
   const ws = workbook.addWorksheet("Profil Risiko");
 
-  const COL_COUNT = 16;
+  const COL_COUNT = 18;
   const FIRST_COL = DATA_START_COL; // B = col 2
   const LAST_COL = FIRST_COL + COL_COUNT - 1; // col 19 (S)
 
@@ -498,7 +498,7 @@ function buildProfilRisikoSheet(
     ws.getColumn(FIRST_COL + index).width = width;
   });
 
-  applyWorkingPaperMetadataBlock(ws, FIRST_COL, LAST_COL, metadata);
+  if (metadata) applyWorkingPaperMetadataBlock(ws, FIRST_COL, LAST_COL, metadata);
 
   const H_FILL: ExcelJS.FillPattern = {
     type: "pattern",
@@ -516,11 +516,11 @@ function buildProfilRisikoSheet(
     cell.border = THIN_BORDER;
   }
 
-  // Rows 1-12 reserved. Headers start at row 13.
-  const HEADER_ROW_1 = 13;
-  const HEADER_ROW_2 = 14;
-  const HEADER_ROW_3 = 15;
-  const DATA_START_ROW = 16;
+  // Working papers reserve rows 1–12 for metadata; standalone profiles start at row 1.
+  const HEADER_ROW_1 = metadata ? 13 : 1;
+  const HEADER_ROW_2 = HEADER_ROW_1 + 1;
+  const HEADER_ROW_3 = HEADER_ROW_1 + 2;
+  const DATA_START_ROW = HEADER_ROW_1 + 3;
 
   // ── Row 13: main headers ──
   const row1 = ws.getRow(HEADER_ROW_1);
@@ -601,8 +601,10 @@ function buildProfilRisikoSheet(
 
   const lastDataRow = DATA_START_ROW + risks.length - 1;
   applyDataBorders(ws, DATA_START_ROW, lastDataRow, FIRST_COL, LAST_COL);
-  const lastSigRow = appendSignatureBlock(workbook, ws, signatories, FIRST_COL, LAST_COL, lastDataRow);
-  appendPetunjukPengisian(ws, lastSigRow, FIRST_COL, LAST_COL);
+  if (metadata) {
+    const lastSigRow = appendSignatureBlock(workbook, ws, signatories, FIRST_COL, LAST_COL, lastDataRow);
+    appendPetunjukPengisian(ws, lastSigRow, FIRST_COL, LAST_COL);
+  }
   ws.views = [{ state: "frozen", ySplit: HEADER_ROW_3 }];
 }
 
@@ -1235,4 +1237,20 @@ export async function createWorkingPaperWorkbookBuffer(workingPaper: WorkingPape
   buildTandaTanganSheet(workbook, workingPaper);
 
   return workbook.xlsx.writeBuffer();
+}
+
+/** The register uses the same profile table as working papers, without document metadata. */
+export async function createRiskProfileWorkbookBuffer(
+  risks: WorkingPaperRiskData[],
+): Promise<ExcelJS.Buffer> {
+  const workbook = new ExcelJS.Workbook();
+  buildProfilRisikoSheet(workbook, risks, []);
+  return workbook.xlsx.writeBuffer();
+}
+
+export async function exportRiskProfile(risks: WorkingPaperRiskData[], cycle: string): Promise<void> {
+  const buffer = await createRiskProfileWorkbookBuffer(risks);
+  downloadBlob(new Blob([buffer], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  }), `Profil_Risiko_${sanitizeFilename(cycle || "Semua_Periode")}_${todayDateString()}.xlsx`);
 }

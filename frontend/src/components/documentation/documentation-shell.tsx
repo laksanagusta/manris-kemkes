@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { ManriskMark } from "@/components/manrisk-mark";
 import { usePathname } from "next/navigation";
 import { LayoutGroup } from "motion/react";
 import * as Icons from "@/components/shared/icons";
@@ -23,7 +24,8 @@ function DocumentationSidebar() {
       <SidebarHeader className="flex-row items-center px-4 py-6 text-pretty">
         <Link href="/panduan/pengenalan" onClick={() => setOpenMobile(false)}
           className="font-logo flex min-h-10 min-w-0 flex-1 items-center gap-2 rounded-md text-[20px] font-semibold lowercase tracking-[-0.4px] outline-hidden focus-visible:ring-2 focus-visible:ring-ring">
-          Manrisk
+          <ManriskMark />
+          <span>Manrisk</span>
           <span className="ml-auto text-xs font-normal tracking-normal text-muted-foreground">panduan</span>
         </Link>
         {isMobile && <Button variant="ghost" size="icon" aria-label="Tutup menu panduan" onClick={() => setOpenMobile(false)}><Icons.X aria-hidden="true" /></Button>}

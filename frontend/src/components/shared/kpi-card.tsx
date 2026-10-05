@@ -1,3 +1,4 @@
+import { MotionNumber } from "@/components/shared/design-system/motion/motion-primitives";
 import type { ReactNode } from "react";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -37,7 +38,7 @@ export function KpiCard({
       </CardHeader>
       <CardContent>
         <div className={valueWrapClassName ?? "flex items-center justify-between gap-3"}>
-          <p className={valueClassName ?? "text-2xl font-semibold tabular-nums"}>{value}</p>
+          <p className={valueClassName ?? "text-2xl font-semibold tabular-nums"}>{typeof value === "string" || typeof value === "number" ? <MotionNumber value={value} /> : value}</p>
           {icon ? <div className="shrink-0">{icon}</div> : null}
         </div>
       </CardContent>

@@ -1,13 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { reportErrorMessage } from "@/lib/report-feedback";
 import { useMemo, useRef, useState } from "react";
-import {
-  Activity,
-  AlertTriangle,
-  ClipboardCheck,
-  Target,
-} from "@/components/shared/icons";
 import {
   Pie,
   PieChart,
@@ -44,29 +39,23 @@ import {
   ReportEmptyState,
   CollectionPagination,
 } from "@/components/shared/design-system";
-import {
-  ReportKpiCard,
-  type ReportKpiComparison,
-} from "@/components/report/report-kpi-card";
+import { ReportOverviewCards } from "./report-overview-cards";
 import {
   buildQuarterlyAnalysis,
   buildQuarterlyOverview,
   buildQuarterlyRiskRows,
+  currentReportCycle,
   formatReportNumber,
   formatReportDate,
   formatReportPercent,
-  movementLabels,
-  taskStateLabels,
   severityLabels,
-  type ReportSummary,
   type QuarterlyAnalysis,
-  type TaskState,
 } from "@/lib/quarterly-report";
 import type {
   QuarterlyReport,
   QuarterlyReportOverview,
 } from "@/types/quarterly-report";
-import { QuarterlyReportRiskTable } from "./quarterly-report-risk-table";
+import { QuarterlyReportRiskTable, type ReportRiskTableHandle, type ReportRiskFilter } from "./quarterly-report-risk-table";
 import { QuarterlyReportUnitDrawer } from "./quarterly-report-unit-drawer";
 
 const eventSeverityChartConfig = {
@@ -79,27 +68,11 @@ const eventSeverityChartConfig = {
 
 type EventSeverity = keyof typeof eventSeverityChartConfig;
 
-function comparisonDelta(
-  current: number | null,
-  previous: number | null,
-  cycle: string,
-): ReportKpiComparison {
-  const comparator = `dibanding ${cycle}`;
-  if (current == null || previous == null) {
-    return {
-      value: "—",
-      tooltip: `Selisih tidak dapat dihitung ${comparator} karena data tidak tersedia.`,
-    };
-  }
-  const roundedDelta = Math.round((current - previous) * 10) / 10;
-  const delta = Object.is(roundedDelta, -0) ? 0 : roundedDelta;
-  const value = `${delta > 0 ? "+" : ""}${formatReportNumber(delta)}`;
-  return {
-    value,
-    tooltip: `Selisih ${value} poin persentase ${comparator}.`,
-    trend: delta > 0 ? "up" : delta < 0 ? "down" : undefined,
-  };
+function reportTimestamp(value?: string | null) {
+  if (!value || !Number.isFinite(Date.parse(value))) return "belum tersedia";
+  return `${new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Jakarta" }).format(new Date(value))} WIB`;
 }
+
 function UnitRateCell({
   label,
   numerator,
@@ -120,7 +93,7 @@ function UnitRateCell({
       <div className="min-w-0 space-y-1">
         <p className="tabular-nums text-muted-foreground">—</p>
         {detail && (
-          <p className="text-[10px] leading-4 text-muted-foreground">
+          <p className="text-xs leading-4 text-muted-foreground">
             {detail}
           </p>
         )}
@@ -135,7 +108,7 @@ function UnitRateCell({
           {numerator}/{denominator} · —
         </p>
         {detail && (
-          <p className="text-[10px] leading-4 text-muted-foreground">
+          <p className="text-xs leading-4 text-muted-foreground">
             {detail}
           </p>
         )}
@@ -155,14 +128,14 @@ function UnitRateCell({
   return (
     <div className="flex min-w-0 items-center gap-2">
       <div
-        className="relative size-10 shrink-0"
+        className="relative size-6 shrink-0"
         role="img"
         aria-label={`${label}: ${percentage}, ${numerator} dari ${denominator}${detail ? `, ${detail}` : ""}`}
       >
         <ChartContainer
           config={{ completion: { label, color } }}
-          initialDimension={{ width: 40, height: 40 }}
-          className="size-10 aspect-square"
+          initialDimension={{ width: 24, height: 24 }}
+          className="size-6 aspect-square"
           aria-hidden="true"
         >
           <RadialBarChart
@@ -187,98 +160,19 @@ function UnitRateCell({
             />
           </RadialBarChart>
         </ChartContainer>
-        <span
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-0 flex items-center justify-center text-[9px] font-semibold leading-none tabular-nums text-foreground"
-        >
-          {percentage}
-        </span>
+
       </div>
       <div aria-hidden="true" className="min-w-0">
+        <p className="text-sm tabular-nums">{percentage}</p>
         <p className="text-xs leading-4 tabular-nums text-secondary-foreground">
           {numerator}/{denominator}
         </p>
         {detail && (
-          <p className="text-[10px] leading-4 text-muted-foreground">
+          <p className="text-xs leading-4 text-muted-foreground">
             {detail}
           </p>
         )}
       </div>
-    </div>
-  );
-}
-function SummaryKpis({
-  summary: s,
-  previous: p,
-  cycle,
-}: {
-  summary: ReportSummary;
-  previous: ReportSummary;
-  cycle: string;
-}) {
-  return (
-    <div className="grid gap-4 sm:grid-cols-2">
-      <ReportKpiCard
-        title="Risiko di atas selera risiko"
-        value={formatReportPercent(s.appetite.rate)}
-        progress={s.appetite.rate}
-        tone="risk"
-        comparison={comparisonDelta(s.appetite.rate, p.appetite.rate, cycle)}
-        href="#risk-register"
-        rows={[
-          {
-            label: "risiko di atas selera",
-            value: s.total ? `${s.appetite.above}/${s.total}` : "—",
-          },
-        ]}
-      />
-      <ReportKpiCard
-        title="Target tercapai"
-        value={formatReportPercent(s.target.rate)}
-        progress={s.target.rate}
-        comparison={comparisonDelta(s.target.rate, p.target.rate, cycle)}
-        href="#target-attainment"
-        rows={[
-          {
-            label: "risiko mencapai target",
-            value: s.target.eligible
-              ? `${s.target.achieved}/${s.target.eligible}`
-              : "—",
-          },
-          {
-            label: "risiko belum dapat dinilai",
-            value: String(s.target.unavailable),
-          },
-        ]}
-      />
-      <ReportKpiCard
-        title="Mitigasi terlapor"
-        value={formatReportPercent(s.mitigation.rate)}
-        progress={s.mitigation.rate}
-        comparison={comparisonDelta(s.mitigation.rate, p.mitigation.rate, cycle)}
-        href="#mitigation-reporting"
-        rows={[
-          {
-            label: "tugas dengan laporan valid",
-            value: s.mitigation.total
-              ? `${s.mitigation.reported}/${s.mitigation.total}`
-              : "—",
-          },
-        ]}
-      />
-      <ReportKpiCard
-        title="Pemantauan final"
-        value={formatReportPercent(s.monitoring.rate)}
-        progress={s.monitoring.rate}
-        comparison={comparisonDelta(s.monitoring.rate, p.monitoring.rate, cycle)}
-        href="#unit-comparison"
-        rows={[
-          {
-            label: "risiko dipantau final",
-            value: s.total ? `${s.monitoring.final}/${s.total}` : "—",
-          },
-        ]}
-      />
     </div>
   );
 }
@@ -299,6 +193,8 @@ export function QuarterlyReportDashboard({
     () => overview ?? (report ? buildQuarterlyOverview(report) : null),
     [overview, report],
   );
+  const riskTableRef = useRef<ReportRiskTableHandle>(null);
+  const riskSectionRef = useRef<HTMLDivElement>(null);
   const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
   const [unitOpen, setUnitOpen] = useState(false);
   const unitTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -311,9 +207,8 @@ export function QuarterlyReportDashboard({
   const [unitPage, setUnitPage] = useState(1);
   const [unitPageSize, setUnitPageSize] = useState(10);
   if (!data) return null;
-  const { summary: s, movement, units } = data;
+  const { summary: s, units } = data;
   const events = data.recentEvents;
-  const taskCounts = data.taskCounts;
   const selectedUnitOverview =
     units.find((unit) => unit.id === selectedUnitId) ?? null;
   const selectedUnit = selectedUnitId
@@ -332,13 +227,6 @@ export function QuarterlyReportDashboard({
     unitPage,
     Math.max(1, Math.ceil(units.length / unitPageSize)),
   );
-  const states: TaskState[] = [
-    "reported",
-    "pending",
-    "overdue",
-    "not_reported",
-    "skipped",
-  ];
   const severityCounts = data.severityCounts;
   const severityLevels = ["low", "medium", "high", "extreme"] as const;
   const severitySegments = severityLevels
@@ -409,58 +297,34 @@ export function QuarterlyReportDashboard({
     } catch (error) {
       if (requestId !== unitRequestRef.current) return;
       setUnitError(
-        error instanceof Error ? error.message : "Gagal memuat detail unit.",
+        reportErrorMessage(error, "Detail unit belum dapat dimuat. Periksa koneksi, lalu pilih Coba lagi."),
       );
       setUnitLoading(false);
     }
   };
+  const inspectRisks = (filter: ReportRiskFilter) => {
+    riskTableRef.current?.openFor(filter);
+    requestAnimationFrame(() => riskSectionRef.current?.focus({ preventScroll: true }));
+  };
   return (
-    <div className="space-y-4">
-      <SummaryKpis
-        summary={s}
-        previous={data.previousSummary}
-        cycle={data.comparisonCycle}
-      />
-      <ReportSummaryCard
-        id="risk-movement"
-        title="Perubahan risiko"
-        icon={<Activity aria-hidden="true" />}
-      >
-        {data.hasRisks ? (
-          <ReportSummaryMetrics
-            items={(["up", "down", "stable", "new"] as const).map((key) => ({
-              label: movementLabels[key],
-              value: movement[key],
-            }))}
-          />
-        ) : (
-          <ReportEmptyState description="Belum ada profil final yang berlaku pada periode ini." />
-        )}
-      </ReportSummaryCard>
-      <ReportSummaryCard id="target-attainment" title="Pencapaian target" icon={<Target aria-hidden="true" />}>
-        {data.hasRisks ? (
-          <ReportSummaryMetrics items={[
-            { label: "Tercapai", value: s.target.achieved },
-            { label: "Belum tercapai", value: s.target.eligible - s.target.achieved },
-            { label: "Belum dapat dinilai", value: s.target.unavailable },
-          ]} />
-        ) : (
-          <ReportEmptyState description="Belum ada profil final yang berlaku pada periode ini." />
-        )}
-      </ReportSummaryCard>
-      <ReportSummaryCard id="mitigation-reporting" title="Pelaporan mitigasi" icon={<ClipboardCheck aria-hidden="true" />}>
-        {taskCounts.total ? (
-          <ReportSummaryMetrics
-            items={states.map((state) => ({
-              label: taskStateLabels[state],
-              value: taskCounts[state],
-            }))}
-          />
-        ) : (
-          <ReportEmptyState description="Belum ada tugas mitigasi yang tercatat untuk kuartal ini." />
-        )}
-      </ReportSummaryCard>
-      <ReportSummaryCard title="Kejadian dan dampak aktual" icon={<AlertTriangle aria-hidden="true" />}>
+    <div className="min-w-0 space-y-8">
+      <div className="grid items-start gap-6 xl:grid-cols-2">
+        <div className="min-w-0 max-w-[75ch] space-y-2" role="status">
+          <p className="flex flex-wrap items-center gap-2 text-sm">Laporan {data.cycle} dibanding {data.comparisonCycle}{(data.cycle === currentReportCycle() || data.comparisonCycle === currentReportCycle()) && <Badge variant="secondary">Kuartal berjalan</Badge>}</p>
+          {(data.cycle === currentReportCycle() || data.comparisonCycle === currentReportCycle()) && <p className="text-sm text-info-foreground">{data.cycle === currentReportCycle() ? "Periode laporan" : "Periode pembanding"} belum selesai. Data dan selisih masih dapat berubah; hasil ini belum mewakili satu kuartal penuh.</p>}
+          <p className="text-xs text-muted-foreground">Data terakhir diperbarui: {reportTimestamp(data.dataUpdatedAt)}. Diambil pada: {reportTimestamp(data.generatedAt)}. Selisih ditampilkan dalam poin persentase (pp).</p>
+        </div>
+        {(s.target.eligible > s.target.achieved || data.taskCounts.overdue > 0 || s.monitoring.total > s.monitoring.final) && <div className="min-w-0 space-y-2">
+          <p className="text-sm font-medium">Perlu tindak lanjut</p>
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Tindak lanjut laporan">
+            {s.target.eligible > s.target.achieved && <Button asChild variant="outline" size="sm"><Link href="#risk-register" onClick={() => inspectRisks("target")}>{s.target.eligible - s.target.achieved} target belum tercapai</Link></Button>}
+            {data.taskCounts.overdue > 0 && <Button asChild variant="outline" size="sm"><Link href="#risk-register" onClick={() => inspectRisks("overdue")}>{data.taskCounts.overdue} laporan mitigasi melewati tenggat</Link></Button>}
+            {s.monitoring.total > s.monitoring.final && <Button asChild variant="outline" size="sm"><Link href="#risk-register" onClick={() => inspectRisks("monitoring")}>{s.monitoring.total - s.monitoring.final} pemantauan belum final</Link></Button>}
+          </div>
+        </div>}
+      </div>
+      <ReportOverviewCards data={data} onInspect={inspectRisks} />
+      <ReportSummaryCard title="Kejadian dan dampak aktual">
         <ReportSummaryMetrics
           items={[
             {
@@ -473,82 +337,85 @@ export function QuarterlyReportDashboard({
         />
         {s.events.total ? (
           <>
-            <div className="grid gap-4 sm:grid-cols-[minmax(0,180px)_minmax(0,1fr)] sm:items-center">
-              <div className="space-y-2">
-                <p className="text-xs text-secondary-foreground">Distribusi tingkat kejadian</p>
-                <div
-                  role="group"
-                  aria-label={`Diagram donat distribusi tingkat kejadian: ${severityChartLabel}`}
-                  className="aspect-square w-full max-w-[180px]"
-                >
-                  <ChartContainer
-                    config={eventSeverityChartConfig}
-                    className="size-full max-h-[180px] max-w-[180px] aspect-square"
+            <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,300px)_minmax(0,1fr)]">
+              <div className="flex flex-wrap items-center gap-6">
+                <div className="space-y-2">
+                  <p className="text-xs text-secondary-foreground">Distribusi tingkat kejadian</p>
+                  <div
+                    role="group"
+                    aria-label={`Diagram donat distribusi tingkat kejadian: ${severityChartLabel}`}
+                    className="aspect-square w-full max-w-[180px]"
                   >
-                    <PieChart accessibilityLayer>
-                      <ChartTooltip
-                        cursor={false}
-                        content={<ChartTooltipContent hideLabel />}
-                      />
-                      <Pie
-                        data={severityChartData}
-                        dataKey="count"
-                        nameKey="severity"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius="48%"
-                        outerRadius="80%"
-                        paddingAngle={2}
-                        stroke="var(--card)"
-                        strokeWidth={5}
-                      />
-                    </PieChart>
-                  </ChartContainer>
+                    <ChartContainer
+                      config={eventSeverityChartConfig}
+                      className="size-full max-h-[180px] max-w-[180px] aspect-square"
+                    >
+                      <PieChart accessibilityLayer>
+                        <ChartTooltip
+                          cursor={false}
+                          content={<ChartTooltipContent hideLabel />}
+                        />
+                        <Pie
+                          data={severityChartData}
+                          dataKey="count"
+                          nameKey="severity"
+                          cx="50%"
+                          cy="50%"
+                          innerRadius="48%"
+                          outerRadius="80%"
+                          paddingAngle={2}
+                          stroke="var(--card)"
+                          strokeWidth={5}
+                          isAnimationActive={false}
+                        />
+                      </PieChart>
+                    </ChartContainer>
+                  </div>
                 </div>
+                <ul
+                  aria-label="Jumlah kejadian menurut tingkat"
+                  className="flex flex-col items-start gap-3"
+                >
+                  {severityChartData.map(({ severity, count, fill }) => (
+                    <li
+                      key={severity}
+                      className="inline-flex items-center gap-2 whitespace-nowrap text-xs text-secondary-foreground"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className="size-2.5 shrink-0 rounded-full"
+                        style={{ backgroundColor: fill }}
+                      />
+                      <span>{eventSeverityChartConfig[severity].label}</span>
+                      <span className="tabular-nums text-foreground">{count}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <ul
-                aria-label="Jumlah kejadian menurut tingkat"
-                className="flex flex-col items-start gap-2"
-              >
-                {severityChartData.map(({ severity, count, fill }) => (
-                  <li
-                    key={severity}
-                    className="inline-flex items-center gap-2 whitespace-nowrap text-xs text-secondary-foreground"
-                  >
-                    <span
-                      aria-hidden="true"
-                      className="size-2.5 shrink-0 rounded-full"
-                      style={{ backgroundColor: fill }}
-                    />
-                    <span>{eventSeverityChartConfig[severity].label}</span>
-                    <span className="tabular-nums text-foreground">{count}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-            <div className="space-y-4">
-              <div aria-hidden="true" className="hidden grid-cols-[minmax(0,1fr)_144px_112px] gap-x-4 text-xs font-medium text-secondary-foreground lg:grid">
-                <span>Kejadian</span>
-                <span className="text-right">Waktu</span>
-                <span className="text-right">Tingkat</span>
+              <div className="space-y-4">
+                <div aria-hidden="true" className="hidden grid-cols-[minmax(0,1fr)_144px_112px] gap-x-4 text-xs font-medium text-secondary-foreground lg:grid">
+                  <span>Kejadian</span>
+                  <span className="text-right">Waktu</span>
+                  <span className="text-right">Tingkat</span>
+                </div>
+                <ul className="divide-y divide-border/60">
+                  {events.slice(0, 3).map((event) => (
+                    <li key={event.id} className="grid gap-2 py-4 first:pt-0 last:pb-0 lg:grid-cols-[minmax(0,1fr)_144px_112px] lg:gap-x-4">
+                      <Link href={`/risk-events/${event.id}`} className="text-sm hover:text-muted-foreground">
+                        {event.description}
+                      </Link>
+                      <span className="text-sm text-secondary-foreground lg:text-right">
+                        <span className="sr-only">Waktu: </span>
+                        {formatReportDate(event.occurredAt)}
+                      </span>
+                      <span className="text-xs text-secondary-foreground lg:text-right">
+                        <span className="sr-only">Tingkat: </span>
+                        {(severityLabels[event.severity as keyof typeof severityLabels] ?? event.severity) || "—"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <ul className="space-y-4">
-                {events.map((event) => (
-                  <li key={event.id} className="grid gap-1 lg:grid-cols-[minmax(0,1fr)_144px_112px] lg:gap-x-4">
-                    <Link href={`/risk-events/${event.id}`} className="text-sm font-medium hover:no-underline">
-                      {event.description}
-                    </Link>
-                    <span className="text-sm text-secondary-foreground lg:text-right">
-                      <span className="sr-only">Waktu: </span>
-                      {formatReportDate(event.occurredAt)}
-                    </span>
-                    <span className="text-xs text-secondary-foreground lg:text-right">
-                      <span className="sr-only">Tingkat: </span>
-                      {(severityLabels[event.severity as keyof typeof severityLabels] ?? event.severity) || "—"}
-                    </span>
-                  </li>
-                ))}
-              </ul>
             </div>
             <p className="text-xs leading-5 text-info-foreground">
               Waktu dan tingkat mengikuti catatan kejadian. Buka kejadian untuk melihat informasi lengkap.
@@ -561,7 +428,7 @@ export function QuarterlyReportDashboard({
           />
         )}
       </ReportSummaryCard>
-      <Card id="unit-comparison" className="scroll-mt-6">
+      <Card data-report-card="" id="unit-comparison" className="scroll-mt-6">
         <CardHeader>
           <CardTitle className="text-sm">Perbandingan unit</CardTitle>
           <CardAction>
@@ -572,11 +439,11 @@ export function QuarterlyReportDashboard({
           className={units.length ? "-mb-(--card-spacing)" : undefined}
         >
           {units.length ? (
-            <div className="-mx-4 border-t border-border/60">
-              <Table className="min-w-[1120px] table-fixed">
+            <div className="-mx-(--card-spacing)">
+              <Table data-report-table="" className="min-w-[1120px] table-fixed">
                 <caption className="sr-only">
-                  Semua unit dalam scope laporan. Klik unit untuk meninjau
-                  sumber data tanpa mengubah scope.
+                  Semua unit dalam pilihan laporan. Klik unit untuk meninjau
+                  sumber data tanpa mengubah pilihan unit.
                 </caption>
                 <colgroup>
                   <col style={{ width: "38%" }} />
@@ -668,7 +535,7 @@ export function QuarterlyReportDashboard({
               </Table>
             </div>
           ) : (
-            <ReportEmptyState description="Tidak ada unit yang tersedia dalam scope ini." />
+            <ReportEmptyState description="Tidak ada unit yang tersedia dalam pilihan unit ini." />
           )}
         </CardContent>
         <CollectionPagination
@@ -683,8 +550,9 @@ export function QuarterlyReportDashboard({
           }}
         />
       </Card>
-      <div id="risk-register" className="scroll-mt-6">
+      <div id="risk-register" ref={riskSectionRef} tabIndex={-1} aria-label="Daftar risiko laporan" className="scroll-mt-6 outline-none">
         <QuarterlyReportRiskTable
+          ref={riskTableRef}
           rows={analysis?.rows ?? []}
           cycle={data.cycle}
           totalRows={s.total}

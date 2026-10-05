@@ -8,20 +8,11 @@ import {
   useState,
   type KeyboardEvent as ReactKeyboardEvent,
 } from "react";
-import { Check, ChevronDown, Loader2, Search, UserRound, X } from "@/components/shared/icons";
+import { Check, ChevronDown, Loader2, Search, UserRound } from "@/components/shared/icons";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { SearchInput } from "@/components/shared/search-input";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuSeparator,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { SearchableDropdownPicker } from "@/components/shared/searchable-dropdown-picker";
 import { DitherAvatar } from "@/components/dither-kit/avatar";
 import { IllustratedEmptyState } from "@/components/shared/design-system/feedback/illustrated-empty-state";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -264,117 +255,50 @@ export function RemoteUserPicker({
 
   if (isAssignee) {
     return (
-      <DropdownMenu open={open} onOpenChange={handleOpenChange}>
-        <div ref={containerRef} className={cn("relative w-full", className)}>
-          <DropdownMenuTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              role="combobox"
-              aria-label={title}
-              disabled={disabled}
-              className="group/popover-select w-full justify-between active:translate-y-0 active:scale-100"
-            >
-              {value ? (
-                <DitherAvatar
-                  name={value.name}
-                  size={18}
-                  className="overflow-hidden rounded-full"
-                />
-              ) : null}
-              <span className={cn("min-w-0 flex-1 truncate text-left", !value && "text-muted-foreground")}>
-                {value?.name ?? placeholder}
-              </span>
-              <ChevronDown className="pointer-events-none size-4 shrink-0 opacity-60 transition-transform duration-150 ease-(--ease-out) group-data-[state=open]/popover-select:rotate-180 motion-reduce:transition-none" />
-            </Button>
-          </DropdownMenuTrigger>
-
-          <DropdownMenuContent
-            align="start"
-            sideOffset={8}
-            className="w-[var(--radix-dropdown-menu-trigger-width)]"
-          >
-            <div className="flex items-center px-1.5">
-              <SearchInput
-                ref={inputRef}
-                type="text"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key !== "Escape" && event.key !== "Tab") {
-                    event.stopPropagation();
-                  }
-                }}
-                placeholder="Assign to…"
-                aria-label={`${title}: cari`}
-                className="h-8 min-w-0 flex-1 border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
-              />
-              {query ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-xs"
-                  aria-label="Hapus pencarian"
-                  onClick={() => {
-                    setQuery("");
-                    inputRef.current?.focus();
-                  }}
-                  className="shrink-0 text-muted-foreground"
-                >
-                  <X />
-                </Button>
-              ) : null}
-            </div>
-            <p className="sr-only">{description}</p>
-            <DropdownMenuSeparator />
-            <DropdownMenuRadioGroup
-              value={value?.id ?? ""}
-              onValueChange={(selectedId) => {
-                const selectedOption = options.find((option) => option.id === selectedId);
-                if (selectedOption) handleSelect(selectedOption);
-              }}
-            >
-              {options.map((option) => (
-                <DropdownMenuRadioItem key={option.id} value={option.id}>
-                  <DitherAvatar
-                    name={option.name}
-                    size={18}
-                    className="overflow-hidden rounded-full"
-                  />
-                  <span className="truncate">{option.name}</span>
-                </DropdownMenuRadioItem>
-              ))}
-            </DropdownMenuRadioGroup>
-            {isLoading && options.length === 0 ? (
-              <div className="flex items-center gap-2 px-2 py-2 text-sm text-muted-foreground" role="status">
-                <Loader2 className="size-4 animate-spin" />
-                Memuat user...
-              </div>
-            ) : null}
-            {!isLoading && errorMessage ? (
-              <div className="px-2 py-2 text-sm text-muted-foreground" role="alert">
-                {errorMessage}
-              </div>
-            ) : null}
-            {!isLoading && !errorMessage && options.length === 0 ? (
-              <div className="px-2 py-2 text-sm text-muted-foreground">{emptyMessage}</div>
-            ) : null}
-            {hasMore ? (
-              <DropdownMenuItem
-                disabled={isLoading || isLoadingMore}
-                onSelect={(event) => {
-                  event.preventDefault();
-                  setPage((current) => current + 1);
-                }}
-                className="justify-center text-muted-foreground"
-              >
-                {isLoadingMore ? <Loader2 className="size-4 animate-spin" /> : null}
-                {isLoadingMore ? "Memuat..." : "Muat lagi"}
-              </DropdownMenuItem>
-            ) : null}
-          </DropdownMenuContent>
-        </div>
-      </DropdownMenu>
+      <SearchableDropdownPicker
+        title={title}
+        description={description}
+        placeholder={placeholder}
+        value={value?.id ?? ""}
+        selectedOption={value}
+        options={options}
+        getOptionValue={(option) => option.id}
+        renderValue={(option) => (
+          <>
+            <DitherAvatar
+              name={option.name}
+              size={18}
+              className="overflow-hidden rounded-full"
+            />
+            <span className="min-w-0 flex-1 truncate text-left">{option.name}</span>
+          </>
+        )}
+        renderOption={(option) => (
+          <>
+            <DitherAvatar
+              name={option.name}
+              size={18}
+              className="overflow-hidden rounded-full"
+            />
+            <span className="truncate">{option.name}</span>
+          </>
+        )}
+        onSelect={onSelect}
+        open={open}
+        onOpenChange={handleOpenChange}
+        search={query}
+        onSearchChange={setQuery}
+        searchPlaceholder="Assign to…"
+        emptyMessage={emptyMessage}
+        disabled={disabled}
+        loading={isLoading}
+        loadingMessage="Memuat user..."
+        errorMessage={errorMessage}
+        hasMore={hasMore}
+        loadingMore={isLoadingMore}
+        onLoadMore={() => setPage((current) => current + 1)}
+        className={cn("relative w-full", className)}
+      />
     );
   }
 

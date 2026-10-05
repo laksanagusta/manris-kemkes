@@ -21,7 +21,7 @@ export function OverviewPanelState({
 }: OverviewPanelStateProps) {
   if (state === "loading") {
     return (
-      <div role="status" aria-live="polite" className={cn("flex min-h-48 items-center justify-center gap-2", className)}>
+      <div data-motion-feedback-state role="status" aria-live="polite" className={cn("flex min-h-48 items-center justify-center gap-2", className)}>
         <Spinner />
         <span className="motion-safe:animate-pulse">{message}</span>
       </div>
@@ -30,7 +30,7 @@ export function OverviewPanelState({
 
   if (state === "error") {
     return (
-      <Alert variant="destructive" className={cn("min-h-48", className)}>
+      <Alert data-motion-feedback-state variant="destructive" className={cn("min-h-48", className)}>
         <AlertCircle aria-hidden="true" />
         <AlertDescription>{message}</AlertDescription>
         {onRetry ? (

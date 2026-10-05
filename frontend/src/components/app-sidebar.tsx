@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import Image from "next/image";
+import { ManriskMark } from "@/components/manrisk-mark";
 import {
   LayoutDashboard,
   Inbox,
@@ -27,6 +27,7 @@ import {
   HelpCircle,
 } from "@/components/shared/icons";
 import { DitherAvatar } from "@/components/dither-kit/avatar";
+import { MotionNumber } from "@/components/shared/design-system/motion/motion-primitives";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -279,7 +280,7 @@ function NavLink({
       badge={
         displayBadge !== undefined && displayBadge > 0 ? (
           <Badge variant="secondary" className="ml-auto tabular-nums group-data-[collapsible=icon]:hidden">
-            {displayBadge}
+            <MotionNumber value={displayBadge} />
           </Badge>
         ) : undefined
       }
@@ -347,22 +348,16 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
       <SidebarHeader className="h-14 justify-center px-2">
         <Link
           href="/overview"
-          className="font-logo hidden min-w-0 items-center rounded-md px-2 py-1 text-2xl leading-7 font-semibold lowercase tracking-[-0.4px] text-foreground outline-hidden transition-colors duration-150 hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-ring md:flex md:group-data-[state=collapsed]/sidebar-wrapper:hidden"
+          className="font-logo hidden min-w-0 items-center gap-2 rounded-md px-2 py-1 text-2xl leading-7 font-semibold lowercase tracking-[-0.4px] text-foreground outline-hidden transition-colors duration-150 hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-ring md:flex md:group-data-[state=collapsed]/sidebar-wrapper:hidden"
         >
+          <ManriskMark />
           <span className="min-w-0 truncate">Manrisk</span>
         </Link>
         <SidebarMenu className="md:hidden">
           <SidebarMenuItem>
             <SidebarMenuButton asChild size="lg" tooltip="Manrisk">
               <Link href="/overview">
-                <Image
-                  src="/logo.svg"
-                  alt=""
-                  width={20}
-                  height={20}
-                  priority
-                  className="size-5 shrink-0 object-contain"
-                />
+                <ManriskMark size={20} />
                 <span className="text-lg leading-6 font-normal text-sidebar-foreground group-data-[collapsible=icon]:hidden">
                   Manrisk
                 </span>

@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import type { OrganizationListItem } from "@/lib/api/organizations";
 import type { OrganizationGroupListItem } from "@/lib/api/organization-groups";
 import { OrganizationPicker } from "@/components/report/organization-picker";
 import { OrganizationGroupPicker } from "@/components/report/organization-group-picker";
+import { FieldLabel } from "@/components/ui/field";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -52,6 +53,7 @@ export function ReportScopePicker({
   orientation = "inline",
   density = "default",
 }: ReportScopePickerProps) {
+  const pickerId = useId();
   const selectedGroup = organizationGroups.find(
     (group) => group.id === organizationGroupId,
   );
@@ -123,12 +125,14 @@ export function ReportScopePicker({
           density === "compact" ? "grid gap-4" : "grid gap-3",
           orientation === "vertical"
             ? "grid-cols-1"
-            : "md:grid-cols-[0.95fr_1.15fr] md:items-start",
+            : density === "compact"
+              ? "md:grid-cols-2 md:items-start xl:grid-cols-[16rem_minmax(0,1fr)]"
+              : "md:grid-cols-[0.95fr_1.15fr] md:items-start",
         )}
       >
         <div className={cn("min-w-0", density === "compact" ? "space-y-1.5" : "space-y-2")}>
           <div className="flex items-center justify-between gap-3">
-            <p className={density === "compact" ? "text-xs text-muted-foreground" : "text-sm font-medium text-foreground"}>Grup</p>
+            <FieldLabel htmlFor={`${pickerId}-group`} className={density === "compact" ? "text-xs text-muted-foreground" : undefined}>Grup</FieldLabel>
             {hasRealGroup && density !== "compact" ? (
               <Badge variant="outline" className="">
                 {selectedGroupMembers.length}
@@ -136,6 +140,7 @@ export function ReportScopePicker({
             ) : null}
           </div>
           <OrganizationGroupPicker
+            id={`${pickerId}-group`}
             value={organizationGroupId}
             groups={organizationGroups}
             onChange={(groupId) => {
@@ -144,13 +149,13 @@ export function ReportScopePicker({
               );
               setSelectedUnitSelection({
                 groupId,
-                unitIds: nextGroup?.members?.map((member) => member.id) ?? [],
+                unitIds: nextGroup?.members?.filter((member) => organizations.some((organization) => organization.id === member.id)).map((member) => member.id) ?? [],
               });
               onOrganizationGroupChange(groupId);
               onOrganizationChange(allOrganizationValue ?? "");
               if (selectedOrganizationIds !== undefined) {
                 onSelectedOrganizationIdsChange?.(
-                  nextGroup?.members?.map((member) => member.id) ?? [],
+                  nextGroup?.members?.filter((member) => organizations.some((organization) => organization.id === member.id)).map((member) => member.id) ?? [],
                 );
               }
             }}
@@ -167,8 +172,9 @@ export function ReportScopePicker({
         </div>
 
         <div className={cn("min-w-0", density === "compact" ? "space-y-1.5" : "space-y-2")}>
-          <p className={density === "compact" ? "text-xs text-muted-foreground" : "text-sm font-medium text-foreground"}>Unit</p>
+          <FieldLabel htmlFor={`${pickerId}-unit`} className={density === "compact" ? "text-xs text-muted-foreground" : undefined}>Unit</FieldLabel>
           <OrganizationPicker
+            id={`${pickerId}-unit`}
             value={selectedUnitIds[0] ?? ""}
             organizations={selectedGroupMemberOrganizations}
             onChange={() => {

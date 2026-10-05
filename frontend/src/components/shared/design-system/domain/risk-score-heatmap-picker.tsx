@@ -1,5 +1,6 @@
 "use client";
 
+import { MotionNumber } from "../motion/motion-primitives";
 import { Fragment, useRef, useState, type KeyboardEvent } from "react";
 
 import {
@@ -40,52 +41,8 @@ const RISK_LEVEL_CARD_BACKGROUND: Record<RiskLevel, string> = {
   tinggi: "bg-orange-500",
   sangat_tinggi: "bg-red-500",
 };
-const DIGITS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9] as const;
-
-function VerticalNumberTicker({
-  value,
-  className,
-}: {
-  value: number;
-  className?: string;
-}) {
-  const digits = String(Math.round(value)).split("");
-
-  return (
-    <span
-      aria-live="polite"
-      aria-atomic="true"
-      className={cn("inline-flex items-baseline tabular-nums", className)}
-    >
-      <span className="sr-only">{Math.round(value)}</span>
-      <span aria-hidden="true" className="inline-flex">
-        {digits.map((digit, index) => {
-          const numericDigit = Number(digit);
-
-          return (
-            <span
-              key={index}
-              className="relative inline-block h-[1em] w-[0.62em] overflow-hidden align-baseline"
-            >
-              <span
-                className="absolute inset-x-0 top-0 flex flex-col motion-safe:transition-transform motion-safe:duration-500 motion-safe:ease-out motion-reduce:transition-none"
-                style={{ transform: `translateY(-${numericDigit}em)` }}
-              >
-                {DIGITS.map((nextDigit) => (
-                  <span
-                    key={nextDigit}
-                    className="flex h-[1em] items-center justify-center"
-                  >
-                    {nextDigit}
-                  </span>
-                ))}
-              </span>
-            </span>
-          );
-        })}
-      </span>
-    </span>
-  );
+function VerticalNumberTicker({ value, className }: { value: number; className?: string }) {
+  return <span aria-live="polite" aria-atomic="true" className={cn("inline-flex items-baseline tabular-nums", className)}><MotionNumber value={Math.round(value)} /></span>;
 }
 
 export interface RiskScoreSelection {
@@ -141,7 +98,7 @@ export function RiskScorePickerTrigger({
             <span className="flex min-w-0 flex-col gap-2">
               <span className="text-xs font-medium uppercase tracking-[0.5px]">Skor</span>
               <span className="text-5xl font-semibold leading-none tracking-tight tabular-nums">
-                {metrics.inherentScore}
+                <MotionNumber value={metrics.inherentScore} />
               </span>
             </span>
             <ChevronRight aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
@@ -155,7 +112,7 @@ export function RiskScorePickerTrigger({
               ].map(({ label, value }) => (
                 <span key={label} className="flex min-w-0 flex-col gap-1.5">
                   <span className="text-xs tracking-[0.5px]">{label}</span>
-                  <span className="text-2xl font-semibold leading-none tracking-tight tabular-nums">{value}</span>
+                  <span className="text-2xl font-semibold leading-none tracking-tight tabular-nums"><MotionNumber value={value} /></span>
                 </span>
               ))}
             </span>
@@ -164,7 +121,7 @@ export function RiskScorePickerTrigger({
       ) : (
         <span className="flex shrink-0 items-center gap-2">
           <span className="text-3xl font-mono font-medium leading-none tracking-tight text-foreground tabular-nums">
-            {metrics.inherentScore}
+            <MotionNumber value={metrics.inherentScore} />
           </span>
           <span
             className={cn(
@@ -307,7 +264,7 @@ export function RiskScoreHeatmapModal({
                       )}
                     >
                         <span className="font-mono text-base font-semibold tabular-nums sm:text-lg">
-                          {metrics.inherentScore}
+                          <MotionNumber value={metrics.inherentScore} />
                         </span>
                       </button>
                     );

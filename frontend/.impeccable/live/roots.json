@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "appRoot": "/Users/dikalaksana/Engineering/manris-v2/frontend",
+  "repoRoot": "/Users/dikalaksana/Engineering/manris-v2",
+  "contextRoot": "/Users/dikalaksana/Engineering/manris-v2",
+  "sessionRoot": "/Users/dikalaksana/Engineering/manris-v2/frontend/.impeccable/live",
+  "productPath": "/Users/dikalaksana/Engineering/manris-v2/PRODUCT.md",
+  "designPath": "/Users/dikalaksana/Engineering/manris-v2/DESIGN.md",
+  "resolvedFrom": "candidate:frontend"
+}

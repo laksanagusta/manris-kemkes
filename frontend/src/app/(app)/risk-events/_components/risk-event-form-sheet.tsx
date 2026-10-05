@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { createRiskEvent } from "@/lib/api/risk-events";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import type { RiskEvent, RiskEventCondition, RiskEventSeverity } from "@/types/risk-event";
+import type { RiskEvent, RiskEventCondition, RiskEventSeverity, CreateRiskEventInput } from "@/types/risk-event";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -21,6 +21,8 @@ import {
   SelectValue, Textarea,
 } from "@/components/shared/design-system";
 import { Calendar as CalendarIcon, Lock, Search } from "@/components/shared/icons";
+
+import { RiskEventSourceCard } from "@/components/shared/risk-event-source-card";
 
 type RiskOption = { id: string; code?: string; title: string; organizationId?: string };
 
@@ -150,35 +152,37 @@ function RiskEventStepModal({
 }
 
 export function RiskEventFormDialog({
-  open, onOpenChange, token, organizationId, initialRiskId, onCreated,
+  open, onOpenChange, token, organizationId, initialRiskId, onCreated, initialDraft, missingFields,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   token: string;
   organizationId?: string;
   initialRiskId?: string;
+  initialDraft?: Partial<CreateRiskEventInput>;
+  missingFields?: string[];
   onCreated: (event: RiskEvent) => void;
 }) {
   const [risks, setRisks] = useState<RiskOption[]>([]);
   const [riskQuery, setRiskQuery] = useState("");
   const [riskIds, setRiskIds] = useState<string[]>(initialRiskId ? [initialRiskId] : []);
-  const [description, setDescription] = useState("");
-  const [occurredAt, setOccurredAt] = useState(localDateTimeValue);
-  const [impactTypes, setImpactTypes] = useState<string[]>([]);
-  const [actualImpact, setActualImpact] = useState("");
-  const [otherImpactType, setOtherImpactType] = useState("");
-  const [financialLossState, setFinancialLossState] = useState<"" | "known" | "unknown">("");
-  const [financialLoss, setFinancialLoss] = useState("");
-  const [severity, setSeverity] = useState<RiskEventSeverity>("medium");
-  const [immediateResponse, setImmediateResponse] = useState("");
-  const [condition, setCondition] = useState<RiskEventCondition>("unknown");
-  const [location, setLocation] = useState("");
-  const [affectedParties, setAffectedParties] = useState("");
-  const [suspectedCause, setSuspectedCause] = useState("");
-  const [disruptionDuration, setDisruptionDuration] = useState("");
-  const [evidenceUrl, setEvidenceUrl] = useState("");
-  const [extraordinaryReason, setExtraordinaryReason] = useState("");
-  const [ongoingAction, setOngoingAction] = useState("");
+  const [description, setDescription] = useState(initialDraft?.description ?? "");
+  const [occurredAt, setOccurredAt] = useState(initialDraft ? (initialDraft.occurredAt ? `${initialDraft.occurredAt.slice(0, 10)}T12:00` : "") : localDateTimeValue());
+  const [impactTypes, setImpactTypes] = useState<string[]>(initialDraft?.impactTypes ?? []);
+  const [actualImpact, setActualImpact] = useState(initialDraft?.actualImpact ?? "");
+  const [otherImpactType, setOtherImpactType] = useState(initialDraft?.otherImpactType ?? "");
+  const [financialLossState, setFinancialLossState] = useState<"" | "known" | "unknown">(initialDraft?.financialLossKnown === true ? "known" : initialDraft?.financialLossKnown === false ? "unknown" : "");
+  const [financialLoss, setFinancialLoss] = useState(initialDraft?.financialLoss != null ? String(initialDraft.financialLoss) : "");
+  const [severity, setSeverity] = useState<RiskEventSeverity | "">(initialDraft ? initialDraft.severity ?? "" : "medium");
+  const [immediateResponse, setImmediateResponse] = useState(initialDraft?.immediateResponse ?? "");
+  const [condition, setCondition] = useState<RiskEventCondition | "">(initialDraft ? initialDraft.postResponseCondition ?? "" : "unknown");
+  const [location, setLocation] = useState(initialDraft?.location ?? "");
+  const [affectedParties, setAffectedParties] = useState(initialDraft?.affectedParties ?? "");
+  const [suspectedCause, setSuspectedCause] = useState(initialDraft?.suspectedCause ?? "");
+  const [disruptionDuration, setDisruptionDuration] = useState(initialDraft?.disruptionDuration ?? "");
+  const [evidenceUrl, setEvidenceUrl] = useState(initialDraft?.evidenceUrl ?? "");
+  const [extraordinaryReason, setExtraordinaryReason] = useState(initialDraft?.extraordinaryReason ?? "");
+  const [ongoingAction, setOngoingAction] = useState(initialDraft?.ongoingAction ?? "");
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [modalContentElement, setModalContentElement] = useState<HTMLDivElement | null>(null);
@@ -297,9 +301,9 @@ export function RiskEventFormDialog({
     (!impactTypes.includes("other") || otherImpactType.trim()),
   );
   const handlingStepValid = Boolean(
-    !impactTypes.includes("financial") ||
+    Boolean(severity) && (!impactTypes.includes("financial") ||
       (financialLossState &&
-        (financialLossState === "unknown" || (financialLoss.trim() !== "" && Number(financialLoss) >= 0))),
+        (financialLossState === "unknown" || (financialLoss.trim() !== "" && Number(financialLoss) >= 0)))),
   );
   const stepValid = step === 0 ? factStepValid : step === 1 ? handlingStepValid : Boolean(valid);
 
@@ -311,15 +315,17 @@ export function RiskEventFormDialog({
   };
 
   const submit = async () => {
+    if (!valid || submitting || !token || !severity) return;
     setSubmitting(true);
     try {
       const event = await createRiskEvent(token, {
         description: description.trim(), occurredAt: new Date(occurredAt).toISOString(), impactTypes, otherImpactType: otherImpactType.trim(),
         actualImpact: actualImpact.trim(), severity, immediateResponse: immediateResponse.trim(),
-        postResponseCondition: condition, location: location.trim(), affectedParties: affectedParties.trim(),
+        postResponseCondition: condition || "unknown", location: location.trim(), affectedParties: affectedParties.trim(),
         suspectedCause: suspectedCause.trim(), disruptionDuration: disruptionDuration.trim(),
         extraordinaryReason: extraordinaryReason.trim(), ongoingAction: ongoingAction.trim(),
         evidenceUrl: evidenceUrl.trim(), organizationId, riskIds,
+        sourceDocumentName: initialDraft?.sourceDocumentName, sourceRefs: initialDraft?.sourceRefs, extractionKey: initialDraft?.extractionKey,
         financialLossKnown: impactTypes.includes("financial") ? financialLossState === "known" : undefined,
         financialLoss: impactTypes.includes("financial") && financialLossState === "known" ? Number(financialLoss) : undefined,
       });
@@ -412,7 +418,7 @@ export function RiskEventFormDialog({
         <Field>
           <FieldLabel htmlFor="event-severity">Tingkat kejadian <span className="text-destructive">*</span></FieldLabel>
           <Select value={severity} onValueChange={(value) => setSeverity(value as RiskEventSeverity)}>
-            <SelectTrigger id="event-severity" className="w-full"><SelectValue /></SelectTrigger>
+            <SelectTrigger id="event-severity" className="w-full"><SelectValue placeholder="Pilih tingkat kejadian" /></SelectTrigger>
             <SelectContent>{Object.entries(severityLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
           </Select>
         </Field>
@@ -429,7 +435,7 @@ export function RiskEventFormDialog({
         <Field>
           <FieldLabel htmlFor="event-condition">Kondisi setelah penanganan</FieldLabel>
           <Select value={condition} onValueChange={(value) => setCondition(value as RiskEventCondition)}>
-            <SelectTrigger id="event-condition" className="w-full"><SelectValue /></SelectTrigger>
+            <SelectTrigger id="event-condition" className="w-full"><SelectValue placeholder="Pilih kondisi" /></SelectTrigger>
             <SelectContent>{Object.entries(conditionLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
           </Select>
         </Field>
@@ -483,8 +489,8 @@ export function RiskEventFormDialog({
           <div><dt className="text-xs text-muted-foreground">Jenis dampak</dt><dd className="mt-1 text-foreground">{impactTypes.map((impact) => impactLabels[impact] || impact).join(", ") || "-"}</dd></div>
           <div className="sm:col-span-2"><dt className="text-xs text-muted-foreground">Apa yang terjadi</dt><dd className="mt-1 whitespace-pre-wrap text-foreground">{description || "-"}</dd></div>
           <div><dt className="text-xs text-muted-foreground">Dampak aktual</dt><dd className="mt-1 whitespace-pre-wrap text-foreground">{actualImpact || "-"}</dd></div>
-          <div><dt className="text-xs text-muted-foreground">Tingkat kejadian</dt><dd className="mt-1 text-foreground">{severityLabels[severity]}</dd></div>
-          <div><dt className="text-xs text-muted-foreground">Kondisi</dt><dd className="mt-1 text-foreground">{conditionLabels[condition]}</dd></div>
+          <div><dt className="text-xs text-muted-foreground">Tingkat kejadian</dt><dd className="mt-1 text-foreground">{severity ? severityLabels[severity] : "Belum dipilih"}</dd></div>
+          <div><dt className="text-xs text-muted-foreground">Kondisi</dt><dd className="mt-1 text-foreground">{condition ? conditionLabels[condition] : "Belum tercantum"}</dd></div>
           <div><dt className="text-xs text-muted-foreground">Risiko terkait</dt><dd className="mt-1 text-foreground">{selectedRisks.length ? selectedRisks.map((risk) => risk.code || risk.title).join(", ") : "Belum dipetakan"}</dd></div>
         </dl>
         </CardContent>
@@ -498,7 +504,7 @@ export function RiskEventFormDialog({
       step={step}
       title={steps[step].title}
       description={steps[step].description}
-      stepValid={stepValid}
+      stepValid={stepValid && (step !== steps.length - 1 || Boolean(token))}
       submitting={submitting}
       isLastStep={step === steps.length - 1}
       modalContentRef={setModalContentElement}
@@ -511,6 +517,12 @@ export function RiskEventFormDialog({
       onNext={() => setStep((current) => current + 1)}
       onConfirm={() => { void submit(); }}
     >
+      {initialDraft && (step === 0 || step === 4) ? (
+        <div className="mb-5 space-y-3">
+          {missingFields?.length ? <p className="text-sm text-secondary-foreground">Belum tercantum dalam dokumen: {missingFields.join(", ")}. Lengkapi informasi yang diketahui sebelum menyimpan.</p> : null}
+          <RiskEventSourceCard name={initialDraft.sourceDocumentName} sources={initialDraft.sourceRefs} />
+        </div>
+      ) : null}
       {stepContent}
     </RiskEventStepModal>
   );

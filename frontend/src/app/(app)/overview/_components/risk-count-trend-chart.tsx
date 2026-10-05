@@ -1,5 +1,7 @@
 "use client";
 
+import { MotionNumber } from "@/components/shared/design-system/motion/motion-primitives";
+
 import { useMemo } from "react";
 import {
   LineChart as RechartsLineChart,
@@ -71,7 +73,7 @@ export function RiskCountTrendChart({
       summary={
         <p className="flex items-baseline gap-2">
           <span className="text-3xl font-semibold tabular-nums">
-            {currentTotal ?? "—"}
+            <MotionNumber value={currentTotal ?? "—"} />
           </span>
           <span className="text-sm text-muted-foreground">risiko terdaftar</span>
         </p>

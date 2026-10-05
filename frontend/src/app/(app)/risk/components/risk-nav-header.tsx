@@ -50,7 +50,7 @@ export function RiskNavHeader({ title, description, badge }: { title: string, de
               key={item.href}
               href={item.href}
               className={cn(
-                "px-3 py-1.5 text-xs font-semibold transition-all rounded-md flex items-center gap-2",
+                "px-3 py-1.5 text-xs font-semibold transition-[background-color,border-color,color] rounded-md flex items-center gap-2",
                 isActive
                   ? "bg-background shadow-sm text-foreground"
                   : "text-muted-foreground hover:text-sidebar-accent-foreground hover:bg-sidebar-accent/50"

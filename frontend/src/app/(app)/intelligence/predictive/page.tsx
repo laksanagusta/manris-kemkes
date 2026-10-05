@@ -52,7 +52,7 @@ function ConfidenceBar({ value }: { value: number }) {
       <div className="h-1.5 w-16 rounded-full bg-muted overflow-hidden">
         <div
           className={cn(
-            "h-full rounded-full transition-all",
+            "h-full rounded-full transition-[width,background-color]",
             value >= 80 ? "bg-success" : value >= 60 ? "bg-risk-medium" : "bg-risk-high"
           )}
           style={{ width: `${value}%` }}

@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 export function PageStack({ className, ...props }: ComponentProps<"div">) {
   return (
     <div
+      data-motion-page
       className={cn(
         "w-full min-w-0 space-y-6 motion-safe:animate-fade-in",
         className,

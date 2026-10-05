@@ -74,5 +74,5 @@ export function RegisterMonitoringInsights({ refreshKey }: { refreshKey: unknown
     };
   }, [risks, cycle]);
 
-  return <MonitoringInsightCard cycle={cycle} total={insight.total} finalized={insight.finalized} highPending={insight.highPending} increased={insight.increased} overdue={overdue} loading={loading} error={error} onRetry={() => { setLoading(true); setRetry((value) => value + 1); }} />;
+  return <MonitoringInsightCard motion cycle={cycle} total={insight.total} finalized={insight.finalized} highPending={insight.highPending} increased={insight.increased} overdue={overdue} loading={loading} error={error} onRetry={() => { setLoading(true); setRetry((value) => value + 1); }} />;
 }

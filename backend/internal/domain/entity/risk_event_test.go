@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"strings"
 	"testing"
 	"time"
 
@@ -11,7 +12,7 @@ func validRiskEvent() RiskEvent {
 	return RiskEvent{
 		Description: "Sistem pelaporan tidak dapat diakses",
 		OccurredAt:  time.Now(), ImpactTypes: []string{"service"},
-		Severity:    RiskEventSeverityHigh,
+		Severity:              RiskEventSeverityHigh,
 		PostResponseCondition: "controlled", OrganizationID: uuid.New(), CreatedBy: uuid.New(),
 	}
 }
@@ -36,6 +37,34 @@ func TestRiskEventValidate(t *testing.T) {
 			}
 			if err := event.Validate(); (err != nil) != tt.wantErr {
 				t.Fatalf("Validate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestRiskEventSourceValidation(t *testing.T) {
+	tests := []struct {
+		name      string
+		document  string
+		refs      []DocumentSourceRef
+		key       string
+		wantError bool
+	}{
+		{name: "manual record"},
+		{name: "valid imported record", document: "laporan.pdf", refs: []DocumentSourceRef{{Quote: "Layanan berhenti"}}, key: strings.Repeat("a", 64)},
+		{name: "missing source name", refs: []DocumentSourceRef{{Quote: "Layanan berhenti"}}, wantError: true},
+		{name: "missing quotes", document: "laporan.pdf", wantError: true},
+		{name: "blank quote", document: "laporan.pdf", refs: []DocumentSourceRef{{Quote: " "}}, wantError: true},
+		{name: "invalid key", document: "laporan.pdf", refs: []DocumentSourceRef{{Quote: "Layanan berhenti"}}, key: "not-a-key", wantError: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			event := validRiskEvent()
+			event.SourceDocumentName = tt.document
+			event.SourceRefs = tt.refs
+			event.ExtractionKey = tt.key
+			if err := event.Validate(); (err != nil) != tt.wantError {
+				t.Fatalf("Validate=%v", err)
 			}
 		})
 	}

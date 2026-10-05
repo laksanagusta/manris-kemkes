@@ -1,3 +1,4 @@
+import { MotionNumber } from "../motion/motion-primitives";
 import type { ReactNode } from "react";
 
 import { StandardCard } from "../layout/standard-card";
@@ -46,7 +47,7 @@ export function OverviewCategoryCard({
             <div className="absolute inset-8 grid place-items-center rounded-full bg-card ring-1 ring-inset ring-border/60">
               <div className="text-center">
                 <p className="text-2xl font-mono font-semibold tracking-tight text-foreground">
-                  {total}
+                  <MotionNumber value={total} />
                 </p>
                 <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
                   {totalLabel}

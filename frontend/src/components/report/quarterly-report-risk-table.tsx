@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { reportErrorMessage } from "@/lib/report-feedback";
+import { useImperativeHandle, useMemo, useRef, useState, type Ref } from "react";
 import { Loader2 } from "@/components/shared/icons";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -29,25 +30,31 @@ function formatReportScore(value: number | null | undefined) {
   return formatReportNumber(value == null ? value : Math.round(value));
 }
 
+export type ReportRiskFilter = "attention" | "all" | "target" | "overdue" | "monitoring";
+export type ReportRiskTableHandle = { openFor: (filter: ReportRiskFilter) => void };
+
 export function QuarterlyReportRiskTable({
+  ref,
   rows,
   cycle,
   totalRows = rows.length,
   hasRisks = rows.length > 0,
   loadRows,
 }: {
+  ref?: Ref<ReportRiskTableHandle>;
   rows: ReportRiskRow[];
   cycle: string;
   totalRows?: number;
   hasRisks?: boolean;
   loadRows?: () => Promise<ReportRiskRow[]>;
 }) {
+  const allViewRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const [loaded, setLoaded] = useState(!loadRows);
   const [loadedRows, setLoadedRows] = useState(rows);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [view, setView] = useState<"attention" | "all">("attention");
+  const [view, setView] = useState<ReportRiskFilter>("attention");
   const [query, setQuery] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
@@ -56,7 +63,7 @@ export function QuarterlyReportRiskTable({
       loadedRows
         .filter(
           (row) =>
-            (view === "all" || row.attention.length > 0) &&
+            (view === "monitoring" ? !row.final : view === "target" ? row.targetState === "missed" : view === "overdue" ? row.overdueTasks > 0 : view === "all" || row.attention.length > 0) &&
             `${row.risk.title} ${row.risk.code ?? row.risk.riskCode ?? ""} ${row.risk.orgName ?? ""}`
               .toLocaleLowerCase("id")
               .includes(query.trim().toLocaleLowerCase("id")),
@@ -82,12 +89,21 @@ export function QuarterlyReportRiskTable({
       setLoaded(true);
     } catch (error) {
       setLoadError(
-        error instanceof Error ? error.message : "Gagal memuat daftar risiko.",
+        reportErrorMessage(error, "Daftar risiko belum dapat dimuat. Periksa koneksi, lalu pilih Coba lagi."),
       );
     } finally {
       setLoading(false);
     }
   };
+  useImperativeHandle(ref, () => ({
+    openFor(filter) {
+      setView(filter);
+      setQuery("");
+      setPage(1);
+      void handleOpenChange(true);
+    },
+  }));
+  const contextualFilter = view === "monitoring" ? "Pemantauan belum final" : view === "target" ? "Target belum tercapai" : view === "overdue" ? "Laporan mitigasi melewati tenggat" : null;
   const safePage = Math.min(
     page,
     Math.max(1, Math.ceil(filtered.length / pageSize)),
@@ -97,7 +113,7 @@ export function QuarterlyReportRiskTable({
     safePage * pageSize,
   );
   return (
-    <CollapsibleCard.Root open={open} onOpenChange={handleOpenChange}>
+    <CollapsibleCard.Root data-report-collapsible="" open={open} onOpenChange={handleOpenChange}>
       <CollapsibleCard.Trigger>
         <CollapsibleCard.Header>
           <CollapsibleCard.Icon />
@@ -141,6 +157,10 @@ export function QuarterlyReportRiskTable({
             </div>
           ) : loaded ? (
             <>
+              {contextualFilter && <div className="mb-4 flex flex-wrap items-center justify-between gap-2" role="status">
+                <p className="text-sm">Filter: {contextualFilter}</p>
+                <Button variant="outline" size="sm" onClick={() => { setView("all"); setPage(1); requestAnimationFrame(() => allViewRef.current?.focus()); }}>Hapus filter</Button>
+              </div>}
               <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                 <div
                   className="flex gap-2"
@@ -159,6 +179,7 @@ export function QuarterlyReportRiskTable({
                     Perlu perhatian
                   </Button>
                   <Button
+                    ref={allViewRef}
                     variant={view === "all" ? "secondary" : "ghost"}
                     size="sm"
                     aria-pressed={view === "all"}
@@ -181,8 +202,8 @@ export function QuarterlyReportRiskTable({
                 />
               </div>
               {visible.length ? (
-                <div className="-mx-4 border-t border-border/60">
-                  <Table className="min-w-[1050px] table-fixed">
+                <div className="-mx-(--card-spacing)">
+                  <Table data-report-table="" className="min-w-[1050px] table-fixed">
                     <caption className="sr-only">
                       Profil dan observasi {cycle}; nilai target memakai profil yang
                       berlaku pada periode ini.
@@ -279,16 +300,20 @@ export function QuarterlyReportRiskTable({
                   title={
                     query
                       ? "Tidak ada hasil pencarian"
-                      : view === "attention" && loadedRows.length
+                      : contextualFilter
+                        ? "Tidak ada risiko sesuai filter"
+                        : view === "attention" && loadedRows.length
                         ? "Tidak ada risiko yang perlu perhatian"
                         : "Belum ada risiko"
                   }
                   description={
                     query
                       ? "Ubah kata pencarian untuk melihat risiko lain."
-                      : view === "attention" && loadedRows.length
+                      : contextualFilter
+                        ? "Hapus filter untuk meninjau seluruh risiko periode ini."
+                        : view === "attention" && loadedRows.length
                         ? "Lihat Semua risiko untuk meninjau seluruh profil periode ini."
-                        : "Belum ada profil final yang berlaku pada periode dan scope ini."
+                        : "Belum ada profil final yang berlaku pada periode dan pilihan unit ini."
                   }
                 />
               )}

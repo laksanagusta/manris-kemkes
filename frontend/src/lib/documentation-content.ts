@@ -27,12 +27,12 @@ export const documentationArticles: DocumentationArticle[] = [
         { title: "Buka halaman Masuk", detail: "Masukkan NIP dan password akun Manrisk Anda." },
         { title: "Tampilkan password bila perlu", detail: "Pilih ikon mata di samping kolom password untuk memeriksa teks yang dimasukkan. Pilih lagi untuk menyembunyikannya." },
         { title: "Pilih Masuk", detail: "Jika kredensial benar, Manrisk membuka halaman yang sesuai dengan status akun. Ikuti instruksi perubahan password jika layar tersebut muncul." },
-      ], image: { src: "/documentation/akses-akun.png", alt: "Halaman masuk Manrisk dengan kolom NIP dan password", caption: "Masukkan NIP dan password. Anda dapat menampilkan password sebelum masuk.", width: 653, height: 977 } },
+      ], image: { src: "/documentation/screens/akses-akun-login.png", alt: "Halaman masuk Manrisk dengan kolom NIP, password, dan tombol Masuk", caption: "Screenshot halaman masuk. Masukkan NIP dan password; tampilan aktual dapat mengikuti konfigurasi akun.", width: 3420, height: 1900 } },
       { id: "daftar-akun", title: "Daftar akun unit kerja", steps: [
         { title: "Buka Daftar akun dari halaman Masuk", detail: "Isi nama lengkap, email, unit kerja, NIP, dan password. Jabatan dan pangkat dapat diisi bila diminta." },
         { title: "Cari dan pilih unit kerja", detail: "Gunakan pencarian pada pilihan Unit kerja, lalu pilih organisasi yang sesuai dengan tempat Anda bertugas." },
         { title: "Kirim registrasi dan tunggu aktivasi", detail: "Password harus memiliki minimal 8 karakter dan kolom konfirmasi harus cocok. Setelah registrasi berhasil, administrator perlu menyetujui akun sebelum Anda dapat masuk." },
-      ], image: { src: "/documentation/screens/registrasi-akun.png", alt: "Form pendaftaran akun unit kerja dari aplikasi Manrisk", caption: "Form pendaftaran akun dari aplikasi Manrisk. Kolom yang tersedia mengikuti aturan registrasi yang aktif.", width: 1145, height: 760 }, note: "Jangan bagikan password melalui email atau chat. Jika password perlu diatur ulang, hubungi administrator." },
+      ], image: { src: "/documentation/screens/registrasi-akun-desktop.png", alt: "Form pendaftaran akun Manrisk dengan kolom nama, email, unit kerja, NIP, jabatan, pangkat, dan password", caption: "Screenshot form pendaftaran. Kolom dan status aktivasi dapat mengikuti konfigurasi akun dan aturan registrasi yang aktif.", width: 3420, height: 1902 }, note: "Jangan bagikan password melalui email atau chat. Jika password perlu diatur ulang, hubungi administrator." },
       { id: "ubah-password", title: "Ubah password", paragraphs: ["Jika aplikasi meminta Anda membuat password baru, selesaikan perubahan sebelum membuka halaman kerja. Untuk mengganti password setelah masuk, buka Pengaturan lalu pilih Keamanan."], steps: [
         { title: "Masukkan password saat ini", detail: "Buka kolom password saat ini dan isi kredensial yang digunakan untuk masuk." },
         { title: "Buat dan konfirmasi password baru", detail: "Ikuti aturan yang ditampilkan dan pastikan kedua kolom password baru sama." },
@@ -361,6 +361,11 @@ export const documentationArticles: DocumentationArticle[] = [
         { title: "Tambahkan hasil pembahasan", detail: "Susun ringkasan, keputusan, serta tindak lanjut dan PIC agar rapat dapat ditinjau kembali." },
         { title: "Simpan notulen", detail: "Buka daftar MoM untuk memastikan catatan muncul dengan judul yang dapat dicari." },
       ], image: { src: "/documentation/screens/mom.png", alt: "Form Buat Notulen pada MoM Manrisk", caption: "Form Buat Notulen untuk mencatat hasil rapat dan tindak lanjut.", width: 1145, height: 760 } },
+      { id: "detail-mom", title: "Baca detail notulen", steps: [
+        { title: "Buka notulen dari daftar MoM", detail: "Pilih notulen yang ingin ditinjau untuk membuka halaman detailnya." },
+        { title: "Tinjau properti dan ringkasan", detail: "Periksa judul, pembuat, tanggal rapat, peserta, serta ringkasan agar konteks rapat terbaca dengan jelas." },
+        { title: "Baca agenda rapat", detail: "Gunakan bagian Agenda untuk meninjau pokok bahasan rapat." },
+      ], image: { src: "/documentation/screens/mom-detail.png", alt: "Halaman detail notulen MoM dengan properti, ringkasan, dan agenda", caption: "Detail notulen menampilkan properti, ringkasan, dan agenda. Nama, peserta, tanggal, serta isi rapat pada screenshot merupakan snapshot dan dapat berubah sesuai notulen dan akses akun.", width: 3420, height: 1904 } },
       { id: "analisis-transkrip", title: "Gunakan MoM Intelligence", steps: [
         { title: "Buka MoM Intelligence", detail: "Fitur ini dapat diakses dari kelompok Intelligence jika aktif di lingkungan akun Anda." },
         { title: "Masukkan transkrip", detail: "Tinjau dan hilangkan informasi rapat yang tidak perlu sebelum menggunakan teks sebagai bahan analisis." },

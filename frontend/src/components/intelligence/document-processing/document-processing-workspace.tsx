@@ -56,11 +56,15 @@ export function DocumentProcessingWorkspace({
   organizationId,
   onUseRiskDraft,
   onUseMitigationReport,
+  onUseRiskEvent,
+  storageScope,
   reportedFindingIds,
   analysisMode,
   heading = "Analisis dokumen menjadi temuan risiko",
   description = "Unggah satu dokumen. Manrisk akan mengelompokkan halaman dan menghubungkan temuan dengan sumbernya.",
 }: {
+  storageScope?: string;
+  onUseRiskEvent?: (finding: Finding) => void;
   authToken?: string;
   organizationId?: string;
   onUseRiskDraft?: (finding: Finding) => void;
@@ -89,8 +93,8 @@ export function DocumentProcessingWorkspace({
   const previousJobStatusRef = useRef<ProcessingStatus | undefined>(undefined);
 
   useEffect(() => {
-    setCurrentJob(loadLatestProcessingJob(analysisMode));
-  }, [analysisMode]);
+    setCurrentJob(loadLatestProcessingJob(analysisMode, storageScope));
+  }, [analysisMode, storageScope]);
 
   const updateJob = useCallback(
     (nextJob: ProcessingJob) => {
@@ -173,6 +177,7 @@ export function DocumentProcessingWorkspace({
       mode: analysisMode,
       period: period.trim() || undefined,
     });
+    job.storageScope = storageScope;
     activeJobIdRef.current = job.id;
     statusByJobRef.current.set(job.id, job.status);
     setCurrentJob(job);
@@ -206,7 +211,7 @@ export function DocumentProcessingWorkspace({
     }
     activeJobIdRef.current = undefined;
     setCurrentJob(undefined);
-    clearProcessingJobs(analysisMode);
+    clearProcessingJobs(analysisMode, storageScope);
     setDocuments((previous) => {
       previous.forEach(revokeDocumentPreview);
       return [];
@@ -270,6 +275,7 @@ export function DocumentProcessingWorkspace({
               job={currentJob}
               onUseRiskDraft={onUseRiskDraft}
               onUseMitigationReport={onUseMitigationReport}
+              onUseRiskEvent={onUseRiskEvent}
               reportedFindingIds={reportedFindingIds}
               onStartNew={startNewProcess}
             />

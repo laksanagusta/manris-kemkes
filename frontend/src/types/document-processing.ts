@@ -89,9 +89,11 @@ export interface SourceReference {
 
 export type FindingSeverity = "critical" | "high" | "medium" | "low";
 
-export type FindingKind = "risk" | "mitigation-report";
+export type FindingKind = "risk" | "mitigation-report" | "risk-event";
 
 export interface Finding {
+  eventDraft?: import("./document-intelligence").RiskEventExtractionItem;
+  sources?: SourceReference[];
   id: string;
   kind?: FindingKind;
   taskId?: string;
@@ -106,6 +108,7 @@ export interface Finding {
 }
 
 export interface ProcessingJob {
+  storageScope?: string;
   id: string;
   name: string;
   mode: string;

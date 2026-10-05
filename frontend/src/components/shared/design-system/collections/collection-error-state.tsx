@@ -14,7 +14,7 @@ export function CollectionErrorState({
   onReload?: () => void;
 }) {
   return (
-    <Alert variant="destructive">
+    <Alert data-motion-feedback-state variant="destructive">
       <AlertCircle />
       <AlertTitle>{title}</AlertTitle>
       {message ? <AlertDescription>{message}</AlertDescription> : null}

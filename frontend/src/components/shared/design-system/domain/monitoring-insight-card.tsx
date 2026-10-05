@@ -7,7 +7,10 @@ import { OverviewPanelState } from "./overview-panel-state";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info } from "@/components/shared/icons";
 
+import { RegisterMotionNumber } from "../motion/register-motion";
+
 export interface MonitoringInsightCardProps {
+  motion?: boolean;
   cycle: string;
   total: number;
   finalized: number;
@@ -19,8 +22,9 @@ export interface MonitoringInsightCardProps {
   onRetry?: () => void;
 }
 
-export function MonitoringInsightCard({ cycle, total, finalized, highPending, increased, overdue, loading, error, onRetry }: MonitoringInsightCardProps) {
+export function MonitoringInsightCard({ motion = true, cycle, total, finalized, highPending, increased, overdue, loading, error, onRetry }: MonitoringInsightCardProps) {
   const percent = total ? Math.round((finalized / total) * 100) : 0;
+  const metric = (value: string | number) => motion ? <RegisterMotionNumber value={value} /> : value;
   const circumference = 2 * Math.PI * 78;
 
   return (
@@ -35,31 +39,31 @@ export function MonitoringInsightCard({ cycle, total, finalized, highPending, in
             <div className="relative size-48" role="progressbar" aria-label={`Pemantauan final ${cycle}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={total ? percent : undefined} aria-valuetext={total ? `${finalized} dari ${total} risiko sudah dipantau final pada ${cycle}` : `Belum ada risiko aktif berprofil final pada ${cycle}`}>
               <svg viewBox="0 0 192 192" className="size-full -rotate-90" aria-hidden="true">
                 <circle cx="96" cy="96" r="78" fill="none" stroke="var(--sunken)" strokeWidth="18" />
-                {total > 0 && percent > 0 && <circle cx="96" cy="96" r="78" fill="none" stroke="var(--risk-low)" strokeWidth="18" strokeLinecap="round" strokeDasharray={`${circumference * (finalized / total)} ${circumference}`} />}
+                {total > 0 && <circle cx="96" cy="96" r="78" fill="none" stroke="var(--risk-low)" strokeWidth="18" strokeLinecap={percent > 0 ? "round" : "butt"} className={motion ? "register-motion-ring" : undefined} strokeDasharray={circumference} strokeDashoffset={circumference * (1 - finalized / total)} />}
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-4xl font-semibold tracking-tight tabular-nums">{total ? `${percent}%` : "—"}</span>
+                <span className="text-4xl font-semibold tracking-tight tabular-nums">{metric(total ? `${percent}%` : "—")}</span>
                 <span className="mt-1 text-sm text-muted-foreground">pemantauan final</span>
               </div>
             </div>
             <Badge variant={total && finalized === total ? "secondary" : "outline"}>{!total ? "Belum ada risiko" : finalized === total ? "Seluruhnya final" : "Masih berjalan"}</Badge>
             <div className="flex items-center justify-center gap-1.5">
-              <p className="text-pretty text-sm text-muted-foreground"><span className="font-medium text-foreground tabular-nums">{finalized} dari {total}</span> risiko sudah dipantau pada {cycle}</p>
+              <p className="text-pretty text-sm text-muted-foreground"><span className="font-medium text-foreground tabular-nums">{metric(finalized)} dari {metric(total)}</span> risiko sudah dipantau pada {cycle}</p>
               <Tooltip>
                 <TooltipTrigger asChild><button type="button" aria-label="Cara menghitung persentase pemantauan" className="-ml-2 flex size-10 shrink-0 items-center justify-center rounded-lg text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring"><Info className="size-4" strokeWidth={1.5} /></button></TooltipTrigger>
-                <TooltipContent>Persentase profil risiko final yang masih aktif dengan hasil pemantauan final pada {cycle}. Setiap risiko dihitung sekali. Ini mengukur penyelesaian pemantauan.</TooltipContent>
+                <TooltipContent className={motion ? "register-motion-tooltip" : undefined}>Persentase profil risiko final yang masih aktif dengan hasil pemantauan final pada {cycle}. Setiap risiko dihitung sekali. Ini mengukur penyelesaian pemantauan.</TooltipContent>
               </Tooltip>
             </div>
           </div>
           <div className="flex min-w-0 flex-col gap-3">
             <div className="rounded-xl bg-card-subtle-surface p-4">
               <p className="text-xs font-medium text-muted-foreground">Prioritas pemantauan</p>
-              <p className="mt-1 text-2xl font-semibold tracking-tight tabular-nums">{highPending} <span className="text-base font-normal">risiko tinggi & ekstrem belum dipantau</span></p>
+              <p className="mt-1 text-2xl font-semibold tracking-tight tabular-nums">{metric(highPending)} <span className="text-base font-normal">risiko tinggi & ekstrem belum dipantau</span></p>
             </div>
-            <p className="rounded-xl bg-card-subtle-surface p-4 text-pretty text-sm"><span className="font-semibold tabular-nums">{total - finalized}</span> risiko belum memiliki pemantauan final pada {cycle}.</p>
-            <p className="rounded-xl bg-card-subtle-surface p-4 text-pretty text-sm"><span className="font-semibold tabular-nums">{increased}</span> risiko naik level dibandingkan profil awal {cycle}.</p>
+            <p className="rounded-xl bg-card-subtle-surface p-4 text-pretty text-sm"><span className="font-semibold tabular-nums">{metric(total - finalized)}</span> risiko belum memiliki pemantauan final pada {cycle}.</p>
+            <p className="rounded-xl bg-card-subtle-surface p-4 text-pretty text-sm"><span className="font-semibold tabular-nums">{metric(increased)}</span> risiko naik level dibandingkan profil awal {cycle}.</p>
             <div className="rounded-xl bg-card-subtle-surface p-4">
-              <p className="text-pretty text-sm">{overdue === null ? "Data tenggat mitigasi tidak dapat dimuat." : <><span className="font-semibold tabular-nums">{overdue}</span> tugas mitigasi melewati tenggat.</>}</p>
+              <p className="text-pretty text-sm">{overdue === null ? "Data tenggat mitigasi tidak dapat dimuat." : <><span className="font-semibold tabular-nums">{metric(overdue)}</span> tugas mitigasi melewati tenggat.</>}</p>
               <p className="mt-1 text-xs text-muted-foreground">Mencakup semua periode tugas mitigasi.</p>
               {overdue === null && onRetry ? <Button type="button" variant="outline" onClick={onRetry}>Coba lagi</Button> : null}
             </div>

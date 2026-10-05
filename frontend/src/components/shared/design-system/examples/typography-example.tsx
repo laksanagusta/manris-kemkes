@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { ManriskMark } from "@/components/manrisk-mark";
 import { Card, CardContent } from "@/components/ui/card";
 
 export function TypographyExample() {
@@ -21,19 +21,13 @@ export function TypographyExample() {
         <div className="space-y-3">
           <div>
             <div className="flex items-center gap-3">
-              <Image
-                src="/logo.svg"
-                alt=""
-                width={20}
-                height={20}
-                className="size-5 object-contain"
-              />
+              <ManriskMark />
               <p className="font-logo text-[20px] leading-5 font-semibold lowercase tracking-[-0.4px] text-foreground">
                 Manrisk
               </p>
             </div>
             <p className="font-mono text-[11px] text-muted-foreground">
-              Brand mark + wordmark · 4×4 dot grid · Inter 20px semibold · lowercase · -0.4px tracking
+              Brand mark + wordmark · layered slanted panels · Inter 20px semibold · lowercase · -0.4px tracking
             </p>
           </div>
           <div>

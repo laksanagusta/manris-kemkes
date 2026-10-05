@@ -197,3 +197,22 @@ func TestParseDocumentIntelligenceResultRejectsEmptyResponse(t *testing.T) {
 		t.Fatalf("expected empty response error, got %v", err)
 	}
 }
+
+func TestParseRiskEventExtraction(t *testing.T) {
+	for _, content := range []string{`{"items":[]}`, `{"kejadian":{"items":[]}}`} {
+		result, err := parseDocumentIntelligenceResult(entity.DocumentModeRiskEventExtraction, content)
+		if err != nil || result.Kejadian == nil || len(result.Kejadian.Items) != 0 {
+			t.Fatalf("parse = %+v, %v", result, err)
+		}
+	}
+}
+
+func TestRiskEventExtractionPromptRequiresFactsAndManualLinks(t *testing.T) {
+	repo := &aiRepository{}
+	prompt := repo.buildDocumentIntelligencePrompt(entity.DocumentAnalysisRequest{Mode: entity.DocumentModeRiskEventExtraction, Filename: "laporan.pdf", DocumentText: "Layanan berhenti"})
+	for _, required := range []string{"SUDAH TERJADI", "Hanya fakta eksplisit", "near miss", "Risiko dipilih manual", "Gabungkan penyebutan berulang", "sourceRefs", "laporan.pdf"} {
+		if !strings.Contains(prompt, required) {
+			t.Fatalf("prompt missing %q", required)
+		}
+	}
+}
