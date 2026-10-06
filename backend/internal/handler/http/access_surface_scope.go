@@ -71,6 +71,12 @@ func resolveReportOrgIDs(scope *entity.AccessScope, rawOrgID string) ([]uuid.UUI
 			parsedIDs = append(parsedIDs, orgID)
 		}
 
+		// An explicitly supplied filter must never become the empty-slice
+		// sentinel, which repositories interpret as an unrestricted query.
+		if len(parsedIDs) == 0 {
+			return nil, domainerrors.ErrInvalidInput
+		}
+
 		return parsedIDs, nil
 	}
 
