@@ -187,7 +187,7 @@ func main() {
 	}))
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     cfg.CORSOrigins,
-		AllowHeaders:     "Origin, Content-Type, Accept, Authorization, X-Correlation-ID",
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization, X-Correlation-ID, X-API-Key",
 		AllowMethods:     "GET, POST, PUT, DELETE, PATCH, OPTIONS",
 		AllowCredentials: true,
 	}))
@@ -213,8 +213,11 @@ func main() {
 	authProtected.Put("/me", middleware.RequireFullSession(), cleanAuthHandler.UpdateProfile)
 	authProtected.Post("/change-password", cleanAuthHandler.ChangePassword)
 
-	// Only this existing heatmap endpoint accepts an organization API key.
-	api.Get("/dashboard/heatmap", organizationAPIKeyHandler.Heatmap(cleanRiskHandler.HeatmapData))
+	// Read-only dashboard endpoints accept an organization API key for server-to-server integrations.
+	api.Get("/dashboard/summary", organizationAPIKeyHandler.WithOrganizationAPIKey(cleanRiskHandler.DashboardSummary))
+	api.Get("/risks/cycle-snapshot", organizationAPIKeyHandler.WithOrganizationAPIKey(cleanRiskHandler.ListCycleSnapshot))
+	api.Get("/dashboard/risk-categories", organizationAPIKeyHandler.WithOrganizationAPIKey(cleanRiskHandler.GetDashboardRiskCategories))
+	api.Get("/dashboard/heatmap", organizationAPIKeyHandler.WithOrganizationAPIKey(cleanRiskHandler.HeatmapData))
 
 	protected := api.Group("", middleware.AuthRequired(cfg.JWTSecret), middleware.RequireFullSession(), middleware.ResolveOrgScope(container.OrgHierarchySvc))
 	protected.Get("/organization-api-key", organizationAPIKeyHandler.Get)

@@ -59,7 +59,7 @@ func TestAPIKeyRouteIsolationAndExistingHeatmap(t *testing.T) {
 	keyHandler := NewOrganizationAPIKeyHandler(service)
 	app := fiber.New()
 	api := app.Group("/api/v1")
-	api.Get("/dashboard/heatmap", keyHandler.Heatmap(handler.HeatmapData))
+	api.Get("/dashboard/heatmap", keyHandler.WithOrganizationAPIKey(handler.HeatmapData))
 	protected := api.Group("", middleware.AuthRequired("test-secret"), middleware.RequireFullSession())
 	jwtOrg := uuid.New()
 	protected.Get("/dashboard/heatmap", func(c *fiber.Ctx) error {
