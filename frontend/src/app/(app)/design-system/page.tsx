@@ -201,12 +201,13 @@ export default function DesignSystemPage() {
               <Field>
                 <FieldLabel htmlFor="design-system-login-password" className="sr-only">Password (login)</FieldLabel>
                 <InputGroup className="h-11 bg-white dark:bg-white">
-                  <InputGroupInput id="design-system-login-password" type="password" data-autofill-surface="white" className="h-11 bg-transparent dark:bg-transparent dark:text-neutral-900 dark:placeholder:text-neutral-500" placeholder="Masukkan password" />
+                  <InputGroupInput id="design-system-login-password" type="password" data-autofill-surface="white" className="h-auto self-stretch bg-transparent dark:bg-transparent dark:text-neutral-900 dark:placeholder:text-neutral-500" placeholder="Masukkan password" />
                   <InputGroupAddon align="inline-end" className="py-0">
                     <InputGroupButton size="icon-xs" className="h-11 w-11 hover:bg-transparent! dark:hover:bg-transparent! hover:text-inherit! dark:hover:text-inherit!" aria-label="Tampilkan password"><Eye aria-hidden="true" /></InputGroupButton>
                   </InputGroupAddon>
                 </InputGroup>
                 <FieldDescription className="text-xs text-tertiary-foreground">Hubungi administrator jika perlu reset</FieldDescription>
+                <p className="text-xs text-muted-foreground">Input password memakai h-auto self-stretch agar permukaan autofill tetap di dalam border InputGroup.</p>
               </Field>
             </FieldGroup>
             <Field>

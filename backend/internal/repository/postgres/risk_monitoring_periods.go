@@ -2,14 +2,12 @@ package postgres
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5"
 	domainerrors "github.com/manris/backend/internal/domain/errors"
 )
 
@@ -86,29 +84,27 @@ func (r *riskRepository) EnsureMonitoringPeriods(ctx context.Context, versionGro
 	return nil
 }
 
-// AssertPreviousMonitoringPeriodCompleted enforces sequential monitoring.
-// A missing obligation means the previous period was not applicable to this
-// risk (for example a risk finalised after that period), so it is allowed.
-func (r *riskRepository) AssertPreviousMonitoringPeriodCompleted(ctx context.Context, versionGroupID uuid.UUID, previousCycle string) error {
+// AssertPreviousMonitoringTransactionCompleted blocks a new cycle only when
+// the previous cycle already has an unfinished monitoring transaction. A
+// missing transaction means that period was skipped and is allowed.
+func (r *riskRepository) AssertPreviousMonitoringTransactionCompleted(ctx context.Context, versionGroupID uuid.UUID, previousCycle string) error {
 	if versionGroupID == uuid.Nil || previousCycle == "" {
-		return fmt.Errorf("invalid previous monitoring period inputs")
+		return fmt.Errorf("invalid previous monitoring transaction inputs")
 	}
 
-	var status string
-	err := r.pool.QueryRow(ctx, `
-		SELECT status
-		FROM risk_monitoring_periods
-		WHERE version_group_id = $1 AND period_label = $2
-	`, versionGroupID, previousCycle).Scan(&status)
-	if err != nil {
-		// The obligation is intentionally absent for risks that became final
-		// after the previous period. Other database errors must be surfaced.
-		if errors.Is(err, pgx.ErrNoRows) {
-			return nil
-		}
-		return fmt.Errorf("check previous monitoring period: %w", err)
+	var hasUnfinishedTransaction bool
+	if err := r.pool.QueryRow(ctx, `
+		SELECT EXISTS (
+			SELECT 1
+			FROM risk_monitorings
+			WHERE version_group_id = $1
+			  AND assessment_cycle = $2
+			  AND status = 'draft'
+		)
+	`, versionGroupID, previousCycle).Scan(&hasUnfinishedTransaction); err != nil {
+		return fmt.Errorf("check previous monitoring transaction: %w", err)
 	}
-	if status != "completed" {
+	if hasUnfinishedTransaction {
 		return domainerrors.ErrPreviousMonitoringNotCompleted
 	}
 	return nil

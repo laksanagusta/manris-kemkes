@@ -31,12 +31,12 @@ type monitoringTransactionRepository interface {
 	UpdateTaskMonitoringIDs(ctx context.Context, monitoringID uuid.UUID, riskID uuid.UUID, cycle string) error
 }
 
-// MonitoringPeriodRepository owns the obligation ledger and the sequencing
-// rule. It is injected into the start flow so every entry point uses the same
-// monitoring policy.
+// MonitoringPeriodRepository owns the obligation ledger and the previous
+// transaction check. It is injected into the start flow so every entry point
+// uses the same monitoring policy.
 type MonitoringPeriodRepository interface {
 	EnsureMonitoringPeriods(ctx context.Context, versionGroupID uuid.UUID, effectiveFrom time.Time, year int) error
-	AssertPreviousMonitoringPeriodCompleted(ctx context.Context, versionGroupID uuid.UUID, previousCycle string) error
+	AssertPreviousMonitoringTransactionCompleted(ctx context.Context, versionGroupID uuid.UUID, previousCycle string) error
 }
 
 type StartMonitoringUseCase struct {
@@ -180,7 +180,7 @@ func (uc *StartMonitoringUseCase) Execute(ctx context.Context, input StartMonito
 	if err != nil {
 		return nil, errors.ErrCycleFormat
 	}
-	if err := uc.periodRepo.AssertPreviousMonitoringPeriodCompleted(ctx, sourceRisk.VersionGroupID, previousCycle); err != nil {
+	if err := uc.periodRepo.AssertPreviousMonitoringTransactionCompleted(ctx, sourceRisk.VersionGroupID, previousCycle); err != nil {
 		return nil, err
 	}
 

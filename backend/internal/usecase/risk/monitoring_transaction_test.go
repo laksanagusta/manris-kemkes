@@ -146,7 +146,7 @@ func (f *fakeMonitoringPeriodRepo) EnsureMonitoringPeriods(context.Context, uuid
 	return nil
 }
 
-func (f *fakeMonitoringPeriodRepo) AssertPreviousMonitoringPeriodCompleted(_ context.Context, _ uuid.UUID, cycle string) error {
+func (f *fakeMonitoringPeriodRepo) AssertPreviousMonitoringTransactionCompleted(_ context.Context, _ uuid.UUID, cycle string) error {
 	f.previousCycle = cycle
 	return f.assertErr
 }
