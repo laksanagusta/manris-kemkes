@@ -1,8 +1,16 @@
-# Integrasi heatmap dengan API key
+# Integrasi dashboard eksternal dengan API key
 
-MVP menggunakan endpoint yang sudah ada: `GET /api/v1/dashboard/heatmap`.
-Autentikasi JWT untuk aplikasi Manris tetap tersedia. Integrasi antarserver
-mengirim header `X-API-Key`. Key hanya berlaku untuk endpoint GET ini.
+Integrasi antarserver dapat memakai header `X-API-Key` pada endpoint GET berikut:
+
+- `/api/v1/dashboard/summary?cycle=2026-Q1`
+- `/api/v1/risks/cycle-snapshot?cycle=2026-Q1`
+- `/api/v1/dashboard/risk-categories?cycle=2026-Q1`
+- `/api/v1/dashboard/heatmap?cycle=2026-Q1`
+
+`cycle` opsional untuk summary, kategori risiko, dan heatmap; `cycle` wajib
+untuk cycle snapshot. Jika diberikan, formatnya `YYYY-Q1` sampai `YYYY-Q4`.
+Endpoint `/api/v1/dashboard/heatmap-multi` tetap memerlukan JWT. Endpoint lain
+yang tidak tercantum di atas juga tetap memakai autentikasi JWT aplikasi.
 
 ## Pengelolaan
 
@@ -25,14 +33,19 @@ memilih organisasi. Data tidak mencakup organisasi turunan.
 ## Permintaan
 
 ```sh
-curl 'https://<HOST_MANRIS>/api/v1/dashboard/heatmap?cycle=2026-Q1' \
-  -H 'X-API-Key: <API_KEY_ORGANISASI>'
+API_BASE='https://<HOST_MANRIS>/api/v1'
+API_KEY='<API_KEY_ORGANISASI>'
+
+curl "$API_BASE/dashboard/summary?cycle=2026-Q1" -H "X-API-Key: $API_KEY"
+curl "$API_BASE/risks/cycle-snapshot?cycle=2026-Q1" -H "X-API-Key: $API_KEY"
+curl "$API_BASE/dashboard/risk-categories?cycle=2026-Q1" -H "X-API-Key: $API_KEY"
+curl "$API_BASE/dashboard/heatmap?cycle=2026-Q1" -H "X-API-Key: $API_KEY"
 ```
 
-`cycle` opsional, dengan format `YYYY-Q1` sampai `YYYY-Q4`. Tanpa `cycle`,
-perhitungan heatmap yang sudah ada menggunakan triwulan berjalan berdasarkan
-UTC. Parameter organisasi tidak dapat memperluas akses yang dikunci pada key.
-Jika header JWT dan `X-API-Key` keduanya dikirim, autentikasi API key berlaku.
+Key membatasi respons ke organisasinya sendiri. Parameter organisasi tidak
+dapat memperluas cakupan tersebut. Jika JWT dan `X-API-Key` dikirim bersamaan,
+autentikasi API key yang berlaku. CORS mengizinkan header `X-API-Key` untuk
+origin yang diizinkan di konfigurasi backend.
 
 Respons mempertahankan format endpoint yang ada:
 
@@ -47,9 +60,10 @@ dashboard Manris yang sudah ada.
 ## Batas dan kesalahan
 
 Batas **60 permintaan per menit per organisasi** menggunakan jendela tetap
-60 detik di PostgreSQL, dibagi seluruh server dan integrasi organisasi.
-Regenerate tidak mereset kuota. Permintaan terautentikasi, termasuk permintaan
-dengan periode tidak valid, memakai kuota. Key tidak valid tidak memakai kuota.
+60 detik di PostgreSQL. Kuota dibagi seluruh server dan mencakup semua endpoint
+integrasi di atas. Regenerate tidak mereset kuota. Permintaan terautentikasi,
+termasuk permintaan dengan periode tidak valid, memakai kuota. Key tidak valid
+tidak memakai kuota.
 
 | Status | Arti |
 | --- | --- |
@@ -58,7 +72,7 @@ dengan periode tidak valid, memakai kuota. Key tidak valid tidak memakai kuota.
 | 429 | Batas tercapai; tunggu sesuai header `Retry-After` (detik) |
 | 500 | Kesalahan internal; jangan melakukan retry terus-menerus |
 
-Respons key dan heatmap integrasi memakai `Cache-Control: no-store`.
+Respons API key dan seluruh endpoint integrasi memakai `Cache-Control: no-store`.
 
 ## Endpoint Pengaturan (JWT sesi penuh)
 

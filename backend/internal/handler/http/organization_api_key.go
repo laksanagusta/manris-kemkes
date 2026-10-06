@@ -84,9 +84,9 @@ func (h *OrganizationAPIKeyHandler) generate(c *fiber.Ctx, regenerate bool) erro
 
 var integrationQuarterPattern = regexp.MustCompile(`^[1-9][0-9]{3}-Q[1-4]$`)
 
-// Heatmap is registered BEFORE the JWT-protected group, for this GET route only.
-// Requests without X-API-Key continue into the existing JWT route unchanged.
-func (h *OrganizationAPIKeyHandler) Heatmap(next fiber.Handler) fiber.Handler {
+// WithOrganizationAPIKey is registered before JWT-protected routes. Requests
+// without X-API-Key continue to the existing JWT route unchanged.
+func (h *OrganizationAPIKeyHandler) WithOrganizationAPIKey(next fiber.Handler) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		if c.Method() != fiber.MethodGet {
 			return c.Next()
