@@ -54,7 +54,7 @@ export default function LoginScreen() {
         </div>
         <div className="flex flex-col gap-3">
           <nav aria-label="Bantuan">
-            <Link href="/panduan" className="text-sm text-white/80 transition-colors hover:text-white">
+            <Link href="/docs" className="text-sm text-white/80 transition-colors hover:text-white">
               Docs
             </Link>
           </nav>

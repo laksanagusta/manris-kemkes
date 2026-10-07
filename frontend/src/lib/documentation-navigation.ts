@@ -1,29 +1,35 @@
 export const documentationGroups = [
   { title: "MULAI DI SINI", items: [
-    { slug: "pengenalan", title: "Panduan penggunaan" },
-    { slug: "akses-akun", title: "Akses akun" },
+    { slug: "introduction", title: "Panduan penggunaan" },
+    { slug: "account-access", title: "Akses akun" },
   ] },
   { title: "TATA KELOLA", items: [
-    { slug: "piagam-manris", title: "Piagam Manrisk" },
-    { slug: "eskalasi-risiko", title: "Eskalasi Risiko" },
+    { slug: "risk-charter", title: "Piagam Manrisk" },
+    { slug: "risk-escalation", title: "Eskalasi Risiko" },
   ] },
   { title: "MANAJEMEN RISIKO", items: [
-    { slug: "register-risiko", title: "Register Risiko" },
-    { slug: "penanganan", title: "Penanganan" },
-    { slug: "pemantauan", title: "Pemantauan" },
-    { slug: "kejadian-risiko", title: "Kejadian Risiko" },
+    { slug: "risk-register", title: "Register Risiko" },
+    { slug: "risk-treatment", title: "Penanganan" },
+    { slug: "risk-monitoring", title: "Pemantauan" },
+    { slug: "risk-events", title: "Kejadian Risiko" },
   ] },
   { title: "DOKUMEN & PELAPORAN", items: [
-    { slug: "kertas-kerja", title: "Kertas Kerja" },
-    { slug: "tanda-tangan", title: "Tanda tangan" },
+    { slug: "working-papers", title: "Kertas Kerja" },
+    { slug: "signatures", title: "Tanda tangan" },
     { slug: "dashboard", title: "Dashboard" },
-    { slug: "laporan", title: "Laporan" },
+    { slug: "reports", title: "Laporan" },
   ] },
   { title: "OTOMASI", items: [
-    { slug: "mom", title: "MoM" },
+    { slug: "meeting-minutes", title: "MoM" },
+  ] },
+  { title: "INTEGRASI", items: [
+    { slug: "api-key", title: "API key" },
+  ] },
+  { title: "ADMINISTRASI", items: [
+    { slug: "organization-groups", title: "Grup" },
   ] },
   { title: "BANTUAN", items: [
-    { slug: "istilah-dan-kendala", title: "Istilah & kendala" },
+    { slug: "glossary-and-troubleshooting", title: "Istilah & kendala" },
   ] },
 ] as const;
 
@@ -31,5 +37,5 @@ export const documentationItems = documentationGroups.flatMap((group) => [...gro
 export type DocumentationSlug = (typeof documentationItems)[number]["slug"];
 
 export function documentationHref(slug: string) {
-  return `/panduan/${slug}`;
+  return `/docs/${slug}`;
 }

@@ -208,7 +208,7 @@ const allNavHrefs = [
 const utilityLinks: NavItem[] = [
   {
     label: "Panduan",
-    href: "/panduan/pengenalan",
+    href: "/docs/introduction",
     icon: BookOpen,
   },
 ];
