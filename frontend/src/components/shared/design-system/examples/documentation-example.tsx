@@ -11,13 +11,14 @@ export const documentationExampleArticle: DocumentationArticle = {
       { title: "Penanganan", detail: "Susun dan laporkan mitigasi." },
       { title: "Pemantauan", detail: "Nilai kondisi setiap periode." },
     ] },
+    { id: "contoh-detail", title: "Tinjau detail dokumen", image: { src: "/documentation/screens/working-paper-detail.png", alt: "Detail Kertas Kerja dengan perubahan skor risiko, ringkasan, progres pemantauan dan histori tanda tangan", caption: "Screenshot yang diberikan pengguna merupakan snapshot. Nama, skor, periode, dan histori tanda tangan mengikuti dokumen serta akses akun.", width: 3420, height: 1904 } },
     { id: "contoh-langkah", title: "Ikuti langkah penggunaan", steps: [
-      { title: "Pilih panduan dari sidebar", detail: "Menu mengikuti tampilan navigasi aplikasi. Setiap topik memiliki alamat artikelnya sendiri." },
+      { title: "Pilih panduan dari sidebar", detail: "Menu mengikuti tampilan navigasi aplikasi. Setiap topik memiliki alamat artikelnya sendiri. Panduan API key tersedia sebagai menu tersendiri dalam kelompok Integrasi." },
       { title: "Baca bagian yang diperlukan", detail: "Daftar isi di kanan membantu menemukan bagian artikel. Pada layar kecil, buka daftar isi Di halaman ini." },
     ], note: "Menu dan tindakan yang tersedia dalam aplikasi mengikuti hak akses serta organisasi akun Anda." },
   ],
 };
 
 export function DocumentationExample() {
-  return <div className="space-y-4"><div className="max-w-3xl rounded-xl border border-border bg-card px-6 py-8"><ArticleContent article={documentationExampleArticle} /></div><Link href="/panduan/pengenalan" className="text-sm underline underline-offset-4">Buka panduan pengguna</Link></div>;
+  return <div className="space-y-4"><div className="max-w-3xl rounded-xl border border-border bg-card px-6 py-8"><ArticleContent article={documentationExampleArticle} /></div><Link href="/docs/introduction" className="text-sm underline underline-offset-4">Buka panduan pengguna</Link><Link href="/docs/api-key" className="block text-sm underline underline-offset-4">Buka panduan integrasi API key</Link></div>;
 }

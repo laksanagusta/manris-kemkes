@@ -24,7 +24,7 @@ test("keeps the NIP and password fields functional", () => {
 
 test("keeps brand navigation and help affordances", () => {
   assert.doesNotMatch(source, /Kembali ke beranda/);
-  assert.match(source, /<Link href="\/panduan"[\s\S]*?>\s*Docs\s*<\/Link>/);
+  assert.match(source, /<Link href="\/docs"[\s\S]*?>\s*Docs\s*<\/Link>/);
   assert.match(source, /Kendala masuk\? Hubungi administrator\./);
 });
 

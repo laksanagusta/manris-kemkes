@@ -2,7 +2,7 @@ import type { DocumentationArticle } from "@/components/documentation/article-co
 
 export const documentationArticles: DocumentationArticle[] = [
   {
-    slug: "pengenalan", title: "Panduan penggunaan Manrisk", category: "MULAI DI SINI",
+    slug: "introduction", title: "Panduan penggunaan Manrisk", category: "MULAI DI SINI",
     description: "Kenali fungsi utama Manrisk dan ikuti alur risiko dari identifikasi hingga pelaporan.", access: "Menu yang tampil mengikuti hak akses dan cakupan organisasi akun Anda.",
     sections: [
       { id: "alur-manris", title: "Ikuti alur pengelolaan risiko", paragraphs: ["Manrisk membantu Anda mencatat risiko, menilai tingkatnya, merencanakan penanganan, lalu memantau perubahan dalam setiap siklus. Catat kejadian nyata secara terpisah dan gunakan laporan untuk meninjau hasil.", "Menu Dashboard, Risiko, Kejadian Risiko, Penanganan, Pemantauan, Kertas Kerja, Tanda tangan, Laporan, Tata Kelola, dan Otomasi tersedia sesuai hak akses Anda.", "Angka dan baris pada screenshot adalah snapshot saat dokumentasi disusun. Tampilan aktual mengikuti akun, organisasi, dan periode yang dipilih."], image: { src: "/documentation/screens/dashboard-start.png", alt: "Dashboard Manrisk dengan ringkasan risiko, grafik, dan peta risiko", caption: "Dashboard Manrisk menampilkan ringkasan dan tren untuk cakupan serta periode yang dipilih.", width: 3420, height: 1904 }, diagram: [
@@ -20,7 +20,7 @@ export const documentationArticles: DocumentationArticle[] = [
     ],
   },
   {
-    slug: "akses-akun", title: "Masuk dan akses akun", category: "MULAI DI SINI",
+    slug: "account-access", title: "Masuk dan akses akun", category: "MULAI DI SINI",
     description: "Masuk memakai NIP dan password, daftar akun unit kerja, atau ubah password setelah masuk.", access: "Akun Manrisk; registrasi baru harus menunggu persetujuan administrator.",
     sections: [
       { id: "masuk", title: "Masuk ke Manrisk", steps: [
@@ -42,7 +42,7 @@ export const documentationArticles: DocumentationArticle[] = [
     ],
   },
   {
-    slug: "piagam-manris", title: "Membuat dan memperbarui Piagam Manrisk", category: "TATA KELOLA",
+    slug: "risk-charter", title: "Membuat dan memperbarui Piagam Manrisk", category: "TATA KELOLA",
     description: "Susun piagam manajemen risiko untuk tahun berjalan, lalu jaga riwayat revisinya.", access: "Pengguna dengan akses Tata Kelola Risiko pada organisasi yang dipilih.",
     sections: [
       { id: "daftar-piagam", title: "Buka daftar Piagam Manrisk", steps: [
@@ -72,7 +72,7 @@ export const documentationArticles: DocumentationArticle[] = [
     ],
   },
   {
-    slug: "eskalasi-risiko", title: "Mengelola eskalasi risiko", category: "TATA KELOLA",
+    slug: "risk-escalation", title: "Mengelola eskalasi risiko", category: "TATA KELOLA",
     description: "Tinjau usulan hubungan risiko antarunit dan tindak lanjutnya.", access: "Pengguna yang memiliki akses ke organisasi sumber atau sasaran eskalasi.",
     sections: [
       { id: "alur-eskalasi", title: "Pahami alur eskalasi", paragraphs: ["Eskalasi menghubungkan risiko lintas organisasi agar unit yang memerlukan koordinasi dapat meninjaunya. Catatan eskalasi menyimpan risiko sumber, organisasi sasaran, jenis eskalasi, analisis, keputusan, dan status."], image: { src: "/documentation/screens/eskalasi-risiko.png", alt: "Halaman Eskalasi Risiko dari aplikasi Manrisk", caption: "Daftar Eskalasi Risiko dari aplikasi Manrisk; isi daftar mengikuti akses akun Anda.", width: 1145, height: 760 }, diagram: [
@@ -106,7 +106,7 @@ export const documentationArticles: DocumentationArticle[] = [
     ],
   },
   {
-    slug: "register-risiko", title: "Mencatat dan memfinalisasi risiko", category: "MANAJEMEN RISIKO",
+    slug: "risk-register", title: "Mencatat dan memfinalisasi risiko", category: "MANAJEMEN RISIKO",
     description: "Buat profil risiko, isi asesmen awal, rencanakan penanganan, dan tentukan targetnya.", access: "Pengguna yang memiliki akses tulis pada organisasi terkait risiko.",
     sections: [
       { id: "daftar-risiko", title: "Tinjau daftar dan ringkasan risiko", steps: [
@@ -166,7 +166,7 @@ export const documentationArticles: DocumentationArticle[] = [
     ],
   },
   {
-    slug: "penanganan", title: "Mengelola dan melaporkan penanganan", category: "MANAJEMEN RISIKO",
+    slug: "risk-treatment", title: "Mengelola dan melaporkan penanganan", category: "MANAJEMEN RISIKO",
     description: "Susun rencana mitigasi, tetapkan PIC, dan catat pelaksanaan sesuai jadwalnya.", access: "Pengguna yang memiliki akses ke risiko dan tindakan terkait pada unitnya.",
     sections: [
       { id: "rencana-mitigasi", title: "Susun rencana penanganan", steps: [
@@ -191,7 +191,7 @@ export const documentationArticles: DocumentationArticle[] = [
     ],
   },
   {
-    slug: "pemantauan", title: "Melakukan pemantauan risiko", category: "MANAJEMEN RISIKO",
+    slug: "risk-monitoring", title: "Melakukan pemantauan risiko", category: "MANAJEMEN RISIKO",
     description: "Mulai siklus pemantauan, perbarui asesmen, lalu finalisasi pengamatan untuk periodenya.", access: "Pengguna dengan akses pemantauan pada organisasi dan profil risiko terkait.",
     sections: [
       { id: "mulai-pemantauan", title: "Mulai siklus pemantauan", steps: [
@@ -222,7 +222,7 @@ export const documentationArticles: DocumentationArticle[] = [
     ],
   },
   {
-    slug: "kejadian-risiko", title: "Mencatat kejadian risiko", category: "MANAJEMEN RISIKO",
+    slug: "risk-events", title: "Mencatat kejadian risiko", category: "MANAJEMEN RISIKO",
     description: "Catat kejadian yang benar-benar berlangsung sebagai rekam LED dan hubungkan dengan risiko terkait.", access: "Pengguna dengan izin membuat catatan kejadian pada organisasi terkait.",
     sections: [
       { id: "daftar-kejadian", title: "Tinjau daftar kejadian", steps: [
@@ -250,7 +250,7 @@ export const documentationArticles: DocumentationArticle[] = [
     ],
   },
   {
-    slug: "kertas-kerja", title: "Membuat dan meninjau Kertas Kerja", category: "DOKUMEN & PELAPORAN",
+    slug: "working-papers", title: "Membuat dan meninjau Kertas Kerja", category: "DOKUMEN & PELAPORAN",
     description: "Buat dokumen berkala dari roster risiko, lalu tinjau kesiapan pemantauan dan penandatangan.", access: "Pengguna yang diizinkan menyusun Kertas Kerja untuk organisasi dan siklus terkait.",
     sections: [
       { id: "buat-kertas-kerja", title: "Siapkan roster", steps: [
@@ -269,6 +269,7 @@ export const documentationArticles: DocumentationArticle[] = [
         { title: "Selesaikan pemantauan yang tertinggal", detail: "Jika ada risiko dengan pemantauan belum final, buka profilnya dan finalisasi pemantauan terlebih dahulu." },
         { title: "Mulai TTE ketika siap", detail: "Setelah semua risiko dalam roster berstatus final dan tidak ada blocker, pembuat dokumen dapat memulai proses tanda tangan elektronik." },
       ], image: { src: "/documentation/screens/kertas-kerja-progress.png", alt: "Daftar Kertas Kerja dengan panel progres yang dapat dibuka", caption: "Panel Progres Kertas Kerja dapat dibuka untuk memeriksa finalisasi risiko per organisasi; angka di gambar merupakan snapshot.", width: 3420, height: 1904 }, note: "Kertas Kerja mengambil snapshot dari roster periode. Tinjau keputusan penyertaan dan urutan penandatangan sebelum menyimpannya." },
+      { id: "detail-kertas-kerja", title: "Baca detail Kertas Kerja", paragraphs: ["Halaman detail menampilkan kode dan versi risiko, perubahan skor, serta status pemantauan setiap risiko dalam roster. Panel Ringkasan menampilkan kode dokumen, periode pemantauan, status, tanggal pembuatan, dan waktu penyelesaian.", "Periksa Progres Pemantauan untuk mengetahui jumlah risiko yang sudah selesai dipantau. Histori Tanda Tangan mencatat penandatangan dan waktu penyelesaian tahapnya."], image: { src: "/documentation/screens/working-paper-detail.png", alt: "Detail Kertas Kerja dengan daftar risiko, perubahan skor, ringkasan, progres pemantauan dan histori tanda tangan", caption: "Snapshot Kertas Kerja yang selesai. Nama, kode, skor, periode, progres, dan histori tanda tangan mengikuti dokumen serta akses akun.", width: 3420, height: 1904 } },
       { id: "status-kertas-kerja", title: "Status Kertas Kerja", fields: [
         { name: "Draf", description: "Dokumen sedang disusun atau menunggu persiapan proses tanda tangan." },
         { name: "Menunggu penandatangan", description: "Dokumen sedang mengikuti urutan TTE; tindakan menunggu penandatangan yang gilirannya tiba." },
@@ -278,7 +279,7 @@ export const documentationArticles: DocumentationArticle[] = [
     ],
   },
   {
-    slug: "tanda-tangan", title: "Meninjau persetujuan dan TTE", category: "DOKUMEN & PELAPORAN",
+    slug: "signatures", title: "Meninjau persetujuan dan TTE", category: "DOKUMEN & PELAPORAN",
     description: "Tinjau permintaan pada inbox dan selesaikan tanda tangan sesuai urutan serta kewenangan Anda.", access: "Reviewer atau penandatangan yang ditetapkan untuk permintaan tertentu.",
     sections: [
       { id: "persetujuan-inbox", title: "Tinjau permintaan pada Tanda tangan", steps: [
@@ -320,7 +321,7 @@ export const documentationArticles: DocumentationArticle[] = [
     ],
   },
   {
-    slug: "laporan", title: "Membaca dan mengekspor Laporan", category: "DOKUMEN & PELAPORAN",
+    slug: "reports", title: "Membaca dan mengekspor Laporan", category: "DOKUMEN & PELAPORAN",
     description: "Bandingkan hasil antarperiode dan ekspor ringkasan laporan sesuai cakupan organisasi.", access: "Pengguna dengan hak akses laporan untuk organisasi yang dicakup akun mereka.",
     sections: [
       { id: "periode-laporan", title: "Pilih periode dan organisasi", steps: [
@@ -348,7 +349,7 @@ export const documentationArticles: DocumentationArticle[] = [
     ],
   },
   {
-    slug: "mom", title: "Membuat notulen dan mengolah transkrip", category: "OTOMASI",
+    slug: "meeting-minutes", title: "Membuat notulen dan mengolah transkrip", category: "OTOMASI",
     description: "Gunakan MoM untuk menyiapkan notulen, mencari catatan, dan mengubah pembahasan menjadi tindak lanjut.", access: "Akses MoM bergantung pada izin akun dan pengaktifan fitur di lingkungan Manrisk.",
     sections: [
       { id: "daftar-mom", title: "Cari dan kelola notulen", steps: [
@@ -375,7 +376,34 @@ export const documentationArticles: DocumentationArticle[] = [
     ],
   },
   {
-    slug: "istilah-dan-kendala", title: "Istilah dan kendala umum", category: "BANTUAN",
+    slug: "api-key", title: "Mengelola API key untuk integrasi", category: "INTEGRASI",
+    description: "Buat dan kelola API key agar aplikasi eksternal dapat mengakses peta risiko organisasi.", access: "Pengguna dengan akses pengaturan API key untuk organisasi terkait.",
+    sections: [
+      { id: "api-key", title: "Kelola API key organisasi", steps: [
+        { title: "Buka Pengaturan lalu pilih API key", detail: "Periksa key untuk organisasi Anda. Jika pilihan organisasi tersedia, pilih organisasi yang akan diintegrasikan." },
+        { title: "Tinjau status penggunaan", detail: "Diperbarui menunjukkan waktu pembaruan key, sedangkan Terakhir digunakan menunjukkan pemakaian terakhir oleh aplikasi integrasi." },
+        { title: "Buat atau ganti key bila diperlukan", detail: "Pilih Generate jika key belum ada. Untuk mengganti key, pilih Regenerate dan baca konfirmasi sebelum melanjutkan." },
+        { title: "Simpan key baru", detail: "Key lengkap hanya ditampilkan sekali. Salin dan simpan di server aplikasi integrasi sebelum menutup dialog." },
+      ], image: { src: "/documentation/screens/api-key-settings.png", alt: "Pengaturan API key organisasi dengan key tersamarkan, tombol Regenerate, waktu pembaruan dan penggunaan terakhir", caption: "Snapshot pengaturan API key. Key ditampilkan tersamarkan; waktu pembaruan dan penggunaan mengikuti organisasi serta aktivitas integrasi.", width: 3420, height: 1904 }, note: "Regenerate langsung menonaktifkan key lama. Perbarui seluruh aplikasi integrasi organisasi dengan key baru." },
+    ],
+  },
+  {
+    slug: "organization-groups", title: "Mengelola Grup organisasi", category: "ADMINISTRASI",
+    description: "Kelompokkan unit turunan untuk memudahkan pemilihan cakupan laporan.", access: "Pengguna dengan akses menu Grup; organisasi yang tersedia mengikuti cakupan izin akun.",
+    sections: [
+      { id: "daftar-grup", title: "Tinjau daftar Grup", steps: [
+        { title: "Buka menu Grup", detail: "Daftar menampilkan nama grup, organisasi pemilik, jumlah anggota, dan waktu pembaruan." },
+        { title: "Cari grup", detail: "Gunakan kolom Cari grup untuk menemukan kelompok yang ingin ditinjau." },
+      ], image: { src: "/documentation/screens/organization-groups.png", alt: "Daftar Grup Organisasi dengan pencarian, tombol Tambah Grup, pemilik, jumlah anggota dan waktu pembaruan", caption: "Snapshot daftar Grup. Nama, pemilik, jumlah anggota, dan waktu pembaruan mengikuti data serta cakupan organisasi akun.", width: 3420, height: 1904 } },
+      { id: "tambah-grup", title: "Tambahkan Grup organisasi", steps: [
+        { title: "Pilih Tambah Grup", detail: "Isi Nama Grup yang mudah dikenali saat memilih cakupan laporan. Tambahkan Deskripsi bila diperlukan." },
+        { title: "Pilih anggota organisasi", detail: "Gunakan pemilih organisasi untuk menambahkan unit turunan. Tinjau jumlah yang dipilih; gunakan Pilih semua atau Kosongkan pilihan sesuai kebutuhan." },
+        { title: "Simpan Grup", detail: "Periksa nama dan anggota, lalu pilih Simpan Grup. Grup yang tersimpan dapat dipilih sebagai cakupan laporan sesuai izin akun." },
+      ], image: { src: "/documentation/screens/organization-group-create.png", alt: "Dialog Tambah Grup Organisasi dengan nama, deskripsi, pemilih anggota dan tombol Simpan Grup", caption: "Snapshot form Tambah Grup. Jumlah unit tersedia dan anggota terpilih mengikuti organisasi pemilik serta hak akses akun.", width: 3420, height: 1904 } },
+    ],
+  },
+  {
+    slug: "glossary-and-troubleshooting", title: "Istilah dan kendala umum", category: "BANTUAN",
     description: "Gunakan arti status yang konsisten dan langkah berikut untuk memeriksa kendala penggunaan Manrisk.", access: "Terbuka untuk pengguna Manrisk.",
     sections: [
       { id: "istilah-status", title: "Istilah status", fields: [

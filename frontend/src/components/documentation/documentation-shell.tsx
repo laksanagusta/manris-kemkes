@@ -22,7 +22,7 @@ function DocumentationSidebar() {
   return (
     <Sidebar collapsible="offcanvas" className="text-pretty md:border-r-[0.5px] md:border-border">
       <SidebarHeader className="flex-row items-center px-4 py-6 text-pretty">
-        <Link href="/panduan/pengenalan" onClick={() => setOpenMobile(false)}
+        <Link href="/docs/introduction" onClick={() => setOpenMobile(false)}
           className="font-logo flex min-h-10 min-w-0 flex-1 items-center gap-2 rounded-md text-[20px] font-semibold lowercase tracking-[-0.4px] outline-hidden focus-visible:ring-2 focus-visible:ring-ring">
           <ManriskMark />
           <span>Manrisk</span>
