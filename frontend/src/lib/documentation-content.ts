@@ -11,6 +11,7 @@ export const documentationArticles: DocumentationArticle[] = [
         { title: "Pemantauan", detail: "Perbarui penilaian pada siklus berjalan." },
         { title: "Pelaporan", detail: "Tinjau hasil dan catat kejadian aktual." },
       ] },
+      { id: "video-pengenalan", title: "Tonton video panduan", video: { youtubeId: "IXlINKzRdQk", title: "Video panduan penggunaan Manrisk", caption: "Video YouTube yang disediakan untuk panduan Manrisk." } },
       { id: "mulai-kerja", title: "Mulai pekerjaan", steps: [
         { title: "Masuk dengan akun unit kerja", detail: "Gunakan NIP dan password untuk membuka aplikasi. Jika akun belum ada, daftar lalu tunggu persetujuan administrator." },
         { title: "Pilih menu sesuai tugas", detail: "Buka Risiko untuk mengelola profil, Penanganan untuk melaporkan progres mitigasi, atau Pemantauan untuk meninjau risiko pada periode berjalan." },
