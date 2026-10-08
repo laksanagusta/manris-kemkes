@@ -12,6 +12,7 @@ export type DocumentationSection = {
   diagram?: { title: string; detail: string }[];
   note?: string;
   image?: { src: string; alt: string; caption: string; width: number; height: number };
+  video?: { youtubeId: string; title: string; caption: string };
 };
 
 export type DocumentationArticle = {
@@ -51,6 +52,25 @@ export function ArticleContent({ article }: { article: DocumentationArticle }) {
                       : "block h-auto max-h-[34rem] w-full object-contain"} />
                 </a>
               </ScreenshotFrame>
+            )}
+            {section.video && (
+              <figure className="space-y-3">
+                <div className="aspect-video w-full overflow-hidden rounded-xl border border-border bg-black">
+                  <iframe
+                    className="size-full"
+                    src={`https://www.youtube-nocookie.com/embed/${section.video.youtubeId}`}
+                    title={section.video.title}
+                    loading="lazy"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  />
+                </div>
+                <figcaption className="flex flex-wrap items-baseline gap-x-1 max-w-[72ch] text-xs leading-[1.5] text-tertiary-foreground">
+                  <span>{section.video.caption}</span>
+                  <a href={`https://www.youtube.com/watch?v=${section.video.youtubeId}`} target="_blank" rel="noreferrer" className="underline underline-offset-4">Tonton di YouTube</a>
+                </figcaption>
+              </figure>
             )}
             {section.diagram && (
               <ol aria-label="Alur proses" className="flex flex-col gap-3 rounded-xl bg-sidebar p-4 sm:flex-row">
