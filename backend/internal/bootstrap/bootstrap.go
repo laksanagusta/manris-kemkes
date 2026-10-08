@@ -4,6 +4,7 @@ package bootstrap
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/manris/backend/internal/database"
 	domainrepo "github.com/manris/backend/internal/domain/repository"
 	domainsvc "github.com/manris/backend/internal/domain/service"
+	identityservice "github.com/manris/backend/internal/identity/service"
 	openairepo "github.com/manris/backend/internal/repository/openai"
 	postgresrepo "github.com/manris/backend/internal/repository/postgres"
 	reportpdf "github.com/manris/backend/internal/service/pdfreport"
@@ -44,6 +46,7 @@ import (
 
 // Container holds all application dependencies.
 type Container struct {
+	IdentityService *identityservice.Service
 	// Infrastructure
 	Pool *pgxpool.Pool
 	Cfg  *config.Config
@@ -439,6 +442,11 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.AuthRegisterUC = authuc.NewRegisterUseCase(c.UserRepository, c.OrgRepository)
 	c.AuthMeUC = authuc.NewGetCurrentUserUseCase(c.UserRepository, c.OrgHierarchySvc, cfg.RiskApprovalWorkflowEnabled)
 	c.AuthUpdateProfileUC = authuc.NewUpdateProfileUseCase(c.UserRepository, c.OrgHierarchySvc, cfg.RiskApprovalWorkflowEnabled)
+	c.IdentityService, err = identityservice.New(postgresrepo.NewIdentityAuthStore(pool), postgresrepo.NewIdentityDirectory(pool), c.OrgRepository, cfg.JWTSecret, time.Duration(cfg.AuthTokenExpiryMinutes)*time.Minute)
+	if err != nil {
+		pool.Close()
+		return nil, fmt.Errorf("initialize shared identity: %w", err)
+	}
 	c.AuthChangePasswordUC = authuc.NewChangePasswordUseCase(c.UserRepository, c.OrgHierarchySvc, cfg.JWTSecret, cfg.JWTExpiry, cfg.RiskApprovalWorkflowEnabled)
 
 	// ============================================================================

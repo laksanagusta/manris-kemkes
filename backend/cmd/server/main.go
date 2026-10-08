@@ -17,6 +17,7 @@ import (
 	"github.com/manris/backend/internal/bootstrap"
 	"github.com/manris/backend/internal/config"
 	httpHandler "github.com/manris/backend/internal/handler/http"
+	identitydomain "github.com/manris/backend/internal/identity/domain"
 	"github.com/manris/backend/internal/middleware"
 )
 
@@ -57,6 +58,7 @@ func main() {
 
 	// Auth handlers (Clean Architecture)
 	cleanAuthHandler := httpHandler.NewAuthHandler(container.AuthLoginUC, container.AuthRegisterUC, container.AuthMeUC, container.AuthUpdateProfileUC, container.AuthChangePasswordUC)
+	sharedAuthHandler := httpHandler.NewIdentityAuthHandler(container.IdentityService, cfg.RiskApprovalWorkflowEnabled)
 	organizationAPIKeyHandler := httpHandler.NewOrganizationAPIKeyHandler(container.OrganizationAPIKeyService)
 
 	// AI handlers (Clean Architecture)
@@ -204,14 +206,11 @@ func main() {
 	api := app.Group("/api/v1")
 
 	// Auth (public)
-	api.Post("/auth/login", cleanAuthHandler.Login)
+	sharedAuthHandler.RegisterPublicRoutes(api)
 	api.Post("/auth/register", cleanAuthHandler.Register)
 	api.Get("/auth/register/organizations", cleanOrgHandler.List)
 
-	authProtected := api.Group("/auth", middleware.AuthRequired(cfg.JWTSecret))
-	authProtected.Get("/me", cleanAuthHandler.Me)
-	authProtected.Put("/me", middleware.RequireFullSession(), cleanAuthHandler.UpdateProfile)
-	authProtected.Post("/change-password", cleanAuthHandler.ChangePassword)
+	sharedAuthHandler.RegisterManagementRoutes(api)
 
 	// Read-only dashboard endpoints accept an organization API key for server-to-server integrations.
 	api.Get("/dashboard/summary", organizationAPIKeyHandler.WithOrganizationAPIKey(cleanRiskHandler.DashboardSummary))
@@ -219,7 +218,7 @@ func main() {
 	api.Get("/dashboard/risk-categories", organizationAPIKeyHandler.WithOrganizationAPIKey(cleanRiskHandler.GetDashboardRiskCategories))
 	api.Get("/dashboard/heatmap", organizationAPIKeyHandler.WithOrganizationAPIKey(cleanRiskHandler.HeatmapData))
 
-	protected := api.Group("", middleware.AuthRequired(cfg.JWTSecret), middleware.RequireFullSession(), middleware.ResolveOrgScope(container.OrgHierarchySvc))
+	protected := api.Group("", middleware.IdentityRequired(container.IdentityService, identitydomain.ManrisApplication), middleware.RequireFullSession())
 	protected.Get("/organization-api-key", organizationAPIKeyHandler.Get)
 	protected.Post("/organization-api-key/generate", organizationAPIKeyHandler.Generate)
 	protected.Post("/organization-api-key/regenerate", organizationAPIKeyHandler.Regenerate)

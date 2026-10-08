@@ -14,6 +14,7 @@ type Config struct {
 	DatabaseURL                 string
 	JWTSecret                   string
 	JWTExpiry                   int // hours
+	AuthTokenExpiryMinutes      int
 	CORSOrigins                 string
 	OpenAIKey                   string
 	RiskApprovalWorkflowEnabled bool
@@ -46,12 +47,14 @@ func Load() *Config {
 	_ = godotenv.Load()
 
 	expiry, _ := strconv.Atoi(getEnv("JWT_EXPIRY_HOURS", "24"))
+	tokenMinutes, _ := strconv.Atoi(getEnv("AUTH_TOKEN_EXPIRY_MINUTES", strconv.Itoa(expiry*60)))
 
 	return &Config{
 		Port:                        getEnv("PORT", "8080"),
 		DatabaseURL:                 getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/manris?sslmode=disable"),
 		JWTSecret:                   getEnv("JWT_SECRET", "change-me"),
 		JWTExpiry:                   expiry,
+		AuthTokenExpiryMinutes:      tokenMinutes,
 		CORSOrigins:                 getEnv("CORS_ORIGINS", "http://localhost:3000"),
 		OpenAIKey:                   getEnv("OPENAI_API_KEY", ""),
 		RiskApprovalWorkflowEnabled: getEnvBool("RISK_APPROVAL_WORKFLOW_ENABLED", false),
