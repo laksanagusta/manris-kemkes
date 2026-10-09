@@ -8,13 +8,17 @@ import { MotionFeedback } from "@/components/shared/design-system/motion/motion-
 import { SuppressRadixWarnings } from "@/components/suppress-radix-warnings";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { SITE_URL } from "@/lib/site";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: "Manrisk",
   description:
     "Platform SaaS manajemen risiko",
+  // Public marketing and documentation routes opt in to indexing explicitly.
+  robots: { index: false, follow: false },
   icons: {
     icon: {
       url: "/manrisk-favicon.svg?v=rounded-panels",

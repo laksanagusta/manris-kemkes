@@ -16,6 +16,7 @@ export async function generateMetadata({ params }: DocumentationRouteProps): Pro
   return {
     title: `${article.title} | Panduan Manrisk`,
     description: article.description,
+    alternates: { canonical: `/docs/${article.slug}` },
   };
 }
 
