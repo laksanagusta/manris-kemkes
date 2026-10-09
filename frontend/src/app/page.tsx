@@ -13,8 +13,10 @@ import {
 import styles from "@/components/marketing/marketing.module.css";
 
 export const metadata: Metadata = {
-  title: "Manrisk — Kelola risiko bersama tim",
+  title: "Manrisk — Aplikasi Manajemen Risiko",
   description: "Catat dan nilai risiko, susun penanganan, lalu pantau progresnya bersama tim. Manrisk menyediakan bantuan AI untuk meninjau SOP dan menyusun notulen rapat.",
+  alternates: { canonical: "/" },
+  robots: { index: true, follow: true },
 };
 
 const workflow = [
