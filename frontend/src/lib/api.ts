@@ -29,7 +29,7 @@ async function request<T>(path: string, options: FetchOptions = {}): Promise<T> 
     headers["Authorization"] = `Bearer ${token}`;
   }
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  const res = await fetch(path.startsWith("/auth/") ? `/api${path}` : `${API_BASE}${path}`, {
     ...fetchOpts,
     headers,
   });

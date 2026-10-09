@@ -28,3 +28,19 @@ func TestLoad_RiskApprovalWorkflowEnabled(t *testing.T) {
 		})
 	}
 }
+
+func TestLoad_SharedAuthTokenLifetime(t *testing.T) {
+	t.Setenv("JWT_EXPIRY_HOURS", "2")
+	t.Setenv("AUTH_TOKEN_EXPIRY_MINUTES", "")
+	if got := Load().AuthTokenExpiryMinutes; got != 120 {
+		t.Fatalf("default lifetime=%d want 120", got)
+	}
+	t.Setenv("AUTH_TOKEN_EXPIRY_MINUTES", "15")
+	if got := Load().AuthTokenExpiryMinutes; got != 15 {
+		t.Fatalf("explicit lifetime=%d want 15", got)
+	}
+	t.Setenv("AUTH_TOKEN_EXPIRY_MINUTES", "invalid")
+	if got := Load().AuthTokenExpiryMinutes; got != 0 {
+		t.Fatalf("invalid lifetime should fail service initialization, got %d", got)
+	}
+}

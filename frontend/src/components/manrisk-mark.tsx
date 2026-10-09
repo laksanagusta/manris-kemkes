@@ -13,7 +13,7 @@ export function ManriskMark({
 }) {
   return (
     <Image
-      src="/manrisk-logo.svg"
+      src="/manrisk-logo.svg?v=rounded-panels"
       alt=""
       aria-hidden="true"
       width={size}

@@ -343,8 +343,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [applyUserProfile, token]);
 
   const logout = useCallback(() => {
+    if (token) {
+      // Revoke the server session while keeping local sign-out immediate.
+      void fetch("/api/auth/logout", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        keepalive: true,
+      }).catch(() => {});
+    }
     clearSession();
-  }, [clearSession]);
+  }, [clearSession, token]);
 
   const isAuthenticated = Boolean(token && user);
   const requiresPasswordChange = Boolean(isAuthenticated && mustChangePassword);

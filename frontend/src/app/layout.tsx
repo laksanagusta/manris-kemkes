@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     "Platform SaaS manajemen risiko",
   icons: {
     icon: {
-      url: "/manrisk-favicon.svg",
+      url: "/manrisk-favicon.svg?v=rounded-panels",
       type: "image/svg+xml",
     },
   },
