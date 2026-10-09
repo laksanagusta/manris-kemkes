@@ -22,6 +22,7 @@ type Store interface {
 
 // Directory owns the canonical shared profile, role, and organization membership.
 type Directory interface {
+	ListDirectory(context.Context, domain.DirectoryFilter) ([]*domain.DirectoryUser, int, error)
 	GetByID(context.Context, uuid.UUID) (*domain.User, error)
 	GetByNIP(context.Context, string) (*domain.User, error)
 	RecordLastLogin(context.Context, uuid.UUID) error

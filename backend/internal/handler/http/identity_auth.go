@@ -2,14 +2,16 @@ package http
 
 import (
 	"errors"
+	"fmt"
+	"strings"
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/limiter"
 	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/identity/domain"
 	identity "github.com/manris/backend/internal/identity/service"
 	"github.com/manris/backend/internal/middleware"
-	"strings"
-	"time"
 )
 
 type IdentityAuthHandler struct {
@@ -29,15 +31,6 @@ func bearerToken(c *fiber.Ctx) string {
 		return ""
 	}
 	return p[1]
-}
-func hasAppKey(c *fiber.Ctx) bool {
-	found := false
-	c.Request().Header.VisitAll(func(name, _ []byte) {
-		if strings.EqualFold(string(name), appKeyHeader) {
-			found = true
-		}
-	})
-	return found
 }
 func identityError(c *fiber.Ctx, err error) error {
 	status := fiber.StatusServiceUnavailable
@@ -81,23 +74,14 @@ func (h *IdentityAuthHandler) Login(c *fiber.Ctx) error {
 	if err := c.BodyParser(&input); err != nil {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
-	var result *domain.LoginResult
-	var err error
-	if hasAppKey(c) {
-		result, err = h.service.LoginWithKey(c.Context(), c.Get(appKeyHeader), input.NIP, input.Password)
-	} else {
-		result, err = h.service.Login(c.Context(), domain.ManrisApplication, input.NIP, input.Password)
-	}
+	result, err := h.service.LoginWithKey(c.Context(), c.Get(appKeyHeader), input.NIP, input.Password)
 	if err != nil {
 		return identityError(c, err)
 	}
 	return c.JSON(fiber.Map{"data": fiber.Map{"token": result.Token, "appId": result.AppID, "expiresAt": result.ExpiresAt, "sessionMode": result.SessionMode, "mustChangePassword": result.MustChangePassword, "user": h.profile(result.User, result.AppID)}})
 }
 func (h *IdentityAuthHandler) requestIdentity(c *fiber.Ctx) (*domain.Identity, error) {
-	if hasAppKey(c) {
-		return h.service.ValidateWithKey(c.Context(), c.Get(appKeyHeader), bearerToken(c))
-	}
-	return h.service.Validate(c.Context(), domain.ManrisApplication, bearerToken(c))
+	return h.service.ValidateWithKey(c.Context(), c.Get(appKeyHeader), bearerToken(c))
 }
 func (h *IdentityAuthHandler) Me(c *fiber.Ctx) error {
 	c.Set(fiber.HeaderCacheControl, "no-store")
@@ -181,18 +165,42 @@ func (h *IdentityAuthHandler) DisableApplication(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// Public auth routes must precede /auth group middleware.
+// RequireApplication protects every auth route, including registration and app management.
+func (h *IdentityAuthHandler) RequireApplication(c *fiber.Ctx) error {
+	c.Set(fiber.HeaderCacheControl, "no-store")
+	app, err := h.service.ResolveApplication(c.Context(), c.Get(appKeyHeader))
+	if err != nil {
+		return identityError(c, err)
+	}
+	c.Locals("authApplicationID", app.ID)
+	return c.Next()
+}
+
+func requireManrisApplication(c *fiber.Ctx) error {
+	if c.Locals("authApplicationID") != domain.ManrisApplication {
+		return identityError(c, domainerrors.ErrUnauthorized)
+	}
+	return c.Next()
+}
 func (h *IdentityAuthHandler) RegisterPublicRoutes(api fiber.Router) {
-	api.Post("/auth/login", limiter.New(limiter.Config{Max: 20, Expiration: time.Minute}), h.Login)
+	api.Use("/auth", h.RequireApplication)
+	api.Post("/auth/login", limiter.New(limiter.Config{Max: 20, Expiration: time.Minute, KeyGenerator: func(c *fiber.Ctx) string {
+		// Server proxies share an IP; keep unrelated user logins independent.
+		var input LoginRequest
+		_ = c.BodyParser(&input)
+		return c.IP() + ":" + fmt.Sprint(c.Locals("authApplicationID")) + ":" + input.NIP
+	}}), h.Login)
 	api.Get("/auth/me", h.Me)
 	api.Post("/auth/logout", h.Logout)
 	api.Get("/auth/roles", h.Roles)
 	api.Get("/auth/organizations", h.Organizations)
+	api.Get("/auth/users", h.ListUsers)
+	api.Get("/auth/users/:id", h.GetUser)
 	api.Put("/auth/me", h.UpdateProfile)
 	api.Post("/auth/change-password", h.ChangePassword)
 }
 func (h *IdentityAuthHandler) RegisterManagementRoutes(api fiber.Router) {
-	apps := api.Group("/auth/apps", middleware.IdentityRequired(h.service, domain.ManrisApplication), middleware.RequireFullSession(), middleware.RoleGuard(domain.RoleSuperAdmin))
+	apps := api.Group("/auth/apps", h.RequireApplication, requireManrisApplication, middleware.IdentityRequired(h.service, domain.ManrisApplication), middleware.RequireFullSession(), middleware.RoleGuard(domain.RoleSuperAdmin))
 	apps.Get("/", h.ListApplications)
 	apps.Post("/", h.CreateApplication)
 	apps.Post("/:id/rotate-key", h.RotateKey)

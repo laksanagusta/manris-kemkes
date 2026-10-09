@@ -13,13 +13,16 @@ Auth is a shared identity service hosted inside the Manris repository. Manris an
 
 Existing `domain/entity.User` and `Organization` are compatibility aliases to the identity-owned types. The existing `users` and `organizations` tables remain canonical: no duplicate directory, changed user IDs, or migration of business foreign keys. Existing administrative user/organization endpoints still manage those same identity records. The legacy auth usecases remain for compatibility, but runtime login, me, password and profile endpoints now use the shared service.
 
-Manris currently uses a trusted in-process adapter. Its browser does not receive an APP_KEY. Other application backends authenticate with their own APP_KEY. The HTTP validator implements the same `Validator` interface for the future service split. Moving to another project still requires moving directory administration and replacing local directory repositories and database foreign keys with service contracts/stable IDs; this change does not pretend that cross-database extraction is already complete.
+Every HTTP endpoint under `/api/v1/auth/*` requires a valid `X-App-Key`, including Manris login, registration, and application management. Missing, empty, invalid or disabled keys return `401`; there is no default application fallback. Authenticated routes also require a bearer token belonging to that application. The Manris browser calls the Next.js `/api/auth/*` proxy, which injects the server-only `MANRIS_APP_KEY`. Other application backends authenticate with their own APP_KEY. Business endpoints still validate the Manris token through an in-process adapter. The HTTP validator implements the same `Validator` interface for the future service split. Moving to another project still requires moving directory administration and replacing local directory repositories and database foreign keys with service contracts/stable IDs; this change does not pretend that cross-database extraction is already complete.
 
 ## Setup and rollout
 
 1. Configure a random `JWT_SECRET` of at least 32 bytes on the auth backend only. Never distribute this signing secret to consuming applications.
 2. Run migration `000071_shared_identity_auth` using the existing migration runner, e.g. `make migrate-up` from `backend`.
-3. Restart the backend and sign in again. Old JWTs are intentionally rejected because they have no application binding or revocable session.
+3. From `backend`, run `go run ./cmd/bootstrap-manris-key -env-file ../frontend/.env.local` to provision the first Manris APP_KEY. The command writes the secret only to the server environment file, persists its hash, and does not increment the key version or invalidate existing shared-auth sessions. It refuses to replace an existing key; if already provisioned, the file must contain the matching key. No additional schema migration is required.
+4. Configure server-only `AUTH_SERVICE_URL` (backend base URL including `/api/v1`) and `MANRIS_APP_KEY` on the Next.js server. Never use a `NEXT_PUBLIC_` variable for the key. The example is in `frontend/.env.example`. Restart both backend and frontend to load the change and environment. Old JWTs predating migration 71 are intentionally rejected because they have no application binding or revocable session; current shared-auth tokens remain valid.
+
+The proxy only forwards allowlisted auth endpoints, injects its own key regardless of browser headers, rejects cross-origin browser calls, disables caching and redirects, and checks that login/me responses belong to `manris`. Its public login and registration endpoints remain available to browser users; APP_KEY identifies the server application, not the end user. Login throttling is 20 attempts per minute per source IP, application and NIP, so users behind the same server proxy do not consume one shared login quota.
 
 Token lifetime is configured with `AUTH_TOKEN_EXPIRY_MINUTES`. When unset, it inherits `JWT_EXPIRY_HOURS` (24 hours by default), preserving the existing login lifetime. Set `AUTH_TOKEN_EXPIRY_MINUTES=15` for 15-minute tokens. No refresh-token endpoint is introduced; users must log in again after expiry. Validate each protected request without caching if role updates and revocation must be immediate. Auth/storage outages stop protected requests with `503`.
 
@@ -32,6 +35,7 @@ Sign in to Manris as an active global superadmin. With the resulting Manris toke
 ```http
 POST /api/v1/auth/apps
 Authorization: Bearer <MANRIS_TOKEN>
+X-App-Key: <MANRIS_APP_KEY>
 Content-Type: application/json
 
 {"id":"products","name":"Products application"}
@@ -61,7 +65,7 @@ The application ID uses 2–64 lowercase letters/digits/underscore/hyphen, begin
 | POST | `/api/v1/auth/apps/:id/rotate-key` | Return replacement key; invalidate old key and all prior app sessions |
 | DELETE | `/api/v1/auth/apps/:id` | Disable application and invalidate its sessions |
 
-Management requires a live, full Manris session and a current global superadmin role. App changes are recorded in `auth_application_events`. Manris cannot be disabled through this API; its key can be provisioned/rotated when introducing an HTTP consumer. Rotating its key also invalidates existing Manris sessions.
+Management requires the Manris APP_KEY, a live, full Manris session and a current global superadmin role. App changes are recorded in `auth_application_events`. Manris cannot be disabled through this API; its initial key is provisioned by the bootstrap command above. Rotating its key also invalidates existing Manris sessions.
 
 ## External login and validation
 
@@ -124,10 +128,12 @@ This client has a 3-second timeout, checks successful response shape, limits res
 
 ## Other shared endpoints
 
-All external calls below require the app key and matching user token:
+All authenticated calls below, including Manris calls, require the app key and matching user token:
 
 | Method | Path | Behavior |
 | --- | --- | --- |
+| GET | `/api/v1/auth/users` | Paginated shared user directory within current organization scope; global superadmin sees all accounts |
+| GET | `/api/v1/auth/users/:id` | Shared directory user detail; nonexistent or outside-scope users return `404` |
 | GET | `/api/v1/auth/roles` | Shared global role vocabulary |
 | GET | `/api/v1/auth/organizations` | Organizations within the user's current scope; all organizations for global superadmin |
 | PUT | `/api/v1/auth/me` | Update name/email/NIP/job/rank; cannot self-assign role, organization or status |
@@ -139,7 +145,7 @@ Password body: `currentPassword`, `newPassword`, `confirmPassword`.
 
 A user requiring a password change gets a restricted Manris setup session and must change the password before accessing business APIs or external login. The restricted setup session already proves the temporary password was verified, so setup may omit `currentPassword`; full sessions must supply it. Pending/inactive accounts cannot log in. The Manris frontend now calls logout on the backend as well as removing local state. A failed network request cannot guarantee remote logout; token expiry remains the upper bound.
 
-Successful identity responses use `Cache-Control: no-store`. Login is limited to 20 attempts per minute per IP, per server process. This can affect many users behind one external backend IP; review limits for the deployment and add a shared gateway limit when running multiple auth instances. Session records persist for audit/revocation: schedule retention cleanup of expired sessions using `auth_sessions.expires_at` rather than allowing the table to grow indefinitely.
+Successful identity responses use `Cache-Control: no-store`. Login is limited to 20 attempts per minute per source IP, application and NIP, per server process. Add a shared gateway limit when running multiple auth instances. Session records persist for audit/revocation: schedule retention cleanup of expired sessions using `auth_sessions.expires_at` rather than allowing the table to grow indefinitely.
 
 ## Validation
 
@@ -150,3 +156,29 @@ go test ./internal/identity/... ./internal/middleware ./internal/handler/http ./
 # Use a disposable test database, never a production database:
 go test -tags=integration ./internal/repository/postgres -run TestIdentityAuthPostgresMigrationAndLifecycle
 ```
+
+## User directory for application X
+
+Both endpoints require the application's `X-App-Key` and a matching full-session bearer token. Scope is always derived from the current role and organization hierarchy, never client query parameters. Scoped users can read accounts in their organization and descendants. Global superadmins can read all accounts, including users without an organization. The directory includes account status (`active`, `inactive`, `pending_activation`) and uses an explicit projection without password hashes, password-change flags, login history, session information, or Manris capabilities. These endpoints provide read access; administrative writes remain on the existing Manris endpoints.
+
+List supports `page` (default 1, maximum 1000000), `limit` (default 10, range 1–100), `q` (search name/username/email/NIP, maximum 200 bytes), `role`, `status`, and `organization_id` (exact organization UUID within scope). Invalid filters return `422`; requesting an organization outside scope returns `403`. The response is `{ "data": [...], "total": 0, "page": 1, "limit": 10 }`. Total counts only records matching scope and filters; an empty page returns `data: []`. Detail returns `{ "data": <directory user> }`. Setup sessions return `403`; mismatched keys/tokens return `401`.
+
+```bash
+AUTH_URL="http://localhost:8080/api/v1"
+APP_KEY="<APP_KEY_APLIKASI_X>"
+TOKEN="<TOKEN_APLIKASI_X>"
+
+curl --get "$AUTH_URL/auth/users" \
+  --header "X-App-Key: $APP_KEY" \
+  --header "Authorization: Bearer $TOKEN" \
+  --data-urlencode "page=1" \
+  --data-urlencode "limit=20" \
+  --data-urlencode "q=Siti" \
+  --data-urlencode "status=active"
+
+curl "$AUTH_URL/auth/users/<USER_UUID>" \
+  --header "X-App-Key: $APP_KEY" \
+  --header "Authorization: Bearer $TOKEN"
+```
+
+Deploy the backend change to expose these routes. No schema migration or key/token rotation is required. The Manris Next.js proxy also allows GET requests to these directory endpoints.

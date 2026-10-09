@@ -3,10 +3,13 @@ package http
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http/httptest"
+	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -21,6 +24,8 @@ import (
 	"github.com/manris/backend/internal/middleware"
 	"golang.org/x/crypto/bcrypt"
 )
+
+const manrisTestKey = "auth_app_AAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8"
 
 const sharedTestSecret = "dummy-secret-for-identity-tests-32-bytes"
 
@@ -139,7 +144,7 @@ func newSharedAuthFixture(t *testing.T) *sharedAuthFixture {
 		t.Fatal(err)
 	}
 	users := &sharedUserDirectory{loginStubUserRepo: loginStubUserRepo{user: &entity.User{ID: uuid.New(), Username: "dika", Name: "Dika", Email: "dummy@example.test", NIP: "123", Role: entity.RoleSuperAdmin, Status: entity.UserStatusActive, PasswordHash: string(hash)}}}
-	store := &memoryIdentityStore{apps: map[string]*domain.Application{"manris": {ID: "manris", Name: "Manris", Active: true, KeyVersion: 1}}, sessions: make(map[uuid.UUID]*domain.Session)}
+	store := &memoryIdentityStore{apps: map[string]*domain.Application{"manris": {ID: "manris", Name: "Manris", Active: true, KeyVersion: 1, KeyHash: fmt.Sprintf("%x", sha256.Sum256([]byte(manrisTestKey)))}}, sessions: make(map[uuid.UUID]*domain.Session)}
 	orgs := &sharedOrgDirectory{org: &domain.Organization{ID: uuid.New(), Name: "Direktorat A"}, child: &domain.Organization{ID: uuid.New(), Name: "Unit A"}}
 	svc, err := identity.New(store, users, orgs, sharedTestSecret, time.Hour)
 	if err != nil {
@@ -209,7 +214,7 @@ func (f *sharedAuthFixture) login(t *testing.T, key string) domain.LoginResult {
 }
 func (f *sharedAuthFixture) createApp(t *testing.T, id, manrisToken string) string {
 	t.Helper()
-	data := f.request(t, "POST", "/auth/apps", manrisToken, "", map[string]string{"id": id, "name": "Application " + id}, 201)
+	data := f.request(t, "POST", "/auth/apps", manrisToken, manrisTestKey, map[string]string{"id": id, "name": "Application " + id}, 201)
 	var body struct {
 		Data identity.GeneratedApplication `json:"data"`
 	}
@@ -221,7 +226,7 @@ func (f *sharedAuthFixture) createApp(t *testing.T, id, manrisToken string) stri
 
 func TestSharedAuthApplicationIsolationAndGlobalIdentity(t *testing.T) {
 	f := newSharedAuthFixture(t)
-	manris := f.login(t, "")
+	manris := f.login(t, manrisTestKey)
 	key := f.createApp(t, "products", manris.Token)
 	otherKey := f.createApp(t, "inventory", manris.Token)
 	external := f.login(t, key)
@@ -231,6 +236,9 @@ func TestSharedAuthApplicationIsolationAndGlobalIdentity(t *testing.T) {
 	f.request(t, "GET", "/auth/me", external.Token, key, nil, 200)
 	f.request(t, "GET", "/auth/me", external.Token, otherKey, nil, 401)
 	f.request(t, "GET", "/auth/me", external.Token, "", nil, 401)
+	f.request(t, "GET", "/auth/organizations", external.Token, "", nil, 401)
+	f.request(t, "GET", "/auth/organizations", external.Token, key, nil, 200)
+	f.request(t, "GET", "/auth/organizations", manris.Token, manrisTestKey, nil, 200)
 	f.request(t, "GET", "/auth/me", manris.Token, key, nil, 401)
 	f.request(t, "GET", "/products", external.Token, key, nil, 401)
 	f.request(t, "GET", "/products", manris.Token, "", nil, 200)
@@ -238,28 +246,29 @@ func TestSharedAuthApplicationIsolationAndGlobalIdentity(t *testing.T) {
 	if bytes.Contains(me, []byte("capabilities")) || bytes.Contains(me, []byte("PasswordHash")) {
 		t.Fatal("external identity leaks application flags or password data")
 	}
-	internalMe := f.request(t, "GET", "/auth/me", manris.Token, "", nil, 200)
+	internalMe := f.request(t, "GET", "/auth/me", manris.Token, manrisTestKey, nil, 200)
 	if !bytes.Contains(internalMe, []byte(`"riskApprovalWorkflowEnabled":true`)) {
 		t.Fatal("Manris feature flags missing")
 	}
 	f.request(t, "GET", "/auth/apps", external.Token, key, nil, 401)
-	apps := f.request(t, "GET", "/auth/apps", manris.Token, "", nil, 200)
+	f.request(t, "GET", "/auth/apps", manris.Token, key, nil, 401)
+	apps := f.request(t, "GET", "/auth/apps", manris.Token, manrisTestKey, nil, 200)
 	if bytes.Contains(apps, []byte(key)) || bytes.Contains(apps, []byte("keyHash")) {
 		t.Fatal("application listing leaks credentials")
 	}
-	f.request(t, "POST", "/auth/register", "", "", map[string]string{}, 201)
-	f.request(t, "GET", "/auth/register/organizations", "", "", nil, 200)
+	f.request(t, "POST", "/auth/register", "", manrisTestKey, map[string]string{}, 201)
+	f.request(t, "GET", "/auth/register/organizations", "", manrisTestKey, nil, 200)
 	f.request(t, "GET", "/auth/roles", external.Token, key, nil, 200)
 	// Roles, organization membership and hierarchy are read live for both applications.
 	f.users.user.Role = entity.RoleReviewer
 	f.users.user.OrganizationID = &f.orgs.org.ID
-	for _, entry := range []struct{ token, key string }{{manris.Token, ""}, {external.Token, key}} {
+	for _, entry := range []struct{ token, key string }{{manris.Token, manrisTestKey}, {external.Token, key}} {
 		data := f.request(t, "GET", "/auth/me", entry.token, entry.key, nil, 200)
 		if !bytes.Contains(data, []byte(`"role":"reviewer"`)) || !bytes.Contains(data, []byte(f.orgs.child.ID.String())) {
 			t.Fatal("shared role or organization change is stale")
 		}
 	}
-	f.request(t, "GET", "/auth/apps", manris.Token, "", nil, 403)
+	f.request(t, "GET", "/auth/apps", manris.Token, manrisTestKey, nil, 403)
 	f.request(t, "GET", "/auth/organizations", external.Token, key, nil, 200)
 }
 func TestSharedAuthSessionRevocation(t *testing.T) {
@@ -296,7 +305,7 @@ func TestSharedAuthSessionRevocation(t *testing.T) {
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
 			f := newSharedAuthFixture(t)
-			manris := f.login(t, "")
+			manris := f.login(t, manrisTestKey)
 			key := f.createApp(t, "products", manris.Token)
 			external := f.login(t, key)
 			newKey := tc.change(t, f, key, external.Token)
@@ -310,7 +319,7 @@ func TestSharedAuthSessionRevocation(t *testing.T) {
 }
 func TestSharedAuthPasswordChangeRevokesAllApplications(t *testing.T) {
 	f := newSharedAuthFixture(t)
-	manris := f.login(t, "")
+	manris := f.login(t, manrisTestKey)
 	key := f.createApp(t, "products", manris.Token)
 	external := f.login(t, key)
 	f.request(t, "POST", "/auth/change-password", external.Token, key, map[string]string{"newPassword": "NewPassword123!", "confirmPassword": "NewPassword123!"}, 401)
@@ -331,11 +340,11 @@ func TestSharedAuthPasswordChangeRevokesAllApplications(t *testing.T) {
 }
 func TestSharedAuthProfileUpdateAndSetupSession(t *testing.T) {
 	f := newSharedAuthFixture(t)
-	manris := f.login(t, "")
+	manris := f.login(t, manrisTestKey)
 	key := f.createApp(t, "products", manris.Token)
 	external := f.login(t, key)
 	f.request(t, "PUT", "/auth/me", external.Token, key, map[string]string{"name": "Updated Name", "email": "updated@example.test", "nip": "123", "role": "unit"}, 200)
-	me := f.request(t, "GET", "/auth/me", manris.Token, "", nil, 200)
+	me := f.request(t, "GET", "/auth/me", manris.Token, manrisTestKey, nil, 200)
 	if !bytes.Contains(me, []byte(`"name":"Updated Name"`)) || !bytes.Contains(me, []byte(`"role":"superadmin"`)) {
 		t.Fatal("profile update was not shared or allowed role self-assignment")
 	}
@@ -343,16 +352,16 @@ func TestSharedAuthProfileUpdateAndSetupSession(t *testing.T) {
 	f.request(t, "GET", "/products", manris.Token, "", nil, 403)
 	f.request(t, "GET", "/auth/me", external.Token, key, nil, 401)
 	f.request(t, "POST", "/auth/login", "", key, map[string]string{"nip": "123", "password": "Password123!"}, 401)
-	setup := f.login(t, "")
+	setup := f.login(t, manrisTestKey)
 	if setup.SessionMode != "setup" {
 		t.Fatal("missing restricted setup session")
 	}
 	f.request(t, "GET", "/products", setup.Token, "", nil, 403)
-	f.request(t, "POST", "/auth/change-password", setup.Token, "", map[string]string{"newPassword": "NewPassword123!", "confirmPassword": "NewPassword123!"}, 200)
+	f.request(t, "POST", "/auth/change-password", setup.Token, manrisTestKey, map[string]string{"newPassword": "NewPassword123!", "confirmPassword": "NewPassword123!"}, 200)
 }
 func TestSharedAuthInvalidTokensAndUnavailableService(t *testing.T) {
 	f := newSharedAuthFixture(t)
-	manris := f.login(t, "")
+	manris := f.login(t, manrisTestKey)
 	var claims jwt.RegisteredClaims
 	_, err := jwt.ParseWithClaims(manris.Token, &claims, func(_ *jwt.Token) (any, error) { return []byte(sharedTestSecret), nil })
 	if err != nil {
@@ -396,7 +405,7 @@ func TestSharedAuthInvalidTokensAndUnavailableService(t *testing.T) {
 	}
 	f.request(t, "GET", "/products", legacy, "", nil, 401)
 	f.store.err = errors.New("database outage with secret details")
-	data := f.request(t, "GET", "/auth/me", manris.Token, "", nil, 503)
+	data := f.request(t, "GET", "/auth/me", manris.Token, manrisTestKey, nil, 503)
 	if bytes.Contains(data, []byte("secret details")) {
 		t.Fatal("error leaks backend details")
 	}
@@ -405,15 +414,29 @@ func TestSharedAuthInvalidTokensAndUnavailableService(t *testing.T) {
 func TestSharedAuthLoginRateLimit(t *testing.T) {
 	f := newSharedAuthFixture(t)
 	for range 20 {
-		f.request(t, "POST", "/auth/login", "", "", map[string]string{"nip": "123", "password": "wrong"}, 401)
+		f.request(t, "POST", "/auth/login", "", manrisTestKey, map[string]string{"nip": "123", "password": "wrong"}, 401)
 	}
-	f.request(t, "POST", "/auth/login", "", "", map[string]string{"nip": "123", "password": "wrong"}, 429)
+	f.request(t, "POST", "/auth/login", "", manrisTestKey, map[string]string{"nip": "123", "password": "wrong"}, 429)
+	f.request(t, "POST", "/auth/login", "", manrisTestKey, map[string]string{"nip": "456", "password": "wrong"}, 401)
 }
 
-type sharedUserDirectory struct{ loginStubUserRepo }
+type sharedUserDirectory struct {
+	loginStubUserRepo
+	directoryUsers []*domain.User
+}
 
 func (r *sharedUserDirectory) GetByID(ctx context.Context, id uuid.UUID) (*domain.User, error) {
-	u, err := r.loginStubUserRepo.GetByID(ctx, id)
+	var u *domain.User
+	for _, candidate := range append([]*domain.User{r.user}, r.directoryUsers...) {
+		if candidate.ID == id {
+			u = candidate
+			break
+		}
+	}
+	if u == nil {
+		return nil, domainerrors.ErrNotFound
+	}
+	var err error
 	if u == nil || err != nil {
 		return u, err
 	}
@@ -461,9 +484,59 @@ func TestSharedAuthEmptyApplicationKeyCannotFallBack(t *testing.T) {
 }
 func TestSharedAuthExpiredStoredSessionIsRejected(t *testing.T) {
 	f := newSharedAuthFixture(t)
-	r := f.login(t, "")
+	r := f.login(t, manrisTestKey)
 	for _, session := range f.store.sessions {
 		session.ExpiresAt = time.Now().Add(-time.Minute)
 	}
 	f.request(t, "GET", "/products", r.Token, "", nil, 401)
+}
+
+func TestSharedAuthRequiresApplicationKeyForAllRoutes(t *testing.T) {
+	f := newSharedAuthFixture(t)
+	manris := f.login(t, manrisTestKey)
+	for _, entry := range []struct{ method, path string }{
+		{"POST", "/auth/login"}, {"GET", "/auth/me"}, {"PUT", "/auth/me"},
+		{"POST", "/auth/logout"}, {"GET", "/auth/organizations"}, {"GET", "/auth/roles"}, {"GET", "/auth/users"}, {"GET", "/auth/users/" + f.users.user.ID.String()},
+		{"POST", "/auth/change-password"}, {"GET", "/auth/apps"}, {"POST", "/auth/apps"},
+		{"POST", "/auth/apps/products/rotate-key"}, {"DELETE", "/auth/apps/products"},
+		{"POST", "/auth/register"}, {"GET", "/auth/register/organizations"},
+	} {
+		t.Run(entry.method+entry.path, func(t *testing.T) {
+			f.request(t, entry.method, entry.path, manris.Token, "", nil, 401)
+			f.request(t, entry.method, entry.path, manris.Token, "invalid-key", nil, 401)
+		})
+	}
+}
+
+func (r *sharedUserDirectory) ListDirectory(_ context.Context, f domain.DirectoryFilter) ([]*domain.DirectoryUser, int, error) {
+	matches := make([]*domain.DirectoryUser, 0)
+	for _, u := range append([]*domain.User{r.user}, r.directoryUsers...) {
+		visible := f.Global
+		for _, id := range f.AllowedOrgIDs {
+			if u.OrganizationID != nil && *u.OrganizationID == id {
+				visible = true
+			}
+		}
+		if !visible || (f.OrganizationID != nil && (u.OrganizationID == nil || *u.OrganizationID != *f.OrganizationID)) {
+			continue
+		}
+		if f.Role != "" && u.Role != f.Role || f.Status != "" && u.Status != f.Status {
+			continue
+		}
+		if f.Q != "" && !strings.Contains(strings.ToLower(u.Name+" "+u.Username+" "+u.Email+" "+u.NIP), strings.ToLower(f.Q)) {
+			continue
+		}
+		matches = append(matches, domain.DirectoryUserFrom(u))
+	}
+	sort.Slice(matches, func(i, j int) bool { return matches[i].ID.String() > matches[j].ID.String() })
+	total := len(matches)
+	offset := (f.Page - 1) * f.Limit
+	if offset >= total {
+		return []*domain.DirectoryUser{}, total, nil
+	}
+	end := offset + f.Limit
+	if end > total {
+		end = total
+	}
+	return matches[offset:end], total, nil
 }

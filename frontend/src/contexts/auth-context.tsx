@@ -9,7 +9,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { api, ApiError, API_BASE } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import type { RiskApprovalCapabilities } from "@/lib/risk-approval-capability";
 
 const AUTH_TOKEN_STORAGE_KEY = "manris_token";
@@ -345,7 +345,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     if (token) {
       // Revoke the server session while keeping local sign-out immediate.
-      void fetch(`${API_BASE}/auth/logout`, {
+      void fetch("/api/auth/logout", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
         keepalive: true,
