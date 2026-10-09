@@ -6,6 +6,11 @@ const context = (path: string) => ({ params: Promise.resolve({ path: path.split(
 const originalFetch = globalThis.fetch;
 const originalKey = process.env.MANRIS_APP_KEY;
 const originalURL = process.env.AUTH_SERVICE_URL;
+const originalOrigin = process.env.AUTH_APP_ORIGIN;
+
+test.beforeEach(() => {
+  delete process.env.AUTH_APP_ORIGIN;
+});
 
 test.afterEach(() => {
   globalThis.fetch = originalFetch;
@@ -13,6 +18,62 @@ test.afterEach(() => {
   else process.env.MANRIS_APP_KEY = originalKey;
   if (originalURL === undefined) delete process.env.AUTH_SERVICE_URL;
   else process.env.AUTH_SERVICE_URL = originalURL;
+  if (originalOrigin === undefined) delete process.env.AUTH_APP_ORIGIN;
+  else process.env.AUTH_APP_ORIGIN = originalOrigin;
+});
+
+test("proxy accepts the configured public origin behind an internal standalone URL", async () => {
+  process.env.MANRIS_APP_KEY = "server-test-key";
+  process.env.AUTH_SERVICE_URL = "https://auth.example/api/v1";
+  process.env.AUTH_APP_ORIGIN = "https://manrisk.example";
+  let calls = 0;
+  globalThis.fetch = async () => {
+    calls += 1;
+    return Response.json({ data: { appId: "manris", token: "dummy-token" } });
+  };
+  const response = await route.POST(new Request("https://frontend:3000/api/auth/login", {
+    method: "POST", body: "{}",
+    headers: { origin: "https://manrisk.example", "sec-fetch-site": "same-origin" },
+  }), context("login"));
+  assert.equal(response.status, 200);
+  assert.equal(calls, 1);
+});
+
+test("configured public origin rejects cross-site calls and spoofed forwarding headers", async () => {
+  process.env.MANRIS_APP_KEY = "server-test-key";
+  process.env.AUTH_APP_ORIGIN = "https://manrisk.example";
+  globalThis.fetch = async () => { throw new Error("upstream must not be called"); };
+  for (const headers of [
+    { origin: "https://other.example", "sec-fetch-site": "same-origin", "x-forwarded-host": "other.example", "x-forwarded-proto": "https" },
+    { origin: "https://manrisk.example", "sec-fetch-site": "cross-site", "x-forwarded-host": "manrisk.example", "x-forwarded-proto": "https" },
+  ]) {
+    const response = await route.POST(new Request("https://frontend:3000/api/auth/login", {
+      method: "POST", headers,
+    }), context("login"));
+    assert.equal(response.status, 403);
+  }
+});
+
+test("proxy fails closed for invalid public origin configuration", async () => {
+  process.env.MANRIS_APP_KEY = "server-test-key";
+  globalThis.fetch = async () => { throw new Error("upstream must not be called"); };
+  for (const value of ["invalid", "https://manrisk.example/path", "https://manrisk.example?query=1", "https://user:password@manrisk.example", "https://manrisk.example#fragment", "data:text/plain,test"]) {
+    process.env.AUTH_APP_ORIGIN = value;
+    const response = await route.POST(new Request("https://frontend:3000/api/auth/login", {
+      method: "POST", headers: { origin: "https://manrisk.example" },
+    }), context("login"));
+    assert.equal(response.status, 503, value);
+  }
+});
+
+test("proxy keeps local same-origin login working without a configured public origin", async () => {
+  process.env.MANRIS_APP_KEY = "server-test-key";
+  process.env.AUTH_SERVICE_URL = "http://localhost:8080/api/v1";
+  globalThis.fetch = async () => Response.json({ data: { appId: "manris", token: "dummy-token" } });
+  const response = await route.POST(new Request("http://localhost:3000/api/auth/login", {
+    method: "POST", body: "{}", headers: { origin: "http://localhost:3000" },
+  }), context("login"));
+  assert.equal(response.status, 200);
 });
 
 test("proxy injects server key and bearer; preserves query and error status without exposing headers", async () => {

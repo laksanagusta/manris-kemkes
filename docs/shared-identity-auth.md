@@ -20,7 +20,35 @@ Every HTTP endpoint under `/api/v1/auth/*` requires a valid `X-App-Key`, includi
 1. Configure a random `JWT_SECRET` of at least 32 bytes on the auth backend only. Never distribute this signing secret to consuming applications.
 2. Run migration `000071_shared_identity_auth` using the existing migration runner, e.g. `make migrate-up` from `backend`.
 3. From `backend`, run `go run ./cmd/bootstrap-manris-key -env-file ../frontend/.env.local` to provision the first Manris APP_KEY. The command writes the secret only to the server environment file, persists its hash, and does not increment the key version or invalidate existing shared-auth sessions. It refuses to replace an existing key; if already provisioned, the file must contain the matching key. No additional schema migration is required.
-4. Configure server-only `AUTH_SERVICE_URL` (backend base URL including `/api/v1`) and `MANRIS_APP_KEY` on the Next.js server. Never use a `NEXT_PUBLIC_` variable for the key. The example is in `frontend/.env.example`. Restart both backend and frontend to load the change and environment. Old JWTs predating migration 71 are intentionally rejected because they have no application binding or revocable session; current shared-auth tokens remain valid.
+4. Configure server-only `AUTH_SERVICE_URL` (backend base URL including `/api/v1`), `AUTH_APP_ORIGIN` (public web origin, e.g. `https://manrisk.dikalaksana.com`, without a path), and `MANRIS_APP_KEY` on the Next.js server. Never use a `NEXT_PUBLIC_` variable for the key. The example is in `frontend/.env.example`. Recreate the frontend container after environment changes and restart the backend after its configuration changes. Old JWTs predating migration 71 are intentionally rejected because they have no application binding or revocable session; current shared-auth tokens remain valid.
+
+### Docker production provisioning
+
+The backend image includes `/app/bootstrap-manris-key`, so the host does not need Go or a backend source checkout. Once the image containing this binary is published, pull it and provision using the backend service's database environment and Docker network. PostgreSQL must already be running and migration 71 must be applied.
+
+```sh
+cd /opt/manris
+docker compose pull backend
+docker compose run --rm --no-deps --user 0:0 \
+  --volume /opt/manris:/bootstrap \
+  --entrypoint /app/bootstrap-manris-key backend \
+  -env-file /bootstrap/.env.frontend
+```
+
+The one-off container runs as root to write the server-owned environment file. Mount the directory, not just the file: provisioning writes a temporary file beside the destination and replaces it atomically. The resulting file is private (mode `0600`) and persists on the host after the container exits. The tool reads an existing key from this file or generates one when empty, stores its hash in the database, and does not print the secret. If the database already has a key, the file must contain its matching value; the tool refuses to replace it.
+
+Configure the frontend service to load this file at runtime, retaining any existing environment configuration:
+
+```yaml
+services:
+  frontend:
+    env_file:
+      - .env.frontend
+```
+
+The file must also provide `AUTH_SERVICE_URL` and `AUTH_APP_ORIGIN` as described above (or supply them through the service's `environment` mapping). Recreate the frontend after provisioning so it loads the key. The existing deployment workflow does not copy Compose files to the host; update the file in `/opt/manris` explicitly.
+
+Behind Nginx, standalone Next.js may construct `request.url` from its internal hostname and port. The auth proxy validates the browser `Origin` against `AUTH_APP_ORIGIN` rather than that internal address. Compose supplies the public origin at runtime; update the Compose file on the server as well as the environment before recreating the frontend. Direct local development without this setting falls back to `request.url`. Invalid origin configuration returns `503`; cross-origin requests and `Sec-Fetch-Site: cross-site` still return `403`. Forwarded headers cannot override the configured origin. Keep the existing `AUTH_SERVICE_URL` and `MANRIS_APP_KEY` runtime configuration when adding this variable.
 
 The proxy only forwards allowlisted auth endpoints, injects its own key regardless of browser headers, rejects cross-origin browser calls, disables caching and redirects, and checks that login/me responses belong to `manris`. Its public login and registration endpoints remain available to browser users; APP_KEY identifies the server application, not the end user. Login throttling is 20 attempts per minute per source IP, application and NIP, so users behind the same server proxy do not consume one shared login quota.
 

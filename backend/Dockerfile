@@ -17,6 +17,7 @@ COPY . .
 
 # Build binary with CGO disabled for Alpine compatibility
 RUN CGO_ENABLED=0 GOOS=linux go build -o server cmd/server/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -o bootstrap-manris-key ./cmd/bootstrap-manris-key
 
 # Download golang-migrate CLI
 RUN curl -L https://github.com/golang-migrate/migrate/releases/download/v4.18.2/migrate.linux-amd64.tar.gz | tar xvz && \
@@ -36,6 +37,7 @@ WORKDIR /app
 
 # Copy binary from builder
 COPY --from=builder /build/server .
+COPY --from=builder /build/bootstrap-manris-key .
 
 # Copy migrate binary from builder
 COPY --from=builder /build/migrate .

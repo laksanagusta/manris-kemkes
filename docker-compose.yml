@@ -32,6 +32,8 @@ services:
     image: laksanadika/manris-frontend:latest
     container_name: frontend
     restart: unless-stopped
+    environment:
+      AUTH_APP_ORIGIN: ${AUTH_APP_ORIGIN:-https://manrisk.dikalaksana.com}
     networks:
       - manris-network
 
