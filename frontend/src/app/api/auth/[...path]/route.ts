@@ -30,9 +30,24 @@ async function proxy(request: Request, context: Context) {
   );
   if (!allowed.includes(request.method)) return error(404, "Endpoint tidak tersedia");
 
+  // Standalone request.url can contain the internal container hostname/port.
+  // Use a server-configured public origin; never trust browser forwarding headers.
+  let expectedOrigin = new URL(request.url).origin;
+  if (process.env.AUTH_APP_ORIGIN) {
+    try {
+      const configured = new URL(process.env.AUTH_APP_ORIGIN);
+      if (!["https:", "http:"].includes(configured.protocol) || configured.username || configured.password || configured.pathname !== "/" || configured.search || configured.hash) {
+        return error(503, "Konfigurasi origin aplikasi tidak valid");
+      }
+      expectedOrigin = configured.origin;
+    } catch {
+      return error(503, "Konfigurasi origin aplikasi tidak valid");
+    }
+  }
+
   // Browser requests must originate from this application. No credentialed CORS proxy.
   const origin = request.headers.get("origin");
-  if ((origin && origin !== new URL(request.url).origin) || request.headers.get("sec-fetch-site") === "cross-site") {
+  if ((origin && origin !== expectedOrigin) || request.headers.get("sec-fetch-site") === "cross-site") {
     return error(403, "Akses ditolak");
   }
   const key = process.env.MANRIS_APP_KEY;
