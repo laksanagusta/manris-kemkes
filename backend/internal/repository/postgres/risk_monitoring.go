@@ -193,9 +193,9 @@ func (r *riskMonitoringRepository) List(ctx context.Context, filter repository.R
 		SELECT COUNT(*)
 		FROM risk_monitorings rm
 		LEFT JOIN risks src ON src.id = rm.source_risk_id
-		WHERE 1=1`
+		WHERE rm.status <> 'superseded'`
 	dataQuery := baseRiskMonitoringSelect() + `
-		WHERE 1=1`
+		WHERE rm.status <> 'superseded'`
 
 	args := make([]any, 0, 8)
 	argIdx := 1
@@ -224,9 +224,6 @@ func (r *riskMonitoringRepository) List(ctx context.Context, filter repository.R
 		dataQuery += clause
 		args = append(args, filter.Status)
 		argIdx++
-	} else if filter.Status == "" {
-		countQuery += " AND rm.status <> 'superseded'"
-		dataQuery += " AND rm.status <> 'superseded'"
 	}
 
 	if filter.AssessmentCycle != "" {
