@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import type { RiskMonitoringDetail } from "../types/risk-monitoring";
 
-const overview = await import(new URL("./monitoring-overview.ts", import.meta.url).href);
+const overview: typeof import("./monitoring-overview") = await import(new URL("./monitoring-overview.ts", import.meta.url).href);
 
 const organizations = [
   { id: "parent", name: "Parent", createdAt: "" },
@@ -12,8 +13,8 @@ const organizations = [
 function makeMonitoring(
   id: string,
   organizationId: string,
-  status: "draft" | "final",
-) {
+  status: "draft" | "final" | "superseded",
+): RiskMonitoringDetail {
   return {
     id,
     sourceRiskId: `risk-${id}`,
@@ -83,6 +84,26 @@ test("buildMonitoringTransactionRows maps draft and final transactions directly"
   assert.equal(rows[1].createdAt, "2026-08-31T03:00:00Z");
   assert.equal(rows[1].finalizedAt, "2026-09-02T03:00:00Z");
   assert.equal(rows[1].updatedAt, "2026-09-03T03:00:00Z");
+});
+
+test("superseded monitoring remains historical and is not counted as a draft", () => {
+  const rows = overview.buildMonitoringTransactionRows(
+    [makeMonitoring("old", "child-a", "superseded"), makeMonitoring("new", "child-a", "final")],
+    organizations,
+  );
+
+  assert.equal(rows[0].status, "superseded");
+  assert.equal(overview.getMonitoringStatusLabel(rows[0].status), "Digantikan");
+  const summary = overview.buildMonitoringOrganizationSummaries(rows, organizations, "parent")
+    .find((item) => item.id === "child-a");
+  assert.equal(summary?.inProgress, 0);
+  assert.equal(summary?.finalized, 1);
+  assert.equal(overview.filterMonitoringRows(rows, "parent", organizations, "", "in_progress").length, 0);
+  assert.deepEqual(
+    overview.filterMonitoringRows(rows, "parent", organizations, "", "superseded").map((row) => row.id),
+    ["old"],
+  );
+  assert.equal(overview.parseMonitoringQueryState(new URLSearchParams("status=superseded")).status, "all");
 });
 
 test("filter and organization summaries include descendants for a parent scope", () => {

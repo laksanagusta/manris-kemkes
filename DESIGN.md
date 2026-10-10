@@ -6,6 +6,8 @@ Manrisk uses the official shadcn/ui `radix-nova` components, Radix primitives, a
 
 The living component catalog is `/design-system`. Update this document and that page before changing a shared visual rule on a feature page. After a feature page receives a direct design change, sync both references.
 
+The backend excludes `superseded` monitoring transactions from the monitoring list and its pagination totals for every status filter, including Semua status. Historical detail remains accessible for audit. If a historical transaction is displayed, label it **Digantikan** with the existing neutral `secondary` Badge; it must not contribute to Draf or Final KPIs. The monitoring list offers only Semua status, Draf, and Final filters.
+
 Application page content inherits `text-wrap: pretty` from the shared `SidebarInset` to reduce short orphan words in paragraphs and descriptions. Components that need a specific wrapping behavior, such as balanced headings or unwrapped labels, set it locally.
 
 ## Public homepage

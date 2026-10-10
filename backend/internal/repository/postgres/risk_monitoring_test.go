@@ -12,6 +12,74 @@ import (
 	"github.com/manris/backend/internal/repository/postgres"
 )
 
+func TestRiskMonitoringListExcludesSupersededForEveryStatusFilter(t *testing.T) {
+	pool := setupPool(t)
+	ctx := context.Background()
+	orgID := insertTestOrganization(t, pool, "Monitoring supersession list test")
+	riskRepo := postgres.NewRiskRepository(pool)
+	monitoringRepo := postgres.NewRiskMonitoringRepository(pool)
+	source := &entity.Risk{
+		Code: "R-SUP-" + uuid.NewString()[:8], Title: "Supersession list source",
+		Status: entity.RiskStatusFinal, OrganizationID: &orgID,
+		VersionGroupID: uuid.New(), VersionNumber: 1, IsCurrent: true,
+		IsCycleCurrent: true, AssessmentCycle: "2026-Q1", Probability: 2, Impact: 3,
+		TargetProbability: 1, TargetImpact: 1,
+	}
+	if err := riskRepo.Create(ctx, source); err != nil {
+		t.Fatalf("create source: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM risk_monitorings WHERE source_risk_id=$1`, source.ID)
+		_, _ = pool.Exec(context.Background(), `DELETE FROM risks WHERE id=$1`, source.ID)
+	})
+	var replacedID uuid.UUID
+	for i, status := range []string{"superseded", "final", "draft"} {
+		cycle := []string{"2026-Q1", "2026-Q2", "2026-Q3"}[i]
+		monitoring := entity.NewRiskMonitoringDraft(source, cycle, uuid.Nil)
+		monitoring.StartedBy = nil
+		if err := monitoringRepo.Create(ctx, monitoring); err != nil {
+			t.Fatalf("create %s fixture: %v", status, err)
+		}
+		if _, err := pool.Exec(ctx, `UPDATE risk_monitorings SET status=$2 WHERE id=$1`, monitoring.ID, status); err != nil {
+			t.Fatalf("set fixture status: %v", err)
+		}
+		if status == "superseded" {
+			replacedID = monitoring.ID
+		}
+	}
+	for _, tc := range []struct {
+		status string
+		want   int
+	}{{"", 2}, {"all", 2}, {"draft", 1}, {"final", 1}, {"finalized", 1}, {"superseded", 0}} {
+		t.Run("status="+tc.status, func(t *testing.T) {
+			items, total, err := monitoringRepo.List(ctx, repository.RiskMonitoringListFilter{
+				OrgIDs: []uuid.UUID{orgID}, Lifecycle: "all", Status: tc.status, Page: 1, Limit: 1,
+			})
+			if err != nil {
+				t.Fatalf("list: %v", err)
+			}
+			if total != tc.want {
+				t.Fatalf("total=%d, want %d", total, tc.want)
+			}
+			if (tc.want == 0 && len(items) != 0) || (tc.want > 0 && len(items) != 1) {
+				t.Fatalf("unexpected first page size: %d", len(items))
+			}
+			for page := 1; page <= tc.want; page++ {
+				rows, _, err := monitoringRepo.List(ctx, repository.RiskMonitoringListFilter{
+					OrgIDs: []uuid.UUID{orgID}, Lifecycle: "all", Status: tc.status, Page: page, Limit: 1,
+				})
+				if err != nil || len(rows) != 1 || rows[0].Status == entity.RiskMonitoringStatusSuperseded {
+					t.Fatalf("page %d contains unexpected rows: %v, err=%v", page, rows, err)
+				}
+			}
+		})
+	}
+	historical, err := monitoringRepo.GetByID(ctx, replacedID, []uuid.UUID{orgID})
+	if err != nil || historical.Status != entity.RiskMonitoringStatusSuperseded {
+		t.Fatalf("historical detail must remain available: %v, err=%v", historical, err)
+	}
+}
+
 func TestRiskMonitoringRepositoryCreatesAndLoadsDraft(t *testing.T) {
 	pool := setupPool(t)
 	ctx := context.Background()

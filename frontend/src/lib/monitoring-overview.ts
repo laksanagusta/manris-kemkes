@@ -3,7 +3,8 @@ import type { RiskMonitoringDetail } from "../types/risk-monitoring";
 
 export type MonitoringRosterStatus =
   | "in_progress"
-  | "finalized";
+  | "finalized"
+  | "superseded";
 
 export type MonitoringStatusFilter = "all" | MonitoringRosterStatus;
 
@@ -48,11 +49,13 @@ export type MonitoringQueryState = {
 const STATUS_ORDER: Record<MonitoringRosterStatus, number> = {
   in_progress: 0,
   finalized: 1,
+  superseded: 2,
 };
 
 const STATUS_LABELS: Record<MonitoringRosterStatus, string> = {
   in_progress: "Draf",
   finalized: "Final",
+  superseded: "Digantikan",
 };
 
 const RISK_LEVEL_LABELS: Record<string, string> = {
@@ -122,7 +125,9 @@ export function buildMonitoringTransactionRows(
       sourceRiskId: monitoring.sourceRiskId,
       monitoringId: monitoring.id,
       status:
-        monitoring.status === "final" ? "finalized" : "in_progress",
+        monitoring.status === "superseded"
+          ? "superseded"
+          : monitoring.status === "final" ? "finalized" : "in_progress",
       sourceScore: firstPositive(
         monitoring.sourceNilai,
         sourceRisk?.inherentScore,
