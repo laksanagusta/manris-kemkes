@@ -174,8 +174,16 @@ func resolveRosterStatus(monitoringID *uuid.UUID, monitoringStatus string) strin
 }
 
 func rosterPreviewQuery() string {
-	return `
-		WITH eligible_versions AS (
+	// Keep assessment-cycle membership, but resolve archive/restore state at
+	// the period cutoff. A later archive must not erase earlier working papers.
+	return quarterlyLifecycleCTE + `, roster_cutoff AS (
+			SELECT LEAST(
+				(make_date(substring($2::text, 1, 4)::int,
+				 (substring($2::text, 7, 1)::int - 1) * 3 + 1, 1)::timestamp
+				 + interval '3 months') AT TIME ZONE 'Asia/Jakarta',
+				CURRENT_TIMESTAMP
+			) AS cutoff
+		), eligible_versions AS (
 			SELECT DISTINCT ON (r.version_group_id)
 				r.version_group_id,
 				r.id AS risk_id,
@@ -222,8 +230,21 @@ func rosterPreviewQuery() string {
 			rv.id AS result_risk_id,
 			rv.version_number AS result_version_number
 		FROM eligible_versions ev
+		CROSS JOIN roster_cutoff p
+		LEFT JOIN lifecycle ON lifecycle.version_group_id = ev.version_group_id
+		LEFT JOIN LATERAL (
+			SELECT e.action
+			FROM lifecycle_events e
+			WHERE e.version_group_id = ev.version_group_id AND e.created_at < p.cutoff
+			ORDER BY e.created_at DESC, e.id DESC
+			LIMIT 1
+		) last_event ON TRUE
 		LEFT JOIN monitoring_lookup ml ON ml.version_group_id = ev.version_group_id
 		LEFT JOIN result_versions rv ON rv.id = ml.result_risk_id
+		WHERE CASE
+			WHEN last_event.action IS NOT NULL THEN last_event.action <> 'archive'
+			ELSE lifecycle.archived_at IS NULL OR lifecycle.archived_at >= p.cutoff
+		END
 		ORDER BY ev.code, ev.version_group_id
 	`
 }

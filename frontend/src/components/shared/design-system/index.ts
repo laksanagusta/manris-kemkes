@@ -231,3 +231,6 @@ export { RiskCascadeRowActions } from "@/components/shared/risk-cascade-row-acti
 export { PlanningManagementPage } from "@/components/shared/planning-management-page";
 
 export { SettingsDialog, type SettingsSection } from "./layout/settings-dialog";
+
+export { RiskManagementCondition } from "./domain/risk-management-condition";
+export { RiskConditionCharts } from "./domain/risk-condition-charts";

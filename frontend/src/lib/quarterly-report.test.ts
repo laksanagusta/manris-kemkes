@@ -3,6 +3,8 @@ import test from "node:test";
 // @ts-expect-error Node native TypeScript tests require the explicit .ts extension.
 import {
   buildQuarterlyAnalysis,
+  buildRiskManagementCondition,
+  buildRiskConditionChartData,
   completedReportCycle,
   reportTaskState,
   riskPopulationLabel,
@@ -239,4 +241,52 @@ test("an event linked outside the active scope is not counted as unlinked", () =
   const result = buildQuarterlyAnalysis(report({ events: [event] }));
   assert.equal(result.summary.events.unlinked, 0);
   assert.equal(result.summary.events.knownLossCount, 1);
+});
+
+
+test("condition preserves critical risk warnings despite complete reporting", () => {
+  const profiles = [risk("r1", { nilai: 20, mitigations: [{ action: "Mitiger", owner: "A" }],
+    monitoringStatus: "final", monitoringAssessmentCycle: "2026-Q1", monitoringObservedNilai: 2 })];
+  const result = buildRiskManagementCondition(report({ tasks: [task()] }), profiles, []);
+  assert.equal(result.status, "attention");
+  assert.equal(result.extreme, 1);
+  assert.equal(result.summary.mitigation.rate, 100);
+  assert.equal(result.metrics[1].numerator, 1);
+});
+test("condition does not count existing controls or blank actions as plans", () => {
+  const profiles = [risk("r1", { mitigations: [{ action: "Existing", owner: "A", isExistingControl: true }, { action: "  ", owner: "A" }] })];
+  assert.equal(buildRiskManagementCondition(report(), profiles, []).missingPlans, 1);
+});
+test("condition uses active snapshots including restored risks and filters historical tasks", () => {
+  const active = risk("restored", { nilai: 7, archivedInPeriod: true });
+  const data = report({ risks: [risk("archived"), active], tasks: [task(), task({ id: "active", riskId: "restored", versionGroupId: "restored" })] });
+  const result = buildRiskManagementCondition(data, [active], []);
+  assert.equal(result.total, 1);
+  assert.equal(result.summary.mitigation.total, 1);
+  assert.equal(result.status, "incomplete");
+});
+test("condition distinguishes empty from incomplete and zero denominators", () => {
+  assert.equal(buildRiskManagementCondition(report(), [], []).status, "empty");
+  const result = buildRiskManagementCondition(report(), [risk("r1", { nilai: 3 })], []);
+  assert.equal(result.status, "incomplete");
+  assert.equal(result.metrics[1].denominator, 0);
+  assert.equal(result.metrics[4].denominator, 0);
+});
+test("condition requires valid observations and no warnings for reassuring status", () => {
+  const profiles = [risk("r1", { nilai: 3, monitoringStatus: "final", monitoringAssessmentCycle: "2026-Q1", monitoringObservedNilai: 2 })];
+  assert.equal(buildRiskManagementCondition(report(), profiles, profiles).status, "within");
+  assert.equal(buildRiskManagementCondition(report({ warnings: ["Lifecycle incomplete"] }), profiles, profiles).status, "incomplete");
+  assert.equal(buildRiskManagementCondition(report(), [risk("invalid", { nilai: 0 })], []).status, "incomplete");
+});
+
+
+test("condition charts preserve unknown scores, denominators and comparable movements", () => {
+  const active = [risk("up", { nilai: 20 }), risk("down", { nilai: 5 }), risk("new", { nilai: 3 }), risk("missing", { nilai: 0 })];
+  const previous = [risk("up", { nilai: 10 }), risk("down", { nilai: 15 }), risk("missing", { nilai: 0 }), risk("gone", { nilai: 5 })];
+  const result = buildRiskConditionChartData(report(), active, previous);
+  assert.equal(result.composition[1].unknown, 1);
+  assert.equal(result.composition[1].extreme, 1);
+  assert.equal(result.indicators[0].denominator, 3);
+  assert.equal(result.indicators[4].value, null);
+  assert.deepEqual(result.movement.map((row) => row.value), [1, 1, 0, 1, 1, 1]);
 });

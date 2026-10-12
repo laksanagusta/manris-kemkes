@@ -2,6 +2,7 @@
 
 import type { Dispatch, SetStateAction } from "react";
 import { Download, FileSpreadsheet, FileText, Loader2, MoreHorizontal, RefreshCw, RotateCcw } from "@/components/shared/icons";
+import { ReportFilterCard } from "./report-filter-card";
 import { ReportScopePicker } from "@/components/report/report-scope-picker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,7 +17,7 @@ import { currentReportCycle } from "@/lib/quarterly-report";
 
 export type ReportExportFormat = "xlsx" | "pdf";
 
-function PeriodPicker({ label, cycle, onChange, disabled }: {
+export function ReportPeriodPicker({ label, cycle, onChange, disabled }: {
   label: string;
   cycle: string;
   onChange: (cycle: string) => void;
@@ -97,10 +98,11 @@ export function ReportFilterPanel({
   const disabled = !scopeReady || Boolean(exporting);
 
   return (
-    <section className="min-w-0 space-y-4" aria-label="Filter laporan">
+    <ReportFilterCard>
+    <div className="min-w-0 space-y-4">
       <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-[11rem_11rem_minmax(0,1fr)]">
-        <PeriodPicker label="Periode laporan" cycle={cycle} onChange={onCycleChange} disabled={disabled} />
-        <PeriodPicker label="Pembanding" cycle={comparisonCycle} onChange={onComparisonCycleChange} disabled={disabled} />
+        <ReportPeriodPicker label="Periode laporan" cycle={cycle} onChange={onCycleChange} disabled={disabled} />
+        <ReportPeriodPicker label="Pembanding" cycle={comparisonCycle} onChange={onComparisonCycleChange} disabled={disabled} />
         <ReportScopePicker
           organizationId={scope.organizationId}
           onOrganizationChange={(organizationId) => onScopeChange((value) => ({ ...value, organizationId }))}
@@ -152,6 +154,7 @@ export function ReportFilterPanel({
           </DropdownMenu>
         </div>
       </div>
-    </section>
+    </div>
+    </ReportFilterCard>
   );
 }

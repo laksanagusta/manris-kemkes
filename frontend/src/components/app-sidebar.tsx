@@ -107,6 +107,11 @@ const reportsNavigation: NavGroup = {
       href: "/reports",
       icon: FileBarChart,
     },
+    {
+      label: "Kondisi Pengelolaan Risiko",
+      href: "/reports/risk-condition",
+      icon: FileBarChart,
+    },
     // {
     //   label: "Laporan Formal",
     //   href: "/reports/formal",

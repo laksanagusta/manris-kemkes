@@ -1,5 +1,6 @@
 "use client";
 
+import { ReportFilterCard } from "@/components/report/report-filter-card";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import {
   ChevronDown,
@@ -584,7 +585,8 @@ export function RiskCycleDetailReport({
   };
 
   return (
-    <Card className="">
+    <div className="space-y-6">
+      <ReportFilterCard>
       <div className="space-y-3">
         <CollectionToolbar
           leading={
@@ -710,6 +712,8 @@ export function RiskCycleDetailReport({
           </div>
         ) : null}
       </div>
+      </ReportFilterCard>
+      <Card>
       {requiresScopeSelection ? (
         <div className="mx-6 mt-0 rounded-lg border border-dashed border-border/50 bg-muted/20 px-4 py-5 text-center text-sm text-muted-foreground">
           Pilih grup atau unit untuk melihat laporan perubahan risiko.
@@ -915,6 +919,7 @@ export function RiskCycleDetailReport({
           </div>
         )}
       </CardContent>
-    </Card>
+      </Card>
+    </div>
   );
 }

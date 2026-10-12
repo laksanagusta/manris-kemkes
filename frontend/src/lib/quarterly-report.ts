@@ -436,3 +436,112 @@ export function buildQuarterlyOverview(
     })),
   };
 }
+
+/** Internal operational summary; this is neither a KMK composite score nor TMPMR. */
+export function buildRiskManagementCondition(report: QuarterlyReport, activeProfiles: QuarterlyRisk[], previousProfiles: QuarterlyRisk[]) {
+  // Archive markers also include risks later restored; snapshots define activity.
+  const risks = activeProfiles;
+  const ids = new Set(risks.map((risk) => risk.id));
+  const groups = new Set(risks.map((risk) => risk.versionGroupId || risk.id));
+  const tasks = report.tasks.filter((task) =>
+    ids.has(task.riskId) || groups.has(task.versionGroupId),
+  );
+  const analysis = buildQuarterlyAnalysis({ ...report, risks, previousRisks: previousProfiles, tasks });
+  const priorByGroup = new Map(previousProfiles.map((risk) => [risk.versionGroupId || risk.id, risk]));
+  const movement = { ...analysis.movement, up: 0, down: 0, stable: 0, unavailable: 0 };
+  for (const row of analysis.rows) {
+    const previous = priorByGroup.get(row.risk.versionGroupId || row.risk.id);
+    if (!previous) continue;
+    const before = profileNilai(previous);
+    if (row.profile === null || before === null) movement.unavailable++;
+    else if (Math.round(row.profile) > Math.round(before)) movement.up++;
+    else if (Math.round(row.profile) < Math.round(before)) movement.down++;
+    else movement.stable++;
+  }
+  const assessed = analysis.rows.filter((row) => row.profile !== null);
+  const main = assessed.filter((row) => row.aboveAppetite);
+  const planned = main.filter(({ risk }) =>
+    (risk.mitigations ?? (risk.mitigation ? [risk.mitigation] : [])).some(
+      (plan) => !plan.isExistingControl && Boolean(plan.action?.trim()),
+    ),
+  ).length;
+  const high = assessed.filter((row) => Math.round(row.profile!) >= 15).length;
+  const extreme = assessed.filter((row) => Math.round(row.profile!) >= 20).length;
+  const missingPlans = main.length - planned;
+  const missedTargets = analysis.summary.target.eligible - analysis.summary.target.achieved;
+  const overdue = analysis.summary.mitigation.overdue;
+  const needsAttention = main.length > 0 || missingPlans > 0 || overdue > 0 ||
+    missedTargets > 0 || movement.up > 0;
+  const incomplete = assessed.length < risks.length ||
+    analysis.summary.monitoring.final < risks.length ||
+    analysis.summary.target.unavailable > 0 || report.warnings.length > 0;
+  const status = !risks.length ? "empty" : needsAttention ? "attention" :
+    incomplete ? "incomplete" : "within";
+  return {
+    status,
+    total: risks.length,
+    high,
+    extreme,
+    above: main.length,
+    missingPlans,
+    missedTargets,
+    overdue,
+    unassessed: risks.length - assessed.length,
+    summary: analysis.summary,
+    movement,
+    metrics: [
+      { label: "Dalam area penerimaan", numerator: assessed.length - main.length,
+        denominator: assessed.length, detail: `${risks.length - assessed.length} profil belum dapat dinilai`,
+        rule: "Profil dengan besaran risiko di bawah 10 ÷ seluruh profil yang memiliki skor valid. Berdasarkan rentang KMK: sangat rendah 1–4 dan rendah 5–9." },
+      { label: "Cakupan rencana mitigasi", numerator: planned, denominator: main.length,
+        detail: main.length ? `${missingPlans} risiko utama belum memiliki rencana` : "Tidak ada risiko utama yang perlu mitigasi",
+        rule: "Risiko utama dengan tindakan mitigasi yang terisi ÷ seluruh risiko utama (skor 10–25). Pengendalian yang sudah ada tidak dihitung sebagai rencana baru; kelengkapan ini belum membuktikan efektivitas." },
+      { label: "Mitigasi terlapor", numerator: analysis.summary.mitigation.reported,
+        denominator: tasks.length, detail: tasks.length ? `${overdue} laporan melewati tenggat` : "Belum ada tugas mitigasi pada periode ini",
+        rule: "Tugas dengan laporan valid ÷ seluruh tugas mitigasi periode ini. Tugas yang dilewati tetap masuk penyebut. Pelaporan tidak berarti pelaksanaan selesai; keterlambatan mengacu pada tenggat laporan." },
+      { label: "Pemantauan Final", numerator: analysis.summary.monitoring.final,
+        denominator: risks.length, detail: `${risks.length - analysis.summary.monitoring.final} risiko belum dipantau secara Final`,
+        rule: "Risiko dengan hasil pemantauan Final yang valid pada kuartal ini ÷ seluruh risiko aktif. Profil Final dan pemantauan Final adalah dua hal berbeda." },
+      { label: "Target residual tercapai", numerator: analysis.summary.target.achieved,
+        denominator: analysis.summary.target.eligible,
+        detail: `${analysis.summary.target.unavailable} risiko belum dapat dinilai`,
+        rule: "Hasil pemantauan Final yang mencapai target residual ÷ risiko dengan target valid dan hasil pemantauan Final pada kuartal ini. Ini capaian sementara selama kuartal berjalan, bukan hasil akhir tahun." },
+    ],
+  };
+}
+
+export function buildRiskConditionChartData(
+  report: QuarterlyReport,
+  activeProfiles: QuarterlyRisk[],
+  previousProfiles: QuarterlyRisk[],
+) {
+  const condition = buildRiskManagementCondition(report, activeProfiles, previousProfiles);
+  const composition = (period: string, risks: QuarterlyRisk[]) => {
+    const counts = { period, veryLow: 0, low: 0, medium: 0, high: 0, extreme: 0, unknown: 0 };
+    for (const risk of risks) {
+      const score = profileNilai(risk);
+      if (score === null) counts.unknown++;
+      else {
+        const rounded = Math.round(score);
+        const key = rounded >= 20 ? "extreme" : rounded >= 15 ? "high" : rounded >= 10 ? "medium" : rounded >= 5 ? "low" : "veryLow";
+        counts[key]++;
+      }
+    }
+    return counts;
+  };
+  return {
+    composition: [composition(report.comparisonCycle, previousProfiles), composition(report.cycle, activeProfiles)],
+    indicators: condition.metrics.map((metric) => ({
+      ...metric,
+      value: percentage(metric.numerator, metric.denominator),
+    })),
+    movement: [
+      { label: "Naik", value: condition.movement.up },
+      { label: "Turun", value: condition.movement.down },
+      { label: "Tetap", value: condition.movement.stable },
+      { label: "Baru", value: condition.movement.new },
+      { label: "Keluar cakupan", value: condition.movement.absent },
+      { label: "Belum dibandingkan", value: condition.movement.unavailable },
+    ],
+  };
+}
