@@ -117,7 +117,10 @@ export default function DashboardPage() {
 
   const totalRisks = summary?.totalRisks;
   const currentHeatmapMatrix = useMemo(
-    () => buildCurrentRiskHeatmapMatrix(trendRisks, currentCycle),
+    () => buildCurrentRiskHeatmapMatrix(
+      trendRisks.filter((risk) => risk.assessmentCycle === currentCycle),
+      currentCycle,
+    ),
     [trendRisks, currentCycle],
   );
   const retryDashboard = () => {

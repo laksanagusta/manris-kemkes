@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart";
 import { ReportEmptyState } from "@/components/shared/design-system";
-import { formatReportNumber, formatReportPercent, movementLabels, taskStateLabels } from "@/lib/quarterly-report";
+import { formatReportNumber, formatReportPercent, movementLabels, riskPopulationLabel, taskStateLabels } from "@/lib/quarterly-report";
 import type { QuarterlyReportOverview } from "@/types/quarterly-report";
 import type { ReportRiskFilter } from "./quarterly-report-risk-table";
 import { ReportSummaryCard, ReportSummaryMetrics } from "./report-summary-card";
@@ -45,7 +45,7 @@ function RateComparison({ current, previous, cycle }: {
 }
 
 function ReportFooter({ title, description, href, action, onClick }: {
-  title: ReactNode; description: string; href: string; action: string; onClick?: () => void;
+  title: ReactNode; description: string; href: string; action?: string; onClick?: () => void;
 }) {
   return (
     <div className="flex w-full flex-wrap items-center justify-between gap-4">
@@ -53,9 +53,9 @@ function ReportFooter({ title, description, href, action, onClick }: {
         <p className="text-sm tabular-nums">{title}</p>
         <p className="text-xs leading-5 text-muted-foreground">{description}</p>
       </div>
-      <Button asChild variant="ghost" size="sm">
+      {action && <Button asChild variant="ghost" size="sm">
         <Link href={href} onClick={onClick}><ArrowRight data-icon="inline-start" />{action}</Link>
-      </Button>
+      </Button>}
     </div>
   );
 }
@@ -90,7 +90,7 @@ export function ReportOverviewCards({ data, onInspect }: { data: QuarterlyReport
         <div className="space-y-4">
           <div>
             <p className="text-4xl leading-none tabular-nums"><MotionNumber value={formatReportNumber(s.total)} /> <span className="text-sm text-muted-foreground">risiko</span></p>
-            <p className="mt-3 text-xs text-muted-foreground">{data.cycle} <span className="mx-1">·</span> Dibanding {data.comparisonCycle}</p>
+            <p className="mt-3 text-xs text-muted-foreground">{riskPopulationLabel(data.cycle, new Date(data.generatedAt))}</p>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs text-muted-foreground">
@@ -135,7 +135,7 @@ export function ReportOverviewCards({ data, onInspect }: { data: QuarterlyReport
       <ReportSummaryCard id="target-attainment" title="Pencapaian target" className="xl:min-h-[420px]"
         footer={<ReportFooter title={<>Target tercapai <span className="ml-1 tabular-nums"><MotionNumber value={formatReportPercent(s.target.rate)} /></span></>}
           description={`${s.target.achieved} dari ${s.target.eligible} risiko yang dapat dinilai mencapai target.`}
-          href="#risk-register" action="Lihat yang belum tercapai" onClick={() => onInspect?.("target")} />}>
+          href="#risk-register" action={s.target.eligible > s.target.achieved ? "Lihat yang belum tercapai" : undefined} onClick={() => onInspect?.("target")} />}>
         <dl className="space-y-5">
           {targetRows.map(({ label, count, icon: Icon }) => (
             <div key={label} className="flex items-center gap-3">
@@ -158,7 +158,7 @@ export function ReportOverviewCards({ data, onInspect }: { data: QuarterlyReport
         action={<RateComparison current={s.mitigation.rate} previous={p.mitigation.rate} cycle={data.comparisonCycle} />}
         footer={<ReportFooter title={<>{taskCounts.overdue} tugas melewati tenggat</>}
           description={`${formatReportPercent(s.mitigation.rate)} terlapor · ${s.mitigation.reported}/${s.mitigation.total} tugas dengan laporan valid.`}
-          href="#risk-register" action="Tinjau yang terlambat" onClick={() => onInspect?.("overdue")} />}>
+          href="#risk-register" action={taskCounts.overdue > 0 ? "Tinjau yang terlambat" : undefined} onClick={() => onInspect?.("overdue")} />}>
         <div className="space-y-5">
           <div className="space-y-3"><p className="text-xs font-medium text-muted-foreground">Sudah tercatat</p><ReportSummaryMetrics items={(["reported", "skipped"] as const).map((state) => ({ label: taskStateLabels[state], value: formatReportNumber(taskCounts[state]) }))} /></div>
           <div className="space-y-3"><p className="text-xs font-medium text-muted-foreground">Masih memerlukan perhatian</p><ReportSummaryMetrics items={(["pending", "overdue", "not_reported"] as const).map((state) => ({ label: taskStateLabels[state], value: formatReportNumber(taskCounts[state]) }))} /></div>
@@ -171,7 +171,9 @@ export function ReportOverviewCards({ data, onInspect }: { data: QuarterlyReport
         action={<RateComparison current={s.monitoring.rate} previous={p.monitoring.rate} cycle={data.comparisonCycle} />}
         footer={<ReportFooter title={<><MotionNumber value={formatReportPercent(s.monitoring.rate)} /> pemantauan final</>}
           description={`${s.monitoring.final}/${s.monitoring.total} risiko · ${data.cycle}`}
-          href="#unit-comparison" action="Lihat unit" />}>
+          href={s.monitoring.total > s.monitoring.final ? "#risk-register" : "#unit-comparison"}
+          action={s.monitoring.total > s.monitoring.final ? "Tinjau yang belum final" : "Lihat unit"}
+          onClick={s.monitoring.total > s.monitoring.final ? () => onInspect?.("monitoring") : undefined} />}>
         <ReportSummaryMetrics items={[
           { label: "Sudah final", value: formatReportNumber(s.monitoring.final) },
           { label: "Belum final", value: formatReportNumber(Math.max(0, s.monitoring.total - s.monitoring.final)) },

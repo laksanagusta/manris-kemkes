@@ -49,7 +49,7 @@ func TestQuarterlyReportHistoricalArchiveAndTaskRetention(t *testing.T) {
 		count  int
 		marker bool
 	}{
-		{"2026-Q1", 1, false}, {"2026-Q2", 1, true}, {"2026-Q3", 0, false},
+		{"2026-Q1", 1, false}, {"2026-Q2", 0, false}, {"2026-Q3", 0, false},
 	} {
 		start, end := service.QuarterlyPeriodBounds(test.cycle)
 		period, err := reports.LoadPeriod(ctx, test.cycle, start, end, []uuid.UUID{orgID})
@@ -61,6 +61,30 @@ func TestQuarterlyReportHistoricalArchiveAndTaskRetention(t *testing.T) {
 		}
 		if test.cycle == "2026-Q1" && (len(period.Tasks) != 1 || period.Tasks[0].ID != taskID || period.Tasks[0].ReportedAt == nil) {
 			t.Fatal("late Q1 report must remain Q1, including archive-retained task evidence")
+		}
+		summary, err := riskRepo.DashboardSummary(ctx, test.cycle, []uuid.UUID{orgID})
+		if err != nil || summary.TotalRisks != test.count {
+			t.Fatalf("%s dashboard must match active period-end population: %+v %v", test.cycle, summary, err)
+		}
+		snapshot, err := riskRepo.ListCycleSnapshot(ctx, test.cycle, []uuid.UUID{orgID})
+		if err != nil || len(snapshot) != test.count {
+			t.Fatalf("%s trend snapshot must match report: %d %v", test.cycle, len(snapshot), err)
+		}
+		categories, err := riskRepo.DashboardCategoryCounts(ctx, test.cycle, []uuid.UUID{orgID})
+		categoryCount := 0
+		for _, category := range categories {
+			categoryCount += category.Count
+		}
+		if err != nil || categoryCount != test.count {
+			t.Fatalf("%s category population=%d want=%d error=%v", test.cycle, categoryCount, test.count, err)
+		}
+		heatmap, err := riskRepo.HeatmapData(ctx, test.cycle, []uuid.UUID{orgID})
+		heatmapCount := 0
+		for _, cell := range heatmap {
+			heatmapCount += cell.Count
+		}
+		if err != nil || heatmapCount != test.count {
+			t.Fatalf("%s heatmap population=%d want=%d error=%v", test.cycle, heatmapCount, test.count, err)
 		}
 	}
 	// Restoring must retain the same task and plan IDs, and the archival interval
@@ -76,6 +100,12 @@ func TestQuarterlyReportHistoricalArchiveAndTaskRetention(t *testing.T) {
 	period, err := reports.LoadPeriod(ctx, "2026-Q3", start, end, []uuid.UUID{orgID})
 	if err != nil || len(period.Risks) != 1 {
 		t.Fatalf("restored during quarter must be included: %+v %v", period, err)
+	}
+	// A later restore must not rewrite the closed Q2 snapshot.
+	start, end = service.QuarterlyPeriodBounds("2026-Q2")
+	period, err = reports.LoadPeriod(ctx, "2026-Q2", start, end, []uuid.UUID{orgID})
+	if err != nil || len(period.Risks) != 0 {
+		t.Fatalf("restore must preserve historical archive interval: %+v %v", period, err)
 	}
 	var count int
 	if err := pool.QueryRow(ctx, "SELECT count(*) FROM mitigation_tasks WHERE id = $1 AND mitigation_id = $2", taskID, mitigationID).Scan(&count); err != nil || count != 1 {
@@ -134,7 +164,7 @@ func TestQuarterlyReportSeparatesProfileObservationAndTaskPeriods(t *testing.T) 
 		risk := period.Risks[0]
 		if cycle == "2026-Q1" {
 			if risk.ID != source.ID || math.Round(risk.Nilai) != math.Round(source.Nilai) || risk.MonitoringStatus == nil || *risk.MonitoringStatus != "final" || risk.MonitoringObservedNilai == nil || *risk.MonitoringObservedNilai != 7 || len(period.Tasks) != 1 {
-				t.Fatalf("Q1 profile and late final observation must remain separate: risk=%+v, source=%s, tasks=%d", risk.Risk, source.ID,len(period.Tasks))
+				t.Fatalf("Q1 profile and late final observation must remain separate: risk=%+v, source=%s, tasks=%d", risk.Risk, source.ID, len(period.Tasks))
 			}
 		} else if risk.ID != result.ID || risk.TargetNilai != 1 || risk.MonitoringObservedNilai != nil || len(period.Tasks) != 0 {
 			t.Fatalf("Q1 observation/tasks must not spill into Q2: %+v", period)

@@ -49,6 +49,12 @@ export function currentReportCycle(date = new Date()) {
   const month = Number(parts.find((part) => part.type === "month")?.value);
   return `${year}-Q${Math.ceil(month / 3)}`;
 }
+
+export function riskPopulationLabel(cycle: string, date = new Date()) {
+  return cycle >= currentReportCycle(date)
+    ? "Risiko aktif saat ini · Final"
+    : "Risiko aktif akhir periode · Final";
+}
 export function shiftReportCycle(cycle: string, delta: number) {
   const match = /^(\d{4})-Q([1-4])$/.exec(cycle);
   if (!match) throw new Error("Periode tidak valid");

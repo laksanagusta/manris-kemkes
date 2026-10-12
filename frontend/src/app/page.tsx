@@ -14,7 +14,7 @@ import styles from "@/components/marketing/marketing.module.css";
 
 export const metadata: Metadata = {
   title: "Manrisk — Aplikasi Manajemen Risiko",
-  description: "Catat dan nilai risiko, susun penanganan, lalu pantau progresnya bersama tim. Manrisk menyediakan bantuan AI untuk meninjau SOP dan menyusun notulen rapat.",
+  description: "Catat dan nilai risiko, susun penanganan, lalu pantau progresnya bersama tim. Manrisk menyediakan bantuan AI untuk meninjau dokumen dan menyusun notulen rapat.",
   alternates: { canonical: "/" },
   robots: { index: true, follow: true },
 };
@@ -27,7 +27,7 @@ const workflow = [
 ];
 
 const tools = [
-  { icon: FileText, name: "Ekstraksi SOP", description: "Temukan kandidat risiko beserta sumbernya dalam SOP.", href: "/docs/risk-register#ekstraksi-sop" },
+  { icon: FileText, name: "Ekstraksi risiko dari dokumen", description: "Temukan kandidat risiko beserta sumbernya dalam dokumen.", href: "/docs/risk-register#ekstraksi-sop" },
   { icon: FileSpreadsheet, name: "Excel", description: "Impor profil risiko dan ekspor hasil kerja.", href: "/docs/risk-register" },
   { icon: Users, name: "Kolaborasi tim", description: "Bagikan tugas mitigasi dengan penanggung jawab yang jelas.", href: "/docs/risk-treatment" },
   { icon: FileSignature, name: "Tanda tangan", description: "Tinjau dan tandatangani kertas kerja sesuai urutan.", href: "/docs/signatures" },
@@ -54,7 +54,7 @@ export default function HomePage() {
         <section className={`${styles.container} ${styles.hero}`} aria-labelledby="hero-heading">
           <div className={styles.heroCopy}>
             <h1 id="hero-heading">Kelola risiko bersama tim dalam satu tempat.</h1>
-            <p>Catat dan nilai risiko, susun penanganan, lalu pantau progresnya. Gunakan bantuan AI untuk meninjau SOP dan menyusun notulen rapat.</p>
+            <p>Catat dan nilai risiko, susun penanganan, lalu pantau progresnya. Gunakan bantuan AI untuk meninjau dokumen dan menyusun notulen rapat.</p>
             <MarketingActions />
           </div>
           <div className={styles.heroMedia}><MarketingPreview hero /></div>
@@ -65,7 +65,7 @@ export default function HomePage() {
           <h2 id="features-heading" className={styles.sectionHeading}>Informasi risiko yang jelas untuk seluruh tim.</h2>
           <div className={styles.featureGrid}>
             <MarketingReveal as="article" className={styles.feature}><MarketingPreview kind="register" /><h3>Profil risiko dalam satu tampilan.</h3><p>Lihat skor, status, dan progres pemantauan setiap risiko. Gunakan informasi yang sama untuk menentukan prioritas tim.</p></MarketingReveal>
-            <MarketingReveal as="article" className={styles.feature}><MarketingPreview kind="extraction" /><h3>Temukan kandidat risiko dari SOP.</h3><p>Gunakan AI untuk menemukan kandidat risiko dalam SOP beserta sumbernya. Periksa hasilnya sebelum membuat draf.</p><Link href="/docs/risk-register#ekstraksi-sop" className={styles.textLink}>Baca panduan ekstraksi SOP <ArrowRight size={16} /></Link></MarketingReveal>
+            <MarketingReveal as="article" className={styles.feature}><MarketingPreview kind="extraction" /><h3>Temukan kandidat risiko dari dokumen.</h3><p>Gunakan AI untuk menemukan kandidat risiko dalam dokumen beserta sumbernya. Periksa hasilnya sebelum membuat draf.</p><Link href="/docs/risk-register#ekstraksi-sop" className={styles.textLink}>Baca panduan ekstraksi risiko dari dokumen <ArrowRight size={16} /></Link></MarketingReveal>
           </div>
         </section>
 

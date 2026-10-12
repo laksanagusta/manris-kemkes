@@ -100,7 +100,7 @@ func (uc *AnalyzeDocumentIntelligenceUseCase) Execute(ctx context.Context, input
 	case entity.DocumentModeSOPRiskUniverse:
 		risks, err := uc.riskRepo.List(ctx, orgIDs, "", "")
 		if err != nil {
-			return nil, fmt.Errorf("failed to load risks for SOP analysis: %w", err)
+			return nil, fmt.Errorf("gagal memuat risiko untuk analisis dokumen: %w", err)
 		}
 		req.ExistingRisksJSON, err = marshalDocumentRiskContexts(buildDocumentRiskContexts(risks))
 		if err != nil {

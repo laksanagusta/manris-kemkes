@@ -242,20 +242,7 @@ func loadQuarterlyEvents(ctx context.Context, q riskQueryer, start, end time.Tim
 }
 
 func loadQuarterlyRisks(ctx context.Context, q riskQueryer, cycle string, start, end time.Time, orgIDs []uuid.UUID) ([]*entity.QuarterlyReportRisk, *time.Time, error) {
-	query := quarterlyLifecycleCTE + `, risk_snapshots AS (
-		SELECT DISTINCT ON (r.version_group_id) r.*
-		FROM risks r
-		WHERE r.status = 'final'
-		  AND r.superseded_by_risk_id IS NULL
-		  AND (COALESCE(r.assessment_cycle, '') <= $1)
-		  AND (COALESCE(r.assessment_cycle, '') <> '' OR COALESCE(r.effective_from::timestamptz, r.created_at) < $3)
-		ORDER BY r.version_group_id,
-		         COALESCE(r.assessment_cycle, '') DESC,
-		         r.version_number DESC,
-		         r.created_at DESC,
-		         r.id DESC
-	)
-	SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.objective_id, r.ro_id, r.likelihood_assessment_id, r.impact_criteria_id, COALESCE(r.impact_justification, '') as impact_justification,
+	query := riskPeriodSnapshotCTE + `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.objective_id, r.ro_id, r.likelihood_assessment_id, r.impact_criteria_id, COALESCE(r.impact_justification, '') as impact_justification,
 		        r.cause, r.risk_source, r.controllability, r.impact_description,
 		        r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, ROUND(COALESCE(r.nilai, 0))::int,
 		        r.risk_priority, r.risk_appetite, r.treatment_option,
@@ -273,7 +260,7 @@ func loadQuarterlyRisks(ctx context.Context, q riskQueryer, cycle string, start,
 		        monitoring.observed_nilai,
 		        monitoring.observed_level, monitoring.finalized_at,
 	        GREATEST(r.updated_at, monitoring.updated_at),
-	        (COALESCE(lifecycle.archived_at >= $2 AND lifecycle.archived_at < $3, FALSE) OR EXISTS (SELECT 1 FROM lifecycle_events e WHERE e.version_group_id = r.version_group_id AND e.action = 'archive' AND e.created_at >= $2 AND e.created_at < $3))
+	        (COALESCE(lifecycle.archived_at >= $2 AND lifecycle.archived_at < LEAST($3::timestamptz, CURRENT_TIMESTAMP), FALSE) OR EXISTS (SELECT 1 FROM lifecycle_events e WHERE e.version_group_id = r.version_group_id AND e.action = 'archive' AND e.created_at >= $2 AND e.created_at < LEAST($3::timestamptz, CURRENT_TIMESTAMP)))
 	 FROM risk_snapshots r
 	 LEFT JOIN lifecycle ON lifecycle.version_group_id = r.version_group_id
 	 LEFT JOIN organizations o ON r.organization_id = o.id
@@ -293,14 +280,7 @@ func loadQuarterlyRisks(ctx context.Context, q riskQueryer, cycle string, start,
 		 ORDER BY rm.finalized_at DESC NULLS LAST, rm.updated_at DESC, rm.id DESC
 		 LIMIT 1
 	 ) monitoring ON TRUE
-	 WHERE (
-        EXISTS (SELECT 1 FROM lifecycle_events e WHERE e.version_group_id = r.version_group_id AND e.action = 'restore' AND e.created_at >= $2 AND e.created_at < $3)
-        OR CASE
-          WHEN EXISTS (SELECT 1 FROM lifecycle_events e WHERE e.version_group_id = r.version_group_id AND e.created_at < $2)
-          THEN (SELECT e.action FROM lifecycle_events e WHERE e.version_group_id = r.version_group_id AND e.created_at < $2 ORDER BY e.created_at DESC, e.id DESC LIMIT 1) <> 'archive'
-          ELSE lifecycle.archived_at IS NULL OR lifecycle.archived_at >= $2
-        END
-     )`
+	 WHERE TRUE`
 	args := []interface{}{cycle, start, end}
 	if len(orgIDs) > 0 {
 		query += fmt.Sprintf(" AND r.organization_id = ANY($%d)", len(args)+1)

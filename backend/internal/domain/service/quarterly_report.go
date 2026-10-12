@@ -41,6 +41,14 @@ func QuarterlyPeriodBounds(cycle string) (time.Time, time.Time) {
 	return start, start.AddDate(0, 3, 0)
 }
 
+func QuarterlyRiskPopulationLabel(cycle string, now time.Time) string {
+	_, end := QuarterlyPeriodBounds(cycle)
+	if now.Before(end) {
+		return "Risiko aktif saat ini · Final"
+	}
+	return "Risiko aktif akhir periode · Final"
+}
+
 func QuarterlyProfileNilai(r *entity.Risk) float64 {
 	if r.Nilai > 0 && !math.IsNaN(r.Nilai) && !math.IsInf(r.Nilai, 0) {
 		return r.Nilai

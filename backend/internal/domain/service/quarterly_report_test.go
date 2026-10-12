@@ -8,6 +8,17 @@ import (
 	"github.com/manris/backend/internal/domain/entity"
 )
 
+func TestQuarterlyRiskPopulationLabelUsesJakartaPeriodEnd(t *testing.T) {
+	before := time.Date(2026, 6, 30, 16, 59, 59, 0, time.UTC)
+	atEnd := before.Add(time.Second)
+	if got := QuarterlyRiskPopulationLabel("2026-Q2", before); got != "Risiko aktif saat ini · Final" {
+		t.Fatalf("running quarter label=%q", got)
+	}
+	if got := QuarterlyRiskPopulationLabel("2026-Q2", atEnd); got != "Risiko aktif akhir periode · Final" {
+		t.Fatalf("closed quarter label=%q", got)
+	}
+}
+
 func TestQuarterlyTargetDenominatorAndNewRisk(t *testing.T) {
 	cycle := "2026-Q2"
 	data := &entity.QuarterlyReportData{Cycle: cycle, GeneratedAt: time.Date(2026, 9, 1, 0, 0, 0, 0, time.UTC)}

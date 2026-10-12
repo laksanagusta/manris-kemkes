@@ -55,6 +55,14 @@ const EMPTY_SCOPE: ReportsFilterScope = {
 function LoadingReport() {
   return (
     <div className="space-y-8" aria-label="Memuat laporan" aria-busy="true">
+      <div className="space-y-2">
+        <Skeleton className="h-5 w-64 max-w-full" />
+        <div className="flex flex-wrap gap-x-6 gap-y-2">
+          <Skeleton className="h-4 w-52 max-w-full" />
+          <Skeleton className="h-4 w-52 max-w-full" />
+        </div>
+        <Skeleton className="h-4 w-80 max-w-full" />
+      </div>
       <ReportOverviewSkeleton />
       <ReportSummaryCard title="Kejadian dan dampak aktual" aria-busy="true">
         <ReportSummaryMetrics items={["Kerugian", "Nilai belum diketahui", "Belum terhubung"].map((label) => ({ label, value: <Skeleton className="h-8 w-24" /> }))} />

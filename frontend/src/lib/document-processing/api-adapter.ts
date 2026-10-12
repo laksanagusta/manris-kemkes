@@ -189,18 +189,18 @@ function stageFinding(
 ): Finding {
   return {
     id: "api-finding-stage-" + slug(stage.clientKey, "stage-" + (index + 1)),
-    title: stage.stageName.trim() || "Tahap proses " + (index + 1),
+    title: stage.stageName.trim() || "Bagian dokumen " + (index + 1),
     summary:
       stage.description.trim() ||
       stage.controlGap?.trim() ||
-      "Tahap proses teridentifikasi dari dokumen.",
+      "Bagian atau topik teridentifikasi dari dokumen.",
     severity: "low",
-    category: "Tahap proses",
+    category: "Bagian dokumen",
     source: sourceFor(document, stage.sourceRefs[0]),
     confidence: normalizeConfidence(stage.confidence),
     recommendedAction:
       stage.controlGap?.trim() ||
-      "Tinjau kontrol yang berlaku pada tahap proses ini.",
+      "Tinjau isi dan kontrol yang disebutkan pada bagian dokumen ini.",
     groupId,
   };
 }

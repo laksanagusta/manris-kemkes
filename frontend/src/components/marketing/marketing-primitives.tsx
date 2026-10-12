@@ -30,7 +30,7 @@ export function MarketingActions() {
 const previews = {
   dashboard: { image: dashboardScreenshot, alt: "Dashboard Manrisk dengan tren, distribusi kategori, komposisi, dan peta risiko" },
   register: { image: registerScreenshot, alt: "Register risiko dengan status, skor, dan progres pemantauan" },
-  extraction: { image: extractionScreenshot, alt: "Ekstraksi SOP menjadi kandidat risiko beserta sumbernya" },
+  extraction: { image: extractionScreenshot, alt: "Ekstraksi risiko dari dokumen menjadi kandidat risiko beserta sumbernya" },
   treatment: { image: treatmentScreenshot, alt: "Daftar penanganan risiko dan progres mitigasi" },
   monitoring: { image: monitoringScreenshot, alt: "Pemantauan risiko per periode di Manrisk" },
   paper: { image: paperScreenshot, alt: "Kertas kerja dengan skor risiko dan riwayat tanda tangan" },
@@ -64,9 +64,9 @@ export function MarketingPreview({ kind = "dashboard", hero = false }: { kind?: 
       {hero && (
         <aside className={styles.previewInsight} aria-label="Contoh ringkasan analisis risiko">
           <div className={styles.insightEyebrow}><Sparkles size={15} /> Asisten Manrisk <span>Contoh</span></div>
-          <h3>Dari SOP ke draf risiko.</h3>
-          <p>Tinjau kandidat risiko dari SOP sebelum menyimpannya sebagai draf.</p>
-          <div className={styles.sampleFile}><span className={styles.fileMark}>PDF</span><div><strong>SOP Pelayanan.pdf</strong><small>Dokumen sumber</small></div><Check size={16} /></div>
+          <h3>Dari dokumen ke draf risiko.</h3>
+          <p>Tinjau kandidat risiko dari dokumen sebelum menyimpannya sebagai draf.</p>
+          <div className={styles.sampleFile}><span className={styles.fileMark}>PDF</span><div><strong>Laporan Kinerja.pdf</strong><small>Dokumen sumber</small></div><Check size={16} /></div>
           <ul className={styles.insightList}>
             <li><Check size={14} /> Identifikasi kandidat risiko</li>
             <li><Check size={14} /> Telusuri sumber temuan</li>
@@ -88,9 +88,9 @@ export function MarketingSystemExample() {
         <div><span className={styles.eyebrow}>Alur · 24–28px</span><p className={styles.specimenWorkflow}>Susun rencana penanganan</p></div>
         <div><span className={styles.eyebrow}>Kartu · 20px</span><p className={styles.specimenCard}>Profil risiko dalam satu tampilan.</p></div>
         <div><span className={styles.eyebrow}>Lead · 18px</span><p className={styles.specimenLead}>Catat dan nilai risiko, susun penanganan, lalu pantau progresnya.</p></div>
-        <div><span className={styles.eyebrow}>Body · 16px</span><p>Gunakan bantuan AI untuk meninjau SOP dan menyusun notulen rapat.</p></div>
+        <div><span className={styles.eyebrow}>Body · 16px</span><p>Gunakan bantuan AI untuk meninjau dokumen dan menyusun notulen rapat.</p></div>
         <div><span className={styles.eyebrow}>UI · 14px</span><p className={styles.specimenUi}>Baca panduan</p></div>
-        <div><span className={styles.eyebrow}>Caption · 13px</span><p className={styles.specimenCaption}>SOP Pelayanan.pdf</p></div>
+        <div><span className={styles.eyebrow}>Caption · 13px</span><p className={styles.specimenCaption}>Laporan Kinerja.pdf</p></div>
         <div><span className={styles.eyebrow}>Microcopy · 12px</span><p className={styles.specimenMicro}>Hasil AI perlu ditinjau</p></div>
       </div>
       <MarketingReveal className={`${styles.surface} ${styles.systemExample}`}>
