@@ -208,6 +208,10 @@ export function QuarterlyReportDashboard({
   const [unitPageSize, setUnitPageSize] = useState(10);
   if (!data) return null;
   const { summary: s, units } = data;
+  const currentCycle = currentReportCycle();
+  const runningPeriod = data.cycle === currentCycle
+    ? "Periode laporan"
+    : data.comparisonCycle === currentCycle ? "Periode pembanding" : null;
   const events = data.recentEvents;
   const selectedUnitOverview =
     units.find((unit) => unit.id === selectedUnitId) ?? null;
@@ -308,20 +312,24 @@ export function QuarterlyReportDashboard({
   };
   return (
     <div className="min-w-0 space-y-8">
-      <div className="grid items-start gap-6 xl:grid-cols-2">
-        <div className="min-w-0 max-w-[75ch] space-y-2" role="status">
-          <p className="flex flex-wrap items-center gap-2 text-sm">Laporan {data.cycle} dibanding {data.comparisonCycle}{(data.cycle === currentReportCycle() || data.comparisonCycle === currentReportCycle()) && <Badge variant="secondary">Kuartal berjalan</Badge>}</p>
-          {(data.cycle === currentReportCycle() || data.comparisonCycle === currentReportCycle()) && <p className="text-sm text-info-foreground">{data.cycle === currentReportCycle() ? "Periode laporan" : "Periode pembanding"} belum selesai. Data dan selisih masih dapat berubah; hasil ini belum mewakili satu kuartal penuh.</p>}
-          <p className="text-xs text-muted-foreground">Data terakhir diperbarui: {reportTimestamp(data.dataUpdatedAt)}. Diambil pada: {reportTimestamp(data.generatedAt)}. Selisih ditampilkan dalam poin persentase (pp).</p>
-        </div>
-        {(s.target.eligible > s.target.achieved || data.taskCounts.overdue > 0 || s.monitoring.total > s.monitoring.final) && <div className="min-w-0 space-y-2">
-          <p className="text-sm font-medium">Perlu tindak lanjut</p>
-          <div className="flex flex-wrap gap-2" role="group" aria-label="Tindak lanjut laporan">
-            {s.target.eligible > s.target.achieved && <Button asChild variant="outline" size="sm"><Link href="#risk-register" onClick={() => inspectRisks("target")}>{s.target.eligible - s.target.achieved} target belum tercapai</Link></Button>}
-            {data.taskCounts.overdue > 0 && <Button asChild variant="outline" size="sm"><Link href="#risk-register" onClick={() => inspectRisks("overdue")}>{data.taskCounts.overdue} laporan mitigasi melewati tenggat</Link></Button>}
-            {s.monitoring.total > s.monitoring.final && <Button asChild variant="outline" size="sm"><Link href="#risk-register" onClick={() => inspectRisks("monitoring")}>{s.monitoring.total - s.monitoring.final} pemantauan belum final</Link></Button>}
+      <div className="min-w-0 space-y-2" role="status">
+        <p className="flex flex-wrap items-center gap-2 text-sm">
+          <span>Laporan {data.cycle}</span>
+          <span className="text-muted-foreground">dibanding {data.comparisonCycle}</span>
+          {runningPeriod && <Badge variant="secondary">Kuartal berjalan</Badge>}
+        </p>
+        {runningPeriod && <p className="max-w-[75ch] text-sm text-info-foreground">{runningPeriod} belum selesai. Data dan selisih masih dapat berubah.</p>}
+        <dl className="flex flex-wrap gap-x-6 gap-y-2 text-xs text-muted-foreground">
+          <div className="flex flex-wrap gap-x-1">
+            <dt>Diperbarui:</dt>
+            <dd>{reportTimestamp(data.dataUpdatedAt)}</dd>
           </div>
-        </div>}
+          <div className="flex flex-wrap gap-x-1">
+            <dt>Diambil:</dt>
+            <dd>{reportTimestamp(data.generatedAt)}</dd>
+          </div>
+        </dl>
+        <p className="max-w-[75ch] text-xs text-muted-foreground">pp = poin persentase, selisih terhadap periode pembanding.</p>
       </div>
       <ReportOverviewCards data={data} onInspect={inspectRisks} />
       <ReportSummaryCard title="Kejadian dan dampak aktual">

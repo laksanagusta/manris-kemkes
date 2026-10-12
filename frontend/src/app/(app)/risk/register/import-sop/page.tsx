@@ -12,7 +12,7 @@ import {
 } from "@/lib/document-processing/storage";
 import type { Finding } from "@/types/document-processing";
 
-export default function ImportSopPage() {
+export default function ExtractDocumentRisksPage() {
   const aiFeaturesDisabled = isAIFeaturesDisabled();
   const { token, user } = useAuth();
   const [selectedFinding, setSelectedFinding] = useState<Finding | null>(null);
@@ -41,7 +41,7 @@ export default function ImportSopPage() {
   if (aiFeaturesDisabled) {
     return (
       <AIFeaturesDisabledState
-        title="Ekstraksi SOP Dinonaktifkan"
+        title="Ekstraksi Risiko dari Dokumen Dinonaktifkan"
         description="Analisis dokumen berbasis AI sementara tidak tersedia. Hubungi administrator untuk mengaktifkannya kembali."
       />
     );
@@ -53,8 +53,8 @@ export default function ImportSopPage() {
         authToken={token ?? undefined}
         organizationId={user?.organizationId || undefined}
         analysisMode="sop_risk_universe"
-        heading="Ekstrak risiko dari SOP"
-        description="Unggah satu SOP. Manrisk akan menemukan kandidat risiko, kontrol, dan langkah proses beserta sumbernya."
+        heading="Ekstrak risiko dari dokumen"
+        description="Unggah satu dokumen, seperti laporan, kebijakan, rencana kerja, kontrak, notulen, atau SOP. Manrisk akan menemukan kandidat risiko beserta sumbernya untuk ditinjau sebelum dibuat menjadi draf."
         onUseRiskDraft={setSelectedFinding}
         reportedFindingIds={reportedFindingIds}
       />

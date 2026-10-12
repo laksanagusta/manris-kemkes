@@ -5,7 +5,6 @@ import { Download, FileSpreadsheet, FileText, Loader2, MoreHorizontal, RefreshCw
 import { ReportScopePicker } from "@/components/report/report-scope-picker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -98,63 +97,61 @@ export function ReportFilterPanel({
   const disabled = !scopeReady || Boolean(exporting);
 
   return (
-    <Card data-report-card="" role="region" aria-label="Filter laporan">
-      <CardContent className="space-y-4">
-        <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-[11rem_11rem_minmax(0,1fr)]">
-          <PeriodPicker label="Periode laporan" cycle={cycle} onChange={onCycleChange} disabled={disabled} />
-          <PeriodPicker label="Pembanding" cycle={comparisonCycle} onChange={onComparisonCycleChange} disabled={disabled} />
-          <ReportScopePicker
-            organizationId={scope.organizationId}
-            onOrganizationChange={(organizationId) => onScopeChange((value) => ({ ...value, organizationId }))}
-            selectedOrganizationIds={scope.organizationIds}
-            onSelectedOrganizationIdsChange={(organizationIds) => onScopeChange((value) => ({ ...value, organizationIds }))}
-            organizations={organizations}
-            organizationGroupId={scope.organizationGroupId}
-            onOrganizationGroupChange={(organizationGroupId) => onScopeChange((value) => ({ ...value, organizationGroupId }))}
-            organizationGroups={groups}
-            className="min-w-0 md:col-span-2 xl:col-span-1"
-            orientation="inline"
-            density="compact"
-            disabled={disabled}
-          />
+    <section className="min-w-0 space-y-4" aria-label="Filter laporan">
+      <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-[11rem_11rem_minmax(0,1fr)]">
+        <PeriodPicker label="Periode laporan" cycle={cycle} onChange={onCycleChange} disabled={disabled} />
+        <PeriodPicker label="Pembanding" cycle={comparisonCycle} onChange={onComparisonCycleChange} disabled={disabled} />
+        <ReportScopePicker
+          organizationId={scope.organizationId}
+          onOrganizationChange={(organizationId) => onScopeChange((value) => ({ ...value, organizationId }))}
+          selectedOrganizationIds={scope.organizationIds}
+          onSelectedOrganizationIdsChange={(organizationIds) => onScopeChange((value) => ({ ...value, organizationIds }))}
+          organizations={organizations}
+          organizationGroupId={scope.organizationGroupId}
+          onOrganizationGroupChange={(organizationGroupId) => onScopeChange((value) => ({ ...value, organizationGroupId }))}
+          organizationGroups={groups}
+          className="min-w-0 md:col-span-2 xl:col-span-1"
+          orientation="inline"
+          density="compact"
+          disabled={disabled}
+        />
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3">
+        <p className="text-xs text-muted-foreground tabular-nums" aria-live="polite">{scopeSummary}</p>
+        <div className="flex items-center gap-1">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" aria-label="Opsi laporan" title="Opsi laporan" disabled={disabled}>
+                <MoreHorizontal />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem disabled={loading} onSelect={onReload}>
+                <RefreshCw />Muat ulang data
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={onReset}>
+                <RotateCcw />Atur ulang filter
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" disabled={!canExport || loading || disabled}>
+                {exporting ? <Loader2 className="size-4 animate-spin" /> : <Download />}
+                Ekspor
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onSelect={() => onExport("pdf")}>
+                <FileText />Ringkasan PDF
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={() => onExport("xlsx")}>
+                <FileSpreadsheet />Laporan lengkap Excel
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3">
-          <p className="text-xs text-muted-foreground tabular-nums" aria-live="polite">{scopeSummary}</p>
-          <div className="flex items-center gap-1">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" aria-label="Opsi laporan" title="Opsi laporan" disabled={disabled}>
-                  <MoreHorizontal />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem disabled={loading} onSelect={onReload}>
-                  <RefreshCw />Muat ulang data
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={onReset}>
-                  <RotateCcw />Atur ulang filter
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" disabled={!canExport || loading || disabled}>
-                  {exporting ? <Loader2 className="size-4 animate-spin" /> : <Download />}
-                  Ekspor
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={() => onExport("pdf")}>
-                  <FileText />Ringkasan PDF
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={() => onExport("xlsx")}>
-                  <FileSpreadsheet />Laporan lengkap Excel
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 }

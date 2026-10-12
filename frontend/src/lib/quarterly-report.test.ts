@@ -5,7 +5,19 @@ import {
   buildQuarterlyAnalysis,
   completedReportCycle,
   reportTaskState,
+  riskPopulationLabel,
 } from "./quarterly-report.ts";
+
+test("population label changes when the quarter closes in Jakarta", () => {
+  assert.equal(
+    riskPopulationLabel("2026-Q2", new Date("2026-06-30T16:59:59Z")),
+    "Risiko aktif saat ini · Final",
+  );
+  assert.equal(
+    riskPopulationLabel("2026-Q2", new Date("2026-06-30T17:00:00Z")),
+    "Risiko aktif akhir periode · Final",
+  );
+});
 import type {
   QuarterlyReport,
   QuarterlyRisk,

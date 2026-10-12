@@ -52,7 +52,7 @@ test("overview shows the current total below the risk-count trend header", () =>
   assert.match(trendCard, /currentTotal\?: number/);
   assert.match(trendCard, /summary=\{/);
   assert.match(trendCard, /\{currentTotal \?\? "—"\}/);
-  assert.match(trendCard, /risiko terdaftar/);
+  assert.match(trendCard, /Risiko aktif saat ini · Final/);
 });
 
 test("overview summary fetch only tracks the current total", () => {

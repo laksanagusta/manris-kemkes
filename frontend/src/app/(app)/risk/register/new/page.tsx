@@ -6,6 +6,11 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
+import {
+  getMitigationActionErrors,
+  getRiskMitigationRequirementError,
+  requiresRiskMitigationPlan,
+} from "@/lib/risk-mitigation-validation";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { archiveRisk, restoreRisk } from "@/lib/api/risk-register";
 import {
@@ -612,6 +617,24 @@ const formSchema = z
     roId: z.string().optional(),
   })
   .superRefine((values, ctx) => {
+    const mitigationRequirementError = getRiskMitigationRequirementError(
+      Math.round(
+        calculateNilai(
+          values.probability,
+          values.impact,
+          getBobot(values.probability, values.impact),
+        ),
+      ),
+      values.treatmentOption,
+      values.mitigations,
+    );
+    if (mitigationRequirementError) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["mitigations"],
+        message: mitigationRequirementError,
+      });
+    }
     values.mitigations.forEach((mitigation, index) => {
       const hasContent =
         [
@@ -899,12 +922,7 @@ export default function RiskInputPage() {
   const impact = watch("impact") ?? 3;
   const mitigations = watch("mitigations") ?? [];
   const mitigationActionErrors = useMemo(
-    () =>
-      (
-        (errors.mitigations as
-          | Array<{ action?: { message?: string } }>
-          | undefined) ?? []
-      ).map((item) => item?.action?.message),
+    () => getMitigationActionErrors(errors.mitigations),
     [errors.mitigations],
   );
   const targetProbability = watch("targetProbability") ?? 1;
@@ -1726,6 +1744,15 @@ export default function RiskInputPage() {
     !aiFeaturesDisabled &&
     title.trim().length > 0 &&
     description.trim().length > 0;
+  const mitigationPlanRequired = requiresRiskMitigationPlan(
+    advisoryInherentScore,
+    treatmentOption,
+  );
+  const mitigationRequirementError = getRiskMitigationRequirementError(
+    advisoryInherentScore,
+    treatmentOption,
+    mitigations,
+  );
 
   const sectionStatuses: SectionStatus[] = [
     {
@@ -1768,9 +1795,11 @@ export default function RiskInputPage() {
       step: "4",
       title: "Rencana Penanganan",
       description:
-        "Tentukan aksi mitigasi yang nyata, siapa PIC-nya, dan kapan eksekusinya. Opsional.",
-      done: true, // Always optional — no enforcement based on treatment option
-      hint: "Tambahkan aksi mitigasi jika diperlukan.",
+        mitigationPlanRequired
+          ? "Risiko utama dengan pilihan Mitigasi wajib memiliki minimal satu rencana mitigasi baru sebelum diajukan atau difinalisasi. Draft tetap dapat disimpan."
+          : "Tentukan aksi mitigasi yang nyata, siapa PIC-nya, dan kapan eksekusinya. Opsional.",
+      done: !mitigationRequirementError,
+      hint: mitigationRequirementError ?? "Tambahkan aksi mitigasi jika diperlukan.",
     },
     {
       id: "target",
@@ -1966,6 +1995,7 @@ export default function RiskInputPage() {
     "category",
     "causes",
     "impacts",
+    "mitigations",
   ];
 
   const applyFinalizeValidationErrors = (values: FormInput) => {
@@ -2105,6 +2135,9 @@ export default function RiskInputPage() {
     treatmentOption,
     targetProbability,
     targetImpact,
+    probability,
+    impact,
+    mitigations,
     currentOrganizationId,
   ]);
 
@@ -2218,7 +2251,9 @@ export default function RiskInputPage() {
         }
       }
     } catch (err: unknown) {
-      console.error("Failed to save", err);
+      if (!(err instanceof ApiError && err.status >= 400 && err.status < 500)) {
+        console.error("Gagal menyimpan risiko", err);
+      }
       const errorMessage =
         err instanceof ApiError
           ? err.message
@@ -2285,7 +2320,6 @@ export default function RiskInputPage() {
     if (sectionId) {
       scrollToSection(sectionId);
     }
-    console.error("Form Validation Errors: ", errors);
   };
 
   const openSubmitReviewConfirm = () => {

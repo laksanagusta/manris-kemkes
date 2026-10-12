@@ -64,6 +64,7 @@ func (r *quarterlyReportPDFRenderer) RenderQuarterly(ctx context.Context, data *
 
 	quarterlyText(m, "Ringkasan kinerja", true)
 	quarterlyTable(m, []string{"Indikator", "Periode laporan", "Pembanding", "Dasar perhitungan"}, [][]string{
+		{service.QuarterlyRiskPopulationLabel(data.Cycle, data.GeneratedAt), fmt.Sprint(summary.TotalRisks), fmt.Sprint(prior.TotalRisks), "Satu profil Final yang sudah efektif dan aktif pada tanggal acuan; Draft tidak dihitung"},
 		{"Risiko di atas selera risiko", quarterlyRatio(summary.AboveAppetite, summary.TotalRisks), quarterlyRatio(prior.AboveAppetite, prior.TotalRisks), "Nilai profil dibulatkan >= 10"},
 		{"Target tercapai", quarterlyRatio(summary.TargetReached, summary.TargetAssessable), quarterlyRatio(prior.TargetReached, prior.TargetAssessable), fmt.Sprintf("Target valid + observasi final; %d belum dapat dinilai", summary.TargetUnassessable)},
 		{"Mitigasi terlapor", quarterlyRatio(summary.Tasks.Reported, summary.Tasks.Total), quarterlyRatio(prior.Tasks.Reported, prior.Tasks.Total), "Seluruh tugas periode; done + waktu laporan + catatan valid"},

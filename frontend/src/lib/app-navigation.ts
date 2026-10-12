@@ -142,7 +142,7 @@ export function getBreadcrumbItems(
     return detailBreadcrumb(riskParent, "Import Risiko");
   }
   if (route === "/risk/register/import-sop") {
-    return detailBreadcrumb(riskParent, "Ekstrak Risiko dari SOP");
+    return detailBreadcrumb(riskParent, "Ekstrak Risiko dari Dokumen");
   }
   if (/^\/risk\/register\/[^/]+$/.test(route)) {
     return detailBreadcrumb(riskParent, dynamicLabel ?? "Detail Risiko");
@@ -278,7 +278,7 @@ export const breadcrumbMap: Record<string, string> = {
   "/compliance/controls": "Control Library",
   "/risk": "Risk Assessments",
   "/risk/register": "Risiko",
-  "/risk/register/import-sop": "Ekstrak Risiko dari SOP",
+  "/risk/register/import-sop": "Ekstrak Risiko dari Dokumen",
   "/risk-events": "Kejadian Risiko",
   "/risk/new": "New Risk",
   "/risk/history": "Risk History",
@@ -463,8 +463,8 @@ export const appPageMeta: Record<string, AppPageMeta> = {
     subtitle: "Tambahkan beberapa risiko melalui template yang telah disiapkan.",
   },
   "/risk/register/import-sop": {
-    title: "Ekstrak Risiko dari SOP",
-    subtitle: "Temukan kandidat risiko dari dokumen SOP untuk ditinjau dan dibuat sebagai draf.",
+    title: "Ekstrak Risiko dari Dokumen",
+    subtitle: "Temukan kandidat risiko dari dokumen untuk ditinjau dan dibuat sebagai draf.",
   },
   "/risk/register/new": {
     title: "Tambah Risiko",

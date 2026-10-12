@@ -867,7 +867,7 @@ func parseDocumentIntelligenceResult(mode entity.DocumentAnalysisMode, content s
 	case entity.DocumentModeSOPRiskUniverse:
 		var sop entity.SOPRiskUniverseResult
 		if err := json.Unmarshal([]byte(content), &sop); err != nil {
-			return nil, fmt.Errorf("gagal mengurai respons AI SOP: %w", err)
+			return nil, fmt.Errorf("gagal mengurai respons AI ekstraksi risiko dari dokumen: %w", err)
 		}
 		result.SOP = &sop
 	case entity.DocumentModeAuditFindingMapper:
@@ -925,7 +925,16 @@ Aturan tambahan:
 - missingFields berisi nama field yang perlu dilengkapi, tanpa membuat fakta baru.
 %s`, req.Filename, req.DocumentText, baseInstructions)
 	case entity.DocumentModeSOPRiskUniverse:
-		return fmt.Sprintf(`Tugas Anda adalah membaca dokumen SOP, pedoman, atau alur proses bisnis dan menyusun universe risiko per tahapan proses.
+		return fmt.Sprintf(`Tugas Anda adalah mengekstrak kandidat risiko dari berbagai jenis dokumen yang relevan, seperti laporan, kebijakan, rencana kerja, kontrak, notulen, pedoman, atau dokumen lainnya.
+Dokumen tidak harus memiliki alur atau tahapan proses.
+
+Aturan ekstraksi:
+- Identifikasi peristiwa potensial yang dapat menghambat tujuan, layanan, kegiatan, kepatuhan, atau penggunaan sumber daya berdasarkan isi dokumen.
+- Kelompokkan kandidat menurut bagian atau topik dokumen. Gunakan tahapan proses hanya jika memang tercantum.
+- Untuk kompatibilitas format JSON, processStages berisi kelompok bagian, topik, atau tahapan yang relevan; stageName adalah nama kelompok tersebut.
+- Jangan mengarang tahapan proses, kontrol, atau fakta yang tidak tercantum. Bedakan fakta dokumen dari inferensi risiko dan usulan mitigasi dalam reasoning.
+- Setiap kandidat risiko wajib memiliki sourceRefs dengan kutipan yang mendukungnya.
+- Jika dokumen tidak memberi dasar untuk kandidat risiko, kembalikan processStages kosong. Jangan memaksakan temuan.
 
 Nama file: %s
 Periode konteks: %s
@@ -937,8 +946,8 @@ Kembalikan HANYA JSON valid dengan struktur:
   "processStages": [
     {
       "clientKey": "stage-1",
-      "stageName": "Nama tahap proses",
-      "description": "Apa yang terjadi di tahap ini",
+      "stageName": "Nama bagian, topik, atau tahap proses",
+      "description": "Konteks bagian atau topik berdasarkan dokumen",
       "existingControl": "Kontrol yang disebutkan di dokumen",
       "controlGap": "Celah kontrol yang terlihat",
       "confidence": 0,

@@ -7,6 +7,27 @@ import (
 	"github.com/manris/backend/internal/domain/entity"
 )
 
+func TestRiskDocumentExtractionPromptSupportsDocumentsWithoutProcessStages(t *testing.T) {
+	repo := &aiRepository{}
+	prompt := repo.buildDocumentIntelligencePrompt(entity.DocumentAnalysisRequest{
+		Mode:         entity.DocumentModeSOPRiskUniverse,
+		Filename:     "laporan-kinerja.pdf",
+		DocumentText: "Anggaran kegiatan berkurang sehingga target layanan berpotensi tidak tercapai.",
+	})
+	for _, required := range []string{
+		"berbagai jenis dokumen", "laporan", "kontrak", "notulen",
+		"tidak harus memiliki alur atau tahapan proses", "bagian atau topik dokumen",
+		"Jangan mengarang tahapan proses", "processStages", "suggestedRisks", "sourceRefs",
+	} {
+		if !strings.Contains(prompt, required) {
+			t.Fatalf("prompt missing %q", required)
+		}
+	}
+	if strings.Contains(prompt, "SOP") {
+		t.Fatal("generic document risk extraction prompt must not mention SOP")
+	}
+}
+
 func TestBuildDocumentIntelligencePromptStrategicIncludesHierarchy(t *testing.T) {
 	repo := &aiRepository{}
 

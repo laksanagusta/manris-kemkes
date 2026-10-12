@@ -98,5 +98,5 @@ func validateRiskMitigationRequirements(risk *entity.Risk) error {
 			return nil
 		}
 	}
-	return apperrors.Wrap(apperrors.ErrInvalidInput, "risk utama with treatment mitigasi requires at least one new mitigation plan")
+	return apperrors.ErrRiskUtamaMitigationRequired
 }

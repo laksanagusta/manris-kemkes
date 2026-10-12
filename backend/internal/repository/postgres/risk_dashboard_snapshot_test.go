@@ -25,7 +25,7 @@ func TestDashboardUsesLatestRiskVersionAvailableAsOfRequestedCycle(t *testing.T)
 
 	risk := &entity.Risk{
 		Code:            "R-DASH-" + uuid.NewString()[:8],
-		Title:           "H1 risk carried into H2 dashboard",
+		Title:           "Q1 risk carried into Q2 dashboard",
 		Description:     "Latest available approved risk",
 		Category:        entity.RiskCategoryOperasional,
 		Status:          entity.RiskStatusApproved,
@@ -34,7 +34,7 @@ func TestDashboardUsesLatestRiskVersionAvailableAsOfRequestedCycle(t *testing.T)
 		IsCurrent:       true,
 		IsCycleCurrent:  true,
 		VersionNumber:   1,
-		AssessmentCycle: "2026-H1",
+		AssessmentCycle: "2026-Q1",
 		Probability:     4,
 		Impact:          4,
 		Weight:          entity.GetBobot(4, 4),
@@ -49,7 +49,7 @@ func TestDashboardUsesLatestRiskVersionAvailableAsOfRequestedCycle(t *testing.T)
 	}
 	t.Cleanup(func() { _ = repo.Delete(context.Background(), risk.ID) })
 
-	summary, err := repo.DashboardSummary(ctx, "2026-H2", []uuid.UUID{orgID})
+	summary, err := repo.DashboardSummary(ctx, "2026-Q2", []uuid.UUID{orgID})
 	if err != nil {
 		t.Fatalf("dashboard summary: %v", err)
 	}
@@ -60,7 +60,7 @@ func TestDashboardUsesLatestRiskVersionAvailableAsOfRequestedCycle(t *testing.T)
 		t.Fatalf("high/extreme risks = %d, want 1", summary.HighExtreme)
 	}
 
-	heatmap, err := repo.HeatmapData(ctx, "2026-H2", []uuid.UUID{orgID})
+	heatmap, err := repo.HeatmapData(ctx, "2026-Q2", []uuid.UUID{orgID})
 	if err != nil {
 		t.Fatalf("heatmap data: %v", err)
 	}
@@ -68,7 +68,7 @@ func TestDashboardUsesLatestRiskVersionAvailableAsOfRequestedCycle(t *testing.T)
 		t.Fatalf("heatmap = %#v, want one populated cell", heatmap)
 	}
 
-	topRisks, err := repo.TopRisks(ctx, "2026-H2", 5, []uuid.UUID{orgID})
+	topRisks, err := repo.TopRisks(ctx, "2026-Q2", 5, []uuid.UUID{orgID})
 	if err != nil {
 		t.Fatalf("top risks: %v", err)
 	}
@@ -80,7 +80,7 @@ func TestDashboardUsesLatestRiskVersionAvailableAsOfRequestedCycle(t *testing.T)
 		t.Fatalf("top risk inherent score = %d, want rounded score %d", topRisks[0].InherentScore, wantScore)
 	}
 
-	categories, err := repo.DashboardCategoryCounts(ctx, "2026-H2", []uuid.UUID{orgID})
+	categories, err := repo.DashboardCategoryCounts(ctx, "2026-Q2", []uuid.UUID{orgID})
 	if err != nil {
 		t.Fatalf("dashboard category counts: %v", err)
 	}

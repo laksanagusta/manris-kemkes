@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/repository"
+	"github.com/manris/backend/internal/timeutil"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -892,18 +893,11 @@ func (r *riskRepository) NextRiskCode(ctx context.Context) (string, error) {
 }
 
 func currentQuarterCycle() string {
-	now := time.Now().UTC()
+	now := time.Now().In(timeutil.JakartaLocation())
 	return fmt.Sprintf("%d-Q%d", now.Year(), (int(now.Month())-1)/3+1)
 }
 
-const dashboardRiskSnapshotCTE = `WITH risk_snapshots AS (
-	SELECT DISTINCT ON (r.version_group_id) r.*
-	FROM risks r
-	WHERE r.status = 'final'
-	  AND r.superseded_by_risk_id IS NULL
-	  AND r.assessment_cycle <= $1
-	ORDER BY r.version_group_id, r.assessment_cycle DESC, r.version_number DESC, r.created_at DESC
-), dashboard_risks AS (
+const dashboardRiskSnapshotCTE = riskPeriodSnapshotCTE + `, dashboard_risks AS (
 	SELECT snapshot.*,
 	       snapshot.probability AS effective_probability,
 	       snapshot.impact AS effective_impact,
@@ -1363,19 +1357,7 @@ func (r *riskRepository) ListVersions(ctx context.Context, versionGroupID uuid.U
 // The profile snapshot and monitoring observation are intentionally resolved
 // independently: an observation in Q1 informs the profile effective in Q2.
 func (r *riskRepository) ListCycleSnapshot(ctx context.Context, cycle string, orgIDs []uuid.UUID) ([]*entity.Risk, error) {
-	query := `WITH risk_snapshots AS (
-		SELECT DISTINCT ON (r.version_group_id) r.*
-		FROM risks r
-		WHERE r.status = 'final'
-		  AND r.superseded_by_risk_id IS NULL
-		  AND COALESCE(r.assessment_cycle, '') <= $1
-		ORDER BY r.version_group_id,
-		         COALESCE(r.assessment_cycle, '') DESC,
-		         r.version_number DESC,
-		         r.created_at DESC,
-		         r.id DESC
-	)
-	SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.objective_id, r.ro_id, r.likelihood_assessment_id, r.impact_criteria_id, COALESCE(r.impact_justification, '') as impact_justification,
+	query := riskPeriodSnapshotCTE + `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.objective_id, r.ro_id, r.likelihood_assessment_id, r.impact_criteria_id, COALESCE(r.impact_justification, '') as impact_justification,
 		        r.cause, r.risk_source, r.controllability, r.impact_description,
 		        r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, ROUND(COALESCE(r.nilai, 0))::int,
 		        r.risk_priority, r.risk_appetite, r.treatment_option,

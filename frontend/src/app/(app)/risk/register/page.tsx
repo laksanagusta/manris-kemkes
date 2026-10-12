@@ -972,7 +972,7 @@ export default function RiskRegisterPage() {
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/risk/register/import-sop">
-                      Ekstrak risiko dari SOP
+                      Ekstrak risiko dari dokumen
                     </Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>

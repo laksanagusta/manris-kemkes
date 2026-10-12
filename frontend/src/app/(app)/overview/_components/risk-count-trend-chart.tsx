@@ -75,7 +75,7 @@ export function RiskCountTrendChart({
           <span className="text-3xl font-semibold tabular-nums">
             <MotionNumber value={currentTotal ?? "—"} />
           </span>
-          <span className="text-sm text-muted-foreground">risiko terdaftar</span>
+          <span className="text-sm text-muted-foreground">Risiko aktif saat ini · Final</span>
         </p>
       }
     >
