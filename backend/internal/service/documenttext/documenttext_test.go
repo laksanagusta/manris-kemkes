@@ -2,11 +2,25 @@ package documenttext
 
 import (
 	"bytes"
+	"errors"
 	"strings"
 	"testing"
 
+	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/xuri/excelize/v2"
 )
+
+func TestSensitiveTextIsRejectedBeforeTruncation(t *testing.T) {
+	const privateEmail = "private-synthetic@example.test"
+	text := strings.Repeat("Fakta laporan biasa. ", 4000) + privateEmail
+	result, err := extractAndTruncate(text, 10)
+	if !errors.Is(err, domainerrors.ErrSensitiveDataDetected) || result != nil {
+		t.Fatal("sensitive content beyond the length cap must reject the entire document")
+	}
+	if strings.Contains(err.Error(), privateEmail) {
+		t.Fatal("sensitive value leaked through extraction error")
+	}
+}
 
 func TestExtractXLSXIncludesSheetAndRows(t *testing.T) {
 	f := excelize.NewFile()

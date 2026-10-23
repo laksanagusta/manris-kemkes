@@ -11,8 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 import { Card, CardContent } from "@/components/ui/card";
-import { PageStack } from "@/components/shared/design-system";
-import { currentAssessmentCycle } from "@/lib/risk-cycle-options";
+import { ExternalAIProcessingNotice, PageStack } from "@/components/shared/design-system";
 import type { DocumentAnalysisMode } from "@/types/document-intelligence";
 import type {
   Finding,
@@ -77,7 +76,6 @@ export function DocumentProcessingWorkspace({
   const [documents, setDocuments] = useState<UploadedDocument[]>([]);
   const [issues, setIssues] = useState<FileIssue[]>([]);
   const [currentJob, setCurrentJob] = useState<ProcessingJob>();
-  const [period, setPeriod] = useState(currentAssessmentCycle());
   const [dragActive, setDragActive] = useState(false);
   const [offline, setOffline] = useState(false);
   const reduceMotion = useReducedMotion();
@@ -175,7 +173,6 @@ export function DocumentProcessingWorkspace({
     const job = adapter.createJob({
       documents: validDocuments,
       mode: analysisMode,
-      period: period.trim() || undefined,
     });
     job.storageScope = storageScope;
     activeJobIdRef.current = job.id;
@@ -217,7 +214,6 @@ export function DocumentProcessingWorkspace({
       return [];
     });
     setIssues([]);
-    setPeriod(currentAssessmentCycle());
   }
 
   function cancelProcessing() {
@@ -255,7 +251,8 @@ export function DocumentProcessingWorkspace({
           </p>
         </div>
 
-        <div className="pt-2">
+        <div className="space-y-4 pt-2">
+          <ExternalAIProcessingNotice />
           <UploadPanel
             documents={documents}
             issues={issues}

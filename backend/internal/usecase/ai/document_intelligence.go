@@ -4,159 +4,97 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	domainerrors "github.com/manris/backend/internal/domain/errors"
-	"github.com/manris/backend/internal/domain/repository"
+	"github.com/manris/backend/internal/service/sensitivedata"
 )
 
+const maxDocumentAnalysisTasks = 50
+const maxDocumentTaskContextBytes = 24000
+
 type documentIntelligenceAIRepository interface {
-	AnalyzeDocument(ctx context.Context, req entity.DocumentAnalysisRequest, orgContext string) (*entity.DocumentIntelligenceResult, error)
-}
-
-type documentIntelligenceRiskRepository interface {
-	List(ctx context.Context, orgIDs []uuid.UUID, status string, category string) ([]*entity.Risk, error)
-}
-
-type documentIntelligenceObjectiveRepository interface {
-	ListObjectiveCompatibilityRows(ctx context.Context, filter repository.PlanningCompatibilityFilter) ([]*entity.RiskObjective, int, error)
+	AnalyzeDocument(context.Context, entity.DocumentAnalysisRequest) (*entity.DocumentIntelligenceResult, error)
 }
 
 type documentIntelligenceTaskRepository interface {
-	ListAll(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.MitigationTask, error)
-}
-
-type documentIntelligenceOrgRepository interface {
-	GetContext(ctx context.Context, id uuid.UUID) (string, error)
+	ListForDocumentAnalysis(context.Context, []uuid.UUID, int) ([]entity.DocumentMitigationTaskContext, error)
 }
 
 type AnalyzeDocumentIntelligenceInput struct {
 	Mode           entity.DocumentAnalysisMode
 	DocumentText   string
-	Filename       string
-	Period         string
+	Period         string // Legacy caller input is ignored; periods come from active tasks.
 	OrganizationID *uuid.UUID
 	OrgIDs         []uuid.UUID
 }
 
 type AnalyzeDocumentIntelligenceUseCase struct {
-	aiRepo        documentIntelligenceAIRepository
-	orgRepo       documentIntelligenceOrgRepository
-	riskRepo      documentIntelligenceRiskRepository
-	objectiveRepo documentIntelligenceObjectiveRepository
-	taskRepo      documentIntelligenceTaskRepository
+	aiRepo   documentIntelligenceAIRepository
+	taskRepo documentIntelligenceTaskRepository
 }
 
-func NewAnalyzeDocumentIntelligenceUseCase(
-	aiRepo documentIntelligenceAIRepository,
-	orgRepo documentIntelligenceOrgRepository,
-	riskRepo documentIntelligenceRiskRepository,
-	objectiveRepo documentIntelligenceObjectiveRepository,
-	taskRepo documentIntelligenceTaskRepository,
-) *AnalyzeDocumentIntelligenceUseCase {
-	return &AnalyzeDocumentIntelligenceUseCase{
-		aiRepo:        aiRepo,
-		orgRepo:       orgRepo,
-		riskRepo:      riskRepo,
-		objectiveRepo: objectiveRepo,
-		taskRepo:      taskRepo,
-	}
+func NewAnalyzeDocumentIntelligenceUseCase(aiRepo documentIntelligenceAIRepository, taskRepo documentIntelligenceTaskRepository) *AnalyzeDocumentIntelligenceUseCase {
+	return &AnalyzeDocumentIntelligenceUseCase{aiRepo: aiRepo, taskRepo: taskRepo}
 }
 
 func (uc *AnalyzeDocumentIntelligenceUseCase) Execute(ctx context.Context, input AnalyzeDocumentIntelligenceInput) (*entity.DocumentIntelligenceResult, error) {
 	if !entity.IsValidDocumentAnalysisMode(input.Mode) {
-		return nil, domainerrors.Wrap(domainerrors.ErrInvalidInput, "invalid document analysis mode")
+		return nil, domainerrors.Wrap(domainerrors.ErrInvalidInput, "mode analisis dokumen tidak valid")
 	}
 	if strings.TrimSpace(input.DocumentText) == "" {
 		return nil, domainerrors.ErrDocumentUnreadable
 	}
-
-	orgIDs := resolveDocumentIntelligenceOrgIDs(input)
-
-	contextOrgID := input.OrganizationID
-	if contextOrgID == nil && len(orgIDs) > 0 {
-		contextOrgID = &orgIDs[0]
+	if err := sensitivedata.Validate(input.DocumentText, sensitivedata.Document); err != nil {
+		return nil, err
 	}
-
-	var orgContext string
-	if contextOrgID != nil {
-		contextText, err := uc.orgRepo.GetContext(ctx, *contextOrgID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load organization context: %w", err)
+	req := entity.DocumentAnalysisRequest{Mode: input.Mode, DocumentText: input.DocumentText}
+	if input.Mode == entity.DocumentModeMitigationReportMapper {
+		orgIDs := resolveDocumentIntelligenceOrgIDs(input)
+		if len(orgIDs) != 1 {
+			return nil, domainerrors.Wrap(domainerrors.ErrInvalidInput, "Organisasi akun belum tersedia. Hubungi administrator untuk menghubungkan akun ke satu organisasi.")
 		}
-		orgContext = contextText
+		tasks, err := uc.taskRepo.ListForDocumentAnalysis(ctx, orgIDs, maxDocumentAnalysisTasks+1)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load document analysis tasks: %w", err)
+		}
+		if len(tasks) > maxDocumentAnalysisTasks {
+			return nil, domainerrors.Wrap(domainerrors.ErrInvalidInput, "Tugas mitigasi aktif melebihi batas 50 kandidat. Gunakan pelaporan manual untuk sementara.")
+		}
+		if len(tasks) == 0 {
+			return nil, domainerrors.Wrap(domainerrors.ErrInvalidInput, "Tidak ada tugas mitigasi terbuka pada profil risiko aktif organisasi Anda.")
+		}
+		if err := sensitivedata.ValidateTaskContext("", tasks); err != nil {
+			return nil, err
+		}
+		encoded, err := json.Marshal(tasks)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode document analysis tasks: %w", err)
+		}
+		if len(encoded) > maxDocumentTaskContextBytes {
+			return nil, domainerrors.Wrap(domainerrors.ErrInvalidInput, "Konteks tugas mitigasi terlalu besar. Gunakan pelaporan manual untuk sementara.")
+		}
+		periods := make([]string, 0)
+		seenPeriods := make(map[string]bool)
+		for _, task := range tasks {
+			if !seenPeriods[task.PeriodLabel] {
+				seenPeriods[task.PeriodLabel] = true
+				periods = append(periods, task.PeriodLabel)
+			}
+		}
+		sort.Strings(periods)
+		req.Period, req.OpenTasksJSON = strings.Join(periods, ", "), string(encoded)
 	}
-
-	req := entity.DocumentAnalysisRequest{
-		Mode:         input.Mode,
-		DocumentText: input.DocumentText,
-		Filename:     input.Filename,
-		Period:       input.Period,
-	}
-
-	switch input.Mode {
-	case entity.DocumentModeSOPRiskUniverse:
-		risks, err := uc.riskRepo.List(ctx, orgIDs, "", "")
-		if err != nil {
-			return nil, fmt.Errorf("gagal memuat risiko untuk analisis dokumen: %w", err)
-		}
-		req.ExistingRisksJSON, err = marshalDocumentRiskContexts(buildDocumentRiskContexts(risks))
-		if err != nil {
-			return nil, fmt.Errorf("failed to encode risks context: %w", err)
-		}
-	case entity.DocumentModeAuditFindingMapper:
-		risks, err := uc.riskRepo.List(ctx, orgIDs, "", "")
-		if err != nil {
-			return nil, fmt.Errorf("failed to load risks for audit analysis: %w", err)
-		}
-		req.ExistingRisksJSON, err = marshalDocumentRiskContexts(buildDocumentRiskContexts(risks))
-		if err != nil {
-			return nil, fmt.Errorf("failed to encode risks context: %w", err)
-		}
-	case entity.DocumentModeStrategicObjectiveRisk:
-		objectives, _, err := uc.objectiveRepo.ListObjectiveCompatibilityRows(ctx, repository.PlanningCompatibilityFilter{
-			OrganizationID: contextOrgID,
-			Period:         input.Period,
-			Page:           1,
-			Limit:          500,
-		})
-		if err != nil {
-			return nil, fmt.Errorf("failed to load objectives for strategic analysis: %w", err)
-		}
-		req.ObjectivesJSON, err = marshalDocumentObjectiveContexts(buildDocumentObjectiveContexts(objectives))
-		if err != nil {
-			return nil, fmt.Errorf("failed to encode objectives context: %w", err)
-		}
-
-		risks, err := uc.riskRepo.List(ctx, orgIDs, "", "")
-		if err != nil {
-			return nil, fmt.Errorf("failed to load risks for strategic analysis: %w", err)
-		}
-		req.ExistingRisksJSON, err = marshalDocumentRiskContexts(buildDocumentRiskContexts(risks))
-		if err != nil {
-			return nil, fmt.Errorf("failed to encode risks context: %w", err)
-		}
-	case entity.DocumentModeMitigationReportMapper:
-		tasks, err := uc.taskRepo.ListAll(ctx, orgIDs)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load mitigation tasks: %w", err)
-		}
-		req.OpenTasksJSON, err = marshalDocumentTaskContexts(buildOpenMitigationTaskContexts(tasks))
-		if err != nil {
-			return nil, fmt.Errorf("failed to encode mitigation task context: %w", err)
-		}
-	}
-
-	result, err := uc.aiRepo.AnalyzeDocument(ctx, req, orgContext)
+	result, err := uc.aiRepo.AnalyzeDocument(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 	if result == nil {
 		return nil, domainerrors.ErrInternal
 	}
-
 	normalizeDocumentIntelligenceResult(result)
 	result.Mode = input.Mode
 	if input.Mode == entity.DocumentModeRiskEventExtraction {
@@ -168,153 +106,11 @@ func (uc *AnalyzeDocumentIntelligenceUseCase) Execute(ctx context.Context, input
 	return result, nil
 }
 
-type documentRiskContext struct {
-	ID              string   `json:"id"`
-	Code            string   `json:"code,omitempty"`
-	Title           string   `json:"title"`
-	Category        string   `json:"category,omitempty"`
-	Description     string   `json:"description,omitempty"`
-	RiskSource      string   `json:"riskSource,omitempty"`
-	Cause           []string `json:"cause,omitempty"`
-	ImpactDesc      []string `json:"impactDesc,omitempty"`
-	ExistingControl string   `json:"existingControl,omitempty"`
-	TreatmentOption string   `json:"treatmentOption,omitempty"`
-	Probability     int      `json:"probability,omitempty"`
-	Impact          int      `json:"impact,omitempty"`
-	AssessmentCycle string   `json:"assessmentCycle,omitempty"`
-	OrgName         string   `json:"orgName,omitempty"`
-}
-
-type documentObjectiveContext struct {
-	ID                    string `json:"id"`
-	Period                string `json:"period"`
-	Tujuan                string `json:"tujuan"`
-	Sasaran               string `json:"sasaran"`
-	IndikatorKinerjaUtama string `json:"indikatorKinerjaUtama"`
-	Target                string `json:"target,omitempty"`
-	Program               string `json:"program,omitempty"`
-	Kegiatan              string `json:"kegiatan,omitempty"`
-	ROTitle               string `json:"roTitle,omitempty"`
-	ProcessBusiness       string `json:"processBusiness,omitempty"`
-	Status                string `json:"status,omitempty"`
-}
-
-type documentMitigationTaskContext struct {
-	ID               string `json:"id"`
-	RiskID           string `json:"riskId"`
-	RiskCode         string `json:"riskCode"`
-	RiskTitle        string `json:"riskTitle"`
-	MitigationAction string `json:"mitigationAction"`
-	MitigationOwner  string `json:"mitigationOwner,omitempty"`
-	PeriodLabel      string `json:"periodLabel"`
-	DueDate          string `json:"dueDate,omitempty"`
-	Status           string `json:"status"`
-	Notes            string `json:"notes,omitempty"`
-}
-
-func buildDocumentRiskContexts(risks []*entity.Risk) []documentRiskContext {
-	result := make([]documentRiskContext, 0, len(risks))
-	for _, risk := range risks {
-		if risk == nil {
-			continue
-		}
-		result = append(result, documentRiskContext{
-			ID:              risk.ID.String(),
-			Code:            risk.Code,
-			Title:           risk.Title,
-			Category:        risk.Category,
-			Description:     risk.Description,
-			RiskSource:      risk.RiskSource,
-			Cause:           append([]string(nil), risk.Cause...),
-			ImpactDesc:      append([]string(nil), risk.ImpactDesc...),
-			ExistingControl: risk.ExistingControl,
-			TreatmentOption: risk.TreatmentOption,
-			Probability:     risk.Probability,
-			Impact:          risk.Impact,
-			AssessmentCycle: risk.AssessmentCycle,
-			OrgName:         risk.OrgName,
-		})
-	}
-	return result
-}
-
-func buildDocumentObjectiveContexts(objectives []*entity.RiskObjective) []documentObjectiveContext {
-	result := make([]documentObjectiveContext, 0, len(objectives))
-	for _, objective := range objectives {
-		if objective == nil {
-			continue
-		}
-		result = append(result, documentObjectiveContext{
-			ID:                    objective.ID.String(),
-			Period:                objective.Period,
-			Tujuan:                objective.Tujuan,
-			Sasaran:               objective.Sasaran,
-			IndikatorKinerjaUtama: objective.IndikatorKinerjaUtama,
-			Target:                objective.Target,
-			Program:               objective.Program,
-			Kegiatan:              objective.Kegiatan,
-			ROTitle:               objective.ProcessBusiness,
-			ProcessBusiness:       objective.ProcessBusiness,
-			Status:                objective.Status,
-		})
-	}
-	return result
-}
-
-func buildOpenMitigationTaskContexts(tasks []*entity.MitigationTask) []documentMitigationTaskContext {
-	result := make([]documentMitigationTaskContext, 0, len(tasks))
-	for _, task := range tasks {
-		if task == nil || strings.EqualFold(task.Status, "done") || strings.EqualFold(task.Status, "not_reported") {
-			continue
-		}
-		result = append(result, documentMitigationTaskContext{
-			ID:               task.ID.String(),
-			RiskID:           task.RiskID.String(),
-			RiskCode:         task.RiskCode,
-			RiskTitle:        task.RiskTitle,
-			MitigationAction: task.MitigationAction,
-			MitigationOwner:  task.MitigationOwner,
-			PeriodLabel:      task.PeriodLabel,
-			DueDate:          task.DueDate,
-			Status:           task.Status,
-			Notes:            task.Notes,
-		})
-	}
-	return result
-}
-
 func resolveDocumentIntelligenceOrgIDs(input AnalyzeDocumentIntelligenceInput) []uuid.UUID {
-	if len(input.OrgIDs) > 0 {
-		return input.OrgIDs
-	}
 	if input.OrganizationID != nil {
 		return []uuid.UUID{*input.OrganizationID}
 	}
-	return nil
-}
-
-func marshalDocumentRiskContexts(v any) (string, error) {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return "", err
-	}
-	return string(b), nil
-}
-
-func marshalDocumentObjectiveContexts(v any) (string, error) {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return "", err
-	}
-	return string(b), nil
-}
-
-func marshalDocumentTaskContexts(v any) (string, error) {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return "", err
-	}
-	return string(b), nil
+	return input.OrgIDs
 }
 
 func normalizeDocumentIntelligenceResult(result *entity.DocumentIntelligenceResult) {
@@ -329,33 +125,6 @@ func normalizeDocumentIntelligenceResult(result *entity.DocumentIntelligenceResu
 			stage.SourceRefs = normalizeSourceRefs(stage.SourceRefs)
 			for j := range stage.SuggestedRisks {
 				stage.SuggestedRisks[j] = normalizeDocumentRiskSuggestion(stage.SuggestedRisks[j])
-			}
-		}
-	case result.Audit != nil:
-		for i := range result.Audit.Findings {
-			finding := &result.Audit.Findings[i]
-			finding.ClientKey = sanitizeDocumentClientKey(finding.ClientKey, finding.FindingTitle)
-			finding.Confidence = clampConfidence(finding.Confidence)
-			finding.SourceRefs = normalizeSourceRefs(finding.SourceRefs)
-			if finding.SuggestedRisk != nil {
-				suggestion := normalizeDocumentRiskSuggestion(*finding.SuggestedRisk)
-				finding.SuggestedRisk = &suggestion
-			}
-		}
-	case result.Strategic != nil:
-		for i := range result.Strategic.Objectives {
-			objective := &result.Strategic.Objectives[i]
-			objective.ClientKey = sanitizeDocumentClientKey(objective.ClientKey, objective.Sasaran)
-			objective.Confidence = clampConfidence(objective.Confidence)
-			objective.SourceRefs = normalizeSourceRefs(objective.SourceRefs)
-			for j := range objective.IKUs {
-				iku := &objective.IKUs[j]
-				iku.ClientKey = sanitizeDocumentClientKey(iku.ClientKey, iku.Name)
-				iku.Confidence = clampConfidence(iku.Confidence)
-				iku.SourceRefs = normalizeSourceRefs(iku.SourceRefs)
-				for k := range iku.SuggestedRisks {
-					iku.SuggestedRisks[k] = normalizeDocumentRiskSuggestion(iku.SuggestedRisks[k])
-				}
 			}
 		}
 	case result.Mitigation != nil:

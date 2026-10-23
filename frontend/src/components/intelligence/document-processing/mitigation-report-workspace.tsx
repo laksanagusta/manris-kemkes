@@ -36,13 +36,15 @@ export function MitigationReportWorkspace({
   const notesInputRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
+    setSelectedFinding(null);
+    setShowDialog(false);
     setReportedFindingIds(
       new Set(
-        loadLatestProcessingJob("mitigation_report_mapper")?.handledFindingIds ??
+        loadLatestProcessingJob("mitigation_report_mapper", organizationId)?.handledFindingIds ??
           [],
       ),
     );
-  }, []);
+  }, [organizationId]);
 
   const formErrors = useMemo(
     () => validateMitigationReportForm({ evidenceUrl, notes }),
@@ -83,11 +85,10 @@ export function MitigationReportWorkspace({
         next.add(selectedFinding.id);
         return next;
       });
-      markProcessingFindingHandled("mitigation_report_mapper", selectedFinding.id);
+      markProcessingFindingHandled("mitigation_report_mapper", selectedFinding.id, organizationId);
       setShowDialog(false);
       toast.success("Progress berhasil dilaporkan!");
-    } catch (error) {
-      console.error(error);
+    } catch {
       toast.error("Gagal mengirim laporan progress");
     } finally {
       setSubmitting(false);
@@ -98,7 +99,8 @@ export function MitigationReportWorkspace({
     <>
       <DocumentProcessingWorkspace
         authToken={authToken}
-        organizationId={organizationId}
+        organizationId={organizationId || undefined}
+        storageScope={organizationId}
         analysisMode="mitigation_report_mapper"
         heading="Impor laporan mitigasi"
         description="Unggah satu laporan. Manrisk akan mencocokkan isinya dengan task penanganan yang masih terbuka."

@@ -38,12 +38,12 @@ func TestRiskEventExtractionKeepsDifferentEventsSeparate(t *testing.T) {
 
 func TestRiskEventModeDoesNotLoadRegisterOrMitigationTasks(t *testing.T) {
 	ai := &fakeDocumentAIRepo{result: &entity.DocumentIntelligenceResult{Kejadian: &entity.RiskEventExtractionResult{Items: []entity.RiskEventExtractionItem{}}}}
-	uc := NewAnalyzeDocumentIntelligenceUseCase(ai, nil, nil, nil, nil)
-	result, err := uc.Execute(context.Background(), AnalyzeDocumentIntelligenceInput{Mode: entity.DocumentModeRiskEventExtraction, DocumentText: "Tidak ada kejadian", Filename: "laporan.pdf"})
+	uc := NewAnalyzeDocumentIntelligenceUseCase(ai, nil)
+	result, err := uc.Execute(context.Background(), AnalyzeDocumentIntelligenceInput{Mode: entity.DocumentModeRiskEventExtraction, DocumentText: "Tidak ada kejadian"})
 	if err != nil || result.Kejadian == nil {
 		t.Fatalf("Execute = %+v, %v", result, err)
 	}
-	if ai.lastReq.ExistingRisksJSON != "" || ai.lastReq.OpenTasksJSON != "" {
+	if ai.lastReq.OpenTasksJSON != "" {
 		t.Fatal("unexpected mapping context")
 	}
 }

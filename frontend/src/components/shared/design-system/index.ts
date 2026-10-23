@@ -40,6 +40,7 @@ export { ExpandableSearchField } from "./collections/expandable-search-field";
 export { SidebarTabsList } from "./collections/sidebar-tabs-list";
 
 export { ArchivedBanner } from "./feedback/archived-banner";
+export { ExternalAIProcessingNotice } from "./feedback/external-ai-processing-notice";
 export { InlineEmptyState } from "./feedback/inline-empty-state";
 export {
   EmptyStateIllustration,

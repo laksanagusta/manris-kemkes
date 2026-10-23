@@ -1,15 +1,12 @@
 import { analyzeDocumentIntelligence } from "@/lib/api/document-intelligence";
+import { isDocumentAnalysisMode } from "@/types/document-intelligence";
 import { currentAssessmentCycle } from "@/lib/risk-cycle-options";
 import type {
-  AuditFindingSuggestion,
-  DocumentAnalysisMode,
   DocumentIntelligenceResponse,
   DocumentRiskSuggestion,
   DocumentSourceRef,
   MitigationTaskReportSuggestion,
   SOPProcessStageSuggestion,
-  StrategicIKUSuggestion,
-  StrategicObjectiveSuggestion,
 } from "@/types/document-intelligence";
 import type {
   DocumentGroup,
@@ -88,9 +85,10 @@ function createInitialJob(input: ProcessingStartInput): ProcessingJob {
 
   return {
     id: createId("document-api-job"),
-    name: "Document review · " + (input.period || currentAssessmentCycle()),
+    name: input.mode === "mitigation_report_mapper" ? "Document review · profil risiko aktif" : "Document review · " + (input.period || currentAssessmentCycle()),
     mode: input.mode,
-    period: input.period,
+    organizationId: input.organizationId,
+    period: input.mode === "mitigation_report_mapper" ? undefined : input.period,
     status: "queued",
     createdAt,
     updatedAt: createdAt,
@@ -205,69 +203,6 @@ function stageFinding(
   };
 }
 
-function auditFinding(
-  document: UploadedDocument,
-  item: AuditFindingSuggestion,
-  groupId: string,
-  index: number,
-): Finding {
-  if (item.suggestedRisk) {
-    return riskFinding(document, item.suggestedRisk, groupId, index, item.findingTitle);
-  }
-
-  return {
-    id: "api-finding-audit-" + slug(item.clientKey, "finding-" + (index + 1)),
-    title: item.findingTitle.trim() || "Temuan audit " + (index + 1),
-    summary:
-      item.findingDescription.trim() ||
-      item.impact.trim() ||
-      item.rootCause.trim() ||
-      "Temuan audit teridentifikasi dari dokumen.",
-    severity: item.existingRiskId ? "medium" : "high",
-    category: item.affectedArea.trim() || "Temuan audit",
-    source: sourceFor(document, item.sourceRefs[0]),
-    confidence: normalizeConfidence(item.confidence),
-    recommendedAction:
-      item.rootCause.trim() ||
-      "Tinjau pemetaan temuan dan tentukan tindak lanjut.",
-    groupId,
-  };
-}
-
-function strategicFinding(
-  document: UploadedDocument,
-  objective: StrategicObjectiveSuggestion,
-  suggestion: DocumentRiskSuggestion,
-  groupId: string,
-  index: number,
-): Finding {
-  return riskFinding(document, suggestion, groupId, index, objective.tujuan);
-}
-
-function ikuFinding(
-  document: UploadedDocument,
-  iku: StrategicIKUSuggestion,
-  groupId: string,
-  index: number,
-): Finding {
-  return {
-    id: "api-finding-iku-" + slug(iku.clientKey, "iku-" + (index + 1)),
-    title: iku.name.trim() || "Indikator kinerja " + (index + 1),
-    summary:
-      iku.processBusiness?.trim() ||
-      iku.target?.trim() ||
-      "Indikator kinerja teridentifikasi dari dokumen.",
-    severity: "low",
-    category: "Indikator kinerja",
-    source: sourceFor(document, iku.sourceRefs[0]),
-    confidence: normalizeConfidence(iku.confidence),
-    recommendedAction:
-      iku.target?.trim() ||
-      "Tinjau keterkaitan indikator dengan risiko organisasi.",
-    groupId,
-  };
-}
-
 function mitigationFinding(
   document: UploadedDocument,
   item: MitigationTaskReportSuggestion,
@@ -338,31 +273,6 @@ function mapResponseToFindings(
             )
           : [stageFinding(document, stage, groupId, stageIndex)],
       );
-    }
-    case "audit_finding_mapper":
-      return (result.audit?.findings ?? []).map((item, index) =>
-        auditFinding(document, item, groupId, index),
-      );
-    case "strategic_objective_risk": {
-      const objectives = result.strategic?.objectives ?? [];
-      return objectives.flatMap((objective, objectiveIndex) => {
-        const riskFindings = objective.ikus.flatMap((iku, ikuIndex) =>
-          iku.suggestedRisks.map((suggestion, riskIndex) =>
-            strategicFinding(
-              document,
-              objective,
-              suggestion,
-              groupId,
-              objectiveIndex * 1000 + ikuIndex * 100 + riskIndex,
-            ),
-          ),
-        );
-        return riskFindings.length
-          ? riskFindings
-          : objective.ikus.map((iku, ikuIndex) =>
-              ikuFinding(document, iku, groupId, objectiveIndex * 100 + ikuIndex),
-            );
-      });
     }
     case "mitigation_report_mapper":
       return (result.mitigation?.taskMatches ?? []).map((item, index) =>
@@ -524,13 +434,15 @@ function runAnalysis(
   onUpdate(job);
 
   const document = job.documents.find((item) => item.file);
-  if (!options.token || !document?.file) {
+  if (!options.token || !document?.file || !isDocumentAnalysisMode(job.mode)) {
     settled = true;
     onUpdate(
       failJob(
         job,
         new Error(
-          options.token
+          !isDocumentAnalysisMode(job.mode)
+            ? "Mode analisis dokumen tidak tersedia."
+            : options.token
             ? "File sumber tidak tersedia. Unggah ulang dokumen sebelum menganalisis."
             : "Sesi Anda telah berakhir. Masuk kembali untuk menganalisis dokumen.",
         ),
@@ -543,9 +455,8 @@ function runAnalysis(
     options.token,
     {
       file: document.file,
-      mode: job.mode as DocumentAnalysisMode,
-      period: job.period,
-      organizationId: options.organizationId,
+      mode: job.mode,
+      organizationId: job.organizationId,
     },
     { signal: controller.signal },
   )
@@ -577,7 +488,7 @@ export function createDocumentProcessingApiAdapter(
   options: DocumentProcessingApiAdapterOptions,
 ): ProcessingAdapter {
   return {
-    createJob: createInitialJob,
+    createJob: (input) => createInitialJob({ ...input, organizationId: options.organizationId }),
     run: (job, onUpdate) => runAnalysis(options, job, onUpdate),
     retryTask: (job, _taskId, onUpdate) => runAnalysis(options, job, onUpdate),
   };

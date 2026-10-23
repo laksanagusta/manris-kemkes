@@ -24,11 +24,12 @@ func (e *AppError) Unwrap() error {
 }
 
 var (
-	ErrInvalidInput        = &AppError{Code: "INVALID_INPUT", Message: "input tidak valid"}
-	ErrInvalidRequestType  = &AppError{Code: "INVALID_REQUEST_TYPE", Message: "tipe request harus 'risk', 'incident', atau 'assessment'"}
-	ErrInvalidStatus       = &AppError{Code: "INVALID_STATUS", Message: "status tidak valid"}
-	ErrInvalidApproverRole = &AppError{Code: "INVALID_APPROVER_ROLE", Message: "peran approver tidak valid"}
-	ErrInvalidAction       = &AppError{Code: "INVALID_ACTION", Message: "aksi harus 'approve' atau 'reject'"}
+	ErrInvalidInput          = &AppError{Code: "INVALID_INPUT", Message: "input tidak valid"}
+	ErrSensitiveDataDetected = newValidationError("SENSITIVE_DATA_DETECTED", "analisis dihentikan karena terindikasi memuat data sensitif")
+	ErrInvalidRequestType    = &AppError{Code: "INVALID_REQUEST_TYPE", Message: "tipe request harus 'risk', 'incident', atau 'assessment'"}
+	ErrInvalidStatus         = &AppError{Code: "INVALID_STATUS", Message: "status tidak valid"}
+	ErrInvalidApproverRole   = &AppError{Code: "INVALID_APPROVER_ROLE", Message: "peran approver tidak valid"}
+	ErrInvalidAction         = &AppError{Code: "INVALID_ACTION", Message: "aksi harus 'approve' atau 'reject'"}
 
 	ErrNotFound         = &AppError{Code: "NOT_FOUND", Message: "sumber daya tidak ditemukan"}
 	ErrApprovalNotFound = &AppError{Code: "APPROVAL_NOT_FOUND", Message: "permintaan persetujuan tidak ditemukan"}

@@ -1,15 +1,17 @@
 package http
 
 import (
-	"log"
+	"log/slog"
+	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/manris/backend/internal/domain/errors"
+	"github.com/manris/backend/internal/pkg/requestmeta"
 )
 
 // sendProblemDetails formats error responses according to RFC 7807 Problem Details
 func sendProblemDetails(c *fiber.Ctx, status int, title, errorType, detail string) error {
-	log.Printf("http problem details status=%d title=%q path=%q detail=%q", status, title, c.Path(), detail)
+	logHTTPProblem(c, status)
 	c.Set(fiber.HeaderContentType, "application/problem+json")
 	return c.Status(status).JSON(fiber.Map{
 		"type":     errorType,
@@ -21,7 +23,7 @@ func sendProblemDetails(c *fiber.Ctx, status int, title, errorType, detail strin
 }
 
 func sendProblemDetailsWithDetails(c *fiber.Ctx, status int, title, errorType, detail string, details any) error {
-	log.Printf("http problem details status=%d title=%q path=%q detail=%q", status, title, c.Path(), detail)
+	logHTTPProblem(c, status)
 	c.Set(fiber.HeaderContentType, "application/problem+json")
 	return c.Status(status).JSON(fiber.Map{
 		"type":     errorType,
@@ -35,7 +37,6 @@ func sendProblemDetailsWithDetails(c *fiber.Ctx, status int, title, errorType, d
 
 // handleError is a unified error handler that converts domain errors to HTTP RFC 7807 Problem Details
 func handleError(c *fiber.Ctx, err error) error {
-	log.Printf("http handler error path=%q err=%v", c.Path(), err)
 	if errors.IsNotFound(err) {
 		return sendProblemDetails(c, fiber.StatusNotFound, "Sumber Daya Tidak Ditemukan", "https://api.manris.com/errors/not-found", err.Error())
 	}
@@ -53,4 +54,16 @@ func handleError(c *fiber.Ctx, err error) error {
 
 	// Default 500
 	return sendProblemDetails(c, fiber.StatusInternalServerError, "Kesalahan Server Internal", "https://api.manris.com/errors/internal-server-error", err.Error())
+}
+
+// Problem titles, details, raw errors, URLs and headers can contain customer data.
+// The registered route template is safe to log; the actual request path is not.
+func logHTTPProblem(c *fiber.Ctx, status int) {
+	slog.WarnContext(c.Context(), "http_problem",
+		"status", status,
+		"error_code", "http_"+strconv.Itoa(status),
+		"method", c.Method(),
+		"route", c.Route().Path,
+		"correlation_id", requestmeta.CorrelationID(c.Context()),
+	)
 }

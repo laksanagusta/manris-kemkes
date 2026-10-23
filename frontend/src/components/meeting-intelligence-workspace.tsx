@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { getAIErrorMessage } from "@/lib/ai-error";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { cn } from "@/lib/utils";
 import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
@@ -483,12 +484,12 @@ function MeetingIntelligenceWorkspaceContent({
       setAppliedResults({});
       toast.success("Saran perubahan risiko siap ditinjau.");
     } catch (error) {
-      console.error(error);
-      toast.error(
+      toast.error(getAIErrorMessage(
+        error,
         mode === "minutes"
           ? "Briefing belum berhasil dibuat. Silakan coba lagi."
           : "Perubahan risiko belum berhasil dianalisis. Silakan coba lagi."
-      );
+      ));
     } finally {
       setIsWorking(false);
     }

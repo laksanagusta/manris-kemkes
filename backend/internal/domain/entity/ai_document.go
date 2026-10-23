@@ -10,16 +10,12 @@ type DocumentAnalysisMode string
 const (
 	DocumentModeRiskEventExtraction    DocumentAnalysisMode = "risk_event_extraction"
 	DocumentModeSOPRiskUniverse        DocumentAnalysisMode = "sop_risk_universe"
-	DocumentModeAuditFindingMapper     DocumentAnalysisMode = "audit_finding_mapper"
-	DocumentModeStrategicObjectiveRisk DocumentAnalysisMode = "strategic_objective_risk"
 	DocumentModeMitigationReportMapper DocumentAnalysisMode = "mitigation_report_mapper"
 )
 
 func IsValidDocumentAnalysisMode(mode DocumentAnalysisMode) bool {
 	switch mode {
 	case DocumentModeRiskEventExtraction, DocumentModeSOPRiskUniverse,
-		DocumentModeAuditFindingMapper,
-		DocumentModeStrategicObjectiveRisk,
 		DocumentModeMitigationReportMapper:
 		return true
 	default:
@@ -32,35 +28,41 @@ type DocumentSourceRef struct {
 	Location string `json:"location,omitempty"`
 }
 
+// DocumentAnalysisRequest contains only data needed by supported import modes.
+// Original filenames, organization charters, risk registers and objectives are excluded.
 type DocumentAnalysisRequest struct {
-	Mode              DocumentAnalysisMode `json:"mode"`
-	DocumentText      string               `json:"documentText"`
-	Filename          string               `json:"filename"`
-	Period            string               `json:"period,omitempty"`
-	ExistingRisksJSON string               `json:"existingRisksJson,omitempty"`
-	ObjectivesJSON    string               `json:"objectivesJson,omitempty"`
-	OpenTasksJSON     string               `json:"openTasksJson,omitempty"`
+	Mode          DocumentAnalysisMode `json:"mode"`
+	DocumentText  string               `json:"documentText"`
+	Period        string               `json:"period,omitempty"`
+	OpenTasksJSON string               `json:"openTasksJson,omitempty"`
+}
+
+// DocumentMitigationTaskContext is the allowlist for external document matching.
+type DocumentMitigationTaskContext struct {
+	ID               string `json:"id"`
+	RiskCode         string `json:"riskCode"`
+	RiskTitle        string `json:"riskTitle"`
+	MitigationAction string `json:"mitigationAction"`
+	PeriodLabel      string `json:"periodLabel"`
 }
 
 type DocumentRiskSuggestion struct {
-	ClientKey            string              `json:"clientKey"`
-	Title                string              `json:"title"`
-	Description          string              `json:"description"`
-	Category             string              `json:"category"`
-	RiskSource           string              `json:"riskSource"`
-	Cause                []string            `json:"cause"`
-	ImpactDesc           []string            `json:"impactDesc"`
-	ExistingControl      string              `json:"existingControl,omitempty"`
-	ControlGap           string              `json:"controlGap,omitempty"`
-	Probability          int                 `json:"probability"`
-	Impact               int                 `json:"impact"`
-	TreatmentOption      string              `json:"treatmentOption"`
-	Mitigations          []Mitigation        `json:"mitigations,omitempty"`
-	Reasoning            string              `json:"reasoning"`
-	Confidence           int                 `json:"confidence"`
-	SourceRefs           []DocumentSourceRef `json:"sourceRefs"`
-	RelatedObjectiveText string              `json:"relatedObjectiveText,omitempty"`
-	RelatedIKUText       string              `json:"relatedIkuText,omitempty"`
+	ClientKey       string              `json:"clientKey"`
+	Title           string              `json:"title"`
+	Description     string              `json:"description"`
+	Category        string              `json:"category"`
+	RiskSource      string              `json:"riskSource"`
+	Cause           []string            `json:"cause"`
+	ImpactDesc      []string            `json:"impactDesc"`
+	ExistingControl string              `json:"existingControl,omitempty"`
+	ControlGap      string              `json:"controlGap,omitempty"`
+	Probability     int                 `json:"probability"`
+	Impact          int                 `json:"impact"`
+	TreatmentOption string              `json:"treatmentOption"`
+	Mitigations     []Mitigation        `json:"mitigations,omitempty"`
+	Reasoning       string              `json:"reasoning"`
+	Confidence      int                 `json:"confidence"`
+	SourceRefs      []DocumentSourceRef `json:"sourceRefs"`
 }
 
 func (s *DocumentRiskSuggestion) UnmarshalJSON(data []byte) error {
@@ -125,54 +127,6 @@ type SOPRiskUniverseResult struct {
 	ProcessStages []SOPProcessStageSuggestion `json:"processStages"`
 }
 
-type AuditFindingSuggestion struct {
-	ClientKey          string                  `json:"clientKey"`
-	FindingTitle       string                  `json:"findingTitle"`
-	FindingDescription string                  `json:"findingDescription"`
-	RootCause          string                  `json:"rootCause"`
-	Impact             string                  `json:"impact"`
-	AffectedArea       string                  `json:"affectedArea"`
-	MappingStatus      string                  `json:"mappingStatus"`
-	ExistingRiskID     string                  `json:"existingRiskId,omitempty"`
-	ExistingRiskCode   string                  `json:"existingRiskCode,omitempty"`
-	ExistingRiskTitle  string                  `json:"existingRiskTitle,omitempty"`
-	SuggestedRisk      *DocumentRiskSuggestion `json:"suggestedRisk,omitempty"`
-	Reasoning          string                  `json:"reasoning"`
-	Confidence         int                     `json:"confidence"`
-	SourceRefs         []DocumentSourceRef     `json:"sourceRefs"`
-}
-
-type AuditFindingMapperResult struct {
-	Findings []AuditFindingSuggestion `json:"findings"`
-}
-
-type StrategicIKUSuggestion struct {
-	ClientKey       string                   `json:"clientKey"`
-	Name            string                   `json:"name"`
-	Target          string                   `json:"target,omitempty"`
-	Program         string                   `json:"program,omitempty"`
-	Kegiatan        string                   `json:"kegiatan,omitempty"`
-	ProcessBusiness string                   `json:"processBusiness,omitempty"`
-	Confidence      int                      `json:"confidence"`
-	SourceRefs      []DocumentSourceRef      `json:"sourceRefs"`
-	SuggestedRisks  []DocumentRiskSuggestion `json:"suggestedRisks"`
-}
-
-type StrategicObjectiveSuggestion struct {
-	ClientKey  string                   `json:"clientKey"`
-	Tujuan     string                   `json:"tujuan"`
-	Sasaran    string                   `json:"sasaran"`
-	Period     string                   `json:"period,omitempty"`
-	Unit       string                   `json:"unit,omitempty"`
-	Confidence int                      `json:"confidence"`
-	SourceRefs []DocumentSourceRef      `json:"sourceRefs"`
-	IKUs       []StrategicIKUSuggestion `json:"ikus"`
-}
-
-type StrategicObjectiveRiskResult struct {
-	Objectives []StrategicObjectiveSuggestion `json:"objectives"`
-}
-
 type MitigationTaskReportSuggestion struct {
 	ClientKey        string              `json:"clientKey"`
 	TaskID           string              `json:"taskId"`
@@ -194,7 +148,5 @@ type DocumentIntelligenceResult struct {
 	Kejadian   *RiskEventExtractionResult    `json:"kejadian,omitempty"`
 	Mode       DocumentAnalysisMode          `json:"mode"`
 	SOP        *SOPRiskUniverseResult        `json:"sop,omitempty"`
-	Audit      *AuditFindingMapperResult     `json:"audit,omitempty"`
-	Strategic  *StrategicObjectiveRiskResult `json:"strategic,omitempty"`
 	Mitigation *MitigationReportMapperResult `json:"mitigation,omitempty"`
 }

@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
@@ -19,9 +20,12 @@ import (
 	httpHandler "github.com/manris/backend/internal/handler/http"
 	identitydomain "github.com/manris/backend/internal/identity/domain"
 	"github.com/manris/backend/internal/middleware"
+	postgresrepo "github.com/manris/backend/internal/repository/postgres"
+	evaluationuc "github.com/manris/backend/internal/usecase/evaluation"
 )
 
 func main() {
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, nil)))
 	cfg := config.Load()
 
 	// ============================================================================
@@ -185,7 +189,7 @@ func main() {
 	// Global middleware
 	app.Use(recover.New())
 	app.Use(logger.New(logger.Config{
-		Format: "${time} | ${status} | ${latency} | ${method} ${path}\n",
+		Format: "${time} | ${status} | ${latency} | ${method} ${route}\n",
 	}))
 	app.Use(cors.New(cors.Config{
 		AllowOrigins:     cfg.CORSOrigins,
@@ -204,6 +208,13 @@ func main() {
 
 	// API routes
 	api := app.Group("/api/v1")
+	if cfg.ShinkaWebhookAPIKey != "" {
+		if len(cfg.ShinkaWebhookAPIKey) < 32 {
+			log.Fatal("SHINKA_WEBHOOK_API_KEY requires at least 32 random characters")
+		}
+		shinkaHook := httpHandler.NewShinkaSnapshotHandler(cfg.ShinkaWebhookAPIKey, evaluationuc.NewSnapshotUseCase(container.OrgRepository, container.RiskRepository), postgresrepo.NewShinkaSnapshotMemo(container.Pool))
+		api.Post("/webhooks/shinka/on-create", shinkaHook.Handle)
+	}
 
 	// Auth (public)
 	sharedAuthHandler.RegisterPublicRoutes(api)

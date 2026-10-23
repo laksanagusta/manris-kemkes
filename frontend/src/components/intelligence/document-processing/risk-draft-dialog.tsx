@@ -169,7 +169,7 @@ export function RiskDraftDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg no-scrollbar" showCloseButton={false}>
+      <DialogContent className="w-[calc(100vw_-_2rem)] sm:max-w-3xl no-scrollbar" showCloseButton={false}>
         <form onSubmit={submitDraft} className="flex min-h-0 flex-col gap-5">
           <DialogHeader>
             <DialogTitle className="text-base">Buat draf risiko</DialogTitle>

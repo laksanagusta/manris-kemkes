@@ -1,9 +1,14 @@
-export type DocumentAnalysisMode =
-  | "risk_event_extraction"
-  | "sop_risk_universe"
-  | "audit_finding_mapper"
-  | "strategic_objective_risk"
-  | "mitigation_report_mapper";
+export const DOCUMENT_ANALYSIS_MODES = [
+  "risk_event_extraction",
+  "sop_risk_universe",
+  "mitigation_report_mapper",
+] as const;
+
+export type DocumentAnalysisMode = (typeof DOCUMENT_ANALYSIS_MODES)[number];
+
+export function isDocumentAnalysisMode(value: unknown): value is DocumentAnalysisMode {
+  return typeof value === "string" && DOCUMENT_ANALYSIS_MODES.some((mode) => mode === value);
+}
 
 export interface DocumentSourceRef {
   quote: string;
@@ -33,8 +38,6 @@ export interface DocumentRiskSuggestion {
   reasoning: string;
   confidence: number;
   sourceRefs: DocumentSourceRef[];
-  relatedObjectiveText?: string;
-  relatedIkuText?: string;
 }
 
 export interface SOPProcessStageSuggestion {
@@ -50,56 +53,6 @@ export interface SOPProcessStageSuggestion {
 
 export interface SOPRiskUniverseResult {
   processStages: SOPProcessStageSuggestion[];
-}
-
-export interface AuditFindingSuggestion {
-  clientKey: string;
-  findingTitle: string;
-  findingDescription: string;
-  rootCause: string;
-  impact: string;
-  affectedArea: string;
-  mappingStatus: string;
-  existingRiskId?: string;
-  existingRiskCode?: string;
-  existingRiskTitle?: string;
-  suggestedRisk?: DocumentRiskSuggestion;
-  reasoning: string;
-  confidence: number;
-  sourceRefs: DocumentSourceRef[];
-}
-
-export interface AuditFindingMapperResult {
-  findings: AuditFindingSuggestion[];
-}
-
-export interface StrategicIKUSuggestion {
-  clientKey: string;
-  name: string;
-  target?: string;
-  program?: string;
-  kegiatan?: string;
-  roTitle?: string;
-  processBusiness?: string;
-  confidence: number;
-  sourceRefs: DocumentSourceRef[];
-  suggestedRisks: DocumentRiskSuggestion[];
-}
-
-export interface StrategicObjectiveSuggestion {
-  clientKey: string;
-  tujuan: string;
-  sasaran: string;
-  period?: string;
-  unit?: string;
-  roTitle?: string;
-  confidence: number;
-  sourceRefs: DocumentSourceRef[];
-  ikus: StrategicIKUSuggestion[];
-}
-
-export interface StrategicObjectiveRiskResult {
-  objectives: StrategicObjectiveSuggestion[];
 }
 
 export interface MitigationTaskReportSuggestion {
@@ -131,8 +84,6 @@ export interface DocumentIntelligenceResult {
   kejadian?: { items: RiskEventExtractionItem[] };
   mode: DocumentAnalysisMode;
   sop?: SOPRiskUniverseResult;
-  audit?: AuditFindingMapperResult;
-  strategic?: StrategicObjectiveRiskResult;
   mitigation?: MitigationReportMapperResult;
 }
 

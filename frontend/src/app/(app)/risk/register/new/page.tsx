@@ -6,6 +6,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { api, ApiError } from "@/lib/api";
+import { getAIErrorMessage } from "@/lib/ai-error";
 import {
   getMitigationActionErrors,
   getRiskMitigationRequirementError,
@@ -2427,8 +2428,7 @@ export default function RiskInputPage() {
       await transition;
       setShowRiskSuggestions(true);
     } catch (err) {
-      console.error(err);
-      toast.error("Saran risiko belum berhasil dimuat. Coba lagi.");
+      toast.error(getAIErrorMessage(err, "Saran risiko belum berhasil dimuat. Coba lagi."));
       setShowRiskSuggestions(false);
     } finally {
       setGeneratingRisk(false);
@@ -2466,8 +2466,7 @@ export default function RiskInputPage() {
       await transition;
       setCauseModalOpen(true);
     } catch (err) {
-      console.error(err);
-      toast.error("Saran penyebab belum berhasil dimuat. Coba lagi.");
+      toast.error(getAIErrorMessage(err, "Saran penyebab belum berhasil dimuat. Coba lagi."));
       setCauseModalOpen(false);
     } finally {
       setGeneratingCause(false);
@@ -2510,8 +2509,7 @@ export default function RiskInputPage() {
       await transition;
       setImpactModalOpen(true);
     } catch (err) {
-      console.error(err);
-      toast.error("Saran dampak belum berhasil dimuat. Coba lagi.");
+      toast.error(getAIErrorMessage(err, "Saran dampak belum berhasil dimuat. Coba lagi."));
       setImpactModalOpen(false);
     } finally {
       setGeneratingImpact(false);

@@ -108,6 +108,7 @@ export interface Finding {
 }
 
 export interface ProcessingJob {
+  organizationId?: string;
   storageScope?: string;
   id: string;
   name: string;
@@ -131,6 +132,7 @@ export interface ProcessingJob {
 }
 
 export interface ProcessingStartInput {
+  organizationId?: string;
   documents: UploadedDocument[];
   mode: string;
   period?: string;

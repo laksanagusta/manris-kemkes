@@ -10,6 +10,7 @@ import (
 
 // Config holds the application configuration loaded from environment variables.
 type Config struct {
+	ShinkaWebhookAPIKey         string
 	Port                        string
 	DatabaseURL                 string
 	JWTSecret                   string
@@ -50,6 +51,7 @@ func Load() *Config {
 	tokenMinutes, _ := strconv.Atoi(getEnv("AUTH_TOKEN_EXPIRY_MINUTES", strconv.Itoa(expiry*60)))
 
 	return &Config{
+		ShinkaWebhookAPIKey:         getEnv("SHINKA_WEBHOOK_API_KEY", ""),
 		Port:                        getEnv("PORT", "8080"),
 		DatabaseURL:                 getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/manris?sslmode=disable"),
 		JWTSecret:                   getEnv("JWT_SECRET", "change-me"),

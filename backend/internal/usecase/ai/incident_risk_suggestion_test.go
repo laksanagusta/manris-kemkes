@@ -46,7 +46,7 @@ func (r *fakeIncidentSuggestionAIRepository) GenerateRiskSuggestions(context.Con
 	return nil, errors.New("not implemented")
 }
 
-func (r *fakeIncidentSuggestionAIRepository) AnalyzeDocument(context.Context, entity.DocumentAnalysisRequest, string) (*entity.DocumentIntelligenceResult, error) {
+func (r *fakeIncidentSuggestionAIRepository) AnalyzeDocument(context.Context, entity.DocumentAnalysisRequest) (*entity.DocumentIntelligenceResult, error) {
 	return nil, errors.New("not implemented")
 }
 

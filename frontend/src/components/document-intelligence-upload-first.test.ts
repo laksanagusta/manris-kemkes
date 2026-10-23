@@ -59,7 +59,7 @@ test("uses the contextual route mode without a mode selector", () => {
   assert.match(workspace, /mode: analysisMode/);
   assert.doesNotMatch(workspace, /<fieldset/);
   assert.doesNotMatch(workspace, /<RadioGroup/);
-  assert.match(workspace, /<div className="pt-2">\s*<UploadPanel/);
+  assert.match(workspace, /<UploadPanel\b/);
   assert.doesNotMatch(workspace, /Tahapan proses, kontrol, dan risiko per tahap\./);
   assert.doesNotMatch(workspace, /<Label htmlFor="period"/);
   assert.doesNotMatch(workspace, /<Select/);

@@ -4,266 +4,198 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	domainerrors "github.com/manris/backend/internal/domain/errors"
-	"github.com/manris/backend/internal/domain/repository"
 )
 
 type fakeDocumentAIRepo struct {
-	lastReq        entity.DocumentAnalysisRequest
-	lastOrgContext string
-	result         *entity.DocumentIntelligenceResult
-	err            error
+	lastReq entity.DocumentAnalysisRequest
+	result  *entity.DocumentIntelligenceResult
+	err     error
+	calls   int
 }
 
-func (r *fakeDocumentAIRepo) AnalyzeDocument(_ context.Context, req entity.DocumentAnalysisRequest, orgContext string) (*entity.DocumentIntelligenceResult, error) {
+func (r *fakeDocumentAIRepo) AnalyzeDocument(_ context.Context, req entity.DocumentAnalysisRequest) (*entity.DocumentIntelligenceResult, error) {
+	r.calls++
 	r.lastReq = req
-	r.lastOrgContext = orgContext
-	if r.err != nil {
-		return nil, r.err
-	}
-	return r.result, nil
-}
-
-type fakeDocumentRiskRepo struct {
-	risks        []*entity.Risk
-	lastOrgIDs   []uuid.UUID
-	lastStatus   string
-	lastCategory string
-	err          error
-}
-
-func (r *fakeDocumentRiskRepo) List(_ context.Context, orgIDs []uuid.UUID, status string, category string) ([]*entity.Risk, error) {
-	r.lastOrgIDs = append([]uuid.UUID(nil), orgIDs...)
-	r.lastStatus = status
-	r.lastCategory = category
-	return r.risks, r.err
-}
-
-type fakeDocumentObjectiveRepo struct {
-	objectives []*entity.RiskObjective
-	lastFilter repository.PlanningCompatibilityFilter
-	err        error
-}
-
-func (r *fakeDocumentObjectiveRepo) ListROOptions(context.Context, repository.PlanningROOptionFilter) ([]entity.PlanningROOption, error) {
-	return nil, nil
-}
-
-func (r *fakeDocumentObjectiveRepo) ListObjectiveCompatibilityRows(_ context.Context, filter repository.PlanningCompatibilityFilter) ([]*entity.RiskObjective, int, error) {
-	r.lastFilter = filter
-	return r.objectives, len(r.objectives), r.err
+	return r.result, r.err
 }
 
 type fakeDocumentTaskRepo struct {
-	tasks      []*entity.MitigationTask
-	lastOrgIDs []uuid.UUID
-	err        error
+	tasks        []entity.DocumentMitigationTaskContext
+	orgIDs       []uuid.UUID
+	limit, calls int
+	err          error
 }
 
-func (r *fakeDocumentTaskRepo) ListAll(_ context.Context, orgIDs []uuid.UUID) ([]*entity.MitigationTask, error) {
-	r.lastOrgIDs = append([]uuid.UUID(nil), orgIDs...)
+func (r *fakeDocumentTaskRepo) ListForDocumentAnalysis(_ context.Context, orgIDs []uuid.UUID, limit int) ([]entity.DocumentMitigationTaskContext, error) {
+	r.calls++
+	r.orgIDs, r.limit = orgIDs, limit
 	return r.tasks, r.err
 }
 
-type fakeDocumentOrgRepo struct {
-	ctx string
-	err error
-}
-
-func (r *fakeDocumentOrgRepo) GetContext(context.Context, uuid.UUID) (string, error) {
-	return r.ctx, r.err
-}
-
 func TestAnalyzeDocumentIntelligenceRejectsInvalidMode(t *testing.T) {
-	uc := NewAnalyzeDocumentIntelligenceUseCase(
-		&fakeDocumentAIRepo{},
-		&fakeDocumentOrgRepo{},
-		&fakeDocumentRiskRepo{},
-		&fakeDocumentObjectiveRepo{},
-		&fakeDocumentTaskRepo{},
-	)
-
-	_, err := uc.Execute(context.Background(), AnalyzeDocumentIntelligenceInput{
-		Mode:         "bad_mode",
-		DocumentText: "isi dokumen",
-	})
-	if !errors.Is(err, domainerrors.ErrInvalidInput) {
-		t.Fatalf("expected invalid input error, got %v", err)
+	for _, mode := range []string{"bad_mode", "audit_finding_mapper", "strategic_objective_risk"} {
+		t.Run(mode, func(t *testing.T) {
+			ai := &fakeDocumentAIRepo{}
+			_, err := NewAnalyzeDocumentIntelligenceUseCase(ai, nil).Execute(context.Background(), AnalyzeDocumentIntelligenceInput{Mode: entity.DocumentAnalysisMode(mode), DocumentText: "dokumen"})
+			if !errors.Is(err, domainerrors.ErrInvalidInput) || ai.calls != 0 {
+				t.Fatal("removed or unknown mode must be rejected before provider access")
+			}
+		})
 	}
 }
 
 func TestAnalyzeDocumentIntelligenceRejectsEmptyDocument(t *testing.T) {
-	uc := NewAnalyzeDocumentIntelligenceUseCase(
-		&fakeDocumentAIRepo{},
-		&fakeDocumentOrgRepo{},
-		&fakeDocumentRiskRepo{},
-		&fakeDocumentObjectiveRepo{},
-		&fakeDocumentTaskRepo{},
-	)
-
-	_, err := uc.Execute(context.Background(), AnalyzeDocumentIntelligenceInput{
-		Mode:         entity.DocumentModeSOPRiskUniverse,
-		DocumentText: "   ",
-	})
-	if !errors.Is(err, domainerrors.ErrDocumentUnreadable) {
-		t.Fatalf("expected document unreadable error, got %v", err)
+	ai := &fakeDocumentAIRepo{}
+	_, err := NewAnalyzeDocumentIntelligenceUseCase(ai, nil).Execute(context.Background(), AnalyzeDocumentIntelligenceInput{Mode: entity.DocumentModeSOPRiskUniverse, DocumentText: "  "})
+	if !errors.Is(err, domainerrors.ErrDocumentUnreadable) || ai.calls != 0 {
+		t.Fatal("empty input reached provider")
 	}
 }
 
-func TestAnalyzeDocumentIntelligenceFiltersOpenMitigationTasksAndNormalizesResult(t *testing.T) {
-	orgID := uuid.New()
-	pendingTaskID := uuid.New()
-	doneTaskID := uuid.New()
-	aiRepo := &fakeDocumentAIRepo{
-		result: &entity.DocumentIntelligenceResult{
-			Mitigation: &entity.MitigationReportMapperResult{
-				TaskMatches: []entity.MitigationTaskReportSuggestion{{
-					ClientKey:        "",
-					TaskID:           pendingTaskID.String(),
-					RiskCode:         "R-001",
-					RiskTitle:        "Terlambat laporan",
-					MitigationAction: "Susun checklist",
-					PeriodLabel:      "2026-H1",
-					ReportNotes:      "Ringkasan laporan",
-					Confidence:       180,
-					SourceRefs:       []entity.DocumentSourceRef{{Quote: " checklist sudah dipakai ", Location: " Halaman 3 "}},
-				}},
-			},
-		},
+func TestSensitiveDocumentNeverLoadsContextOrCallsAI(t *testing.T) {
+	for _, mode := range []entity.DocumentAnalysisMode{entity.DocumentModeSOPRiskUniverse, entity.DocumentModeRiskEventExtraction, entity.DocumentModeMitigationReportMapper} {
+		t.Run(string(mode), func(t *testing.T) {
+			ai, tasks := &fakeDocumentAIRepo{}, &fakeDocumentTaskRepo{}
+			_, err := NewAnalyzeDocumentIntelligenceUseCase(ai, tasks).Execute(context.Background(), AnalyzeDocumentIntelligenceInput{
+				Mode: mode, DocumentText: "Email pasien: private-synthetic@example.test",
+			})
+			if !errors.Is(err, domainerrors.ErrSensitiveDataDetected) || ai.calls != 0 || tasks.calls != 0 {
+				t.Fatal("sensitive document was not blocked before context loading and external AI")
+			}
+		})
 	}
-	taskRepo := &fakeDocumentTaskRepo{
-		tasks: []*entity.MitigationTask{
-			{
-				ID:               pendingTaskID,
-				RiskID:           uuid.New(),
-				RiskCode:         "R-001",
-				RiskTitle:        "Terlambat laporan",
-				MitigationAction: "Susun checklist",
-				PeriodLabel:      "2026-H1",
-				DueDate:          "2026-05-30",
-				Status:           "pending",
-			},
-			{
-				ID:               doneTaskID,
-				RiskID:           uuid.New(),
-				RiskCode:         "R-002",
-				RiskTitle:        "Selesai",
-				MitigationAction: "Aksi selesai",
-				PeriodLabel:      "2026-H1",
-				DueDate:          "2026-05-30",
-				Status:           "done",
-			},
-		},
-	}
-	uc := NewAnalyzeDocumentIntelligenceUseCase(
-		aiRepo,
-		&fakeDocumentOrgRepo{ctx: "Konteks organisasi"},
-		&fakeDocumentRiskRepo{},
-		&fakeDocumentObjectiveRepo{},
-		taskRepo,
-	)
+}
 
-	result, err := uc.Execute(context.Background(), AnalyzeDocumentIntelligenceInput{
-		Mode:           entity.DocumentModeMitigationReportMapper,
-		DocumentText:   "Checklist laporan sudah dipakai.",
-		Filename:       "laporan.xlsx",
-		Period:         "2026-H1",
-		OrganizationID: &orgID,
+func TestSensitiveMitigationContextNeverCallsAI(t *testing.T) {
+	orgID := uuid.New()
+	tasks := &fakeDocumentTaskRepo{tasks: []entity.DocumentMitigationTaskContext{{
+		ID: uuid.NewString(), RiskCode: "R-001", PeriodLabel: "2026-Q4", MitigationAction: "Hubungi private-synthetic@example.test",
+	}}}
+	ai := &fakeDocumentAIRepo{}
+	_, err := NewAnalyzeDocumentIntelligenceUseCase(ai, tasks).Execute(context.Background(), AnalyzeDocumentIntelligenceInput{
+		Mode: entity.DocumentModeMitigationReportMapper, DocumentText: "Laporan pelaksanaan checklist.", OrganizationID: &orgID, Period: "2026-Q4",
+	})
+	if !errors.Is(err, domainerrors.ErrSensitiveDataDetected) || ai.calls != 0 || tasks.calls != 1 {
+		t.Fatal("sensitive database context reached external AI")
+	}
+	if strings.Contains(err.Error(), "private-synthetic@example.test") || !strings.Contains(err.Error(), "data tugas") {
+		t.Fatal("context error must give safe, context-specific recovery instructions")
+	}
+}
+
+func TestDocumentExtractionSendsOnlySourceText(t *testing.T) {
+	for _, mode := range []entity.DocumentAnalysisMode{entity.DocumentModeSOPRiskUniverse, entity.DocumentModeRiskEventExtraction} {
+		t.Run(string(mode), func(t *testing.T) {
+			ai := &fakeDocumentAIRepo{result: &entity.DocumentIntelligenceResult{SOP: &entity.SOPRiskUniverseResult{}, Kejadian: &entity.RiskEventExtractionResult{}}}
+			// No organization, risk or objective repository is needed; even the task repo is absent.
+			_, err := NewAnalyzeDocumentIntelligenceUseCase(ai, nil).Execute(context.Background(), AnalyzeDocumentIntelligenceInput{
+				Mode: mode, DocumentText: "Fakta dokumen lengkap.", Period: "PRIVATE-PERIOD", OrgIDs: []uuid.UUID{uuid.New()},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			if ai.lastReq.DocumentText != "Fakta dokumen lengkap." || ai.lastReq.Period != "" || ai.lastReq.OpenTasksJSON != "" {
+				t.Fatal("extraction must only pass source text and mode")
+			}
+		})
+	}
+}
+
+func TestDocumentMitigationContextIsScopedAndMinimal(t *testing.T) {
+	orgID := uuid.New()
+	task := entity.DocumentMitigationTaskContext{ID: uuid.NewString(), RiskCode: "R-001", RiskTitle: "Terlambat laporan", MitigationAction: "Susun checklist", PeriodLabel: "2026-Q4"}
+	tasks := &fakeDocumentTaskRepo{tasks: []entity.DocumentMitigationTaskContext{task}}
+	ai := &fakeDocumentAIRepo{result: &entity.DocumentIntelligenceResult{Mitigation: &entity.MitigationReportMapperResult{TaskMatches: []entity.MitigationTaskReportSuggestion{{TaskID: task.ID, Confidence: 180, SourceRefs: []entity.DocumentSourceRef{{Quote: " checklist dipakai "}}}}}}}
+	result, err := NewAnalyzeDocumentIntelligenceUseCase(ai, tasks).Execute(context.Background(), AnalyzeDocumentIntelligenceInput{
+		Mode: entity.DocumentModeMitigationReportMapper, DocumentText: "checklist dipakai", OrganizationID: &orgID, OrgIDs: []uuid.UUID{uuid.New()}, Period: "IGNORED-LEGACY-PERIOD",
 	})
 	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+		t.Fatal(err)
 	}
-	if result.Mode != entity.DocumentModeMitigationReportMapper {
-		t.Fatalf("expected mitigation mode, got %q", result.Mode)
+	if len(tasks.orgIDs) != 1 || tasks.orgIDs[0] != orgID || tasks.limit != 51 {
+		t.Fatal("candidate scope/limit was not applied")
 	}
-	if aiRepo.lastOrgContext != "Konteks organisasi" {
-		t.Fatalf("expected org context to be passed, got %q", aiRepo.lastOrgContext)
+	if ai.lastReq.Period != "2026-Q4" {
+		t.Fatal("period must be derived from active task context, not caller input")
 	}
-	if got := len(taskRepo.lastOrgIDs); got != 1 || taskRepo.lastOrgIDs[0] != orgID {
-		t.Fatalf("expected task repo to receive orgID, got %v", taskRepo.lastOrgIDs)
+	var payload []map[string]any
+	if err := json.Unmarshal([]byte(ai.lastReq.OpenTasksJSON), &payload); err != nil {
+		t.Fatal(err)
 	}
-	if got := len(aiRepo.lastReq.OpenTasksJSON); got == 0 {
-		t.Fatal("expected open task context to be passed to AI")
+	allowed := map[string]bool{"id": true, "riskCode": true, "riskTitle": true, "mitigationAction": true, "periodLabel": true}
+	if len(payload) != 1 || len(payload[0]) != len(allowed) {
+		t.Fatal("unexpected task context shape")
 	}
-
-	var tasks []map[string]any
-	if err := json.Unmarshal([]byte(aiRepo.lastReq.OpenTasksJSON), &tasks); err != nil {
-		t.Fatalf("unmarshal open tasks json: %v", err)
+	for key := range payload[0] {
+		if !allowed[key] {
+			t.Fatalf("unnecessary field sent: %s", key)
+		}
 	}
-	if len(tasks) != 1 {
-		t.Fatalf("expected only open task in AI context, got %d", len(tasks))
-	}
-	if tasks[0]["riskCode"] != "R-001" {
-		t.Fatalf("expected pending task only, got %v", tasks[0]["riskCode"])
-	}
-
 	match := result.Mitigation.TaskMatches[0]
-	if match.ClientKey == "" {
-		t.Fatal("expected client key to be normalized")
-	}
-	if match.Confidence != 100 {
-		t.Fatalf("expected confidence clamped to 100, got %d", match.Confidence)
-	}
-	if len(match.SourceRefs) != 1 || match.SourceRefs[0].Quote != "checklist sudah dipakai" || match.SourceRefs[0].Location != "Halaman 3" {
-		t.Fatalf("expected source refs trimmed and preserved, got %+v", match.SourceRefs)
+	if match.Confidence != 100 || match.ClientKey == "" || match.SourceRefs[0].Quote != "checklist dipakai" {
+		t.Fatal("result normalization was lost")
 	}
 }
 
-func TestAnalyzeDocumentIntelligenceStrategicModeIncludesROContext(t *testing.T) {
+func TestDocumentMitigationStopsBeforeSendingUnboundedContext(t *testing.T) {
 	orgID := uuid.New()
-	aiRepo := &fakeDocumentAIRepo{result: &entity.DocumentIntelligenceResult{Strategic: &entity.StrategicObjectiveRiskResult{}}}
-	objectiveRepo := &fakeDocumentObjectiveRepo{
-		objectives: []*entity.RiskObjective{
-			{
-				ID:                    uuid.New(),
-				OrganizationID:        orgID,
-				Period:                "2027",
-				Tujuan:                "Tujuan A",
-				Sasaran:               "Sasaran A",
-				IndikatorKinerjaUtama: "IKU A",
-				Target:                "90%",
-				Program:               "Program A",
-				Kegiatan:              "Kegiatan A",
-				ProcessBusiness:       "RO A",
-				Status:                "draft",
-			},
-		},
+	valid := entity.DocumentMitigationTaskContext{ID: uuid.NewString(), PeriodLabel: "2026-Q4"}
+	cases := []struct {
+		name   string
+		orgIDs []uuid.UUID
+		period string
+		tasks  []entity.DocumentMitigationTaskContext
+		err    error
+	}{
+		{name: "missing organization", period: "2026-Q4"},
+		{name: "multiple organizations", orgIDs: []uuid.UUID{orgID, uuid.New()}, period: "2026-Q4"},
+		{name: "no candidates", orgIDs: []uuid.UUID{orgID}, period: "2026-Q4"},
+		{name: "too many candidates", orgIDs: []uuid.UUID{orgID}, period: "2026-Q4", tasks: make([]entity.DocumentMitigationTaskContext, 51)},
+		{name: "oversized context", orgIDs: []uuid.UUID{orgID}, period: "2026-Q4", tasks: []entity.DocumentMitigationTaskContext{{ID: uuid.NewString(), MitigationAction: strings.Repeat("x", maxDocumentTaskContextBytes)}}},
+		{name: "database failure", orgIDs: []uuid.UUID{orgID}, period: "2026-Q4", tasks: []entity.DocumentMitigationTaskContext{valid}, err: errors.New("database unavailable")},
 	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			ai := &fakeDocumentAIRepo{}
+			tasks := &fakeDocumentTaskRepo{tasks: tc.tasks, err: tc.err}
+			_, err := NewAnalyzeDocumentIntelligenceUseCase(ai, tasks).Execute(context.Background(), AnalyzeDocumentIntelligenceInput{Mode: entity.DocumentModeMitigationReportMapper, DocumentText: "dokumen", OrgIDs: tc.orgIDs, Period: tc.period})
+			if err == nil || ai.calls != 0 {
+				t.Fatal("blocked context reached external provider")
+			}
+		})
+	}
+}
 
-	uc := NewAnalyzeDocumentIntelligenceUseCase(
-		aiRepo,
-		&fakeDocumentOrgRepo{ctx: "Konteks organisasi"},
-		&fakeDocumentRiskRepo{},
-		objectiveRepo,
-		&fakeDocumentTaskRepo{},
-	)
-
-	_, err := uc.Execute(context.Background(), AnalyzeDocumentIntelligenceInput{
-		Mode:           entity.DocumentModeStrategicObjectiveRisk,
-		DocumentText:   "Sasaran A dengan IKU A dan RO A",
-		Period:         "2027",
-		OrganizationID: &orgID,
+func TestDocumentMitigationPreservesAllFiftyCandidates(t *testing.T) {
+	orgID := uuid.New()
+	tasks := make([]entity.DocumentMitigationTaskContext, 50)
+	for i := range tasks {
+		tasks[i] = entity.DocumentMitigationTaskContext{ID: uuid.NewString(), PeriodLabel: "2026-Q4", MitigationAction: "Checklist"}
+	}
+	ai := &fakeDocumentAIRepo{result: &entity.DocumentIntelligenceResult{Mitigation: &entity.MitigationReportMapperResult{}}}
+	_, err := NewAnalyzeDocumentIntelligenceUseCase(ai, &fakeDocumentTaskRepo{tasks: tasks}).Execute(context.Background(), AnalyzeDocumentIntelligenceInput{
+		Mode: entity.DocumentModeMitigationReportMapper, DocumentText: "Dokumen sumber", OrganizationID: &orgID, Period: "2026-Q4",
 	})
 	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
+		t.Fatal(err)
 	}
-
-	var objectives []map[string]any
-	if err := json.Unmarshal([]byte(aiRepo.lastReq.ObjectivesJSON), &objectives); err != nil {
-		t.Fatalf("unmarshal objectives json: %v", err)
+	var sent []entity.DocumentMitigationTaskContext
+	if err := json.Unmarshal([]byte(ai.lastReq.OpenTasksJSON), &sent); err != nil {
+		t.Fatal(err)
 	}
-	if len(objectives) != 1 {
-		t.Fatalf("expected one objective context, got %d", len(objectives))
+	if len(sent) != len(tasks) {
+		t.Fatal("candidate list was silently truncated")
 	}
-	if objectives[0]["roTitle"] != "RO A" {
-		t.Fatalf("expected roTitle to be included, got %v", objectives[0]["roTitle"])
-	}
-	if objectives[0]["processBusiness"] != "RO A" {
-		t.Fatalf("expected processBusiness compatibility to stay, got %v", objectives[0]["processBusiness"])
+	for i := range tasks {
+		if sent[i].ID != tasks[i].ID {
+			t.Fatal("candidate identity was lost")
+		}
 	}
 }
 
@@ -305,5 +237,30 @@ func TestNormalizeDocumentRiskSuggestionMapsEnumsAndClampsScores(t *testing.T) {
 	}
 	if len(got.SourceRefs) != 1 || got.SourceRefs[0].Quote != "kutipan" {
 		t.Fatalf("expected source refs to be trimmed and filtered, got %+v", got.SourceRefs)
+	}
+}
+
+func TestDocumentMitigationUsesEachActiveRiskPeriodWithoutCalendarGuessing(t *testing.T) {
+	orgID := uuid.New()
+	tasks := []entity.DocumentMitigationTaskContext{
+		{ID: uuid.NewString(), RiskCode: "R-001", PeriodLabel: "2026-Q4"},
+		{ID: uuid.NewString(), RiskCode: "R-002", PeriodLabel: "2026-Q3"},
+	}
+	ai := &fakeDocumentAIRepo{result: &entity.DocumentIntelligenceResult{Mitigation: &entity.MitigationReportMapperResult{}}}
+	_, err := NewAnalyzeDocumentIntelligenceUseCase(ai, &fakeDocumentTaskRepo{tasks: tasks}).Execute(context.Background(), AnalyzeDocumentIntelligenceInput{
+		Mode: entity.DocumentModeMitigationReportMapper, DocumentText: "Dokumen laporan", OrganizationID: &orgID,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ai.lastReq.Period != "2026-Q3, 2026-Q4" {
+		t.Fatal("active profiles from different risk families must retain their actual periods")
+	}
+	var sent []entity.DocumentMitigationTaskContext
+	if err := json.Unmarshal([]byte(ai.lastReq.OpenTasksJSON), &sent); err != nil {
+		t.Fatal(err)
+	}
+	if len(sent) != 2 || sent[0].PeriodLabel != tasks[0].PeriodLabel || sent[1].PeriodLabel != tasks[1].PeriodLabel {
+		t.Fatal("period resolution discarded an active risk or rewrote its task period")
 	}
 }

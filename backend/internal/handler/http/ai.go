@@ -439,6 +439,17 @@ func (h *AIHandler) AnalyzeDocumentIntelligence(c *fiber.Ctx) error {
 		orgIDs = append([]uuid.UUID(nil), scope.AccessibleOrgIDs...)
 	}
 
+	if mode == entity.DocumentModeMitigationReportMapper {
+		if scope.OrganizationID == nil {
+			return handleError(c, domainerrors.Wrap(domainerrors.ErrInvalidInput, "Organisasi akun belum tersedia. Hubungi administrator untuk menghubungkan akun ke satu organisasi."))
+		}
+		if requestedOrgID != nil && *requestedOrgID != *scope.OrganizationID {
+			return handleError(c, domainerrors.ErrForbidden)
+		}
+		requestedOrgID = scope.OrganizationID
+		orgIDs = []uuid.UUID{*scope.OrganizationID}
+	}
+
 	documentResult, err := extractDocumentFromUpload(fileHeader)
 	if err != nil {
 		return handleError(c, err)
@@ -447,8 +458,6 @@ func (h *AIHandler) AnalyzeDocumentIntelligence(c *fiber.Ctx) error {
 	result, err := h.documentIntelligenceUC.Execute(c.Context(), aiuc.AnalyzeDocumentIntelligenceInput{
 		Mode:           mode,
 		DocumentText:   documentResult.Text,
-		Filename:       fileHeader.Filename,
-		Period:         strings.TrimSpace(c.FormValue("period")),
 		OrganizationID: requestedOrgID,
 		OrgIDs:         orgIDs,
 	})

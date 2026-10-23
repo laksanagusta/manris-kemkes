@@ -1,6 +1,7 @@
 package openai
 
 import (
+	"encoding/json"
 	"strings"
 	"testing"
 
@@ -11,7 +12,6 @@ func TestRiskDocumentExtractionPromptSupportsDocumentsWithoutProcessStages(t *te
 	repo := &aiRepository{}
 	prompt := repo.buildDocumentIntelligencePrompt(entity.DocumentAnalysisRequest{
 		Mode:         entity.DocumentModeSOPRiskUniverse,
-		Filename:     "laporan-kinerja.pdf",
 		DocumentText: "Anggaran kegiatan berkurang sehingga target layanan berpotensi tidak tercapai.",
 	})
 	for _, required := range []string{
@@ -28,194 +28,72 @@ func TestRiskDocumentExtractionPromptSupportsDocumentsWithoutProcessStages(t *te
 	}
 }
 
-func TestBuildDocumentIntelligencePromptStrategicIncludesHierarchy(t *testing.T) {
-	repo := &aiRepository{}
-
-	prompt := repo.buildDocumentIntelligencePrompt(entity.DocumentAnalysisRequest{
-		Mode:           entity.DocumentModeStrategicObjectiveRisk,
-		Filename:       "renstra.pdf",
-		Period:         "2026-H1",
-		DocumentText:   "Sasaran meningkatnya deteksi dini. IKU cakupan laporan tepat waktu 90%.",
-		ObjectivesJSON: `[{"id":"obj-1","sasaran":"Meningkatnya deteksi dini","indikatorKinerjaUtama":"Cakupan laporan tepat waktu"}]`,
-	})
-
-	for _, fragment := range []string{
-		`"objectives": [`,
-		`"ikus": [`,
-		`"suggestedRisks": [`,
-		`"roTitle": "RO"`,
-		`relatedObjectiveText`,
-		`relatedIkuText`,
-		`sourceRefs`,
-	} {
-		if !strings.Contains(prompt, fragment) {
-			t.Fatalf("expected prompt to contain %q", fragment)
-		}
-	}
-}
-
 func TestBuildDocumentIntelligencePromptMitigationIncludesOpenTasks(t *testing.T) {
 	repo := &aiRepository{}
-
 	prompt := repo.buildDocumentIntelligencePrompt(entity.DocumentAnalysisRequest{
-		Mode:          entity.DocumentModeMitigationReportMapper,
-		Filename:      "laporan.xlsx",
-		Period:        "2026-H1",
-		DocumentText:  "Checklist sudah digunakan dan laporan mingguan telah disampaikan.",
-		OpenTasksJSON: `[{"id":"task-1","riskCode":"R-001","riskTitle":"Keterlambatan laporan","mitigationAction":"Susun checklist mingguan","periodLabel":"2026-H1"}]`,
+		Mode: entity.DocumentModeMitigationReportMapper, Period: "2026-Q4", DocumentText: "Checklist sudah digunakan.",
+		OpenTasksJSON: `[{"id":"task-1","riskCode":"R-001","riskTitle":"Keterlambatan laporan","mitigationAction":"Susun checklist","periodLabel":"2026-Q4"}]`,
 	})
-
-	for _, fragment := range []string{
-		`"taskMatches": [`,
-		`"reportNotes": "Ringkasan pelaporan yang bisa dipakai"`,
-		`Jangan isi evidenceUrl`,
-		`Hanya gunakan taskId dari daftar task open`,
-		`Setiap task yang cocok diperlakukan sebagai laporan yang siap ditinjau`,
-	} {
+	for _, fragment := range []string{`"taskMatches": [`, `Jangan isi evidenceUrl`, `Hanya gunakan taskId`, `task-1`, `Dokumen sumber`} {
 		if !strings.Contains(prompt, fragment) {
-			t.Fatalf("expected prompt to contain %q", fragment)
+			t.Fatalf("missing %q", fragment)
 		}
 	}
 }
 
-func TestBuildDocumentIntelligencePromptAuditIncludesFindings(t *testing.T) {
-	repo := &aiRepository{}
-
-	prompt := repo.buildDocumentIntelligencePrompt(entity.DocumentAnalysisRequest{
-		Mode:              entity.DocumentModeAuditFindingMapper,
-		Filename:          "audit.pdf",
-		Period:            "2025-H2",
-		DocumentText:      "Temuan dokumen pendukung belum lengkap.",
-		ExistingRisksJSON: `[{"id":"risk-1","code":"R-001","title":"Dokumen tidak lengkap"}]`,
-	})
-
-	for _, fragment := range []string{
-		`"findings": [`,
-		`"mappingStatus": "map_to_existing|create_new_risk|needs_review"`,
-		`"suggestedRisk": {`,
-		`existingRiskId`,
-		`sourceRefs`,
-	} {
-		if !strings.Contains(prompt, fragment) {
-			t.Fatalf("expected prompt to contain %q", fragment)
-		}
+func TestParseDocumentIntelligenceSupportedResults(t *testing.T) {
+	cases := []struct {
+		name    string
+		mode    entity.DocumentAnalysisMode
+		content string
+	}{
+		{"risk", entity.DocumentModeSOPRiskUniverse, `{"processStages":[]}`},
+		{"wrapped risk", entity.DocumentModeSOPRiskUniverse, `{"sop":{"processStages":[]}}`},
+		{"mitigation", entity.DocumentModeMitigationReportMapper, `{"taskMatches":[]}`},
+		{"wrapped mitigation", entity.DocumentModeMitigationReportMapper, `{"mitigation":{"taskMatches":[]}}`},
 	}
-}
-
-func TestParseDocumentIntelligenceResultAcceptsUnwrappedStrategicResult(t *testing.T) {
-	result, err := parseDocumentIntelligenceResult(entity.DocumentModeStrategicObjectiveRisk, `{
-		"objectives": [
-			{
-				"clientKey": "obj-1",
-				"tujuan": "Meningkatkan layanan",
-				"sasaran": "Sasaran A",
-				"confidence": 90,
-				"sourceRefs": [],
-				"ikus": [
-					{
-						"clientKey": "iku-1",
-						"name": "IKU A",
-						"confidence": 80,
-						"sourceRefs": [],
-						"suggestedRisks": []
-					}
-				]
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			result, err := parseDocumentIntelligenceResult(tc.mode, tc.content)
+			if err != nil || result.Mode != tc.mode {
+				t.Fatalf("parse = %+v, %v", result, err)
 			}
-		]
-	}`)
-	if err != nil {
-		t.Fatalf("expected parse to succeed: %v", err)
-	}
-	if result.Strategic == nil || len(result.Strategic.Objectives) != 1 {
-		t.Fatalf("expected strategic objective result, got %#v", result)
-	}
-	if result.Strategic.Objectives[0].IKUs[0].Name != "IKU A" {
-		t.Fatalf("unexpected IKU name: %q", result.Strategic.Objectives[0].IKUs[0].Name)
+		})
 	}
 }
 
-func TestParseDocumentIntelligenceResultAcceptsStringMitigationActions(t *testing.T) {
-	result, err := parseDocumentIntelligenceResult(entity.DocumentModeStrategicObjectiveRisk, `{
-		"objectives": [
-			{
-				"clientKey": "obj-1",
-				"tujuan": "Tujuan",
-				"sasaran": "Sasaran",
-				"confidence": 90,
-				"sourceRefs": [],
-				"ikus": [
-					{
-						"clientKey": "iku-1",
-						"name": "IKU A",
-						"confidence": 80,
-						"sourceRefs": [],
-						"suggestedRisks": [
-							{
-								"clientKey": "risk-1",
-								"title": "Risiko",
-								"description": "Deskripsi",
-								"category": "operasional",
-								"riskSource": "internal",
-								"cause": [],
-								"impactDesc": [],
-								"probability": 3,
-								"impact": 4,
-								"treatmentOption": "mitigate",
-								"mitigations": ["Aksi satu", "Aksi dua"],
-								"reasoning": "Alasan",
-								"confidence": 80,
-								"sourceRefs": []
-							}
-						]
-					}
-				]
+func TestRemovedDocumentModesAreRejected(t *testing.T) {
+	for _, mode := range []string{"audit_finding_mapper", "strategic_objective_risk"} {
+		t.Run(mode, func(t *testing.T) {
+			if result, err := parseDocumentIntelligenceResult(entity.DocumentAnalysisMode(mode), `{"sop":{"processStages":[]}}`); err == nil || result != nil {
+				t.Fatal("removed mode was parsed")
 			}
-		]
-	}`)
-	if err != nil {
-		t.Fatalf("expected parse to succeed: %v", err)
-	}
-
-	risks := result.Strategic.Objectives[0].IKUs[0].SuggestedRisks
-	if len(risks) != 1 || len(risks[0].Mitigations) != 2 {
-		t.Fatalf("expected string mitigations to be converted, got %#v", risks)
-	}
-	if risks[0].Mitigations[0].Action != "Aksi satu" {
-		t.Fatalf("unexpected mitigation action: %q", risks[0].Mitigations[0].Action)
+			// Invalid mode must win over the deliberately missing client configuration.
+			if result, err := (&aiRepository{}).AnalyzeDocument(t.Context(), entity.DocumentAnalysisRequest{Mode: entity.DocumentAnalysisMode(mode), DocumentText: "dokumen"}); err == nil || result != nil || !strings.Contains(err.Error(), "mode analisis") {
+				t.Fatal("removed mode reached provider")
+			}
+		})
 	}
 }
 
-func TestParseDocumentIntelligenceResultAcceptsWrappedStrategicResult(t *testing.T) {
-	result, err := parseDocumentIntelligenceResult(entity.DocumentModeStrategicObjectiveRisk, `{
-		"mode": "strategic_objective_risk",
-		"strategic": {
-			"objectives": [
-				{
-					"clientKey": "obj-1",
-					"tujuan": "Tujuan",
-					"sasaran": "Sasaran",
-					"confidence": 90,
-					"sourceRefs": [],
-					"ikus": []
-				}
-			]
-		}
-	}`)
-	if err != nil {
-		t.Fatalf("expected parse to succeed: %v", err)
-	}
-	if result.Strategic == nil || len(result.Strategic.Objectives) != 1 {
-		t.Fatalf("expected wrapped strategic objective result, got %#v", result)
+func TestDocumentRiskSuggestionAcceptsStringAndObjectMitigations(t *testing.T) {
+	for _, mitigations := range []string{`["Susun checklist"]`, `[{"action":"Susun checklist"}]`} {
+		t.Run(mitigations, func(t *testing.T) {
+			var suggestion entity.DocumentRiskSuggestion
+			if err := json.Unmarshal([]byte(`{"title":"Risiko","mitigations":`+mitigations+`}`), &suggestion); err != nil {
+				t.Fatal(err)
+			}
+			if len(suggestion.Mitigations) != 1 || suggestion.Mitigations[0].Action != "Susun checklist" {
+				t.Fatal("mitigation compatibility was lost")
+			}
+		})
 	}
 }
 
 func TestParseDocumentIntelligenceResultRejectsEmptyResponse(t *testing.T) {
-	_, err := parseDocumentIntelligenceResult(entity.DocumentModeStrategicObjectiveRisk, "   ")
-	if err == nil {
-		t.Fatal("expected empty response error")
-	}
-	if !strings.Contains(err.Error(), "empty response") {
-		t.Fatalf("expected empty response error, got %v", err)
+	result, err := parseDocumentIntelligenceResult(entity.DocumentModeSOPRiskUniverse, "   ")
+	if err == nil || result != nil {
+		t.Fatal("empty response accepted")
 	}
 }
 
@@ -230,8 +108,8 @@ func TestParseRiskEventExtraction(t *testing.T) {
 
 func TestRiskEventExtractionPromptRequiresFactsAndManualLinks(t *testing.T) {
 	repo := &aiRepository{}
-	prompt := repo.buildDocumentIntelligencePrompt(entity.DocumentAnalysisRequest{Mode: entity.DocumentModeRiskEventExtraction, Filename: "laporan.pdf", DocumentText: "Layanan berhenti"})
-	for _, required := range []string{"SUDAH TERJADI", "Hanya fakta eksplisit", "near miss", "Risiko dipilih manual", "Gabungkan penyebutan berulang", "sourceRefs", "laporan.pdf"} {
+	prompt := repo.buildDocumentIntelligencePrompt(entity.DocumentAnalysisRequest{Mode: entity.DocumentModeRiskEventExtraction, DocumentText: "Layanan berhenti"})
+	for _, required := range []string{"SUDAH TERJADI", "Hanya fakta eksplisit", "near miss", "Risiko dipilih manual", "Gabungkan penyebutan berulang", "sourceRefs", "Dokumen sumber"} {
 		if !strings.Contains(prompt, required) {
 			t.Fatalf("prompt missing %q", required)
 		}

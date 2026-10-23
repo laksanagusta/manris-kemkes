@@ -26,6 +26,7 @@ import {
 } from "@/components/shared/icons";
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
+import { getAIErrorMessage } from "@/lib/ai-error";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { useAuth } from "@/contexts/auth-context";
 import { AIFeaturesDisabledState } from "@/components/shared/ai-features-disabled-state";
@@ -103,8 +104,7 @@ function PredictivePageContent() {
         setPredictions([]);
       }
     } catch (err) {
-      console.error(err);
-      toast.error("Gagal menjalankan AI Prediction");
+      toast.error(getAIErrorMessage(err, "Gagal menjalankan AI Prediction"));
     } finally {
       setIsRunning(false);
     }

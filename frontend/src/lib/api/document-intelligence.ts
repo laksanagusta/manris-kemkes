@@ -22,9 +22,8 @@ export async function analyzeDocumentIntelligence(
   if (input.organizationId) {
     form.append("organizationId", input.organizationId);
   }
-  if (input.period) {
-    form.append("period", input.period);
-  }
+
+
 
   return api.postForm<DocumentIntelligenceResponse>(
     "/ai/document-intelligence/analyze",

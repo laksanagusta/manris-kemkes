@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/manris/backend/internal/domain/errors"
+	"github.com/manris/backend/internal/service/sensitivedata"
 	"github.com/xuri/excelize/v2"
 )
 
@@ -49,6 +50,10 @@ func extractAndTruncate(text string, maxChars int) (*ExtractResult, error) {
 	trimmed := strings.TrimSpace(text)
 	if trimmed == "" {
 		return nil, errors.ErrDocumentUnreadable
+	}
+	// Check the whole extracted text, including content beyond the AI length cap.
+	if err := sensitivedata.Validate(trimmed, sensitivedata.Document); err != nil {
+		return nil, err
 	}
 
 	return truncateText(trimmed, maxChars), nil

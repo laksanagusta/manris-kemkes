@@ -465,10 +465,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.AIIncidentRiskUC = aiuc.NewGenerateManualIncidentRiskSuggestionsUseCase(c.AIRepository, c.OrgRepository)
 	c.AIDocumentIntelligenceUC = aiuc.NewAnalyzeDocumentIntelligenceUseCase(
 		c.AIRepository,
-		c.OrgRepository,
-		c.RiskRepository,
-		c.PlanningHierarchyRepository,
-		c.MitigationTaskRepository,
+		postgresrepo.NewDocumentAnalysisTaskRepository(c.Pool),
 	)
 
 	c.PlanningROOptionsUC = planninguc.NewListROOptionsUseCase(c.PlanningHierarchyRepository)

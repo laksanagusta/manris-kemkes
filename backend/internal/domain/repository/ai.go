@@ -30,7 +30,7 @@ type AIRepository interface {
 	GenerateRiskSuggestions(ctx context.Context, orgContext string) (*entity.RiskSuggestions, error)
 
 	// AnalyzeDocument analyzes a text-extracted document and returns structured intelligence results.
-	AnalyzeDocument(ctx context.Context, req entity.DocumentAnalysisRequest, orgContext string) (*entity.DocumentIntelligenceResult, error)
+	AnalyzeDocument(ctx context.Context, req entity.DocumentAnalysisRequest) (*entity.DocumentIntelligenceResult, error)
 
 	// GenerateIncidentBatchExtraction extracts multiple incident candidates from a PDF-derived text document.
 	GenerateIncidentBatchExtraction(ctx context.Context, req entity.IncidentExtractionRequest, orgContext string) (*entity.IncidentBatchExtraction, error)

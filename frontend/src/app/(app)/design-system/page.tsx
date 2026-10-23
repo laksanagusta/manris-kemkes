@@ -46,6 +46,7 @@ import { MonitoringInsightCard } from "@/components/shared/design-system/domain/
 import { MonitoringCycleSelectExample } from "@/components/shared/design-system/examples/monitoring-cycle-select-example";
 import {
   CollectionEmptyState,
+  ExternalAIProcessingNotice,
   RiskCategoryIndicator,
 } from "@/components/shared/design-system";
 import {
@@ -283,6 +284,11 @@ export default function DesignSystemPage() {
             </Field>
             </FieldGroup>
             <Alert className="mt-4"><AlertDescription>Pesan formulir memakai Alert bawaan.</AlertDescription></Alert>
+            <div className="mt-4 space-y-2">
+              <p className="text-sm text-muted-foreground">Impor dokumen dengan AI eksternal menampilkan pemberitahuan ini sebelum area unggah. Pemberitahuan tetap terlihat setelah file dipilih, tanpa dialog atau checkbox tambahan.</p>
+              <ExternalAIProcessingNotice />
+              <p className="text-sm text-muted-foreground">Impor laporan mitigasi mengikuti organisasi akun dan profil risiko final yang masih aktif. Organisasi, periode, dan kode risiko tidak ditampilkan sebagai kontrol cakupan. Maksimal 50 tugas terbuka dikirim; jika kandidat terlalu banyak, proses berhenti dengan pesan untuk memakai pelaporan manual.</p>
+            </div>
           </CardContent>
           <CardFooter>
             <Button>Simpan</Button>
@@ -352,6 +358,7 @@ export default function DesignSystemPage() {
         <h3 className="text-base font-medium">Ekstraksi risiko dari dokumen</h3>
         <p className="max-w-2xl text-sm text-muted-foreground">
           Gunakan label Ekstrak risiko dari dokumen. Unggah satu PDF atau XLSX maksimal 1 MB, seperti laporan, kebijakan, rencana kerja, kontrak, notulen, atau SOP. AI menemukan kandidat risiko beserta kutipan sumber untuk ditinjau sebelum dibuat menjadi draf. Temuan dikelompokkan menurut bagian atau topik dokumen; dokumen tidak harus memiliki tahapan proses.
+          Modal Buat draf risiko memakai lebar maksimal 768px (sm:max-w-3xl) untuk judul dan deskripsi panjang, dengan sumber serta tiga isian tetap satu kolom. Pada layar kecil, sisakan jarak 16px dari setiap sisi viewport.
         </p>
         <h3 className="text-base font-medium">Ekstraksi dokumen menjadi kejadian</h3>
         <p className="max-w-2xl text-sm text-muted-foreground">Gunakan workspace dokumen bersama untuk satu PDF atau XLSX maksimal 1 MB. Hanya kejadian yang sudah terjadi menjadi kandidat. Tinjau satu kandidat melalui form Kejadian; tanggal dan tingkat yang tidak tertulis tetap kosong, risiko dipilih manual, dan seluruh kutipan sumber ditampilkan. Nama dokumen dan kutipan ikut tersimpan pada detail Kejadian. Kandidat tersimpan ditandai Sudah disimpan. Contoh ini memakai panel tinjauan dan form produksi; penyimpanan dinonaktifkan pada contoh.</p>

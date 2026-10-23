@@ -3,7 +3,9 @@
 import { Button } from "@/components/ui/button";
 import { Sparkles, Loader2 } from "@/components/shared/icons";
 import { useState } from "react";
+import { toast } from "sonner";
 import { api } from "@/lib/api";
+import { getAIErrorMessage } from "@/lib/ai-error";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { useAuth } from "@/contexts/auth-context";
 import { AiSuggestionModal, type SuggestionItem } from "./ai-suggestion-modal";
@@ -46,7 +48,7 @@ export function MitigationPicker({ title, description, cause, impactDescription,
         })));
       }
     } catch (err) {
-      console.error(err);
+      toast.error(getAIErrorMessage(err, "Saran penanganan belum berhasil dimuat. Coba lagi."));
       setModalOpen(false);
     } finally {
       setLoading(false);

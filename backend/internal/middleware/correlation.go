@@ -6,13 +6,14 @@ import (
 )
 
 // CorrelationID is a middleware that injects a Correlation ID into the request context.
-// It reads from the "X-Correlation-ID" header, or generates a new UUID if it doesn't exist.
+// It accepts a UUID from "X-Correlation-ID", or generates one when absent or invalid.
 func CorrelationID() fiber.Handler {
 	return func(c *fiber.Ctx) error {
-		correlationID := c.Get("X-Correlation-ID")
-		if correlationID == "" {
-			correlationID = uuid.New().String()
+		id, err := uuid.Parse(c.Get("X-Correlation-ID"))
+		if err != nil {
+			id = uuid.New()
 		}
+		correlationID := id.String()
 
 		// Inject to response headers as well
 		c.Set("X-Correlation-ID", correlationID)
