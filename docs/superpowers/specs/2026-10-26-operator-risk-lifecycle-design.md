@@ -2,7 +2,7 @@
 
 Tanggal: 26 Oktober 2026
 
-Status: arah produk dan alur disetujui; spesifikasi tertulis menunggu tinjauan pengguna.
+Status: spesifikasi disetujui pada 26 Oktober 2026; cakupan disederhanakan sesuai arahan pengguna untuk hanya menambahkan kebutuhan penting.
 
 Pengguna utama: operator unit.
 
@@ -21,7 +21,15 @@ Keputusan yang telah disetujui dalam percakapan:
 - Saat pemantauan, tampilkan profil sebelumnya, laporan mitigasi, kejadian periode terkait, dan target risiko.
 - Gunakan kesimpulan otomatis **Skor menurun/tetap/meningkat**. Efektivitas memerlukan pertimbangan berbasis bukti.
 
-Dokumen ini merinci keputusan tersebut untuk ditinjau sebelum rencana implementasi dibuat. Tidak ada perubahan aplikasi yang dilakukan dalam tahap brainstorming.
+Dokumen ini menjadi dasar rencana implementasi. Pengguna meminta agar tambahan yang tidak penting dihilangkan supaya aplikasi tetap sederhana. Ketentuan penyederhanaan berikut menggantikan rincian versi awal yang lebih luas.
+
+### Batas kesederhanaan yang disepakati
+
+- Antrean awal berupa satu daftar prioritas dengan satu tindakan per item. Tanggung jawab pribadi/unit cukup menjadi keterangan pada item; tidak ditambahkan tab, filter jenis/periode, pencarian, KPI, atau kelompok Menunggu baru. Gunakan pagination bersama bila daftar panjang.
+- Antrean hanya memuat pekerjaan yang sudah dapat dilakukan: draf risiko, laporan mitigasi, dan pemantauan. Pemetaan kejadian tetap tersedia secara kontekstual dan opsional, tanpa tugas wajib, keputusan penutupan, atau alur pembukaan kembali.
+- Kejadian cukup memiliki satu tindakan Tambah catatan dan satu isian catatan untuk koreksi/informasi tambahan. Aktor dan waktu dicatat otomatis. Tidak ada pemilihan jenis catatan, field alasan terpisah, atau wizard baru.
+- Ringkasan bukti pemantauan memakai satu disclosure dan komponen yang ada. Tidak ada grafik, skor efektivitas, notifikasi, atau sistem assignment baru.
+- Aturan akses, deduplikasi transaksi, dan keutuhan histori tetap diperlukan walaupun UI disederhanakan.
 
 ## 2. Kondisi implementasi yang menjadi dasar
 
@@ -41,8 +49,8 @@ Rujukan implementasi: `frontend/src/contexts/auth-context.tsx`, `frontend/src/li
 - Login penuh operator menuju `/work`. Sesi yang wajib mengganti kata sandi tetap menuju alur penggantian kata sandi; tujuan setelah alur tersebut mengikuti peran.
 - Reviewer, pimpinan, dan superadmin mempertahankan tujuan awal sekarang. Mengunjungi URL Dashboard atau tautan detail secara langsung tidak memaksa pengalihan ke `/work`.
 - Navigasi operator menempatkan Pekerjaan saya sebelum Dashboard. Tambahkan breadcrumb yang memakai bahasa pengguna.
-- Nama Pekerjaan saya tidak boleh menyiratkan bahwa seluruh pekerjaan unit telah ditugaskan secara pribadi. Pisahkan **Untuk saya** dari **Perlu ditangani unit**. Sediakan cakupan **Unit saya** untuk pekerjaan unit lainnya yang boleh dibaca.
-- Halaman menampilkan satu antrean pekerjaan dengan kelompok prioritas, pencarian, filter jenis pekerjaan, serta filter periode. Detail risiko, periode, PIC, dan tenggat tetap terlihat tanpa membuka item.
+- Nama Pekerjaan saya tidak boleh menyiratkan bahwa seluruh pekerjaan unit telah ditugaskan secara pribadi. Gunakan keterangan **Untuk saya** atau **Perlu ditangani unit** pada item dalam daftar yang sama. Pekerjaan yang secara eksplisit ditugaskan ke rekan unit tetap ditelusuri dari halaman domain yang sudah ada.
+- Halaman menampilkan satu antrean prioritas. Detail risiko, periode, PIC/tanggung jawab, dan tenggat tetap terlihat tanpa membuka item. Pagination memakai komponen bersama, tanpa filter tambahan pada versi awal.
 - **Tambah risiko** dan **Catat kejadian** tersedia sebagai tindakan eksplisit. Catat kejadian tidak bergantung pada penyelesaian antrean.
 
 Tidak ada sistem penugasan baru, pengingat otomatis, email, atau notifikasi eksternal dalam ruang lingkup ini.
@@ -55,21 +63,20 @@ Antrean merupakan hasil pembacaan keadaan domain. Item tidak mempunyai tombol Ta
 | --- | --- | --- |
 | Lengkapi risiko | Draf aktif yang belum difinalisasi | Buka draf yang sama; pertahankan identitas dan isian |
 | Isi laporan | Tugas mitigasi belum dilaporkan dan jendela pelaporannya sudah tersedia, termasuk laporan terlambat yang masih diizinkan | Buka form mitigasi dan periode yang tepat |
-| Tinjau pemetaan kejadian | Kejadian belum mempunyai risiko terkait dan belum diberi keputusan pemetaan | Buka kejadian; tautkan risiko atau catat Belum ada risiko yang sesuai |
 | Mulai pemantauan | Profil final yang berlaku, efektif pada periode yang wajib dipantau, dan belum mempunyai transaksi pada periode tersebut | Buat atau dapatkan draf periode tersebut lalu buka workspace |
 | Lanjutkan pemantauan | Transaksi pemantauan yang masih draf | Buka draf yang sama |
 
 - Untuk saya menggunakan pembuat draf atau identitas PIC yang tersimpan, dengan pemeriksaan izin tindakan. Nama PIC bebas tidak dicocokkan ke akun berdasarkan kemiripan teks.
 - Pemantauan mengikuti unit sebagai tanggung jawab bersama jika belum ada penanggung jawab eksplisit. Pembuat draf pemantauan menjadi konteks pribadi tanpa menghapus akses rekan unit yang berwenang.
 - Pekerjaan tanpa PIC akun yang dapat diidentifikasi masuk Perlu ditangani unit; tampilkan PIC tekstual bila tersedia dan jelaskan bahwa tanggung jawabnya belum terhubung ke akun.
-- Draf bukan milik pengguna dan pekerjaan dengan PIC lain tersedia melalui Unit saya hanya sesuai izin baca/tulis yang berlaku.
+- Draf dan pekerjaan yang sudah memiliki PIC akun lain tidak masuk antrean pribadi; akses melalui koleksi domain tetap mengikuti izin yang berlaku.
 - Profil arsip, versi yang digantikan, pemantauan final, serta tugas berstatus terminal tidak muncul sebagai pekerjaan aktif. Riwayat tetap dapat dibaca di tempat asalnya.
 - Kunci item stabil: jenis pekerjaan + identitas domain + periode bila berlaku. Satu risiko/periode tidak menghasilkan tugas Mulai dan Lanjutkan sekaligus.
 - Urutkan pekerjaan dengan tenggat sah yang telah lewat terlebih dahulu, kemudian tenggat terdekat. Item tanpa tenggat berada setelah item bertenggat dan diberi label Tanpa tenggat, bukan Terlambat. Gunakan tanggal pembuatan terlama dan kunci item sebagai pemecah urutan.
 - Periode dan tanggal mengikuti Asia/Jakarta. Jangan menciptakan tenggat untuk draf, pemetaan kejadian, atau pemantauan apabila aturan domain belum menetapkannya.
-- Tampilkan pekerjaan yang sudah dapat dilakukan pada antrean utama. Pekerjaan yang terblokir aturan periode tersedia dalam kelompok Menunggu dengan alasan dan waktu tersedia jika dapat ditentukan. Kelompok tersebut bukan tugas terlambat.
+- Tampilkan pekerjaan yang sudah dapat dilakukan. Pekerjaan yang masih terblokir aturan periode tidak ditampilkan sebagai tugas aktif. Bila keadaan berubah setelah halaman dibuka, aksi menjelaskan alasan penolakan dan menyegarkan daftar.
 - Eligibility pemantauan berasal dari aturan domain yang sama dengan aksi Mulai Pemantauan: final dan berlaku, periode efektif, arsip, transaksi terdahulu, bulan ketiga, dan urutan kuartal. Tanggal hari ini saja tidak cukup.
-- Keputusan Belum ada risiko yang sesuai dicatat sebagai anotasi dengan aktor dan waktu. Kejadian tetap belum dipetakan, tetapi tugas tinjauan keluar dari antrean aktif. Operator dapat membuka kembali tinjauan; sistem tidak otomatis menautkan kejadian.
+- Kejadian yang belum dipetakan tetap dapat ditelusuri dari koleksi kejadian. Tidak ada kewajiban mencari hubungan risiko yang tidak relevan dan tidak ada tugas pemetaan yang harus ditutup.
 
 ## 5. Perjalanan kerja
 
@@ -96,7 +103,7 @@ Form dibuka dengan konteks tugas dan periode yang tepat. Kembali/Batal mengikuti
 
 Pertahankan pencatatan fakta utama, dampak/penanganan, pemetaan opsional, detail tambahan, dan pemeriksaan sebelum menyimpan. Tanggal kejadian tidak menyiratkan bahwa operator memasukkan jam tertentu.
 
-Tambahkan linimasa anotasi pada detail kejadian. Jenisnya Koreksi, Informasi tambahan, Keputusan pemetaan, dan Pembukaan kembali tinjauan pemetaan. Catatan memuat isi, aktor, organisasi, dan waktu server; koreksi juga menunjuk bagian yang dikoreksi beserta alasannya. Catatan yang sudah tersimpan tidak ditimpa atau dihapus melalui UI; kesalahan pada anotasi dijawab dengan anotasi berikutnya.
+Tambahkan daftar catatan kronologis pada detail kejadian melalui satu tindakan Tambah catatan dan satu textarea. Bantuan singkat meminta operator menjelaskan koreksi atau informasi tambahan secara spesifik. Catatan memuat isi, aktor, organisasi, dan waktu server secara otomatis. Tidak ada field klasifikasi atau alasan terpisah. Catatan yang sudah tersimpan tidak ditimpa atau dihapus melalui UI; kesalahan pada catatan dijawab dengan catatan berikutnya.
 
 Catatan awal dan hubungan risiko tetap utuh. Anotasi ditampilkan jelas sebagai keterangan tambahan, bukan diam-diam menggantikan field awal atau mengubah hitungan historis. Penonaktifan hubungan risiko yang salah dan penghitungan ulang berdasarkan fakta yang dikoreksi berada di luar tahap ini; pengguna tetap dapat mencatat kesalahan hubungan untuk ditinjau. Ekspor baru menyertakan anotasi yang berhak dibaca.
 
@@ -121,10 +128,10 @@ Untuk hasil final lama yang belum memiliki snapshot bukti, tampilkan Bukti saat 
 ## 6. Batas komponen dan aliran data
 
 - **Layanan pekerjaan operator:** proyeksi baca di backend yang menggabungkan sumber risiko, tugas pelaporan, kejadian, dan pemantauan. Melakukan pembatasan organisasi/izin, deduplikasi, eligibility, pengurutan, dan pagination sebelum mengirim data. Tidak menyimpan salinan status tugas independen dan tidak menarik seluruh data organisasi ke browser untuk dihitung.
-- **Halaman Pekerjaan saya:** menampilkan hasil proyeksi, scope, filter, pemuatan, kegagalan, dan tautan tindakan. Komponen daftar dan status memakai design system bersama.
+- **Halaman Pekerjaan saya:** menampilkan hasil proyeksi, keterangan tanggung jawab, pagination, pemuatan, kegagalan, dan tautan tindakan. Komponen daftar dan status memakai design system bersama.
 - **Pembuka pekerjaan:** meneruskan identitas domain, periode, dan tujuan kembali ke halaman/form yang sudah ada. Konteks dari URL tetap divalidasi server. Menekan Mulai pemantauan dua kali membuka satu draf yang sama.
 - **Pemetaan status laporan:** satu sumber label dan semantik untuk status pelaporan, digunakan ulang seluruh fitur yang terpengaruh tanpa mengubah kode status tersimpan.
-- **Layanan anotasi kejadian:** operasi baca/tambah catatan yang melekat pada kejadian dan cakupan organisasi yang sama; keputusan pemetaan menggunakan layanan ini. Gunakan izin tulis kejadian yang berlaku untuk organisasi tersebut, bukan sekadar izin membaca catatan.
+- **Layanan anotasi kejadian:** operasi baca/tambah catatan yang melekat pada kejadian dan cakupan organisasi yang sama. Gunakan izin tulis kejadian yang berlaku untuk organisasi tersebut, bukan sekadar izin membaca catatan.
 - **Penyusun bukti pemantauan:** mengumpulkan data sesuai keluarga versi dan periode, lalu menyimpan referensi serta isi relevan yang diperlukan agar hasil final dapat direproduksi.
 
 Aliran utama: sesi penuh → tujuan sesuai peran → proyeksi pekerjaan → buka konteks → validasi/penyimpanan domain → pembacaan ulang sumber pekerjaan. Antrean bukan sumber kebenaran baru.
@@ -145,7 +152,7 @@ Kontrak API rinci dan migrasi ditempatkan pada rencana implementasi. Modul mengi
 
 Gunakan `DESIGN.md` dan halaman `/design-system` sebagai sumber visual: tipografi Inter, token netral, komponen shadcn yang sudah digunakan, ruang halaman, ikon, badge, pola form/dialog, serta reduced motion. Rancangan ini menyetujui pengecualian terarah terhadap aturan mempertahankan navigasi saat ini: penambahan Pekerjaan saya dan tujuan awal khusus operator.
 
-Sebelum menerapkan tampilan fitur, dokumentasikan pola antrean, kelompok pekerjaan pribadi/unit, status pelaporan, linimasa anotasi, ringkasan bukti, dan hasil penyimpanan di `DESIGN.md` serta katalog design system. Gunakan komponen produksi bersama di katalog, bukan salinan demonstrasi. Setelah implementasi, konfirmasikan sinkronisasi keduanya kepada pengguna.
+Sebelum menerapkan tampilan fitur, dokumentasikan pola daftar pekerjaan dengan keterangan tanggung jawab, status pelaporan, catatan kejadian, ringkasan bukti, dan hasil penyimpanan di `DESIGN.md` serta katalog design system. Gunakan komponen produksi bersama di katalog, bukan salinan demonstrasi. Setelah implementasi, konfirmasikan sinkronisasi keduanya kepada pengguna.
 
 Hierarki antrean mengutamakan pekerjaan dan satu tindakan kontekstual. Detail tambahan dibuka sesuai kebutuhan. Tanggal, label periode, status, alasan terblokir, dan kondisi kosong dapat dipahami tanpa hanya mengandalkan warna. Kontrol dapat digunakan dengan keyboard; tata letak sempit mempertahankan informasi penting dan tindakan yang dapat dijangkau.
 
@@ -155,9 +162,9 @@ Referensi pendekatan: [Apple Human Interface Guidelines — Design principles](h
 
 Satu arah produk ini dibagi menjadi empat tahap yang dapat ditinjau tersendiri:
 
-1. **Pintu masuk operator:** design system antrean, proyeksi pekerjaan, `/work`, navigasi, tujuan login, serta pembuka tugas yang menjaga konteks. Tugas pemetaan belum ditampilkan sampai layanan anotasi tahap 3 tersedia.
+1. **Pintu masuk operator:** design system antrean sederhana, proyeksi pekerjaan, `/work`, navigasi, tujuan login, serta pembuka tugas yang menjaga konteks.
 2. **Makna pelaporan dan hasil penyimpanan:** label Sudah dilaporkan, kelengkapan pelaporan, tindakan form, serta hasil setelah finalisasi risiko. Perubahan semantik diterapkan serentak di seluruh permukaan yang terpengaruh pada tahap ini.
-3. **Anotasi kejadian:** catatan koreksi/tambahan, keputusan pemetaan, pembukaan kembali tinjauan, dan integrasi antrean.
+3. **Catatan kejadian:** satu form catatan koreksi/tambahan dengan histori dan izin yang terjaga. Pemetaan tetap memakai aksi yang sudah ada.
 4. **Pemantauan berbasis bukti:** kejadian serta laporan periode terkait, snapshot bukti final, dan kesimpulan perubahan skor yang tidak mengklaim efektivitas otomatis.
 
 Setiap tahap memperbarui dokumentasi dan katalog sebelum tampilan fitur diselesaikan, serta melewati pengujian izin dan perjalanan pengguna yang relevan. Tahap pertama tidak mengklaim bahwa seluruh siklus baru telah selesai.
@@ -165,12 +172,12 @@ Setiap tahap memperbarui dokumentasi dan katalog sebelum tampilan fitur diselesa
 ## 10. Kriteria penerimaan dan verifikasi
 
 - Operator login normal mencapai Pekerjaan saya; alur ganti kata sandi, peran lain, tautan detail langsung, dan Dashboard tetap berfungsi.
-- Untuk saya dan Perlu ditangani unit membedakan PIC akun, PIC tekstual, pembuat draf, dan tanggung jawab unit tanpa penugasan palsu.
+- Keterangan Untuk saya dan Perlu ditangani unit membedakan PIC akun, PIC tekstual, pembuat draf, dan tanggung jawab unit tanpa penugasan palsu atau tab tambahan.
 - Tugas datang dari seluruh sumber yang diizinkan, tidak berulang antarversi/periode, dan tidak memasukkan arsip atau hasil final sebagai tugas aktif.
-- Antrean membedakan terlambat, belum tersedia, terminal tidak dilaporkan, serta tanpa tenggat. Uji pergantian hari/kuartal menggunakan Asia/Jakarta.
+- Antrean menampilkan terlambat dan tanpa tenggat secara jujur, serta mengecualikan tugas yang belum tersedia atau terminal tidak dilaporkan. Uji pergantian hari/kuartal menggunakan Asia/Jakarta.
 - Risiko yang wajib dipantau tetap ditemukan walaupun belum ada transaksi. Uji profil efektif baru, kuartal belum bulan ketiga, pendahulu belum final, dan draf yang sudah dibuat rekan.
 - Isi laporan membuka mitigasi/periode yang tepat. Pengiriman laporan menampilkan Sudah dilaporkan dan tidak mengklaim kegiatan selesai; angka agregat dilabeli sebagai kelengkapan pelaporan.
-- Kejadian dapat dicatat tanpa risiko. Anotasi mempertahankan catatan awal, aktor/waktu, izin unit, dan bebas duplikasi pada percobaan ulang. Keputusan belum ada risiko yang sesuai menyelesaikan tugas tinjauan tanpa menciptakan tautan risiko.
+- Kejadian dapat dicatat tanpa risiko. Catatan tambahan mempertahankan catatan awal, aktor/waktu, izin unit, dan bebas duplikasi pada percobaan ulang. Pemetaan opsional tidak membentuk tugas wajib.
 - Pemantauan menyatukan bukti periode yang tepat lintas versi; skor tetap tidak otomatis berarti mitigasi tidak efektif. Finalisasi menampilkan konsekuensi laporan kosong dan menjaga snapshot historis.
 - Uji akses lintas unit melalui endpoint, tautan langsung, dan snapshot bukti. Data yang aksesnya dicabut tidak bocor melalui antrean atau ekspor.
 - Uji sumber gagal sebagian, perubahan keadaan oleh rekan unit, koneksi putus saat simpan, klik ganda, form kotor, serta fokus keyboard.
@@ -178,7 +185,7 @@ Setiap tahap memperbarui dokumentasi dan katalog sebelum tampilan fitur diselesa
 
 ## 11. Di luar ruang lingkup
 
-Pengaktifan approval profil risiko, penggantian Dashboard analitis, sistem assignment baru, penilaian efektivitas otomatis/AI, pengingat eksternal, persentase kemajuan kegiatan, penghapusan record kejadian, penonaktifan relasi risiko, perubahan rumus skor, serta perubahan kalender pelaporan tidak termasuk rancangan ini.
+Pengaktifan approval profil risiko, penggantian Dashboard analitis, sistem assignment baru, penilaian efektivitas otomatis/AI, pengingat eksternal, persentase kemajuan kegiatan, penghapusan record kejadian, penonaktifan relasi risiko, perubahan rumus skor, perubahan kalender pelaporan, filter/tab/KPI antrean tambahan, serta workflow keputusan pemetaan tidak termasuk rancangan ini.
 
 ## 12. Pemeriksaan spesifikasi
 
