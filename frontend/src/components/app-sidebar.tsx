@@ -25,6 +25,8 @@ import {
   GitBranch,
   LogOut,
   HelpCircle,
+  MessageSquare,
+  AgentIcon,
 } from "@/components/shared/icons";
 import { DitherAvatar } from "@/components/dither-kit/avatar";
 import { MotionNumber } from "@/components/shared/design-system/motion/motion-primitives";
@@ -97,6 +99,7 @@ const iconMap: Record<string, React.ElementType> = {
   Users,
   Building2,
   Settings2,
+  MessageSquare,
 };
 
 const reportsNavigation: NavGroup = {
@@ -131,6 +134,12 @@ const dashboardNavigation: NavItem = {
   icon: LayoutDashboard,
 };
 
+const agentNavigation: NavItem = {
+  label: "Agent",
+  href: "/agent",
+  icon: AgentIcon,
+};
+
 const managementRiskGroup = mainMenuItems.find(
   (group) => group.title === "MANAJEMEN RISIKO",
 );
@@ -152,7 +161,7 @@ const operationalNavigation = managementRiskNavigation.filter(
 
 const navigation: NavGroup[] = [
   {
-    items: [dashboardNavigation, ...approvalNavigation],
+    items: [dashboardNavigation, agentNavigation, ...approvalNavigation],
   },
   {
     title: "OPERASIONAL",
@@ -329,7 +338,9 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
       .map((group) => ({
         ...group,
         items: group.items?.filter(
-          (item) => !item.adminOnly || user?.role === "superadmin",
+          (item) =>
+            (!item.adminOnly || user?.role === "superadmin") &&
+            (!aiFeaturesDisabled || item.href !== "/agent"),
         ),
       }))
       .filter((group) => (group.items?.length ?? 0) > 0);

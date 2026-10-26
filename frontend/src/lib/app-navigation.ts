@@ -130,6 +130,8 @@ export function getBreadcrumbItems(
   if (route === "/account") return [{ label: "Akun" }];
   if (route === "/design-system") return [{ label: "Design System" }];
   if (route === "/inbox") return [{ label: "Persetujuan & TTE" }];
+  if (route === "/agent") return [{ label: "Agent" }];
+  if (route.startsWith("/agent/")) return detailBreadcrumb(parentBreadcrumb("Agent", "/agent"), dynamicLabel ?? "Percakapan");
 
   if (route === "/risk/register") return [riskParent];
   if (route === "/risk/register/new") {
@@ -267,6 +269,7 @@ export function getBreadcrumbItems(
 }
 
 export const breadcrumbMap: Record<string, string> = {
+  "/agent": "Agent",
   "/overview": "Dashboard",
   "/design-system": "Design System",
   "/inbox": "Persetujuan",
@@ -323,6 +326,7 @@ export type AppPageMeta = {
 };
 
 export const appPageMeta: Record<string, AppPageMeta> = {
+  "/agent": { title: "Agent", subtitle: "Telusuri data dan tinjau tindak lanjut melalui percakapan pribadi." },
   "/overview": {
     title: "Dashboard",
     subtitle: "Pantau ringkasan risiko dan prioritas tindak lanjut.",
@@ -494,6 +498,10 @@ export const appPageMeta: Record<string, AppPageMeta> = {
 };
 
 const dynamicAppPageMeta: Array<[string, AppPageMeta]> = [
+  ["/agent/", {
+    title: "Percakapan Agent",
+    subtitle: "Tinjau hasil dan usulan perubahan dari percakapan pribadi Anda.",
+  }],
   ["/evaluations/", {
     title: "Form Evaluasi",
     subtitle: "Nilai perkembangan risiko dan tetapkan keputusan evaluasi.",

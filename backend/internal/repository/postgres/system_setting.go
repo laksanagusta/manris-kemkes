@@ -170,6 +170,8 @@ func (r *systemSettingRepository) GetAIModels(ctx context.Context) (*entity.AIMo
 			models.RiskSuggestion = s.Value
 		case "ai.model.incident":
 			models.Incident = s.Value
+		case "ai.model.agent":
+			models.Agent = s.Value
 		}
 	}
 

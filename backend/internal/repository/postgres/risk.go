@@ -21,7 +21,8 @@ import (
 
 // riskRepository is the PostgreSQL implementation of repository.RiskRepository
 type riskRepository struct {
-	pool *pgxpool.Pool
+	pool                  repositoryDB
+	preserveMitigationIDs bool
 }
 
 type riskQueryer interface {
@@ -256,7 +257,7 @@ func (r *riskRepository) Update(ctx context.Context, risk *entity.Risk) error {
 	}
 	defer tx.Rollback(ctx)
 
-	if err := updateRiskWithQueryer(ctx, tx, risk); err != nil {
+	if err := updateRiskWithQueryer(ctx, tx, risk, r.preserveMitigationIDs); err != nil {
 		return err
 	}
 	if err := tx.Commit(ctx); err != nil {
@@ -265,7 +266,8 @@ func (r *riskRepository) Update(ctx context.Context, risk *entity.Risk) error {
 	return nil
 }
 
-func updateRiskWithQueryer(ctx context.Context, q riskQueryer, risk *entity.Risk) error {
+func updateRiskWithQueryer(ctx context.Context, q riskQueryer, risk *entity.Risk, preserveIDs ...bool) error {
+	preserve := len(preserveIDs) > 0 && preserveIDs[0]
 	risk.CalculateAll()
 	risk.CalculateTargetBobot()
 	risk.CalculateTargetNilai()
@@ -294,12 +296,20 @@ func updateRiskWithQueryer(ctx context.Context, q riskQueryer, risk *entity.Risk
 	}
 
 	// Replace mitigations
-	if _, err := q.Exec(ctx, "DELETE FROM mitigations WHERE risk_id = $1", risk.ID); err != nil {
-		return fmt.Errorf("delete existing mitigations: %w", err)
+	if !preserve {
+		if _, err := q.Exec(ctx, "DELETE FROM mitigations WHERE risk_id = $1", risk.ID); err != nil {
+			return fmt.Errorf("delete existing mitigations: %w", err)
+		}
 	}
 	for i, m := range risk.Mitigations {
 		frequency := normalizeMitigationFrequency(m.Frequency)
 		mitigationType := entity.NormalizeMitigationType(m.MitigationType)
+		if preserve && m.ID != uuid.Nil {
+			if err := updateMitigationPreservingID(ctx, q, risk.ID, m, i+1); err != nil {
+				return err
+			}
+			continue
+		}
 		_, err := q.Exec(ctx,
 			`INSERT INTO mitigations (
 				risk_id, action, owner, owner_user_id, due_date, frequency, recurring_interval, report_day, report_date, execution_schedule_text, target_cost, sort_order,
@@ -875,21 +885,14 @@ func (r *riskRepository) ListMitigations(ctx context.Context, orgIDs []uuid.UUID
 
 // NextRiskCode generates the next risk code like R-001, R-002, etc.
 func (r *riskRepository) NextRiskCode(ctx context.Context) (string, error) {
-	var maxCode *string
+	var next int64
 	err := r.pool.QueryRow(ctx,
-		`SELECT MAX(code) FROM risks WHERE code LIKE 'R-%'`,
-	).Scan(&maxCode)
-	if err != nil || maxCode == nil {
-		return "R-001", nil
+		`SELECT COALESCE(MAX(substring(code FROM 3)::bigint),0)+1 FROM risks WHERE code ~ '^R-[0-9]{1,18}$'`,
+	).Scan(&next)
+	if err != nil {
+		return "", fmt.Errorf("next risk code: %w", err)
 	}
-
-	parts := strings.Split(*maxCode, "-")
-	if len(parts) != 2 {
-		return "R-001", nil
-	}
-	var num int
-	fmt.Sscanf(parts[1], "%d", &num)
-	return fmt.Sprintf("R-%03d", num+1), nil
+	return fmt.Sprintf("R-%03d", next), nil
 }
 
 func currentQuarterCycle() string {

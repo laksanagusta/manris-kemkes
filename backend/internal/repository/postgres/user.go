@@ -12,7 +12,7 @@ import (
 
 // userRepository is the PostgreSQL implementation of repository.UserRepository
 type userRepository struct {
-	pool *pgxpool.Pool
+	pool repositoryDB
 }
 
 // NewUserRepository creates a new user repository

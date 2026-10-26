@@ -4,10 +4,14 @@ package bootstrap
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	openaiapi "github.com/sashabaranov/go-openai"
 
+	"github.com/manris/backend/internal/agent"
+	"github.com/manris/backend/internal/agenttools"
 	"github.com/manris/backend/internal/config"
 	"github.com/manris/backend/internal/database"
 	domainrepo "github.com/manris/backend/internal/domain/repository"
@@ -46,6 +50,7 @@ import (
 
 // Container holds all application dependencies.
 type Container struct {
+	AgentService    *agent.Service
 	IdentityService *identityservice.Service
 	// Infrastructure
 	Pool *pgxpool.Pool
@@ -589,6 +594,30 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.GenerateReportUC = reportuc.NewGenerateReportUseCase(c.RiskRepository, c.IncidentRepository)
 	c.QuarterlyReportUC = reportuc.NewQuarterlyReportUseCase(postgresrepo.NewQuarterlyReportRepository(pool))
 	c.QuarterlyReportPDFRenderer = reportpdf.NewQuarterlyReportPDFRenderer()
+	var agentClient *openaiapi.Client
+	if strings.TrimSpace(cfg.OpenAIKey) != "" {
+		agentClient = openaiapi.NewClient(cfg.OpenAIKey)
+	}
+	agentModel := agent.NewOpenAIModel(agentClient, func(ctx context.Context) (string, error) {
+		models, err := c.SystemSettingGetUC.GetAIModels(ctx)
+		if err != nil {
+			return "", err
+		}
+		if models == nil {
+			return "", agent.ErrUnavailable
+		}
+		if models.Agent != "" {
+			return models.Agent, nil
+		}
+		if configured := config.DefaultAIModels()["agent"]; configured != "" {
+			return configured, nil
+		}
+		return models.GetModelForFeature("agent"), nil
+	})
+	c.AgentService = agent.NewService(
+		postgresrepo.NewAgentStore(pool), agenttools.New(pool, c.OrgHierarchySvc), agentModel,
+		agent.WithLimits(agent.Limits{MaxSteps: cfg.AgentMaxSteps, MaxTools: cfg.AgentMaxTools, MaxRunDuration: time.Duration(cfg.AgentTimeoutSeconds) * time.Second}),
+	)
 	return c, nil
 }
 

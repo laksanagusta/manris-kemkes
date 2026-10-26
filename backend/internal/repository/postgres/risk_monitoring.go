@@ -16,7 +16,7 @@ import (
 )
 
 type riskMonitoringRepository struct {
-	pool *pgxpool.Pool
+	pool repositoryDB
 }
 
 func NewRiskMonitoringRepository(pool *pgxpool.Pool) repository.RiskMonitoringRepository {

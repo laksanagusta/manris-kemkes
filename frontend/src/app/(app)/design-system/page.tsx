@@ -1,6 +1,7 @@
 "use client";
 
 import { RiskConditionReportExample } from "@/components/shared/design-system/examples/risk-condition-report-example";
+import { AgentSystemExample } from "@/components/agent/agent-system-example";
 
 import { TableExample } from "@/components/shared/design-system/examples/table-example";
 import { MarketingSystemExample } from "@/components/marketing/marketing-primitives";
@@ -83,6 +84,22 @@ export default function DesignSystemPage() {
 
       <GlobalMotionExample />
       <RegisterMotionExample />
+      <section id="agent" className="flex flex-col gap-4">
+        <h2 className="text-lg font-medium">Manris Agent</h2>
+        <p className="text-sm text-muted-foreground">Narasi Agent langsung ke hasil utama: biasanya 1–3 kalimat, cukup satu kalimat bila komponen hasil sudah menjawab. Hindari pengulangan tabel/grafik dan metadata; rincian diberikan saat diminta. Peringatan penting dan kebutuhan persetujuan tetap disampaikan.</p>
+        <p className="text-sm text-muted-foreground">Klarifikasi hanya menampilkan pertanyaan dan pilihan jawaban, tanpa deskripsi atau petunjuk balasan yang berulang. Klik pilihan langsung mengirim jawaban untuk diproses, tanpa memasukkannya ke composer; draf dan lampiran tetap tersimpan.</p>
+        <p className="text-sm text-muted-foreground">Semua permukaan hasil chat, bubble, dan paket tinjauan memakai elevasi kartu laporan: satu outline lembut dan shadow tipis pada latar card. Metrik, grafik, dan klarifikasi memakai inset 16px. Composer mempertahankan ring fokus/validasi; isi kartu tetap datar agar shadow tidak bertumpuk. Contoh Hasil dan tinjauan memakai komponen produksi yang sama.</p>
+        <p className="text-sm text-muted-foreground">Percakapan disederhanakan: satu aksi percakapan baru di toolbar, satu menu unduh per jawaban, dan tindakan risiko sekunder di menu lainnya. Aktivitas yang selesai hanya menampilkan jumlah langkah jika tersedia. Error, peringatan, dan panel tinjauan tetap terlihat.</p>
+        <p className="text-sm text-muted-foreground">Percakapan memakai toolbar, isi, dan composer yang sejajar. Antar giliran berjarak 48px, pesan ke jawaban 24px, dan isi jawaban dikelompokkan lebih rapat. Teks dibatasi untuk dibaca, tabel tetap lebar, dan composer balasan memakai dua baris. Lihat Hasil dan tinjauan untuk contoh dua giliran.</p>
+        <p className="text-sm text-muted-foreground">Riwayat desktop memakai padding vertikal 6px dan tinggi minimal 36px; target sentuh tetap 44px. Tombol kirim bulat dan ikon lampiran memakai SVG paperclip khusus sesuai referensi.</p>
+        <p className="text-sm text-muted-foreground">Composer tanpa catatan persetujuan generik. Riwayat tanpa judul, ikon, atau divider; baris memakai latar hover/fokus dan waktu singkat seperti 7h, 1d, 6w. Tanggal lengkap tersedia saat hover dan untuk pembaca layar.</p>
+        <p className="text-sm text-muted-foreground">Halaman awal memakai satu garis kiri untuk judul, composer, dan riwayat. Kolom dibatasi 54rem; saran menjadi satu kolom dan tanggal riwayat turun ke baris berikutnya saat ruang menyempit. Pilih Riwayat terisi untuk membandingkan kedua keadaan.</p>
+        <p className="text-sm text-muted-foreground">Hasil dan tinjauan mencakup kartu risiko ringkas, prioritas per risiko, dan perbandingan kuartal. Tombol tindak lanjut melanjutkan chat; perubahan data tetap melalui tinjauan.</p>
+        <p className="text-sm text-muted-foreground">Agent memakai canvas dan gutter halaman standar, dengan workspace transparan tanpa panel luar. Halaman awal hanya menampilkan judul, deskripsi, composer multiline, Skills otomatis, lampiran, catatan persetujuan, dan riwayat/saran. Menu Agent berada tepat di bawah Dashboard. Toolbar percakapan hanya tampil saat membuka percakapan yang sudah berisi pesan. Pesan pengguna memakai bubble putih dengan border lembut; tautan kode pada tabel tanpa underline. Composer percakapan berjarak 24px dari bawah viewport dengan penyesuaian safe area mobile. Waktu mulai percakapan tampil sekali di atas tengah; waktu per pesan dan footer metadata hasil dihapus. Unduhan hanya menampilkan tombol Excel/PDF tanpa label pengantar. Aksi paket memakai label Batal dan Terapkan; tanpa subjudul revisi/jumlah usulan dan tanpa keterangan jumlah perubahan di atas tombol. Rincian usulan tidak menampilkan blok referensi teknis atau petunjuk format JSON. Aktivitas, snapshot, serta paket tinjauan tetap memakai komponen hasil yang sama. Contoh berikut memakai komponen produksi dengan data ilustratif; tidak mengubah data bisnis.</p>
+        <p className="text-sm text-muted-foreground">Editor usulan memakai isian biasa dan daftar yang dapat ditambah: penyebab, dampak, mitigasi, serta rincian profil. Tidak ada editor JSON. Fokus pengetikan bertahan saat mengirim. Membuka rincian menghentikan scroll otomatis; Ke pesan terbaru melanjutkannya. Disclosure pada layar sentuh memiliki area minimum 44px.</p>
+        <AgentSystemExample />
+        <p className="text-sm text-muted-foreground">Usulan laporan mitigasi memakai form Penanganan yang sama: Catatan Pelaksanaan wajib 10–1000 karakter dan Link Bukti opsional berupa satu URL HTTP/HTTPS. Tidak ada field Hasil, Hambatan, atau pilihan Status. Setelah ditinjau dan diterapkan, tugas menjadi selesai.</p>
+      </section>
 
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-medium">Public homepage</h2>
@@ -97,8 +114,8 @@ export default function DesignSystemPage() {
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-medium">Ikonografi</h2>
         <p className="text-sm text-muted-foreground">
-          Semua ikon aplikasi menggunakan Hugeicons melalui shared icon layer,
-          kecuali ikon chevron yang tetap memakai Lucide.
+          Ikon aplikasi menggunakan Hugeicons melalui shared icon layer, kecuali
+          chevron dari Lucide serta ikon Agent dan lampiran berupa SVG khusus sesuai referensi.
         </p>
         <IconographyExample />
       </section>

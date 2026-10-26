@@ -120,6 +120,7 @@ func (h *SystemSettingHandler) UpdateAIModels(c *fiber.Ctx) error {
 		{"ai.model.minutes", req.Minutes},
 		{"ai.model.risk-suggestion", req.RiskSuggestion},
 		{"ai.model.incident", req.Incident},
+		{"ai.model.agent", req.Agent},
 	}
 
 	for _, s := range settings {
@@ -166,6 +167,7 @@ func getDescriptionForKey(key string) string {
 		"ai.model.minutes":         "AI model for meeting minutes generation",
 		"ai.model.risk-suggestion": "AI model for risk suggestions",
 		"ai.model.incident":        "AI model for incident extraction",
+		"ai.model.agent":           "AI model for the Manris agent",
 	}
 	if desc, ok := descriptions[key]; ok {
 		return desc

@@ -14,7 +14,7 @@ import (
 )
 
 type organizationRepository struct {
-	pool *pgxpool.Pool
+	pool repositoryDB
 }
 
 // NewOrganizationRepository creates a new organization repository

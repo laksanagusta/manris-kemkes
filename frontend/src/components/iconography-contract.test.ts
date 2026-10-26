@@ -15,7 +15,7 @@ function collectSourceFiles(directory: string): string[] {
   });
 }
 
-test("application icons use Hugeicons except chevrons", () => {
+test("library icons stay in the shared layer and chevrons stay on Lucide", () => {
   const files = collectSourceFiles(sourceRoot);
   const iconLayer = path.join(sourceRoot, "shared/icons.tsx");
   const directHugeiconsImports = files.filter((file) =>
@@ -28,7 +28,7 @@ test("application icons use Hugeicons except chevrons", () => {
       !file.endsWith(".test.ts") &&
       /from ["']lucide-react["']/.test(readFileSync(file, "utf8")),
   );
-  const lucideExports = [...iconLayerSource.matchAll(/export \{([\s\S]*?)\} from "lucide-react"/g)]
+  const lucideExports = [...iconLayerSource.matchAll(/export \{([^{}]*?)\} from "lucide-react"/g)]
     .flatMap((match) => match[1].split(","))
     .map((name) => name.trim())
     .filter(Boolean)

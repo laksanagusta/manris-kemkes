@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { api, API_BASE, ApiError } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
@@ -32,6 +33,7 @@ import type {
 } from "@/types/quarterly-report";
 import { reportErrorMessage } from "@/lib/report-feedback";
 import { parseReportPreferences } from "@/lib/report-preferences";
+import { resolveReportUrlFilters } from "@/lib/report-url-filters";
 import { ReportFilterPanel, type ReportExportFormat } from "@/components/report/report-filter-panel";
 import { ReportOverviewSkeleton } from "@/components/report/report-overview-cards";
 import { ReportSummaryCard, ReportSummaryMetrics } from "@/components/report/report-summary-card";
@@ -86,7 +88,12 @@ function LoadingReport() {
 }
 
 export default function ReportsPage() {
+  return <Suspense fallback={<LoadingReport />}><ReportsContent /></Suspense>;
+}
+
+function ReportsContent() {
   const { token, user } = useAuth();
+  const reportSearch = useSearchParams().toString();
   const [cycle, setCycle] = useState(completedReportCycle);
   const [comparisonOverride, setComparisonOverride] = useState("");
   const comparisonCycle = comparisonOverride || shiftReportCycle(cycle, -1);
@@ -96,7 +103,10 @@ export default function ReportsPage() {
   const [groups, setGroups] = useState<OrganizationGroupListItem[]>([]);
   const [scope, setScope] = useState<ReportsFilterScope>(EMPTY_SCOPE);
   const preferencesKey = user ? `manris-report-filters:${user.id}:${user.organizationId ?? "global"}` : "";
+  const restoreKey = token && user ? `${token}:${preferencesKey}:${reportSearch}` : "";
   const [restoredFor, setRestoredFor] = useState("");
+  const [linkError, setLinkError] = useState<string | null>(null);
+  const [urlOverrides, setUrlOverrides] = useState(false);
   const [metadataReady, setMetadataReady] = useState(false);
   const [metadataError, setMetadataError] = useState<string | null>(null);
   const [reportData, setReport] = useState<QuarterlyReportOverview | null>(null);
@@ -141,10 +151,13 @@ export default function ReportsPage() {
         setGroups(allowedGroups);
         let preferences = null;
         try { preferences = parseReportPreferences(localStorage.getItem(preferencesKey), currentReportCycle(), allowed, allowedGroups); } catch { /* Storage may be unavailable. Keep the default filters. */ }
-        setCycle(preferences?.cycle ?? completedReportCycle());
-        setComparisonOverride(preferences?.comparisonOverride ?? "");
-        setScope(preferences?.scope ?? resolveDefaultReportsFilterScope(user, allowed));
-        setRestoredFor(preferencesKey);
+        const requested = resolveReportUrlFilters(reportSearch, currentReportCycle(), allowed, preferences ?? { cycle: completedReportCycle(), comparisonOverride: "", scope: resolveDefaultReportsFilterScope(user, allowed) });
+        setCycle(requested.filters.cycle);
+        setComparisonOverride(requested.filters.comparisonOverride);
+        setScope(requested.filters.scope);
+        setLinkError(requested.error);
+        setUrlOverrides(requested.hasFilters);
+        setRestoredFor(restoreKey);
         setMetadataReady(true);
       })
       .catch((error: unknown) => {
@@ -158,12 +171,12 @@ export default function ReportsPage() {
     return () => {
       cancelled = true;
     };
-  }, [token, user, metadataRetry, preferencesKey]);
+  }, [token, user, metadataRetry, preferencesKey, restoreKey, reportSearch]);
 
   useEffect(() => {
-    if (!metadataReady || !user || restoredFor !== preferencesKey) return;
+    if (!metadataReady || !user || restoredFor !== restoreKey || urlOverrides || linkError) return;
     try { localStorage.setItem(preferencesKey, JSON.stringify({ cycle, comparisonOverride, scope })); } catch { /* Reporting still works when storage is unavailable. */ }
-  }, [metadataReady, user, restoredFor, preferencesKey, cycle, comparisonOverride, scope]);
+  }, [metadataReady, user, restoredFor, restoreKey, preferencesKey, cycle, comparisonOverride, scope, urlOverrides, linkError]);
 
   const query = useMemo(() => {
     const params = new URLSearchParams({
@@ -174,9 +187,9 @@ export default function ReportsPage() {
       params.set("org_id", scope.organizationIds.join(","));
     return params.toString();
   }, [cycle, comparisonCycle, scope.organizationIds]);
-  const report = restoredFor === preferencesKey && loadedQuery === query ? reportData : null;
+  const report = restoredFor === restoreKey && !linkError && loadedQuery === query ? reportData : null;
   useEffect(() => {
-    if (!token || !metadataReady || needsSelection) {
+    if (!token || !metadataReady || restoredFor !== restoreKey || needsSelection || linkError) {
       setReport(null);
       return;
     }
@@ -204,11 +217,12 @@ export default function ReportsPage() {
     return () => {
       cancelled = true;
     };
-  }, [token, metadataReady, needsSelection, query, retry]);
+  }, [token, metadataReady, restoredFor, restoreKey, needsSelection, linkError, query, retry]);
 
   const loadReportDetails = useCallback(
     (organizationId?: string) => {
-      if (!token) return Promise.reject(new Error("Sesi login tidak tersedia."));
+      if (!token || !metadataReady || restoredFor !== restoreKey || linkError || needsSelection) return Promise.reject(new Error("Pilih cakupan laporan yang tersedia sebelum memuat rincian."));
+      if (organizationId && !organizations.some((organization) => organization.id === organizationId)) return Promise.reject(new Error("Akses ke unit ini tidak tersedia."));
       const params = new URLSearchParams(query);
       if (organizationId) {
         params.delete("org_id");
@@ -220,7 +234,7 @@ export default function ReportsPage() {
         token,
       );
     },
-    [query, token],
+    [query, token, metadataReady, restoredFor, restoreKey, linkError, needsSelection, organizations],
   );
 
   async function exportReport(format: ReportExportFormat) {
@@ -274,10 +288,10 @@ export default function ReportsPage() {
       <ReportFilterPanel
         cycle={cycle}
         comparisonCycle={comparisonCycle}
-        onCycleChange={setCycle}
-        onComparisonCycleChange={setComparisonOverride}
+        onCycleChange={(value) => { setCycle(value); setLinkError(null); setUrlOverrides(false); }}
+        onComparisonCycleChange={(value) => { setComparisonOverride(value); setLinkError(null); setUrlOverrides(false); }}
         scope={scope}
-        onScopeChange={setScope}
+        onScopeChange={(value) => { setScope(value); setLinkError(null); setUrlOverrides(false); }}
         organizations={organizations}
         groups={groups}
         scopeSummary={
@@ -298,6 +312,8 @@ export default function ReportsPage() {
         onExport={(format) => void exportReport(format)}
         onReload={() => setRetry((value) => value + 1)}
         onReset={() => {
+          setLinkError(null);
+          setUrlOverrides(false);
           setCycle(completedReportCycle());
           setComparisonOverride("");
           setScope(resolveDefaultReportsFilterScope(user, organizations));
@@ -315,6 +331,11 @@ export default function ReportsPage() {
               Coba lagi
             </Button>
           </AlertDescription>
+        </Alert>
+      ) : linkError ? (
+        <Alert variant="destructive">
+          <AlertTitle>Filter tautan tidak dapat digunakan</AlertTitle>
+          <AlertDescription><p>{linkError}</p><Button variant="outline" onClick={() => { setLinkError(null); setUrlOverrides(false); }}>Gunakan filter di atas</Button></AlertDescription>
         </Alert>
       ) : needsSelection && metadataReady ? (
         <ReportEmptyState

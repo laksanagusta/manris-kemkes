@@ -10,7 +10,6 @@ import (
 
 // Config holds the application configuration loaded from environment variables.
 type Config struct {
-	ShinkaWebhookAPIKey         string
 	Port                        string
 	DatabaseURL                 string
 	JWTSecret                   string
@@ -19,6 +18,10 @@ type Config struct {
 	CORSOrigins                 string
 	OpenAIKey                   string
 	RiskApprovalWorkflowEnabled bool
+	AgentMaxSteps               int
+	AgentMaxTools               int
+	AgentTimeoutSeconds         int
+	AgentWorkers                int
 }
 
 // DefaultAIModels returns fallback AI model configuration when database is unavailable
@@ -33,6 +36,7 @@ func DefaultAIModels() map[string]string {
 		"minutes":         getEnvDefault("OPENAI_MODEL_MINUTES", ""),
 		"risk-suggestion": getEnvDefault("OPENAI_MODEL_RISK_SUGGESTION", ""),
 		"incident":        getEnvDefault("OPENAI_MODEL_INCIDENT", ""),
+		"agent":           getEnvDefault("OPENAI_MODEL_AGENT", ""),
 	}
 }
 
@@ -51,7 +55,6 @@ func Load() *Config {
 	tokenMinutes, _ := strconv.Atoi(getEnv("AUTH_TOKEN_EXPIRY_MINUTES", strconv.Itoa(expiry*60)))
 
 	return &Config{
-		ShinkaWebhookAPIKey:         getEnv("SHINKA_WEBHOOK_API_KEY", ""),
 		Port:                        getEnv("PORT", "8080"),
 		DatabaseURL:                 getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/manris?sslmode=disable"),
 		JWTSecret:                   getEnv("JWT_SECRET", "change-me"),
@@ -60,7 +63,22 @@ func Load() *Config {
 		CORSOrigins:                 getEnv("CORS_ORIGINS", "http://localhost:3000"),
 		OpenAIKey:                   getEnv("OPENAI_API_KEY", ""),
 		RiskApprovalWorkflowEnabled: getEnvBool("RISK_APPROVAL_WORKFLOW_ENABLED", false),
+		AgentMaxSteps:               positiveEnvInt("AGENT_MAX_STEPS", 12, 64),
+		AgentMaxTools:               positiveEnvInt("AGENT_MAX_TOOLS", 32, 128),
+		AgentTimeoutSeconds:         positiveEnvInt("AGENT_TIMEOUT_SECONDS", 300, 1800),
+		AgentWorkers:                positiveEnvInt("AGENT_WORKERS", 2, 8),
 	}
+}
+
+func positiveEnvInt(key string, fallback, maximum int) int {
+	value, err := strconv.Atoi(os.Getenv(key))
+	if err != nil || value <= 0 {
+		return fallback
+	}
+	if value > maximum {
+		return maximum
+	}
+	return value
 }
 
 func getEnv(key, fallback string) string {

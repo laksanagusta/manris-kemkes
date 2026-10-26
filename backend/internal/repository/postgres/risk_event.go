@@ -14,7 +14,7 @@ import (
 	"github.com/manris/backend/internal/domain/repository"
 )
 
-type riskEventRepository struct{ pool *pgxpool.Pool }
+type riskEventRepository struct{ pool repositoryDB }
 
 func NewRiskEventRepository(pool *pgxpool.Pool) repository.RiskEventRepository {
 	return &riskEventRepository{pool: pool}
@@ -163,6 +163,12 @@ func (r *riskEventRepository) AddRiskLinks(ctx context.Context, eventID uuid.UUI
 		return err
 	}
 	defer tx.Rollback(ctx)
+	// All entry points lock the immutable event before acquiring FK locks for
+	// additional risks. This matches the Agent package's event-before-risk order.
+	var lockedID uuid.UUID
+	if err = tx.QueryRow(ctx, `SELECT id FROM incidents WHERE id=$1 AND status='recorded' FOR UPDATE`, eventID).Scan(&lockedID); err != nil {
+		return err
+	}
 	for _, riskID := range uniqueUUIDs(riskIDs) {
 		if _, err = tx.Exec(ctx, `INSERT INTO incident_risk_links (incident_id,risk_id,created_by) VALUES ($1,$2,$3) ON CONFLICT DO NOTHING`, eventID, riskID, actorID); err != nil {
 			return err
