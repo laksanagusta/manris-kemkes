@@ -1,0 +1,52 @@
+"use client";
+
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Plus } from "@/components/shared/icons";
+import { AgentDownloadMenu } from "./agent-message-downloads";
+import { AgentStart, AgentSuggestions } from "./agent-start";
+import { AgentConversationHeader, AgentConversationLayout } from "./agent-conversation-layout";
+import { agentDate, agentRelativeTime } from "@/lib/agent-helpers";
+import { AgentComposer } from "./agent-composer";
+import { AgentActivity } from "./agent-activity";
+import { AgentWidget } from "./agent-widget";
+import { agentResponseExamples } from "./agent-response-examples";
+import { AgentProposal } from "./agent-proposal";
+import type { AgentProposal as Proposal, AgentSkillId, AgentWidget as Widget } from "@/types/agent";
+import "./agent.css";
+
+const snapshotAt = "2026-10-24T08:00:00+07:00";
+const historyExampleNow = Date.parse(snapshotAt);
+const historyExampleDates = [7 * 60 * 60_000, 24 * 60 * 60_000, 6 * 7 * 24 * 60 * 60_000].map((age) => new Date(historyExampleNow - age).toISOString());
+const initialProposal: Proposal = { id: "illustrative-proposal", conversationId: "illustrative", runId: "illustrative-run", revision: 1, status: "proposed", title: "Laporan mitigasi (ilustrasi)", createdAt: snapshotAt, operations: [{ id: "illustrative-operation", kind: "report_mitigation_task", title: "Laporkan pelaksanaan mitigasi", reason: "Contoh paket yang harus ditinjau sebelum diterapkan.", included: true, after: { notes: "Koordinasi jadwal distribusi telah dilaksanakan bersama penanggung jawab.", evidenceUrl: "https://example.org/bukti-pelaksanaan" } }, { id: "illustrative-risk", kind: "create_risk", title: "Draf risiko distribusi (ilustrasi)", included: true, after: { title: "Keterlambatan distribusi", category: "operasional", probability: 3, impact: 4, cause: ["Jadwal belum selaras dengan kebutuhan"], impactDesc: ["Pelaksanaan pemeriksaan tertunda"], mitigations: [{ action: "Koordinasikan jadwal distribusi", owner: "PIC contoh", frequency: "insidental", mitigationType: "reduce_probability", dueDate: "2026-12-01" }] } }] };
+export function AgentSystemExample() {
+  const [content, setContent] = useState("");
+  const [skills, setSkills] = useState<AgentSkillId[]>([]);
+  const [view, setView] = useState("new");
+  const [proposal, setProposal] = useState(initialProposal);
+  const [notice, setNotice] = useState("");
+  const isStart = view !== "results";
+  const composer = <AgentComposer mode={isStart ? "start" : "reply"} content={content} onContentChange={setContent} skills={[{ id: "risks", name: "Risiko", description: "Profil dan analisis risiko" }, { id: "mitigations", name: "Mitigasi", description: "Rencana dan progres tindak lanjut" }, { id: "incidents", name: "Kejadian", description: "Catatan kejadian risiko" }, { id: "reports", name: "Laporan", description: "Ringkasan bersumber" }]} selectedSkills={skills} onSkillsChange={setSkills} files={[]} onFiles={() => setNotice("Contoh katalog tidak mengunggah berkas.")} onRemoveFile={() => {}} onSend={() => setNotice("Pesan contoh tidak dikirim ke server.")} />;
+  return <div className="space-y-3"><div className="flex flex-wrap gap-2"><Button variant={view === "new" ? "secondary" : "outline"} onClick={() => setView("new")}>Percakapan baru</Button><Button variant={view === "history" ? "secondary" : "outline"} onClick={() => setView("history")}>Riwayat terisi</Button><Button variant={view === "results" ? "secondary" : "outline"} onClick={() => setView("results")}>Hasil dan tinjauan</Button><Button variant="ghost" onClick={() => { setProposal(initialProposal); setNotice(""); }}>Reset contoh</Button></div><p className="text-xs text-muted-foreground" role="status">Data ilustratif. {notice}</p><p className="text-xs text-muted-foreground">Riwayat produksi menyebut status pekerjaan. Hasil tersimpan dapat diunduh sebagai Excel/PDF melalui pemeriksaan akses, dan peringatan dokumen yang terpotong tetap tampil bersama lampiran. Percakapan mengikuti hasil baru saat pembaca berada di bagian akhir.</p>
+    <div className="agent-panel agent-catalog">{!isStart && <AgentConversationHeader title="Tinjauan profil risiko" actions={<Button variant="ghost" size="icon-sm" aria-label="Percakapan baru" title="Percakapan baru" onClick={() => setView("new")}><Plus aria-hidden="true" /></Button>}><span className="truncate text-sm">Tinjauan profil risiko</span></AgentConversationHeader>}<div className={`agent-scroll ${isStart ? "agent-scroll-new" : ""}`}>
+    {isStart ? <AgentStart composer={composer}>{view === "history" ? ["Ringkasan profil risiko unit", "Tinjauan mitigasi distribusi dan rencana tindak lanjut kuartal IV", "Perbandingan risiko antarkuartal"].map((title, index) => <button type="button" key={title} className="agent-history-row" onClick={() => setNotice(`Riwayat ilustratif: ${title}`)}><span className="agent-history-title"><span className="truncate">{title}</span><Badge variant="secondary">{index === 1 ? "Menunggu tinjauan" : "Selesai"}</Badge></span><time dateTime={historyExampleDates[index]} title={agentDate(historyExampleDates[index])} aria-label={agentDate(historyExampleDates[index])}>{agentRelativeTime(historyExampleDates[index], historyExampleNow)}</time></button>) : <AgentSuggestions onSelect={setContent} />}</AgentStart> : <AgentConversationLayout startedAt={snapshotAt}><div className="agent-turn"><article className="agent-message agent-message-user"><div className="agent-message-text">Ringkas profil risiko pada contoh ini.</div></article><div className="agent-run-result"><AgentActivity run={{ id: "illustrative-run", conversationId: "illustrative", status: "waiting_for_confirmation", events: [{ id: "event-1", label: "Membaca profil risiko yang diizinkan", status: "completed", createdAt: snapshotAt }, { id: "event-2", label: "Menyusun ringkasan dan usulan", status: "completed", createdAt: snapshotAt }] }} /><article className="agent-message agent-message-assistant"><div className="agent-message-text">Contoh ringkasan menggunakan snapshot yang sama dengan tabel. Tinjau usulan sebelum menerapkan perubahan.</div>
+    <AgentWidget widget={{ id: "metrics", type: "metrics", title: "Ringkasan ilustratif", snapshotAt, scopeLabel: "Unit contoh · Triwulan IV 2026", metrics: [{ label: "Profil ditinjau", value: 3 }, { label: "Perlu tindak lanjut", value: 1 }], sourceIds: ["Data ilustratif katalog"] }} onRefresh={() => setNotice("Perbarui pada produksi menambahkan permintaan baru.")} />
+    <AgentWidget widget={{ id: "table", type: "table", title: "Profil risiko ilustratif", description: "Tautan kode contoh membuka Register Risiko.", snapshotAt, scopeLabel: "Unit contoh", columns: [{ key: "code", label: "Kode" }, { key: "title", label: "Risiko" }, { key: "status", label: "Status" }], rows: [{ code: "R-001", title: "Keterlambatan distribusi", status: "Draf", href: "/risk/register" }, { code: "R-002", title: "Kelengkapan pencatatan", status: "Draf", href: "/risk/register" }] }} />
+    <AgentWidget widget={{ id: "bars", type: "bar_chart", title: "Distribusi ilustratif", snapshotAt, scopeLabel: "3 profil contoh", columns: [{ key: "label", label: "Kategori" }, { key: "value", label: "Jumlah" }], rows: [{ label: "Operasional", value: 2 }, { label: "Pelaporan", value: 1 }] }} />
+    <AgentWidget widget={{ id: "document", type: "document", title: "Temuan dokumen ilustratif", snapshotAt, scopeLabel: "Dokumen contoh · halaman 2", rows: [{ temuan: "Jadwal distribusi memerlukan tinjauan berkala.", sumber: "Dokumen contoh, halaman 2" }] }} />
+    <AgentWidget widget={{ id: "clarification", type: "clarification", title: "Periode mana yang akan ditinjau?", snapshotAt, scopeLabel: "Pilihan contoh", rows: [{ label: "Triwulan IV 2026" }, { label: "Tahun 2026" }] }} onClarify={(answer) => setNotice(`Jawaban contoh langsung dikirim untuk diproses: ${answer}. Draf composer tetap tersimpan; contoh katalog tidak mengirim ke server.`)} />
+    {agentResponseExamples.map((widget) => <AgentWidget key={widget.id} widget={widget} onAction={(action) => setNotice(`Tindakan contoh: ${action.label}. Pada produksi, pertanyaan lanjutan langsung dikirim dalam chat.`)} />)}
+    <AgentWidget widget={{ id: "future-result", type: "future_result" as Widget["type"], title: "Fallback hasil ilustratif", snapshotAt, scopeLabel: "Contoh tipe hasil baru", rows: [{ temuan: "Data tetap dapat dibaca ketika jenis tampilan belum tersedia." }] }} />
+    <div className="mt-6"><p className="mb-3 text-xs text-muted-foreground">Contoh keadaan gagal</p><AgentActivity run={{ id: "failed-example", conversationId: "illustrative", status: "failed", error: "Layanan sementara belum tersedia. Tidak ada perubahan data yang diterapkan.", events: [] }} onRetry={() => setNotice("Pesan contoh disiapkan kembali; tidak dikirim ke server.")} /></div>
+    <AgentDownloadMenu onDownload={(format) => setNotice(`Contoh unduh ${format === "xlsx" ? "Excel" : "PDF"}. Produksi mengekspor snapshot melalui pemeriksaan akses.`)} />
+    </article>
+    <AgentProposal key={`${proposal.revision}:${proposal.status}`} proposal={proposal} onApply={async (operations) => setProposal((previous) => ({ ...previous, operations, status: "applied", appliedAt: snapshotAt, receipt: operations.filter((item) => item.included).map((item) => ({ operationId: item.id, title: item.title })) }))} onReject={async () => setProposal((previous) => ({ ...previous, status: "rejected" }))} />
+    </div></div>
+    <div className="agent-turn"><article className="agent-message agent-message-user"><div className="agent-message-text">Apa langkah selanjutnya untuk risiko distribusi ini?</div></article><div className="agent-run-result"><AgentActivity run={{ id: "illustrative-followup", conversationId: "illustrative", status: "completed", events: [] }} /><article className="agent-message agent-message-assistant"><div className="agent-message-text">Tinjau penyebab keterlambatan dan rencana mitigasi yang sudah tercatat terlebih dahulu. Setelah penanggung jawab dan tenggat disepakati, Agent dapat menyiapkan usulan untuk Anda periksa.
+
+Contoh paragraf ini menunjukkan batas lebar bacaan: teks tetap nyaman diikuti pada layar lebar, sementara tabel dan komponen hasil di atas menggunakan seluruh kolom yang tersedia.</div></article></div></div>
+    </AgentConversationLayout>}
+    </div>{!isStart && <div className="agent-bottom"><div className="agent-column">{composer}</div></div>}</div>
+  </div>;
+}

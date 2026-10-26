@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 
 	"github.com/gofiber/fiber/v2"
@@ -20,8 +21,6 @@ import (
 	httpHandler "github.com/manris/backend/internal/handler/http"
 	identitydomain "github.com/manris/backend/internal/identity/domain"
 	"github.com/manris/backend/internal/middleware"
-	postgresrepo "github.com/manris/backend/internal/repository/postgres"
-	evaluationuc "github.com/manris/backend/internal/usecase/evaluation"
 )
 
 func main() {
@@ -196,6 +195,7 @@ func main() {
 		AllowHeaders:     "Origin, Content-Type, Accept, Authorization, X-Correlation-ID, X-API-Key",
 		AllowMethods:     "GET, POST, PUT, DELETE, PATCH, OPTIONS",
 		AllowCredentials: true,
+		ExposeHeaders:    "Content-Disposition",
 	}))
 
 	// Inject Correlation ID
@@ -208,13 +208,6 @@ func main() {
 
 	// API routes
 	api := app.Group("/api/v1")
-	if cfg.ShinkaWebhookAPIKey != "" {
-		if len(cfg.ShinkaWebhookAPIKey) < 32 {
-			log.Fatal("SHINKA_WEBHOOK_API_KEY requires at least 32 random characters")
-		}
-		shinkaHook := httpHandler.NewShinkaSnapshotHandler(cfg.ShinkaWebhookAPIKey, evaluationuc.NewSnapshotUseCase(container.OrgRepository, container.RiskRepository), postgresrepo.NewShinkaSnapshotMemo(container.Pool))
-		api.Post("/webhooks/shinka/on-create", shinkaHook.Handle)
-	}
 
 	// Auth (public)
 	sharedAuthHandler.RegisterPublicRoutes(api)
@@ -230,6 +223,7 @@ func main() {
 	api.Get("/dashboard/heatmap", organizationAPIKeyHandler.WithOrganizationAPIKey(cleanRiskHandler.HeatmapData))
 
 	protected := api.Group("", middleware.IdentityRequired(container.IdentityService, identitydomain.ManrisApplication), middleware.RequireFullSession())
+	httpHandler.NewAgentHandler(container.AgentService).RegisterRoutes(protected)
 	protected.Get("/organization-api-key", organizationAPIKeyHandler.Get)
 	protected.Post("/organization-api-key/generate", organizationAPIKeyHandler.Generate)
 	protected.Post("/organization-api-key/regenerate", organizationAPIKeyHandler.Regenerate)
@@ -240,9 +234,9 @@ func main() {
 	// System Settings (Super Admin only)
 	protected.Get("/system-settings", middleware.RoleGuard("superadmin"), cleanSystemSettingHandler.List)
 	protected.Get("/system-settings/ai-models", middleware.RoleGuard("superadmin"), cleanSystemSettingHandler.GetAIModels)
+	protected.Put("/system-settings/ai-models", middleware.RoleGuard("superadmin"), cleanSystemSettingHandler.UpdateAIModels)
 	protected.Get("/system-settings/:key", middleware.RoleGuard("superadmin"), cleanSystemSettingHandler.Get)
 	protected.Put("/system-settings/:key", middleware.RoleGuard("superadmin"), cleanSystemSettingHandler.Upsert)
-	protected.Put("/system-settings/ai-models", middleware.RoleGuard("superadmin"), cleanSystemSettingHandler.UpdateAIModels)
 	protected.Delete("/system-settings/:key", middleware.RoleGuard("superadmin"), cleanSystemSettingHandler.Delete)
 
 	// Organizations (Clean Architecture)
@@ -440,6 +434,22 @@ func main() {
 	protected.Post("/working-papers/:id/sign", wpHandler.Sign)
 	protected.Post("/working-papers/:id/cancel", wpHandler.Cancel)
 	protected.Post("/working-papers/:id/skip-tte", wpHandler.SkipTTE)
+
+	// Durable workers share the persistent queue; work is independent of browsers.
+	workerContext, stopWorkers := context.WithCancel(ctx)
+	var workers sync.WaitGroup
+	workerCount := cfg.AgentWorkers
+	if workerCount < 1 {
+		workerCount = 1
+	}
+	for range workerCount {
+		workers.Add(1)
+		go func() {
+			defer workers.Done()
+			container.AgentService.RunWorker(workerContext)
+		}()
+	}
+	defer func() { stopWorkers(); workers.Wait() }()
 
 	// Graceful shutdown
 	quit := make(chan os.Signal, 1)

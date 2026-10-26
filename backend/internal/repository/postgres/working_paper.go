@@ -17,7 +17,7 @@ import (
 
 // workingPaperRepository is the PostgreSQL implementation of repository.WorkingPaperRepository
 type workingPaperRepository struct {
-	pool *pgxpool.Pool
+	pool repositoryDB
 }
 
 type workingPaperReader interface {

@@ -13,7 +13,7 @@ import (
 )
 
 type mitigationTaskRepository struct {
-	pool *pgxpool.Pool
+	pool repositoryDB
 }
 
 func NewMitigationTaskRepository(pool *pgxpool.Pool) repository.MitigationTaskRepository {

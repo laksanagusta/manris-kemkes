@@ -23,10 +23,15 @@ type AIModels struct {
 	Minutes        string `json:"minutes"`
 	RiskSuggestion string `json:"riskSuggestion"`
 	Incident       string `json:"incident"`
+	Agent          string `json:"agent"`
 }
 
 func (m *AIModels) GetModelForFeature(feature string) string {
 	switch feature {
+	case "agent":
+		if m.Agent != "" {
+			return m.Agent
+		}
 	case "cause":
 		if m.Cause != "" {
 			return m.Cause

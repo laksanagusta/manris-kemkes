@@ -17,6 +17,8 @@ export function AppHeader() {
     pathname !== "/management/charters/new";
 
   if (
+    pathname === "/agent" ||
+    pathname.startsWith("/agent/") ||
     pathname === "/overview" ||
     pathname === "/design-system" ||
     pathname === "/risk/register/new" ||

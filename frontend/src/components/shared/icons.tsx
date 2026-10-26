@@ -302,3 +302,5 @@ export {
   ChevronUp,
   ChevronUpIcon,
 } from "lucide-react";
+export { AgentIcon } from "./agent-icon";
+export { AttachmentIcon } from "./attachment-icon";
