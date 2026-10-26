@@ -1,4 +1,5 @@
 export type RiskEventSeverity = "low" | "medium" | "high" | "extreme";
+export type RiskEventNote = { id: string; eventId: string; body: string; createdBy: string; createdByName: string; createdAt: string };
 export type RiskEventCondition = "recovered" | "controlled" | "ongoing" | "worsening" | "unknown";
 
 export interface RiskEventRiskLink { id: string; code: string; title: string }
@@ -6,6 +7,7 @@ export interface RiskEventRiskLink { id: string; code: string; title: string }
 export interface RiskEventSourceRef { quote: string; location?: string }
 
 export interface RiskEvent {
+  notes?: RiskEventNote[];
   sourceDocumentName?: string;
   sourceRefs?: RiskEventSourceRef[];
   extractionKey?: string;

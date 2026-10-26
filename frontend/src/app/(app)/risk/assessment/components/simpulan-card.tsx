@@ -4,7 +4,6 @@ import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 import { Badge } from "@/components/ui/badge";
 import {
   getBobot,
-  getSimpulanEfektifitas,
   getRiskLevelLabel,
   resolveRiskAssessmentClassification,
 } from "@/lib/risk";
@@ -32,7 +31,7 @@ export const SimpulanCard = memo(function SimpulanCard({
       <div className="rounded-lg border border-dashed border-border/60 bg-muted/10 px-3 py-4">
         <p className="text-sm leading-6 text-muted-foreground">
           Pilih probabilitas dan dampak terlebih dahulu untuk melihat simpulan
-          tingkat risiko dan efektifitas mitigasi.
+          perubahan skor risiko.
         </p>
       </div>
     );
@@ -48,7 +47,6 @@ export const SimpulanCard = memo(function SimpulanCard({
       newNilai: nilaiBaru,
     });
 
-  const efektifitasLabel = getSimpulanEfektifitas(currentScore, newScore);
   const riskLevelTone =
     levelBaru === "sangat_rendah" || levelBaru === "rendah"
       ? "success"
@@ -143,22 +141,13 @@ export const SimpulanCard = memo(function SimpulanCard({
               )}
             >
               {isStable
-                ? "Tidak ada penurunan tingkat risiko"
+                ? "Skor tetap"
                 : isDecrease
-                  ? "Tingkat risiko mengalami penurunan"
-                  : "Tingkat risiko mengalami peningkatan"}
+                  ? "Skor menurun"
+                  : "Skor meningkat"}
             </dd>
           </div>
-          <div className="flex items-center justify-between gap-3 py-2">
-            <dt className="text-[13px] text-muted-foreground">Efektivitas</dt>
-            <dd>
-              <Badge variant={efektifitasLabel === "Efektif" ? "default" : "destructive"}
-                className={efektifitasLabel === "Efektif" ? "border-transparent bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300" : "border-transparent bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300"}
-              >
-                {efektifitasLabel}
-              </Badge>
-            </dd>
-          </div>
+
         </dl>
       </section>
     </div>

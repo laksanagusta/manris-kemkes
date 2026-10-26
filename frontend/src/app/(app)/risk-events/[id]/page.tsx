@@ -23,6 +23,8 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 
 import { RiskEventSourceCard } from "@/components/shared/risk-event-source-card";
+import { RiskEventNotes } from "@/components/shared/design-system";
+import type { RiskEventNote } from "@/types/risk-event";
 
 type RiskOption = { id: string; code?: string; title: string; organizationId?: string };
 const severityLabels: Record<RiskEventSeverity, string> = { low: "Rendah", medium: "Sedang", high: "Tinggi", extreme: "Ekstrem" };
@@ -35,14 +37,24 @@ function formatOccurredAt(value: string) {
 
   return new Intl.DateTimeFormat("id-ID", {
     dateStyle: "medium",
-    timeStyle: "short",
     timeZone: "Asia/Jakarta",
   }).format(date);
 }
 
 export default function RiskEventDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const [eventNotes, setEventNotes] = useState<RiskEventNote[]>([]);
+  const [notesError, setNotesError] = useState("");
+  const [notesLoading, setNotesLoading] = useState(true);
+  const loadNotes = useCallback(async () => {
+    if (!token || !id) return;
+    setNotesLoading(true); setNotesError("");
+    try { setEventNotes(await api.get<RiskEventNote[]>(`/risk-events/${encodeURIComponent(id)}/notes`, token)); }
+    catch { setNotesError("Catatan tambahan belum dapat dimuat."); }
+    finally { setNotesLoading(false); }
+  }, [token, id]);
+  useEffect(() => { void loadNotes(); }, [loadNotes]);
   const [item, setItem] = useState<RiskEvent | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -83,7 +95,7 @@ export default function RiskEventDetailPage() {
   return (
     <PageStack>
       <CollectionPageHeader title="" actionsPlacement="top" actions={<ActionButton variant="outline" icon={<Link2 className="size-3.5" />} onClick={() => setDialogOpen(true)}>Tautkan risiko</ActionButton>} />
-      <WarningCard title="Record terkunci" description="Isi kejadian bersifat permanen. Anda hanya dapat menambahkan hubungan risiko baru." action={<Lock className="size-4" />} />
+      <WarningCard title="Record terkunci" description="Catatan awal tetap tersimpan. Tambahkan catatan koreksi atau tautkan risiko bila diperlukan." action={<Lock className="size-4" />} />
       <div className="grid gap-5 lg:grid-cols-2">
         <div className="space-y-5">
           <RiskEventSourceCard name={item.sourceDocumentName} sources={item.sourceRefs} />
@@ -93,6 +105,10 @@ export default function RiskEventDetailPage() {
         <Card className="self-start"><CardHeader><CardTitle className="text-[14px]">Ringkasan</CardTitle></CardHeader><CardContent className="space-y-5"><div><p className="text-xs font-medium text-muted-foreground">Risiko terkait</p><div className="mt-2 space-y-2">{item.linkedRisks.length ? item.linkedRisks.map((risk) => <div key={risk.id} className="rounded-lg bg-card-subtle-surface px-3 py-2"><p className="font-mono text-xs text-tertiary-foreground">{risk.code}</p><p className="mt-1 text-xs text-secondary-foreground">{risk.title}</p></div>) : <Badge variant="secondary">Belum dipetakan</Badge>}</div></div></CardContent></Card>
       </div>
 
+      <RiskEventNotes draftKey={`${user?.id}:${item.id}`} notes={eventNotes} loading={notesLoading} error={notesError} onReload={() => void loadNotes()} canWrite={Boolean(user?.isGlobal || (user?.organizationId && user.organizationId === item.organizationId))} onSave={async (body, requestId) => {
+        const note = await api.post<RiskEventNote>(`/risk-events/${encodeURIComponent(item.id)}/notes`, { body, requestId }, token || undefined);
+        setEventNotes(current => current.some(value => value.id === note.id) ? current : [...current, note]);
+      }} />
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>

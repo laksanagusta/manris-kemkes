@@ -127,6 +127,7 @@ export function getBreadcrumbItems(
   const riskParent = parentBreadcrumb("Risiko", "/risk/register");
 
   if (route === "/overview") return [{ label: "Dashboard" }];
+  if (route === "/work") return [{ label: "Pekerjaan saya" }];
   if (route === "/account") return [{ label: "Akun" }];
   if (route === "/design-system") return [{ label: "Design System" }];
   if (route === "/inbox") return [{ label: "Persetujuan & TTE" }];

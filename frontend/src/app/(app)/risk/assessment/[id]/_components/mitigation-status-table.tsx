@@ -1,6 +1,7 @@
 "use client";
 
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { hasReportedMitigation as hasCompletedReport, getMitigationReportLabel as getTaskStatusLabel } from "@/lib/mitigation-report-status";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/contexts/auth-context";
@@ -30,31 +31,6 @@ import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 
 interface MitigationStatusTableProps {
   monitoringId: string;
-}
-
-function hasCompletedReport(task: MitigationTask) {
-  return (
-    task.status === "done" &&
-    Boolean(task.reportedAt) &&
-    (task.notes ?? "").trim().length > 0
-  );
-}
-
-function getTaskStatusLabel(task: MitigationTask) {
-  if (hasCompletedReport(task)) return "Dilaporkan";
-
-  switch (task.status) {
-    case "done":
-      return "Laporan belum lengkap";
-    case "overdue":
-      return "Terlambat";
-    case "skipped":
-      return "Dilewati";
-    case "not_reported":
-      return "Tidak dilaporkan";
-    default:
-      return "Belum dilaporkan";
-  }
 }
 
 function getTaskStatusTone(task: MitigationTask) {
@@ -160,7 +136,7 @@ export const MitigationStatusTable = memo(function MitigationStatusTable({
         ),
       );
       setIsReportDialogOpen(false);
-      toast.success("Progress berhasil dilaporkan.");
+      toast.success("Laporan pelaksanaan tersimpan.");
     } catch (submitError) {
       toast.error(
         submitError instanceof Error
@@ -334,7 +310,7 @@ export const MitigationStatusTable = memo(function MitigationStatusTable({
         }}
         title={
           <span className="block min-w-0">
-            <span className="block">Lapor progres mitigasi</span>
+            <span className="block">Isi laporan</span>
             {selectedTask ? (
               <span className="mt-1 block line-clamp-2 text-xs font-normal leading-5 text-muted-foreground">
                 {selectedTask.mitigationAction || "Mitigasi tanpa nama"}

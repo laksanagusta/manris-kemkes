@@ -345,6 +345,9 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
       }))
       .filter((group) => (group.items?.length ?? 0) > 0);
 
+    if (user?.role === "unit" && baseNavigation[0]) {
+      baseNavigation[0].items = [{ label: "Pekerjaan saya", href: "/work", icon: LayoutDashboard }, ...(baseNavigation[0].items ?? [])];
+    }
     if (!aiFeaturesDisabled) {
       return baseNavigation;
     }

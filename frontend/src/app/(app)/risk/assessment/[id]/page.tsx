@@ -1,4 +1,6 @@
 "use client";
+import { MonitoringEvidence } from "@/components/shared/design-system";
+import type { MonitoringEvidenceResult } from "@/components/shared/design-system/domain/monitoring-evidence";
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import Link from "next/link";
@@ -242,9 +244,23 @@ export default function AssessmentFormPage() {
   const [monitoringValidation, setMonitoringValidation] =
     useState<MonitoringValidationResult | null>(null);
   const [draftRisk, setDraftRisk] = useState<Risk | null>(null);
+  const [evidenceResult, setEvidenceResult] = useState<MonitoringEvidenceResult | null>(null);
+  const [evidenceLoading, setEvidenceLoading] = useState(true);
+  const [evidenceError, setEvidenceError] = useState("");
+  const [evidenceReload, setEvidenceReload] = useState(0);
   const [sourceRisk, setSourceRisk] = useState<Risk | null>(null);
   const [monitoringDraft, setMonitoringDraft] =
     useState<RiskMonitoringDetail | null>(null);
+  useEffect(() => {
+    if (!isMonitoringRoute || !token || !id) return;
+    let cancelled = false;
+    setEvidenceLoading(true); setEvidenceError("");
+    api.get<MonitoringEvidenceResult>(`/risk-monitorings/${encodeURIComponent(id)}/evidence`, token)
+      .then(value => { if (!cancelled) setEvidenceResult(value); })
+      .catch(() => { if (!cancelled) setEvidenceError("Bukti pemantauan belum dapat dimuat."); })
+      .finally(() => { if (!cancelled) setEvidenceLoading(false); });
+    return () => { cancelled = true; };
+  }, [isMonitoringRoute, token, id, evidenceReload, monitoringDraft?.status]);
   const [substanceEditEnabled, setSubstanceEditEnabled] = useState(false);
   const [substanceDraft, setSubstanceDraft] = useState<RiskSubstanceValues>(
     () => buildSubstanceDefaults(null),
@@ -1220,6 +1236,7 @@ export default function AssessmentFormPage() {
           ) : null}
 
           <div className="space-y-6">
+            {isMonitoringRoute ? <MonitoringEvidence result={evidenceResult} loading={evidenceLoading} error={evidenceError} onRefresh={() => setEvidenceReload(value => value + 1)} /> : null}
             <CollapsibleCard.Root className="scroll-mt-28">
               <CollapsibleCard.Trigger className="flex-wrap">
                 <CollapsibleCard.Header className="min-w-0 flex-1">

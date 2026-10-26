@@ -59,6 +59,7 @@ import {
   parseMitigationMonitoringQueryState,
   type MitigationMonitoringStatusFilter,
 } from "@/lib/mitigation-monitoring-query";
+import { getMitigationReportLabel } from "@/lib/mitigation-report-status";
 import type { MitigationTask } from "@/types/risk";
 
 type MitigationTier = "upcoming" | "reminder" | "light" | "heavy";
@@ -116,14 +117,6 @@ function getMitigationStatusTone(status: MitigationTaskRow["status"]) {
   return "progress";
 }
 
-function getMitigationStatusLabel(status: MitigationTaskRow["status"]) {
-  if (status === "done") return "Selesai";
-  if (status === "overdue") return "Overdue";
-  if (status === "skipped") return "Dilewati";
-  if (status === "not_reported") return "Tidak dilaporkan";
-  return "Pending";
-}
-
 function MitigationRowActions({
   task,
   submissionState,
@@ -155,7 +148,7 @@ function MitigationRowActions({
           {submissionState.allowed
             ? submissionState.isOverdue
               ? "Lapor terlambat"
-              : "Lapor progress"
+              : "Isi laporan"
             : "Lapor belum tersedia"}
         </DropdownMenuItem>
       </DropdownMenuContent>
@@ -425,6 +418,22 @@ export function MitigationMonitoringPanel() {
     [],
   );
 
+  useEffect(() => {
+    const taskId = searchParams.get("taskId");
+    if (!token || !taskId) return;
+    let cancelled = false;
+    api.get<MitigationTask>(`/mitigation-tasks/${encodeURIComponent(taskId)}`, token).then(task => {
+      if (cancelled) return;
+      const row: MitigationTaskRow = { ...task, riskCode: task.riskCode || "—", title: task.riskTitle || "—", unit: task.mitigationOwner || "—", daysOverdue: 0, tier: "upcoming", mitigationAction: task.mitigationAction || "—" };
+      const state = getMitigationSubmissionActionState(task.periodEnd, task.dueDate);
+      if (task.status !== "done" && task.status !== "not_reported" && task.status !== "skipped" && state.allowed) handleOpenSubmit(row);
+      else { setDetailTask(row); setDialogView("detail"); setShowMitigationDialog(true); }
+      const next = new URLSearchParams(searchParams.toString()); next.delete("taskId");
+      router.replace(`${pathname}${next.size ? `?${next}` : ""}`, { scroll: false });
+    }).catch(() => { if (!cancelled) toast.error("Laporan ini tidak dapat dibuka. Periksa akses dan coba lagi."); });
+    return () => { cancelled = true; };
+  }, [token, searchParams, router, pathname, handleOpenSubmit]);
+
   const handleOpenDetail = (task: MitigationTaskRow) => {
     setDetailTask(task);
     setDialogView("detail");
@@ -457,7 +466,7 @@ export function MitigationMonitoringPanel() {
         },
         token,
       );
-      toast.success("Progress berhasil dilaporkan!");
+      toast.success("Laporan pelaksanaan tersimpan.");
       setShowMitigationDialog(false);
       await fetchMitigations();
     } catch (error) {
@@ -521,7 +530,7 @@ export function MitigationMonitoringPanel() {
           tone="white"
         />
         <KpiCard
-          label="Selesai"
+          label="Sudah dilaporkan"
           value={completedCount}
           tone="white"
         />
@@ -552,7 +561,7 @@ export function MitigationMonitoringPanel() {
                     { value: "all", label: "Semua Status" },
                     { value: "pending", label: "Pending" },
                     { value: "overdue", label: "Overdue" },
-                    { value: "done", label: "Selesai" },
+                    { value: "done", label: "Sudah dilaporkan" },
                     { value: "skipped", label: "Dilewati" },
                     { value: "not_reported", label: "Tidak dilaporkan" },
                   ]}
@@ -691,7 +700,7 @@ export function MitigationMonitoringPanel() {
                         <Badge variant={toBadgeVariant(getMitigationStatusTone(item.status))}
                           className={getStatusBadgeClassName(getMitigationStatusTone(item.status))}
                         >
-                          {getMitigationStatusLabel(item.status)}
+                          {getMitigationReportLabel(item)}
                         </Badge>
                       </TableCell>
                     <TableCell className="sticky right-0 z-10 text-right align-middle">
@@ -770,7 +779,7 @@ export function MitigationMonitoringPanel() {
                         )}
                         aria-hidden="true"
                       />
-                      {getMitigationStatusLabel(detailTask.status)}
+                      {getMitigationReportLabel(detailTask)}
                     </div>
                   </div>
                   <div className="flex flex-col gap-2">
@@ -892,19 +901,19 @@ export function MitigationMonitoringPanel() {
                 onClick={() => handleOpenSubmitFromDetail(detailTask)}
                 icon={<Send className="size-3" />}
               >
-                Lapor Progress
+                Isi laporan
               </ActionButton>
             ) : (
               <AccentButton
                 onClick={() => handleOpenSubmitFromDetail(detailTask)}
                 icon={<Send className="size-3" />}
               >
-                Lapor Progress
+                Isi laporan
               </AccentButton>
             )
           ) : null
         }
-        formTitle="Lapor Progress Penanganan"
+        formTitle="Isi laporan"
         onFormCancel={() => setDialogView("detail")}
         evidenceUrl={evidenceUrl}
         onEvidenceUrlChange={setEvidenceUrl}

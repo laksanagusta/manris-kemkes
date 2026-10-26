@@ -1,4 +1,5 @@
 "use client";
+import { RiskFinalizationNotice } from "@/components/shared/design-system/domain/risk-finalization-notice";
 
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 
@@ -2226,7 +2227,7 @@ export default function RiskInputPage() {
 
         if (!riskApprovalCapabilityBehavior.submitsForApproval) {
           toast.success("Risiko berhasil disimpan dan difinalisasi!");
-          router.push(returnTo);
+          router.push(`/risk/register/new?id=${currentRiskId}&saved=final&returnTo=${encodeURIComponent(returnTo)}`);
           return;
         }
 
@@ -2667,7 +2668,7 @@ export default function RiskInputPage() {
             <>
               {returnTo !== "/risk/register" ? (
                 <ActionButton asChild variant="outline">
-                  <Link href={returnTo}>Kembali ke hasil ekstraksi</Link>
+                  <Link href={returnTo}>{returnTo === "/work" ? "Kembali ke pekerjaan" : "Kembali ke hasil ekstraksi"}</Link>
                 </ActionButton>
               ) : null}
               {canContinueMonitoring && ongoingMonitoring ? (
@@ -2726,6 +2727,8 @@ export default function RiskInputPage() {
             </>
           }
         />
+
+        {searchParams.get("saved") === "final" && riskStatus === "final" && riskId && token ? <RiskFinalizationNotice riskId={riskId} token={token} /> : null}
 
         {loadingVersionId && (
           <div

@@ -112,7 +112,11 @@ func (r *quarterlyReportPDFRenderer) RenderQuarterly(ctx context.Context, data *
 			}
 			linked = []string{label}
 		}
-		eventRows = append(eventRows, []string{e.Code + " | " + quarterlyDate(e.OccurredAt), e.Description + " | Dampak: " + e.ActualImpact, e.Severity + " | " + e.PostResponseCondition, e.OrganizationName, loss, strings.Join(linked, ", ")})
+		eventDetail := e.Description + " | Dampak: " + e.ActualImpact
+		for _, note := range e.Notes {
+			eventDetail += "\nCatatan tambahan (" + note.CreatedByName + "): " + note.Body
+		}
+		eventRows = append(eventRows, []string{e.Code + " | " + quarterlyDate(e.OccurredAt), eventDetail, e.Severity + " | " + e.PostResponseCondition, e.OrganizationName, loss, strings.Join(linked, ", ")})
 	}
 	quarterlyTable(m, []string{"Kejadian / tanggal", "Kejadian dan dampak", "Keparahan / kondisi", "Unit", "Kerugian", "Risiko terkait"}, eventRows, []uint{2, 4, 2, 2, 1, 1})
 

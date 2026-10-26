@@ -1,4 +1,7 @@
 export { AccentButton } from "./actions/accent-button";
+export { OperatorWorkList } from "./domain/operator-work-list";
+export { RiskEventNotes } from "./domain/risk-event-notes";
+export { MonitoringEvidence } from "./domain/monitoring-evidence";
 export { ActionButton } from "./actions/action-button";
 export { ActionIconButton } from "./actions/action-icon-button";
 export { DestructiveButton } from "./actions/destructive-button";

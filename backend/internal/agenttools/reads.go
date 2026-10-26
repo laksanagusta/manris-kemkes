@@ -489,7 +489,7 @@ func (t *Toolkit) readQuarterly(ctx context.Context, actor uuid.UUID, args readA
 	chart := t.widget("bar_chart", "Status pelaporan mitigasi", scope, ids)
 	chart.SnapshotAt = data.GeneratedAt
 	chart.Columns = []agent.Column{{Key: "label", Label: "Status"}, {Key: "value", Label: "Jumlah"}}
-	chart.Rows = []map[string]any{{"label": "Dilaporkan", "value": overview.TaskCounts.Reported}, {"label": "Belum selesai", "value": overview.TaskCounts.Pending}, {"label": "Terlambat", "value": overview.TaskCounts.Overdue}, {"label": "Tidak dilaporkan", "value": overview.TaskCounts.NotReported}}
+	chart.Rows = []map[string]any{{"label": "Dilaporkan", "value": overview.TaskCounts.Reported}, {"label": "Belum dilaporkan", "value": overview.TaskCounts.Pending}, {"label": "Terlambat", "value": overview.TaskCounts.Overdue}, {"label": "Tidak dilaporkan", "value": overview.TaskCounts.NotReported}}
 	table := t.widget("table", "Ringkasan per organisasi", scope, ids)
 	table.SnapshotAt = data.GeneratedAt
 	table.Columns = []agent.Column{{Key: "organization", Label: "Organisasi"}, {Key: "risks", Label: "Risiko"}, {Key: "overdue", Label: "Mitigasi terlambat"}, {Key: "events", Label: "Kejadian"}}

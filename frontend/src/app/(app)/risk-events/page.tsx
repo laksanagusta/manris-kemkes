@@ -38,7 +38,7 @@ export default function RiskEventsPage() {
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [severityFilter, setSeverityFilter] = useState<RiskEventSeverity | "all">("all");
-  const [formOpen, setFormOpen] = useState(Boolean(initialRiskId));
+  const [formOpen, setFormOpen] = useState(Boolean(initialRiskId) || searchParams.get("create") === "1");
 
   const load = useCallback(async () => {
     if (!token) return;

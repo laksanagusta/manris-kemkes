@@ -286,3 +286,20 @@ export function getMitigationReportLabel(task: MitigationReportState): string {
 ## Pemeriksaan rencana
 
 Peta cakupan: halaman awal/navigasi → Task 4–6; tanggung jawab/eligibility/izin → Task 1–3; konteks dan hasil simpan → Task 5/8; arti pelaporan → Task 7; koreksi kejadian → Task 9–10; bukti/histori/perubahan skor → Task 11–12. Semua tahap mempertahankan batas kesederhanaan pengguna. Plan disusun untuk implementasi bertahap; belum ada kode aplikasi atau migrasi yang diterapkan saat penulisan dokumen ini.
+
+
+## Hasil pelaksanaan — 26 Oktober 2026
+
+- Tahap 1–4 telah diimplementasikan pada branch `codex/operator-risk-flow` dalam worktree terisolasi.
+- Implementasi mengikuti bentuk UI sederhana: satu antrean, satu form catatan, satu disclosure bukti, tanpa tab/filter/KPI tambahan.
+- Query kandidat memakai satu statement SQL dengan snapshot baca yang konsisten; tidak diperlukan transaksi baca multi-query atau tabel tugas baru. Draf pemantauan yang sudah ada dibaca lintas periode, sedangkan calon pemantauan baru mengikuti periode yang dapat dipilih.
+- Catatan belum disimpan dan identitas retry dipulihkan dari penyimpanan tab yang dipisahkan per pengguna/kejadian. Simpan/Batal menghapus draf; tautan keluar dan unload memberi peringatan. Browser Back/Forward telah diuji dengan draf catatan.
+- Migrasi `000075_operator_lifecycle_evidence` menambahkan catatan dan snapshot. Migrasi up/down/up diuji pada database sementara berisi salinan skema tanpa data pengguna; database aplikasi utama tidak dimigrasikan. Server dan database fixture dibersihkan sesudah uji.
+- Tes backend pada paket operator_work, risk_event, risk, mitigation_task, handler/http, service/pdfreport, dan repository/postgres lulus. Tes integrasi terisolasi lulus untuk eligibility, organisasi, retry catatan, konflik isi, bukti final, serta draf pemantauan lama.
+- Sebanyak 17 tes frontend terkait lulus. Pemeriksaan tipe kode produksi dan lint komponen baru/diubah lulus. Build produksi diverifikasi memakai webpack karena Turbopack menolak symlink dependency lintas checkout.
+- Pemeriksaan browser dengan akun fixture: tujuan login operator, membuka draf dari antrean, mencatat kejadian tanpa risiko, menyimpan catatan tambahan, pemulihan draf melalui Back/Forward, mulai pemantauan dari antrean, serta finalisasi sampai bukti terkunci telah diperiksa.
+- Review independen menemukan tiga P2 (draf lama hilang, link hasil simpan tidak spesifik, dan catatan belum disimpan dapat hilang); ketiganya diperbaiki dan diperiksa ulang tanpa temuan material baru.
+- Suite Go menyeluruh masih gagal pada pengujian lama AI/approval/report; kegagalan yang sama dikonfirmasi pada checkout awal. `go vet ./...` juga melaporkan unreachable code lama di approval. Pemeriksaan tipe seluruh proyek mencakup fixture tes lama yang masih memiliki error. Perbaikan modul tersebut berada di luar perubahan ini.
+- `DESIGN.md` dan katalog menggunakan komponen produksi untuk antrean, hasil finalisasi, catatan kejadian, dan bukti pemantauan.
+
+- Build juga menemukan empat forwarder `.mjs` lama yang merujuk kembali ke modulnya sendiri. Referensi dibuat eksplisit ke `.ts`; smoke test ekspor modul lulus tanpa menambah dependency.

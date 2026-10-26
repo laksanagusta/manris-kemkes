@@ -37,6 +37,26 @@ func NewMitigationTaskHandler(
 }
 
 // ListByRisk handles GET /api/v1/risks/:riskId/tasks
+func (h *MitigationTaskHandler) GetTask(c *fiber.Ctx) error {
+	scope := middleware.GetAccessScope(c)
+	if scope == nil {
+		return fiber.ErrForbidden
+	}
+	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	if err != nil {
+		return handleError(c, err)
+	}
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return fiber.ErrBadRequest
+	}
+	task, err := h.listUC.GetByID(c.Context(), id, orgIDs)
+	if err != nil {
+		return handleError(c, err)
+	}
+	return c.JSON(fiber.Map{"data": task})
+}
+
 func (h *MitigationTaskHandler) ListByRisk(c *fiber.Ctx) error {
 	riskID, err := uuid.Parse(c.Params("riskId"))
 	if err != nil {

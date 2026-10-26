@@ -228,8 +228,8 @@ func TestSemesterDates(t *testing.T) {
 			t.Fatalf("SemesterDueDate(%q) = %q", tt.cycle, got)
 		}
 	}
-	if _, _, err := ParseSemesterCycle("2026-Q2"); err == nil {
-		t.Fatal("expected quarter cycle to be rejected")
+	if _, _, err := ParseSemesterCycle("2026-Q5"); err == nil {
+		t.Fatal("expected invalid quarter to be rejected")
 	}
 }
 

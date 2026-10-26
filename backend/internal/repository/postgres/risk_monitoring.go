@@ -525,6 +525,13 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 		return nil, fmt.Errorf("close unreported mitigation tasks: %w", err)
 	}
 
+	evidence, err := readMonitoringEvidence(ctx, tx, source.ID, monitoringID, monitoring.AssessmentCycle, time.Now().UTC())
+	if err != nil {
+		return nil, err
+	}
+	if _, err := tx.Exec(ctx, `UPDATE risk_monitorings SET evidence_snapshot=$2 WHERE id=$1`, monitoringID, evidence); err != nil {
+		return nil, fmt.Errorf("save monitoring evidence: %w", err)
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return nil, fmt.Errorf("commit monitoring finalization: %w", err)
 	}

@@ -30,6 +30,7 @@ import {
   ExternalLink,
 } from "@/components/shared/icons";
 
+import { getMitigationReportLabel } from "@/lib/mitigation-report-status";
 import type { MitigationTask } from "@/types/risk";
 import {
   parseEvidenceUrls,
@@ -68,7 +69,7 @@ const STATUS_CONFIG: Record<
     icon: <Clock className="size-3" />,
   },
   done: {
-    label: "Selesai",
+    label: "Sudah dilaporkan",
     color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
     icon: <CheckCircle2 className="size-3" />,
   },
@@ -220,7 +221,7 @@ export function MitigationProgressTab({
         },
         token,
       );
-      toast.success("Progress berhasil dilaporkan!");
+      toast.success("Laporan pelaksanaan tersimpan.");
       setShowMitigationDialog(false);
       fetchTasks();
     } catch {
@@ -317,7 +318,7 @@ export function MitigationProgressTab({
             className="flex items-center justify-between gap-4 py-1.5"
             role="listitem"
           >
-            <span className="text-[13px] text-muted-foreground">Selesai</span>
+            <span className="text-[13px] text-muted-foreground">Sudah dilaporkan</span>
             <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
               {stats.done}
             </span>
@@ -360,7 +361,7 @@ export function MitigationProgressTab({
         <div className="space-y-4">
         <div>
           <h3 className="text-sm font-semibold text-foreground">
-            Progress Aktual Penanganan
+            Kelengkapan pelaporan
           </h3>
           <p className="mt-1 text-xs leading-5 text-secondary-foreground">
             Pantau progres task penanganan yang sedang berjalan, termasuk
@@ -382,7 +383,7 @@ export function MitigationProgressTab({
                   <TableHead className="">Periode</TableHead>
                   <TableHead className="">Tenggat</TableHead>
                   <TableHead className="">Status</TableHead>
-                  <TableHead className="">Progress</TableHead>
+                  <TableHead className="">Status pelaporan</TableHead>
                   <TableHead className="text-right">
                     <span className="sr-only">Aksi</span>
                   </TableHead>
@@ -433,7 +434,7 @@ export function MitigationProgressTab({
                       <TableCell className="align-top">
                         <Badge variant={getLinearStatusBadgeTone(task.status)} className={getLinearStatusBadgeClassName(task.status)}
                         >
-                          {statusCfg.icon} {statusCfg.label}
+                          {statusCfg.icon} {getMitigationReportLabel(task)}
                         </Badge>
                       </TableCell>
                       <TableCell className="align-top">
@@ -445,7 +446,7 @@ export function MitigationProgressTab({
                           <div className="flex items-center justify-between text-[11px] text-muted-foreground">
                             <span>
                               {task.status === "done"
-                                ? "Selesai"
+                                ? "Sudah dilaporkan"
                                 : task.status === "not_reported"
                                   ? "Tidak dilaporkan"
                                   : "Belum dilaporkan"}
@@ -550,12 +551,7 @@ export function MitigationProgressTab({
                         STATUS_CONFIG.pending
                       ).icon
                     }
-                    {
-                      (
-                        STATUS_CONFIG[detailTask.status] ||
-                        STATUS_CONFIG.pending
-                      ).label
-                    }
+                    {getMitigationReportLabel(detailTask)}
                   </Badge>
                 </div>
                 <div className="flex flex-col gap-2">
@@ -589,7 +585,7 @@ export function MitigationProgressTab({
                     </p>
                     <p className="text-lg font-bold">
                       {detailTask.status === "done"
-                        ? "Selesai"
+                        ? "Sudah dilaporkan"
                         : "Belum dilaporkan"}
                     </p>
                   </div>
@@ -637,11 +633,11 @@ export function MitigationProgressTab({
               icon={<Send className="size-3" />}
               onClick={() => handleOpenSubmit(detailTask)}
             >
-              Lapor Progress
+              Isi laporan
             </ActionButton>
           ) : null
         }
-        formTitle="Lapor Progress Penanganan"
+        formTitle="Isi laporan"
         onFormCancel={() => setDialogView("detail")}
         evidenceUrl={evidenceUrl}
         onEvidenceUrlChange={setEvidenceUrl}

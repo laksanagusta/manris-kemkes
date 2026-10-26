@@ -636,7 +636,7 @@ export function MonitoringReadOnlyWorkspace() {
                   <CollectionTableHead >Status</CollectionTableHead>
                   <CollectionTableHead >Perubahan Skor</CollectionTableHead>
                   <CollectionTableHead >Tanggal Dibuat</CollectionTableHead>
-                  <CollectionTableHead >Progres Penanganan</CollectionTableHead>
+                  <CollectionTableHead >Kelengkapan pelaporan</CollectionTableHead>
                   <CollectionTableHead >Update Terakhir</CollectionTableHead>
                 </CollectionTableHeaderRow>
               </CollectionTableHeader>

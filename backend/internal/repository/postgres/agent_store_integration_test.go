@@ -68,8 +68,8 @@ type integrationToolkit struct {
 	txChecks int
 }
 
-func (k *integrationToolkit) Context(context.Context, uuid.UUID) (string, error) {
-	return "Isolated test", nil
+func (k *integrationToolkit) Context(context.Context, uuid.UUID) (agent.ApplicationContext, error) {
+	return agent.ApplicationContext{Content: "Isolated test"}, nil
 }
 func (k *integrationToolkit) Authorize(ctx context.Context, actor uuid.UUID, _ []uuid.UUID) error {
 	var active bool

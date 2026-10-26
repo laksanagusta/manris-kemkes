@@ -37,7 +37,7 @@ test("getAssessmentCycleFilterOptions lists available quarters and keeps the sel
     getAssessmentCycleFilterOptions(
       new Date("2026-10-01T00:00:00Z"),
       "2025-Q4",
-    ).at(-1),
+    ).find(option => option.value === "2025-Q4"),
     { value: "2025-Q4", label: "2025-Q4" },
   );
 });

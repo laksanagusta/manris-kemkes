@@ -21,6 +21,7 @@ import (
 	httpHandler "github.com/manris/backend/internal/handler/http"
 	identitydomain "github.com/manris/backend/internal/identity/domain"
 	"github.com/manris/backend/internal/middleware"
+	postgresrepo "github.com/manris/backend/internal/repository/postgres"
 )
 
 func main() {
@@ -55,6 +56,9 @@ func main() {
 		container.ControlCreateUC, container.ControlGetUC, container.ControlUpdateUC, container.ControlDeleteUC, container.ControlListUC, container.ControlDashboardUC,
 	)
 	cleanRiskEventHandler := httpHandler.NewRiskEventHandler(container.RiskEventService)
+	operatorWorkHandler := httpHandler.NewOperatorWorkHandler(container.OperatorWorkService)
+	riskEventNoteHandler := httpHandler.NewRiskEventNoteHandler(container.RiskEventNoteService)
+	monitoringEvidenceHandler := httpHandler.NewMonitoringEvidenceHandler(postgresrepo.NewRiskMonitoringEvidenceRepository(container.Pool))
 	approvalHandler := httpHandler.NewApprovalHandler(
 		container.ApprovalListUC, container.ApprovalSubmitUC, container.ApprovalActionUC, container.ApprovalGetDetailUC, container.ApprovalGetPendingCountUC, container.ApprovalGetByEntityUC,
 	)
@@ -315,6 +319,7 @@ func main() {
 	// Risks (Clean Architecture)
 	protected.Get("/risks", cleanRiskHandler.ListRisks)
 	protected.Get("/risks/register", cleanRiskHandler.ListRiskRegister)
+	protected.Get("/work-items", operatorWorkHandler.List)
 	protected.Get("/risk-monitorings", cleanRiskHandler.ListRiskMonitorings)
 	protected.Get("/risks/cycle-snapshot", cleanRiskHandler.ListCycleSnapshot)
 	protected.Get("/risks/review-queue", cleanRiskHandler.ListReviewQueue)
@@ -335,6 +340,7 @@ func main() {
 	protected.Put("/risks/:id", cleanRiskHandler.UpdateRisk)
 	protected.Delete("/risks/:id", cleanRiskHandler.DeleteRisk)
 	protected.Get("/risk-monitorings/:id", cleanRiskHandler.GetMonitoring)
+	protected.Get("/risk-monitorings/:id/evidence", monitoringEvidenceHandler.Get)
 	protected.Put("/risk-monitorings/:id", cleanRiskHandler.UpdateMonitoring)
 	protected.Delete("/risk-monitorings/:id", cleanRiskHandler.DeleteMonitoring)
 	protected.Post("/risk-monitorings/:id/finalize", cleanRiskHandler.FinalizeMonitoring)
@@ -343,6 +349,8 @@ func main() {
 	protected.Get("/risk-events", cleanRiskEventHandler.List)
 	protected.Post("/risk-events", cleanRiskEventHandler.Create)
 	protected.Get("/risk-events/:id", cleanRiskEventHandler.Get)
+	protected.Get("/risk-events/:id/notes", riskEventNoteHandler.List)
+	protected.Post("/risk-events/:id/notes", riskEventNoteHandler.Add)
 	protected.Post("/risk-events/:id/risks", cleanRiskEventHandler.LinkRisks)
 
 	// Risk Dashboard (Clean Architecture)
@@ -400,6 +408,7 @@ func main() {
 	protected.Get("/risks/:riskId/tasks", cleanMitigationTaskHandler.ListByRisk)
 	protected.Get("/mitigation-tasks/all", cleanMitigationTaskHandler.ListAll)
 	protected.Get("/mitigation-tasks/my", cleanMitigationTaskHandler.ListMyTasks)
+	protected.Get("/mitigation-tasks/:id", cleanMitigationTaskHandler.GetTask)
 	protected.Post("/mitigation-tasks/:id/submit", cleanMitigationTaskHandler.SubmitProgress)
 	protected.Put("/mitigation-tasks/:id/report", cleanMitigationTaskHandler.SubmitReport)
 	protected.Get("/risk-monitorings/:id/tasks", cleanMitigationTaskHandler.ListByMonitoring)

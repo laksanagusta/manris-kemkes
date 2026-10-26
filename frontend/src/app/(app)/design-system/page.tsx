@@ -43,6 +43,9 @@ import { MitigationPlanListExample } from "@/components/shared/design-system/exa
 import { RiskEventExtractionExample } from "@/components/shared/design-system/examples/risk-event-extraction-example";
 import { IncidentFormModalExample } from "@/components/shared/design-system/examples/incident-form-modal-example";
 import { MitigationProgressFormExample } from "@/components/shared/design-system/examples/mitigation-progress-form-example";
+import { OperatorWorkExample } from "@/components/shared/design-system/examples/operator-work-example";
+import { RiskEventNotesExample } from "@/components/shared/design-system/examples/risk-event-notes-example";
+import { MonitoringEvidenceExample } from "@/components/shared/design-system/examples/monitoring-evidence-example";
 import { MonitoringInsightCard } from "@/components/shared/design-system/domain/monitoring-insight-card";
 import { MonitoringCycleSelectExample } from "@/components/shared/design-system/examples/monitoring-cycle-select-example";
 import {
@@ -72,6 +75,9 @@ import { RegisterMotionExample } from "@/components/shared/design-system/example
 export default function DesignSystemPage() {
   return (
     <main className="flex flex-col gap-8">
+      <OperatorWorkExample />
+      <RiskEventNotesExample />
+      <MonitoringEvidenceExample />
       <header className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold tracking-tight">Design System</h1>
         <p className="text-muted-foreground">
@@ -98,7 +104,7 @@ export default function DesignSystemPage() {
         <p className="text-sm text-muted-foreground">Agent memakai canvas dan gutter halaman standar, dengan workspace transparan tanpa panel luar. Halaman awal hanya menampilkan judul, deskripsi, composer multiline, Skills otomatis, lampiran, catatan persetujuan, dan riwayat/saran. Menu Agent berada tepat di bawah Dashboard. Toolbar percakapan hanya tampil saat membuka percakapan yang sudah berisi pesan. Pesan pengguna memakai bubble putih dengan border lembut; tautan kode pada tabel tanpa underline. Composer percakapan berjarak 24px dari bawah viewport dengan penyesuaian safe area mobile. Waktu mulai percakapan tampil sekali di atas tengah; waktu per pesan dan footer metadata hasil dihapus. Unduhan hanya menampilkan tombol Excel/PDF tanpa label pengantar. Aksi paket memakai label Batal dan Terapkan; tanpa subjudul revisi/jumlah usulan dan tanpa keterangan jumlah perubahan di atas tombol. Rincian usulan tidak menampilkan blok referensi teknis atau petunjuk format JSON. Aktivitas, snapshot, serta paket tinjauan tetap memakai komponen hasil yang sama. Contoh berikut memakai komponen produksi dengan data ilustratif; tidak mengubah data bisnis.</p>
         <p className="text-sm text-muted-foreground">Editor usulan memakai isian biasa dan daftar yang dapat ditambah: penyebab, dampak, mitigasi, serta rincian profil. Tidak ada editor JSON. Fokus pengetikan bertahan saat mengirim. Membuka rincian menghentikan scroll otomatis; Ke pesan terbaru melanjutkannya. Disclosure pada layar sentuh memiliki area minimum 44px.</p>
         <AgentSystemExample />
-        <p className="text-sm text-muted-foreground">Usulan laporan mitigasi memakai form Penanganan yang sama: Catatan Pelaksanaan wajib 10–1000 karakter dan Link Bukti opsional berupa satu URL HTTP/HTTPS. Tidak ada field Hasil, Hambatan, atau pilihan Status. Setelah ditinjau dan diterapkan, tugas menjadi selesai.</p>
+        <p className="text-sm text-muted-foreground">Usulan laporan mitigasi memakai form Penanganan yang sama: Catatan Pelaksanaan wajib 10–1000 karakter dan Link Bukti opsional berupa satu URL HTTP/HTTPS. Tidak ada field Hasil, Hambatan, atau pilihan Status. Setelah ditinjau dan diterapkan, laporan ditandai sudah dilaporkan.</p>
       </section>
 
       <section className="flex flex-col gap-4">
@@ -365,7 +371,7 @@ export default function DesignSystemPage() {
           input jam tidak ditampilkan.
           Saat isi langkah berubah, tinggi modal mengikuti konten dengan transisi grow/shrink
           300ms dan berhenti pada batas viewport. Alur Detail Laporan Penanganan memakai satu
-          Dialog yang sama: klik Lapor Progress memakai continuity transition/layout animation
+          Dialog yang sama: klik Isi laporan memakai continuity transition/layout animation
           untuk mengubah detail menjadi form, lalu Batal kembali ke detail tanpa membuka modal kedua.
         </p>
         <p className="max-w-2xl text-sm text-muted-foreground">

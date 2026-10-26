@@ -32,6 +32,7 @@ import (
 	likelihoodassessmentuc "github.com/manris/backend/internal/usecase/likelihoodassessment"
 	mmuc "github.com/manris/backend/internal/usecase/meeting_minute"
 	mtuc "github.com/manris/backend/internal/usecase/mitigation_task"
+	workuc "github.com/manris/backend/internal/usecase/operator_work"
 	organizationuc "github.com/manris/backend/internal/usecase/organization"
 	organizationapikeyuc "github.com/manris/backend/internal/usecase/organization_api_key"
 	organizationgroupuc "github.com/manris/backend/internal/usecase/organizationgroup"
@@ -50,8 +51,10 @@ import (
 
 // Container holds all application dependencies.
 type Container struct {
-	AgentService    *agent.Service
-	IdentityService *identityservice.Service
+	OperatorWorkService  *workuc.Service
+	RiskEventNoteService *riskeventuc.NoteService
+	AgentService         *agent.Service
+	IdentityService      *identityservice.Service
 	// Infrastructure
 	Pool *pgxpool.Pool
 	Cfg  *config.Config
@@ -303,6 +306,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.OrgRepository = postgresrepo.NewOrganizationRepository(pool)
 	c.OrgGroupRepository = postgresrepo.NewOrganizationGroupRepository(pool)
 	c.RiskRepository = postgresrepo.NewRiskRepository(pool)
+	c.OperatorWorkService = workuc.NewService(postgresrepo.NewOperatorWorkRepository(pool))
 	c.RiskCascadeRepository = postgresrepo.NewRiskCascadeRepository(pool)
 	c.IncidentRepository = postgresrepo.NewIncidentRepository(pool)
 	c.ControlRepository = postgresrepo.NewControlRepository(pool)
@@ -323,6 +327,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.ImpactCriteriaRepository = postgresrepo.NewImpactCriteriaRepository(pool)
 	c.RiskMonitoringRepository = postgresrepo.NewRiskMonitoringRepository(pool)
 	c.RiskEventRepository = postgresrepo.NewRiskEventRepository(pool)
+	c.RiskEventNoteService = riskeventuc.NewNoteService(postgresrepo.NewRiskEventNoteRepository(pool), c.RiskEventRepository)
 
 	// ============================================================================
 	// Domain Services
