@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-const { deadlineLabel, sectionHref, isWorkSection, readWorkUIState, continueMonitoringNavigation } = await import(new URL("./operator-work.ts", import.meta.url).href);
+const { deadlineLabel, sectionHref, isWorkSection, readWorkUIState, continueMonitoringNavigation, getWorkReturnLink } = await import(new URL("./operator-work.ts", import.meta.url).href);
 
 test("deadline labels use calendar dates, including year rollover", () => {
  assert.equal(deadlineLabel("2027-01-01","2026-12-31"),"Tersisa 1 hari");
@@ -9,8 +9,8 @@ test("deadline labels use calendar dates, including year rollover", () => {
  assert.equal(deadlineLabel("","2026-10-28"),"");
 });
 test("full list routes use native entity filters",()=>{
- assert.equal(sectionHref("reports"),"/compliance/penanganan");
- assert.equal(sectionHref("monitoring"),"/compliance/monitoring?status=in_progress");
+ assert.equal(sectionHref("reports"),"/compliance/penanganan?status=needs_reporting");
+ assert.equal(sectionHref("monitoring"),"/compliance/monitoring?status=needs_monitoring");
  assert.equal(sectionHref("drafts"),"/risk/register?status=draft");
  assert.equal(isWorkSection("reports"),true);
  assert.equal(isWorkSection("other"),false);
@@ -34,5 +34,16 @@ test("an abandoned monitoring request never redirects the new page or account", 
  await completion;
  assert.deepEqual(routes,[]);
  await continueMonitoringNavigation(Promise.resolve({monitoring:{id:"current-id"}}),()=>true,(path:string)=>routes.push(path));
- assert.deepEqual(routes,["/risk/monitoring/current-id?returnTo=/work"]);
+ assert.deepEqual(routes,["/risk/monitoring/current-id?returnTo=%2Fwork"]);
+});
+
+
+test("monitoring started from its native table preserves filters and safe return links",async()=>{
+ const returnTo="/compliance/monitoring?status=needs_monitoring&q=distribution&cycle=2026-Q3&page=2";
+ const routes:string[]=[];
+ await continueMonitoringNavigation(Promise.resolve({monitoring:{id:"next"}}),()=>true,(path:string)=>routes.push(path),returnTo);
+ assert.equal(new URL(routes[0],"http://local").searchParams.get("returnTo"),returnTo);
+ assert.deepEqual(getWorkReturnLink(returnTo),{href:returnTo,label:"Kembali ke pemantauan"});
+ assert.deepEqual(getWorkReturnLink("/work"),{href:"/work",label:"Kembali ke pekerjaan"});
+ for(const value of ["https://evil.test","//evil.test","/login","/work/other"])assert.equal(getWorkReturnLink(value),null);
 });

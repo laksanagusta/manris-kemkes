@@ -164,3 +164,32 @@ test("monitoring defaults to all cycles and keeps that default out of the URL", 
     "",
   );
 });
+
+test("needs monitoring filter combines actionable starts and drafts in the normal table",()=>{
+ const item={key:"start-a",kind:"monitoring_start",targetId:"risk-a",riskId:"risk-a",riskCode:"R-a",riskTitle:"Distribution",period:"2026-Q3",dueDate:"",responsibility:"unit",createdAt:"2026-10-01",actionLabel:"Mulai pemantauan"} as const;
+ const existing=overview.buildMonitoringTransactionRows([makeMonitoring("draft-a","child-a","draft"),makeMonitoring("final-a","child-a","final")],organizations);
+ const draftItem={...item,key:"draft-a",kind:"monitoring_draft",targetId:"draft-a",riskId:"risk-draft-a"} as const;
+ const rows=overview.buildMonitoringWorkRows([item,draftItem],existing,"child-a","Child A");
+ assert.equal(rows.length,2);
+ assert.equal(rows[0].status,"not_started");
+ assert.equal(rows[0].mitigationCompletionPercent,null);
+ assert.equal(rows[1].sourceScore,6);
+ const selected=overview.filterMonitoringRows(rows,"parent",organizations,"","needs_monitoring");
+ assert.equal(selected.length,2);
+ assert.equal(overview.filterMonitoringRows(rows,"parent",organizations,"Distribution","needs_monitoring").length,2);
+ assert.equal(overview.parseMonitoringQueryState(new URLSearchParams("status=needs_monitoring")).status,"needs_monitoring");
+});
+
+test("native monitoring filter is available for unit operators and round-trips URL state",()=>{
+ assert.equal(overview.getMonitoringStatusOptions("unit").some(option=>option.value==="needs_monitoring"),true);
+ assert.equal(overview.getMonitoringStatusOptions("reviewer").some(option=>option.value==="needs_monitoring"),false);
+ const state=overview.parseMonitoringQueryState(new URLSearchParams("status=needs_monitoring&cycle=2026-Q3&q=distribution&page=2"));
+ assert.equal(overview.buildMonitoringQueryString(state),"q=distribution&status=needs_monitoring&cycle=2026-Q3&page=2");
+});
+
+test("native monitoring page is retained until its rows finish loading",()=>{
+ assert.equal(overview.getMonitoringPage(2,0,25,true),2);
+ assert.equal(overview.getMonitoringPage(2,60,25,false),2);
+ assert.equal(overview.getMonitoringPage(4,60,25,false),3);
+ assert.equal(overview.getMonitoringPage(2,0,25,false),1);
+});

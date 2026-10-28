@@ -14,7 +14,7 @@ export function isWorkSection(value: unknown): value is OperatorWorkSectionKey {
  return value === "reports" || value === "monitoring" || value === "drafts";
 }
 export function sectionHref(key: OperatorWorkSectionKey) {
- return key === "drafts" ? `${workSectionPaths[key]}?status=draft` : key === "monitoring" ? `${workSectionPaths[key]}?status=in_progress` : workSectionPaths[key];
+ return key === "drafts" ? `${workSectionPaths[key]}?status=draft` : key === "monitoring" ? `${workSectionPaths[key]}?status=needs_monitoring` : `${workSectionPaths[key]}?status=needs_reporting`;
 }
 export function deadlineLabel(dueDate: string, today: string) {
  if (!dueDate || !today) return "";
@@ -44,7 +44,18 @@ export async function continueMonitoringNavigation(
  request: Promise<{monitoring:{id:string}}>,
  isCurrent: () => boolean,
  navigate: (path:string) => void,
+ returnTo = "/work",
 ) {
  const result=await request;
- if(isCurrent())navigate(`/risk/monitoring/${encodeURIComponent(result.monitoring.id)}?returnTo=/work`);
+ if(isCurrent())navigate(`/risk/monitoring/${encodeURIComponent(result.monitoring.id)}?returnTo=${encodeURIComponent(getWorkReturnLink(returnTo)?.href || "/work")}`);
+}
+
+export function getWorkReturnLink(raw:string | null): {href:string;label:string} | null {
+ if(!raw || !raw.startsWith("/") || raw.startsWith("//"))return null;
+ try {
+  const url=new URL(raw,"http://manris.local");
+  if(url.origin!=="http://manris.local")return null;
+  const label=url.pathname==="/work"?"Kembali ke pekerjaan":url.pathname==="/compliance/monitoring"?"Kembali ke pemantauan":null;
+  return label?{href:url.pathname+url.search,label}:null;
+ } catch {return null;}
 }

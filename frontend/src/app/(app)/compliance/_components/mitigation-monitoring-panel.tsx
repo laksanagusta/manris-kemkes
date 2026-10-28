@@ -57,6 +57,7 @@ import {
   buildMitigationMonitoringApiQueryString,
   buildMitigationMonitoringQueryString,
   parseMitigationMonitoringQueryState,
+  mitigationMonitoringStatusOptions,
   type MitigationMonitoringStatusFilter,
 } from "@/lib/mitigation-monitoring-query";
 import { getMitigationReportLabel } from "@/lib/mitigation-report-status";
@@ -371,6 +372,7 @@ export function MitigationMonitoringPanel() {
 
       setMitigations(
         processed.sort((a, b) => {
+          if(queryState.status==="needs_reporting")return a.dueDate.localeCompare(b.dueDate) || a.id.localeCompare(b.id);
           const statusDelta = statusRank(a.status) - statusRank(b.status);
           if (statusDelta !== 0) return statusDelta;
 
@@ -557,14 +559,7 @@ export function MitigationMonitoringPanel() {
                       page: 1,
                     })
                   }
-                  options={[
-                    { value: "all", label: "Semua Status" },
-                    { value: "pending", label: "Pending" },
-                    { value: "overdue", label: "Overdue" },
-                    { value: "done", label: "Sudah dilaporkan" },
-                    { value: "skipped", label: "Dilewati" },
-                    { value: "not_reported", label: "Tidak dilaporkan" },
-                  ]}
+                  options={mitigationMonitoringStatusOptions}
                   placeholder="Status"
                   ariaLabel="Filter status penanganan"
                   triggerClassName="h-8 rounded-lg bg-card text-sm"

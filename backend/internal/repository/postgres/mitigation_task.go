@@ -252,7 +252,9 @@ func (r *mitigationTaskRepository) ListAllPaginated(ctx context.Context, orgIDs 
 	}
 
 	normalizedStatus := strings.TrimSpace(status)
-	if normalizedStatus != "" && normalizedStatus != "all" {
+	if normalizedStatus == "needs_reporting" {
+		whereClauses = append(whereClauses, reportingDuePredicate())
+	} else if normalizedStatus != "" && normalizedStatus != "all" {
 		args = append(args, normalizedStatus)
 		whereClauses = append(whereClauses, fmt.Sprintf("t.status = $%d", len(args)))
 	}
@@ -269,6 +271,10 @@ func (r *mitigationTaskRepository) ListAllPaginated(ctx context.Context, orgIDs 
 	}
 
 	offset := (page - 1) * limit
+	orderBy := "t.due_date DESC"
+	if normalizedStatus == "needs_reporting" {
+		orderBy = "t.due_date ASC, t.created_at ASC, t.id ASC"
+	}
 	countQuery := `SELECT COUNT(*)` + baseFrom + whereClause
 	dataQuery := `SELECT t.id, t.mitigation_id, t.risk_id, t.monitoring_id,
 		        t.period_label, t.period_start::text, t.period_end::text, t.due_date::text,
@@ -277,7 +283,7 @@ func (r *mitigationTaskRepository) ListAllPaginated(ctx context.Context, orgIDs 
 		        t.reported_by, t.reported_at, t.generated_by, t.created_at, t.updated_at,
 		        m.action, m.owner,
 		        COALESCE(r.code, ''), COALESCE(r.title, ''),
-		        COALESCE(u.name, '')` + baseFrom + whereClause + ` ORDER BY t.due_date DESC LIMIT $` + fmt.Sprint(len(args)+1) + ` OFFSET $` + fmt.Sprint(len(args)+2)
+		        COALESCE(u.name, '')` + baseFrom + whereClause + ` ORDER BY ` + orderBy + ` LIMIT $` + fmt.Sprint(len(args)+1) + ` OFFSET $` + fmt.Sprint(len(args)+2)
 	dataArgs := append(append([]interface{}{}, args...), limit, offset)
 
 	var total int

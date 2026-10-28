@@ -50,7 +50,7 @@ Pertahankan cakupan draft milik operator sesuai kebijakan sekarang. Baris menamp
 
 ## Revisi navigasi Lihat semua, 28 Oktober 2026
 
-Atas koreksi pengguna, keputusan filter To-Do khusus di bawah digantikan: gunakan halaman entitas normal dan filter URL bawaannya. Draft menuju /risk/register?status=draft; pemantauan menuju /compliance/monitoring?status=in_progress. Laporan menuju tabel /compliance/penanganan biasa karena Pending dan Overdue merupakan filter terpisah. Jangan mengganti halaman entitas dengan tabel To-Do. Daftar entitas memakai cakupan normalnya dan dapat lebih luas dari preview pekerjaan pribadi.
+Atas koreksi pengguna, keputusan filter To-Do khusus di bawah digantikan: gunakan halaman entitas normal dan filter URL bawaannya. Draft menuju /risk/register?status=draft; pemantauan menuju /compliance/monitoring?status=needs_monitoring. Laporan menuju /compliance/penanganan?status=needs_reporting. Filter Perlu dipantau dan Perlu diisi (≤7 hari & terlambat) tersedia langsung pada kontrol status tabel entitas biasa. Jangan mengganti halaman entitas dengan tabel To-Do. Daftar entitas memakai cakupan normalnya dan dapat lebih luas dari preview pekerjaan pribadi.
 
 ### Rancangan navigasi sebelumnya (digantikan)
 

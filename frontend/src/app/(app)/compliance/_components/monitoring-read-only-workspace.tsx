@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -8,14 +8,19 @@ import {
   type OrganizationListItem,
 } from "@/lib/api/organizations";
 import { listRiskMonitorings } from "@/lib/api/risk-monitoring";
+import { listAllMonitoringWork } from "@/lib/api/operator-work";
+import { useOperatorWorkActions } from "@/components/operator-work/use-operator-work-actions";
 import { useAuth } from "@/contexts/auth-context";
 import { filterToAccessibleOrgs } from "@/lib/organization";
 import {
   buildMonitoringOrganizationSummaries,
   buildMonitoringQueryString,
   buildMonitoringTransactionRows,
+  buildMonitoringWorkRows,
   filterMonitoringRows,
   getMonitoringStatusLabel,
+  getMonitoringStatusOptions,
+  getMonitoringPage,
   parseMonitoringQueryState,
   type MonitoringOverviewRow,
   type MonitoringStatusFilter,
@@ -55,15 +60,6 @@ import {
 } from "@/components/ui/table";
 
 const MONITORING_PAGE_SIZE = 100;
-
-const STATUS_OPTIONS: Array<{
-  value: MonitoringStatusFilter;
-  label: string;
-}> = [
-  { value: "all", label: "Semua status" },
-  { value: "in_progress", label: "Draf" },
-  { value: "finalized", label: "Final" },
-];
 
 async function listAllRiskMonitoringsForCycle(token: string, cycle: string) {
   const firstPage = await listRiskMonitorings(token, {
@@ -109,9 +105,9 @@ function formatMonitoringDate(value: string | null) {
   }).format(date);
 }
 
-function getActionHref(row: MonitoringOverviewRow) {
+function getActionHref(row: MonitoringOverviewRow, returnTo?:string) {
   return row.monitoringId
-    ? `/risk/monitoring/${row.monitoringId}`
+    ? `/risk/monitoring/${row.monitoringId}${returnTo && row.workItem ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`
     : `/risk/register/${row.sourceRiskId}`;
 }
 
@@ -169,8 +165,9 @@ function MitigationProgressIndicator({
   value,
 }: {
   riskTitle: string;
-  value: number;
+  value: number | null;
 }) {
+  if (value === null) return <span className="text-muted-foreground" aria-label="Kelengkapan laporan belum tersedia">—</span>;
   const normalizedValue = Number.isFinite(value) ? value : 0;
   const percent = Math.min(100, Math.max(0, Math.round(normalizedValue)));
   const radius = 7.5;
@@ -334,6 +331,9 @@ export function MonitoringReadOnlyWorkspace() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { token, user } = useAuth();
+  const requestSequence=useRef(0);
+  const returnTo=`${pathname}${searchParams.size ? `?${searchParams.toString()}` : ""}`;
+  const {open:openWork,busyKey,actionError,clearActionError}=useOperatorWorkActions(token || "",undefined,returnTo);
   const currentCycle = useMemo(() => currentMonitoringCycle(), []);
   const cycleOptions = useMemo(
     () => [
@@ -373,9 +373,11 @@ export function MonitoringReadOnlyWorkspace() {
       : [];
   }, [accessibleOrganizations, user?.isGlobal, user?.organizationId]);
 
+  const needsMonitoring=status==="needs_monitoring";
   const loadData = useCallback(
     async (isInitialLoad = false) => {
       if (!token) return;
+      const request=++requestSequence.current;
 
       if (isInitialLoad) {
         setLoading(true);
@@ -385,10 +387,13 @@ export function MonitoringReadOnlyWorkspace() {
       setError(null);
 
       try {
-        const [organizationData, monitorings] = await Promise.all([
+        if(needsMonitoring && (user?.role!=="unit" || !user.organizationId))throw new Error("Filter Perlu dipantau tersedia untuk operator unit.");
+        const [organizationData, monitorings, workItems] = await Promise.all([
           listAllOrganizations(token),
           listAllRiskMonitoringsForCycle(token, cycle),
+          needsMonitoring ? listAllMonitoringWork(token) : Promise.resolve([]),
         ]);
+        if(request!==requestSequence.current)return;
         const scopedOrganizations = user?.isGlobal
           ? organizationData
           : filterToAccessibleOrgs(
@@ -408,8 +413,13 @@ export function MonitoringReadOnlyWorkspace() {
             });
 
         setOrganizations(scopedOrganizations);
-        setRows(buildMonitoringTransactionRows(scopedMonitorings, scopedOrganizations));
+        const transactions=buildMonitoringTransactionRows(scopedMonitorings, scopedOrganizations);
+        setRows(needsMonitoring ? buildMonitoringWorkRows(
+          workItems.filter(item=>cycle==="all" || item.period===cycle),transactions,
+          user?.organizationId || "",user?.orgName || "",
+        ) : transactions);
       } catch (loadError) {
+        if(request!==requestSequence.current)return;
         console.error(loadError);
         setRows([]);
         setOrganizations([]);
@@ -419,15 +429,19 @@ export function MonitoringReadOnlyWorkspace() {
             : "Data pemantauan belum berhasil dimuat.",
         );
       } finally {
+        if(request===requestSequence.current) {
         setLoading(false);
         setRefreshing(false);
+        }
       }
     },
-    [cycle, token, user?.accessibleOrgIds, user?.isGlobal],
+    [cycle, token, needsMonitoring, user?.accessibleOrgIds, user?.isGlobal, user?.role, user?.organizationId, user?.orgName],
   );
 
   useEffect(() => {
     void loadData(true);
+    const sequence=requestSequence;
+    return ()=>{sequence.current++;};
   }, [loadData]);
 
   useEffect(() => {
@@ -500,8 +514,7 @@ export function MonitoringReadOnlyWorkspace() {
     [accessibleOrganizations, organizationId, rows],
   );
 
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / limit));
-  const currentPage = Math.min(page, totalPages);
+  const currentPage = getMonitoringPage(page,filteredRows.length,limit,loading || refreshing);
   const pageRows = filteredRows.slice(
     (currentPage - 1) * limit,
     currentPage * limit,
@@ -529,7 +542,7 @@ export function MonitoringReadOnlyWorkspace() {
   ) => {
     if (event.key !== "Enter" && event.key !== " ") return;
     event.preventDefault();
-    router.push(getActionHref(row));
+    if(row.workItem) { void openWork(row.workItem); } else router.push(getActionHref(row));
   };
 
   return (
@@ -586,7 +599,7 @@ export function MonitoringReadOnlyWorkspace() {
                     setStatus(value as MonitoringStatusFilter);
                     setPage(1);
                   }}
-                  options={STATUS_OPTIONS}
+                  options={getMonitoringStatusOptions(user?.role)}
                   placeholder="Semua status"
                   ariaLabel="Filter status pemantauan"
                   triggerClassName="w-full sm:w-fit"
@@ -607,6 +620,7 @@ export function MonitoringReadOnlyWorkspace() {
           }
         />
 
+        {actionError ? <CollectionErrorState message={actionError} onReload={()=>{clearActionError();void loadData(false);}}/> : null}
         {error ? (
           <CollectionErrorState
             title="Data Pemantauan Tidak Tersedia"
@@ -652,7 +666,7 @@ export function MonitoringReadOnlyWorkspace() {
                   </TableRow>
                 ) : (
                   pageRows.map((row) => {
-                    const actionHref = getActionHref(row);
+                    const actionHref = getActionHref(row,returnTo);
 
                     return (
                       <TableRow
@@ -662,19 +676,19 @@ export function MonitoringReadOnlyWorkspace() {
                         aria-label={`${row.code} ${row.title}, status ${getMonitoringStatusLabel(row.status)}`}
                         onClick={(event) => {
                           if ((event.target as Element).closest("a,button")) return;
-                          router.push(actionHref);
+                          if(row.workItem) { void openWork(row.workItem); } else router.push(actionHref);
                         }}
                         onKeyDown={(event) => handleRowKeyDown(event, row)}
                       >
                         <TableCell className="min-w-0 max-w-0 overflow-hidden">
                           <div className="min-w-0">
-                            <Link
+                            {row.workItem?.kind==="monitoring_start" ? <button type="button" className="block max-w-full truncate text-left text-sm font-medium text-foreground focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:opacity-50" disabled={Boolean(busyKey)} onClick={()=>row.workItem && void openWork(row.workItem)} aria-label={`Mulai pemantauan: ${row.title}`}>{busyKey===row.workItem.key?"Memulai pemantauan…":row.title}</button> : <Link
                               href={actionHref}
                               className="block truncate text-sm font-medium text-foreground hover:text-primary focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
                               title={row.title}
                             >
                               {row.title}
-                            </Link>
+                            </Link>}
                             <span className="mt-0.5 block truncate font-mono text-sm leading-5 text-muted-foreground">
                               {row.code}
                             </span>
