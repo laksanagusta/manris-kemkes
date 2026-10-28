@@ -14,7 +14,7 @@ export function isWorkSection(value: unknown): value is OperatorWorkSectionKey {
  return value === "reports" || value === "monitoring" || value === "drafts";
 }
 export function sectionHref(key: OperatorWorkSectionKey) {
- return `${workSectionPaths[key]}?workSection=${key}`;
+ return key === "drafts" ? `${workSectionPaths[key]}?status=draft` : key === "monitoring" ? `${workSectionPaths[key]}?status=in_progress` : workSectionPaths[key];
 }
 export function deadlineLabel(dueDate: string, today: string) {
  if (!dueDate || !today) return "";

@@ -48,7 +48,11 @@ Gunakan urutan stabil berdasarkan tenggat yang tersedia (terdekat lebih dulu; ta
 
 Pertahankan cakupan draft milik operator sesuai kebijakan sekarang. Baris menampilkan nama/kode risiko dan tindakan Lengkapi. Buka draft yang tepat dengan konteks kembali ke /work. Urutkan waktu pembuatan naik, lalu ID.
 
-## Lihat semua dan kembali ke To-Do
+## Revisi navigasi Lihat semua, 28 Oktober 2026
+
+Atas koreksi pengguna, keputusan filter To-Do khusus di bawah digantikan: gunakan halaman entitas normal dan filter URL bawaannya. Draft menuju /risk/register?status=draft; pemantauan menuju /compliance/monitoring?status=in_progress. Laporan menuju tabel /compliance/penanganan biasa karena Pending dan Overdue merupakan filter terpisah. Jangan mengganti halaman entitas dengan tabel To-Do. Daftar entitas memakai cakupan normalnya dan dapat lebih luas dari preview pekerjaan pribadi.
+
+### Rancangan navigasi sebelumnya (digantikan)
 
 Lihat semua mengarah ke tabel terkait:
 - Laporan penanganan: /compliance/penanganan.

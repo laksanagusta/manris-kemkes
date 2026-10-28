@@ -8,10 +8,10 @@ test("deadline labels use calendar dates, including year rollover", () => {
  assert.equal(deadlineLabel("2026-10-26","2026-10-28"),"Terlambat 2 hari");
  assert.equal(deadlineLabel("","2026-10-28"),"");
 });
-test("full list routes carry exactly their section filter",()=>{
- assert.equal(sectionHref("reports"),"/compliance/penanganan?workSection=reports");
- assert.equal(sectionHref("monitoring"),"/compliance/monitoring?workSection=monitoring");
- assert.equal(sectionHref("drafts"),"/risk/register?workSection=drafts");
+test("full list routes use native entity filters",()=>{
+ assert.equal(sectionHref("reports"),"/compliance/penanganan");
+ assert.equal(sectionHref("monitoring"),"/compliance/monitoring?status=in_progress");
+ assert.equal(sectionHref("drafts"),"/risk/register?status=draft");
  assert.equal(isWorkSection("reports"),true);
  assert.equal(isWorkSection("other"),false);
 });
