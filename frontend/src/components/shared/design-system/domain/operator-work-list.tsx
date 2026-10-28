@@ -8,9 +8,9 @@ export function OperatorWorkList({ items, busyKey, onOpen, today = new Intl.Date
  items: OperatorWorkItem[]; busyKey?: string | null; onOpen: (item: OperatorWorkItem) => void; today?: string;
 }) {
  return <ul className="divide-y divide-dashed divide-border" aria-label="Daftar pekerjaan">
-  {items.map(item => <li key={item.key} className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
-   <div className="min-w-0 space-y-1">
-    <p className="text-sm font-medium text-foreground wrap-break-word">{item.kind === "risk_draft" ? <button type="button" className="min-h-9 cursor-pointer rounded-sm text-left outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-wait disabled:opacity-50" disabled={Boolean(busyKey)} onClick={() => onOpen(item)}>{item.riskTitle}</button> : item.mitigationAction || item.riskTitle}</p>
+  {items.map(item => <li key={item.key} className="flex flex-col gap-2 py-2 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
+   <div className="min-w-0 space-y-0.5">
+    <p className="text-sm font-medium text-foreground wrap-break-word">{item.kind === "risk_draft" ? <button type="button" className="min-h-7 pointer-coarse:min-h-11 cursor-pointer rounded-sm text-left outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-wait disabled:opacity-50" disabled={Boolean(busyKey)} onClick={() => onOpen(item)}>{item.riskTitle}</button> : item.mitigationAction || item.riskTitle}</p>
     {item.mitigationAction ? <p className="text-sm text-muted-foreground wrap-break-word">{item.riskTitle}</p> : null}
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
      {item.riskCode ? <span>{item.riskCode}</span> : null}
