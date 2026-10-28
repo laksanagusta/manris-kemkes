@@ -4,7 +4,7 @@
 
 ### Operator work and lifecycle clarity
 
-`/work` is the full-session landing page for unit operators. Show one flat priority list with risk title, contextual action, period, actual deadline, and an inline personal/unit responsibility label. Each row has one action. Use shared Card and ActionButton primitives, wrapping metadata and stacking actions on narrow screens. Do not add tabs, filters, search, KPIs, or a waiting section. An absent deadline is never overdue. Dashboard remains available. The catalog uses the production OperatorWorkList with illustrative data.
+`/work` is the full-session landing page for unit operators. Show the three independently collapsible To-Do sections documented under Operator To-Do sections below, with truthful full counts, at most five preview rows each and direct task actions. Reporting tasks include overdue items and actionable deadlines through today + 7 calendar days in Asia/Jakarta. Use shared Card, Collapsible and ActionButton primitives, wrapping metadata and stacking actions on narrow screens. Do not add tabs, search, KPIs or a waiting section. Full-list links open matching entity tables with a visible removable To-Do filter. An absent deadline is never overdue. Dashboard remains available. The catalog uses the production OperatorWorkSections with illustrative data.
 
 Mitigation task `done` means Sudah dilaporkan, not completion of the underlying activity. Name report-based percentages Kelengkapan pelaporan and use Isi laporan for reporting actions. Incomplete legacy reports remain Laporan belum lengkap. Risk score comparisons use Skor menurun/tetap/meningkat without inferring mitigation effectiveness.
 
@@ -270,3 +270,14 @@ One production Recharts panel titled Analisis risiko follows the summary, with s
 Agent proposal editors use typed controls throughout: repeatable text rows for causes/impacts, fieldsets per mitigation/source reference, and nested profile fields. Never expose JSON editing. Keep stored identifiers hidden and preserved; existing monitoring mitigation IDs cannot be removed. New list rows have stable local keys and removal returns focus to the adjacent row or add action. Do not invent PIC identifiers. Numeric edits remain numbers and invalid/empty required numeric inputs block Apply. The catalog demonstrates both a risk draft and the shared mitigation report form.
 
 Composer sending keeps its textarea mounted and read-only rather than disabled so keyboard focus survives. Explicit send clicks focus the composer immediately; polling never focuses it. Scroll follows only changed message/result/activity/proposal content while the reader remains at the bottom. Opening details or editing pauses following; intentional scrolling back to the bottom or “Ke pesan terbaru” resumes it without animation. Coarse-pointer activity, risk and proposal disclosures have a 44px minimum hit area; desktop density stays unchanged. Preserve reduced-motion rules.
+
+
+## Operator To-Do sections
+
+The /work page uses three independently collapsible sections in this fixed order: Laporan penanganan perlu diisi, Risiko perlu dipantau, Risiko masih draft. Each header shows its full eligible count. Nonempty sections initially open; empty sections show only a muted title and 0. Use existing Card, Collapsible and ActionButton components, with a minimum 48px disclosure header, visible keyboard focus and accessible expanded state. Keep more than one section open; preserve disclosure and scroll in account-scoped session storage during navigation. Do not store domain records in browser storage.
+
+Each section previews at most five rows with one exact task action; show Lihat semua only above five. Link to the matching existing entity route with a visible, removable workSection filter and a paginated table using the same backend eligibility policy. Do not infer group totals from a global paginated page.
+
+Reporting tasks use the reporting deadline, including all overdue tasks and eligible tasks due through today + 7 calendar days in Asia/Jakarta. Rows show actual mitigation action, related risk, deadline date and Terlambat N hari / Jatuh tempo hari ini / Tersisa N hari. Do not show future blocked reporting periods. Monitoring and risk draft eligibility retain the established business rules. Red accompanies explicit overdue text, never serves as the only signal.
+
+Use neutral existing type/spacing/border tokens, wrapping long titles on narrow screens. Avoid additional KPIs, search, tabs or decorative animation. Chevron rotation is at most 150ms and disabled for reduced motion. /design-system must demonstrate the same production section component, including zero-count and overflow states. This replaces the earlier single ungrouped operator list presentation.

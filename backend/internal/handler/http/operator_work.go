@@ -30,6 +30,24 @@ func (h *OperatorWorkHandler) List(c *fiber.Ctx) error {
 	if raw := c.Query("organization_id"); raw != "" && raw != scope.OrganizationID.String() {
 		return fiber.ErrForbidden
 	}
+	view, section := c.Query("view"), c.Query("section")
+	if (view != "" && view != "sections") || (section != "" && !workuc.ValidSection(section)) || (view != "" && section != "") {
+		return fiber.ErrBadRequest
+	}
+	if view == "sections" {
+		result, err := h.service.Sections(c.Context(), *scope.OrganizationID, scope.UserID)
+		if err != nil {
+			return handleError(c, err)
+		}
+		return c.JSON(fiber.Map{"data": result})
+	}
+	if section != "" {
+		result, err := h.service.ListSection(c.Context(), *scope.OrganizationID, scope.UserID, section, page, limit)
+		if err != nil {
+			return handleError(c, err)
+		}
+		return c.JSON(fiber.Map{"data": result})
+	}
 	result, err := h.service.List(c.Context(), *scope.OrganizationID, scope.UserID, page, limit)
 	if err != nil {
 		return handleError(c, err)

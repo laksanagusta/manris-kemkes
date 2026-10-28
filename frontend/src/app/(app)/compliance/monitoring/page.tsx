@@ -1,3 +1,4 @@
+import { OperatorWorkRouteBoundary } from "@/components/operator-work/workspace";
 import { MonitoringReadOnlyWorkspace } from "../_components/monitoring-read-only-workspace";
 import {
   CollectionPageHeader,
@@ -6,11 +7,11 @@ import {
 
 export default function MonitoringPage() {
   return (
-    <PageStack>
+    <OperatorWorkRouteBoundary section="monitoring"><PageStack>
       <CollectionPageHeader
         title="Pemantauan"
       />
       <MonitoringReadOnlyWorkspace />
-    </PageStack>
+    </PageStack></OperatorWorkRouteBoundary>
   );
 }

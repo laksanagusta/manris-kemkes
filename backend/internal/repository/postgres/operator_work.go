@@ -28,7 +28,7 @@ func (r *OperatorWorkRepository) ListCandidates(ctx context.Context, orgID uuid.
 	result := make([]workuc.Candidate, 0)
 	for rows.Next() {
 		var c workuc.Candidate
-		if err := rows.Scan(&c.Item.Key, &c.Item.Kind, &c.Item.TargetID, &c.Item.RiskID, &c.Item.RiskCode, &c.Item.RiskTitle, &c.Item.Period, &c.Item.DueDate, &c.Item.CreatedAt, &c.OwnerID, &c.PeriodEnd, &c.EffectiveCycle, &c.PreviousStatus); err != nil {
+		if err := rows.Scan(&c.Item.Key, &c.Item.Kind, &c.Item.TargetID, &c.Item.RiskID, &c.Item.RiskCode, &c.Item.RiskTitle, &c.Item.Period, &c.Item.DueDate, &c.Item.CreatedAt, &c.OwnerID, &c.PeriodEnd, &c.EffectiveCycle, &c.PreviousStatus, &c.Item.MitigationAction); err != nil {
 			return nil, fmt.Errorf("scan operator work: %w", err)
 		}
 		result = append(result, c)
@@ -46,11 +46,11 @@ cycles AS (SELECT start_date, to_char(start_date,'YYYY-"Q"Q') AS cycle,
  FROM clock CROSS JOIN LATERAL (VALUES (quarter_start),( (quarter_start - interval '3 months')::date)) q(start_date)),
 active AS (SELECT * FROM risks WHERE organization_id=$1 AND archived_at IS NULL AND archived_reason IS DISTINCT FROM 'superseded')
 SELECT 'risk:'||id::text,'risk_draft',id::text,id::text,COALESCE(code,''),title,
- COALESCE(assessment_cycle,''),'',created_at,created_by,'','',''
+ COALESCE(assessment_cycle,''),'',created_at,created_by,'','','',''
 FROM active WHERE status='draft'
 UNION ALL
 SELECT 'report:'||t.id::text,'mitigation_report',t.id::text,r.id::text,COALESCE(r.code,''),r.title,
- t.period_label,t.due_date::text,t.created_at,m.owner_user_id,t.period_end::text,'',''
+ t.period_label,t.due_date::text,t.created_at,m.owner_user_id,t.period_end::text,'','',COALESCE(m.action,'')
 FROM mitigation_tasks t JOIN mitigations m ON m.id=t.mitigation_id JOIN active r ON r.id=t.risk_id
 WHERE r.status='final' AND r.is_current AND t.status IN ('pending','overdue')
 UNION ALL
@@ -59,7 +59,7 @@ SELECT 'monitor:'||r.version_group_id::text||':'||c.cycle,
  COALESCE(rm.id,r.id)::text,r.id::text,COALESCE(r.code,''),r.title,c.cycle,
  COALESCE(p.due_date::text,''),COALESCE(rm.created_at,r.created_at),rm.started_by,'',
  COALESCE(NULLIF(r.assessment_cycle,''),to_char(COALESCE(r.effective_from,r.finalized_at,r.created_at) AT TIME ZONE 'Asia/Jakarta','YYYY-"Q"Q')),
- COALESCE(prev.status,'')
+ COALESCE(prev.status,''),''
 FROM active r CROSS JOIN cycles c
 LEFT JOIN risk_monitorings rm ON rm.version_group_id=r.version_group_id AND rm.assessment_cycle=c.cycle AND rm.status<>'superseded'
 LEFT JOIN risk_monitorings prev ON prev.version_group_id=r.version_group_id AND prev.assessment_cycle=c.previous_cycle AND prev.status<>'superseded'
@@ -68,7 +68,7 @@ WHERE r.status='final' AND r.is_current AND rm.id IS NULL
 UNION ALL
 SELECT 'monitor:'||r.version_group_id::text||':'||rm.assessment_cycle,
  'monitoring_draft',rm.id::text,r.id::text,COALESCE(r.code,''),r.title,rm.assessment_cycle,
- COALESCE(p.due_date::text,''),rm.created_at,rm.started_by,'',COALESCE(r.assessment_cycle,''),''
+ COALESCE(p.due_date::text,''),rm.created_at,rm.started_by,'',COALESCE(r.assessment_cycle,''),'',''
 FROM risk_monitorings rm JOIN active r ON r.id=rm.source_risk_id
 LEFT JOIN risk_monitoring_periods p ON p.version_group_id=rm.version_group_id AND p.period_label=rm.assessment_cycle
 WHERE r.status='final' AND r.is_current AND rm.status='draft'

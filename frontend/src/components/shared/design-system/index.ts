@@ -1,3 +1,5 @@
+export { OperatorWorkSections } from "./domain/operator-work-sections";
+export { OperatorWorkTable } from "./domain/operator-work-table";
 export { AccentButton } from "./actions/accent-button";
 export { OperatorWorkList } from "./domain/operator-work-list";
 export { RiskEventNotes } from "./domain/risk-event-notes";

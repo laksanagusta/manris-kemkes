@@ -44,7 +44,7 @@ func (s *Service) List(ctx context.Context, orgID, actorID uuid.UUID, page, limi
 	if end > len(items) {
 		end = len(items)
 	}
-	return &entity.OperatorWorkPage{Items: items[start:end], Page: page, HasNext: end < len(items)}, nil
+	return &entity.OperatorWorkPage{Items: items[start:end], Page: page, HasNext: end < len(items), Total: len(items), Today: now.Format("2006-01-02")}, nil
 }
 
 // BuildItems follows the existing visible quarter policy without mutating tasks.
@@ -75,6 +75,9 @@ func BuildItems(candidates []Candidate, actorID uuid.UUID, now time.Time) []enti
 				continue
 			}
 			if _, err := time.Parse("2006-01-02", item.DueDate); err != nil {
+				continue
+			}
+			if item.DueDate > now.AddDate(0, 0, 7).Format("2006-01-02") {
 				continue
 			}
 			if today <= c.PeriodEnd && c.PeriodEnd != item.DueDate {

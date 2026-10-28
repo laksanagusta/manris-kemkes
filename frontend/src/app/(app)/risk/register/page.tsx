@@ -9,6 +9,7 @@ import {
   useTransition,
 } from "react";
 import Link from "next/link";
+import { OperatorWorkRouteBoundary } from "@/components/operator-work/workspace";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { api } from "@/lib/api";
 import type { Risk } from "@/types/risk";
@@ -333,6 +334,10 @@ function RiskRowActions({
 }
 
 export default function RiskRegisterPage() {
+ return <OperatorWorkRouteBoundary section="drafts"><RiskRegisterContent /></OperatorWorkRouteBoundary>;
+}
+
+function RiskRegisterContent() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();

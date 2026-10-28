@@ -1,7 +1,7 @@
 # To-Do operator dengan section yang dapat ditutup
 
 Tanggal: 28 Oktober 2026
-Status: rancangan disetujui dalam percakapan; menunggu review dokumen.
+Status: disetujui pengguna untuk implementasi; implementasi diverifikasi pada 28 Oktober 2026.
 Branch: codex/operator-risk-flow-local
 Lokasi implementasi: /Users/dikalaksana/Engineering/manris-v2. Tidak membuat worktree baru.
 
