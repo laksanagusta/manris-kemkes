@@ -8,19 +8,14 @@ import {
   type OrganizationListItem,
 } from "@/lib/api/organizations";
 import { listRiskMonitorings } from "@/lib/api/risk-monitoring";
-import { listAllMonitoringWork } from "@/lib/api/operator-work";
-import { useOperatorWorkActions } from "@/components/operator-work/use-operator-work-actions";
 import { useAuth } from "@/contexts/auth-context";
 import { filterToAccessibleOrgs } from "@/lib/organization";
 import {
   buildMonitoringOrganizationSummaries,
   buildMonitoringQueryString,
   buildMonitoringTransactionRows,
-  buildMonitoringWorkRows,
   filterMonitoringRows,
   getMonitoringStatusLabel,
-  getMonitoringStatusOptions,
-  getMonitoringPage,
   parseMonitoringQueryState,
   type MonitoringOverviewRow,
   type MonitoringStatusFilter,
@@ -60,6 +55,15 @@ import {
 } from "@/components/ui/table";
 
 const MONITORING_PAGE_SIZE = 100;
+
+const STATUS_OPTIONS: Array<{
+  value: MonitoringStatusFilter;
+  label: string;
+}> = [
+  { value: "all", label: "Semua status" },
+  { value: "in_progress", label: "Draf" },
+  { value: "finalized", label: "Final" },
+];
 
 async function listAllRiskMonitoringsForCycle(token: string, cycle: string) {
   const firstPage = await listRiskMonitorings(token, {
@@ -105,9 +109,9 @@ function formatMonitoringDate(value: string | null) {
   }).format(date);
 }
 
-function getActionHref(row: MonitoringOverviewRow, returnTo?:string) {
+function getActionHref(row: MonitoringOverviewRow) {
   return row.monitoringId
-    ? `/risk/monitoring/${row.monitoringId}${returnTo && row.workItem ? `?returnTo=${encodeURIComponent(returnTo)}` : ""}`
+    ? `/risk/monitoring/${row.monitoringId}`
     : `/risk/register/${row.sourceRiskId}`;
 }
 
@@ -165,9 +169,8 @@ function MitigationProgressIndicator({
   value,
 }: {
   riskTitle: string;
-  value: number | null;
+  value: number;
 }) {
-  if (value === null) return <span className="text-muted-foreground" aria-label="Kelengkapan laporan belum tersedia">—</span>;
   const normalizedValue = Number.isFinite(value) ? value : 0;
   const percent = Math.min(100, Math.max(0, Math.round(normalizedValue)));
   const radius = 7.5;
@@ -332,8 +335,6 @@ export function MonitoringReadOnlyWorkspace() {
   const searchParams = useSearchParams();
   const { token, user } = useAuth();
   const requestSequence=useRef(0);
-  const returnTo=`${pathname}${searchParams.size ? `?${searchParams.toString()}` : ""}`;
-  const {open:openWork,busyKey,actionError,clearActionError}=useOperatorWorkActions(token || "",undefined,returnTo);
   const currentCycle = useMemo(() => currentMonitoringCycle(), []);
   const cycleOptions = useMemo(
     () => [
@@ -373,7 +374,6 @@ export function MonitoringReadOnlyWorkspace() {
       : [];
   }, [accessibleOrganizations, user?.isGlobal, user?.organizationId]);
 
-  const needsMonitoring=status==="needs_monitoring";
   const loadData = useCallback(
     async (isInitialLoad = false) => {
       if (!token) return;
@@ -387,11 +387,9 @@ export function MonitoringReadOnlyWorkspace() {
       setError(null);
 
       try {
-        if(needsMonitoring && (user?.role!=="unit" || !user.organizationId))throw new Error("Filter Perlu dipantau tersedia untuk operator unit.");
-        const [organizationData, monitorings, workItems] = await Promise.all([
+        const [organizationData, monitorings] = await Promise.all([
           listAllOrganizations(token),
           listAllRiskMonitoringsForCycle(token, cycle),
-          needsMonitoring ? listAllMonitoringWork(token) : Promise.resolve([]),
         ]);
         if(request!==requestSequence.current)return;
         const scopedOrganizations = user?.isGlobal
@@ -413,11 +411,7 @@ export function MonitoringReadOnlyWorkspace() {
             });
 
         setOrganizations(scopedOrganizations);
-        const transactions=buildMonitoringTransactionRows(scopedMonitorings, scopedOrganizations);
-        setRows(needsMonitoring ? buildMonitoringWorkRows(
-          workItems.filter(item=>cycle==="all" || item.period===cycle),transactions,
-          user?.organizationId || "",user?.orgName || "",
-        ) : transactions);
+        setRows(buildMonitoringTransactionRows(scopedMonitorings, scopedOrganizations));
       } catch (loadError) {
         if(request!==requestSequence.current)return;
         console.error(loadError);
@@ -429,19 +423,15 @@ export function MonitoringReadOnlyWorkspace() {
             : "Data pemantauan belum berhasil dimuat.",
         );
       } finally {
-        if(request===requestSequence.current) {
-        setLoading(false);
-        setRefreshing(false);
-        }
+        if(request===requestSequence.current){setLoading(false);setRefreshing(false);}
       }
     },
-    [cycle, token, needsMonitoring, user?.accessibleOrgIds, user?.isGlobal, user?.role, user?.organizationId, user?.orgName],
+    [cycle, token, user?.accessibleOrgIds, user?.isGlobal],
   );
 
   useEffect(() => {
     void loadData(true);
-    const sequence=requestSequence;
-    return ()=>{sequence.current++;};
+    const sequence=requestSequence;return()=>{sequence.current++;};
   }, [loadData]);
 
   useEffect(() => {
@@ -514,7 +504,8 @@ export function MonitoringReadOnlyWorkspace() {
     [accessibleOrganizations, organizationId, rows],
   );
 
-  const currentPage = getMonitoringPage(page,filteredRows.length,limit,loading || refreshing);
+  const totalPages = Math.max(1, Math.ceil(filteredRows.length / limit));
+  const currentPage = loading || refreshing ? page : Math.min(page, totalPages);
   const pageRows = filteredRows.slice(
     (currentPage - 1) * limit,
     currentPage * limit,
@@ -542,7 +533,7 @@ export function MonitoringReadOnlyWorkspace() {
   ) => {
     if (event.key !== "Enter" && event.key !== " ") return;
     event.preventDefault();
-    if(row.workItem) { void openWork(row.workItem); } else router.push(getActionHref(row));
+    router.push(getActionHref(row));
   };
 
   return (
@@ -599,7 +590,7 @@ export function MonitoringReadOnlyWorkspace() {
                     setStatus(value as MonitoringStatusFilter);
                     setPage(1);
                   }}
-                  options={getMonitoringStatusOptions(user?.role)}
+                  options={STATUS_OPTIONS}
                   placeholder="Semua status"
                   ariaLabel="Filter status pemantauan"
                   triggerClassName="w-full sm:w-fit"
@@ -620,7 +611,6 @@ export function MonitoringReadOnlyWorkspace() {
           }
         />
 
-        {actionError ? <CollectionErrorState message={actionError} onReload={()=>{clearActionError();void loadData(false);}}/> : null}
         {error ? (
           <CollectionErrorState
             title="Data Pemantauan Tidak Tersedia"
@@ -666,7 +656,7 @@ export function MonitoringReadOnlyWorkspace() {
                   </TableRow>
                 ) : (
                   pageRows.map((row) => {
-                    const actionHref = getActionHref(row,returnTo);
+                    const actionHref = getActionHref(row);
 
                     return (
                       <TableRow
@@ -676,19 +666,19 @@ export function MonitoringReadOnlyWorkspace() {
                         aria-label={`${row.code} ${row.title}, status ${getMonitoringStatusLabel(row.status)}`}
                         onClick={(event) => {
                           if ((event.target as Element).closest("a,button")) return;
-                          if(row.workItem) { void openWork(row.workItem); } else router.push(actionHref);
+                          router.push(actionHref);
                         }}
                         onKeyDown={(event) => handleRowKeyDown(event, row)}
                       >
                         <TableCell className="min-w-0 max-w-0 overflow-hidden">
                           <div className="min-w-0">
-                            {row.workItem?.kind==="monitoring_start" ? <button type="button" className="block max-w-full truncate text-left text-sm font-medium text-foreground focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30 disabled:opacity-50" disabled={Boolean(busyKey)} onClick={()=>row.workItem && void openWork(row.workItem)} aria-label={`Mulai pemantauan: ${row.title}`}>{busyKey===row.workItem.key?"Memulai pemantauan…":row.title}</button> : <Link
+                            <Link
                               href={actionHref}
                               className="block truncate text-sm font-medium text-foreground hover:text-primary focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
                               title={row.title}
                             >
                               {row.title}
-                            </Link>}
+                            </Link>
                             <span className="mt-0.5 block truncate font-mono text-sm leading-5 text-muted-foreground">
                               {row.code}
                             </span>

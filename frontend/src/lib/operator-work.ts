@@ -13,8 +13,14 @@ export const workSectionPaths: Record<OperatorWorkSectionKey, string> = {
 export function isWorkSection(value: unknown): value is OperatorWorkSectionKey {
  return value === "reports" || value === "monitoring" || value === "drafts";
 }
-export function sectionHref(key: OperatorWorkSectionKey) {
- return key === "drafts" ? `${workSectionPaths[key]}?status=draft` : key === "monitoring" ? `${workSectionPaths[key]}?status=needs_monitoring` : `${workSectionPaths[key]}?status=needs_reporting`;
+export function sectionHref(key: OperatorWorkSectionKey, now=new Date()) {
+ if(key==="monitoring"){
+  const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Jakarta",year:"numeric",month:"numeric"}).formatToParts(now);
+  let year=Number(parts.find(p=>p.type==="year")?.value);let q=Math.floor((Number(parts.find(p=>p.type==="month")?.value)-1)/3);
+  if(q===0){year--;q=4;}
+  return `/risk/register?assessment_cycle=${year}-Q${q}&monitoring_status=not_monitored`;
+ }
+ return key==="drafts" ? "/risk/register?status=draft" : "/compliance/penanganan?status=needs_reporting";
 }
 export function deadlineLabel(dueDate: string, today: string) {
  if (!dueDate || !today) return "";
@@ -55,7 +61,7 @@ export function getWorkReturnLink(raw:string | null): {href:string;label:string}
  try {
   const url=new URL(raw,"http://manris.local");
   if(url.origin!=="http://manris.local")return null;
-  const label=url.pathname==="/work"?"Kembali ke pekerjaan":url.pathname==="/compliance/monitoring"?"Kembali ke pemantauan":null;
+  const label=url.pathname==="/work"?"Kembali ke pekerjaan":url.pathname==="/compliance/monitoring"?"Kembali ke pemantauan":url.pathname==="/risk/register"?"Kembali ke risiko":null;
   return label?{href:url.pathname+url.search,label}:null;
  } catch {return null;}
 }

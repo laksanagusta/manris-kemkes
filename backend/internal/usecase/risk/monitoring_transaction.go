@@ -40,6 +40,7 @@ type MonitoringPeriodRepository interface {
 }
 
 type StartMonitoringUseCase struct {
+	now                func() time.Time
 	riskRepo           monitoringRiskRepository
 	monitoringRepo     monitoringTransactionRepository
 	fullRiskRepo       domainrepo.RiskRepository
@@ -52,11 +53,13 @@ type GetMonitoringUseCase struct {
 }
 
 type UpdateMonitoringUseCase struct {
+	now            func() time.Time
 	riskRepo       monitoringRiskRepository
 	monitoringRepo monitoringTransactionRepository
 }
 
 type FinalizeMonitoringUseCase struct {
+	now            func() time.Time
 	riskRepo       monitoringRiskRepository
 	monitoringRepo monitoringTransactionRepository
 	taskRepo       domainrepo.MitigationTaskRepository
@@ -111,7 +114,7 @@ type FinalizeMonitoringOutput struct {
 }
 
 func NewStartMonitoringUseCase(riskRepo monitoringRiskRepository, monitoringRepo monitoringTransactionRepository, fullRiskRepo domainrepo.RiskRepository, mitigationTaskRepo domainrepo.MitigationTaskRepository, periodRepo MonitoringPeriodRepository) *StartMonitoringUseCase {
-	return &StartMonitoringUseCase{riskRepo: riskRepo, monitoringRepo: monitoringRepo, fullRiskRepo: fullRiskRepo, mitigationTaskRepo: mitigationTaskRepo, periodRepo: periodRepo}
+	return &StartMonitoringUseCase{now: time.Now, riskRepo: riskRepo, monitoringRepo: monitoringRepo, fullRiskRepo: fullRiskRepo, mitigationTaskRepo: mitigationTaskRepo, periodRepo: periodRepo}
 }
 
 func NewGetMonitoringUseCase(monitoringRepo monitoringTransactionRepository) *GetMonitoringUseCase {
@@ -119,11 +122,11 @@ func NewGetMonitoringUseCase(monitoringRepo monitoringTransactionRepository) *Ge
 }
 
 func NewUpdateMonitoringUseCase(riskRepo monitoringRiskRepository, monitoringRepo monitoringTransactionRepository) *UpdateMonitoringUseCase {
-	return &UpdateMonitoringUseCase{riskRepo: riskRepo, monitoringRepo: monitoringRepo}
+	return &UpdateMonitoringUseCase{now: time.Now, riskRepo: riskRepo, monitoringRepo: monitoringRepo}
 }
 
 func NewFinalizeMonitoringUseCase(riskRepo monitoringRiskRepository, monitoringRepo monitoringTransactionRepository, taskRepo domainrepo.MitigationTaskRepository, fullRiskRepo domainrepo.RiskRepository) *FinalizeMonitoringUseCase {
-	return &FinalizeMonitoringUseCase{riskRepo: riskRepo, monitoringRepo: monitoringRepo, taskRepo: taskRepo, fullRiskRepo: fullRiskRepo}
+	return &FinalizeMonitoringUseCase{now: time.Now, riskRepo: riskRepo, monitoringRepo: monitoringRepo, taskRepo: taskRepo, fullRiskRepo: fullRiskRepo}
 }
 
 func (uc *StartMonitoringUseCase) Execute(ctx context.Context, input StartMonitoringInput) (*StartMonitoringOutput, error) {
@@ -151,6 +154,10 @@ func (uc *StartMonitoringUseCase) Execute(ctx context.Context, input StartMonito
 		}
 	}
 
+	if !entity.MonitoringWindowOpen(input.Cycle, uc.now()) {
+		return nil, errors.ErrMonitoringWindowClosed
+	}
+
 	if existing, err := uc.monitoringRepo.GetByVersionGroupAndCycle(ctx, sourceRisk.VersionGroupID, input.Cycle); err != nil {
 		return nil, errors.Wrap(err, "failed to check existing monitoring for this risk")
 	} else if existing != nil {
@@ -175,13 +182,6 @@ func (uc *StartMonitoringUseCase) Execute(ctx context.Context, input StartMonito
 	}
 	if err := uc.periodRepo.EnsureMonitoringPeriods(ctx, sourceRisk.VersionGroupID, effectiveFrom, year); err != nil {
 		return nil, errors.Wrap(err, "failed to create monitoring period obligation")
-	}
-	previousCycle, err := PreviousQuarterCycle(input.Cycle)
-	if err != nil {
-		return nil, errors.ErrCycleFormat
-	}
-	if err := uc.periodRepo.AssertPreviousMonitoringTransactionCompleted(ctx, sourceRisk.VersionGroupID, previousCycle); err != nil {
-		return nil, err
 	}
 
 	monitoring := entity.NewRiskMonitoringDraft(sourceRisk, input.Cycle, input.StartedBy)
@@ -253,6 +253,10 @@ func (uc *UpdateMonitoringUseCase) Execute(ctx context.Context, input UpdateMoni
 	}
 	if monitoring.Status != entity.RiskMonitoringStatusDraft {
 		return nil, errors.ErrMonitoringNotDraft
+	}
+
+	if !entity.MonitoringWindowOpen(monitoring.AssessmentCycle, uc.now()) {
+		return nil, errors.ErrMonitoringWindowClosed
 	}
 
 	sourceRisk, err := uc.riskRepo.GetByID(ctx, monitoring.SourceRiskID, input.OrgIDs)
@@ -378,6 +382,10 @@ func (uc *FinalizeMonitoringUseCase) Execute(ctx context.Context, input Finalize
 	}
 	if monitoring.Status != entity.RiskMonitoringStatusDraft {
 		return nil, errors.ErrMonitoringNotFinalizable
+	}
+
+	if !entity.MonitoringWindowOpen(monitoring.AssessmentCycle, uc.now()) {
+		return nil, errors.ErrMonitoringWindowClosed
 	}
 
 	sourceRisk, err := uc.riskRepo.GetByID(ctx, monitoring.SourceRiskID, input.OrgIDs)

@@ -18,6 +18,7 @@ test("parseRiskRegisterQueryState falls back to register defaults", () => {
     search: "",
     lifecycleFilter: "active",
     statusFilter: "all",
+    monitoringStatusFilter:"all",
     categoryFilter: "all",
     assessmentCycleFilter: "",
     createdAtFilter: "",
@@ -75,4 +76,10 @@ test("shouldReplaceRiskRegisterUrl skips writes while state is catching up to ex
   });
 
   assert.equal(shouldReplace, false);
+});
+
+test("generic monitoring status and selected quarter round-trip with other risk filters",()=>{
+ const state=parseRiskRegisterQueryState(new URLSearchParams("assessment_cycle=2026-Q3&monitoring_status=not_monitored&q=distribusi&page=2"));
+ assert.equal(state.monitoringStatusFilter,"not_monitored");
+ assert.equal(buildRiskRegisterQueryString(state),"q=distribusi&assessment_cycle=2026-Q3&monitoring_status=not_monitored&page=2");
 });

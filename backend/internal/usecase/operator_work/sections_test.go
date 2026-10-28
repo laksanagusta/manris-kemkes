@@ -67,3 +67,16 @@ func TestBuildItemsStableTieOrder(t *testing.T) {
 		t.Fatal("unstable order")
 	}
 }
+
+func TestMonitoringDraftOnlyActionableInsideItsWindow(t *testing.T) {
+	actor := uuid.New()
+	candidate := Candidate{Item: entity.OperatorWorkItem{Key: "monitor", Kind: "monitoring_draft", Period: "2026-Q3"}, OwnerID: &actor}
+	open := BuildItems([]Candidate{candidate}, actor, time.Date(2026, 10, 15, 0, 0, 0, 0, time.UTC))
+	if len(open) != 1 || open[0].DueDate != "2026-10-31" {
+		t.Fatalf("incorrect window deadline: %#v", open)
+	}
+	closed := BuildItems([]Candidate{candidate}, actor, time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC))
+	if len(closed) != 0 {
+		t.Fatal("expired draft remained actionable")
+	}
+}

@@ -1,14 +1,12 @@
-import type { OperatorWorkItem } from "../types/operator-work";
 import type { OrganizationListItem } from "./api/organizations";
 import type { RiskMonitoringDetail } from "../types/risk-monitoring";
 
 export type MonitoringRosterStatus =
-  | "not_started"
   | "in_progress"
   | "finalized"
   | "superseded";
 
-export type MonitoringStatusFilter = "all" | "needs_monitoring" | MonitoringRosterStatus;
+export type MonitoringStatusFilter = "all" | MonitoringRosterStatus;
 
 export type MonitoringOverviewRow = {
   id: string;
@@ -25,8 +23,7 @@ export type MonitoringOverviewRow = {
   sourceLevel: string;
   observedScore: number | null;
   observedLevel: string;
-  mitigationCompletionPercent: number | null;
-  workItem?: OperatorWorkItem;
+  mitigationCompletionPercent: number;
   createdAt: string | null;
   updatedAt: string | null;
   finalizedAt: string | null;
@@ -50,14 +47,12 @@ export type MonitoringQueryState = {
 };
 
 const STATUS_ORDER: Record<MonitoringRosterStatus, number> = {
- not_started: 0,
   in_progress: 0,
   finalized: 1,
   superseded: 2,
 };
 
 const STATUS_LABELS: Record<MonitoringRosterStatus, string> = {
- not_started: "Belum dimulai",
   in_progress: "Draf",
   finalized: "Final",
   superseded: "Digantikan",
@@ -214,7 +209,7 @@ export function filterMonitoringRows(
 
   return rows
     .filter((row) => scopeIds.has(row.organizationId))
-    .filter((row) => status === "all" || (status === "needs_monitoring" ? Boolean(row.workItem) : row.status === status))
+    .filter((row) => status === "all" || row.status === status)
     .filter((row) => {
       if (!normalizedSearch) return true;
       return [row.code, row.title, row.organizationName]
@@ -248,7 +243,7 @@ export function parseMonitoringQueryState(
 ): MonitoringQueryState {
   const rawStatus = searchParams.get("status");
   const status: MonitoringStatusFilter =
-    rawStatus === "needs_monitoring" || rawStatus === "in_progress" || rawStatus === "finalized"
+    rawStatus === "in_progress" || rawStatus === "finalized"
       ? rawStatus
       : "all";
 
@@ -276,43 +271,4 @@ export function buildMonitoringQueryString(
   if (state.limit !== 25) query.set("limit", state.limit.toString());
 
   return query.toString();
-}
-
-// Enrich eligible operator work with real transaction metadata when available.
-// Unstarted risks remain risk rows, never fabricated monitoring transactions.
-export function buildMonitoringWorkRows(
- items: OperatorWorkItem[],
- existing: MonitoringOverviewRow[],
- organizationId: string,
- organizationName: string,
-): MonitoringOverviewRow[] {
- const transactions=new Map(existing.map(row=>[row.monitoringId,row]));
- return items.filter(item=>item.kind==="monitoring_start" || item.kind==="monitoring_draft").map(item=>{
-  const transaction=item.kind==="monitoring_draft"?transactions.get(item.targetId):undefined;
-  return {
-   id:item.key,versionGroupId:transaction?.versionGroupId || "",
-   code:item.riskCode,title:item.riskTitle,organizationId:transaction?.organizationId || organizationId,
-   organizationName:transaction?.organizationName || organizationName,assessmentCycle:item.period,
-   sourceRiskId:item.riskId,monitoringId:item.kind==="monitoring_draft"?item.targetId:null,
-   status:item.kind==="monitoring_draft"?"in_progress":"not_started",
-   sourceScore:transaction?.sourceScore ?? null,sourceLevel:transaction?.sourceLevel || "",
-   observedScore:transaction?.observedScore ?? null,observedLevel:transaction?.observedLevel || "",
-   mitigationCompletionPercent:transaction?.mitigationCompletionPercent ?? null,
-   createdAt:transaction?.createdAt ?? null,updatedAt:transaction?.updatedAt ?? null,
-   finalizedAt:null,workItem:item,
-  } satisfies MonitoringOverviewRow;
- });
-}
-
-export function getMonitoringStatusOptions(role?:string): Array<{value:MonitoringStatusFilter;label:string}> {
- return [
-  {value:"all",label:"Semua status"},
-  ...(role==="unit" ? [{value:"needs_monitoring" as const,label:"Perlu dipantau"}] : []),
-  {value:"in_progress",label:"Draf"},
-  {value:"finalized",label:"Final"},
- ];
-}
-
-export function getMonitoringPage(page:number,total:number,limit:number,loading:boolean) {
- return loading ? page : Math.min(page,Math.max(1,Math.ceil(total/limit)));
 }

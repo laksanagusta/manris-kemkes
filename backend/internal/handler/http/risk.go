@@ -161,17 +161,18 @@ func (h *RiskHandler) ListRiskRegister(c *fiber.Ctx) error {
 	}
 
 	input := riskuc.ListRiskRegisterInput{
-		View:            strings.TrimSpace(c.Query("view", "")),
-		OrgIDs:          orgIDs,
-		Status:          strings.TrimSpace(c.Query("status", "all")),
-		Lifecycle:       strings.TrimSpace(c.Query("lifecycle", "active")),
-		AssessmentCycle: strings.TrimSpace(c.Query("assessment_cycle", "")),
-		CreatedAt:       strings.TrimSpace(c.Query("created_at", "")),
-		Query:           strings.TrimSpace(c.Query("q", "")),
-		Page:            page,
-		Limit:           limit,
-		SortBy:          strings.TrimSpace(c.Query("sort_by", "")),
-		SortOrder:       strings.TrimSpace(c.Query("sort_order", "")),
+		View:             strings.TrimSpace(c.Query("view", "")),
+		OrgIDs:           orgIDs,
+		Status:           strings.TrimSpace(c.Query("status", "all")),
+		Lifecycle:        strings.TrimSpace(c.Query("lifecycle", "active")),
+		AssessmentCycle:  strings.TrimSpace(c.Query("assessment_cycle", "")),
+		MonitoringStatus: strings.TrimSpace(c.Query("monitoring_status", "")),
+		CreatedAt:        strings.TrimSpace(c.Query("created_at", "")),
+		Query:            strings.TrimSpace(c.Query("q", "")),
+		Page:             page,
+		Limit:            limit,
+		SortBy:           strings.TrimSpace(c.Query("sort_by", "")),
+		SortOrder:        strings.TrimSpace(c.Query("sort_order", "")),
 	}
 	// Validate sort_by — only "created_at" or "nilai" (priority) allowed
 	if input.SortBy != "" && input.SortBy != "created_at" && input.SortBy != "nilai" {

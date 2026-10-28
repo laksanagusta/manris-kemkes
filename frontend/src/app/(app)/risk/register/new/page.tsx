@@ -23,6 +23,7 @@ import { listRiskEvents } from "@/lib/api/risk-events";
 import { listUsers, type UserListItem } from "@/lib/api/users";
 import { listAllOrganizations } from "@/lib/api/organizations";
 import { filterToAccessibleOrgs } from "@/lib/organization";
+import { isMonitoringWindowOpen, monitoringWindowMessage } from "@/lib/monitoring-window";
 import { useAuth } from "@/contexts/auth-context";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { useForm, Controller, type FieldErrors } from "react-hook-form";
@@ -32,7 +33,6 @@ import { toast } from "sonner";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -148,7 +148,6 @@ import {
   getSelectableMonitoringCycles,
   getSelectableMonitoringCyclesForDate,
   isMonitoringCycleApplicable,
-  isMonitoringCycleAfterPreviousEligible,
 } from "@/lib/risk-cycle-options";
 import { getMonitoringCycleBadgeStatus } from "@/lib/risk-register-monitoring";
 import { buildRiskRegisterPayload } from "@/lib/risk-register-payload";
@@ -934,9 +933,11 @@ export default function RiskInputPage() {
   const treatmentOption = watch("treatmentOption") ?? "";
   const nextReviewDate = watch("nextReviewDate") ?? "";
   const riskCode = watch("riskCode") ?? "";
+  const [monitoringNow,setMonitoringNow]=useState(()=>new Date());
+  useEffect(()=>{const refresh=()=>setMonitoringNow(new Date());const timer=setInterval(refresh,60000);window.addEventListener("focus",refresh);return()=>{clearInterval(timer);window.removeEventListener("focus",refresh);};},[]);
   const monitoringCycleOptions = useMemo(
     () =>
-      getSelectableMonitoringCyclesForDate().map((cycle) => ({
+      getSelectableMonitoringCyclesForDate(monitoringNow).map((cycle) => ({
         ...cycle,
         status: getMonitoringCycleBadgeStatus(
           monitoringCycleStatuses[cycle.value],
@@ -944,20 +945,10 @@ export default function RiskInputPage() {
           isMonitoringCycleApplicable(cycle.value, assessmentCycleDisplay),
         ),
       })),
-    [monitoringCycleStatuses],
+    [monitoringCycleStatuses,monitoringNow,assessmentCycleDisplay],
   );
   const selectedMonitoringCycleOption = monitoringCycleOptions.find(
     (cycle) => cycle.value === selectedMonitoringCycle,
-  );
-  const activeMonitoringCycle = currentMonitoringCycle();
-  const previousMonitoringCycle =
-    getSelectableMonitoringCycles(activeMonitoringCycle)[0]?.value ??
-    activeMonitoringCycle;
-  const canStartActiveMonitoringCycle = isMonitoringCycleAfterPreviousEligible(
-    activeMonitoringCycle,
-    monitoringCycleStatuses[previousMonitoringCycle],
-    assessmentCycleDisplay,
-    true,
   );
   const selectedApprovalLine = approvalLine.filter((member) => member.id);
   const isApprovalLineReady =
@@ -1834,7 +1825,9 @@ export default function RiskInputPage() {
   const canStartMonitoring =
     canManageMonitoring &&
     monitoringLookupStatus === "ready" &&
-    !ongoingMonitoring;
+    isMonitoringWindowOpen(getDefaultMonitoringCycle(),monitoringNow) &&
+    isMonitoringCycleApplicable(getDefaultMonitoringCycle(),assessmentCycleDisplay) &&
+    (!ongoingMonitoring || ongoingMonitoring.assessmentCycle!==getDefaultMonitoringCycle());
 
   const scrollToSection = (sectionId: SectionId) => {
     if (typeof document === "undefined") return;
@@ -2671,13 +2664,13 @@ export default function RiskInputPage() {
                   <Link href={returnTo}>{returnTo === "/work" ? "Kembali ke pekerjaan" : "Kembali ke hasil ekstraksi"}</Link>
                 </ActionButton>
               ) : null}
-              {canContinueMonitoring && ongoingMonitoring ? (
+              {canContinueMonitoring && ongoingMonitoring && !canStartMonitoring ? (
                 <ActionButton asChild variant="outline" className="px-4">
                   <Link
                     href={`/risk/monitoring/${ongoingMonitoring.id}`}
-                    title={`Lanjutkan pemantauan ${ongoingMonitoring.assessmentCycle}`}
+                    title={monitoringWindowMessage(ongoingMonitoring.assessmentCycle)}
                   >
-                    Lanjutkan Pemantauan
+                    {isMonitoringWindowOpen(ongoingMonitoring.assessmentCycle,monitoringNow)?"Lanjutkan Pemantauan":"Lihat Pemantauan"}
                   </Link>
                 </ActionButton>
               ) : canStartMonitoring ? (
@@ -3754,31 +3747,7 @@ export default function RiskInputPage() {
                     disabled={isStartingMonitoring}
                   />
                 </div>
-                {selectedMonitoringCycle === activeMonitoringCycle ? (
-                  <Alert
-                    role="status"
-                    className="border-info-foreground/20 bg-info-foreground/5"
-                  >
-                    <AlertTitle className="text-info-foreground">
-                      {selectedMonitoringCycleOption?.status === "completed"
-                        ? "Pemantauan sudah selesai"
-                        : !canStartActiveMonitoringCycle
-                        ? `Selesaikan ${previousMonitoringCycle} terlebih dahulu`
-                        : selectedMonitoringCycleOption?.status === "in-progress"
-                        ? "Pemantauan masih berjalan"
-                        : "Kuartal masih berjalan"}
-                    </AlertTitle>
-                    <AlertDescription className="text-info-foreground">
-                      {selectedMonitoringCycleOption?.status === "completed"
-                        ? `Pemantauan ${selectedMonitoringCycle} sudah selesai. Pilih periode lain untuk memulai pemantauan baru.`
-                        : !canStartActiveMonitoringCycle
-                        ? `Pemantauan ${selectedMonitoringCycle} mengikuti urutan kuartal. Selesaikan pemantauan ${previousMonitoringCycle} sebelum memulai periode ini.`
-                        : selectedMonitoringCycleOption?.status === "in-progress"
-                        ? `Pemantauan ${selectedMonitoringCycle} sudah dimulai. Anda akan melanjutkan catatan yang dapat diperbarui sampai kuartal berakhir.`
-                        : `Pemantauan ${selectedMonitoringCycle} dimulai sebagai proses berjalan dan catatannya dapat diperbarui sampai kuartal berakhir.`}
-                    </AlertDescription>
-                  </Alert>
-                ) : null}
+                <p className="text-sm text-muted-foreground">{monitoringWindowMessage(selectedMonitoringCycle)}</p>
               </div>
               <DialogFooter>
                 <CollectionDialogCancel
@@ -3800,8 +3769,8 @@ export default function RiskInputPage() {
                   disabled={
                     isStartingMonitoring ||
                     selectedMonitoringCycleOption?.status === "completed" ||
-                    (selectedMonitoringCycle === activeMonitoringCycle &&
-                      !canStartActiveMonitoringCycle)
+                    !selectedMonitoringCycleOption ||
+                    !isMonitoringWindowOpen(selectedMonitoringCycle,monitoringNow)
                   }
                 >
                   {selectedMonitoringCycleOption?.status === "in-progress"

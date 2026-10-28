@@ -5,6 +5,7 @@ import {
   useEffect,
   useMemo,
   useRef,
+  useCallback,
   useState,
   useTransition,
 } from "react";
@@ -29,7 +30,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { getStatusBadgeClassName, toBadgeVariant, type StatusTone } from "@/lib/badge-variant";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { isMonitoringWindowOpen, monitoringWindowMessage } from "@/lib/monitoring-window";
 import {
   AccentButton,
   ActionButton,
@@ -59,7 +60,6 @@ import {
   getSelectableMonitoringCyclesForDate,
   isCurrentMonitoringCycleAvailable,
   isMonitoringCycleApplicable,
-  isMonitoringCycleAfterPreviousEligible,
   shiftMonitoringCycle,
 } from "@/lib/risk-cycle-options";
 import {
@@ -93,6 +93,8 @@ import {
   levelToColor,
 } from "@/lib/risk";
 import {
+  type RiskMonitoringStatusFilter,
+  riskMonitoringStatusOptions,
   buildRiskRegisterQueryString,
   parseRiskRegisterQueryState,
   shouldReplaceRiskRegisterUrl,
@@ -179,6 +181,8 @@ type RiskRegisterFilterToolbarProps = {
   searchAriaLabel: string;
   assessmentCycleFilter: string;
   onAssessmentCycleFilterChange: (value: string) => void;
+  monitoringStatusFilter: RiskMonitoringStatusFilter;
+  onMonitoringStatusFilterChange: (value:RiskMonitoringStatusFilter)=>void;
   statusFilter: RiskRegisterStatusFilter;
   onStatusFilterChange: (value: RiskRegisterStatusFilter) => void;
   categoryFilter: RiskRegisterCategoryFilter;
@@ -193,6 +197,8 @@ function RiskRegisterFilterToolbar({
   searchAriaLabel,
   assessmentCycleFilter,
   onAssessmentCycleFilterChange,
+  monitoringStatusFilter,
+  onMonitoringStatusFilterChange,
   statusFilter,
   onStatusFilterChange,
   categoryFilter,
@@ -228,6 +234,7 @@ function RiskRegisterFilterToolbar({
         />
       </div>
 
+      <div className="w-full sm:w-fit"><PopoverSelectField fitContent value={monitoringStatusFilter} onValueChange={value=>onMonitoringStatusFilterChange(value as RiskMonitoringStatusFilter)} options={riskMonitoringStatusOptions} placeholder="Semua pemantauan" ariaLabel="Filter status pemantauan risiko" triggerClassName="h-8 rounded-lg bg-card text-sm"/></div>
       <div className="w-full sm:w-fit">
         <PopoverSelectField
           fitContent
@@ -351,6 +358,7 @@ export default function RiskRegisterPage() {
       parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString()))
         .search,
   );
+  const [monitoringStatusFilter,setMonitoringStatusFilter]=useState<RiskMonitoringStatusFilter>(()=>parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString())).monitoringStatusFilter || "all");
   const [statusFilter, setStatusFilter] = useState<RiskRegisterStatusFilter>(
     () =>
       parseRiskRegisterQueryState(new URLSearchParams(searchParams.toString()))
@@ -397,16 +405,16 @@ export default function RiskRegisterPage() {
   const [registerTotal, setRegisterTotal] = useState(0);
   const [exporting, setExporting] = useState(false);
   const exportInProgressRef = useRef(false);
+  const registerRequest=useRef(0);
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedRiskForReassessment, setSelectedRiskForReassessment] =
     useState<RiskListItem | null>(null);
   const [selectedAssessmentCycle, setSelectedAssessmentCycle] = useState(
     () => getDefaultMonitoringCycle(),
   );
-  const selectableMonitoringCycles = useMemo(
-    () => getSelectableMonitoringCyclesForDate(),
-    [],
-  );
+  const [monitoringNow,setMonitoringNow]=useState(()=>new Date());
+  useEffect(()=>{const refresh=()=>setMonitoringNow(new Date());const timer=setInterval(refresh,60000);window.addEventListener("focus",refresh);return()=>{clearInterval(timer);window.removeEventListener("focus",refresh);};},[]);
+  const selectableMonitoringCycles = useMemo(()=>getSelectableMonitoringCyclesForDate(monitoringNow),[monitoringNow]);
   const monitoringCycleOptions = useMemo(() => {
     const currentCycle = currentMonitoringCycle();
     return selectableMonitoringCycles.map((cycle) => ({
@@ -428,19 +436,6 @@ export default function RiskRegisterPage() {
   const selectedMonitoringCycleOption = monitoringCycleOptions.find(
     (cycle) => cycle.value === selectedAssessmentCycle,
   );
-  const currentCycle = currentMonitoringCycle();
-  const previousCycle = shiftMonitoringCycle(currentCycle, -1);
-  const selectedPreviousCycleStatus = getRiskMonitoringStatusForCycle(
-    selectedRiskForReassessment,
-    previousCycle,
-    currentCycle,
-  );
-  const canStartCurrentCycle = isMonitoringCycleAfterPreviousEligible(
-    currentCycle,
-    selectedPreviousCycleStatus,
-    selectedRiskForReassessment?.assessmentCycle,
-    true,
-  );
   const [riskToArchive, setRiskToArchive] = useState<RiskListItem | null>(null);
   const [archiveReason, setArchiveReason] = useState("");
 
@@ -451,6 +446,7 @@ export default function RiskRegisterPage() {
 
   const handleRegisterAssessmentCycleChange = (value: string) => {
     setAssessmentCycleFilter(value);
+    if(!value)setMonitoringStatusFilter("all");
     setPage(1);
   };
 
@@ -481,7 +477,7 @@ export default function RiskRegisterPage() {
   const deferredSearch = useDeferredValue(search);
   const deferredAssessmentCycleFilter = useDeferredValue(assessmentCycleFilter);
 
-  const refreshRegisterData = async (
+  const refreshRegisterData = useCallback(async (
     activeToken: string,
     queryOverrides?: {
       q?: string;
@@ -489,6 +485,7 @@ export default function RiskRegisterPage() {
       createdAt?: string;
     },
   ) => {
+    const request=++registerRequest.current;
     const normalizedSearch = (queryOverrides?.q ?? search).trim();
     const normalizedAssessmentCycle = (
       queryOverrides?.assessmentCycle ?? assessmentCycleFilter
@@ -509,6 +506,7 @@ export default function RiskRegisterPage() {
         status: registerStatus,
         category: categoryFilter === "all" ? undefined : categoryFilter,
         assessment_cycle: normalizedAssessmentCycle || undefined,
+ monitoring_status: monitoringStatusFilter==="all"?undefined:monitoringStatusFilter,
         created_at: normalizedCreatedAt || undefined,
         sort_by: sortBy,
         sort_order: sortOrder,
@@ -518,13 +516,14 @@ export default function RiskRegisterPage() {
       api.get<RiskListItem[]>("/risks?status=draft", activeToken),
     ]);
 
+    if(request!==registerRequest.current)return;
     setDrafts(draftRisks);
     setRisks(allRisksResponse.data ?? []);
     setRegisterTotal(allRisksResponse.total ?? 0);
     setPage(allRisksResponse.page ?? page);
     setLimit(allRisksResponse.limit ?? limit);
 
-  };
+  },[search,assessmentCycleFilter,createdAtFilter,statusFilter,lifecycleFilter,categoryFilter,monitoringStatusFilter,sortBy,sortOrder,page,limit]);
 
   const handleExport = async () => {
     if (!token || exportInProgressRef.current) return;
@@ -537,6 +536,7 @@ export default function RiskRegisterPage() {
       status: statusFilter === "all" ? undefined : statusFilter,
       category: categoryFilter === "all" ? undefined : categoryFilter,
       assessment_cycle: assessmentCycleFilter.trim() || undefined,
+ monitoring_status: monitoringStatusFilter==="all"?undefined:monitoringStatusFilter,
       created_at: createdAtFilter.trim() || undefined,
       sort_by: sortBy,
       sort_order: sortOrder,
@@ -578,6 +578,7 @@ export default function RiskRegisterPage() {
     setSearch((current) =>
       current === nextState.search ? current : nextState.search,
     );
+    setMonitoringStatusFilter(nextState.monitoringStatusFilter || "all");
     setStatusFilter((current) =>
       current === nextState.statusFilter ? current : nextState.statusFilter,
     );
@@ -617,6 +618,7 @@ export default function RiskRegisterPage() {
     const nextState = {
       search,
       lifecycleFilter,
+      monitoringStatusFilter,
       statusFilter,
       categoryFilter,
       assessmentCycleFilter,
@@ -661,6 +663,7 @@ export default function RiskRegisterPage() {
     searchParams,
     startTransition,
     statusFilter,
+    monitoringStatusFilter,
     sortBy,
     sortOrder,
   ]);
@@ -671,6 +674,7 @@ export default function RiskRegisterPage() {
       return;
     }
 
+    let active=true;
     const fetchData = async () => {
       try {
         setError(null);
@@ -682,6 +686,7 @@ export default function RiskRegisterPage() {
           createdAt: createdAtFilter,
         });
       } catch (err) {
+        if(!active)return;
         console.error(err);
         setError(
           err instanceof Error
@@ -689,15 +694,19 @@ export default function RiskRegisterPage() {
             : "Gagal memuat data risiko. Silakan coba lagi.",
         );
       } finally {
-        setLoading(false);
+        if(active)setLoading(false);
       }
     };
 
     void fetchData();
+    const requestState=registerRequest;
+    return()=>{active=false;requestState.current++;};
   }, [
+    refreshRegisterData,
     token,
     lifecycleFilter,
     statusFilter,
+    monitoringStatusFilter,
     categoryFilter,
     createdAtFilter,
     deferredSearch,
@@ -859,9 +868,9 @@ export default function RiskRegisterPage() {
         );
         await refreshRegisterData(token);
 
-        router.push(
-          result.redirectUrl || `/risk/monitoring/${result.monitoring.id}`,
-        );
+        const target=result.redirectUrl || `/risk/monitoring/${result.monitoring.id}`;
+        const returnTo=`${pathname}${searchParams.size ? `?${searchParams.toString()}` : ""}`;
+        router.push(`${target}?returnTo=${encodeURIComponent(returnTo)}`);
 
         return result;
       })(),
@@ -926,6 +935,7 @@ export default function RiskRegisterPage() {
       : "none";
   const hasAppliedFilters =
     Boolean(search.trim()) ||
+    monitoringStatusFilter !== "all" ||
     statusFilter !== "all" ||
     lifecycleFilter !== "active" ||
     categoryFilter !== "all" ||
@@ -946,6 +956,8 @@ export default function RiskRegisterPage() {
               assessmentCycleFilter={assessmentCycleFilter}
               onAssessmentCycleFilterChange={handleRegisterAssessmentCycleChange}
               assessmentCycleOptions={assessmentCycleOptions}
+              monitoringStatusFilter={monitoringStatusFilter}
+              onMonitoringStatusFilterChange={value=>{setMonitoringStatusFilter(value);if(value!=="all" && !assessmentCycleFilter)setAssessmentCycleFilter(getDefaultMonitoringCycle());setPage(1);}}
               statusFilter={statusFilter}
               onStatusFilterChange={handleRegisterStatusChange}
               categoryFilter={categoryFilter}
@@ -1080,6 +1092,8 @@ export default function RiskRegisterPage() {
                       !isReadOnly;
                     const canRestore = !!risk.archivedAt && !isReadOnly;
                     const canReassess =
+                      selectableMonitoringCycles.length>0 &&
+                      isMonitoringCycleApplicable(getDefaultMonitoringCycle(),risk.assessmentCycle) &&
                       risk.status === "final" &&
                       risk.isCurrent &&
                       !risk.archivedAt &&
@@ -1367,31 +1381,7 @@ export default function RiskRegisterPage() {
                 options={monitoringCycleOptions}
               />
             </div>
-            {selectedAssessmentCycle === currentCycle ? (
-              <Alert
-                role="status"
-                className="border-info-foreground/20 bg-info-foreground/5"
-              >
-                <AlertTitle className="text-info-foreground">
-                  {selectedMonitoringCycleOption?.status === "completed"
-                    ? "Pemantauan sudah selesai"
-                    : !canStartCurrentCycle
-                    ? `Selesaikan ${previousCycle} terlebih dahulu`
-                    : selectedMonitoringCycleOption?.status === "in-progress"
-                    ? "Pemantauan masih berjalan"
-                    : "Kuartal masih berjalan"}
-                </AlertTitle>
-                <AlertDescription className="text-info-foreground">
-                  {selectedMonitoringCycleOption?.status === "completed"
-                    ? `Pemantauan ${selectedAssessmentCycle} sudah selesai. Pilih periode lain untuk memulai pemantauan baru.`
-                    : !canStartCurrentCycle
-                    ? `Pemantauan ${selectedAssessmentCycle} mengikuti urutan kuartal. Selesaikan pemantauan ${previousCycle} sebelum memulai periode ini.`
-                    : selectedMonitoringCycleOption?.status === "in-progress"
-                    ? `Pemantauan ${selectedAssessmentCycle} sudah dimulai. Anda akan melanjutkan catatan yang dapat diperbarui sampai kuartal berakhir.`
-                    : `Pemantauan ${selectedAssessmentCycle} akan dimulai sebagai proses berjalan. Catatannya dapat diperbarui sampai kuartal berakhir.`}
-                </AlertDescription>
-              </Alert>
-            ) : null}
+            <p className="text-sm text-muted-foreground">{monitoringWindowMessage(selectedAssessmentCycle)}</p>
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel
@@ -1406,8 +1396,8 @@ export default function RiskRegisterPage() {
               onClick={handleCreateReassessment}
               disabled={
                 selectedMonitoringCycleOption?.status === "completed" ||
-                (selectedAssessmentCycle === currentCycle &&
-                  !canStartCurrentCycle)
+                !selectedMonitoringCycleOption ||
+                !isMonitoringWindowOpen(selectedAssessmentCycle,monitoringNow)
               }
             >
               {selectedMonitoringCycleOption?.status === "in-progress"

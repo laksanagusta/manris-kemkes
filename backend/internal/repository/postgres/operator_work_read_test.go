@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
+	domainrepo "github.com/manris/backend/internal/domain/repository"
 	workuc "github.com/manris/backend/internal/usecase/operator_work"
 	"os"
 	"testing"
@@ -48,6 +49,27 @@ func TestOperatorWorkReadIntegration(t *testing.T) {
 	}
 	repo := NewOperatorWorkRepository(pool)
 	for _, org := range orgs {
+		totals := map[string]int{}
+		for _, status := range []string{"all", "monitored", "not_monitored"} {
+			items, total, err := NewRiskRepository(pool).ListRegister(ctx, domainrepo.RiskRegisterFilter{OrgIDs: []uuid.UUID{org}, Status: "final", AssessmentCycle: "2026-Q3", MonitoringStatus: status, Page: 1, Limit: 100})
+			if err != nil {
+				t.Fatal(err)
+			}
+			totals[status] = total
+			for _, item := range items {
+				var finalized bool
+				if err := pool.QueryRow(ctx, "SELECT EXISTS(SELECT 1 FROM risk_monitorings WHERE version_group_id=$1 AND assessment_cycle='2026-Q3' AND status='final')", item.VersionGroupID).Scan(&finalized); err != nil {
+					t.Fatal(err)
+				}
+				if (status == "monitored" && !finalized) || (status == "not_monitored" && finalized) {
+					t.Fatalf("wrong generic filter %s", status)
+				}
+			}
+		}
+		if totals["all"] != totals["monitored"]+totals["not_monitored"] {
+			t.Fatalf("selected-period universe changed: %#v", totals)
+		}
+
 		candidates, err := repo.ListCandidates(ctx, org, time.Now())
 		if err != nil {
 			t.Fatal(err)

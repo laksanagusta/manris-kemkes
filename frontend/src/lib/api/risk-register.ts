@@ -74,6 +74,7 @@ interface ListRiskRegisterParams {
   status?: RiskStatus;
   category?: Exclude<RiskCategory, "">;
   assessment_cycle?: string;
+  monitoring_status?: "monitored" | "not_monitored";
   created_at?: string;
   sort_by?: string;
   sort_order?: "asc" | "desc";
@@ -96,6 +97,7 @@ export async function listRiskRegister(
   if (params?.assessment_cycle) {
     searchParams.set("assessment_cycle", params.assessment_cycle);
   }
+  if(params?.monitoring_status)searchParams.set("monitoring_status",params.monitoring_status);
   if (params?.created_at) searchParams.set("created_at", params.created_at);
   if (params?.sort_by) searchParams.set("sort_by", params.sort_by);
   if (params?.sort_order) searchParams.set("sort_order", params.sort_order);

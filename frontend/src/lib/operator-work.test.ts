@@ -10,7 +10,7 @@ test("deadline labels use calendar dates, including year rollover", () => {
 });
 test("full list routes use native entity filters",()=>{
  assert.equal(sectionHref("reports"),"/compliance/penanganan?status=needs_reporting");
- assert.equal(sectionHref("monitoring"),"/compliance/monitoring?status=needs_monitoring");
+ assert.equal(sectionHref("monitoring",new Date("2026-10-15T00:00:00Z")),"/risk/register?assessment_cycle=2026-Q3&monitoring_status=not_monitored");
  assert.equal(sectionHref("drafts"),"/risk/register?status=draft");
  assert.equal(isWorkSection("reports"),true);
  assert.equal(isWorkSection("other"),false);
@@ -45,5 +45,6 @@ test("monitoring started from its native table preserves filters and safe return
  assert.equal(new URL(routes[0],"http://local").searchParams.get("returnTo"),returnTo);
  assert.deepEqual(getWorkReturnLink(returnTo),{href:returnTo,label:"Kembali ke pemantauan"});
  assert.deepEqual(getWorkReturnLink("/work"),{href:"/work",label:"Kembali ke pekerjaan"});
+ assert.deepEqual(getWorkReturnLink("/risk/register?assessment_cycle=2026-Q3&monitoring_status=not_monitored"),{href:"/risk/register?assessment_cycle=2026-Q3&monitoring_status=not_monitored",label:"Kembali ke risiko"});
  for(const value of ["https://evil.test","//evil.test","/login","/work/other"])assert.equal(getWorkReturnLink(value),null);
 });

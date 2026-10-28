@@ -188,6 +188,7 @@ func TestStartMonitoringUseCase_CreatesDraft(t *testing.T) {
 	monitoringRepo := newFakeMonitoringTransactionRepo()
 	uc := NewStartMonitoringUseCase(riskRepo, monitoringRepo, nil, nil, &fakeMonitoringPeriodRepo{})
 
+	uc.now = func() time.Time { return time.Date(2026, 7, 15, 0, 0, 0, 0, time.UTC) }
 	out, err := uc.Execute(context.Background(), StartMonitoringInput{
 		SourceRiskID: sourceID,
 		Cycle:        "2026-Q2",
@@ -211,7 +212,7 @@ func TestStartMonitoringUseCase_CreatesDraft(t *testing.T) {
 	}
 }
 
-func TestStartMonitoringUseCase_EnforcesPreviousQuarter(t *testing.T) {
+func TestStartMonitoringUseCase_AllowsMissedPreviousQuarter(t *testing.T) {
 	orgID := uuid.New()
 	sourceID := uuid.New()
 	source := &entity.Risk{
@@ -236,17 +237,18 @@ func TestStartMonitoringUseCase_EnforcesPreviousQuarter(t *testing.T) {
 		periodRepo,
 	)
 
+	uc.now = func() time.Time { return time.Date(2026, 10, 15, 0, 0, 0, 0, time.UTC) }
 	_, err := uc.Execute(context.Background(), StartMonitoringInput{
 		SourceRiskID: sourceID,
 		Cycle:        "2026-Q3",
 		OrgIDs:       []uuid.UUID{orgID},
 		StartedBy:    uuid.New(),
 	})
-	if !errors.Is(err, domainerrors.ErrPreviousMonitoringNotCompleted) {
-		t.Fatalf("expected previous-quarter guard, got %v", err)
+	if err != nil {
+		t.Fatalf("missed previous quarter must not block open window: %v", err)
 	}
-	if periodRepo.previousCycle != "2026-Q2" {
-		t.Fatalf("expected previous cycle 2026-Q2, got %q", periodRepo.previousCycle)
+	if periodRepo.previousCycle != "" {
+		t.Fatal("expired previous quarter prerequisite was invoked")
 	}
 }
 
@@ -275,6 +277,7 @@ func TestStartMonitoringUseCase_RejectsCycleBeforeRiskEffectiveCycle(t *testing.
 		&fakeMonitoringPeriodRepo{},
 	)
 
+	uc.now = func() time.Time { return time.Date(2026, 7, 15, 0, 0, 0, 0, time.UTC) }
 	_, err := uc.Execute(context.Background(), StartMonitoringInput{
 		SourceRiskID: sourceID,
 		Cycle:        "2026-Q1",
@@ -316,6 +319,7 @@ func TestUpdateMonitoringUseCase_DetectsProfileRevision(t *testing.T) {
 	riskRepo := &fakeMonitoringRiskRepoForUsecase{risks: map[uuid.UUID]*entity.Risk{sourceID: source}}
 	uc := NewUpdateMonitoringUseCase(riskRepo, monitoringRepo)
 
+	uc.now = func() time.Time { return time.Date(2026, 7, 15, 0, 0, 0, 0, time.UTC) }
 	out, err := uc.Execute(context.Background(), UpdateMonitoringInput{
 		MonitoringID:                monitoringID,
 		OrgIDs:                      []uuid.UUID{orgID},
@@ -378,6 +382,7 @@ func TestUpdateMonitoringUseCase_MergesOmittedScoresAndDescription(t *testing.T)
 	riskRepo := &fakeMonitoringRiskRepoForUsecase{risks: map[uuid.UUID]*entity.Risk{sourceID: source}}
 	uc := NewUpdateMonitoringUseCase(riskRepo, monitoringRepo)
 
+	uc.now = func() time.Time { return time.Date(2026, 7, 15, 0, 0, 0, 0, time.UTC) }
 	out, err := uc.Execute(context.Background(), UpdateMonitoringInput{
 		MonitoringID: monitoringID,
 		OrgIDs:       []uuid.UUID{orgID},
@@ -446,6 +451,7 @@ func TestFinalizeMonitoringUseCase_BuildsRiskVersion(t *testing.T) {
 	riskRepo := &fakeMonitoringRiskRepoForUsecase{risks: map[uuid.UUID]*entity.Risk{sourceID: source}}
 	uc := NewFinalizeMonitoringUseCase(riskRepo, monitoringRepo, nil, nil)
 
+	uc.now = func() time.Time { return time.Date(2026, 7, 15, 0, 0, 0, 0, time.UTC) }
 	out, err := uc.Execute(context.Background(), FinalizeMonitoringInput{
 		MonitoringID: monitoringID,
 		OrgIDs:       []uuid.UUID{orgID},
@@ -515,6 +521,7 @@ func TestFinalizeMonitoringUseCase_BuildsRiskVersionForScoreOnlyMonitoring(t *te
 	riskRepo := &fakeMonitoringRiskRepoForUsecase{risks: map[uuid.UUID]*entity.Risk{sourceID: source}}
 	uc := NewFinalizeMonitoringUseCase(riskRepo, monitoringRepo, nil, nil)
 
+	uc.now = func() time.Time { return time.Date(2026, 10, 15, 0, 0, 0, 0, time.UTC) }
 	_, err := uc.Execute(context.Background(), FinalizeMonitoringInput{
 		MonitoringID: monitoringID,
 		OrgIDs:       []uuid.UUID{orgID},

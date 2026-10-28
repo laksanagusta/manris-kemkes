@@ -105,3 +105,9 @@ Tidak menambah jenis pekerjaan, reminder/notifikasi, prioritas manual, bulk acti
 - Apple HIG lists and tables: https://developer.apple.com/design/human-interface-guidelines/lists-and-tables.
 
 Rancangan ini menggantikan keputusan satu daftar tanpa section dari dokumen lifecycle awal hanya untuk presentasi To-Do serta batas laporan yang ditampilkan. Kebijakan akses, aturan periode dan aksi domain lainnya tetap mengikuti sistem yang berlaku.
+
+## Revisi aturan pemantauan, 28 Oktober 2026
+
+Permintaan terbaru menggantikan filter Perlu dipantau: Lihat semua menuju tabel Risiko dengan assessment_cycle=triwulan sebelumnya dan monitoring_status=not_monitored. Tabel menggunakan filter generik Semua pemantauan, Sudah dipantau, Belum dipantau. Sudah berarti transaksi Final; draft atau belum ada transaksi termasuk Belum. Untuk profil Final, periode filter mencakup keluarga risiko yang efektif saat periode terpilih serta hasil finalnya yang kini menjadi profil triwulan berikutnya; filter periode draft tetap tepat pada periodenya.
+
+Pengisian pemantauan hanya pada bulan pertama triwulan setelahnya menurut Asia/Jakarta: Q1 April, Q2 Juli, Q3 Oktober, Q4 Januari tahun berikutnya. Mulai, lanjut, ubah, finalisasi dan hapus terkunci di luar bulan itu. Baca/ekspor tetap tersedia. Draft terkunci tidak menjadi To-Do aktif. Pengguna mengonfirmasi periode sebelumnya yang terlewat tidak menghalangi periode berikutnya; tidak ada pembukaan ulang periode terlewat. Tenggat laporan penanganan tidak berubah.

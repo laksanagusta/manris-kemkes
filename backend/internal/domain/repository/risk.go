@@ -8,18 +8,19 @@ import (
 )
 
 type RiskRegisterFilter struct {
-	View            string
-	OrgIDs          []uuid.UUID
-	Status          string
-	Lifecycle       string
-	Category        string
-	AssessmentCycle string
-	CreatedAt       string
-	Query           string
-	Page            int
-	Limit           int
-	SortBy          string // "created_at" or "nilai" (priority sort)
-	SortOrder       string // "asc" or "desc"
+	View             string
+	OrgIDs           []uuid.UUID
+	Status           string
+	Lifecycle        string
+	Category         string
+	MonitoringStatus string
+	AssessmentCycle  string
+	CreatedAt        string
+	Query            string
+	Page             int
+	Limit            int
+	SortBy           string // "created_at" or "nilai" (priority sort)
+	SortOrder        string // "asc" or "desc"
 }
 
 // RiskRepository defines the interface for risk data access

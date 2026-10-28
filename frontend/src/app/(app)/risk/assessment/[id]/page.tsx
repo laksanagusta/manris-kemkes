@@ -1,10 +1,12 @@
 "use client";
+import { getWorkReturnLink } from "@/lib/operator-work";
+import { isMonitoringWindowOpen, monitoringWindowMessage } from "@/lib/monitoring-window";
 import { MonitoringEvidence } from "@/components/shared/design-system";
 import type { MonitoringEvidenceResult } from "@/components/shared/design-system/domain/monitoring-evidence";
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import Link from "next/link";
-import { useParams, useRouter, usePathname } from "next/navigation";
+import { useParams, useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -221,16 +223,20 @@ export default function AssessmentFormPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams=useSearchParams();
+  const returnTarget=getWorkReturnLink(searchParams.get("returnTo"));
   const { token, user } = useAuth();
+  const [windowNow,setWindowNow]=useState(()=>new Date());
+  useEffect(()=>{const refresh=()=>setWindowNow(new Date());const timer=setInterval(refresh,60000);window.addEventListener("focus",refresh);return()=>{clearInterval(timer);window.removeEventListener("focus",refresh);};},[]);
   // The former /risk/assessment route is retained as a URL compatibility
   // alias, but it must use the same monitoring transaction flow. There is no
   // standalone profile-edit/reassessment screen anymore.
   const isMonitoringRoute =
     pathname.startsWith("/risk/monitoring") ||
     pathname.startsWith("/risk/assessment");
-  const backTarget = isMonitoringRoute
+  const backTarget = returnTarget?.href || (isMonitoringRoute
     ? "/risk/register"
-    : "/risk/assessment";
+    : "/risk/assessment");
   const monitoringListTarget = "/compliance/monitoring";
   const riskApprovalCapabilityBehavior = useMemo(
     () => getRiskApprovalCapabilityBehavior(user?.capabilities),
@@ -816,6 +822,7 @@ export default function AssessmentFormPage() {
   }, []);
 
   const onSubmit = async (values: AssessmentFormValues) => {
+ if(!isMonitoringWindowOpen(monitoringDraft?.assessmentCycle || draftRisk?.assessmentCycle || "",new Date())){toast.error(monitoringWindowMessage(monitoringDraft?.assessmentCycle || draftRisk?.assessmentCycle || ""));return;}
     if (!token || !id || !draftRisk) return;
     if (
       draftRisk.status === "final"
@@ -1080,10 +1087,10 @@ export default function AssessmentFormPage() {
     );
   }
 
-  const isAssessmentLocked =
-    draftRisk.status === "final";
+  const windowClosed=!isMonitoringWindowOpen(monitoringDraft?.assessmentCycle || draftRisk.assessmentCycle || "",windowNow);
+  const isAssessmentLocked = draftRisk.status === "final" || windowClosed;
   const monitoringCycle = monitoringDraft?.assessmentCycle || draftRisk.assessmentCycle || "";
-  const hasFinalResult = isMonitoringRoute && isAssessmentLocked;
+  const hasFinalResult = isMonitoringRoute && draftRisk.status === "final";
   const resultRiskHref = monitoringDraft?.resultRiskId
     ? `/risk/register/${monitoringDraft.resultRiskId}`
     : null;
@@ -1177,6 +1184,7 @@ export default function AssessmentFormPage() {
       <FormPage
         className="risk-form-filter-controls space-y-6"
       >
+      {windowClosed && draftRisk.status!=="final" ? <p role="status" className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm">{monitoringWindowMessage(monitoringDraft?.assessmentCycle || draftRisk.assessmentCycle || "")}</p> : null}
       {isMonitoringRoute ? (
         <div className="w-full min-w-0">
           <CollectionPageHeader
@@ -1543,7 +1551,7 @@ export default function AssessmentFormPage() {
                         value={reviewerOption}
                         onSelect={handleReviewerSelect}
                         loadOptions={loadReviewerOptions}
-                        disabled={false}
+                        disabled={isAssessmentLocked}
                       />
                       </div>
 

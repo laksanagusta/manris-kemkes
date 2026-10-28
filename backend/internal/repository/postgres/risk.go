@@ -675,13 +675,23 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 		args = append(args, filter.Category)
 		argIdx++
 	}
+
 	if filter.AssessmentCycle != "" {
-		clause := fmt.Sprintf(" AND COALESCE(r.assessment_cycle, '') = $%d", argIdx)
+		finalExists := fmt.Sprintf("EXISTS (SELECT 1 FROM risk_monitorings filter_rm WHERE filter_rm.version_group_id=r.version_group_id AND filter_rm.assessment_cycle=$%d AND filter_rm.status='final')", argIdx)
+		eligible := fmt.Sprintf(`(COALESCE(NULLIF(r.assessment_cycle,''),to_char(COALESCE(r.effective_from,r.finalized_at,r.created_at) AT TIME ZONE 'Asia/Jakarta','YYYY-"Q"Q')) <= $%d OR %s)`, argIdx, finalExists)
+		clause := fmt.Sprintf(" AND ((r.status='draft' AND COALESCE(r.assessment_cycle,'')=$%d) OR (r.status<>'draft' AND %s))", argIdx, eligible)
+		if filter.MonitoringStatus == "monitored" {
+			clause += " AND r.status='final' AND " + finalExists
+		}
+		if filter.MonitoringStatus == "not_monitored" {
+			clause += " AND r.status='final' AND NOT " + finalExists
+		}
 		countQuery += clause
 		dataQuery += clause
 		args = append(args, filter.AssessmentCycle)
 		argIdx++
 	}
+
 	if filter.CreatedAt != "" {
 		clause := fmt.Sprintf(" AND r.created_at::date = $%d::date", argIdx)
 		countQuery += clause

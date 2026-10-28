@@ -51,7 +51,6 @@ func (s *Service) List(ctx context.Context, orgID, actorID uuid.UUID, page, limi
 func BuildItems(candidates []Candidate, actorID uuid.UUID, now time.Time) []entity.OperatorWorkItem {
 	now = now.In(timeutil.JakartaLocation())
 	today := now.Format("2006-01-02")
-	current := fmt.Sprintf("%d-Q%d", now.Year(), int(now.Month()-1)/3+1)
 	items := make([]entity.OperatorWorkItem, 0, len(candidates))
 	seen := map[string]bool{}
 	for _, c := range candidates {
@@ -92,27 +91,18 @@ func BuildItems(candidates []Candidate, actorID uuid.UUID, now time.Time) []enti
 			if err != nil || cmp < 0 {
 				continue
 			}
-			if c.PreviousStatus == "draft" {
+			if !entity.MonitoringWindowOpen(item.Period, now) {
 				continue
 			}
-			if item.Period == current {
-				if int(now.Month())%3 != 0 {
-					continue
-				}
-				previous, err := riskuc.PreviousQuarterCycle(current)
-				if err != nil {
-					continue
-				}
-				effectiveCmp, err := riskuc.CompareCycles(c.EffectiveCycle, previous)
-				if err != nil {
-					continue
-				}
-				if c.PreviousStatus != "final" && c.PreviousStatus != "finalized" && effectiveCmp <= 0 {
-					continue
-				}
-			}
+			_, end, _ := entity.MonitoringWindow(item.Period)
+			item.DueDate = end.AddDate(0, 0, -1).Format("2006-01-02")
 			item.ActionLabel = "Mulai pemantauan"
 		case "monitoring_draft":
+			if !entity.MonitoringWindowOpen(item.Period, now) {
+				continue
+			}
+			_, end, _ := entity.MonitoringWindow(item.Period)
+			item.DueDate = end.AddDate(0, 0, -1).Format("2006-01-02")
 			item.ActionLabel = "Lanjutkan pemantauan"
 		default:
 			continue
