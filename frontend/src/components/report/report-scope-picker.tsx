@@ -126,7 +126,7 @@ export function ReportScopePicker({
           orientation === "vertical"
             ? "grid-cols-1"
             : density === "compact"
-              ? "md:grid-cols-2 md:items-start xl:grid-cols-[16rem_minmax(0,1fr)]"
+              ? "md:grid-cols-[12rem_minmax(0,1fr)] md:items-end"
               : "md:grid-cols-[0.95fr_1.15fr] md:items-start",
         )}
       >

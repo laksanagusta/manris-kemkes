@@ -9,13 +9,13 @@ export function TypographyExample() {
       <CardContent className="space-y-5">
         <div className="space-y-1.5">
           <p className="font-mono text-[11px] text-muted-foreground">
-            --font-sans: Inter
+            --font-sans: Geist
           </p>
           <p className="font-mono text-[11px] text-muted-foreground">
-            --font-logo: Inter
+            --font-logo: Geist
           </p>
           <p className="font-mono text-[11px] text-muted-foreground">
-            --font-mono: Inter
+            --font-mono: system monospace
           </p>
         </div>
         <div className="space-y-3">
@@ -27,7 +27,7 @@ export function TypographyExample() {
               </p>
             </div>
             <p className="font-mono text-[11px] text-muted-foreground">
-              Brand mark + wordmark · layered slanted panels · Inter 20px semibold · lowercase · -0.4px tracking
+              Brand mark + wordmark · layered slanted panels · Geist 20px semibold · lowercase · -0.4px tracking
             </p>
           </div>
           <div>
@@ -79,11 +79,11 @@ export function TypographyExample() {
             </p>
           </div>
           <div>
-            <p className="font-mono tabular-nums text-sm text-foreground">
-              Inter tabular value: 12345.67
+            <p className="font-sans tabular-nums text-sm text-foreground">
+              Geist tabular value: 12345.67
             </p>
             <p className="font-mono text-[11px] text-muted-foreground">
-              font-mono alias · Inter · tabular-nums
+              font-sans · Geist · tabular-nums
             </p>
           </div>
         </div>

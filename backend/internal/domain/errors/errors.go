@@ -135,6 +135,8 @@ var (
 	ErrBackCycle               = newValidationError("MONITORING_BACK_CYCLE", "tidak dapat membuat pemantauan untuk semester lebih awal jika semester lebih baru sudah ada")
 
 	// ── Monitoring ──
+	ErrRiskMonitoringFilterInvalid    = newValidationError("RISK_MONITORING_FILTER_INVALID", "Pilih periode triwulan dan status pemantauan yang valid.")
+	ErrMonitoringWindowClosed         = newValidationError("MONITORING_WINDOW_CLOSED", "Pemantauan terkunci. Pengisian hanya dibuka pada bulan pertama triwulan berikutnya, menggunakan waktu Jakarta.")
 	ErrMonitoringNotDraft             = newStatusError("MONITORING_NOT_DRAFT", "hanya pemantauan draft yang dapat diperbarui")
 	ErrMonitoringNotDeletable         = newStatusError("MONITORING_NOT_DELETABLE", "hanya pemantauan draft yang dapat dihapus")
 	ErrMonitoringHasWorkingPaper      = newStatusError("MONITORING_HAS_WORKING_PAPER", "draf pemantauan yang sudah digunakan dalam kertas kerja tidak dapat dihapus")

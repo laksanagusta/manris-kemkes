@@ -1,6 +1,8 @@
 "use client";
 
-import { ReportFilterCard } from "@/components/report/report-filter-card";
+import { ReportFilterCard, ReportFilterRow } from "@/components/report/report-filter-card";
+import { Button } from "@/components/ui/button";
+import { RefreshCw } from "@/components/shared/icons";
 import { ReportPeriodPicker } from "@/components/report/report-filter-panel";
 import type { QuarterlyReport } from "@/types/quarterly-report";
 import { RiskManagementCondition } from "../domain/risk-management-condition";
@@ -18,12 +20,13 @@ const conditionFixture: QuarterlyReport = {
 
 export function RiskConditionReportExample() {
   return <div className="space-y-5">
-    <p className="text-xs text-muted-foreground">Laporan kondisi pengelolaan memakai data ilustratif. Grafik dan disclosure memakai komponen produksi.</p>
+    <p className="text-xs text-muted-foreground">Laporan kondisi pengelolaan memakai data ilustratif. Grafik dan tooltip memakai komponen produksi.</p>
     <ReportFilterCard>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <ReportPeriodPicker label="Periode" cycle={conditionFixture.cycle} onChange={() => {}} disabled />
-        <ReportPeriodPicker label="Bandingkan dengan" cycle={conditionFixture.comparisonCycle} onChange={() => {}} disabled />
-      </div>
+      <ReportFilterRow>
+        <div className="w-full sm:w-48"><ReportPeriodPicker label="Periode" cycle={conditionFixture.cycle} onChange={() => {}} disabled /></div>
+        <div className="w-full sm:w-48"><ReportPeriodPicker label="Bandingkan dengan" cycle={conditionFixture.comparisonCycle} onChange={() => {}} disabled /></div>
+        <Button variant="outline" size="icon" aria-label="Muat ulang" title="Muat ulang" disabled><RefreshCw aria-hidden="true" /></Button>
+      </ReportFilterRow>
     </ReportFilterCard>
     <RiskManagementCondition report={conditionFixture} activeProfiles={conditionFixture.risks} previousProfiles={conditionFixture.previousRisks} />
     <RiskConditionCharts report={conditionFixture} activeProfiles={conditionFixture.risks} previousProfiles={conditionFixture.previousRisks} />

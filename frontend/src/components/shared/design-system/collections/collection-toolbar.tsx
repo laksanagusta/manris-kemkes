@@ -21,7 +21,8 @@ export function CollectionToolbar({
     <div
       data-slot="collection-toolbar"
       className={cn(
-        "flex flex-col gap-3 sm:flex-row sm:items-center",
+        "flex flex-col gap-3 sm:flex-row",
+        leading ? "sm:items-start" : "sm:items-center",
         hasContext ? "sm:justify-between" : "sm:justify-end",
         className,
       )}

@@ -104,15 +104,12 @@ export function WorkingPaperSignatureTimeline({
                   </Badge>
                 </div>
 
-                <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">
+                <p className="line-clamp-2 text-sm leading-5 text-muted-foreground">
                   {[sig.signer_jabatan, sig.signer_pangkat]
                     .filter(Boolean)
                     .join(" · ")}
                 </p>
 
-                <p className="text-xs leading-5 text-tertiary-foreground">
-                  {item.description}
-                </p>
               </div>
 
               {sig.signed_at ? (

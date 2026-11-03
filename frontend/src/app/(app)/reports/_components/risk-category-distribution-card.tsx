@@ -68,7 +68,7 @@ export function RiskCategoryDistributionCard({
             <CardTitle className="">
               Distribusi Kategori Risiko
             </CardTitle>
-            <p className="mt-1 text-[11px] text-secondary-foreground">
+            <p data-slot="card-description" className="mt-1 text-[11px] text-secondary-foreground">
               Jumlah risiko per kategori pada cycle {cycle}.
             </p>
           </div>

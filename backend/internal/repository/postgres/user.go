@@ -108,7 +108,7 @@ func (r *userRepository) List(ctx context.Context) ([]*entity.User, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT u.id, u.name, u.username, u.email, '', u.role, u.organization_id, COALESCE(o.name, '') as org_name, u.status, u.must_change_password, u.nip, u.jabatan, u.pangkat, u.phone_number, u.created_at, u.updated_at, u.last_logged_in
 		 FROM users u LEFT JOIN organizations o ON u.organization_id = o.id
-		 ORDER BY u.created_at`)
+		 ORDER BY u.created_at DESC, u.id DESC`)
 
 	if err != nil {
 		return nil, fmt.Errorf("list users: %w", err)

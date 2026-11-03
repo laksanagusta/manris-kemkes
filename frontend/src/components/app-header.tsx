@@ -20,6 +20,7 @@ export function AppHeader() {
     pathname === "/agent" ||
     pathname.startsWith("/agent/") ||
     pathname === "/overview" ||
+    pathname === "/work" ||
     pathname === "/design-system" ||
     pathname === "/risk/register/new" ||
     pathname === "/risk/register/import-sop" ||

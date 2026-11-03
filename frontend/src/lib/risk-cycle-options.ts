@@ -21,8 +21,10 @@ function quarterCycleFromIndex(index: number) {
 }
 
 export function currentAssessmentCycle(referenceDate = new Date()) {
-  const quarter = Math.floor(referenceDate.getMonth() / 3) + 1;
-  return `${referenceDate.getFullYear()}-Q${quarter}`;
+  const parts=new Intl.DateTimeFormat("en-US",{timeZone:"Asia/Jakarta",year:"numeric",month:"numeric"}).formatToParts(referenceDate);
+  const year=Number(parts.find(part=>part.type==="year")?.value);
+  const month=Number(parts.find(part=>part.type==="month")?.value);
+  return `${year}-Q${Math.floor((month-1)/3)+1}`;
 }
 
 export function currentMonitoringCycle(referenceDate = new Date()) {
@@ -30,7 +32,8 @@ export function currentMonitoringCycle(referenceDate = new Date()) {
 }
 
 export function isCurrentMonitoringCycleAvailable(referenceDate = new Date()) {
-  return referenceDate.getMonth() % 3 === 2;
+  void referenceDate;
+  return false; // Current-quarter monitoring is never open.
 }
 
 export function shiftAssessmentCycle(cycle: string, delta: number) {
@@ -48,15 +51,8 @@ export function getDefaultMonitoringCycle(
   previousCycleStatus?: string | null,
   riskEffectiveCycle?: string | null,
 ) {
-  const previousCycle = shiftMonitoringCycle(currentCycle, -1);
-  return isCurrentMonitoringCycleAvailable() &&
-    isMonitoringCycleAfterPreviousEligible(
-      currentCycle,
-      previousCycleStatus,
-      riskEffectiveCycle,
-    )
-    ? currentCycle
-    : previousCycle;
+  void previousCycleStatus;void riskEffectiveCycle;
+  return shiftMonitoringCycle(currentCycle,-1);
 }
 
 export function isMonitoringCycleAfterPreviousEligible(
@@ -65,15 +61,8 @@ export function isMonitoringCycleAfterPreviousEligible(
   riskEffectiveCycle?: string | null,
   unknownIsEligible = false,
 ) {
-  const normalizedStatus = previousCycleStatus?.trim().toLowerCase();
-  if (normalizedStatus === "draft") return false;
-  if (normalizedStatus === "final" || normalizedStatus === "finalized") {
-    return true;
-  }
-
-  const previousCycle = shiftMonitoringCycle(currentCycle, -1);
-  if (!riskEffectiveCycle) return unknownIsEligible;
-  return isCycleAfter(riskEffectiveCycle, previousCycle);
+  void previousCycleStatus;void unknownIsEligible;
+  return isMonitoringCycleApplicable(currentCycle,riskEffectiveCycle);
 }
 
 export function isMonitoringCycleApplicable(
@@ -168,6 +157,8 @@ export function getSelectableMonitoringCyclesForDate(
   referenceDate = new Date(),
 ): AssessmentCycleOption[] {
   const currentCycle = currentMonitoringCycle(referenceDate);
+  const month=Number(new Intl.DateTimeFormat("en-US",{month:"numeric",timeZone:"Asia/Jakarta"}).format(referenceDate));
+  if((month-1)%3!==0)return [];
   const cycles = [shiftMonitoringCycle(currentCycle, -1)];
 
   if (isCurrentMonitoringCycleAvailable(referenceDate)) {

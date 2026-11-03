@@ -132,12 +132,13 @@ func TestDeleteMonitoringDeletesDraftAndReturnsEnvelope(t *testing.T) {
 	orgID := uuid.New()
 	repoStub := &riskMonitoringDeleteRepoStub{
 		monitoring: &entity.RiskMonitoring{
-			ID:     uuid.New(),
-			Status: entity.RiskMonitoringStatusDraft,
+			ID:              uuid.New(),
+			AssessmentCycle: "2026-Q3",
+			Status:          entity.RiskMonitoringStatusDraft,
 		},
 	}
 	handler := &RiskHandler{
-		deleteMonitoringUC: riskuc.NewDeleteMonitoringUseCase(repoStub),
+		deleteMonitoringUC: riskuc.NewDeleteMonitoringUseCase(repoStub, func() time.Time { return time.Date(2026, 10, 15, 0, 0, 0, 0, time.UTC) }),
 	}
 
 	app := fiber.New()

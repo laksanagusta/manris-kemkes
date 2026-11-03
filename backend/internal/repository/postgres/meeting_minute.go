@@ -183,7 +183,7 @@ func (r *meetingMinuteRepository) List(ctx context.Context, opts repository.List
 	 FROM meeting_minutes mm
 	 LEFT JOIN users u ON mm.created_by = u.id
 	 %s
-	 ORDER BY mm.date DESC, mm.created_at DESC
+	 ORDER BY mm.created_at DESC, mm.id DESC
 	 LIMIT $%d OFFSET $%d`, whereClause, argIdx, argIdx+1)
 	args = append(args, limit, offset)
 

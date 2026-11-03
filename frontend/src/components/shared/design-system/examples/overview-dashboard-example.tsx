@@ -132,7 +132,7 @@ function RiskCompositionChartExample() {
 function RiskCompositionExample() {
   return (
     <OverviewTrendCard
-      title="Komposisi Jumlah Risiko per Kuartal"
+      title="Komposisi Level Risiko per Kuartal"
       legend={
         <>
           {compositionLevels.map((level) => (
@@ -171,6 +171,7 @@ export function OverviewDashboardExample() {
       <section aria-label="Tren risiko">
         <OverviewTrendCard
           title="Tren Jumlah Risiko"
+          summary={<p className="flex items-baseline gap-2"><span className="text-3xl font-semibold tabular-nums">4</span><span className="text-sm text-muted-foreground">Risiko</span></p>}
           chart={<TrendChartExample />}
         />
       </section>

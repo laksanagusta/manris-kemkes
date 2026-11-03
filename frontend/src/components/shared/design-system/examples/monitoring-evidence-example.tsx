@@ -1,0 +1,3 @@
+"use client";
+import { MonitoringEvidence } from "../domain/monitoring-evidence";
+export function MonitoringEvidenceExample(){return <section className="space-y-3"><h2 className="text-lg font-semibold">Bukti pemantauan</h2><p className="text-sm text-muted-foreground">Data ilustratif memakai komponen produksi yang sama.</p><MonitoringEvidence result={{final:true,evidence:{capturedAt:"2026-10-05T02:00:00Z",title:"Keterlambatan distribusi",sourceScore:12,targetScore:6,reports:[{id:"example",action:"Koordinasi jadwal pengiriman",status:"done",reportedAt:"2026-10-01T02:00:00Z",notes:"Koordinasi terlaksana; keterbatasan armada masih ditindaklanjuti.",evidenceUrl:""}],events:[]}}}/><MonitoringEvidence result={{final:true,evidence:null}}/></section>}

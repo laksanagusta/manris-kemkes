@@ -53,7 +53,7 @@ export function FormalReportCard({
             <CardTitle className="text-balance">
               {title}
             </CardTitle>
-            <p className="text-sm leading-6 text-secondary-foreground">
+            <p data-slot="card-description" className="text-sm leading-6 text-secondary-foreground">
               {subtitle || description}
             </p>
           </div>

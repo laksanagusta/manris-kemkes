@@ -278,10 +278,10 @@ func (r *riskMonitoringRepository) List(ctx context.Context, filter repository.R
 		dataQuery += fmt.Sprintf(" ORDER BY rm.assessment_cycle %s, rm.started_at DESC, rm.id DESC", orderDir)
 	case "status":
 		dataQuery += fmt.Sprintf(" ORDER BY rm.status %s, rm.started_at DESC, rm.id DESC", orderDir)
-	case "started_at", "":
-		fallthrough
-	default:
+	case "started_at":
 		dataQuery += fmt.Sprintf(" ORDER BY rm.started_at %s, rm.id DESC", orderDir)
+	default:
+		dataQuery += fmt.Sprintf(" ORDER BY rm.created_at %s, rm.id DESC", orderDir)
 	}
 	dataQuery += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
 	args = append(args, filter.Limit, (filter.Page-1)*filter.Limit)
@@ -525,6 +525,13 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 		return nil, fmt.Errorf("close unreported mitigation tasks: %w", err)
 	}
 
+	evidence, err := readMonitoringEvidence(ctx, tx, source.ID, monitoringID, monitoring.AssessmentCycle, time.Now().UTC())
+	if err != nil {
+		return nil, err
+	}
+	if _, err := tx.Exec(ctx, `UPDATE risk_monitorings SET evidence_snapshot=$2 WHERE id=$1`, monitoringID, evidence); err != nil {
+		return nil, fmt.Errorf("save monitoring evidence: %w", err)
+	}
 	if err := tx.Commit(ctx); err != nil {
 		return nil, fmt.Errorf("commit monitoring finalization: %w", err)
 	}

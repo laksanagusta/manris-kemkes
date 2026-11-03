@@ -122,8 +122,8 @@ test("report pages consume shared report shells instead of raw Card composition"
 });
 
 test("collection filter and notice layouts use shared primitives", () => {
-  assert.match(pages.charters, /<CollectionFilterGrid[\s>]/);
-  assert.match(pages.cascading, /<CollectionFilterGrid[\s>]/);
+  assert.match(pages.charters, /<DynamicTableFilters[\s>]/);
+  assert.match(pages.cascading, /<DynamicTableFilters[\s>]/);
   assert.match(pages.cascading, /<CollectionNotice[\s>]/);
   assert.match(pages.cascading, /<CollectionErrorState[\s>]/);
 });

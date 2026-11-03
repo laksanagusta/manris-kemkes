@@ -35,7 +35,6 @@ function formatOccurredAt(value: string) {
 
   return new Intl.DateTimeFormat("id-ID", {
     dateStyle: "medium",
-    timeStyle: "short",
     timeZone: "Asia/Jakarta",
   }).format(date);
 }
@@ -83,7 +82,7 @@ export default function RiskEventDetailPage() {
   return (
     <PageStack>
       <CollectionPageHeader title="" actionsPlacement="top" actions={<ActionButton variant="outline" icon={<Link2 className="size-3.5" />} onClick={() => setDialogOpen(true)}>Tautkan risiko</ActionButton>} />
-      <WarningCard title="Record terkunci" description="Isi kejadian bersifat permanen. Anda hanya dapat menambahkan hubungan risiko baru." action={<Lock className="size-4" />} />
+      <WarningCard title="Record terkunci" description="Data kejadian tetap tersimpan. Tautkan risiko bila diperlukan." action={<Lock className="size-4" />} />
       <div className="grid gap-5 lg:grid-cols-2">
         <div className="space-y-5">
           <RiskEventSourceCard name={item.sourceDocumentName} sources={item.sourceRefs} />

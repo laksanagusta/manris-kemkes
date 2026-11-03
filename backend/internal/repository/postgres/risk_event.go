@@ -128,7 +128,7 @@ func (r *riskEventRepository) List(ctx context.Context, orgIDs []uuid.UUID, risk
 		args = append(args, *riskID)
 		query += fmt.Sprintf(` AND EXISTS (SELECT 1 FROM incident_risk_links l WHERE l.incident_id=i.id AND l.risk_id=$%d)`, len(args))
 	}
-	query += ` ORDER BY i."when" DESC, i.created_at DESC`
+	query += ` ORDER BY i.created_at DESC, i.id DESC`
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, fmt.Errorf("list risk events: %w", err)

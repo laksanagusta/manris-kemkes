@@ -127,6 +127,7 @@ export function getBreadcrumbItems(
   const riskParent = parentBreadcrumb("Risiko", "/risk/register");
 
   if (route === "/overview") return [{ label: "Dashboard" }];
+  if (route === "/work") return [{ label: "To-Do" }];
   if (route === "/account") return [{ label: "Akun" }];
   if (route === "/design-system") return [{ label: "Design System" }];
   if (route === "/inbox") return [{ label: "Persetujuan & TTE" }];
@@ -437,7 +438,7 @@ export const appPageMeta: Record<string, AppPageMeta> = {
   },
   "/reports": {
     title: "Ringkasan Risiko",
-    subtitle: "Bandingkan paparan risiko dan perkembangan antarperiode.",
+    subtitle: "Tinjau distribusi risiko, peringkat unit, dan pelaporan mitigasi.",
   },
   "/reports/risk-condition": {
     title: "Kondisi Pengelolaan Risiko",

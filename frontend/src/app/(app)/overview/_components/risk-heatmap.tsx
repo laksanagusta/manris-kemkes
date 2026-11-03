@@ -113,7 +113,7 @@ export function RiskHeatmap({
             <CardTitle className="">
               Heatmap Risiko
             </CardTitle>
-            <p className={cn("mt-1 text-xs text-secondary-foreground", compact && "max-w-[18rem]")}>
+            <p data-slot="card-description" className={cn("mt-1 text-xs text-secondary-foreground", compact && "max-w-[18rem]")}>
               Distribusi risiko berdasarkan Probabilitas × Dampak
             </p>
           </div>

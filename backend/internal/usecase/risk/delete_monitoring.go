@@ -2,6 +2,7 @@ package risk
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
@@ -16,11 +17,16 @@ type monitoringDeletionRepository interface {
 // DeleteMonitoringUseCase removes an in-progress monitoring transaction.
 // Finalized monitoring records are immutable and must remain available for audit.
 type DeleteMonitoringUseCase struct {
+	now            func() time.Time
 	monitoringRepo monitoringDeletionRepository
 }
 
-func NewDeleteMonitoringUseCase(monitoringRepo monitoringDeletionRepository) *DeleteMonitoringUseCase {
-	return &DeleteMonitoringUseCase{monitoringRepo: monitoringRepo}
+func NewDeleteMonitoringUseCase(monitoringRepo monitoringDeletionRepository, clock ...func() time.Time) *DeleteMonitoringUseCase {
+	now := time.Now
+	if len(clock) > 0 && clock[0] != nil {
+		now = clock[0]
+	}
+	return &DeleteMonitoringUseCase{now: now, monitoringRepo: monitoringRepo}
 }
 
 type DeleteMonitoringOutput struct {
@@ -40,6 +46,9 @@ func (uc *DeleteMonitoringUseCase) Execute(ctx context.Context, id uuid.UUID, or
 		return nil, errors.ErrMonitoringNotDeletable
 	}
 
+	if !entity.MonitoringWindowOpen(monitoring.AssessmentCycle, uc.now()) {
+		return nil, errors.ErrMonitoringWindowClosed
+	}
 	if err := uc.monitoringRepo.DeleteDraft(ctx, id, orgIDs); err != nil {
 		return nil, err
 	}

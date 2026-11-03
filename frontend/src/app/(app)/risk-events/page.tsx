@@ -1,4 +1,7 @@
 "use client";
+import { newestCreatedFirst } from "@/lib/collection-created-at";
+import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
+
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -12,7 +15,7 @@ import { RiskEventFormDialog } from "./_components/risk-event-form-sheet";
 import { Badge } from "@/components/ui/badge";
 import {
   AccentButton, ActionButton, CollectionEmptyState, CollectionErrorState, CollectionLoadingState,
-  CollectionSearchField, CollectionTableCard, PopoverSelectField,
+  CollectionSearchField, CollectionTableCard, DynamicTableFilters,
   CollectionTableHead, CollectionTableHeader, CollectionTableHeaderRow, CollectionToolbar, PageStack,
 } from "@/components/shared/design-system";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
@@ -38,12 +41,12 @@ export default function RiskEventsPage() {
   const [error, setError] = useState("");
   const [query, setQuery] = useState("");
   const [severityFilter, setSeverityFilter] = useState<RiskEventSeverity | "all">("all");
-  const [formOpen, setFormOpen] = useState(Boolean(initialRiskId));
+  const [formOpen, setFormOpen] = useState(Boolean(initialRiskId) || searchParams.get("create") === "1");
 
   const load = useCallback(async () => {
     if (!token) return;
     setLoading(true); setError("");
-    try { setItems((await listRiskEvents(token)).map(normalizeRiskEvent)); }
+    try { setItems((await listRiskEvents(token)).map(normalizeRiskEvent).sort(newestCreatedFirst)); }
     catch { setError("Tidak dapat memuat kejadian risiko. Coba lagi."); }
     finally { setLoading(false); }
   }, [token]);
@@ -67,34 +70,32 @@ export default function RiskEventsPage() {
       <div className="space-y-4">
         <CollectionToolbar
           leading={
-            <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center">
-              <CollectionSearchField
-                containerClassName="w-full sm:w-80 sm:flex-none"
-                value={query}
-                onChange={(event) => setQuery(event.target.value)}
-                placeholder="Cari kode, kejadian, atau risiko"
-                aria-label="Cari kejadian atau risiko"
-              />
-              <div className="w-full sm:w-fit">
-                <PopoverSelectField
-                  fitContent
-                  value={severityFilter}
-                  onValueChange={(value) =>
-                    setSeverityFilter(value as RiskEventSeverity | "all")
-                  }
-                  options={[
-                    { value: "all", label: "Semua Tingkat" },
+            <DynamicTableFilters
+              search={
+                <CollectionSearchField
+                  containerClassName="w-full sm:w-80 sm:flex-none"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Cari kode, kejadian, atau risiko"
+                  aria-label="Cari kejadian atau risiko"
+                />
+              }
+              fields={[
+                {
+                  id: "severity",
+                  label: "Tingkat",
+                  value: severityFilter,
+                  onChange: (value) => setSeverityFilter(value as RiskEventSeverity | "all"),
+                  options: [
+                    { value: "all", label: "Semua tingkat" },
                     { value: "low", label: severityLabel.low },
                     { value: "medium", label: severityLabel.medium },
                     { value: "high", label: severityLabel.high },
                     { value: "extreme", label: severityLabel.extreme },
-                  ]}
-                  placeholder="Tingkat"
-                  ariaLabel="Filter tingkat kejadian risiko"
-                  triggerClassName="h-8 rounded-lg bg-card text-sm"
-                />
-              </div>
-            </div>
+                  ],
+                },
+              ]}
+            />
           }
           actions={
             <>
@@ -109,13 +110,14 @@ export default function RiskEventsPage() {
           }
         />
         <CollectionTableCard>
-          <Table className="min-w-[1180px] table-fixed">
+          <Table className="min-w-[1340px] table-fixed">
           <colgroup>
             <col className="w-[42%]" />
             <col className="w-[11%]" />
             <col className="w-[21%]" />
             <col className="w-[12%]" />
-            <col className="w-[14%]" />
+            <col className="w-40" />
+<col className="w-[14%]" />
           </colgroup>
           <CollectionTableHeader>
             <CollectionTableHeaderRow className="h-9 hover:bg-transparent">
@@ -124,12 +126,13 @@ export default function RiskEventsPage() {
               <CollectionTableHead >Risiko terkait</CollectionTableHead>
               <CollectionTableHead >Dicatat oleh</CollectionTableHead>
               <CollectionTableHead >Tanggal</CollectionTableHead>
-            </CollectionTableHeaderRow>
+            <CreatedAtHead />
+</CollectionTableHeaderRow>
           </CollectionTableHeader>
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="">
+                <TableCell colSpan={6} className="">
                   <CollectionEmptyState
                     align="center"
                     title={
@@ -180,7 +183,8 @@ export default function RiskEventsPage() {
                   <TableCell className="align-middle text-muted-foreground">
                     {new Intl.DateTimeFormat("id-ID", { dateStyle: "medium" }).format(new Date(item.occurredAt))}
                   </TableCell>
-                </TableRow>
+                <CreatedAtCell record={item} />
+</TableRow>
               ))
             )}
           </TableBody>

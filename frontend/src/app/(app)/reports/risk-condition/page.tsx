@@ -7,7 +7,7 @@ import { completedReportCycle, shiftReportCycle } from "@/lib/quarterly-report";
 import { PageStack } from "@/components/shared/design-system";
 import { RiskManagementCondition } from "@/components/shared/design-system/domain/risk-management-condition";
 import { RiskConditionCharts } from "@/components/shared/design-system/domain/risk-condition-charts";
-import { ReportFilterCard } from "@/components/report/report-filter-card";
+import { ReportFilterCard, ReportFilterRow } from "@/components/report/report-filter-card";
 import { ReportPeriodPicker } from "@/components/report/report-filter-panel";
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "@/components/shared/icons";
@@ -60,14 +60,11 @@ export default function RiskConditionReportPage() {
 
   return <PageStack className="space-y-5 lg:space-y-6">
     <ReportFilterCard>
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-end gap-4">
+      <ReportFilterRow>
         <div className="w-full sm:w-48"><ReportPeriodPicker label="Periode" cycle={cycle} onChange={setCycle} disabled={false} /></div>
         <div className="w-full sm:w-48"><ReportPeriodPicker label="Bandingkan dengan" cycle={comparisonCycle} onChange={setComparisonCycle} disabled={false} /></div>
-        <Button type="button" variant="outline" size="sm" disabled={loading} onClick={reloadData}><RefreshCw aria-hidden="true" />Muat ulang</Button>
-      </div>
-      <p className="text-xs text-muted-foreground">Semua unit yang dapat diakses akun.</p>
-    </div>
+        <Button type="button" variant="outline" size="icon" aria-label="Muat ulang" title="Muat ulang" disabled={loading} aria-busy={loading} onClick={reloadData}><RefreshCw aria-hidden="true" className={loading ? "animate-spin motion-reduce:animate-none" : undefined} /></Button>
+      </ReportFilterRow>
     </ReportFilterCard>
     <RiskManagementCondition report={data?.report ?? null} activeProfiles={profiles.active} previousProfiles={profiles.previous}
       loading={loading} error={current?.error} onRetry={reloadData} />

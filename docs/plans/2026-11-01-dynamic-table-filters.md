@@ -1,0 +1,15 @@
+# Dynamic table filters
+
+Approved in chat on 1 November 2026. Adopt the supplied Clerk screenshot's interaction: search and Filter button, field picker, removable segmented field/value chips, per-field editor with Batal/Terapkan, and Hapus semua filter. Keep Manris Geist, Hugeicons, neutral surfaces, 32px controls and 6px control radius. Empty selected chips have dashed borders; applied chips have solid borders. Values wrap/truncate accessibly and popovers fit mobile viewports.
+
+Use one controlled shared DynamicTableFilters component. Each field declares id, label, value, reset default, editor kind, optional choices, change callback and required status. Optional chips are dynamically added; existing nondefault filters render immediately. Drafts stay local until Apply, Cancel/Escape/dismiss discard, removing/clearing restores defaults, and required period/scope chips remain. Distinct fields combine using existing AND semantics. Search remains independent. Do not add unsupported operators or column visibility as part of this change.
+
+Migrate risk register, working papers and progress tables; incidents, mitigation, monitoring, evaluations; users, organizations, charters, TMPMR and planning; inbox, cascading, minutes and report detail tables wherever real filter semantics exist. Preserve server queries, pagination resets, URL links, exports, access checks and required/default scopes. Never filter only the currently fetched page and claim a global result. Tables used as editable form grids or immutable audit/result snapshots retain their intrinsic behavior. Search-only collections get a dynamic text criterion wired to their existing whole-result search where no field-specific API exists.
+
+Implementation: shared component and state helpers, feature adapters by domain, live catalog and DESIGN.md synchronization, behavior tests and lint/type checks, independent final review. Test draft cancellation, add/edit/remove/clear, URL-selected defaults, required fields, date validation, keyboard and mobile layout. Record any environment limits on visual verification.
+
+## Verification
+
+Shared-component browser checks passed: add a field, Apply choice/text using Enter, Cancel an edit, discard a pending date with Escape, restore focus, clear combined filters, and fit popovers at 390px. Computed control geometry is 32px high with a 6px radius. The temporary public verification route was removed after capturing the preview. Authenticated feature routes were reviewed statically; no login credentials were supplied.
+
+34 targeted state/query/scope tests pass. Production TypeScript passes using a temporary config excluding existing test-fixture errors. Targeted lint has no errors; existing effect/memo warnings remain. Existing broad UI contract tests contain unrelated stale expectations and are not reported as passing. Independent review identified and corrected focus restoration, ambiguous top-down labels, stale planning request publication, URL navigation overwrites and contradictory design guidance.

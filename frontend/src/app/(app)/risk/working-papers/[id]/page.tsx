@@ -1,4 +1,7 @@
 "use client";
+import { PropertyList, PropertyLabel } from "@/components/shared/design-system/layout/property-list";
+
+import { DetailSidePanel } from "@/components/shared/design-system/layout/detail-side-panel";
 
 import { use, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -396,26 +399,24 @@ export default function WorkingPaperDetailPage(props: {
         </div>
 
         <div className="min-w-0 space-y-4 lg:sticky lg:top-6 lg:self-start">
-          <Card className="overflow-hidden transition-colors duration-300">
-            <CardContent className="">
-              <div className="space-y-4">
+          <DetailSidePanel>
                 <section aria-labelledby="working-paper-summary-properties">
                   <h2
                     id="working-paper-summary-properties"
-                    className="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground/70"
+                    className="text-sm font-semibold capitalize text-primary"
                   >
-                    Ringkasan
+                    Properti
                   </h2>
-                  <dl className="mt-3 space-y-3">
+                  <PropertyList>
                     {summaryItems.map(({ label, value }) => (
                       <div
                         key={label}
                         className="flex items-center justify-between gap-4"
                       >
-                        <dt className="text-[13px] text-muted-foreground">{label}</dt>
+                        <PropertyLabel>{label}</PropertyLabel>
                         <dd
                           className={cn(
-                            "max-w-[65%] break-words text-right text-foreground",
+                            "max-w-[60%] break-words text-right text-foreground",
                             label === "Kode" && "font-mono",
                           )}
                         >
@@ -429,7 +430,7 @@ export default function WorkingPaperDetailPage(props: {
                         </dd>
                       </div>
                     ))}
-                  </dl>
+                  </PropertyList>
                 </section>
 
                 <section
@@ -438,7 +439,7 @@ export default function WorkingPaperDetailPage(props: {
                 >
                   <h2
                     id="working-paper-monitoring-progress"
-                    className="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground/70"
+                    className="text-sm font-semibold capitalize text-primary"
                   >
                     Progres Pemantauan
                   </h2>
@@ -492,7 +493,7 @@ export default function WorkingPaperDetailPage(props: {
                           </ChartContainer>
                           <span
                             aria-hidden="true"
-                            className="pointer-events-none absolute inset-0 flex items-center justify-center text-base font-semibold tabular-nums text-foreground"
+                            className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm font-semibold tabular-nums text-foreground"
                           >
                             {finalizedMonitoringPercentage}%
                           </span>
@@ -520,7 +521,7 @@ export default function WorkingPaperDetailPage(props: {
                 >
                   <h2
                     id="working-paper-signature-history"
-                    className="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground/70"
+                    className="text-sm font-semibold capitalize text-primary"
                   >
                     Histori Tanda Tangan
                   </h2>
@@ -530,9 +531,7 @@ export default function WorkingPaperDetailPage(props: {
                     />
                   </div>
                 </section>
-              </div>
-            </CardContent>
-          </Card>
+          </DetailSidePanel>
         </div>
       </div>
 

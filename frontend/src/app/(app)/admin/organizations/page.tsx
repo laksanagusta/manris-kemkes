@@ -1,7 +1,10 @@
 "use client";
 
+import { newestCreatedFirst } from "@/lib/collection-created-at";
+
 import {
   useState,
+  useRef,
   useEffect,
   useCallback,
   useMemo,
@@ -23,6 +26,7 @@ import {
   CollectionToolbar,
   CollectionEmptyState,
   CollectionSearchField,
+  DynamicTableFilters,
   KpiCard,
   MetricGrid,
   PageStack,
@@ -157,6 +161,7 @@ export default function OrganizationsManagementPage() {
   const searchParams = useSearchParams();
   const { token } = useAuth();
   const [isPending, startTransition] = useTransition();
+  const skipUrlWrite = useRef(false);
 
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [allOrganizations, setAllOrganizations] = useState<Organization[]>([]);
@@ -168,6 +173,11 @@ export default function OrganizationsManagementPage() {
   const [selectedOrg, setSelectedOrg] = useState<Organization | undefined>();
 
   const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
+  const [uprLevelFilter, setUprLevelFilter] = useState(() => searchParams.get("upr_level") ?? "all");
+  const [structureFilter, setStructureFilter] = useState(() => {
+    const value = searchParams.get("structure");
+    return value === "root" || value === "child" ? value : "all";
+  });
   const [page, setPage] = useState(() =>
     parsePositiveInt(searchParams.get("page"), 1),
   );
@@ -178,7 +188,13 @@ export default function OrganizationsManagementPage() {
   const deferredSearch = useDeferredValue(search);
 
   useEffect(() => {
+    skipUrlWrite.current = true;
     const nextSearch = searchParams.get("q") ?? "";
+    const nextUprLevel = searchParams.get("upr_level") ?? "all";
+    const structure = searchParams.get("structure");
+    const nextStructure = structure === "root" || structure === "child" ? structure : "all";
+    setUprLevelFilter((current) => current === nextUprLevel ? current : nextUprLevel);
+    setStructureFilter((current) => current === nextStructure ? current : nextStructure);
     const nextPage = parsePositiveInt(searchParams.get("page"), 1);
     const nextLimit = parsePositiveInt(searchParams.get("limit"), 10);
 
@@ -188,6 +204,10 @@ export default function OrganizationsManagementPage() {
   }, [searchParams]);
 
   useEffect(() => {
+    if (skipUrlWrite.current) {
+      skipUrlWrite.current = false;
+      return;
+    }
     const nextParams = new URLSearchParams(searchParams.toString());
     const normalizedSearch = search.trim();
 
@@ -196,6 +216,11 @@ export default function OrganizationsManagementPage() {
     } else {
       nextParams.delete("q");
     }
+
+    if (uprLevelFilter === "all") nextParams.delete("upr_level");
+    else nextParams.set("upr_level", uprLevelFilter);
+    if (structureFilter === "all") nextParams.delete("structure");
+    else nextParams.set("structure", structureFilter);
 
     if (page === 1) {
       nextParams.delete("page");
@@ -223,7 +248,7 @@ export default function OrganizationsManagementPage() {
     startTransition(() => {
       router.replace(nextUrl, { scroll: false });
     });
-  }, [search, page, limit, pathname, router, searchParams, startTransition]);
+  }, [search, uprLevelFilter, structureFilter, page, limit, pathname, router, searchParams, startTransition]);
 
   useEffect(() => {
     if (!token) return;
@@ -247,7 +272,7 @@ export default function OrganizationsManagementPage() {
         const normalized = (result.data ?? [])
           .map((item) => normalizeOrganization(item))
           .filter((org): org is Organization => org !== null)
-          .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+          .sort(newestCreatedFirst);
 
         setOrganizations(normalized);
         setAllOrganizations(
@@ -290,14 +315,14 @@ export default function OrganizationsManagementPage() {
         const normalized = (result.data ?? [])
           .map((item) => normalizeOrganization(item))
           .filter((org): org is Organization => org !== null)
-          .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+          .sort(newestCreatedFirst);
 
         setOrganizations(normalized);
         setAllOrganizations(
           (allResult ?? [])
             .map((item) => normalizeOrganization(item))
             .filter((org): org is Organization => org !== null)
-            .sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()),
+            .sort(newestCreatedFirst),
         );
         setTotal(result.total ?? 0);
         setLoading(false);
@@ -335,8 +360,28 @@ export default function OrganizationsManagementPage() {
     return map;
   }, [allOrganizations]);
 
-  const rootUnits = organizations.filter((o) => !o.parentId).length;
-  const subUnits = organizations.length - rootUnits;
+  const hasFieldFilters = uprLevelFilter !== "all" || structureFilter !== "all";
+  const filteredOrganizations = useMemo(() => allOrganizations.filter((org) => {
+    if (uprLevelFilter !== "all" && org.uprLevel !== uprLevelFilter) return false;
+    if (structureFilter === "root" && org.parentId) return false;
+    if (structureFilter === "child" && !org.parentId) return false;
+    return true;
+  }), [allOrganizations, uprLevelFilter, structureFilter]);
+  const visibleTotal = hasFieldFilters ? filteredOrganizations.length : total;
+  const visiblePage = hasFieldFilters
+    ? Math.min(page, Math.max(1, Math.ceil(visibleTotal / limit)))
+    : page;
+  const visibleOrganizations = hasFieldFilters
+    ? filteredOrganizations.slice((visiblePage - 1) * limit, visiblePage * limit)
+    : organizations;
+  const uprLevels = useMemo(() => [...new Set([
+    ...Object.keys(uprLevelLabel),
+    ...allOrganizations.map((org) => org.uprLevel).filter((level): level is string => Boolean(level)),
+    ...(uprLevelFilter !== "all" ? [uprLevelFilter] : []),
+  ])], [allOrganizations, uprLevelFilter]);
+
+  const rootUnits = visibleOrganizations.filter((o) => !o.parentId).length;
+  const subUnits = visibleOrganizations.length - rootUnits;
 
   return (
     <PageStack>
@@ -346,7 +391,7 @@ export default function OrganizationsManagementPage() {
         <MetricGrid className="md:grid-cols-3 xl:grid-cols-3">
           <KpiCard
             label="Total Unit"
-            value={total}
+            value={visibleTotal}
             tone="white"
             icon={<Building2 className="size-5 text-muted-foreground" />}
           />
@@ -358,15 +403,48 @@ export default function OrganizationsManagementPage() {
         <CollectionToolbar
           className="w-full"
           leading={
-            <CollectionSearchField
-              containerClassName="w-full sm:w-80 sm:flex-none"
-              placeholder="Cari organisasi..."
-              aria-label="Cari organisasi"
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
-                setPage(1);
-              }}
+            <DynamicTableFilters
+              search={
+                <CollectionSearchField
+                  containerClassName="w-full sm:w-80 sm:flex-none"
+                  placeholder="Cari organisasi..."
+                  aria-label="Cari organisasi"
+                  value={search}
+                  onChange={(event) => {
+                    setSearch(event.target.value);
+                    setPage(1);
+                  }}
+                />
+              }
+              fields={[
+                {
+                  id: "upr-level",
+                  label: "Level UPR",
+                  value: uprLevelFilter,
+                  onChange: (value) => {
+                    setUprLevelFilter(value);
+                    setPage(1);
+                  },
+                  options: [
+                    { value: "all", label: "Semua level UPR" },
+                    ...uprLevels.map((level) => ({ value: level, label: uprLevelLabel[level] ?? level })),
+                  ],
+                },
+                {
+                  id: "structure",
+                  label: "Struktur unit",
+                  value: structureFilter,
+                  onChange: (value) => {
+                    setStructureFilter(value);
+                    setPage(1);
+                  },
+                  options: [
+                    { value: "all", label: "Semua struktur unit" },
+                    { value: "root", label: "Unit induk" },
+                    { value: "child", label: "Sub unit" },
+                  ],
+                },
+              ]}
             />
           }
           actions={
@@ -402,7 +480,7 @@ export default function OrganizationsManagementPage() {
                     <Loader2 className="size-5 animate-spin mx-auto text-muted-foreground" />
                   </TableCell>
                 </TableRow>
-              ) : organizations.length === 0 ? (
+              ) : visibleOrganizations.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="h-24">
                     <CollectionEmptyState
@@ -412,7 +490,7 @@ export default function OrganizationsManagementPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                organizations.map((org) => (
+                visibleOrganizations.map((org) => (
                   <OrgRow
                     key={getOrganizationKey(org)}
                     org={org}
@@ -427,9 +505,9 @@ export default function OrganizationsManagementPage() {
 
           <CollectionPagination
             itemLabel="organisasi"
-            page={page}
+            page={visiblePage}
             pageSize={limit}
-            total={total}
+            total={visibleTotal}
             disabled={isPending}
             onPageChange={setPage}
             onPageSizeChange={(nextLimit) => {

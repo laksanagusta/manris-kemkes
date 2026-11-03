@@ -21,7 +21,7 @@ export function AIFeaturesDisabledState({
           </div>
           <div className="space-y-2">
             <CardTitle className="">{title}</CardTitle>
-            <p className="text-sm leading-6 text-secondary-foreground">
+            <p data-slot="card-description" className="text-sm leading-6 text-secondary-foreground">
               {description}
             </p>
           </div>

@@ -8,5 +8,5 @@ export function MitigationPlanListExample() {
   const [items, setItems] = useState<MitigationItem[]>([
     { action: "Validasi kelengkapan laporan setiap minggu", owner: "Tim pelaporan", mitigationType: "reduce_probability", activityStage: "Pelaksanaan", expectedOutput: "Laporan tervalidasi", quantitativeTarget: "100% laporan", supportingUnit: "Unit program", isExistingControl: true },
   ]);
-  return <div className="w-full max-w-3xl"><MitigationPlanList items={items} onChange={setItems} /></div>;
+  return <div className="w-full max-w-3xl"><MitigationPlanList presentation="table" items={items} onChange={setItems} /></div>;
 }

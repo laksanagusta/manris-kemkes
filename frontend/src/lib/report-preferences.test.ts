@@ -22,3 +22,8 @@ test("malformed data and future periods are ignored", () => {
 test("explicit empty group selections stay empty", () => {
   assert.deepEqual(parseReportPreferences(saved([], "g"), "2026-Q4", organizations, groups)?.scope.organizationIds, []);
 });
+
+test("legacy comparison preferences do not affect the single-period widgets", () => {
+ const raw=JSON.stringify({cycle:"2026-Q3",comparisonOverride:"invalid",scope:{organizationGroupId:"",organizationIds:["a"]}});
+ assert.deepEqual(parseReportPreferences(raw,"2026-Q4",organizations,groups),{cycle:"2026-Q3",scope:{organizationId:"a",organizationGroupId:"",organizationIds:["a"]}});
+});

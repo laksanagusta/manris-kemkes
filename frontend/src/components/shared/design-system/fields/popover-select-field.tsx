@@ -105,7 +105,7 @@ export function PopoverSelectField({
         avoidCollisions={avoidCollisions}
         sideOffset={8}
         className={cn(
-          "w-[var(--radix-dropdown-menu-trigger-width)]",
+          "w-[var(--radix-dropdown-menu-trigger-width)] rounded-control",
           contentClassName,
         )}
       >
@@ -121,7 +121,7 @@ export function PopoverSelectField({
               <DropdownMenuRadioItem
                 key={option.value}
                 value={option.value}
-                className={cn(fitContent && "whitespace-nowrap", optionClassName)}
+                className={cn("rounded-control", fitContent && "whitespace-nowrap", optionClassName)}
               >
                 {option.label}
               </DropdownMenuRadioItem>

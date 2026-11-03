@@ -2,7 +2,7 @@ import { MarketingReveal } from "./marketing-reveal";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Check, Sparkles } from "@/components/shared/icons";
+import { AgentIcon, ArrowRight, Check, Sparkles } from "@/components/shared/icons";
 import dashboardScreenshot from "../../../public/marketing/screens/dashboard.png";
 import registerScreenshot from "../../../public/marketing/screens/risk-register.png";
 import extractionScreenshot from "../../../public/marketing/screens/sop-extraction.png";
@@ -45,9 +45,7 @@ export function MarketingPreview({ kind = "dashboard", hero = false }: { kind?: 
   const preview = previews[kind];
   return (
     <figure className={`${styles.preview} ${hero ? styles.heroPreview : ""}`}>
-      <div className={styles.previewBackdrop} aria-hidden="true">
-        <Image src="/documentation/manris-landscape.jpg" alt="" fill sizes={hero ? "100vw" : "(max-width: 760px) 100vw, 600px"} />
-      </div>
+      <div className={styles.previewBackdrop} aria-hidden="true" />
       <div className={styles.previewScreen}>
         <div className={styles.windowBar} aria-hidden="true">
           <span /><span /><span />
@@ -79,6 +77,44 @@ export function MarketingPreview({ kind = "dashboard", hero = false }: { kind?: 
   );
 }
 
+function MarketingAgentPreview() {
+  return (
+    <figure className={`${styles.preview} ${styles.agentPreview}`} aria-label="Contoh percakapan AI Agent Manrisk">
+      <div className={styles.previewBackdrop} aria-hidden="true" />
+      <div className={`${styles.previewScreen} ${styles.agentScreen}`}>
+        <div className={styles.windowBar} aria-hidden="true"><span /><span /><span /><small>manrisk / agent</small></div>
+        <div className={styles.agentConversation}>
+          <div className={styles.agentPreviewHeader}><span><AgentIcon width={18} height={18} aria-hidden="true" /> AI Agent</span><small>Contoh percakapan</small></div>
+          <p className={styles.agentQuestion}>Apa yang perlu ditindaklanjuti dari risiko unit saya?</p>
+          <div className={styles.agentAnswer}>
+            <p>Prioritaskan risiko berskor tinggi dan tinjau penanganan yang belum dilaporkan.</p>
+            <ul><li><Check size={14} aria-hidden="true" /> Tinjau profil dan penyebab risiko</li><li><Check size={14} aria-hidden="true" /> Telusuri progres penanganan</li><li><Check size={14} aria-hidden="true" /> Susun usulan tindak lanjut</li></ul>
+          </div>
+          <small className={styles.agentReviewNote}>Usulan perubahan ditinjau sebelum diterapkan.</small>
+        </div>
+      </div>
+    </figure>
+  );
+}
+
+export function MarketingFeatures() {
+  return (
+    <div className={styles.featureGrid}>
+      <MarketingReveal as="article" className={styles.feature}>
+        <MarketingPreview kind="register" />
+        <h3>Profil risiko dalam satu tampilan.</h3>
+        <p>Lihat skor, status, dan progres pemantauan setiap risiko. Gunakan informasi yang sama untuk menentukan prioritas tim.</p>
+      </MarketingReveal>
+      <MarketingReveal as="article" className={styles.feature}>
+        <MarketingAgentPreview />
+        <h3>Tinjau risiko bersama AI Agent.</h3>
+        <p>Tanyakan profil risiko, telusuri penanganan dan kejadian, lalu susun usulan tindak lanjut melalui percakapan. Tinjau usulan sebelum menerapkan perubahan.</p>
+        <Link href="/agent" className={styles.textLink}>Buka AI Agent <ArrowRight size={16} /></Link>
+      </MarketingReveal>
+    </div>
+  );
+}
+
 export function MarketingSystemExample() {
   return (
     <>
@@ -97,12 +133,13 @@ export function MarketingSystemExample() {
         <div className={styles.exampleCopy}>
           <span className={styles.eyebrow}>Public homepage</span>
           <h3>Kelola risiko bersama tim.<br /><span>Mulai dengan Manrisk.</span></h3>
-          <p>Inter, palet netral, tombol pill, dan preview produk dari homepage Manrisk.</p>
+          <p>Geist, palet netral, tombol pill, dan preview produk dari homepage Manrisk.</p>
           <MarketingActions />
           <Link href="/" className={styles.textLink}>Lihat homepage <ArrowRight size={16} /></Link>
         </div>
         <MarketingPreview kind="dashboard" />
       </MarketingReveal>
+      <div className={styles.surface}><MarketingFeatures /></div>
     </>
   );
 }

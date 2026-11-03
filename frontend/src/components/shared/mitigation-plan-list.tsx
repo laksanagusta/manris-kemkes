@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
 import { IllustratedEmptyState, PopoverSelectField } from "@/components/shared/design-system";
+import { MitigationPlanLedger } from "./mitigation-plan-ledger";
 import { RemoteUserPicker } from "@/components/risk/remote-user-picker";
 import type { MitigationItem } from "@/components/shared/mitigation-table";
 import type { UserPickerOption } from "@/lib/risk-register-user-picker";
@@ -32,6 +33,7 @@ const detailFields = [
 ] as const;
 
 type Props = {
+  presentation?: "list" | "table";
   items: MitigationItem[];
   onChange: (items: MitigationItem[]) => void;
   disabled?: boolean;
@@ -45,6 +47,7 @@ type Props = {
 };
 
 export function MitigationPlanList({
+  presentation = "list",
   items,
   onChange,
   disabled,
@@ -171,7 +174,9 @@ export function MitigationPlanList({
 
   return (
     <div className="space-y-3">
-      {items.length === 0 ? (
+      {presentation === "table" ? (
+        <MitigationPlanLedger items={items} disabled={disabled} hideAddButton={hideAddButton} actionErrors={actionErrors} onEdit={begin} onRemove={(index) => onChange(items.filter((_, i) => i !== index))} />
+      ) : items.length === 0 ? (
         emptyStatePresentation === "plain" ? (
           <p className="py-4 text-sm text-muted-foreground">Belum ada rencana mitigasi.</p>
         ) : (
@@ -217,7 +222,7 @@ export function MitigationPlanList({
           ))}
         </ul>
       )}
-      {!hideAddButton ? (
+      {!hideAddButton && presentation !== "table" ? (
         <Button type="button" variant="outline" onClick={() => begin(null)} disabled={disabled}><Plus data-icon="inline-start" />Tambah Rencana Penanganan</Button>
       ) : null}
       <Dialog open={open && !disabled} onOpenChange={setOpen}>

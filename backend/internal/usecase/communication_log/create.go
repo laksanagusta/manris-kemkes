@@ -2,6 +2,7 @@ package communication_log
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -33,8 +34,6 @@ func NewCreateCommunicationLogUseCase(
 // Input represents the input for creating a communication log
 type CreateCommunicationLogInput struct {
 	RiskID      string
-	Date        string // ISO date format (YYYY-MM-DD)
-	Method      string
 	Stakeholder string
 	Notes       string
 	CreatedBy   string
@@ -45,8 +44,6 @@ type CreateCommunicationLogInput struct {
 type CreateCommunicationLogOutput struct {
 	ID            string
 	RiskID        string
-	Date          string
-	Method        string
 	Stakeholder   string
 	Notes         string
 	CreatedBy     string
@@ -56,6 +53,12 @@ type CreateCommunicationLogOutput struct {
 
 // Execute creates a new communication log
 func (uc *CreateCommunicationLogUseCase) Execute(ctx context.Context, input CreateCommunicationLogInput) (*CreateCommunicationLogOutput, error) {
+	input.Stakeholder = strings.TrimSpace(input.Stakeholder)
+	input.Notes = strings.TrimSpace(input.Notes)
+	if input.Stakeholder == "" || input.Notes == "" {
+		return nil, domainerrors.ErrInvalidInput
+	}
+
 	riskID, err := uuid.Parse(input.RiskID)
 	if err != nil {
 		return nil, domainerrors.ErrInvalidInput
@@ -72,17 +75,6 @@ func (uc *CreateCommunicationLogUseCase) Execute(ctx context.Context, input Crea
 		return nil, domainerrors.ErrRiskNotFound
 	}
 
-	// Validate method
-	if !entity.IsValidMethod(input.Method) {
-		return nil, domainerrors.ErrInvalidInput
-	}
-
-	// Parse date
-	date, err := time.Parse("2006-01-02", input.Date)
-	if err != nil {
-		return nil, domainerrors.ErrInvalidInput
-	}
-
 	// Get user name
 	user, err := uc.userRepo.GetByID(ctx, createdBy)
 	if err != nil {
@@ -91,8 +83,6 @@ func (uc *CreateCommunicationLogUseCase) Execute(ctx context.Context, input Crea
 
 	commLog := &entity.CommunicationLog{
 		RiskID:      riskID,
-		Date:        date,
-		Method:      input.Method,
 		Stakeholder: input.Stakeholder,
 		Notes:       input.Notes,
 		CreatedBy:   createdBy,
@@ -105,8 +95,6 @@ func (uc *CreateCommunicationLogUseCase) Execute(ctx context.Context, input Crea
 	return &CreateCommunicationLogOutput{
 		ID:            commLog.ID.String(),
 		RiskID:        commLog.RiskID.String(),
-		Date:          commLog.Date.Format("2006-01-02"),
-		Method:        commLog.Method,
 		Stakeholder:   commLog.Stakeholder,
 		Notes:         commLog.Notes,
 		CreatedBy:     commLog.CreatedBy.String(),

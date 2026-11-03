@@ -1,12 +1,14 @@
 "use client";
 
+import { newestCreatedFirst } from "@/lib/collection-created-at";
+
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -21,9 +23,7 @@ import { cn } from "@/lib/utils";
 import {
   ShieldCheck,
   Plus,
-  ChevronRight,
   ChevronDown,
-  XCircle,
   Calendar,
   User,
 } from "@/components/shared/icons";
@@ -32,8 +32,121 @@ import {
   CollectionToolbar,
   CollectionEmptyState,
   CollectionSearchField,
+  DynamicTableFilters,
   PageStack,
 } from "@/components/shared/design-system";
+
+type ControlTestRecord = {
+  id?: string;
+  date?: string;
+  testDate?: string;
+  tester?: string;
+  result?: string;
+  deficiency?: string;
+};
+
+function getControlTestDate(test: ControlTestRecord) {
+  return (test.date ?? test.testDate ?? "").slice(0, 10);
+}
+
+function ControlTestingRecords({ tests, readOnly }: {
+  tests: readonly ControlTestRecord[];
+  readOnly: boolean;
+}) {
+  const [search, setSearch] = useState("");
+  const [resultFilter, setResultFilter] = useState("all");
+  const [testerFilter, setTesterFilter] = useState("all");
+  const [dateFilter, setDateFilter] = useState("");
+  const results = [...new Set([
+    ...tests.map((test) => test.result).filter((value): value is string => Boolean(value)),
+    ...(resultFilter !== "all" ? [resultFilter] : []),
+  ])].sort((a, b) => a.localeCompare(b, "id"));
+  const testers = [...new Set([
+    ...tests.map((test) => test.tester).filter((value): value is string => Boolean(value)),
+    ...(testerFilter !== "all" ? [testerFilter] : []),
+  ])].sort((a, b) => a.localeCompare(b, "id"));
+  const filteredTests = tests.map((test, index) => ({ test, key: test.id ?? index })).filter(({ test }) => {
+    if (resultFilter !== "all" && test.result !== resultFilter) return false;
+    if (testerFilter !== "all" && test.tester !== testerFilter) return false;
+    if (dateFilter && getControlTestDate(test) !== dateFilter) return false;
+    return [test.tester, test.result, test.deficiency, test.date ?? test.testDate].join(" ").toLowerCase().includes(search.trim().toLowerCase());
+  });
+
+  return (
+    <div className="space-y-3 border-t border-border/30 px-4 pb-4 pt-3">
+      <div className="flex items-center justify-between gap-3">
+        <h4 className="text-xs font-semibold">Testing Records</h4>
+        {!readOnly && (
+          <Button variant="outline" size="xs">
+            <Plus className="size-2.5" />
+            Tambah Testing
+          </Button>
+        )}
+      </div>
+      <DynamicTableFilters
+        search={
+          <CollectionSearchField
+            aria-label="Cari testing record"
+            placeholder="Cari tester, hasil, atau temuan..."
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+        }
+        fields={[
+          {
+            id: "result",
+            label: "Hasil",
+            value: resultFilter,
+            onChange: setResultFilter,
+            options: [{ value: "all", label: "Semua hasil" }, ...results.map((value) => ({ value, label: value }))],
+          },
+          {
+            id: "tester",
+            label: "Tester",
+            value: testerFilter,
+            onChange: setTesterFilter,
+            options: [{ value: "all", label: "Semua tester" }, ...testers.map((value) => ({ value, label: value }))],
+          },
+          { id: "date", label: "Tanggal", type: "date", value: dateFilter, onChange: setDateFilter },
+        ]}
+      />
+      <Table>
+        <TableHeader>
+          <TableRow className="hover:bg-transparent">
+            <TableHead className="w-28 whitespace-nowrap">Tanggal</TableHead>
+            <TableHead className="whitespace-nowrap">Tester</TableHead>
+            <TableHead className="w-28 whitespace-nowrap">Hasil</TableHead>
+            <TableHead className="whitespace-nowrap">Temuan</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {filteredTests.length > 0 ? filteredTests.map(({ test, key }) => (
+            <TableRow key={key}>
+              <TableCell>
+                <span className="flex items-center gap-1">
+                  <Calendar className="size-3" aria-hidden="true" />
+                  {getControlTestDate(test) || "—"}
+                </span>
+              </TableCell>
+              <TableCell>{test.tester || "—"}</TableCell>
+              <TableCell>{test.result || "—"}</TableCell>
+              <TableCell>{test.deficiency || "—"}</TableCell>
+            </TableRow>
+          )) : (
+            <TableRow>
+              <TableCell colSpan={4} className="h-24">
+                <CollectionEmptyState
+                  title={tests.length === 0 ? "Belum ada testing record untuk control ini" : "Tidak ada testing record yang cocok"}
+                  description={tests.length === 0 ? "Testing record yang tersedia akan tampil di sini." : "Ubah kata kunci atau filter untuk melihat testing record lain."}
+                />
+              </TableCell>
+            </TableRow>
+          )}
+        </TableBody>
+      </Table>
+    </div>
+  );
+}
 
 export default function ControlsPage() {
   const { token, user } = useAuth();
@@ -59,7 +172,7 @@ export default function ControlsPage() {
 
     api.get<any[]>("/controls", token)
       .then(data => {
-        const sorted = [...(data || [])].sort((a, b) => new Date(b.created_at || b.createdAt || 0).getTime() - new Date(a.created_at || a.createdAt || 0).getTime());
+        const sorted = [...(data || [])].sort(newestCreatedFirst);
         setControls(sorted);
         setLoading(false);
       })
@@ -108,8 +221,6 @@ export default function ControlsPage() {
            />
         ) : filteredControls.map((control) => {
           const isExpanded = expandedId === control.id;
-          const lastTest = control.tests?.[0];
-          const effectiveCount = control.tests ? control.tests.filter((t: any) => t.result === "Efektif").length : 0;
 
           return (
             <Card key={control.id} className="transition-[background-color,border-color,box-shadow]">
@@ -166,51 +277,10 @@ export default function ControlsPage() {
 
                 {/* Expanded: Testing records */}
                 {isExpanded && (
-                  <div className="border-t border-border/30 px-4 pb-4">
-                    <div className="flex items-center justify-between py-3">
-                      <h4 className="text-xs font-semibold">Testing Records</h4>
-                      {!isReadOnlyForOrg(user, control.organizationId) && (
-                        <Button variant="outline" size="xs" className="">
-                          <Plus className="size-2.5" />
-                          Tambah Testing
-                        </Button>
-                      )}
-                    </div>
-                     <Table>
-                       <TableHeader>
-                         <TableRow className="hover:bg-transparent">
-                           <TableHead className="w-28 whitespace-nowrap">Tanggal</TableHead>
-                           <TableHead className="whitespace-nowrap">Tester</TableHead>
-                           <TableHead className="w-28 whitespace-nowrap">Hasil</TableHead>
-                           <TableHead className="whitespace-nowrap">Temuan</TableHead>
-                         </TableRow>
-                       </TableHeader>
-                      <TableBody>
-                        {control.tests && control.tests.length > 0 ? control.tests.map((test: any, i: number) => (
-                           <TableRow key={i} className="">
-                             {/* render test rows */}
-                             <TableCell className="">
-                               <span className="flex items-center gap-1">
-                                 <Calendar className="size-3" />
-                                 {test.date}
-                               </span>
-                             </TableCell>
-                             <TableCell className="">{test.tester}</TableCell>
-                             {/* ... */}
-                           </TableRow>
-                        )) : (
-                           <TableRow>
-                             <TableCell colSpan={4} className="h-24">
-                               <CollectionEmptyState
-                                 title="Belum ada testing record untuk control ini"
-                                 description="Tambahkan testing record baru untuk memulai pemantauan."
-                               />
-                             </TableCell>
-                           </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
+                  <ControlTestingRecords
+                    tests={Array.isArray(control.tests) ? control.tests : []}
+                    readOnly={isReadOnlyForOrg(user, control.organizationId)}
+                  />
                 )}
               </CardContent>
             </Card>

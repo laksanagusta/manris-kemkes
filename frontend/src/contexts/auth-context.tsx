@@ -10,12 +10,12 @@ import {
   type ReactNode,
 } from "react";
 import { api, ApiError } from "@/lib/api";
+import { getPostAuthRoute } from "@/lib/post-auth-route";
 import type { RiskApprovalCapabilities } from "@/lib/risk-approval-capability";
 
 const AUTH_TOKEN_STORAGE_KEY = "manris_token";
 const LOGIN_ROUTE = "/login";
 const CHANGE_PASSWORD_ROUTE = "/change-password";
-const OVERVIEW_ROUTE = "/overview";
 
 export type SessionMode = "setup" | "full";
 
@@ -132,9 +132,6 @@ function resolveSessionMode(sessionMode: string | undefined, mustChangePassword:
   return mustChangePassword ? "setup" : "full";
 }
 
-function getPostAuthRedirectPath(mustChangePassword: boolean) {
-  return mustChangePassword ? CHANGE_PASSWORD_ROUTE : OVERVIEW_ROUTE;
-}
 
 function normalizeAuthPayload(raw: AuthPayload | User | null | undefined) {
   if (!raw) {
@@ -235,7 +232,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       user: normalized.user,
       sessionMode: normalized.sessionMode,
       mustChangePassword: normalized.mustChangePassword,
-      redirectTo: getPostAuthRedirectPath(normalized.mustChangePassword),
+      redirectTo: getPostAuthRoute(normalized.user.role, normalized.mustChangePassword),
     } satisfies AuthTransition;
   }, [clearSession]);
 
@@ -358,7 +355,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const requiresPasswordChange = Boolean(isAuthenticated && mustChangePassword);
   const hasFullSession = Boolean(isAuthenticated && !requiresPasswordChange && sessionMode === "full");
   const postAuthRedirectPath = isAuthenticated
-    ? getPostAuthRedirectPath(requiresPasswordChange)
+    ? getPostAuthRoute(user?.role ?? "", requiresPasswordChange)
     : LOGIN_ROUTE;
 
   const value = useMemo(() => ({

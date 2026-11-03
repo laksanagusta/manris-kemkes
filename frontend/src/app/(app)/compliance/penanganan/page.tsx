@@ -1,3 +1,4 @@
+import { OperatorWorkReturnLink } from "@/components/operator-work/return-link";
 import { MitigationMonitoringPanel } from "../_components/mitigation-monitoring-panel";
 import {
   CollectionPageHeader,
@@ -7,6 +8,7 @@ import {
 export default function PenangananPage() {
   return (
     <PageStack>
+      <OperatorWorkReturnLink />
       <CollectionPageHeader
         title="Penanganan"
       />

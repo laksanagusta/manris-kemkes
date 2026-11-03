@@ -48,3 +48,9 @@ test("buildMitigationMonitoringApiQueryString always sends page and limit", () =
 
   assert.equal(query, "page=1&limit=10");
 });
+
+test("reporting due is a native status filter and survives search and pagination",()=>{
+ const state=parseMitigationMonitoringQueryState(new URLSearchParams("status=needs_reporting&q=distribusi&page=2"));
+ assert.equal(state.status,"needs_reporting");
+ assert.equal(buildMitigationMonitoringApiQueryString(state),"q=distribusi&status=needs_reporting&page=2&limit=10");
+});

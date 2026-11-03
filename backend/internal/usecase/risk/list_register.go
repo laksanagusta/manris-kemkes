@@ -18,18 +18,19 @@ func NewListRiskRegisterUseCase(riskRepo repository.RiskRepository) *ListRiskReg
 }
 
 type ListRiskRegisterInput struct {
-	View            string
-	OrgIDs          []uuid.UUID
-	Status          string
-	Lifecycle       string
-	Category        string
-	AssessmentCycle string
-	CreatedAt       string
-	Query           string
-	Page            int
-	Limit           int
-	SortBy          string
-	SortOrder       string
+	View             string
+	OrgIDs           []uuid.UUID
+	Status           string
+	Lifecycle        string
+	Category         string
+	MonitoringStatus string
+	AssessmentCycle  string
+	CreatedAt        string
+	Query            string
+	Page             int
+	Limit            int
+	SortBy           string
+	SortOrder        string
 }
 
 type ListRiskRegisterResult struct {
@@ -41,6 +42,11 @@ type ListRiskRegisterResult struct {
 
 func (uc *ListRiskRegisterUseCase) Execute(ctx context.Context, input ListRiskRegisterInput) (*ListRiskRegisterResult, error) {
 	input.Status = canonicalRiskStatus(input.Status)
+	if input.MonitoringStatus != "" && input.MonitoringStatus != "all" {
+		if (input.MonitoringStatus != "monitored" && input.MonitoringStatus != "not_monitored") || !IsValidQuarterFormat(input.AssessmentCycle) {
+			return nil, domainerrors.ErrRiskMonitoringFilterInvalid
+		}
+	}
 	if input.Category != "" && !entity.IsValidRiskCategory(input.Category) {
 		return nil, domainerrors.ErrInvalidRiskCategory
 	}
@@ -55,18 +61,19 @@ func (uc *ListRiskRegisterUseCase) Execute(ctx context.Context, input ListRiskRe
 	}
 
 	risks, total, err := uc.riskRepo.ListRegister(ctx, repository.RiskRegisterFilter{
-		View:            input.View,
-		OrgIDs:          input.OrgIDs,
-		Status:          input.Status,
-		Lifecycle:       input.Lifecycle,
-		Category:        input.Category,
-		AssessmentCycle: input.AssessmentCycle,
-		CreatedAt:       input.CreatedAt,
-		Query:           input.Query,
-		Page:            input.Page,
-		Limit:           input.Limit,
-		SortBy:          input.SortBy,
-		SortOrder:       input.SortOrder,
+		View:             input.View,
+		OrgIDs:           input.OrgIDs,
+		Status:           input.Status,
+		Lifecycle:        input.Lifecycle,
+		Category:         input.Category,
+		AssessmentCycle:  input.AssessmentCycle,
+		MonitoringStatus: input.MonitoringStatus,
+		CreatedAt:        input.CreatedAt,
+		Query:            input.Query,
+		Page:             input.Page,
+		Limit:            input.Limit,
+		SortBy:           input.SortBy,
+		SortOrder:        input.SortOrder,
 	})
 	if err != nil {
 		return nil, err

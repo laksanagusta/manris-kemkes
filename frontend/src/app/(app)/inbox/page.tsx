@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Clock,
@@ -17,6 +17,7 @@ import {
   CollectionErrorState,
   CollectionLoadingState,
   CollectionSearchField,
+  DynamicTableFilters,
   CollectionTableCard,
   CollectionTableHead,
   CollectionTableHeader,
@@ -34,11 +35,6 @@ import {
   TableCell,
   TableRow,
 } from "@/components/ui/table";
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from "@/components/shared/animated-tabs";
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
 import { getLinearStatusBadgeClassName, getLinearStatusBadgeTone } from "@/lib/linear-status-badge";
@@ -173,6 +169,28 @@ async function getWorkingPaperSigningItems(
   }));
 }
 
+async function getAllInboxItems(token: string): Promise<InboxItem[]> {
+  const [approvals, signingItems] = await Promise.all([
+    (async () => {
+      const rows: ApprovalRequest[] = [];
+      let page = 1;
+      while (true) {
+        const response = await getApprovalRequests(token, { status: "all", page, limit: 100 });
+        const data = response.data ?? [];
+        rows.push(...data);
+        if (data.length === 0 || rows.length >= response.total) return rows;
+        page += 1;
+      }
+    })(),
+    getWorkingPaperSigningItems(token).catch(() => []),
+  ]);
+  return [...approvals, ...signingItems].sort((a, b) => {
+    const dateA = "createdAt" in a ? a.createdAt : a.requestedAt;
+    const dateB = "createdAt" in b ? b.createdAt : b.requestedAt;
+    return new Date(dateB).getTime() - new Date(dateA).getTime();
+  });
+}
+
 export default function InboxPage() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
@@ -180,6 +198,7 @@ export default function InboxPage() {
   const { token, user } = useAuth();
   const currentUserId = user?.id ?? "";
   const [isPending, startTransition] = useTransition();
+  const skipUrlWrite = useRef(false);
   const [filter, setFilter] = useState<
     "all" | "my_approvals" | "approved" | "rejected"
   >(() => {
@@ -197,6 +216,7 @@ export default function InboxPage() {
     return "all";
   });
   const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
+  const [typeFilter, setTypeFilter] = useState(() => searchParams.get("type") ?? "all");
   const [requests, setRequests] = useState<InboxItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -206,39 +226,13 @@ export default function InboxPage() {
   const [limit, setLimit] = useState(() =>
     parsePositiveInt(searchParams.get("limit"), 10),
   );
-  const [approvalTotal, setApprovalTotal] = useState(0);
   const refreshRequests = async () => {
     if (!token) return;
 
     try {
       setLoading(true);
       setError(null);
-      const [approvalsRes, wpSigningItems] = await Promise.all([
-        getApprovalRequests(token, { status: "all", page, limit }),
-        getWorkingPaperSigningItems(token).catch(() => []),
-      ]);
-      setApprovalTotal(approvalsRes.total ?? 0);
-      setPage(approvalsRes.page ?? page);
-      setLimit(approvalsRes.limit ?? limit);
-      setRequests(
-        [...(approvalsRes.data ?? []), ...wpSigningItems].sort(
-          (a, b) => {
-            const dateA =
-              (a as any).requestedAt ||
-              (a as any).submittedAt ||
-              (a as any).createdAt ||
-              (a as any).created_at ||
-              0;
-            const dateB =
-              (b as any).requestedAt ||
-              (b as any).submittedAt ||
-              (b as any).createdAt ||
-              (b as any).created_at ||
-              0;
-            return new Date(dateB).getTime() - new Date(dateA).getTime();
-          },
-        ),
-      );
+      setRequests(await getAllInboxItems(token));
     } catch (err) {
       console.error(err);
       setError(
@@ -250,8 +244,10 @@ export default function InboxPage() {
   };
 
   useEffect(() => {
+    skipUrlWrite.current = true;
     const queryStatus = searchParams.get("status");
     const querySearch = searchParams.get("search");
+    setTypeFilter(searchParams.get("type") ?? "all");
     const nextPage = parsePositiveInt(searchParams.get("page"), 1);
     const nextLimit = parsePositiveInt(searchParams.get("limit"), 10);
 
@@ -280,55 +276,32 @@ export default function InboxPage() {
       setLoading(false);
       return;
     }
-
-    const loadRequests = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const [approvalsRes, wpSigningItems] = await Promise.all([
-          getApprovalRequests(token, { status: "all", page, limit }),
-          getWorkingPaperSigningItems(token).catch(() => []),
-        ]);
-        setApprovalTotal(approvalsRes.total ?? 0);
-        setPage(approvalsRes.page ?? page);
-        setLimit(approvalsRes.limit ?? limit);
-        setRequests(
-          [...(approvalsRes.data ?? []), ...wpSigningItems].sort(
-            (a, b) => {
-              const dateA =
-                (a as any).requestedAt ||
-                (a as any).submittedAt ||
-                (a as any).createdAt ||
-                (a as any).created_at ||
-                0;
-              const dateB =
-                (b as any).requestedAt ||
-                (b as any).submittedAt ||
-                (b as any).createdAt ||
-                (b as any).created_at ||
-                0;
-              return new Date(dateB).getTime() - new Date(dateA).getTime();
-            },
-          ),
-        );
-      } catch (err) {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    getAllInboxItems(token)
+      .then((items) => {
+        if (!cancelled) setRequests(items);
+      })
+      .catch((err) => {
+        if (cancelled) return;
         console.error(err);
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Gagal memuat daftar persetujuan.",
-        );
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void loadRequests();
-  }, [token, page, limit]);
+        setError(err instanceof Error ? err.message : "Gagal memuat daftar persetujuan.");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [token]);
 
   useEffect(() => {
+    if (skipUrlWrite.current) {
+      skipUrlWrite.current = false;
+      return;
+    }
     const nextParams = new URLSearchParams(searchParams.toString());
-    nextParams.delete("type");
+    if (typeFilter === "all") nextParams.delete("type");
+    else nextParams.set("type", typeFilter);
 
     if (filter === "all") {
       nextParams.delete("status");
@@ -370,10 +343,12 @@ export default function InboxPage() {
   }, [
     filter,
     search,
+    typeFilter,
     page,
     limit,
     pathname,
     router,
+    searchParams,
     startTransition,
   ]);
 
@@ -384,7 +359,7 @@ export default function InboxPage() {
     return (item as ApprovalRequest).currentStatus;
   };
 
-  const isMyApproval = (item: InboxItem): boolean => {
+  const isMyApproval = useCallback((item: InboxItem): boolean => {
     if (item.requestType === "working_paper") {
       return true;
     }
@@ -394,7 +369,7 @@ export default function InboxPage() {
       return approvalItem.currentApproverUserId === currentUserId;
     }
     return false;
-  };
+  }, [currentUserId]);
 
   const counts = useMemo(
     () => ({
@@ -411,7 +386,7 @@ export default function InboxPage() {
           (item as ApprovalRequest).currentStatus === "rejected",
       ).length,
     }),
-    [requests, currentUserId],
+    [requests, isMyApproval],
   );
 
   const summaryCards = [
@@ -439,6 +414,7 @@ export default function InboxPage() {
 
   const filteredRequests = useMemo(() => {
     return requests.filter((item) => {
+      if (typeFilter !== "all" && item.requestType !== typeFilter) return false;
       if (filter === "my_approvals") {
         if (!isMyApproval(item)) return false;
       } else if (filter === "approved") {
@@ -476,7 +452,10 @@ export default function InboxPage() {
         .filter(Boolean)
         .some((value) => value!.toLowerCase().includes(keyword));
     });
-  }, [filter, requests, search, currentUserId]);
+  }, [filter, requests, search, typeFilter, isMyApproval]);
+
+  const visiblePage = Math.min(page, Math.max(1, Math.ceil(filteredRequests.length / limit)));
+  const paginatedRequests = filteredRequests.slice((visiblePage - 1) * limit, visiblePage * limit);
 
   if (loading) {
     return (
@@ -504,34 +483,6 @@ export default function InboxPage() {
         title="Persetujuan & TTE"
       />
 
-      <Tabs
-        value={filter}
-        onValueChange={(value) => {
-          setFilter(value as typeof filter);
-          setPage(1);
-        }}
-      >
-        <TabsList className="h-auto items-start gap-1">
-          <TabsTrigger value="all" className="flex-none px-3">
-            Semua
-          </TabsTrigger>
-          <TabsTrigger value="my_approvals" className="flex-none px-3">
-            Persetujuan Saya
-            {counts.myApprovals > 0 && (
-              <Badge className="ml-1">
-                {counts.myApprovals}
-              </Badge>
-            )}
-          </TabsTrigger>
-          <TabsTrigger value="approved" className="flex-none px-3">
-            Disetujui
-          </TabsTrigger>
-          <TabsTrigger value="rejected" className="flex-none px-3">
-            Ditolak
-          </TabsTrigger>
-        </TabsList>
-      </Tabs>
-
       <MetricGrid>
         {summaryCards.map((card) => (
           <KpiCard
@@ -546,14 +497,49 @@ export default function InboxPage() {
       <div className="space-y-4">
       <CollectionToolbar
         leading={
-          <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
-            <CollectionSearchField
-              placeholder="Cari kode, judul, unit, atau pemohon..."
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              aria-label="Cari permintaan persetujuan"
-            />
-          </div>
+          <DynamicTableFilters
+            search={
+              <CollectionSearchField
+                placeholder="Cari kode, judul, unit, atau pemohon..."
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(1);
+                }}
+                aria-label="Cari permintaan persetujuan"
+              />
+            }
+            fields={[
+              {
+                id: "status",
+                label: "Status",
+                value: filter,
+                onChange: (value) => {
+                  setFilter(value as typeof filter);
+                  setPage(1);
+                },
+                options: [
+                  { value: "all", label: "Semua status" },
+                  { value: "my_approvals", label: "Persetujuan saya" },
+                  { value: "approved", label: "Disetujui" },
+                  { value: "rejected", label: "Ditolak" },
+                ],
+              },
+              {
+                id: "type",
+                label: "Jenis",
+                value: typeFilter,
+                onChange: (value) => {
+                  setTypeFilter(value);
+                  setPage(1);
+                },
+                options: [
+                  { value: "all", label: "Semua jenis" },
+                  ...Object.entries(requestTypeConfig).map(([value, config]) => ({ value, label: config.label })),
+                ],
+              },
+            ]}
+          />
         }
       />
 
@@ -571,7 +557,7 @@ export default function InboxPage() {
               <CollectionTableHead>Kode</CollectionTableHead>
               <CollectionTableHead className="">Entitas</CollectionTableHead>
               <CollectionTableHead>Jenis</CollectionTableHead>
-              <CollectionTableHead>Tanggal</CollectionTableHead>
+              <CollectionTableHead title="Waktu pembuatan permintaan">Dibuat</CollectionTableHead>
               <CollectionTableHead>Status</CollectionTableHead>
             </CollectionTableHeaderRow>
           </CollectionTableHeader>
@@ -587,7 +573,7 @@ export default function InboxPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredRequests.map((item) => {
+              paginatedRequests.map((item) => {
                 const typeConfig =
                   requestTypeConfig[item.requestType] ?? requestTypeConfig.risk;
                 const Icon = typeConfig.icon;
@@ -668,9 +654,9 @@ export default function InboxPage() {
 
           <CollectionPagination
             itemLabel="permintaan persetujuan"
-            page={page}
+            page={visiblePage}
             pageSize={limit}
-            total={approvalTotal}
+            total={filteredRequests.length}
             disabled={loading || isPending}
             onPageChange={setPage}
             onPageSizeChange={(nextLimit) => {

@@ -1,591 +1,209 @@
 "use client";
 
-import Link from "next/link";
-import { reportErrorMessage } from "@/lib/report-feedback";
-import { useMemo, useRef, useState } from "react";
-import {
-  Pie,
-  PieChart,
-  PolarAngleAxis,
-  RadialBar,
-  RadialBarChart,
-} from "recharts";
-import {
-  Card,
-  CardAction,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { useMemo, type ReactNode } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ReportEmptyState } from "@/components/shared/design-system";
+import { RiskTargetGapCard } from "./risk-target-gap-card";
+import { buildRiskSummaryWidgets } from "@/lib/risk-summary-widgets";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from "@/components/ui/chart";
-import { ReportSummaryCard, ReportSummaryMetrics } from "@/components/report/report-summary-card";
-import { RISK_CHART_COLORS } from "@/lib/chart-colors";
-import {
-  ReportEmptyState,
-  CollectionPagination,
-} from "@/components/shared/design-system";
-import { ReportOverviewCards } from "./report-overview-cards";
-import {
-  buildQuarterlyAnalysis,
-  buildQuarterlyOverview,
-  buildQuarterlyRiskRows,
   currentReportCycle,
   formatReportNumber,
-  formatReportDate,
   formatReportPercent,
-  severityLabels,
-  type QuarterlyAnalysis,
 } from "@/lib/quarterly-report";
-import type {
-  QuarterlyReport,
-  QuarterlyReportOverview,
-} from "@/types/quarterly-report";
-import { QuarterlyReportRiskTable, type ReportRiskTableHandle, type ReportRiskFilter } from "./quarterly-report-risk-table";
-import { QuarterlyReportUnitDrawer } from "./quarterly-report-unit-drawer";
+import type { QuarterlyReport } from "@/types/quarterly-report";
 
-const eventSeverityChartConfig = {
-  low: { label: severityLabels.low, color: RISK_CHART_COLORS.low },
-  medium: { label: severityLabels.medium, color: RISK_CHART_COLORS.medium },
-  high: { label: severityLabels.high, color: RISK_CHART_COLORS.high },
-  extreme: { label: severityLabels.extreme, color: RISK_CHART_COLORS.extreme },
-  unknown: { label: "Belum diketahui", color: "var(--muted-foreground)" },
-} satisfies ChartConfig;
-
-type EventSeverity = keyof typeof eventSeverityChartConfig;
-
-function reportTimestamp(value?: string | null) {
-  if (!value || !Number.isFinite(Date.parse(value))) return "belum tersedia";
-  return `${new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Jakarta" }).format(new Date(value))} WIB`;
+function Widget({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <Card data-risk-summary-card="" className="gap-4">
+      <CardHeader><CardTitle><h2>{title}</h2></CardTitle></CardHeader>
+      <CardContent>{children}</CardContent>
+    </Card>
+  );
 }
 
-function UnitRateCell({
-  label,
-  numerator,
-  denominator,
-  rate,
-  detail,
-  tone = "completion",
-}: {
+function ProgressMeter({ value, total, label, color }: {
+  value: number;
+  total: number;
   label: string;
-  numerator: number;
-  denominator: number;
-  rate: number | null;
-  detail?: string;
-  tone?: "completion" | "risk";
+  color: string;
 }) {
-  if (denominator === 0) {
-    return (
-      <div className="min-w-0 space-y-1">
-        <p className="tabular-nums text-muted-foreground">—</p>
-        {detail && (
-          <p className="text-xs leading-4 text-muted-foreground">
-            {detail}
-          </p>
-        )}
-      </div>
-    );
-  }
-
-  if (rate === null) {
-    return (
-      <div className="min-w-0 space-y-1">
-        <p className="text-xs tabular-nums">
-          {numerator}/{denominator} · —
-        </p>
-        {detail && (
-          <p className="text-xs leading-4 text-muted-foreground">
-            {detail}
-          </p>
-        )}
-      </div>
-    );
-  }
-
-  const completionRate = Math.max(0, Math.min(100, rate));
-  const percentage = formatReportPercent(rate);
-  const color =
-    tone === "risk"
-      ? "var(--destructive)"
-      : rate >= 100
-        ? "var(--color-success)"
-        : "var(--color-violet-400)";
-
   return (
-    <div className="flex min-w-0 items-center gap-2">
-      <div
-        className="relative size-6 shrink-0"
-        role="img"
-        aria-label={`${label}: ${percentage}, ${numerator} dari ${denominator}${detail ? `, ${detail}` : ""}`}
-      >
-        <ChartContainer
-          config={{ completion: { label, color } }}
-          initialDimension={{ width: 24, height: 24 }}
-          className="size-6 aspect-square"
-          aria-hidden="true"
-        >
-          <RadialBarChart
-            data={[{ name: label, value: completionRate }]}
-            startAngle={90}
-            endAngle={-270}
-            innerRadius="76%"
-            outerRadius="96%"
-            margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
-          >
-            <PolarAngleAxis
-              type="number"
-              domain={[0, 100]}
-              tick={false}
-              axisLine={false}
-            />
-            <RadialBar
-              dataKey="value"
-              fill="var(--color-completion)"
-              background={{ fill: "var(--muted)" }}
-              cornerRadius={8}
-            />
-          </RadialBarChart>
-        </ChartContainer>
-
-      </div>
-      <div aria-hidden="true" className="min-w-0">
-        <p className="text-sm tabular-nums">{percentage}</p>
-        <p className="text-xs leading-4 tabular-nums text-secondary-foreground">
-          {numerator}/{denominator}
-        </p>
-        {detail && (
-          <p className="text-xs leading-4 text-muted-foreground">
-            {detail}
-          </p>
-        )}
-      </div>
+    <div
+      role="meter"
+      aria-label={label}
+      aria-valuemin={0}
+      aria-valuemax={Math.max(1, total)}
+      aria-valuenow={value}
+      aria-valuetext={`${value} dari ${total}`}
+      className="h-3 overflow-hidden rounded-full bg-muted"
+    >
+      <div className="h-full rounded-full" style={{
+        width: `${total ? value / total * 100 : 0}%`,
+        backgroundColor: color,
+      }} />
     </div>
   );
 }
-export function QuarterlyReportDashboard({
-  report,
-  overview,
-  loadDetails,
-}: {
-  report?: QuarterlyReport;
-  overview?: QuarterlyReportOverview;
-  loadDetails?: (organizationId?: string) => Promise<QuarterlyReport>;
+
+function UnitRankingList({ units, highest, start = 1 }: {
+  units: ReturnType<typeof buildRiskSummaryWidgets>["units"];
+  highest: number;
+  start?: number;
 }) {
-  const analysis = useMemo(
-    () => (report ? buildQuarterlyAnalysis(report) : null),
-    [report],
-  );
-  const data = useMemo(
-    () => overview ?? (report ? buildQuarterlyOverview(report) : null),
-    [overview, report],
-  );
-  const riskTableRef = useRef<ReportRiskTableHandle>(null);
-  const riskSectionRef = useRef<HTMLDivElement>(null);
-  const [selectedUnitId, setSelectedUnitId] = useState<string | null>(null);
-  const [unitOpen, setUnitOpen] = useState(false);
-  const unitTriggerRef = useRef<HTMLButtonElement | null>(null);
-  const unitRequestRef = useRef(0);
-  const [unitDetails, setUnitDetails] = useState<
-    Record<string, QuarterlyAnalysis["units"][number]>
-  >({});
-  const [unitLoading, setUnitLoading] = useState(false);
-  const [unitError, setUnitError] = useState<string | null>(null);
-  const [unitPage, setUnitPage] = useState(1);
-  const [unitPageSize, setUnitPageSize] = useState(10);
-  if (!data) return null;
-  const { summary: s, units } = data;
-  const currentCycle = currentReportCycle();
-  const runningPeriod = data.cycle === currentCycle
-    ? "Periode laporan"
-    : data.comparisonCycle === currentCycle ? "Periode pembanding" : null;
-  const events = data.recentEvents;
-  const selectedUnitOverview =
-    units.find((unit) => unit.id === selectedUnitId) ?? null;
-  const selectedUnit = selectedUnitId
-    ? (unitDetails[selectedUnitId] ??
-      analysis?.units.find((unit) => unit.id === selectedUnitId) ??
-      (selectedUnitOverview
-        ? {
-            ...selectedUnitOverview,
-            rows: [],
-            tasks: [],
-            events: [],
-          }
-        : null))
-    : null;
-  const safeUnitPage = Math.min(
-    unitPage,
-    Math.max(1, Math.ceil(units.length / unitPageSize)),
-  );
-  const severityCounts = data.severityCounts;
-  const severityLevels = ["low", "medium", "high", "extreme"] as const;
-  const severitySegments = severityLevels
-    .map((severity) => ({ severity, count: severityCounts[severity] }))
-    .filter(({ count }) => count > 0);
-  const classifiedSeverityCount = severitySegments.reduce(
-    (total, segment) => total + segment.count,
-    0,
-  );
-  const unclassifiedSeverityCount = Math.max(
-    0,
-    s.events.total - classifiedSeverityCount,
-  );
-  const severityChartData: {
-    severity: EventSeverity;
-    count: number;
-    fill: string;
-  }[] = [
-    ...severitySegments.map(({ severity, count }) => ({
-      severity,
-      count,
-      fill: eventSeverityChartConfig[severity].color,
-    })),
-    ...(unclassifiedSeverityCount > 0
-      ? [
-          {
-            severity: "unknown" as const,
-            count: unclassifiedSeverityCount,
-            fill: eventSeverityChartConfig.unknown.color,
-          },
-        ]
-      : []),
-  ];
-  const severityChartLabel = severityChartData
-    .map(
-      ({ severity, count }) =>
-        `${eventSeverityChartConfig[severity].label} ${count}`,
-    )
-    .join(", ");
-  const openUnit = async (
-    unitId: string,
-    trigger: HTMLButtonElement,
-  ) => {
-    unitTriggerRef.current = trigger;
-    setSelectedUnitId(unitId);
-    setUnitOpen(true);
-    setUnitLoading(false);
-    setUnitError(null);
-    const localUnit = analysis?.units.find((unit) => unit.id === unitId);
-    if (localUnit) {
-      setUnitDetails((current) => ({ ...current, [unitId]: localUnit }));
-      setUnitLoading(false);
-      return;
-    }
-    if (!loadDetails || unitDetails[unitId]) return;
-    const requestId = ++unitRequestRef.current;
-    setUnitLoading(true);
-    try {
-      const fullReport = await loadDetails(unitId);
-      const detailedUnit = buildQuarterlyAnalysis(fullReport).units.find(
-        (unit) => unit.id === unitId,
-      );
-      if (requestId !== unitRequestRef.current) return;
-      if (detailedUnit) {
-        setUnitDetails((current) => ({ ...current, [unitId]: detailedUnit }));
-      }
-      setUnitLoading(false);
-    } catch (error) {
-      if (requestId !== unitRequestRef.current) return;
-      setUnitError(
-        reportErrorMessage(error, "Detail unit belum dapat dimuat. Periksa koneksi, lalu pilih Coba lagi."),
-      );
-      setUnitLoading(false);
-    }
-  };
-  const inspectRisks = (filter: ReportRiskFilter) => {
-    riskTableRef.current?.openFor(filter);
-    requestAnimationFrame(() => riskSectionRef.current?.focus({ preventScroll: true }));
-  };
   return (
-    <div className="min-w-0 space-y-8">
-      <div className="min-w-0 space-y-2" role="status">
-        <p className="flex flex-wrap items-center gap-2 text-sm">
-          <span>Laporan {data.cycle}</span>
-          <span className="text-muted-foreground">dibanding {data.comparisonCycle}</span>
-          {runningPeriod && <Badge variant="secondary">Kuartal berjalan</Badge>}
-        </p>
-        {runningPeriod && <p className="max-w-[75ch] text-sm text-info-foreground">{runningPeriod} belum selesai. Data dan selisih masih dapat berubah.</p>}
-        <dl className="flex flex-wrap gap-x-6 gap-y-2 text-xs text-muted-foreground">
-          <div className="flex flex-wrap gap-x-1">
-            <dt>Diperbarui:</dt>
-            <dd>{reportTimestamp(data.dataUpdatedAt)}</dd>
+    <ol start={start} className="space-y-4">
+      {units.map(unit => (
+        <li key={unit.id} className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-2 sm:grid-cols-[minmax(9rem,16rem)_minmax(0,1fr)_3rem]">
+          <span className="break-words text-sm">{unit.name}</span>
+          <div className="col-span-2 row-start-2 sm:col-span-1 sm:col-start-2 sm:row-start-1">
+            <ProgressMeter value={unit.highCount} total={highest} label={`Risiko tinggi dan sangat tinggi: ${unit.name}`} color="var(--color-orange-500)" />
           </div>
-          <div className="flex flex-wrap gap-x-1">
-            <dt>Diambil:</dt>
-            <dd>{reportTimestamp(data.generatedAt)}</dd>
-          </div>
-        </dl>
-        <p className="max-w-[75ch] text-xs text-muted-foreground">pp = poin persentase, selisih terhadap periode pembanding.</p>
-      </div>
-      <ReportOverviewCards data={data} onInspect={inspectRisks} />
-      <ReportSummaryCard title="Kejadian dan dampak aktual">
-        <ReportSummaryMetrics
-          items={[
-            {
-              label: "Kerugian",
-              value: `Rp ${formatReportNumber(s.events.knownLoss)}`,
-            },
-            { label: "Nilai belum diketahui", value: s.events.unknownLoss },
-            { label: "Belum terhubung", value: s.events.unlinked },
-          ]}
-        />
-        {s.events.total ? (
-          <>
-            <div className="grid items-start gap-8 xl:grid-cols-[minmax(0,300px)_minmax(0,1fr)]">
-              <div className="flex flex-wrap items-center gap-6">
-                <div className="space-y-2">
-                  <p className="text-xs text-secondary-foreground">Distribusi tingkat kejadian</p>
-                  <div
-                    role="group"
-                    aria-label={`Diagram donat distribusi tingkat kejadian: ${severityChartLabel}`}
-                    className="aspect-square w-full max-w-[180px]"
-                  >
-                    <ChartContainer
-                      config={eventSeverityChartConfig}
-                      className="size-full max-h-[180px] max-w-[180px] aspect-square"
-                    >
-                      <PieChart accessibilityLayer>
-                        <ChartTooltip
-                          cursor={false}
-                          content={<ChartTooltipContent hideLabel />}
-                        />
-                        <Pie
-                          data={severityChartData}
-                          dataKey="count"
-                          nameKey="severity"
-                          cx="50%"
-                          cy="50%"
-                          innerRadius="48%"
-                          outerRadius="80%"
-                          paddingAngle={2}
-                          stroke="var(--card)"
-                          strokeWidth={5}
-                          isAnimationActive={false}
-                        />
-                      </PieChart>
-                    </ChartContainer>
-                  </div>
-                </div>
-                <ul
-                  aria-label="Jumlah kejadian menurut tingkat"
-                  className="flex flex-col items-start gap-3"
-                >
-                  {severityChartData.map(({ severity, count, fill }) => (
-                    <li
-                      key={severity}
-                      className="inline-flex items-center gap-2 whitespace-nowrap text-xs text-secondary-foreground"
-                    >
-                      <span
-                        aria-hidden="true"
-                        className="size-2.5 shrink-0 rounded-full"
-                        style={{ backgroundColor: fill }}
-                      />
-                      <span>{eventSeverityChartConfig[severity].label}</span>
-                      <span className="tabular-nums text-foreground">{count}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <div className="space-y-4">
-                <div aria-hidden="true" className="hidden grid-cols-[minmax(0,1fr)_144px_112px] gap-x-4 text-xs font-medium text-secondary-foreground lg:grid">
-                  <span>Kejadian</span>
-                  <span className="text-right">Waktu</span>
-                  <span className="text-right">Tingkat</span>
-                </div>
-                <ul className="divide-y divide-border/60">
-                  {events.slice(0, 3).map((event) => (
-                    <li key={event.id} className="grid gap-2 py-4 first:pt-0 last:pb-0 lg:grid-cols-[minmax(0,1fr)_144px_112px] lg:gap-x-4">
-                      <Link href={`/risk-events/${event.id}`} className="text-sm hover:text-muted-foreground">
-                        {event.description}
-                      </Link>
-                      <span className="text-sm text-secondary-foreground lg:text-right">
-                        <span className="sr-only">Waktu: </span>
-                        {formatReportDate(event.occurredAt)}
-                      </span>
-                      <span className="text-xs text-secondary-foreground lg:text-right">
-                        <span className="sr-only">Tingkat: </span>
-                        {(severityLabels[event.severity as keyof typeof severityLabels] ?? event.severity) || "—"}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+          <span className="col-start-2 row-start-1 text-right text-sm tabular-nums sm:col-start-3">{formatReportNumber(unit.highCount)}</span>
+        </li>
+      ))}
+    </ol>
+  );
+}
+
+export function RiskSummarySkeleton() {
+  return (
+    <div className="space-y-6" aria-label="Memuat ringkasan risiko" aria-busy="true">
+      <Widget title="Profil risiko">
+        <div className="grid grid-cols-2 gap-6 lg:grid-cols-3">
+          {Array.from({ length: 3 }, (_, index) => (
+            <div key={index} className="flex flex-col gap-2">
+              <Skeleton className="h-9 w-20" />
+              <Skeleton className="h-4 w-28 max-w-full" />
             </div>
-            <p className="text-xs leading-5 text-info-foreground">
-              Waktu dan tingkat mengikuti catatan kejadian. Buka kejadian untuk melihat informasi lengkap.
-            </p>
-          </>
-        ) : (
-          <ReportEmptyState
-            title="Belum ada kejadian tercatat"
-            description="Atribusi memakai tanggal kejadian. Tidak adanya catatan belum membuktikan tidak ada kejadian."
-          />
-        )}
-      </ReportSummaryCard>
-      <Card data-report-card="" id="unit-comparison" className="scroll-mt-6">
+          ))}
+        </div>
+      </Widget>
+      {["Distribusi tingkat risiko", "Kesenjangan terhadap target", "Risiko tinggi dan sangat tinggi per unit", "Pelaporan mitigasi"].map(title => (
+        <Widget key={title} title={title}><Skeleton className="h-24 w-full" /></Widget>
+      ))}
+    </div>
+  );
+}
+
+export function QuarterlyReportDashboard({ report, illustrative = false }: {
+  report: QuarterlyReport;
+  illustrative?: boolean;
+}) {
+  const data = useMemo(() => buildRiskSummaryWidgets(report), [report]);
+  const { reporting, distribution, units } = data;
+  const highest = Math.max(1, ...units.map(unit => unit.highCount));
+  const running = report.cycle === currentReportCycle();
+  const metrics = [
+    { label: "Total risiko", value: formatReportNumber(data.total) },
+    { label: "Risiko tinggi & sangat tinggi", value: formatReportNumber(data.highCount) },
+    { label: "Total unit", value: formatReportNumber(units.length) },
+  ];
+  const remainingReports = [
+    { label: "Melewati tenggat", count: reporting.overdue, overdue: true },
+    { label: "Belum terlapor", count: reporting.pending },
+    { label: "Tidak dilaporkan", count: reporting.notReported },
+    { label: "Dilewati", count: reporting.skipped },
+  ].filter(status => status.count > 0);
+
+  return (
+    <div className="min-w-0 space-y-6">
+      <Card data-risk-summary-card="" className="gap-4">
         <CardHeader>
-          <CardTitle className="text-sm">Perbandingan unit</CardTitle>
-          <CardAction>
-            <Badge variant="secondary">{units.length} unit</Badge>
-          </CardAction>
-        </CardHeader>
-        <CardContent
-          className={units.length ? "-mb-(--card-spacing)" : undefined}
-        >
-          {units.length ? (
-            <div className="-mx-(--card-spacing)">
-              <Table data-report-table="" className="min-w-[1120px] table-fixed">
-                <caption className="sr-only">
-                  Semua unit dalam pilihan laporan. Klik unit untuk meninjau
-                  sumber data tanpa mengubah pilihan unit.
-                </caption>
-                <colgroup>
-                  <col style={{ width: "38%" }} />
-                  <col style={{ width: "10%" }} />
-                  <col style={{ width: "13%" }} />
-                  <col style={{ width: "13%" }} />
-                  <col style={{ width: "13%" }} />
-                  <col style={{ width: "13%" }} />
-                </colgroup>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="">Unit</TableHead>
-                    <TableHead>Jumlah risiko</TableHead>
-                    <TableHead>Di atas selera</TableHead>
-                    <TableHead>Target tercapai</TableHead>
-                    <TableHead>Mitigasi terlapor</TableHead>
-                    <TableHead>Pemantauan final</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {units
-                    .slice(
-                      (safeUnitPage - 1) * unitPageSize,
-                      safeUnitPage * unitPageSize,
-                    )
-                    .map((unit) => (
-                      <TableRow key={unit.id}>
-                        <TableCell className="whitespace-normal">
-                          <Button
-                            variant="link"
-                            className="h-auto whitespace-normal p-0 text-left font-normal"
-                            onClick={(event) =>
-                              void openUnit(unit.id, event.currentTarget)
-                            }
-                            aria-label={`Buka detail ${unit.name}`}
-                          >
-                            {unit.name}
-                          </Button>
-                          {!unit.hasData && (
-                            <p className="mt-1 text-xs text-muted-foreground">
-                              Belum ada data
-                            </p>
-                          )}
-                        </TableCell>
-                        <TableCell className="tabular-nums">
-                          {unit.hasData ? unit.summary.total : "—"}
-                        </TableCell>
-                        <TableCell>
-                          <UnitRateCell
-                            label="Risiko di atas selera"
-                            numerator={unit.summary.appetite.above}
-                            denominator={unit.summary.total}
-                            rate={unit.summary.appetite.rate}
-                            tone="risk"
-                          />
-                        </TableCell>
-                        <TableCell className="whitespace-normal">
-                          <UnitRateCell
-                            label="Target tercapai"
-                            numerator={unit.summary.target.achieved}
-                            denominator={unit.summary.target.eligible}
-                            rate={unit.summary.target.rate}
-                            detail={
-                              unit.summary.target.unavailable
-                                ? `${unit.summary.target.unavailable} belum dinilai`
-                                : undefined
-                            }
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <UnitRateCell
-                            label="Mitigasi terlapor"
-                            numerator={unit.summary.mitigation.reported}
-                            denominator={unit.summary.mitigation.total}
-                            rate={unit.summary.mitigation.rate}
-                          />
-                        </TableCell>
-                        <TableCell>
-                          <UnitRateCell
-                            label="Pemantauan final"
-                            numerator={unit.summary.monitoring.final}
-                            denominator={unit.summary.total}
-                            rate={unit.summary.monitoring.rate}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                </TableBody>
-              </Table>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <CardTitle><h2>Profil risiko</h2></CardTitle>
+            {illustrative && <Badge variant="secondary">Data ilustrasi</Badge>}
+          </div>
+          {running && (
+            <div>
+              <Badge variant="secondary">Kuartal berjalan, data sementara</Badge>
             </div>
-          ) : (
-            <ReportEmptyState description="Tidak ada unit yang tersedia dalam pilihan unit ini." />
           )}
+        </CardHeader>
+        <CardContent>
+          <dl className="grid grid-cols-2 gap-x-6 gap-y-6 lg:grid-cols-3">
+            {metrics.map(metric => (
+              <div key={metric.label} className="flex min-w-0 flex-col gap-2">
+                <dt className="text-sm text-muted-foreground">{metric.label}</dt>
+                <dd className="order-first text-3xl font-semibold tabular-nums tracking-tight">{metric.value}</dd>
+              </div>
+            ))}
+          </dl>
         </CardContent>
-        <CollectionPagination
-          itemLabel="unit"
-          page={safeUnitPage}
-          pageSize={unitPageSize}
-          total={units.length}
-          onPageChange={setUnitPage}
-          onPageSizeChange={(size) => {
-            setUnitPageSize(size);
-            setUnitPage(1);
-          }}
-        />
       </Card>
-      <div id="risk-register" ref={riskSectionRef} tabIndex={-1} aria-label="Daftar risiko laporan" className="scroll-mt-6 outline-none">
-        <QuarterlyReportRiskTable
-          ref={riskTableRef}
-          rows={analysis?.rows ?? []}
-          cycle={data.cycle}
-          totalRows={s.total}
-          hasRisks={data.hasRisks}
-          loadRows={
-            loadDetails
-              ? async () => buildQuarterlyRiskRows(await loadDetails())
-              : undefined
-          }
-        />
-      </div>
-      <QuarterlyReportUnitDrawer
-        unit={selectedUnit}
-        open={unitOpen}
-        cycle={data.cycle}
-        loading={unitLoading}
-        error={unitError}
-        onRetry={() => {
-          if (selectedUnitId && unitTriggerRef.current) {
-            void openUnit(selectedUnitId, unitTriggerRef.current);
-          }
-        }}
-        onClose={() => setUnitOpen(false)}
-        onRestoreFocus={() => unitTriggerRef.current?.focus()}
-      />
+
+      <Widget title="Distribusi tingkat risiko">
+        {data.total ? (
+          <div className="flex flex-col gap-4">
+            <div
+              role="img"
+              aria-label={`Distribusi ${data.total} risiko: ${distribution.map(level => `${level.label} ${level.count}`).join(", ")}`}
+              className="flex h-5 gap-1 overflow-hidden rounded-full"
+            >
+              {distribution.filter(level => level.count > 0).map(level => (
+                <div key={level.key} style={{ flex: level.count, backgroundColor: level.color }} />
+              ))}
+            </div>
+            <dl className="grid grid-cols-2 gap-x-6 gap-y-4 lg:grid-cols-5">
+              {distribution.filter(level => level.key !== "unknown" || level.count > 0).map(level => (
+                <div key={level.key} className="flex flex-col gap-2">
+                  <dt className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <span aria-hidden="true" className="size-2.5 shrink-0 rounded-full" style={{ backgroundColor: level.color }} />
+                    {level.label}
+                  </dt>
+                  <dd className="text-xl tabular-nums">{formatReportNumber(level.count)}</dd>
+                </div>
+              ))}
+            </dl>
+          </div>
+        ) : (
+          <ReportEmptyState title="Belum ada risiko pada periode ini" description="Pilih periode atau unit lain untuk melihat distribusi risiko." />
+        )}
+      </Widget>
+
+      <RiskTargetGapCard report={report} />
+
+      <Widget title="Risiko tinggi dan sangat tinggi per unit">
+        {units.length ? (
+          <div className="space-y-4">
+            <UnitRankingList units={units.slice(0, 5)} highest={highest} />
+            {units.length > 5 && (
+              <details>
+                <summary className="w-fit cursor-pointer rounded-control text-sm text-muted-foreground focus-visible:outline-2 focus-visible:outline-ring">
+                  Unit lainnya ({formatReportNumber(units.length - 5)})
+                </summary>
+                <div className="pt-4"><UnitRankingList units={units.slice(5)} highest={highest} start={6} /></div>
+              </details>
+            )}
+          </div>
+        ) : <ReportEmptyState description="Tidak ada unit dalam cakupan laporan." />}
+      </Widget>
+
+      <Widget title="Pelaporan mitigasi">
+        {reporting.total > 0 ? (
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-3">
+              <p className="text-xl tabular-nums">{formatReportPercent(reporting.rate)} <span className="text-sm text-muted-foreground">terlapor</span></p>
+              <p className="text-sm tabular-nums text-muted-foreground" aria-label={`${reporting.reported} dari ${reporting.total} laporan terlapor`}>
+                {formatReportNumber(reporting.reported)}/{formatReportNumber(reporting.total)} laporan
+              </p>
+            </div>
+            <ProgressMeter value={reporting.reported} total={reporting.total} label="Kelengkapan pelaporan mitigasi" color="var(--color-green-500)" />
+            {remainingReports.length > 0 && (
+              <dl className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                {remainingReports.map(status => (
+                  <div key={status.label} className={`flex items-baseline gap-2 ${status.overdue ? "text-destructive" : "text-muted-foreground"}`}>
+                    <dt>{status.label}</dt>
+                    <dd className="tabular-nums">{formatReportNumber(status.count)}</dd>
+                  </div>
+                ))}
+              </dl>
+            )}
+          </div>
+        ) : <p className="text-sm text-muted-foreground">Belum ada laporan mitigasi yang diwajibkan pada periode ini.</p>}
+      </Widget>
+
     </div>
   );
 }

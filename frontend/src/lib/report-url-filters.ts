@@ -1,8 +1,8 @@
 import type { ReportsFilterScope } from "./reports-filter-sheet";
 
-type ReportFilters = { cycle: string; comparisonOverride: string; scope: ReportsFilterScope };
+type ReportFilters = { cycle: string; scope: ReportsFilterScope };
 type Result = { filters: ReportFilters; error: string | null; hasFilters: boolean };
-const filterKeys = ["cycle", "compare_cycle", "comparisonCycle", "org_id", "organizationId", "organizationIds"];
+const filterKeys = ["cycle", "org_id", "organizationId", "organizationIds"];
 
 /** A source link may override saved filters only after current access is known. */
 export function resolveReportUrlFilters(search: string, currentCycle: string, organizations: { id: string }[], defaults: ReportFilters): Result {
@@ -12,9 +12,7 @@ export function resolveReportUrlFilters(search: string, currentCycle: string, or
   if (!hasFilters) return { filters: defaults, error: null, hasFilters };
   const validCycle = (value: string) => /^20\d{2}-Q[1-4]$/.test(value) && value <= currentCycle;
   const requestedCycle = params.get("cycle");
-  const requestedComparison = params.get("compare_cycle") ?? params.get("comparisonCycle");
   if (requestedCycle !== null && !validCycle(requestedCycle)) return invalid("Periode pada tautan tidak valid atau belum tersedia. Pilih periode laporan yang tersedia.");
-  if (requestedComparison !== null && !validCycle(requestedComparison)) return invalid("Periode pembanding pada tautan tidak valid atau belum tersedia. Pilih kembali periode pembanding.");
   let scope = defaults.scope;
   const organizationKeys = ["org_id", "organizationId", "organizationIds"].filter((key) => params.has(key));
   if (organizationKeys.length) {
@@ -25,7 +23,7 @@ export function resolveReportUrlFilters(search: string, currentCycle: string, or
     scope = { organizationGroupId: "", organizationId: organizationIds.length === 1 ? organizationIds[0] : "", organizationIds };
   }
   return {
-    filters: { cycle: requestedCycle ?? defaults.cycle, comparisonOverride: requestedComparison ?? (requestedCycle !== null ? "" : defaults.comparisonOverride), scope },
+    filters: { cycle: requestedCycle ?? defaults.cycle, scope },
     error: null,
     hasFilters,
   };

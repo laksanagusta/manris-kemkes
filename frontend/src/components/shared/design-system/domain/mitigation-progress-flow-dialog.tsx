@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useLayoutEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
 
 import { Separator } from "@/components/ui/separator";
 import {
@@ -35,6 +35,7 @@ type MitigationProgressFlowDialogProps = MitigationProgressFormProps & {
   footerActions: ReactNode;
   onFormCancel?: () => void;
   className?: string;
+  onCloseAutoFocus?: ComponentProps<typeof DialogContent>["onCloseAutoFocus"];
 };
 
 export function MitigationProgressFlowDialog({
@@ -51,6 +52,7 @@ export function MitigationProgressFlowDialog({
   footerActions,
   onFormCancel,
   className,
+  onCloseAutoFocus,
   ...formProps
 }: MitigationProgressFlowDialogProps) {
   const [modalElement, setModalElement] = useState<HTMLDivElement | null>(null);
@@ -171,6 +173,7 @@ export function MitigationProgressFlowDialog({
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent
+        onCloseAutoFocus={onCloseAutoFocus}
         ref={setModalElement}
         data-dynamic-height="true"
         className={cn(

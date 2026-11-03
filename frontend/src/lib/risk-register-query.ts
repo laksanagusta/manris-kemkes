@@ -1,3 +1,4 @@
+export type RiskMonitoringStatusFilter = "all" | "monitored" | "not_monitored";
 export type RiskRegisterStatusFilter =
   | "all"
   | "draft"
@@ -17,6 +18,7 @@ export type RiskRegisterQueryState = {
   search: string;
   lifecycleFilter: RiskRegisterLifecycleFilter;
   statusFilter: RiskRegisterStatusFilter;
+  monitoringStatusFilter?: RiskMonitoringStatusFilter;
   categoryFilter: RiskRegisterCategoryFilter;
   assessmentCycleFilter: string;
   createdAtFilter: string;
@@ -84,6 +86,7 @@ export function parseRiskRegisterQueryState(
     lifecycleFilter: getRiskRegisterLifecycleFilter(
       searchParams.get("lifecycle"),
     ),
+    monitoringStatusFilter: ["monitored","not_monitored"].includes(searchParams.get("monitoring_status") || "") ? searchParams.get("monitoring_status") as RiskMonitoringStatusFilter : "all",
     statusFilter: getRiskRegisterStatusFilter(searchParams.get("status")),
     categoryFilter: getRiskRegisterCategoryFilter(searchParams.get("category")),
     assessmentCycleFilter: searchParams.get("assessment_cycle") ?? "",
@@ -125,6 +128,8 @@ export function buildRiskRegisterQueryString(
     nextParams.set("assessment_cycle", normalizedAssessmentCycle);
   }
 
+  if(state.monitoringStatusFilter && state.monitoringStatusFilter!=="all")nextParams.set("monitoring_status",state.monitoringStatusFilter);
+
   if (normalizedCreatedAt) {
     nextParams.set("created_at", normalizedCreatedAt);
   }
@@ -161,3 +166,9 @@ export function shouldReplaceRiskRegisterUrl(input: {
     )
   );
 }
+
+export const riskMonitoringStatusOptions = [
+ {value:"all",label:"Semua pemantauan"},
+ {value:"monitored",label:"Sudah dipantau"},
+ {value:"not_monitored",label:"Belum dipantau"},
+];

@@ -1,4 +1,7 @@
 "use client";
+import { newestCreatedFirst } from "@/lib/collection-created-at";
+import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
+
 
 import {
   useCallback,
@@ -26,13 +29,6 @@ import { listAllOrganizations } from "@/lib/api/organizations";
 import type { OrganizationListItem } from "@/lib/api/organizations";
 import type { RiskCharter } from "@/types/risk-charter";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -52,6 +48,7 @@ import {
   CollectionPagination,
   CollectionPageHeader,
   CollectionSearchField,
+  DynamicTableFilters,
   CollectionTableCard,
   CollectionTableHead,
   CollectionTableHeader,
@@ -102,14 +99,6 @@ export default function RiskChartersPage() {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  const hasActiveFilters = search !== "" || periodFilter !== "all";
-
-  const resetFilters = useCallback(() => {
-    setSearch("");
-    setPeriodFilter("all");
-    setPage(1);
-  }, []);
-
   const deferredSearch = useDeferredValue(search);
 
   const loadData = useCallback(
@@ -123,14 +112,21 @@ export default function RiskChartersPage() {
         const activeToken = token;
 
         const [charters, orgs] = await Promise.all([
-          listRiskCharters(activeToken, {
-            period: periodFilter === "all" ? undefined : periodFilter,
-            limit: 100,
-          }),
+          (async () => {
+            const rows: RiskCharter[] = [];
+            let page = 1;
+            while (true) {
+              const response = await listRiskCharters(activeToken, { page, limit: 100 });
+              const data = response.data ?? [];
+              rows.push(...data);
+              if (data.length === 0 || rows.length >= response.total) return rows;
+              page += 1;
+            }
+          })(),
           listAllOrganizations(activeToken),
         ]);
 
-        setItems(charters.data ?? []);
+        setItems([...charters].sort(newestCreatedFirst));
         setOrganizations(orgs);
       } catch (err) {
         const message =
@@ -141,7 +137,7 @@ export default function RiskChartersPage() {
         setLoading(false);
       }
     },
-    [token, periodFilter],
+    [token],
   );
 
   useEffect(() => {
@@ -193,9 +189,9 @@ export default function RiskChartersPage() {
 
   const filteredItems = useMemo(() => {
     const query = deferredSearch.trim().toLowerCase();
-    if (!query) return items;
-
     return items.filter((item) => {
+      if (periodFilter !== "all" && item.period !== periodFilter) return false;
+      if (!query) return true;
       const orgName =
         organizationMap.get(item.organizationId)?.toLowerCase() ?? "";
       return [
@@ -206,7 +202,7 @@ export default function RiskChartersPage() {
           item.uprLevel.toLowerCase(),
       ].some((value) => value.includes(query));
     });
-  }, [deferredSearch, items, organizationMap]);
+  }, [deferredSearch, items, organizationMap, periodFilter]);
 
   const paginatedItems = useMemo(
     () => filteredItems.slice((page - 1) * pageSize, page * pageSize),
@@ -263,38 +259,28 @@ export default function RiskChartersPage() {
       <CollectionToolbar
         className="w-full"
         leading={
-          <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-            <CollectionSearchField
-              id="charter-search"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Cari judul, organisasi, UPR, atau tahun"
-            />
-            <Select value={periodFilter} onValueChange={setPeriodFilter}>
-              <SelectTrigger className="w-full sm:w-fit">
-                <SelectValue placeholder="Semua periode" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua periode</SelectItem>
-                {availablePeriods.map((period) => (
-                  <SelectItem key={period} value={period}>
-                    {period}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {hasActiveFilters ? (
-              <ActionButton
-                variant="ghost"
-                size="sm"
-                onClick={resetFilters}
-                className="text-muted-foreground"
-                icon={<RotateCcw className="size-3.5" />}
-              >
-                Reset filter
-              </ActionButton>
-            ) : null}
-          </div>
+          <DynamicTableFilters
+            search={
+              <CollectionSearchField
+                id="charter-search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Cari judul, organisasi, UPR, atau tahun"
+              />
+            }
+            fields={[
+              {
+                id: "period",
+                label: "Periode",
+                value: periodFilter,
+                onChange: setPeriodFilter,
+                options: [
+                  { value: "all", label: "Semua periode" },
+                  ...availablePeriods.map((period) => ({ value: period, label: period })),
+                ],
+              },
+            ]}
+          />
         }
         actions={
           <AccentButton asChild>
@@ -317,14 +303,15 @@ export default function RiskChartersPage() {
             }
           />
         ) : (
-          <Table className="min-w-[880px] table-fixed">
+          <Table className="min-w-[1040px] table-fixed">
             <colgroup>
               <col className="w-[36%]" />
               <col className="w-[12%]" />
               <col className="w-[12%]" />
               <col className="w-[13%]" />
               <col className="w-[17%]" />
-              <col className="w-[10%]" />
+              <col className="w-40" />
+<col className="w-[10%]" />
             </colgroup>
             <CollectionTableHeader density="compact">
               <CollectionTableHeaderRow>
@@ -335,6 +322,7 @@ export default function RiskChartersPage() {
                 <CollectionTableHead >Periode</CollectionTableHead>
                 <CollectionTableHead >Status</CollectionTableHead>
                 <CollectionTableHead >Diperbarui</CollectionTableHead>
+                <CreatedAtHead />
                 <CollectionTableHead className="sticky right-0 z-10 w-[84px] text-center">
                   <span className="sr-only">Aksi</span>
                 </CollectionTableHead>
@@ -380,6 +368,7 @@ export default function RiskChartersPage() {
                       day: "numeric",
                     })}
                   </TableCell>
+                  <CreatedAtCell record={item} />
                   <TableCell className="sticky right-0 bg-card">
                     <div className="flex justify-center">
                       <DropdownMenu>

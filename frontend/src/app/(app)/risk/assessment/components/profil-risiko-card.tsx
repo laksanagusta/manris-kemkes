@@ -133,7 +133,7 @@ export function ProfilRisikoCard({
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="space-y-1">
             <CardTitle className="">Profil Risiko Saat Ini</CardTitle>
-            <p className="text-sm leading-6 text-secondary-foreground">
+            <p data-slot="card-description" className="text-sm leading-6 text-secondary-foreground">
               Ringkasan versi terakhir yang menjadi acuan pemantauan saat ini.
             </p>
           </div>

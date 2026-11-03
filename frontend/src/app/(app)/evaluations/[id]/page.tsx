@@ -1,4 +1,6 @@
 "use client";
+import { PropertyList, PropertyLabel } from "@/components/shared/design-system/layout/property-list";
+
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "next/navigation";
@@ -1232,44 +1234,44 @@ export default function EvaluationDetailPage() {
                   </p>
                 </div>
 
-                <dl className="divide-y divide-border/60 border-y border-border/60">
+                <PropertyList>
                   <div className="flex items-start justify-between gap-4 py-2.5">
-                    <dt className="text-sm text-muted-foreground">Organisasi</dt>
+                    <PropertyLabel>Organisasi</PropertyLabel>
                     <dd className="max-w-[190px] truncate text-right text-sm font-medium text-foreground">
                       {orgName}
                     </dd>
                   </div>
                   <div className="flex items-start justify-between gap-4 py-2.5">
-                    <dt className="text-sm text-muted-foreground">Kode</dt>
+                    <PropertyLabel>Kode</PropertyLabel>
                     <dd className="font-mono text-xs tabular-nums text-foreground">
                       {evaluation.code}
                     </dd>
                   </div>
                   <div className="flex items-start justify-between gap-4 py-2.5">
-                    <dt className="text-sm text-muted-foreground">Periode</dt>
+                    <PropertyLabel>Periode</PropertyLabel>
                     <dd className="font-mono text-xs tabular-nums text-foreground">
                       {evaluation.period}
                     </dd>
                   </div>
                   <div className="flex items-start justify-between gap-4 py-2.5">
-                    <dt className="text-sm text-muted-foreground">Template</dt>
+                    <PropertyLabel>Template</PropertyLabel>
                     <dd className="max-w-[190px] truncate text-right text-sm font-medium text-foreground">
                       {evaluation.templateName || evaluation.templateId}
                     </dd>
                   </div>
                   <div className="flex items-start justify-between gap-4 py-2.5">
-                    <dt className="text-sm text-muted-foreground">Diperbarui</dt>
+                    <PropertyLabel>Diperbarui</PropertyLabel>
                     <dd className="text-right text-sm font-medium text-foreground">
                       {formatDateTime(evaluation.updatedAt)}
                     </dd>
                   </div>
                   <div className="flex items-start justify-between gap-4 py-2.5">
-                    <dt className="text-sm text-muted-foreground">Finalisasi</dt>
+                    <PropertyLabel>Finalisasi</PropertyLabel>
                     <dd className="text-right text-sm font-medium text-foreground">
                       {formatDateTime(evaluation.finalizedAt)}
                     </dd>
                   </div>
-                </dl>
+                </PropertyList>
 
                 <div className="rounded-lg bg-muted/50 px-3 py-3 text-sm leading-relaxed text-muted-foreground">
                   Sebelum finalisasi, pastikan kesimpulan section dan permasalahan

@@ -202,6 +202,22 @@ func loadQuarterlyEvents(ctx context.Context, q riskQueryer, start, end time.Tim
 	if len(ids) == 0 {
 		return items, nil
 	}
+	noteRows, err := q.Query(ctx, `SELECT n.id,n.event_id,n.body,n.created_by,COALESCE(u.name,''),n.created_at FROM risk_event_notes n LEFT JOIN users u ON u.id=n.created_by WHERE n.event_id=ANY($1::uuid[]) ORDER BY n.created_at,n.id`, ids)
+	if err != nil {
+		return nil, fmt.Errorf("load quarterly event notes: %w", err)
+	}
+	for noteRows.Next() {
+		var note entity.RiskEventNote
+		if err := noteRows.Scan(&note.ID, &note.EventID, &note.Body, &note.CreatedBy, &note.CreatedByName, &note.CreatedAt); err != nil {
+			noteRows.Close()
+			return nil, err
+		}
+		byID[note.EventID].Notes = append(byID[note.EventID].Notes, note)
+	}
+	noteRows.Close()
+	if err := noteRows.Err(); err != nil {
+		return nil, err
+	}
 	// Only relation presence is read across scopes. Related risk titles and
 	// codes below remain constrained by the report's authorized organizations.
 	presence, err := q.Query(ctx, `SELECT i.id, (i.linked_risk_id IS NOT NULL OR EXISTS (SELECT 1 FROM incident_risk_links l WHERE l.incident_id = i.id)) FROM incidents i WHERE i.id = ANY($1::uuid[])`, ids)

@@ -127,7 +127,7 @@ func (r *organizationRepository) ListWithFilter(ctx context.Context, filter repo
 	}
 
 	offset := (filter.Page - 1) * filter.Limit
-	dataQuery += " ORDER BY name ASC"
+	dataQuery += " ORDER BY o.created_at DESC, o.id DESC"
 	dataQuery += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
 	args = append(args, filter.Limit, offset)
 

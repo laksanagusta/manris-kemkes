@@ -443,3 +443,38 @@ func TestRiskRegisterListSerializesMonitoringStatusAndLastMonitoredAt(t *testing
 func floatPtr(v float64) *float64 { return &v }
 
 func strPtr(v string) *string { return &v }
+
+func TestRiskRegisterGenericMonitoringFilter(t *testing.T) {
+	org := uuid.New()
+	for _, tt := range []struct {
+		query string
+		want  int
+	}{
+		{"assessment_cycle=2026-Q3&monitoring_status=not_monitored", 200},
+		{"assessment_cycle=2026-Q3&monitoring_status=monitored", 200},
+		{"monitoring_status=not_monitored", 422},
+		{"assessment_cycle=2026-Q3&monitoring_status=unknown", 422},
+	} {
+		t.Run(tt.query, func(t *testing.T) {
+			repository := &riskRegisterRepoStub{}
+			handler := &RiskHandler{listRegisterUC: riskuc.NewListRiskRegisterUseCase(repository)}
+			app := fiber.New()
+			app.Get("/risks/register", func(c *fiber.Ctx) error {
+				c.Locals("accessScope", &entity.AccessScope{Role: "unit", OrganizationID: &org, AccessibleOrgIDs: []uuid.UUID{org}})
+				return handler.ListRiskRegister(c)
+			})
+			response, err := app.Test(httptest.NewRequest("GET", "/risks/register?"+tt.query, nil))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer response.Body.Close()
+			if response.StatusCode != tt.want {
+				body, _ := io.ReadAll(response.Body)
+				t.Fatalf("status %d want %d: %s", response.StatusCode, tt.want, body)
+			}
+			if tt.want == 200 && repository.registerFilter.MonitoringStatus == "" {
+				t.Fatal("monitoring filter not forwarded to repository")
+			}
+		})
+	}
+}

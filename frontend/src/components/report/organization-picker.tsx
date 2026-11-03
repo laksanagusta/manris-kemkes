@@ -125,7 +125,7 @@ export function OrganizationPicker({
   );
   const optionNameById = new Map(options.map((option) => [option.id, option.name]));
   const controlHeight =
-    density === "compact" ? "h-9 min-h-9" : "h-10 min-h-10";
+    density === "compact" ? "h-8 min-h-8" : "h-10 min-h-10";
 
   useEffect(() => {
     if (!open) return;
@@ -139,7 +139,7 @@ export function OrganizationPicker({
 
   if (multiSelect) {
     return (
-      <div className="space-y-2">
+      <div className={cn(density === "compact" ? "grid min-w-0 gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center" : "space-y-2")}>
       <Combobox
         multiple
         autoHighlight
@@ -213,7 +213,7 @@ export function OrganizationPicker({
       </Combobox>
       <Popover open={reviewOpen} onOpenChange={setReviewOpen}>
         <PopoverTrigger asChild>
-          <Button variant="outline" size="sm" disabled={disabled || !allowedSelectedValues.length} aria-label={`Tinjau ${allowedSelectedValues.length} unit terpilih`}>
+          <Button variant="outline" size="sm" className={density === "compact" ? "h-8" : undefined} disabled={disabled || !allowedSelectedValues.length} aria-label={`Tinjau ${allowedSelectedValues.length} unit terpilih`}>
             Tinjau {allowedSelectedValues.length} unit terpilih
           </Button>
         </PopoverTrigger>

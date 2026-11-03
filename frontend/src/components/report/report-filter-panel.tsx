@@ -1,8 +1,8 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
-import { Download, FileSpreadsheet, FileText, Loader2, MoreHorizontal, RefreshCw, RotateCcw } from "@/components/shared/icons";
-import { ReportFilterCard } from "./report-filter-card";
+import { FileSpreadsheet, Loader2, MoreHorizontal, RefreshCw, RotateCcw } from "@/components/shared/icons";
+import { ReportFilterCard, ReportFilterRow } from "./report-filter-card";
 import { ReportScopePicker } from "@/components/report/report-scope-picker";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,7 +15,6 @@ import type { OrganizationGroupListItem } from "@/lib/api/organization-groups";
 import type { ReportsFilterScope } from "@/lib/reports-filter-sheet";
 import { currentReportCycle } from "@/lib/quarterly-report";
 
-export type ReportExportFormat = "xlsx" | "pdf";
 
 export function ReportPeriodPicker({ label, cycle, onChange, disabled }: {
   label: string;
@@ -45,7 +44,7 @@ export function ReportPeriodPicker({ label, cycle, onChange, disabled }: {
             onChange(`${nextYear}-Q${nextQuarter}`);
           }}
         >
-          <SelectTrigger className="h-9! w-full" aria-label={`Tahun ${label.toLowerCase()}`}>
+          <SelectTrigger className="h-8! w-full" aria-label={`Tahun ${label.toLowerCase()}`}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -55,7 +54,7 @@ export function ReportPeriodPicker({ label, cycle, onChange, disabled }: {
           </SelectContent>
         </Select>
         <Select disabled={disabled} value={quarter} onValueChange={(value) => onChange(`${year}-Q${value}`)}>
-          <SelectTrigger className="h-9! w-full" aria-label={`Kuartal ${label.toLowerCase()}`}>
+          <SelectTrigger className="h-8! w-full" aria-label={`Kuartal ${label.toLowerCase()}`}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -73,9 +72,7 @@ export function ReportPeriodPicker({ label, cycle, onChange, disabled }: {
 
 interface ReportFilterPanelProps {
   cycle: string;
-  comparisonCycle: string;
   onCycleChange: (cycle: string) => void;
-  onComparisonCycleChange: (cycle: string) => void;
   scope: ReportsFilterScope;
   onScopeChange: Dispatch<SetStateAction<ReportsFilterScope>>;
   organizations: OrganizationListItem[];
@@ -83,26 +80,32 @@ interface ReportFilterPanelProps {
   scopeSummary: string;
   scopeReady: boolean;
   loading: boolean;
-  exporting: ReportExportFormat | null;
+  exporting: boolean;
   canExport: boolean;
-  onExport: (format: ReportExportFormat) => void;
+  onExportExcel: () => void;
+  onExportDataExcel: () => void;
   onReload: () => void;
   onReset: () => void;
 }
 
 export function ReportFilterPanel({
-  cycle, comparisonCycle, onCycleChange, onComparisonCycleChange,
+  cycle, onCycleChange,
   scope, onScopeChange, organizations, groups, scopeSummary,
-  scopeReady, loading, exporting, canExport, onExport, onReload, onReset,
+  scopeReady, loading, exporting, canExport, onExportExcel, onExportDataExcel, onReload, onReset,
 }: ReportFilterPanelProps) {
-  const disabled = !scopeReady || Boolean(exporting);
+  const disabled = !scopeReady || exporting;
 
   return (
     <ReportFilterCard>
-    <div className="min-w-0 space-y-4">
-      <div className="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-[11rem_11rem_minmax(0,1fr)]">
-        <ReportPeriodPicker label="Periode laporan" cycle={cycle} onChange={onCycleChange} disabled={disabled} />
-        <ReportPeriodPicker label="Pembanding" cycle={comparisonCycle} onChange={onComparisonCycleChange} disabled={disabled} />
+      <ReportFilterRow>
+        <div className="w-full sm:w-48">
+          <ReportPeriodPicker
+            label="Periode"
+            cycle={cycle}
+            onChange={onCycleChange}
+            disabled={disabled}
+          />
+        </div>
         <ReportScopePicker
           organizationId={scope.organizationId}
           onOrganizationChange={(organizationId) => onScopeChange((value) => ({ ...value, organizationId }))}
@@ -112,49 +115,36 @@ export function ReportFilterPanel({
           organizationGroupId={scope.organizationGroupId}
           onOrganizationGroupChange={(organizationGroupId) => onScopeChange((value) => ({ ...value, organizationGroupId }))}
           organizationGroups={groups}
-          className="min-w-0 md:col-span-2 xl:col-span-1"
+          className="w-full min-w-0 flex-1 md:min-w-[28rem]"
           orientation="inline"
           density="compact"
           disabled={disabled}
         />
-      </div>
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-3">
-        <p className="text-xs text-muted-foreground tabular-nums" aria-live="polite">{scopeSummary}</p>
-        <div className="flex items-center gap-1">
+        <div className="flex shrink-0 items-center gap-2">
+          <Button type="button" variant="outline" size="icon" aria-label="Muat ulang" title="Muat ulang" disabled={disabled || loading} aria-busy={loading} onClick={onReload}>
+            <RefreshCw aria-hidden="true" className={loading ? "animate-spin motion-reduce:animate-none" : undefined} />
+          </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" aria-label="Opsi laporan" title="Opsi laporan" disabled={disabled}>
-                <MoreHorizontal />
+              <Button variant="outline" size="icon" aria-label="Opsi laporan" title="Opsi laporan" disabled={disabled}>
+                {exporting ? <Loader2 className="animate-spin" /> : <MoreHorizontal />}
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuItem disabled={loading} onSelect={onReload}>
-                <RefreshCw />Muat ulang data
+              <DropdownMenuItem disabled={!canExport || loading || exporting} onSelect={onExportExcel}>
+                {exporting ? <Loader2 className="animate-spin" /> : <FileSpreadsheet />}Laporan lengkap Excel
+              </DropdownMenuItem>
+              <DropdownMenuItem disabled={!canExport || loading || exporting} onSelect={onExportDataExcel}>
+                <FileSpreadsheet />Data laporan Excel
               </DropdownMenuItem>
               <DropdownMenuItem onSelect={onReset}>
                 <RotateCcw />Atur ulang filter
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" disabled={!canExport || loading || disabled}>
-                {exporting ? <Loader2 className="size-4 animate-spin" /> : <Download />}
-                Ekspor
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onSelect={() => onExport("pdf")}>
-                <FileText />Ringkasan PDF
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={() => onExport("xlsx")}>
-                <FileSpreadsheet />Laporan lengkap Excel
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
         </div>
-      </div>
-    </div>
+      </ReportFilterRow>
+      <p className="sr-only" aria-live="polite">{scopeSummary}</p>
     </ReportFilterCard>
   );
 }

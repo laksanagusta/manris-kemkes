@@ -3,6 +3,7 @@ package risk
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
@@ -32,9 +33,10 @@ func (s *deleteMonitoringRepoStub) DeleteDraft(context.Context, uuid.UUID, []uui
 }
 
 func TestDeleteMonitoringUseCaseDeletesDraft(t *testing.T) {
-	monitoring := &entity.RiskMonitoring{ID: uuid.New(), Status: entity.RiskMonitoringStatusDraft}
+	monitoring := &entity.RiskMonitoring{ID: uuid.New(), AssessmentCycle: "2026-Q3", Status: entity.RiskMonitoringStatusDraft}
 	repo := &deleteMonitoringRepoStub{monitoring: monitoring}
 	uc := NewDeleteMonitoringUseCase(repo)
+	uc.now = func() time.Time { return time.Date(2026, 10, 15, 0, 0, 0, 0, time.UTC) }
 
 	result, err := uc.Execute(context.Background(), monitoring.ID, nil)
 	if err != nil {
@@ -52,6 +54,7 @@ func TestDeleteMonitoringUseCaseRejectsFinalizedMonitoring(t *testing.T) {
 	monitoring := &entity.RiskMonitoring{ID: uuid.New(), Status: entity.RiskMonitoringStatusFinalized}
 	repo := &deleteMonitoringRepoStub{monitoring: monitoring}
 	uc := NewDeleteMonitoringUseCase(repo)
+	uc.now = func() time.Time { return time.Date(2026, 10, 15, 0, 0, 0, 0, time.UTC) }
 
 	_, err := uc.Execute(context.Background(), monitoring.ID, nil)
 	if err != domainerrors.ErrMonitoringNotDeletable {
@@ -65,6 +68,7 @@ func TestDeleteMonitoringUseCaseRejectsFinalizedMonitoring(t *testing.T) {
 func TestDeleteMonitoringUseCaseMapsMissingMonitoring(t *testing.T) {
 	repo := &deleteMonitoringRepoStub{getErr: domainerrors.ErrRiskNotFound}
 	uc := NewDeleteMonitoringUseCase(repo)
+	uc.now = func() time.Time { return time.Date(2026, 10, 15, 0, 0, 0, 0, time.UTC) }
 
 	_, err := uc.Execute(context.Background(), uuid.New(), nil)
 	if err != domainerrors.ErrRiskNotFound {

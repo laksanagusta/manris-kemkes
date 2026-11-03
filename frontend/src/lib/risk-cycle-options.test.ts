@@ -37,7 +37,7 @@ test("getAssessmentCycleFilterOptions lists available quarters and keeps the sel
     getAssessmentCycleFilterOptions(
       new Date("2026-10-01T00:00:00Z"),
       "2025-Q4",
-    ).at(-1),
+    ).find(option => option.value === "2025-Q4"),
     { value: "2025-Q4", label: "2025-Q4" },
   );
 });
@@ -66,4 +66,12 @@ test("currentMonitoringCycle follows date", () => {
   assert.equal(currentMonitoringCycle(new Date("2026-04-01T00:00:00Z")), "2026-Q2");
   assert.equal(currentMonitoringCycle(new Date("2026-07-01T00:00:00Z")), "2026-Q3");
   assert.equal(currentMonitoringCycle(new Date("2026-10-01T00:00:00Z")), "2026-Q4");
+});
+
+test("only previous-quarter monitoring is selectable during the first following month",async()=>{
+ const {getSelectableMonitoringCyclesForDate}=await import(new URL("./risk-cycle-options.ts",import.meta.url).href);
+ assert.deepEqual(getSelectableMonitoringCyclesForDate(new Date("2026-10-15T00:00:00Z")),[{value:"2026-Q3",label:"2026-Q3"}]);
+ assert.deepEqual(getSelectableMonitoringCyclesForDate(new Date("2026-11-01T00:00:00+07:00")),[]);
+ assert.deepEqual(getSelectableMonitoringCyclesForDate(new Date("2026-12-15T00:00:00Z")),[]);
+ assert.deepEqual(getSelectableMonitoringCyclesForDate(new Date("2027-01-01T00:00:00+07:00")),[{value:"2026-Q4",label:"2026-Q4"}]);
 });

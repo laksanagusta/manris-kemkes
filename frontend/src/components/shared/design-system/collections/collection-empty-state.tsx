@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import { cn } from "@/lib/utils";
+
 import { IllustratedEmptyState } from "../feedback/illustrated-empty-state";
 
 export function CollectionEmptyState({
@@ -21,7 +23,7 @@ export function CollectionEmptyState({
       description={description}
       action={action}
       align={align}
-      className={className}
+      className={cn("min-h-24 px-4 py-6 sm:px-6", className)}
     />
   );
 }

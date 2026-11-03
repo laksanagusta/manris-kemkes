@@ -230,7 +230,7 @@ func (r *riskCharterRepository) List(ctx context.Context, filter repository.Risk
 		limit = 10
 	}
 	offset := (page - 1) * limit
-	dataQuery += fmt.Sprintf(" ORDER BY updated_at DESC LIMIT $%d OFFSET $%d", argPos, argPos+1)
+	dataQuery += fmt.Sprintf(" ORDER BY created_at DESC, id DESC LIMIT $%d OFFSET $%d", argPos, argPos+1)
 	args = append(args, limit, offset)
 
 	rows, err := r.pool.Query(ctx, dataQuery, args...)

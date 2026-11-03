@@ -17,6 +17,7 @@ const (
 )
 
 type RiskEvent struct {
+	Notes                 []RiskEventNote     `json:"notes,omitempty"`
 	ID                    uuid.UUID           `json:"id"`
 	Code                  string              `json:"code"`
 	Description           string              `json:"description"`

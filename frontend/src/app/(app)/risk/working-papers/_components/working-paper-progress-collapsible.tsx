@@ -18,7 +18,7 @@ import {
   CollectionTableHead,
   CollectionTableHeader,
   CollectionTableHeaderRow,
-  PopoverSelectField,
+  DynamicTableFilters,
 } from "@/components/shared/design-system";
 import { buildLatestOrganizationProgressData } from "@/lib/dashboard-insights";
 import type { LatestOrganizationProgressDatum } from "@/lib/dashboard-insights";
@@ -142,17 +142,19 @@ export function WorkingPaperProgressCollapsible({
           </CollapsibleCard.Header>
         </CollapsibleCard.Trigger>
         <CollapsibleCard.Actions className="pr-4">
-          <PopoverSelectField
-            fitContent
-            value={activePeriodFilter}
-            onValueChange={setPeriodFilter}
-            options={[
-              { value: "all", label: "Semua periode" },
-              ...periodOptions,
+          <DynamicTableFilters
+            fields={[
+              {
+                id: "progress_period",
+                label: "Periode",
+                value: activePeriodFilter,
+                onChange: setPeriodFilter,
+                options: [
+                  { value: "all", label: "Semua periode" },
+                  ...periodOptions,
+                ],
+              },
             ]}
-            placeholder="Semua periode"
-            ariaLabel="Filter periode progress kertas kerja"
-            triggerClassName="h-8 px-2 text-xs"
           />
         </CollapsibleCard.Actions>
       </div>

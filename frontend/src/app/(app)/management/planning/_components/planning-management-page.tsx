@@ -6,6 +6,7 @@ import {
   useDeferredValue,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { toast } from "sonner";
@@ -25,13 +26,6 @@ import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
@@ -42,6 +36,7 @@ import {
   CollectionEmptyState,
   CollectionErrorState,
   CollectionSearchField,
+  DynamicTableFilters,
   CollectionTableCard,
   CollectionTableHead,
   CollectionTableHeader,
@@ -503,9 +498,11 @@ export function PlanningManagementPage() {
   const [organizationFilter, setOrganizationFilter] = useState("all");
 
   const deferredSearch = useDeferredValue(search);
+  const loadGeneration = useRef(0);
 
   const loadData = useCallback(
     async (showLoading = true) => {
+      const generation = ++loadGeneration.current;
       if (!token) return;
       try {
         if (showLoading) setLoading(true);
@@ -519,18 +516,30 @@ export function PlanningManagementPage() {
           limit: 100,
         };
         const [rows, orgs] = await Promise.all([
-          listPlanningObjectiveCompatibility(token, params),
+          (async () => {
+            const rows: PlanningObjectiveCompatibilityItem[] = [];
+            let page = 1;
+            while (true) {
+              const response = await listPlanningObjectiveCompatibility(token, { ...params, page });
+              const data = response.data ?? [];
+              rows.push(...data);
+              if (data.length === 0 || rows.length >= response.total) return rows;
+              page += 1;
+            }
+          })(),
           listAllOrganizations(token),
         ]);
-        setItems(rows.data ?? []);
+        if (generation !== loadGeneration.current) return;
+        setItems(rows);
         setOrganizations(orgs);
       } catch (err) {
+        if (generation !== loadGeneration.current) return;
         const message =
           err instanceof Error ? err.message : "Gagal memuat struktur kinerja.";
         setError(message);
         toast.error(message);
       } finally {
-        setLoading(false);
+        if (generation === loadGeneration.current) setLoading(false);
       }
     },
     [deferredSearch, organizationFilter, periodFilter, token],
@@ -538,6 +547,7 @@ export function PlanningManagementPage() {
 
   useEffect(() => {
     loadData();
+    return () => { loadGeneration.current += 1; };
   }, [loadData]);
 
   const organizationMap = useMemo(
@@ -612,42 +622,38 @@ export function PlanningManagementPage() {
       />
 
       <div className="space-y-4">
-      <div className="flex flex-col gap-2 md:flex-row md:flex-wrap md:items-center md:justify-end">
-        <CollectionSearchField
-          id="planning-search"
-          value={search}
-          onChange={(event) => setSearch(event.target.value)}
-          placeholder="Cari perjanjian kinerja, tujuan, sasaran, IKU, program, kegiatan, atau RO"
-        />
-
-        <Select value={periodFilter} onValueChange={setPeriodFilter}>
-          <SelectTrigger className="w-full md:w-fit">
-            <SelectValue placeholder="Semua periode" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua periode</SelectItem>
-            {periods.map((period) => (
-              <SelectItem key={period} value={period}>
-                {period}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select value={organizationFilter} onValueChange={setOrganizationFilter}>
-          <SelectTrigger className="w-full md:w-fit">
-            <SelectValue placeholder="Semua satker" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua satker</SelectItem>
-            {organizations.map((org) => (
-              <SelectItem key={org.id} value={org.id}>
-                {org.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      <DynamicTableFilters
+        search={
+          <CollectionSearchField
+            id="planning-search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Cari perjanjian kinerja, tujuan, sasaran, IKU, program, kegiatan, atau RO"
+          />
+        }
+        fields={[
+          {
+            id: "period",
+            label: "Periode",
+            value: periodFilter,
+            onChange: setPeriodFilter,
+            options: [
+              { value: "all", label: "Semua periode" },
+              ...periods.map((period) => ({ value: period, label: period })),
+            ],
+          },
+          {
+            id: "organization",
+            label: "Satker",
+            value: organizationFilter,
+            onChange: setOrganizationFilter,
+            options: [
+              { value: "all", label: "Semua satker" },
+              ...organizations.map((org) => ({ value: org.id, label: org.name })),
+            ],
+          },
+        ]}
+      />
 
       {error ? <CollectionErrorState message={error} /> : null}
 
