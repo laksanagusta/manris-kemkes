@@ -39,13 +39,13 @@ export function CollectionPagination({
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   return (
-    <CardFooter className="flex-col items-stretch gap-3 bg-table-footer md:flex-row md:items-center md:justify-between">
+    <CardFooter data-collection-pagination="" className="min-w-0 flex-col items-stretch gap-3 bg-table-footer px-5 py-3 text-sm md:flex-row md:flex-wrap md:items-center md:justify-between">
       <p className="text-secondary-foreground">
         Menampilkan {total === 0 ? 0 : (page - 1) * pageSize + 1} sampai{" "}
         {Math.min(page * pageSize, total)} dari {total} {itemLabel}
       </p>
-      <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-        <div className="flex items-center justify-center gap-2">
+      <div className="flex min-w-0 flex-col items-stretch gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+        <div className="flex flex-wrap items-center justify-center gap-2">
           <Button
             variant="outline"
             size="icon"

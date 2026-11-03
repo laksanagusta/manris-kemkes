@@ -33,8 +33,6 @@ type ListCommunicationLogsInput struct {
 type ListCommunicationLogOutput struct {
 	ID            string
 	RiskID        string
-	Date          string
-	Method        string
 	Stakeholder   string
 	Notes         string
 	CreatedBy     string
@@ -63,8 +61,6 @@ func (uc *ListCommunicationLogsUseCase) Execute(ctx context.Context, input ListC
 		result[i] = ListCommunicationLogOutput{
 			ID:            log.ID.String(),
 			RiskID:        log.RiskID.String(),
-			Date:          log.Date.Format("2006-01-02"),
-			Method:        log.Method,
 			Stakeholder:   log.Stakeholder,
 			Notes:         log.Notes,
 			CreatedBy:     log.CreatedBy.String(),

@@ -4,7 +4,7 @@ import { ManriskMark } from "@/components/manrisk-mark";
 import { MarketingReveal } from "@/components/marketing/marketing-reveal";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
 import { LogoCarousel } from "@/components/marketing/logo-carousel";
-import { MarketingActions, MarketingPreview } from "@/components/marketing/marketing-primitives";
+import { MarketingActions, MarketingFeatures, MarketingPreview } from "@/components/marketing/marketing-primitives";
 import {
   ArrowRight, BarChart3, Building2, ClipboardCheck,
   FileSignature, FileSpreadsheet, FileText, History, Layers3,
@@ -63,10 +63,7 @@ export default function HomePage() {
 
         <section id="fitur" className={`${styles.container} ${styles.section}`} aria-labelledby="features-heading">
           <h2 id="features-heading" className={styles.sectionHeading}>Informasi risiko yang jelas untuk seluruh tim.</h2>
-          <div className={styles.featureGrid}>
-            <MarketingReveal as="article" className={styles.feature}><MarketingPreview kind="register" /><h3>Profil risiko dalam satu tampilan.</h3><p>Lihat skor, status, dan progres pemantauan setiap risiko. Gunakan informasi yang sama untuk menentukan prioritas tim.</p></MarketingReveal>
-            <MarketingReveal as="article" className={styles.feature}><MarketingPreview kind="extraction" /><h3>Temukan kandidat risiko dari dokumen.</h3><p>Gunakan AI untuk menemukan kandidat risiko dalam dokumen beserta sumbernya. Periksa hasilnya sebelum membuat draf.</p><Link href="/docs/risk-register#ekstraksi-sop" className={styles.textLink}>Baca panduan ekstraksi risiko dari dokumen <ArrowRight size={16} /></Link></MarketingReveal>
-          </div>
+          <MarketingFeatures />
         </section>
 
         <div className={styles.sectionDivider}>

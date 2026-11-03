@@ -1,4 +1,9 @@
 "use client";
+import { PropertyList, PropertyLabel } from "@/components/shared/design-system/layout/property-list";
+
+import { DetailSidePanel } from "@/components/shared/design-system/layout/detail-side-panel";
+import { RiskDetailTabs } from "@/components/risk/risk-detail-tabs";
+import { RiskMonitoringList } from "@/components/risk/risk-monitoring-list";
 import { RiskFinalizationNotice } from "@/components/shared/design-system/domain/risk-finalization-notice";
 
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
@@ -25,7 +30,7 @@ import { listAllOrganizations } from "@/lib/api/organizations";
 import { filterToAccessibleOrgs } from "@/lib/organization";
 import { isMonitoringWindowOpen, monitoringWindowMessage } from "@/lib/monitoring-window";
 import { useAuth } from "@/contexts/auth-context";
-import { isReadOnlyForOrg } from "@/lib/auth-helpers";
+import { canWriteInOrg, isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { useForm, Controller, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -451,8 +456,7 @@ function RiskVersionHistoryList({
                     : "Versi"}
                 </span>
               </div>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {version.code || "Risiko"} ·{" "}
+              <p className="mt-1 text-sm text-muted-foreground">
                 {new Date(version.createdAt).toLocaleDateString("id-ID", {
                   day: "numeric",
                   month: "short",
@@ -462,11 +466,11 @@ function RiskVersionHistoryList({
                   ? ` · ${version.assessmentCycle}`
                   : ""}
               </p>
-              <p className="mt-1 line-clamp-2 text-xs font-medium text-foreground/80">
+              <p className="mt-1 line-clamp-2 text-sm font-medium text-foreground/80">
                 {version.title || "Tanpa judul"}
               </p>
               {version.changeReason && (
-                <p className="mt-1 line-clamp-2 text-[11px] text-muted-foreground">
+                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
                   {version.changeReason}
                 </p>
               )}
@@ -809,6 +813,9 @@ export default function RiskInputPage() {
   );
 
   const [riskId, setRiskId] = useState<string | null>(null);
+  const [activeDetailTab, setActiveDetailTab] = useState("overview");
+  const [detailMitigationFilter,setDetailMitigationFilter] = useState("all");
+  const treatmentPanelRef = useRef<HTMLDivElement>(null);
   const [loadingVersionId, setLoadingVersionId] = useState<string | null>(null);
   const [riskVersionNumber, setRiskVersionNumber] = useState<number | null>(
     null,
@@ -837,6 +844,7 @@ export default function RiskInputPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [showArchiveDialog, setShowArchiveDialog] = useState(false);
   const [showRestoreDialog, setShowRestoreDialog] = useState(false);
+  const [riskVersionGroupId, setRiskVersionGroupId] = useState<string | undefined>();
   const [showMonitoringDialog, setShowMonitoringDialog] = useState(false);
   const [riskEventDrawerOpen, setRiskEventDrawerOpen] = useState(false);
   const [selectedMonitoringCycle, setSelectedMonitoringCycle] = useState(
@@ -1158,6 +1166,7 @@ export default function RiskInputPage() {
         setRiskStatus(risk.status || "draft");
         setRiskIsCurrent(risk.isCurrent ?? false);
         setRiskVersionNumber(risk.versionNumber ?? null);
+        setRiskVersionGroupId(risk.versionGroupId);
         setRiskArchivedAt(risk.archivedAt || null);
         setRiskArchivedReason(risk.archivedReason || "");
         void loadLinkedRiskEvents(risk.id);
@@ -1830,6 +1839,7 @@ export default function RiskInputPage() {
     (!ongoingMonitoring || ongoingMonitoring.assessmentCycle!==getDefaultMonitoringCycle());
 
   const scrollToSection = (sectionId: SectionId) => {
+    setActiveDetailTab("overview");
     if (typeof document === "undefined") return;
     setTimeout(() => {
       const element = document.getElementById(sectionId);
@@ -2753,7 +2763,12 @@ export default function RiskInputPage() {
           </Card>
         )}
 
-        <div className="grid w-full min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
+        <RiskDetailTabs
+          enabled={Boolean(riskId)}
+          value={activeDetailTab}
+          onValueChange={setActiveDetailTab}
+          overview={
+        <div className="grid w-full min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_420px] xl:items-start">
           <div className="min-w-0">
             <form
               onSubmit={(e) => e.preventDefault()}
@@ -3138,10 +3153,7 @@ export default function RiskInputPage() {
                   </CardHeader>
                   <CardContent className="space-y-5">
                     <div className="space-y-3">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <Label className="text-sm font-medium text-foreground">
-                          Rencana Mitigasi
-                        </Label>
+                      <div className="flex flex-wrap items-center justify-start gap-2">
                         {!aiFeaturesDisabled && !isRiskLocked ? (
                           <MitigationPicker
                             title={title}
@@ -3183,6 +3195,7 @@ export default function RiskInputPage() {
                         control={control}
                         render={({ field }) => (
                           <MitigationPlanList
+                            presentation="table"
                             items={(field.value ?? []).map(
                               (mitigation): MitigationItem => ({
                                 id: mitigation.id,
@@ -3358,19 +3371,17 @@ export default function RiskInputPage() {
 
           <aside className="min-w-0 self-start">
             <div className="space-y-6 xl:sticky xl:top-20">
-              <Card className="overflow-hidden transition-colors duration-300">
-                <CardContent className="">
-                  <div className="space-y-4">
+              <DetailSidePanel>
                     <section aria-labelledby="risk-side-properties">
                       <h2
                         id="risk-side-properties"
-                        className="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground/70"
+                        className="text-sm font-semibold capitalize text-primary"
                       >
                         Properti
                       </h2>
-                      <dl className="mt-3 space-y-3">
+                      <PropertyList>
                         <div className="flex items-center justify-between gap-4">
-                          <dt className="text-[13px] text-muted-foreground">Status</dt>
+                          <PropertyLabel>Status</PropertyLabel>
                           <dd className="shrink-0 text-right">
                             <Badge variant={toBadgeVariant(getRiskStatusTone(riskStatus))}
                               className={getStatusBadgeClassName(getRiskStatusTone(riskStatus))}
@@ -3380,26 +3391,27 @@ export default function RiskInputPage() {
                           </dd>
                         </div>
                         <div className="flex items-center justify-between gap-4">
-                          <dt className="text-[13px] text-muted-foreground">Kode risiko</dt>
+                          <PropertyLabel>Kode risiko</PropertyLabel>
                           <dd className="max-w-[60%] truncate text-right font-mono text-foreground">
                             {riskCode || "Belum dibuat"}
                           </dd>
                         </div>
                         <div className="flex items-center justify-between gap-4">
-                          <dt className="text-[13px] text-muted-foreground">Versi</dt>
+                          <PropertyLabel>Versi</PropertyLabel>
                           <dd className="shrink-0 text-right font-mono text-foreground">
                             {riskVersionNumber ? `v${riskVersionNumber}` : "-"}
                           </dd>
                         </div>
                         <div className="flex items-center justify-between gap-4">
-                          <dt className="text-[13px] text-muted-foreground">Periode</dt>
+                          <PropertyLabel>Periode</PropertyLabel>
                           <dd className="shrink-0 text-right font-mono text-foreground">
                             {assessmentCycleDisplay || "-"}
                           </dd>
                         </div>
-                      </dl>
+                      </PropertyList>
                     </section>
 
+                    {!riskId && (
                     <section
                       aria-labelledby="risk-side-treatment"
                       className="border-t border-dashed border-border/70 pt-5"
@@ -3407,7 +3419,7 @@ export default function RiskInputPage() {
                       <div className="flex items-center justify-between gap-3">
                         <h2
                           id="risk-side-treatment"
-                          className="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground/70"
+                          className="text-sm font-semibold capitalize text-primary"
                         >
                           Penanganan
                         </h2>
@@ -3419,12 +3431,14 @@ export default function RiskInputPage() {
                             token={token || ""}
                           />
                         ) : (
-                          <div className="rounded-lg bg-state-surface px-3 py-4 text-center text-xs text-state-foreground">
+                          <div className="py-2 text-sm text-muted-foreground">
                             Simpan draft untuk melihat progres penanganan.
                           </div>
                         )}
                       </div>
                     </section>
+
+                    )}
 
                     <section
                       aria-labelledby="risk-side-events"
@@ -3433,13 +3447,13 @@ export default function RiskInputPage() {
                       <div className="flex items-center justify-between gap-3">
                         <h2
                           id="risk-side-events"
-                          className="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground/70"
+                          className="text-sm font-semibold capitalize text-primary"
                         >
                           Kejadian
                         </h2>
                         <div className="flex items-center gap-2">
                           {riskEvents.length > 0 ? (
-                            <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                            <span className="font-mono text-sm tabular-nums text-muted-foreground">
                               {riskEvents.length}
                             </span>
                           ) : null}
@@ -3456,12 +3470,12 @@ export default function RiskInputPage() {
                       </div>
                       <div className="mt-3">
                         {!riskId ? (
-                          <div className="rounded-lg bg-state-surface px-3 py-4 text-center text-xs text-state-foreground">
+                          <div className="py-2 text-sm text-muted-foreground">
                             Finalisasi risiko sebelum mencatat dan menautkan kejadian.
                           </div>
                         ) : loadingRiskEvents ? (
                           <div
-                            className="flex items-center gap-2 rounded-lg bg-state-surface px-3 py-2 text-xs text-state-foreground"
+                            className="flex items-center gap-2 rounded-lg bg-state-surface px-3 py-2 text-sm text-state-foreground"
                             role="status"
                             aria-live="polite"
                           >
@@ -3472,7 +3486,7 @@ export default function RiskInputPage() {
                             Memuat kejadian...
                           </div>
                         ) : riskEventsError ? (
-                          <div className="rounded-lg bg-state-surface px-3 py-3 text-xs text-state-foreground">
+                          <div className="rounded-lg bg-state-surface px-3 py-3 text-sm text-state-foreground">
                             <p>{riskEventsError}</p>
                             <Button
                               type="button"
@@ -3493,7 +3507,7 @@ export default function RiskInputPage() {
                                   className="group -mx-2 block rounded-md px-2 py-2 outline-none transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring/40"
                                 >
                                   <div className="flex items-center justify-between gap-2">
-                                    <span className="truncate font-mono text-xs text-muted-foreground">
+                                    <span className="truncate font-mono text-sm text-muted-foreground">
                                       {event.code}
                                     </span>
                                     <Badge variant={toBadgeVariant(riskEventSeverityTones[event.severity])}
@@ -3502,12 +3516,12 @@ export default function RiskInputPage() {
                                       {riskEventSeverityLabels[event.severity]}
                                     </Badge>
                                   </div>
-                                  <p className="mt-1 line-clamp-2 text-xs font-medium leading-5 text-foreground">
+                                  <p className="mt-1 line-clamp-2 text-sm font-medium leading-5 text-foreground">
                                     {event.description}
                                   </p>
                                   <time
                                     dateTime={event.occurredAt}
-                                    className="mt-1 block text-[11px] text-muted-foreground"
+                                    className="mt-1 block text-sm text-muted-foreground"
                                   >
                                     {riskEventDateFormatter.format(
                                       new Date(event.occurredAt),
@@ -3520,12 +3534,12 @@ export default function RiskInputPage() {
                         ) : riskStatus === "final" ? (
                           <IllustratedEmptyState
                             title="Belum ada kejadian terkait."
-                            titleClassName="text-secondary-foreground"
+                            titleClassName="text-sm text-secondary-foreground"
                             size="compact"
                             className="py-2"
                           />
                         ) : (
-                          <div className="rounded-lg bg-state-surface px-3 py-4 text-center text-xs text-state-foreground">
+                          <div className="py-2 text-sm text-muted-foreground">
                             Finalisasi risiko sebelum mencatat dan menautkan kejadian.
                           </div>
                         )}
@@ -3544,32 +3558,7 @@ export default function RiskInputPage() {
                       ) : null}
                     </section>
 
-                    <section
-                      aria-labelledby="risk-side-log"
-                      className="border-t border-dashed border-border/70 pt-5"
-                    >
-                      {riskId ? (
-                        <RiskLogTimeline
-                          riskId={riskId}
-                          token={token || ""}
-                          canAdd={riskStatus !== "draft"}
-                        />
-                      ) : (
-                        <>
-                          <h2
-                            id="risk-side-log"
-                            className="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground/70"
-                          >
-                            Catatan
-                          </h2>
-                          <div className="mt-3">
-                            <div className="rounded-lg bg-state-surface px-3 py-4 text-center text-xs text-state-foreground">
-                              Simpan draft untuk menambahkan catatan komunikasi.
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    </section>
+
 
                     <section
                       aria-labelledby="risk-side-version-history"
@@ -3578,20 +3567,15 @@ export default function RiskInputPage() {
                       <div className="flex items-center justify-between gap-3">
                         <h2
                           id="risk-side-version-history"
-                          className="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground/70"
+                          className="text-sm font-semibold capitalize text-primary"
                         >
                           Riwayat versi
                         </h2>
-                        {riskVersions.length > 0 && (
-                          <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                            {riskVersions.length}
-                          </span>
-                        )}
                       </div>
 
                       <div className="mt-4">
                         {loadingVersions ? (
-                          <div className="flex items-center gap-2 rounded-lg bg-state-surface px-3 py-2 text-xs text-state-foreground">
+                          <div className="flex items-center gap-2 rounded-lg bg-state-surface px-3 py-2 text-sm text-state-foreground">
                             <Loader2 className="size-3.5 animate-spin" />
                             Memuat riwayat versi...
                           </div>
@@ -3603,11 +3587,12 @@ export default function RiskInputPage() {
                         ) : riskId ? (
                           <IllustratedEmptyState
                             title="Belum ada riwayat versi."
+                            titleClassName="text-sm"
                             size="compact"
                             className="py-2"
                           />
                         ) : (
-                          <p className="rounded-lg bg-state-surface px-3 py-2 text-xs text-state-foreground">
+                          <p className="py-2 text-sm text-muted-foreground">
                             Simpan draft untuk membentuk riwayat versi.
                           </p>
                         )}
@@ -3624,9 +3609,34 @@ export default function RiskInputPage() {
                         </Button>
                       )}
                     </section>
-                  </div>
-                </CardContent>
-              </Card>
+                    <section
+                      aria-labelledby="risk-side-log"
+                      className="border-t border-dashed border-border/70 pt-5"
+                    >
+                      {riskId ? (
+                        <RiskLogTimeline
+                          key={riskId}
+                          riskId={riskId}
+                          token={token || ""}
+                          canAdd={riskStatus !== "draft"}
+                        />
+                      ) : (
+                        <>
+                          <h2
+                            id="risk-side-log"
+                            className="text-sm font-semibold capitalize text-primary"
+                          >
+                            Catatan
+                          </h2>
+                          <div className="mt-3">
+                            <div className="py-2 text-sm text-muted-foreground">
+                              Simpan draft untuk menambahkan catatan komunikasi.
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </section>
+              </DetailSidePanel>
 
               <ReviewSidePanel
                 approvalId={approvalId}
@@ -3638,9 +3648,17 @@ export default function RiskInputPage() {
                 token={token || undefined}
                 onActionComplete={() => riskId && reloadRiskData(riskId)}
               />
+
+
             </div>
           </aside>
         </div>
+          }
+          monitoring={<RiskMonitoringList riskId={riskId || ""} riskCode={riskCode || ""} versionGroupId={riskVersionGroupId} token={token || ""} active={activeDetailTab === "monitoring"} />}
+          treatment={riskId ? (
+            <div ref={treatmentPanelRef} tabIndex={-1} role="region" aria-label="Penanganan mitigasi" className="outline-none"><MitigationProgressTab mitigationFilter={detailMitigationFilter} onMitigationFilterChange={setDetailMitigationFilter} riskId={riskId} token={token || ""} showTaskList readOnly={!user || !currentOrganizationId || !canWriteInOrg(user,currentOrganizationId)} /></div>
+          ) : null}
+        />
 
         {token && riskId && canCreateRiskEvent ? (
           <RiskEventFormDialog

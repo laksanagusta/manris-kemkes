@@ -19,6 +19,9 @@
   --color-muted-foreground: var(--muted-foreground);
   --color-tertiary-foreground: var(--tertiary-foreground);
   --color-info-foreground: var(--info-foreground);
+  --color-notice-info-surface: var(--notice-info-surface);
+  --color-notice-info-border: var(--notice-info-border);
+  --color-notice-info-foreground: var(--notice-info-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
@@ -41,10 +44,11 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --font-sans: var(--font-inter);
-  --font-heading: var(--font-inter);
-  --font-display: var(--font-inter);
-  --font-logo: var(--font-inter);
+  --font-sans: var(--font-geist-sans);
+  --font-heading: var(--font-geist-sans);
+  --font-display: var(--font-geist-sans);
+  --font-logo: var(--font-geist-sans);
+  --radius-control: var(--control-radius);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -78,6 +82,9 @@
 }
 
 :root {
+  --notice-info-surface: #f6f8fe;
+  --notice-info-border: #dbe5ff;
+  --notice-info-foreground: #2066e8;
   --badge-neutral-surface: #fafafa;
   --badge-neutral-border: #e4e4e7;
   --badge-neutral-foreground: #71717b;
@@ -121,12 +128,14 @@
   --tertiary-foreground: #8b8b8b;
   --info-foreground: var(--color-blue-700);
   --disabled-foreground: #b9b9b9;
-  --disabled-input-surface: #fafafa;
+  --disabled-input-surface: #f4f4f6;
+  --disabled-input-foreground: #30303a;
+  --disabled-input-border: #dedee4;
   --card-subtle-surface: #f6f6f6;
   --secondary-card-surface: #efefef;
   --sunken: #efefef;
   --table-header: #f7f7f7;
-  --table-divider: #e5e5e5;
+  --table-divider: #ececec;
   --table-hover: #fafafa;
   --table-selected: #f0f4f8;
   --table-header-foreground: var(--tertiary-foreground);
@@ -145,6 +154,7 @@
   --chart-4: oklch(0.511 0.096 186.391);
   --chart-5: oklch(0.437 0.078 188.216);
   --radius: 0.625rem;
+  --control-radius: 6px;
   --sidebar: #f6f6f6;
   --sidebar-foreground: #202020;
   --sidebar-primary: oklch(0.205 0 0);
@@ -192,6 +202,9 @@
 }
 
 .dark {
+  --notice-info-surface: #142238;
+  --notice-info-border: #29466f;
+  --notice-info-foreground: #91bcff;
   --badge-neutral-surface: #242426;
   --badge-neutral-border: #424247;
   --badge-neutral-foreground: #a3a3ad;
@@ -244,6 +257,8 @@
   --info-foreground: var(--color-blue-300);
   --disabled-foreground: oklch(0.556 0 0);
   --disabled-input-surface: var(--muted);
+  --disabled-input-foreground: var(--foreground);
+  --disabled-input-border: var(--input);
   --card-subtle-surface: oklch(0.23 0 0);
   --secondary-card-surface: oklch(0.23 0 0);
   --sunken: oklch(0.23 0 0);
@@ -463,18 +478,37 @@
   --tw-ring-color: var(--border);
 }
 
+/* Card titles and subtitles form one group without an extra vertical gap. */
+[data-slot="card-header"]:has(> [data-slot="card-description"]),
+[data-slot="card-header"] :has(> [data-slot="card-title"] + [data-slot="card-description"]) {
+  row-gap: 0;
+}
+
+[data-slot="card-title"]:has(+ [data-slot="card-description"]) {
+  margin-block-end: 0;
+}
+
+/* All card subtitles share the 12px caption scale, including custom headers. */
+[data-slot="card-description"] {
+  margin-block-start: 0;
+  font-size: 12px;
+  line-height: 20px;
+}
+
 [data-collection-table] {
   border-radius: 12px;
   --tw-ring-color: var(--table-divider);
-  box-shadow: 0 0 0 1px var(--table-divider), 0 1px 2px rgb(0 0 0 / 10%);
+  border: 1px solid var(--table-divider);
+  box-shadow: none;
 }
 
-/* Adjacent toolbar + table share one reference panel, including pagination. */
+/* Toolbar and table share one bordered panel without a drop shadow. */
 :where(div, section):has(> [data-slot="collection-toolbar"] + [data-collection-table]) {
   overflow: clip;
   border-radius: 12px;
   background: var(--card);
-  box-shadow: 0 0 0 1px var(--table-divider), 0 1px 2px rgb(0 0 0 / 10%);
+  border: 1px solid var(--table-divider);
+  box-shadow: none;
 }
 
 [data-slot="collection-toolbar"]:has(+ [data-collection-table]) {
@@ -486,6 +520,7 @@
 
 [data-slot="collection-toolbar"] + [data-collection-table] {
   margin-block: 0;
+  border: 0;
   border-radius: 0;
   box-shadow: none;
 }
@@ -498,8 +533,7 @@
   background-color: var(--separator);
 }
 
-/* The application sidebar meets the main section without a divider. */
-[data-slot="sidebar-container"][data-side="left"],
+/* The mobile sidebar keeps its existing sheet treatment. */
 [data-slot="sidebar"][data-mobile="true"] {
   border: 0 !important;
 }
@@ -518,13 +552,6 @@
   opacity: 1;
 }
 
-:is(input, textarea, select):disabled:not([data-slot="input-group-control"], [type="checkbox"], [type="radio"]),
-[data-slot="select-trigger"]:disabled,
-[data-slot="button"][role="combobox"]:disabled {
-  background-color: var(--disabled-input-surface);
-  color: var(--disabled-foreground);
-  opacity: 1;
-}
 
 [data-slot="input-group"]:has(input:disabled, textarea:disabled) {
   background-color: var(--disabled-input-surface);
@@ -535,6 +562,26 @@
   background-color: var(--muted);
   color: var(--disabled-foreground);
   opacity: 1;
+}
+
+
+/* Disabled fields keep readable values; disabled labels/buttons retain their own tokens. */
+:root :is(input, textarea, select):disabled:not([data-slot="input-group-control"], [type="checkbox"], [type="radio"]),
+:root [data-slot="select-trigger"]:disabled,
+:root [data-slot="button"][role="combobox"]:disabled {
+  background-color: var(--disabled-input-surface);
+  color: var(--disabled-input-foreground);
+  opacity: 1;
+}
+:root :is(input, textarea, select):disabled:not([data-slot="input-group-control"], [type="checkbox"], [type="radio"], [aria-invalid="true"]),
+:root [data-slot="select-trigger"]:disabled:not([aria-invalid="true"]),
+:root [data-slot="button"][role="combobox"]:disabled:not([aria-invalid="true"]),
+:root [data-slot="input-group"]:has(input:disabled, textarea:disabled):not(:has([aria-invalid="true"])) {
+  border-color: var(--disabled-input-border);
+}
+:root :is(input, textarea):disabled:not([type="checkbox"], [type="radio"]) {
+  color: var(--disabled-input-foreground);
+  -webkit-text-fill-color: var(--disabled-input-foreground);
 }
 
 .frosted-scrim {
@@ -810,37 +857,25 @@ body[data-scroll-locked] [data-component="monitoring-baseline-floating"] {
   }
 }
 
-/* Documented Mercury report surface; stock Card primitives remain unchanged. */
-[data-slot="card"][data-report-card] {
-  --card-spacing: 1.25rem;
-  gap: 1.5rem;
-  border-radius: 1.25rem;
-  --tw-ring-color: var(--border);
-  box-shadow: 0 0 0 1px var(--border), 0 2px 3px color-mix(in oklch, var(--foreground) 5%, transparent);
+/* Work cards: real semantic border, no ring or drop shadow. */
+[data-slot="card"][data-operator-work-card] {
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: none;
 }
-[data-report-card] > [data-slot="card-header"] [data-slot="card-title"] {
-  font-size: 0.875rem;
-  font-weight: 400;
-  line-height: 1.5;
-}
-[data-report-card] > [data-report-footer] {
-  border-top: 0;
-  background: linear-gradient(110deg, var(--card-subtle-surface), color-mix(in oklch, var(--card) 90%, var(--color-rose-200)));
-}
-.dark [data-report-card] > [data-report-footer] {
-  background: linear-gradient(110deg, var(--card-subtle-surface), color-mix(in oklch, var(--card) 94%, var(--color-rose-400)));
-}
-[data-slot="card"]:has(> [data-report-collapsible]) {
-  --card-spacing: 1.25rem;
-  border-radius: 1.25rem;
-  box-shadow: 0 0 0 1px var(--border), 0 2px 3px color-mix(in oklch, var(--foreground) 5%, transparent);
-}
-[data-report-collapsible] > [data-slot="collapsible-trigger"] { padding: var(--card-spacing); }
-[data-report-collapsible] > [data-slot="collapsible-trigger"] p:first-child { font-weight: 400; }
 
-/* Both report tables separate their column headers from the controls above. */
-[data-report-table] > [data-slot="table-header"] {
-  border-top: 1px solid var(--table-divider);
+/* Ringkasan Risiko reference widgets, shared with the design-system catalog. */
+[data-slot="card"][data-risk-summary-card] {
+  --card-spacing: 1.5rem;
+  border-radius: 12px;
+  box-shadow: 0 0 0 1px var(--border), 0 2px 3px color-mix(in oklch, var(--foreground) 5%, transparent);
+}
+[data-risk-summary-card] [data-slot="card-title"] {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+@media (max-width: 639px) {
+  [data-slot="card"][data-risk-summary-card] { --card-spacing: 1rem; }
 }
 
 /* transitions-dev semantic tokens — installed once. */
@@ -1382,3 +1417,116 @@ body[data-scroll-locked] [data-component="monitoring-baseline-floating"] {
 }
 .motion-panel[data-open="true"] { grid-template-rows: 1fr; }
 @media (prefers-reduced-motion: reduce) { .motion-panel { transition: none; } }
+
+/* Detail navigation: individual Linear-style pills, separate from action radii. */
+[data-pill-tabs] {
+  height: auto;
+  max-width: 100%;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+}
+[data-pill-tabs] [data-slot="tabs-trigger"] {
+  flex: 0 1 auto;
+  height: auto;
+  min-height: 32px;
+  padding: 4px 16px;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  background: var(--card);
+  color: var(--muted-foreground);
+  font-weight: 400;
+  box-shadow: 0 1px 2px color-mix(in oklch, var(--foreground) 5%, transparent);
+  transition-duration: 150ms;
+}
+[data-pill-tabs] [data-slot="tabs-trigger"]:hover { background: var(--accent); color: var(--foreground); }
+[data-pill-tabs] [data-slot="tabs-trigger"]:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+[data-pill-tabs] [data-slot="tabs-trigger"][data-state="active"] {
+  background: var(--muted);
+  color: var(--foreground);
+  box-shadow: none;
+}
+[data-pill-tabs] [data-slot="tabs-trigger"]:active { transform: scale(0.97); }
+[data-pill-tabs] [data-slot="tabs-trigger"]::after { display: none; }
+@media (pointer: coarse) {
+  [data-pill-tabs] [data-slot="tabs-trigger"] { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-pill-tabs] [data-slot="tabs-trigger"] { transition: none; transform: none; }
+}
+
+/* Risk treatment plans: compact 12px/8px cells, rounded header, no hover. */
+[data-risk-plan-list] {
+  background: var(--card);
+}
+[data-risk-plan-list] [data-slot="table-head"] {
+  height: 40px;
+  background: var(--table-header) !important;
+  font-size: 12px;
+  font-weight: 400;
+}
+[data-risk-plan-list] [data-slot="table-head"],
+[data-risk-plan-list] [data-slot="table-cell"] {
+  padding-inline: 12px !important;
+}
+[data-risk-plan-list] [data-slot="table-cell"] {
+  height: 48px;
+  padding-block: 8px;
+  vertical-align: middle;
+  color: var(--muted-foreground);
+}
+[data-risk-plan-list] [data-slot="table-row"] {
+  border-color: var(--table-divider);
+  transition: none;
+}
+[data-risk-plan-list] [data-slot="table-body"] > [data-slot="table-row"] {
+  height: 48px;
+}
+[data-risk-plan-list] [data-slot="table-body"] > [data-slot="table-row"],
+[data-risk-plan-list] [data-slot="table-body"] > [data-slot="table-row"]:hover {
+  background: var(--card);
+}
+[data-risk-plan-list] [data-slot="table-header"] > [data-slot="table-row"] {
+  border-bottom: 0;
+}
+[data-risk-plan-list] [data-slot="table-head"]:first-child {
+  border-radius: var(--radius-control) 0 0 var(--radius-control);
+}
+[data-risk-plan-list] [data-slot="table-head"]:last-child {
+  border-radius: 0 var(--radius-control) var(--radius-control) 0;
+}
+
+[data-slot="alert"][role="note"] [data-slot="alert-description"] p { margin-block: 0; }
+
+[data-slot="alert"][data-variant="info"] {
+  background-color: var(--notice-info-surface);
+  border-color: var(--notice-info-border);
+  color: var(--notice-info-foreground);
+  border-radius: 16px;
+}
+[data-slot="alert"][data-variant="info"] [data-slot="alert-description"] { color: inherit; }
+
+/* Shared property list: icon/label column and aligned leading-edge values. */
+[data-property-list] { border: 0; }
+[data-property-list] > div {
+  display: grid;
+  grid-template-columns: minmax(0, 44fr) minmax(0, 56fr);
+  align-items: start;
+  gap: 16px;
+  border: 0;
+  padding-block: 4px;
+}
+[data-property-list] > div > dd {
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  overflow: visible;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  text-align: start;
+  font-size: 14px;
+  line-height: 20px;
+}

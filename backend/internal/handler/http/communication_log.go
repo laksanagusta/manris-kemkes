@@ -34,8 +34,6 @@ func (h *CommunicationLogHandler) Create(c *fiber.Ctx) error {
 	}
 
 	var input struct {
-		Date        string `json:"date"`
-		Method      string `json:"method"`
 		Stakeholder string `json:"stakeholder"`
 		Notes       string `json:"notes"`
 	}
@@ -60,8 +58,6 @@ func (h *CommunicationLogHandler) Create(c *fiber.Ctx) error {
 
 	result, err := h.createUC.Execute(c.Context(), commloguc.CreateCommunicationLogInput{
 		RiskID:      riskID,
-		Date:        input.Date,
-		Method:      input.Method,
 		Stakeholder: input.Stakeholder,
 		Notes:       input.Notes,
 		CreatedBy:   userID.String(),

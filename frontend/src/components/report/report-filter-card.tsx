@@ -8,3 +8,7 @@ export function ReportFilterCard({ children }: { children: ReactNode }) {
     </Card>
   );
 }
+
+export function ReportFilterRow({ children }: { children: ReactNode }) {
+  return <div className="flex min-w-0 flex-wrap items-end gap-4">{children}</div>;
+}

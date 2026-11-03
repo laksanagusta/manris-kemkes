@@ -1,26 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { MitigationTaskTable } from "./mitigation-task-table";
+
 import {
   CheckCircle2,
   Clock,
@@ -36,12 +23,20 @@ import {
   parseEvidenceUrls,
   validateMitigationReportForm,
 } from "@/lib/validation/reporting";
-import { isWithinMitigationSubmissionWindow } from "@/lib/mitigation-reporting";
-import { getLinearStatusBadgeClassName, getLinearStatusBadgeTone } from "@/lib/linear-status-badge";
+import { getMitigationSubmissionActionState } from "@/lib/mitigation-reporting";
+import {
+  getLinearStatusBadgeClassName,
+  getLinearStatusBadgeTone,
+} from "@/lib/linear-status-badge";
 import {
   AccentButton,
   ActionButton,
-  IllustratedEmptyState,
+  CollectionEmptyState,
+  CollectionSearchField,
+  DynamicTableFilters,
+  CollectionToolbar,
+  CollectionTableCard,
+  CollectionPagination,
   MitigationProgressFlowDialog,
   type MitigationProgressFlowView,
 } from "@/components/shared/design-system";
@@ -57,6 +52,14 @@ interface MitigationProgressTabProps {
   aiDraft?: MitigationProgressDraft | null;
   onAiDraftConsumed?: () => void;
   showTaskList?: boolean;
+  readOnly?: boolean;
+  loadTasks?: () => Promise<MitigationTask[]>;
+  submitReport?: (
+    task: MitigationTask,
+    report: { notes: string; evidenceUrl: string },
+  ) => Promise<void>;
+  mitigationFilter?: string;
+  onMitigationFilterChange?: (value: string) => void;
 }
 
 const STATUS_CONFIG: Record<
@@ -96,15 +99,32 @@ export function MitigationProgressTab({
   aiDraft,
   onAiDraftConsumed,
   showTaskList = false,
+  readOnly = false,
+  loadTasks,
+  submitReport,
+  mitigationFilter = "all",
+  onMitigationFilterChange,
 }: MitigationProgressTabProps) {
   const [tasks, setTasks] = useState<MitigationTask[]>([]);
+  const [search, setSearch] = useState("");
+  const [pagination, setPagination] = useState({
+    query: "",
+    page: 1,
+    pageSize: 10,
+  });
+  const resetTaskPage = () =>
+    setPagination((current) => ({ ...current, query: "", page: 1 }));
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [periodFilter, setPeriodFilter] = useState("all");
   const [loading, setLoading] = useState(true);
+  const requestGeneration = useRef(0);
+  const detailTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [detailTask, setDetailTask] = useState<MitigationTask | null>(null);
   const [showMitigationDialog, setShowMitigationDialog] = useState(false);
-  const [dialogView, setDialogView] = useState<MitigationProgressFlowView>(
-    "detail",
-  );
+  const [dialogView, setDialogView] =
+    useState<MitigationProgressFlowView>("detail");
   const [selectedTask, setSelectedTask] = useState<MitigationTask | null>(null);
 
   // Form state for progress submission
@@ -126,37 +146,61 @@ export function MitigationProgressTab({
   const hasFormErrors = Object.keys(formErrors).length > 0;
 
   const fetchTasks = useCallback(async () => {
+    const generation = ++requestGeneration.current;
     setLoading(true);
+    setLoadError(null);
     try {
-      const data = await api.get<MitigationTask[]>(
-        `/risks/${riskId}/tasks`,
-        token,
-      );
-      setTasks(data || []);
-    } catch {
-      // silent fail on 404
+      const data = loadTasks
+        ? await loadTasks()
+        : await api.get<MitigationTask[]>(`/risks/${riskId}/tasks`, token);
+      if (generation === requestGeneration.current) setTasks(data || []);
+    } catch (error) {
+      if (generation !== requestGeneration.current) return;
       setTasks([]);
+      setLoadError(
+        error instanceof ApiError && error.status === 404
+          ? "Penanganan tidak ditemukan atau tidak dapat diakses."
+          : "Daftar penanganan belum dapat dimuat. Coba lagi.",
+      );
     } finally {
-      setLoading(false);
+      if (generation === requestGeneration.current) setLoading(false);
     }
-  }, [riskId, token]);
+  }, [riskId, token, loadTasks]);
 
   useEffect(() => {
-    if (riskId && token) {
-      fetchTasks();
+    setSelectedTask(null);
+    setDetailTask(null);
+    setShowMitigationDialog(false);
+    if ((riskId && token) || loadTasks) {
+      void fetchTasks();
     }
-  }, [riskId, token, fetchTasks]);
+    return () => {
+      requestGeneration.current += 1;
+    };
+  }, [riskId, token, loadTasks, fetchTasks]);
 
   const openSubmitDialog = useCallback(
     (task: MitigationTask, draft?: MitigationProgressDraft | null) => {
+      if (readOnly) return;
+      const submissionWindow = getMitigationSubmissionActionState(
+        task.periodEnd,
+        task.dueDate,
+      );
+      if (!submissionWindow.allowed) {
+        toast.error(
+          submissionWindow.message || "Periode pelaporan belum tersedia.",
+        );
+        return;
+      }
       setSelectedTask(task);
+      setDetailTask(task);
       setEvidenceUrl(draft ? "" : task.evidenceUrl || "");
       setNotes(draft ? draft.notes : task.notes || "");
       setShowValidationErrors(false);
       setDialogView("form");
       setShowMitigationDialog(true);
     },
-    [],
+    [readOnly],
   );
 
   const handleOpenSubmit = (task: MitigationTask) => {
@@ -164,7 +208,7 @@ export function MitigationProgressTab({
   };
 
   useEffect(() => {
-    if (!aiDraft?.taskId || !tasks.length) {
+    if (readOnly || !aiDraft?.taskId || !tasks.length) {
       if (!aiDraft) {
         appliedDraftTaskIdRef.current = null;
       }
@@ -176,13 +220,20 @@ export function MitigationProgressTab({
     }
 
     const matchedTask = tasks.find((task) => task.id === aiDraft.taskId);
-    if (!matchedTask) return;
+    if (
+      !matchedTask ||
+      !getMitigationSubmissionActionState(
+        matchedTask.periodEnd,
+        matchedTask.dueDate,
+      ).allowed
+    )
+      return;
 
     appliedDraftTaskIdRef.current = aiDraft.taskId;
     openSubmitDialog(matchedTask, aiDraft);
     onAiDraftConsumed?.();
     toast.success("Draft laporan mitigasi diisi dari Document Intelligence.");
-  }, [aiDraft, onAiDraftConsumed, openSubmitDialog, tasks]);
+  }, [aiDraft, onAiDraftConsumed, openSubmitDialog, readOnly, tasks]);
 
   useEffect(() => {
     if (!showMitigationDialog && !aiDraft) {
@@ -190,14 +241,28 @@ export function MitigationProgressTab({
     }
   }, [aiDraft, showMitigationDialog]);
 
-  const handleOpenDetail = (task: MitigationTask) => {
+  const handleOpenDetail = (
+    task: MitigationTask,
+    trigger: HTMLButtonElement,
+  ) => {
+    detailTriggerRef.current = trigger;
     setDetailTask(task);
     setDialogView("detail");
     setShowMitigationDialog(true);
   };
 
   const handleSubmitProgress = async () => {
-    if (!selectedTask) return;
+    if (!selectedTask || readOnly) return;
+    const submissionWindow = getMitigationSubmissionActionState(
+      selectedTask.periodEnd,
+      selectedTask.dueDate,
+    );
+    if (!submissionWindow.allowed) {
+      toast.error(
+        submissionWindow.message || "Periode pelaporan belum tersedia.",
+      );
+      return;
+    }
     if (hasFormErrors) {
       setShowValidationErrors(true);
       window.requestAnimationFrame(() => {
@@ -212,15 +277,19 @@ export function MitigationProgressTab({
     }
     setSubmitting(true);
     try {
-      await api.put(
-        `/mitigation-tasks/${selectedTask.id}/report`,
-        {
-          status: "done",
-          evidenceUrl,
-          notes,
-        },
-        token,
-      );
+      if (submitReport) {
+        await submitReport(selectedTask, { notes, evidenceUrl });
+      } else {
+        await api.put(
+          `/mitigation-tasks/${selectedTask.id}/report`,
+          {
+            status: "done",
+            evidenceUrl,
+            notes,
+          },
+          token,
+        );
+      }
       toast.success("Laporan pelaksanaan tersimpan.");
       setShowMitigationDialog(false);
       fetchTasks();
@@ -231,29 +300,85 @@ export function MitigationProgressTab({
     }
   };
 
+  const periodOptions = useMemo(
+    () => [
+      { value: "all", label: "Semua periode" },
+      ...Array.from(
+        new Set(tasks.map((task) => task.periodLabel || "Tanpa periode")),
+      )
+        .sort((a, b) => b.localeCompare(a, "id", { numeric: true }))
+        .map((period) => ({ value: period, label: period })),
+    ],
+    [tasks],
+  );
   const tableTasks = useMemo(() => {
     const statusOrder: Record<string, number> = {
       overdue: 0,
       pending: 1,
-    done: 2,
-    skipped: 3,
-    not_reported: 4,
+      done: 2,
+      skipped: 3,
+      not_reported: 4,
     };
 
-    return [...tasks].sort((a, b) => {
-      const statusDelta =
-        (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99);
-      if (statusDelta !== 0) return statusDelta;
+    const query = search.trim().toLocaleLowerCase("id");
+    return tasks
+      .filter((task) => {
+        if (
+          mitigationFilter !== "all" &&
+          task.mitigationId !== mitigationFilter
+        )
+          return false;
+        if (statusFilter !== "all" && task.status !== statusFilter)
+          return false;
+        if (
+          periodFilter !== "all" &&
+          (task.periodLabel || "Tanpa periode") !== periodFilter
+        )
+          return false;
+        return (
+          !query ||
+          [
+            task.riskCode,
+            task.riskTitle,
+            task.mitigationAction,
+            task.mitigationOwner,
+            task.periodLabel,
+            task.reportedByName,
+          ]
+            .join(" ")
+            .toLocaleLowerCase("id")
+            .includes(query)
+        );
+      })
+      .sort((a, b) => {
+        const statusDelta =
+          (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99);
+        if (statusDelta !== 0) return statusDelta;
 
-      if (a.status === "done" && b.status === "done") {
-        const aReported = a.reportedAt ? new Date(a.reportedAt).getTime() : 0;
-        const bReported = b.reportedAt ? new Date(b.reportedAt).getTime() : 0;
-        return bReported - aReported;
-      }
+        if (a.status === "done" && b.status === "done") {
+          const aReported = a.reportedAt ? new Date(a.reportedAt).getTime() : 0;
+          const bReported = b.reportedAt ? new Date(b.reportedAt).getTime() : 0;
+          return bReported - aReported;
+        }
 
-      return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
-    });
-  }, [tasks]);
+        return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
+      });
+  }, [tasks, search, statusFilter, periodFilter, mitigationFilter]);
+
+  const paginationQuery = JSON.stringify([
+    search,
+    statusFilter,
+    periodFilter,
+    mitigationFilter,
+  ]);
+  const taskPage = Math.min(
+    pagination.query === paginationQuery ? pagination.page : 1,
+    Math.max(1, Math.ceil(tableTasks.length / pagination.pageSize)),
+  );
+  const visibleTasks = tableTasks.slice(
+    (taskPage - 1) * pagination.pageSize,
+    taskPage * pagination.pageSize,
+  );
 
   const stats = {
     total: tasks.length,
@@ -296,56 +421,66 @@ export function MitigationProgressTab({
     );
   }
 
+  if (loadError) {
+    return (
+      <div role="alert" className="space-y-3">
+        <p className="text-sm text-muted-foreground">{loadError}</p>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => void fetchTasks()}
+        >
+          Coba lagi
+        </Button>
+      </div>
+    );
+  }
+
+  const summaryItemClass = showTaskList
+    ? "flex items-center gap-2 py-1.5"
+    : "flex items-center justify-between gap-4 py-1.5";
+
   return (
     <>
       {/* Summary Stats */}
       {tasks.length > 0 && (
         <div
-          className="space-y-0.5"
+          className={
+            showTaskList
+              ? "mb-6 grid grid-cols-2 gap-x-6 gap-y-2 lg:grid-cols-4"
+              : "space-y-0.5"
+          }
           role="list"
           aria-label="Ringkasan progres penanganan"
         >
-          <div
-            className="flex items-center justify-between gap-4 py-1.5"
-            role="listitem"
-          >
+          <div className={summaryItemClass} role="listitem">
             <span className="text-[13px] text-muted-foreground">Total</span>
             <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
               {stats.total}
             </span>
           </div>
-          <div
-            className="flex items-center justify-between gap-4 py-1.5"
-            role="listitem"
-          >
-            <span className="text-[13px] text-muted-foreground">Sudah dilaporkan</span>
+          <div className={summaryItemClass} role="listitem">
+            <span className="text-[13px] text-muted-foreground">
+              Sudah dilaporkan
+            </span>
             <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
               {stats.done}
             </span>
           </div>
-          <div
-            className="flex items-center justify-between gap-4 py-1.5"
-            role="listitem"
-          >
+          <div className={summaryItemClass} role="listitem">
             <span className="text-[13px] text-muted-foreground">Menunggu</span>
             <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
               {stats.pending}
             </span>
           </div>
-          <div
-            className="flex items-center justify-between gap-4 py-1.5"
-            role="listitem"
-          >
+          <div className={summaryItemClass} role="listitem">
             <span className="text-[13px] text-muted-foreground">Terlambat</span>
             <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
               {stats.overdue}
             </span>
           </div>
           {stats.notReported > 0 ? (
-            <div
-              className="flex items-center justify-between gap-4 py-1.5"
-              role="listitem"
-            >
+            <div className={summaryItemClass} role="listitem">
               <span className="text-[13px] text-muted-foreground">
                 Tidak dilaporkan
               </span>
@@ -359,173 +494,128 @@ export function MitigationProgressTab({
 
       {showTaskList && (
         <div className="space-y-4">
-        <div>
-          <h3 className="text-sm font-semibold text-foreground">
-            Kelengkapan pelaporan
-          </h3>
-          <p className="mt-1 text-xs leading-5 text-secondary-foreground">
-            Pantau progres task penanganan yang sedang berjalan, termasuk
-            status, tenggat, dan laporan realisasi terbaru.
-          </p>
-        </div>
-        {tasks.length === 0 ? (
-          <IllustratedEmptyState
-            title="Belum ada task penanganan"
-            description="Task akan muncul otomatis saat risiko difinalisasi dan setiap mitigasi hanya memiliki satu laporan."
-          />
-        ) : (
-          <div className="overflow-x-auto rounded-lg border border-border/50">
-            <Table className="min-w-[980px] w-full">
-              <TableHeader>
-                <TableRow className="h-auto text-left">
-                  <TableHead className="">Kode</TableHead>
-                  <TableHead className="">Rencana</TableHead>
-                  <TableHead className="">Periode</TableHead>
-                  <TableHead className="">Tenggat</TableHead>
-                  <TableHead className="">Status</TableHead>
-                  <TableHead className="">Status pelaporan</TableHead>
-                  <TableHead className="text-right">
-                    <span className="sr-only">Aksi</span>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {tableTasks.map((task) => {
-                  const statusCfg =
-                    STATUS_CONFIG[task.status] || STATUS_CONFIG.pending;
-                  const submissionCheck =
-                    task.status === "pending" || task.status === "overdue"
-                      ? isWithinMitigationSubmissionWindow(
-                          task.periodEnd,
-                          task.dueDate,
-                        )
-                      : null;
-
-                  return (
-                    <TableRow
-                      key={task.id}
-                      className="h-auto cursor-pointer transition-colors hover:bg-muted/30"
-                      onClick={() => handleOpenDetail(task)}
-                    >
-                      <TableCell className="align-top">
-                        <div className="text-xs font-medium text-foreground">
-                          {task.riskCode || "—"}
-                        </div>
-                        <div className="text-[11px] text-muted-foreground">
-                          {task.riskTitle || "—"}
-                        </div>
-                      </TableCell>
-                      <TableCell className="align-top">
-                        <div className="max-w-[360px] text-sm font-medium text-foreground line-clamp-2">
-                          {task.mitigationAction || "—"}
-                        </div>
-                        {task.mitigationOwner && (
-                          <div className="mt-1 text-[11px] text-muted-foreground">
-                            PIC: {task.mitigationOwner}
-                          </div>
-                        )}
-                      </TableCell>
-                      <TableCell className="align-top">
-                        {task.periodLabel || "—"}
-                      </TableCell>
-                      <TableCell className="align-top">
-                        {formatDate(task.dueDate)}
-                      </TableCell>
-                      <TableCell className="align-top">
-                        <Badge variant={getLinearStatusBadgeTone(task.status)} className={getLinearStatusBadgeClassName(task.status)}
-                        >
-                          {statusCfg.icon} {getMitigationReportLabel(task)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="align-top">
-                        <div className="space-y-1">
-                          <Progress
-                            value={task.status === "done" ? 100 : 0}
-                            className="h-1.5"
-                          />
-                          <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                            <span>
-                              {task.status === "done"
-                                ? "Sudah dilaporkan"
-                                : task.status === "not_reported"
-                                  ? "Tidak dilaporkan"
-                                  : "Belum dilaporkan"}
-                            </span>
-                            {task.reportedByName &&
-                              task.status === "done" && (
-                                <span className="max-w-[150px] truncate">
-                                  {task.reportedByName}
-                                </span>
-                              )}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right align-top">
-                        {(task.status === "pending" ||
-                          task.status === "overdue") && (
-                          <>
-                            {submissionCheck && !submissionCheck.allowed ? (
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <span className="inline-block cursor-not-allowed">
-                                      <Button
-                                        size="sm"
-                                        variant={
-                                          task.status === "overdue"
-                                            ? "destructive"
-                                            : "default"
-                                        }
-                                        disabled
-                                        className="pointer-events-none"
-                                        onClick={(event) =>
-                                          event.stopPropagation()
-                                        }
-                                      >
-                                        <Send className="size-3" /> Lapor
-                                      </Button>
-                                    </span>
-                                  </TooltipTrigger>
-                                  <TooltipContent
-                                    side="left"
-                                    className="max-w-[220px]"
-                                  >
-                                    {submissionCheck.message}
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            ) : (
-                              <Button
-                                size="sm"
-                                variant={
-                                  task.status === "overdue"
-                                    ? "destructive"
-                                    : "default"
-                                }
-                                className="shrink-0"
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  handleOpenSubmit(task);
-                                }}
-                              >
-                                <Send className="size-3" /> Lapor
-                              </Button>
-                            )}
-                          </>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        )}
+          {tasks.length > 0 && (
+            <CollectionToolbar
+              leading={
+                <DynamicTableFilters
+                  search={
+                    <CollectionSearchField
+                      value={search}
+                      onChange={(event) => {
+                        resetTaskPage();
+                        setSearch(event.target.value);
+                      }}
+                      placeholder="Cari penanganan..."
+                      aria-label="Cari penanganan risiko"
+                      containerClassName="w-full sm:w-80 sm:flex-none"
+                    />
+                  }
+                  fields={[
+                    ...(onMitigationFilterChange
+                      ? [
+                          {
+                            id: "mitigation",
+                            label: "Mitigasi",
+                            value: mitigationFilter,
+                            onChange: (value: string) => {
+                              resetTaskPage();
+                              onMitigationFilterChange?.(value);
+                            },
+                            options: [
+                              { value: "all", label: "Semua mitigasi" },
+                              ...Array.from(
+                                new Map(
+                                  tasks.map((task) => [
+                                    task.mitigationId,
+                                    {
+                                      value: task.mitigationId,
+                                      label:
+                                        task.mitigationAction ||
+                                        "Rencana mitigasi",
+                                    },
+                                  ]),
+                                ).values(),
+                              ),
+                            ],
+                          },
+                        ]
+                      : []),
+                    {
+                      id: "status",
+                      label: "Status",
+                      value: statusFilter,
+                      onChange: (value: string) => {
+                        resetTaskPage();
+                        setStatusFilter(value);
+                      },
+                      options: [
+                        { value: "all", label: "Semua status" },
+                        ...Object.entries(STATUS_CONFIG).map(
+                          ([value, config]) => ({ value, label: config.label }),
+                        ),
+                      ],
+                    },
+                    {
+                      id: "period",
+                      label: "Periode",
+                      value: periodFilter,
+                      onChange: (value: string) => {
+                        resetTaskPage();
+                        setPeriodFilter(value);
+                      },
+                      options: periodOptions,
+                    },
+                  ]}
+                />
+              }
+            />
+          )}
+          <CollectionTableCard>
+            {tasks.length === 0 ? (
+              <CollectionEmptyState
+                title="Belum ada task penanganan"
+                description="Task akan muncul otomatis saat risiko difinalisasi dan setiap mitigasi hanya memiliki satu laporan."
+              />
+            ) : tableTasks.length === 0 ? (
+              <CollectionEmptyState
+                title="Tidak ada task yang sesuai"
+                description="Coba ubah kata kunci atau filter pencarian."
+              />
+            ) : (
+              <MitigationTaskTable
+                tasks={visibleTasks}
+                readOnly={readOnly}
+                onOpenDetail={handleOpenDetail}
+                onReport={(task, trigger) => {
+                  detailTriggerRef.current = trigger;
+                  handleOpenSubmit(task);
+                }}
+              />
+            )}
+            {tableTasks.length > 0 ? (
+              <CollectionPagination
+                itemLabel="mitigasi"
+                page={taskPage}
+                pageSize={pagination.pageSize}
+                total={tableTasks.length}
+                onPageChange={(page) =>
+                  setPagination((current) => ({
+                    ...current,
+                    query: paginationQuery,
+                    page,
+                  }))
+                }
+                onPageSizeChange={(pageSize) =>
+                  setPagination({ query: paginationQuery, page: 1, pageSize })
+                }
+              />
+            ) : null}
+          </CollectionTableCard>
         </div>
       )}
 
       <MitigationProgressFlowDialog
-        open={showMitigationDialog}
+        open={showMitigationDialog && (!readOnly || dialogView === "detail")}
         onOpenChange={(open) => {
           setShowMitigationDialog(open);
           if (!open) {
@@ -533,8 +623,16 @@ export function MitigationProgressTab({
             setDialogView("detail");
           }
         }}
+        onCloseAutoFocus={(event) => {
+          if (detailTriggerRef.current?.isConnected) {
+            event.preventDefault();
+            detailTriggerRef.current.focus();
+          }
+        }}
         view={dialogView}
-        onViewChange={setDialogView}
+        onViewChange={(view) => {
+          if (!readOnly || view === "detail") setDialogView(view);
+        }}
         detailTitle="Detail Laporan Penanganan"
         detailDescription="Tinjau status, bukti, dan catatan penanganan."
         detailContent={
@@ -543,7 +641,9 @@ export function MitigationProgressTab({
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="flex flex-col gap-2">
                   <p className="text-sm text-muted-foreground">Status</p>
-                  <Badge variant={getLinearStatusBadgeTone(detailTask.status)} className={getLinearStatusBadgeClassName(detailTask.status)}
+                  <Badge
+                    variant={getLinearStatusBadgeTone(detailTask.status)}
+                    className={getLinearStatusBadgeClassName(detailTask.status)}
                   >
                     {
                       (
@@ -580,9 +680,7 @@ export function MitigationProgressTab({
               <div className="space-y-5">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <p className="text-sm text-muted-foreground">
-                      Progress
-                    </p>
+                    <p className="text-sm text-muted-foreground">Progress</p>
                     <p className="text-lg font-bold">
                       {detailTask.status === "done"
                         ? "Sudah dilaporkan"
@@ -604,7 +702,8 @@ export function MitigationProgressTab({
                           key={url}
                           title={url}
                         >
-                          Buka bukti <ExternalLink className="size-3.5 shrink-0" />
+                          Buka bukti{" "}
+                          <ExternalLink className="size-3.5 shrink-0" />
                         </a>
                       ))}
                     </div>
@@ -623,14 +722,28 @@ export function MitigationProgressTab({
           ) : null
         }
         detailAction={
+          !readOnly &&
           detailTask &&
-          (detailTask.status === "pending" || detailTask.status === "overdue") ? (
+          (detailTask.status === "pending" ||
+            detailTask.status === "overdue") ? (
             <ActionButton
               variant={
                 detailTask.status === "overdue" ? "destructive" : "default"
               }
               size="default"
               icon={<Send className="size-3" />}
+              disabled={
+                !getMitigationSubmissionActionState(
+                  detailTask.periodEnd,
+                  detailTask.dueDate,
+                ).allowed
+              }
+              title={
+                getMitigationSubmissionActionState(
+                  detailTask.periodEnd,
+                  detailTask.dueDate,
+                ).message
+              }
               onClick={() => handleOpenSubmit(detailTask)}
             >
               Isi laporan

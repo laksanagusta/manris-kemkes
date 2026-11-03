@@ -1,9 +1,10 @@
 "use client";
+import { newestCreatedFirst } from "@/lib/collection-created-at";
+import { MitigationTaskTable } from "@/components/shared/mitigation-task-table";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
 import {
   CollectionEmptyState,
   CollectionLoadingState,
@@ -11,21 +12,11 @@ import {
   CollectionSearchField,
   CollectionTableCard,
   CollectionToolbar,
-  CollectionTableHead,
-  CollectionTableHeader,
-  CollectionTableHeaderRow,
-  ActionIconButton,
   KpiCard,
   MetricGrid,
-  PopoverSelectField,
+  DynamicTableFilters,
 } from "@/components/shared/design-system";
-import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+
 import { toast } from "sonner";
 import { parseEvidenceUrls } from "@/lib/validation/reporting";
 import {
@@ -51,7 +42,6 @@ import {
 } from "@/components/shared/design-system";
 import { validateMitigationReportForm } from "@/lib/validation/reporting";
 import { getMitigationSubmissionActionState } from "@/lib/mitigation-reporting";
-import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 import { getAssessmentCycleFilterOptions } from "@/lib/risk-cycle-options";
 import {
   buildMitigationMonitoringApiQueryString,
@@ -111,51 +101,6 @@ async function listMitigationTaskPeriods(token: string): Promise<string[]> {
   return [...periods];
 }
 
-function getMitigationStatusTone(status: MitigationTaskRow["status"]) {
-  if (status === "done") return "success";
-  if (status === "overdue") return "danger";
-  if (status === "not_reported") return "danger";
-  return "progress";
-}
-
-function MitigationRowActions({
-  task,
-  submissionState,
-  onOpenSubmit,
-}: {
-  task: MitigationTaskRow;
-  submissionState: ReturnType<typeof getMitigationSubmissionActionState>;
-  onOpenSubmit: () => void;
-}) {
-  const canReport = task.status !== "done" && task.status !== "not_reported";
-
-  if (!canReport) return null;
-
-  return (
-    <DropdownMenu>
-      <DropdownMenuTrigger asChild>
-        <ActionIconButton
-          className="text-muted-foreground"
-          aria-label={`Aksi penanganan ${task.mitigationAction}`}
-        />
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-52">
-        <DropdownMenuItem
-          disabled={!submissionState.allowed}
-          title={submissionState.allowed ? undefined : submissionState.message}
-          onClick={onOpenSubmit}
-        >
-          <Send className="size-3.5" />
-          {submissionState.allowed
-            ? submissionState.isOverdue
-              ? "Lapor terlambat"
-              : "Isi laporan"
-            : "Lapor belum tersedia"}
-        </DropdownMenuItem>
-      </DropdownMenuContent>
-    </DropdownMenu>
-  );
-}
 
 function useDebouncedValue<T>(value: T, delay: number) {
   const [debouncedValue, setDebouncedValue] = useState(value);
@@ -353,40 +298,10 @@ export function MitigationMonitoringPanel() {
         };
       });
 
-      const statusRank = (status: string) => {
-        switch (status) {
-          case "overdue":
-            return 0;
-          case "pending":
-            return 1;
-          case "done":
-            return 2;
-          case "skipped":
-            return 3;
-          case "not_reported":
-            return 4;
-          default:
-            return 5;
-        }
-      };
-
       setMitigations(
         processed.sort((a, b) => {
           if(queryState.status==="needs_reporting")return a.dueDate.localeCompare(b.dueDate) || a.id.localeCompare(b.id);
-          const statusDelta = statusRank(a.status) - statusRank(b.status);
-          if (statusDelta !== 0) return statusDelta;
-
-          if (a.status === "done" && b.status === "done") {
-            const aReported = a.reportedAt
-              ? new Date(a.reportedAt).getTime()
-              : 0;
-            const bReported = b.reportedAt
-              ? new Date(b.reportedAt).getTime()
-              : 0;
-            return bReported - aReported;
-          }
-
-          return b.daysOverdue - a.daysOverdue;
+          return newestCreatedFirst(a, b);
         }),
       );
     } catch (error) {
@@ -401,6 +316,7 @@ export function MitigationMonitoringPanel() {
   }, [fetchMitigations]);
 
   const handleOpenSubmit = useCallback((task: MitigationTaskRow) => {
+    setDetailTask(task);
     setSelectedTask(task);
     setEvidenceUrl(task.evidenceUrl || "");
     setNotes(task.notes || "");
@@ -541,41 +457,36 @@ export function MitigationMonitoringPanel() {
       <div className="space-y-4">
         <CollectionToolbar
           leading={
-            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-              <CollectionSearchField
-                containerClassName="w-full sm:w-80 sm:flex-none"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Cari mitigasi..."
-                aria-label="Cari mitigasi"
-              />
-              <div className="w-full sm:w-fit">
-                <PopoverSelectField
-                  fitContent
-                  value={queryState.status ?? "all"}
-                  onValueChange={(value) =>
-                    pushQueryState({
-                      status: value as MitigationMonitoringStatusFilter,
-                      page: 1,
-                    })
-                  }
-                  options={mitigationMonitoringStatusOptions}
-                  placeholder="Status"
-                  ariaLabel="Filter status penanganan"
-                  triggerClassName="h-8 rounded-lg bg-card text-sm"
-                  optionClassName="whitespace-nowrap"
+            <DynamicTableFilters
+              search={
+                <CollectionSearchField
+                  containerClassName="w-full sm:w-80 sm:flex-none"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Cari mitigasi..."
+                  aria-label="Cari mitigasi"
                 />
-              </div>
-              <PopoverSelectField
-                fitContent
-                value={period || "all"}
-                onValueChange={(value) => setPeriod(value === "all" ? "" : value)}
-                options={periodFilterOptions}
-                placeholder="Semua Periode"
-                ariaLabel="Filter periode penanganan"
-                triggerClassName="h-8 rounded-lg bg-card text-sm"
-              />
-            </div>
+              }
+              fields={[
+                {
+                  id: "status",
+                  label: "Status",
+                  value: queryState.status ?? "all",
+                  onChange: (value) => pushQueryState({
+                    status: value as MitigationMonitoringStatusFilter,
+                    page: 1,
+                  }),
+                  options: mitigationMonitoringStatusOptions,
+                },
+                {
+                  id: "period",
+                  label: "Periode",
+                  value: period || "all",
+                  onChange: (value) => setPeriod(value === "all" ? "" : value),
+                  options: periodFilterOptions,
+                },
+              ]}
+            />
           }
           actions={
             <ActionButton asChild variant="outline">
@@ -624,92 +535,7 @@ export function MitigationMonitoringPanel() {
               }
             />
           ) : (
-            <Table className="min-w-[1180px] table-fixed">
-              <colgroup>
-                <col className="w-[35%]" />
-                <col className="w-[16%]" />
-                <col className="w-[12%]" />
-                <col className="w-[14%]" />
-                <col className="w-[13%]" />
-                <col className="w-[10%]" />
-              </colgroup>
-              <CollectionTableHeader>
-                <CollectionTableHeaderRow className="h-9 hover:bg-transparent">
-                  <CollectionTableHead className="">
-                    Rencana Penanganan
-                  </CollectionTableHead>
-                  <CollectionTableHead >PIC</CollectionTableHead>
-                  <CollectionTableHead >Periode</CollectionTableHead>
-                  <CollectionTableHead >
-                    Deadline
-                  </CollectionTableHead>
-                  <CollectionTableHead >Status</CollectionTableHead>
-                  <CollectionTableHead className="text-right">
-                    <span className="sr-only">Aksi</span>
-                  </CollectionTableHead>
-                </CollectionTableHeaderRow>
-              </CollectionTableHeader>
-              <TableBody>
-                {mitigations.map((item) => {
-                  const submissionState =
-                    getMitigationSubmissionActionState(
-                      item.periodEnd,
-                      item.dueDate,
-                    );
-
-                  return (
-                    <TableRow
-                      key={item.id}
-                      className="group hover:bg-transparent hover:[&>td]:bg-muted/50 [&>td]:transition-[background-color]"
-                    >
-                      <TableCell className="align-middle">
-                        <button
-                          type="button"
-                          onClick={() => handleOpenDetail(item)}
-                          className="block w-full min-w-0 text-left text-sm font-medium leading-5 text-foreground transition-colors hover:text-primary"
-                        >
-                          <span className="block truncate font-medium">
-                            {item.mitigationAction}
-                          </span>
-                          <span className="mt-0.5 block font-mono text-sm leading-5 text-muted-foreground">
-                            {item.riskCode}
-                          </span>
-                        </button>
-                      </TableCell>
-                      <TableCell className="align-middle">
-                        <p className="truncate text-sm font-medium text-muted-foreground">
-                          {item.unit}
-                        </p>
-                      </TableCell>
-                      <TableCell className="align-middle">
-                        <span className="font-mono text-sm text-muted-foreground">
-                          {item.periodLabel || "—"}
-                        </span>
-                      </TableCell>
-                      <TableCell className="align-middle">
-                        <p className="text-muted-foreground">
-                          {formatDate(item.dueDate)}
-                        </p>
-                      </TableCell>
-                      <TableCell className="align-middle">
-                        <Badge variant={toBadgeVariant(getMitigationStatusTone(item.status))}
-                          className={getStatusBadgeClassName(getMitigationStatusTone(item.status))}
-                        >
-                          {getMitigationReportLabel(item)}
-                        </Badge>
-                      </TableCell>
-                    <TableCell className="sticky right-0 z-10 text-right align-middle">
-                      <MitigationRowActions
-                        task={item}
-                        submissionState={submissionState}
-                        onOpenSubmit={() => handleOpenSubmit(item)}
-                      />
-                    </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+            <MitigationTaskTable showCreatedAt tasks={mitigations} onOpenDetail={handleOpenDetail} onReport={handleOpenSubmit} />
           )}
 
           {!loading && mitigations.length > 0 && (

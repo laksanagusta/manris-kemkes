@@ -84,7 +84,7 @@ export function OrganizationGroupPicker({
   }, [allOptionValue, debouncedSearch, options]);
 
   const selectedGroup = options.find((group) => group.id === value) ?? null;
-  const controlHeight = density === "compact" ? "h-9" : "h-10";
+  const controlHeight = density === "compact" ? "h-8" : "h-10";
 
   return (
     <SearchableDropdownPicker

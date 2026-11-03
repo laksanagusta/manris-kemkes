@@ -1,6 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { newestCreatedFirst } from "@/lib/collection-created-at";
+import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
+
+
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
@@ -18,6 +22,7 @@ import {
   CollectionPageHeader,
   CollectionEmptyState,
   CollectionSearchField,
+  DynamicTableFilters,
   CollectionLoadingState,
   CollectionPagination,
   CollectionTableCard,
@@ -81,12 +86,14 @@ function MinutesPageContent() {
   const searchParams = useSearchParams();
   const { token, user } = useAuth();
   const [isPending, startTransition] = useTransition();
+  const skipUrlWrite = useRef(false);
 
   const [items, setItems] = useState<MeetingMinute[]>([]);
-  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const [query, setQuery] = useState(() => searchParams.get("q") ?? "");
+  const [authorFilter, setAuthorFilter] = useState(() => searchParams.get("author") ?? "all");
+  const [dateFilter, setDateFilter] = useState(() => searchParams.get("date") ?? "");
   const [page, setPage] = useState(() =>
     parsePositiveInt(searchParams.get("page"), 1),
   );
@@ -102,9 +109,10 @@ function MinutesPageContent() {
 
   const filteredItems = useMemo(() => {
     const normalized = query.trim().toLowerCase();
-    if (!normalized) return items;
-
     return items.filter((minute) => {
+      if (authorFilter !== "all" && minute.createdBy !== authorFilter) return false;
+      if (dateFilter && minute.date.slice(0, 10) !== dateFilter) return false;
+      if (!normalized) return true;
       const haystack = [
         minute.title,
         minute.summary,
@@ -115,10 +123,21 @@ function MinutesPageContent() {
         .toLowerCase();
       return haystack.includes(normalized);
     });
-  }, [items, query]);
+  }, [items, query, authorFilter, dateFilter]);
+
+  const visiblePage = Math.min(page, Math.max(1, Math.ceil(filteredItems.length / limit)));
+  const paginatedItems = filteredItems.slice((visiblePage - 1) * limit, visiblePage * limit);
+  const authors = useMemo(() => {
+    const names = new Map(items.filter((item) => item.createdBy).map((item) => [item.createdBy, item.createdByName || item.createdBy]));
+    if (authorFilter !== "all" && !names.has(authorFilter)) names.set(authorFilter, authorFilter);
+    return [...names].map(([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label, "id"));
+  }, [items, authorFilter]);
 
   useEffect(() => {
+    skipUrlWrite.current = true;
     const nextQuery = searchParams.get("q") ?? "";
+    setAuthorFilter(searchParams.get("author") ?? "all");
+    setDateFilter(searchParams.get("date") ?? "");
     const nextPage = parsePositiveInt(searchParams.get("page"), 1);
     const nextLimit = parsePositiveInt(
       searchParams.get("limit"),
@@ -131,6 +150,10 @@ function MinutesPageContent() {
   }, [searchParams]);
 
   useEffect(() => {
+    if (skipUrlWrite.current) {
+      skipUrlWrite.current = false;
+      return;
+    }
     const nextParams = new URLSearchParams(searchParams.toString());
     const normalizedQuery = query.trim();
 
@@ -139,6 +162,11 @@ function MinutesPageContent() {
     } else {
       nextParams.delete("q");
     }
+
+    if (authorFilter === "all") nextParams.delete("author");
+    else nextParams.set("author", authorFilter);
+    if (dateFilter) nextParams.set("date", dateFilter);
+    else nextParams.delete("date");
 
     if (page === 1) {
       nextParams.delete("page");
@@ -164,30 +192,36 @@ function MinutesPageContent() {
     startTransition(() => {
       router.replace(nextUrl, { scroll: false });
     });
-  }, [query, page, limit, pathname, router, searchParams, startTransition]);
+  }, [query, authorFilter, dateFilter, page, limit, pathname, router, searchParams, startTransition]);
 
   useEffect(() => {
     if (!token) return;
 
-    const offset = (page - 1) * limit;
-
+    let cancelled = false;
     setLoading(true);
-    listMeetingMinutes({ limit, offset }, token)
-      .then((result) => {
-        const sorted = [...(result.items || [])].sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-        setItems(sorted);
-        setTotal(result.total ?? 0);
+    (async () => {
+      const rows: MeetingMinute[] = [];
+      while (true) {
+        const response = await listMeetingMinutes({ limit: 100, offset: rows.length }, token);
+        const data = response.items ?? [];
+        rows.push(...data);
+        if (data.length === 0 || rows.length >= response.total) return rows;
+      }
+    })()
+      .then((rows) => {
+        if (cancelled) return;
+        setItems(rows.sort(newestCreatedFirst));
       })
       .catch((error) => {
+        if (cancelled) return;
         console.error(error);
         toast.error("Daftar notulen belum berhasil dimuat.");
       })
-      .finally(() => setLoading(false));
-  }, [token, page, limit]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [query]);
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, [token]);
 
   const handleDelete = async () => {
     if (!token || !minuteToDelete) return;
@@ -199,7 +233,6 @@ function MinutesPageContent() {
       setItems((current) =>
         current.filter((item) => item.id !== minuteToDelete.id),
       );
-      setTotal((current) => Math.max(0, current - 1));
       toast.success("Notulen berhasil dihapus.");
       setMinuteToDelete(null);
     } catch (error) {
@@ -221,11 +254,41 @@ function MinutesPageContent() {
       <div className="space-y-4">
       <CollectionToolbar
         leading={
-          <CollectionSearchField
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
-            placeholder="Cari judul, ringkasan, peserta..."
-            aria-label="Cari notulen"
+          <DynamicTableFilters
+            search={
+              <CollectionSearchField
+                value={query}
+                onChange={(event) => {
+                  setQuery(event.target.value);
+                  setPage(1);
+                }}
+                placeholder="Cari judul, ringkasan, peserta..."
+                aria-label="Cari notulen"
+              />
+            }
+            fields={[
+              {
+                id: "author",
+                label: "Pembuat",
+                value: authorFilter,
+                onChange: (value) => {
+                  setAuthorFilter(value);
+                  setPage(1);
+                },
+                options: [{ value: "all", label: "Semua pembuat" }, ...authors],
+              },
+              {
+                id: "date",
+                label: "Tanggal rapat",
+                type: "date",
+                defaultValue: "",
+                value: dateFilter,
+                onChange: (value) => {
+                  setDateFilter(value);
+                  setPage(1);
+                },
+              },
+            ]}
           />
         }
         actions={
@@ -241,7 +304,7 @@ function MinutesPageContent() {
       <CollectionTableCard>
         {loading ? (
           <CollectionLoadingState message="Memuat daftar notulen..." />
-        ) : total === 0 && !query.trim() ? (
+        ) : items.length === 0 && !query.trim() && authorFilter === "all" && !dateFilter ? (
           <CollectionEmptyState
             title="Belum ada notulen tersimpan"
             description="Mulai dari transkrip rapat lalu simpan hasil notulennya agar muncul di daftar ini."
@@ -252,13 +315,14 @@ function MinutesPageContent() {
             description="Coba kata kunci lain atau kosongkan pencarian untuk melihat semua notulen."
           />
         ) : (
-          <Table className="min-w-[760px] table-fixed">
+          <Table className="min-w-[920px] table-fixed">
             <colgroup>
               <col className="w-[49%]" />
               <col className="w-[15%]" />
               <col className="w-[10%]" />
               <col className="w-[18%]" />
-              <col className="w-[8%]" />
+              <col className="w-40" />
+<col className="w-[8%]" />
             </colgroup>
             <CollectionTableHeader>
               <CollectionTableHeaderRow>
@@ -266,13 +330,14 @@ function MinutesPageContent() {
                 <CollectionTableHead >Tanggal</CollectionTableHead>
                 <CollectionTableHead className="text-center">Peserta</CollectionTableHead>
                 <CollectionTableHead >Dibuat Oleh</CollectionTableHead>
+                <CreatedAtHead />
                 <CollectionTableHead className="text-center">
                   <span className="sr-only">Aksi</span>
                 </CollectionTableHead>
               </CollectionTableHeaderRow>
             </CollectionTableHeader>
             <TableBody>
-              {filteredItems.map((minute) => (
+              {paginatedItems.map((minute) => (
                 <TableRow key={minute.id} className="hover:bg-muted/50">
                   <TableCell className="max-w-[320px]">
                     <Link
@@ -298,6 +363,7 @@ function MinutesPageContent() {
                   <TableCell className="truncate">
                     {minute.createdByName || "-"}
                   </TableCell>
+                  <CreatedAtCell record={minute} />
                   <TableCell className="sticky right-0">
                     <div className="flex justify-center">
                       {!isReadOnlyForOrg(user, minute.organizationId || "") && (
@@ -330,12 +396,12 @@ function MinutesPageContent() {
           </Table>
         )}
 
-        {total > 0 && (
+        {filteredItems.length > 0 && (
           <CollectionPagination
             itemLabel="notulen"
-            page={page}
+            page={visiblePage}
             pageSize={limit}
-            total={total}
+            total={filteredItems.length}
             disabled={loading || isPending}
             onPageChange={setPage}
             onPageSizeChange={(nextLimit) => {

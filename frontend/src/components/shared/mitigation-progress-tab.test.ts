@@ -8,10 +8,10 @@ const componentSource = readFileSync(
 );
 
 test("mitigation progress summary uses 13px for every label", () => {
-  for (const label of ["Total", "Selesai", "Menunggu", "Terlambat"]) {
+  for (const label of ["Total", "Sudah dilaporkan", "Menunggu", "Terlambat"]) {
     assert.match(
       componentSource,
-      new RegExp(`<span className="text-\\[13px\\] text-muted-foreground">${label}<\\/span>`),
+      new RegExp(`<span className="text-\\[13px\\] text-muted-foreground">\\s*${label}\\s*<\\/span>`),
     );
   }
   assert.match(

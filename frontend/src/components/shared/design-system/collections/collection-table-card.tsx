@@ -1,6 +1,7 @@
 import { Children, isValidElement, type ComponentProps, type ReactNode } from "react";
 
 import { Card, CardContent } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 import { CollectionPagination } from "./collection-pagination";
 
 export function CollectionTableCard({
@@ -13,9 +14,9 @@ export function CollectionTableCard({
     isValidElement(item) && item.type === CollectionPagination;
 
   return (
-    <Card className={className} data-collection-table="" {...props}>
-      <CardContent>
-        <div className="-m-(--card-spacing) min-w-0">
+    <Card className={cn("gap-0 py-0", className)} data-collection-table="" {...props}>
+      <CardContent className="min-w-0 p-0">
+        <div className="min-w-0">
           {items.filter((item) => !isPagination(item))}
         </div>
       </CardContent>

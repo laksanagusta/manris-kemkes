@@ -79,7 +79,7 @@ func (r *approvalRepository) List(ctx context.Context, status string, approverRo
 		LEFT JOIN users cu ON ar.current_approver_user_id = cu.id` + whereClause
 
 	offset := (page - 1) * limit
-	dataQuery += fmt.Sprintf(" ORDER BY ar.created_at DESC LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
+	dataQuery += fmt.Sprintf(" ORDER BY ar.created_at DESC, ar.id DESC LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
 	args = append(args, limit, offset)
 
 	rows, err := r.pool.Query(ctx, dataQuery, args...)

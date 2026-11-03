@@ -79,7 +79,7 @@ test("buildMonitoringTransactionRows maps draft and final transactions directly"
   assert.equal(rows[0].organizationId, "child-a");
   assert.equal(rows[0].observedScore, 4);
   assert.equal(rows[0].mitigationCompletionPercent, 25);
-  assert.equal(rows[0].createdAt, "2026-09-01T03:00:00Z");
+  assert.equal(rows[0].createdAt, null);
   assert.equal(rows[0].updatedAt, "2026-09-01T03:00:00Z");
   assert.equal(rows[1].createdAt, "2026-08-31T03:00:00Z");
   assert.equal(rows[1].finalizedAt, "2026-09-02T03:00:00Z");
@@ -129,7 +129,7 @@ test("filter and organization summaries include descendants for a parent scope",
   assert.equal(filtered.length, 2);
   assert.deepEqual(
     filtered.map((row) => row.organizationId),
-    ["child-a", "child-b"],
+    ["child-b", "child-a"],
   );
   assert.deepEqual(
     parentSummary && {
@@ -163,4 +163,23 @@ test("monitoring defaults to all cycles and keeps that default out of the URL", 
     overview.buildMonitoringQueryString(state),
     "",
   );
+});
+
+test("main monitoring collection sorts creation time before status or score", () => {
+  const olderDraft = { ...makeMonitoring("old", "child-a", "draft"), createdAt: "2026-09-01T00:00:00Z" };
+  const newerFinal = { ...makeMonitoring("new", "child-b", "final"), createdAt: "2026-10-01T00:00:00Z" };
+  const rows = overview.buildMonitoringTransactionRows([olderDraft, newerFinal], organizations);
+  const filtered = overview.filterMonitoringRows(rows, "parent", organizations, "", "all");
+  assert.deepEqual(filtered.map(row => row.id), ["new", "old"]);
+});
+
+ test("monitoring creation order uses createdAt rather than startedAt", () => {
+  const older = makeMonitoring("older", "child-a", "final");
+  older.createdAt = "2026-09-01T00:00:00Z";
+  older.startedAt = "2026-11-01T00:00:00Z";
+  const newer = makeMonitoring("newer", "child-b", "final");
+  newer.createdAt = "2026-10-01T00:00:00Z";
+  newer.startedAt = "2026-08-01T00:00:00Z";
+  const rows = overview.buildMonitoringTransactionRows([older, newer], organizations);
+  assert.deepEqual(overview.filterMonitoringRows(rows, "parent", organizations, "", "all").map(row => row.id), ["newer", "older"]);
 });

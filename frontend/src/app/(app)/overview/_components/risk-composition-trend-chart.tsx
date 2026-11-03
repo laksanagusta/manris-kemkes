@@ -116,7 +116,7 @@ export function RiskCompositionTrendChart({
 
   return (
     <OverviewTrendCard
-      title="Komposisi Jumlah Risiko per Kuartal"
+      title="Komposisi Level Risiko per Kuartal"
       legend={legend}
     >
       {loading ? (

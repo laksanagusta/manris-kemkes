@@ -1,3 +1,4 @@
+import { newestCreatedFirst } from "./collection-created-at.ts";
 import type { OrganizationListItem } from "./api/organizations";
 import type { RiskMonitoringDetail } from "../types/risk-monitoring";
 
@@ -140,7 +141,7 @@ export function buildMonitoringTransactionRows(
         100,
         Math.max(0, Math.round(monitoring.mitigationCompletionPercent || 0)),
       ),
-      createdAt: monitoring.createdAt || monitoring.startedAt || null,
+      createdAt: monitoring.createdAt || null,
       updatedAt: monitoring.updatedAt || monitoring.startedAt || null,
       finalizedAt: monitoring.finalizedAt ?? null,
     } satisfies MonitoringOverviewRow;
@@ -217,20 +218,7 @@ export function filterMonitoringRows(
         .toLowerCase()
         .includes(normalizedSearch);
     })
-    .sort((left, right) => {
-      const statusOrder =
-        getMonitoringStatusOrder(left.status) - getMonitoringStatusOrder(right.status);
-      if (statusOrder !== 0) return statusOrder;
-
-      const leftScore = left.observedScore ?? left.sourceScore ?? -1;
-      const rightScore = right.observedScore ?? right.sourceScore ?? -1;
-      if (leftScore !== rightScore) return rightScore - leftScore;
-
-      return `${left.organizationName} ${left.code} ${left.title}`.localeCompare(
-        `${right.organizationName} ${right.code} ${right.title}`,
-        "id",
-      );
-    });
+    .sort(newestCreatedFirst);
 }
 
 function parsePositiveInt(value: string | null, fallback: number) {

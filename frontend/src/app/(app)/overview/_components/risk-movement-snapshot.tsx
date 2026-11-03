@@ -100,7 +100,7 @@ export function RiskMovementSnapshot({
         <CardTitle className="">
           Perubahan Risiko
         </CardTitle>
-        <p className="mt-1 text-xs text-secondary-foreground">
+        <p data-slot="card-description" className="mt-1 text-xs text-secondary-foreground">
           Perubahan portofolio risiko vs kuartal sebelumnya.
         </p>
       </CardHeader>

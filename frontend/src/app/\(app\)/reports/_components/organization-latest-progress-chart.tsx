@@ -33,7 +33,7 @@ export function OrganizationLatestProgressChart({
             <CardTitle className="">
               Progress Kertas Kerja Terakhir
             </CardTitle>
-            <p className="mt-1 text-xs text-secondary-foreground">
+            <p data-slot="card-description" className="mt-1 text-xs text-secondary-foreground">
               Progress monitoring pada kertas kerja terbaru tiap organisasi.
             </p>
           </div>

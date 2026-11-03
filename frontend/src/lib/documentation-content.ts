@@ -322,31 +322,21 @@ export const documentationArticles: DocumentationArticle[] = [
     ],
   },
   {
-    slug: "reports", title: "Membaca dan mengekspor Laporan", category: "DOKUMEN & PELAPORAN",
-    description: "Bandingkan hasil antarperiode dan ekspor ringkasan laporan sesuai cakupan organisasi.", access: "Pengguna dengan hak akses laporan untuk organisasi yang dicakup akun mereka.",
+    slug: "reports", title: "Membaca Ringkasan Risiko", category: "DOKUMEN & PELAPORAN",
+    description: "Tinjau distribusi tingkat risiko, peringkat unit, dan kelengkapan pelaporan mitigasi.", access: "Pengguna dengan hak akses laporan untuk organisasi yang dicakup akun mereka.",
     sections: [
       { id: "periode-laporan", title: "Pilih periode dan organisasi", steps: [
-        { title: "Buka Laporan", detail: "Laporan menampilkan periode kuartal yang sudah selesai secara bawaan." },
-        { title: "Pilih periode dan pembanding", detail: "Gunakan pemilih Periode untuk menentukan kuartal laporan serta Pembanding untuk memilih periode yang ingin dibandingkan." },
-        { title: "Batasi unit bila diperlukan", detail: "Gunakan filter organisasi untuk melihat unit atau kelompok yang termasuk cakupan Anda." },
-      ], image: { src: "/documentation/screens/laporan-q3.png", alt: "Laporan kuartalan Manrisk dengan metrik, tren, mitigasi, dan kejadian", caption: "Snapshot laporan kuartal yang membandingkan indikator risiko, target, mitigasi, pemantauan, dan kejadian.", width: 3420, height: 1904 } },
-      { id: "baca-laporan", title: "Baca komponen laporan", fields: [
-        { name: "Risiko di atas selera risiko", description: "Profil yang skornya melampaui batas selera organisasi pada periode terpilih." },
-        { name: "Target tercapai", description: "Hasil observasi akhir yang dibandingkan dengan target penurunan yang berlaku." },
-        { name: "Mitigasi terlapor", description: "Laporan progres penanganan dalam periode. Angka ini mengukur pelaporan, bukan berarti setiap tugas selesai." },
-        { name: "Pemantauan final", description: "Profil dalam cakupan yang memiliki hasil pengamatan final pada kuartal tersebut." },
-        { name: "Kejadian dan kerugian", description: "Ringkasan kejadian berdasarkan tanggal kejadian serta nilai finansial yang diketahui." },
-      ], image: { src: "/documentation/screens/laporan-q2.png", alt: "Laporan kuartalan Manrisk dengan cakupan data berbeda", caption: "Snapshot periode lain untuk membandingkan ringkasan. Isi aktual mengikuti periode serta cakupan organisasi yang dipilih.", width: 3420, height: 1904 } },
-      { id: "detail-unit", title: "Periksa unit dan risiko", steps: [
-        { title: "Bandingkan unit", detail: "Tabel unit mencakup organisasi yang berada dalam cakupan izin Anda. Unit tanpa data pada periode itu ditandai Belum ada data." },
-        { title: "Buka detail unit", detail: "Pilih unit untuk melihat daftar risiko, mitigasi, dan kejadian terkait tanpa mengubah filter utama." },
-        { title: "Tinjau perhatian risiko", detail: "Perluas daftar risiko untuk memeriksa masalah status, target, pengamatan, atau tenggat. Daftar ini dimuat saat panel dibuka." },
+        { title: "Buka Ringkasan Risiko", detail: "Periode bawaan adalah kuartal terakhir yang selesai. Kuartal berjalan diberi penanda karena datanya masih dapat berubah." },
+        { title: "Pilih periode laporan", detail: "Gunakan pemilih tahun dan kuartal untuk menentukan periode." },
+        { title: "Batasi grup dan unit", detail: "Pilih unit yang dapat Anda akses. Tinjau unit terpilih untuk memeriksa atau menghapus pilihan." },
       ] },
-      { id: "ekspor-laporan", title: "Ekspor laporan", steps: [
-        { title: "Tetapkan periode dan cakupan", detail: "Periode, periode pembanding, serta filter unit yang sedang dipilih berlaku untuk kedua jenis ekspor." },
-        { title: "Pilih format ekspor", detail: "Pilih Excel untuk lembar kerja analisis atau PDF untuk dokumen laporan yang dapat dibaca." },
-        { title: "Periksa tanggal dan filter", detail: "Pastikan kuartal dan cakupan organisasi benar sebelum membagikan hasil laporan." },
-      ], note: "Jika suatu nilai ditampilkan sebagai tanda pisah, angka pembanding atau penyebut mungkin belum tersedia pada periode yang dipilih." },
+      { id: "baca-laporan", title: "Baca widget laporan", fields: [
+        { name: "Ringkasan", description: "Total profil risiko Final yang efektif, jumlah risiko tinggi dan sangat tinggi, jumlah unit dalam cakupan, serta persentase pelaporan mitigasi." },
+        { name: "Distribusi tingkat risiko", description: "Proporsi lima tingkat risiko berdasarkan skor profil, bukan hasil monitoring atau tingkat kejadian. Skor yang belum tersedia ditandai Belum dinilai." },
+        { name: "Peringkat risiko per unit", description: "Unit diurutkan menurut jumlah risiko tinggi dan sangat tinggi. Angka ini bukan skor rata-rata unit; unit dengan angka nol tetap ditampilkan." },
+        { name: "Status pelaporan mitigasi", description: "Jumlah laporan progres valid dibandingkan seluruh laporan yang diwajibkan, beserta laporan yang melewati tenggat dan status lainnya. Terlapor tidak berarti kegiatan selesai." },
+      ], note: "Tanda pisah berarti penyebut belum tersedia. Waktu pembaruan dan keterbatasan data tersedia di bawah widget." },
+      { id: "muat-ulang", title: "Perbarui hasil atau atur ulang filter", paragraphs: ["Gunakan menu Opsi laporan untuk memuat ulang data atau mengembalikan filter bawaan. Pilihan periode, grup dan unit disimpan per akun dan divalidasi kembali sesuai akses saat ini."] },
     ],
   },
   {

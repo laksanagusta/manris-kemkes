@@ -314,7 +314,7 @@ func organizationGroupQueries(filter repository.OrganizationGroupListFilter) (st
 	countQuery := baseCount + strings.Join(clauses, "")
 	dataQuery := baseData + strings.Join(clauses, "") + `
 		GROUP BY g.id, owner.name
-		ORDER BY g.name ASC
+		ORDER BY g.created_at DESC, g.id DESC
 	`
 	return countQuery, dataQuery, args
 }

@@ -6,7 +6,6 @@ import {
   ChevronDown,
   ChevronRight,
   Download,
-  FileDiff,
   Minus,
   Plus,
   Trash2,
@@ -16,13 +15,6 @@ import { toast } from "sonner";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -55,10 +47,8 @@ import {
   resolveDefaultReportOrgId,
 } from "@/lib/report-scope";
 import {
-  ReportScopePicker,
-} from "@/components/report/report-scope-picker";
-import {
   CollectionToolbar,
+  DynamicTableFilters,
   CollectionEmptyState,
   IllustratedEmptyState,
   KpiCard,
@@ -380,8 +370,6 @@ export function RiskCycleDetailReport({
   const requiresOrganizationSelection = needsExplicitReportOrgSelection(user);
   const requiresScopeSelection =
     requiresOrganizationSelection && !organizationGroupId && !orgFilter;
-  const compactSelectTriggerClass =
-    "h-10 border-0 bg-background/80 text-xs";
 
   useEffect(() => {
     if (controlledFromCycle) setFromCycle(controlledFromCycle);
@@ -590,87 +578,83 @@ export function RiskCycleDetailReport({
       <div className="space-y-3">
         <CollectionToolbar
           leading={
-            <div className="flex min-w-0 flex-1 flex-col gap-3">
-              <div className="flex flex-wrap items-center gap-3">
-                <Select value={fromCycle} onValueChange={setFromCycle}>
-                  <SelectTrigger className={cn(compactSelectTriggerClass, "w-fit")}>
-                    <SelectValue placeholder="Periode awal" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {cycleOptions.map((cycle) => (
-                      <SelectItem key={`from-${cycle}`} value={cycle}>
-                        {cycle}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Select value={toCycle} onValueChange={setToCycle}>
-                  <SelectTrigger className={cn(compactSelectTriggerClass, "w-fit")}>
-                    <SelectValue placeholder="Periode akhir" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {cycleOptions.map((cycle) => (
-                      <SelectItem key={`to-${cycle}`} value={cycle}>
-                        {cycle}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <ReportScopePicker
-                  className="min-w-0 flex-1"
-                  organizationId={orgFilter}
-                  onOrganizationChange={(value) => {
+            <DynamicTableFilters
+              fields={[
+                {
+                  id: "from-cycle",
+                  label: "Periode awal",
+                  value: fromCycle,
+                  defaultValue: defaultFromCycle,
+                  required: true,
+                  onChange: setFromCycle,
+                  options: cycleOptions.map((cycle) => ({ value: cycle, label: cycle })),
+                },
+                {
+                  id: "to-cycle",
+                  label: "Periode akhir",
+                  value: toCycle,
+                  defaultValue: defaultToCycle,
+                  required: true,
+                  onChange: setToCycle,
+                  options: cycleOptions.map((cycle) => ({ value: cycle, label: cycle })),
+                },
+                {
+                  id: "organization",
+                  label: "Unit",
+                  value: user?.isGlobal ? orgFilter || "all" : orgFilter,
+                  defaultValue: user?.isGlobal ? "all" : "",
+                  required: !user?.isGlobal && !organizationGroupId,
+                  onChange: (value) => {
                     setOrgFilter(value);
-                    if (value) {
-                      setOrganizationGroupId("");
-                    }
-                  }}
-                  organizations={organizations}
-                  organizationGroupId={organizationGroupId}
-                  onOrganizationGroupChange={(value) => {
-                    setOrganizationGroupId(value);
-                    if (value) {
-                      setOrgFilter("");
-                    }
-                  }}
-                  organizationGroups={organizationGroups}
-                  organizationPlaceholder="Semua unit"
-                  organizationGroupPlaceholder="Semua group"
-                  allowAllOrganizations={Boolean(user?.isGlobal)}
-                  allOrganizationLabel="Semua unit"
-                  allOrganizationValue="all"
-                  allowAllOrganizationGroups={Boolean(user?.isGlobal)}
-                  allOrganizationGroupLabel="Semua group"
-                  allOrganizationGroupValue="all"
-                />
-                <Select
-                  value={includeStable ? "show" : "hide"}
-                  onValueChange={(value) => setIncludeStable(value === "show")}
-                >
-                  <SelectTrigger className={cn(compactSelectTriggerClass, "w-fit")}>
-                    <SelectValue placeholder="Stable rows" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="hide">Sembunyikan stable</SelectItem>
-                    <SelectItem value="show">Tampilkan stable</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {tabOptions.map((tab) => (
-                  <Button
-                    key={tab.value}
-                    type="button"
-                    size="sm"
-                    variant={activeTab === tab.value ? "default" : "outline"}
-                    className=""
-                    onClick={() => setActiveTab(tab.value)}
-                  >
-                    {tab.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
+                    if (value) setOrganizationGroupId("");
+                  },
+                  options: [
+                    ...(user?.isGlobal
+                      ? [{ value: "all", label: "Semua unit" }]
+                      : [{ value: "", label: "Pilih unit" }]),
+                    ...organizations.map((organization) => ({
+                      value: organization.id,
+                      label: organization.name,
+                    })),
+                  ],
+                },
+                ...(organizationGroups.length > 0 ? [{
+                  id: "organization-group",
+                  label: "Grup",
+                  value: organizationGroupId || "all",
+                  onChange: (value: string) => {
+                    const nextGroupId = value === "all" ? "" : value;
+                    setOrganizationGroupId(nextGroupId);
+                    if (nextGroupId) setOrgFilter("");
+                  },
+                  options: [
+                    { value: "all", label: "Semua grup" },
+                    ...organizationGroups.map((group) => ({
+                      value: group.id,
+                      label: group.name,
+                    })),
+                  ],
+                }] : []),
+                {
+                  id: "include-stable",
+                  label: "Risiko stabil",
+                  value: includeStable ? "show" : "hide",
+                  defaultValue: "hide",
+                  onChange: (value) => setIncludeStable(value === "show"),
+                  options: [
+                    { value: "hide", label: "Sembunyikan stable" },
+                    { value: "show", label: "Tampilkan stable" },
+                  ],
+                },
+                {
+                  id: "change-category",
+                  label: "Perubahan",
+                  value: activeTab,
+                  onChange: (value) => setActiveTab(value as FilterTab),
+                  options: tabOptions,
+                },
+              ]}
+            />
           }
           actions={
             <>

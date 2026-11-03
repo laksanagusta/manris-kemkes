@@ -1,3 +1,6 @@
+import { addRiskAssessmentWorksheet } from "./working-paper-export";
+import { getRiskLevelFromNilai, getRiskLevelDisplayLabel } from "./risk";
+import { treatmentOptionLabels } from "./risk-assessment-substance";
 import type { QuarterlyReport } from "../types/quarterly-report";
 import {
   buildQuarterlyAnalysis,
@@ -8,7 +11,9 @@ import {
   eventHasRiskLinks,
 } from "./quarterly-report";
 
-export async function createQuarterlyReportWorkbook(report: QuarterlyReport) {
+export type QuarterlyReportExcelFormat = "assessment" | "data";
+
+export async function createQuarterlyReportWorkbook(report: QuarterlyReport, format: QuarterlyReportExcelFormat = "assessment") {
   const { default: ExcelJS } = await import("exceljs");
   const workbook = new ExcelJS.Workbook();
   workbook.creator = "Manrisk";
@@ -261,71 +266,110 @@ export async function createQuarterlyReportWorkbook(report: QuarterlyReport) {
       unit.hasData ? unit.events.length : null,
     ]),
   );
-  addSheet(
-    "Risiko",
-    [
+  if (format === "data") {
+    addSheet(
       "Risiko",
-      "Kode",
-      "Unit",
-      "Periode profil",
-      "Nilai profil",
-      "Profil pembanding",
-      "Perubahan",
-      "Di atas selera",
-      "Pemantauan final",
-      "Nilai observasi",
-      "Nilai target",
-      "Pencapaian target",
-      "Perhatian",
-      "Diarsipkan dalam periode",
-      "Deskripsi",
-      "Kategori",
-      "Sebab",
-      "Dampak",
-      "P",
-      "D",
-      "Bobot",
-      "Target P",
-      "Target D",
-      "Target bobot",
-      "Jadwal pelaksanaan",
-      "ID",
-      "Kelompok versi",
-    ],
-    analysis.rows.map((row) => [
-      row.risk.title,
-      row.risk.code || row.risk.riskCode || "",
-      row.risk.orgName || "",
-      row.risk.assessmentCycle || "",
-      row.profile,
-      row.previousProfile,
-      movementLabels[row.movement],
-      row.aboveAppetite,
-      row.final,
-      row.observed,
-      row.target,
-      row.targetState === "achieved"
-        ? "Tercapai"
-        : row.targetState === "missed"
-          ? "Belum tercapai"
-          : "Belum dapat dinilai",
-      row.attention.join("; "),
-      Boolean(row.risk.archivedInPeriod),
-      row.risk.description || "",
-      row.risk.category || "",
-      row.risk.cause?.join("; ") || "",
-      row.risk.impactDesc?.join("; ") || "",
-      row.risk.probability ?? null,
-      row.risk.impact ?? null,
-      row.risk.weight ?? null,
-      row.risk.targetProbability ?? null,
-      row.risk.targetImpact ?? null,
-      row.risk.targetWeight ?? null,
-      row.risk.nextReviewDate || "",
-      row.risk.id,
-      row.risk.versionGroupId || row.risk.id,
-    ]),
-  );
+      [
+        "Risiko",
+        "Kode",
+        "Unit",
+        "Periode profil",
+        "Nilai profil",
+        "Profil pembanding",
+        "Perubahan",
+        "Di atas selera",
+        "Pemantauan final",
+        "Nilai observasi",
+        "Nilai target",
+        "Pencapaian target",
+        "Perhatian",
+        "Diarsipkan dalam periode",
+        "Deskripsi",
+        "Kategori",
+        "Sebab",
+        "Dampak",
+        "P",
+        "D",
+        "Bobot",
+        "Target P",
+        "Target D",
+        "Target bobot",
+        "Jadwal pelaksanaan",
+        "ID",
+        "Kelompok versi",
+      ],
+      analysis.rows.map((row) => [
+        row.risk.title,
+        row.risk.code || row.risk.riskCode || "",
+        row.risk.orgName || "",
+        row.risk.assessmentCycle || "",
+        row.profile,
+        row.previousProfile,
+        movementLabels[row.movement],
+        row.aboveAppetite,
+        row.final,
+        row.observed,
+        row.target,
+        row.targetState === "achieved"
+          ? "Tercapai"
+          : row.targetState === "missed"
+            ? "Belum tercapai"
+            : "Belum dapat dinilai",
+        row.attention.join("; "),
+        Boolean(row.risk.archivedInPeriod),
+        row.risk.description || "",
+        row.risk.category || "",
+        row.risk.cause?.join("; ") || "",
+        row.risk.impactDesc?.join("; ") || "",
+        row.risk.probability ?? null,
+        row.risk.impact ?? null,
+        row.risk.weight ?? null,
+        row.risk.targetProbability ?? null,
+        row.risk.targetImpact ?? null,
+        row.risk.targetWeight ?? null,
+        row.risk.nextReviewDate || "",
+        row.risk.id,
+        row.risk.versionGroupId || row.risk.id,
+      ]),
+    );
+  } else {
+    addRiskAssessmentWorksheet(workbook, analysis.rows.map(({ risk, profile, target }) => {
+      const level = profile === null ? undefined : getRiskLevelFromNilai(profile);
+      const targetLevel = target === null ? undefined : getRiskLevelFromNilai(target);
+      const mitigations = risk.mitigations ?? (risk.mitigation ? [risk.mitigation] : []);
+      return {
+        id: risk.id,
+        title: risk.title,
+        code: risk.code || risk.riskCode || "",
+        cause: risk.cause,
+        risk_source: risk.riskSource,
+        controllability: risk.controllability,
+        impact_desc: risk.impactDesc,
+        existing_control: risk.existingControl,
+        control_effectiveness: risk.controlEffectiveness,
+        probability: risk.probability,
+        impact: risk.impact,
+        bobot: risk.weight,
+        nilai: profile ?? undefined,
+        tingkat_risiko: level,
+        tingkat_risiko_display: level ? getRiskLevelDisplayLabel(level) : "",
+        prioritas_risiko: risk.riskPriority,
+        risk_appetite: risk.riskAppetite,
+        risk_appetite_display: risk.riskAppetite === "dalam_batas" ? "Dalam batas selera risiko" : risk.riskAppetite === "di_atas_batas" ? "Di atas batas selera risiko" : risk.riskAppetite,
+        treatment_option: risk.treatmentOption,
+        treatment_option_display: treatmentOptionLabels[risk.treatmentOption ?? ""] ?? risk.treatmentOption,
+        mitigations: mitigations.map((item) => item.action),
+        mitigation_details: mitigations.map((item) => [item.action, item.owner && `PIC: ${item.owner}`].filter(Boolean).join("\n")),
+        mitigation_due_dates: mitigations.map((item) => item.dueDate ?? ""),
+        target_probability: risk.targetProbability,
+        target_impact: risk.targetImpact,
+        target_bobot: risk.targetWeight,
+        target_nilai: target ?? undefined,
+        target_tingkat_risiko: targetLevel,
+        target_tingkat_risiko_display: targetLevel ? getRiskLevelDisplayLabel(targetLevel) : "",
+      };
+    }));
+  }
   addSheet(
     "Tugas mitigasi",
     [
@@ -433,4 +477,22 @@ export async function createQuarterlyReportWorkbook(report: QuarterlyReport) {
     ]),
   );
   return workbook;
+}
+
+
+export async function downloadQuarterlyReportExcel(report: QuarterlyReport, format: QuarterlyReportExcelFormat = "assessment") {
+  const workbook = await createQuarterlyReportWorkbook(report, format);
+  const bytes = await workbook.xlsx.writeBuffer();
+  const blob = new Blob([new Uint8Array(bytes)], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  const url = URL.createObjectURL(blob);
+  try {
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${format === "data" ? "data-laporan" : "laporan"}-${report.cycle}.xlsx`;
+    link.click();
+  } finally {
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
 }

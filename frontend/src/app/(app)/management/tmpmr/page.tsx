@@ -1,4 +1,7 @@
 "use client";
+import { newestCreatedFirst } from "@/lib/collection-created-at";
+import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
+
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -9,7 +12,6 @@ import {
   Loader2,
   Plus,
   RefreshCw,
-  SlidersHorizontal,
 } from "@/components/shared/icons";
 
 import { useAuth } from "@/contexts/auth-context";
@@ -20,13 +22,6 @@ import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Table,
   TableBody,
   TableCell,
@@ -34,7 +29,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
 import { getStatusBadgeClassName, toBadgeVariant, type StatusTone } from "@/lib/badge-variant";
 import {
   CollectionPageHeader,
@@ -42,6 +36,7 @@ import {
   CollectionToolbar,
   CollectionEmptyState,
   CollectionSearchField,
+  DynamicTableFilters,
   KpiCard,
   MetricGrid,
   PageStack,
@@ -109,11 +104,21 @@ export default function TMPMRListPage() {
       setLoading(true);
       setError(null);
       const [response, orgs] = await Promise.all([
-        listTMPMRAssessments(token, { page: 1, limit: 100 }),
+        (async () => {
+          const rows: TMPMRAssessment[] = [];
+          let page = 1;
+          while (true) {
+            const response = await listTMPMRAssessments(token, { page, limit: 100 });
+            const data = response.data ?? [];
+            rows.push(...data);
+            if (data.length === 0 || rows.length >= response.total) return rows;
+            page += 1;
+          }
+        })(),
         listAllOrganizations(token),
       ]);
 
-      setItems(response.data ?? []);
+      setItems([...response].sort(newestCreatedFirst));
       setOrganizations(orgs);
     } catch (err) {
       const message = err instanceof Error ? err.message : "Gagal memuat TMPMR.";
@@ -170,8 +175,6 @@ export default function TMPMRListPage() {
     }
   }, [page, totalPages]);
 
-  const hasActiveFilters = search !== "" || periodFilter !== "all" || statusFilter !== "all";
-
   const summary = useMemo(
     () => ({
       total: items.length,
@@ -215,68 +218,40 @@ export default function TMPMRListPage() {
       <CollectionToolbar
         className="w-full"
         leading={
-          <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-            <CollectionSearchField
-              id="tmpmr-search"
-              containerClassName="w-full sm:w-[28rem] sm:flex-none"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Cari organisasi, skor, maturity level, atau periode"
-              aria-label="Cari TMPMR"
-            />
-
-            <Select value={periodFilter} onValueChange={setPeriodFilter}>
-              <SelectTrigger id="tmpmr-period" className="w-full sm:w-fit">
-                <SelectValue placeholder="Semua periode" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua periode</SelectItem>
-                {availablePeriods.map((period) => (
-                  <SelectItem key={period} value={period}>
-                    {period}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            <Select
-              value={statusFilter}
-              onValueChange={(value) => setStatusFilter(value as TMPMRStatus | "all")}
-            >
-              <SelectTrigger id="tmpmr-status" className="w-full sm:w-fit">
-                <SelectValue placeholder="Semua status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua status</SelectItem>
-                <SelectItem value="draft">Draft</SelectItem>
-                <SelectItem value="submitted">Submitted</SelectItem>
-                <SelectItem value="reviewed">Reviewed</SelectItem>
-                <SelectItem value="approved">Approved</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <div className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
-              <Badge variant="outline" className="whitespace-nowrap">
-                <SlidersHorizontal className="size-3.5" />
-                {filteredItems.length} hasil
-              </Badge>
-              {hasActiveFilters ? (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className=""
-                  onClick={() => {
-                    setSearch("");
-                    setPeriodFilter("all");
-                    setStatusFilter("all");
-                  }}
-                >
-                  Reset filter
-                </Button>
-              ) : null}
-            </div>
-          </div>
+          <DynamicTableFilters
+            search={
+              <CollectionSearchField
+                id="tmpmr-search"
+                containerClassName="w-full sm:w-[28rem] sm:flex-none"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Cari organisasi, skor, maturity level, atau periode"
+                aria-label="Cari TMPMR"
+              />
+            }
+            fields={[
+              {
+                id: "period",
+                label: "Periode",
+                value: periodFilter,
+                onChange: setPeriodFilter,
+                options: [
+                  { value: "all", label: "Semua periode" },
+                  ...availablePeriods.map((period) => ({ value: period, label: period })),
+                ],
+              },
+              {
+                id: "status",
+                label: "Status",
+                value: statusFilter,
+                onChange: (value) => setStatusFilter(value as TMPMRStatus | "all"),
+                options: [
+                  { value: "all", label: "Semua status" },
+                  ...Object.entries(statusLabel).map(([value, label]) => ({ value, label })),
+                ],
+              },
+            ]}
+          />
         }
         actions={
           <>
@@ -317,6 +292,7 @@ export default function TMPMRListPage() {
                     <TableHead className="whitespace-nowrap">Maturity</TableHead>
                     <TableHead className="whitespace-nowrap">Status</TableHead>
                     <TableHead className="whitespace-nowrap">Diperbarui</TableHead>
+                    <CreatedAtHead />
                     <TableHead className="text-right whitespace-nowrap">
                       <span className="sr-only">Aksi</span>
                     </TableHead>
@@ -325,7 +301,7 @@ export default function TMPMRListPage() {
                 <TableBody>
                   {paginatedItems.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="!p-0">
+                      <TableCell colSpan={8} className="!p-0">
                         <CollectionEmptyState
                           title="Belum ada assessment yang cocok dengan filter ini"
                           description="Coba ubah filter atau buat assessment baru."
@@ -358,6 +334,7 @@ export default function TMPMRListPage() {
                           <TableCell className="whitespace-nowrap">
                             {formatDateTime(item.updatedAt)}
                           </TableCell>
+                          <CreatedAtCell record={item} />
                           <TableCell className="text-right">
                             <Button asChild variant="ghost" size="sm" className="">
                               <Link href={`/management/tmpmr/${item.id}`}>
@@ -374,7 +351,7 @@ export default function TMPMRListPage() {
               </Table>
 
               {shouldShowCollectionPagination(filteredItems.length) ? (
-                <div className="flex items-center justify-between gap-3 border-t border-border/40 bg-table-footer pt-4 text-sm">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-table-footer px-5 py-3 text-sm">
                   <p className="text-secondary-foreground">
                     Menampilkan {filteredItems.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}
                     {" "}

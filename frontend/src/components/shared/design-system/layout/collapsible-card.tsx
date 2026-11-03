@@ -100,7 +100,8 @@ function CollapsibleCardDescription({
 }: ComponentProps<"p">) {
   return (
     <p
-      className={cn("mt-1 text-xs leading-5 text-secondary-foreground", className)}
+      data-slot="card-description"
+      className={cn("text-xs leading-5 text-secondary-foreground", className)}
       {...props}
     />
   );

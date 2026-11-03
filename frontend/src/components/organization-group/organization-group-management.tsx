@@ -1,6 +1,9 @@
 "use client";
+import { newestCreatedFirst } from "@/lib/collection-created-at";
+import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Loader2,
   Pencil,
@@ -15,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   CollectionPagination,
+  DynamicTableFilters,
   CollectionSearchField,
   CollectionTableHead,
   CollectionTableSurface,
@@ -131,6 +135,9 @@ export function OrganizationGroupManagement({
     "all" | "filtered" | null
   >(null);
   const [groupSearch, setGroupSearch] = useState("");
+  const [groupFilter, setGroupFilter] = useState("all");
+  const [ownerFilter, setOwnerFilter] = useState("all");
+  const groupsRequestId = useRef(0);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [memberSearch, setMemberSearch] = useState("");
@@ -211,31 +218,51 @@ export function OrganizationGroupManagement({
     };
   }, [dialogOpen, memberSearchQuery, ownerOrganizationId, token]);
 
-  const loadGroups = async () => {
-    if (!token) return;
+  const groupOwnerScope = user?.isGlobal ? undefined : user?.organizationId ?? undefined;
+  const loadGroups = useCallback(async () => {
+    const requestId = ++groupsRequestId.current;
+    if (!token) {
+      setGroups([]);
+      setLoading(false);
+      return;
+    }
 
     setLoading(true);
     try {
-      const response = await listOrganizationGroups(token, {
-        ownerOrganizationId: user?.isGlobal
-          ? undefined
-          : user?.organizationId ?? undefined,
-        includeMembers: true,
-        page: 1,
-        limit: 200,
-      });
-      setGroups(response.data ?? []);
+      const allGroups: OrganizationGroupListItem[] = [];
+      let nextPage = 1;
+      let total = 0;
+      do {
+        const response = await listOrganizationGroups(token, {
+          ownerOrganizationId: groupOwnerScope,
+          includeMembers: true,
+          page: nextPage,
+          limit: 200,
+        });
+        if (requestId !== groupsRequestId.current) return;
+        const pageGroups = response.data ?? [];
+        total = response.total ?? pageGroups.length;
+        if (pageGroups.length === 0 && allGroups.length < total) {
+          throw new Error("Daftar grup organisasi belum lengkap.");
+        }
+        allGroups.push(...pageGroups);
+        nextPage += 1;
+      } while (allGroups.length < total);
+      setGroups([...allGroups].sort(newestCreatedFirst));
     } catch (error) {
+      if (requestId !== groupsRequestId.current) return;
+      setGroups([]);
       console.error(error);
       toast.error("Gagal memuat grup organisasi.");
     } finally {
-      setLoading(false);
+      if (requestId === groupsRequestId.current) setLoading(false);
     }
-  };
+  }, [groupOwnerScope, token]);
 
   useEffect(() => {
     void loadGroups();
-  }, [token, user]);
+    return () => { groupsRequestId.current += 1; };
+  }, [loadGroups]);
 
   const resetForm = () => {
     setEditingGroup(null);
@@ -405,15 +432,27 @@ export function OrganizationGroupManagement({
     }
   };
 
+  const groupOptions = useMemo(() => [
+    { value: "all", label: "Semua grup" },
+    ...groups.map((group) => ({ value: group.id, label: group.name }))
+      .sort((a, b) => a.label.localeCompare(b.label, "id")),
+  ], [groups]);
+  const ownerOptions = useMemo(() => [
+    { value: "all", label: "Semua pemilik" },
+    ...Array.from(new Map(groups.map((group) => [
+      group.ownerOrganizationId,
+      { value: group.ownerOrganizationId, label: group.ownerOrganizationName },
+    ])).values()).sort((a, b) => a.label.localeCompare(b.label, "id")),
+  ], [groups]);
   const visibleGroups = useMemo(() => {
     const query = groupSearch.trim().toLowerCase();
-    if (!query) return groups;
-
     return groups.filter((group) => {
+      if (groupFilter !== "all" && group.id !== groupFilter) return false;
+      if (ownerFilter !== "all" && group.ownerOrganizationId !== ownerFilter) return false;
       const haystack = `${group.name} ${group.ownerOrganizationName} ${group.description}`.toLowerCase();
-      return haystack.includes(query);
+      return !query || haystack.includes(query);
     });
-  }, [groups, groupSearch]);
+  }, [groups, groupSearch, groupFilter, ownerFilter]);
 
   const totalGroups = visibleGroups.length;
   const totalPages = Math.max(1, Math.ceil(totalGroups / limit));
@@ -445,16 +484,6 @@ export function OrganizationGroupManagement({
             </CardDescription>
           </div>
           <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end xl:w-auto xl:shrink-0">
-            <CollectionSearchField
-              value={groupSearch}
-              onChange={(event) => {
-                setGroupSearch(event.target.value);
-                setPage(1);
-              }}
-              placeholder="Cari grup..."
-              aria-label="Cari grup organisasi"
-              containerClassName="sm:w-[260px]"
-            />
             <Button size="default" variant="outline" onClick={openCreateDialog}>
               <Plus data-icon="inline-start" />
               Tambah Grup
@@ -463,9 +492,40 @@ export function OrganizationGroupManagement({
         </CardHeader>
 
         <CardContent>
+          <DynamicTableFilters
+            className="mb-4"
+            search={
+              <CollectionSearchField
+                value={groupSearch}
+                onChange={(event) => {
+                  setGroupSearch(event.target.value);
+                  setPage(1);
+                }}
+                placeholder="Cari grup..."
+                aria-label="Cari grup organisasi"
+                containerClassName="sm:w-[260px]"
+              />
+            }
+            fields={[
+              {
+                id: "group",
+                label: "Nama grup",
+                value: groupFilter,
+                onChange: (value) => { setGroupFilter(value); setPage(1); },
+                options: groupOptions,
+              },
+              {
+                id: "owner",
+                label: "Pemilik",
+                value: ownerFilter,
+                onChange: (value) => { setOwnerFilter(value); setPage(1); },
+                options: ownerOptions,
+              },
+            ]}
+          />
           <div className="-mx-(--card-spacing) -mb-(--card-spacing) min-w-0 border-t border-border/60">
             <CollectionTableSurface>
-              <Table className="min-w-[920px]">
+              <Table className="min-w-[1080px]">
                 <TableHeader className="[&_tr]:border-b [&_tr]:border-border/60">
                   <TableRow className="transition-colors hover:bg-transparent">
                     <CollectionTableHead density="compact" className="w-[30%] whitespace-nowrap text-left align-middle">
@@ -480,6 +540,7 @@ export function OrganizationGroupManagement({
                     <CollectionTableHead density="compact" className="w-32 whitespace-nowrap text-left align-middle">
                       Diperbarui
                     </CollectionTableHead>
+                    <CreatedAtHead />
                     <CollectionTableHead density="compact" className="w-28 whitespace-nowrap text-left align-middle">
                       <span className="sr-only">Aksi</span>
                     </CollectionTableHead>
@@ -488,16 +549,16 @@ export function OrganizationGroupManagement({
                 <TableBody>
                   {loading ? (
                     <TableRow className="transition-colors hover:bg-muted/70">
-                      <TableCell colSpan={5} className="text-left">
+                      <TableCell colSpan={6} className="text-left">
                         <Loader2 className="size-5 animate-spin text-disabled-foreground" />
                       </TableCell>
                     </TableRow>
                   ) : paginatedGroups.length === 0 ? (
                     <TableRow className="transition-colors hover:bg-muted/70">
-                  <TableCell colSpan={5} className="text-left">
+                  <TableCell colSpan={6} className="text-left">
                     <CollectionEmptyState
                       title="Tidak ada grup organisasi yang ditemukan."
-                      description="Coba ubah kata kunci pencarian."
+                      description="Coba ubah kata kunci atau filter pencarian."
                     />
                   </TableCell>
                     </TableRow>
@@ -533,6 +594,7 @@ export function OrganizationGroupManagement({
                         <TableCell className="align-middle text-muted-foreground">
                           {formatDateTime(group.updatedAt)}
                         </TableCell>
+                        <CreatedAtCell record={group} />
                         <TableCell className="align-middle">
                           <DropdownActionMenu
                             label={`Tindakan grup ${group.name}`}

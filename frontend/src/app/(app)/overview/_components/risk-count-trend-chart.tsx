@@ -75,7 +75,7 @@ export function RiskCountTrendChart({
           <span className="text-3xl font-semibold tabular-nums">
             <MotionNumber value={currentTotal ?? "—"} />
           </span>
-          <span className="text-sm text-muted-foreground">Risiko aktif saat ini · Final</span>
+          <span className="text-sm text-muted-foreground">Risiko</span>
         </p>
       }
     >
@@ -103,7 +103,7 @@ export function RiskCountTrendChart({
           <div
             role="img"
             aria-label={`Tren jumlah total risiko dari ${chartData[0]?.period} sampai ${chartData.at(-1)?.period}`}
-            className="h-72 w-full sm:h-80 xl:h-[27rem]"
+            className="h-72 w-full sm:h-80 xl:h-[24rem]"
           >
             <ChartContainer config={chartConfig} className="h-full w-full">
               <RechartsLineChart
@@ -113,6 +113,8 @@ export function RiskCountTrendChart({
               >
                 <XAxis
                   dataKey="period"
+                  padding={{ left: 32, right: 32 }}
+                  interval="preserveStartEnd"
                   axisLine={false}
                   tickLine={false}
                   tick={{ fontSize: 14 }}

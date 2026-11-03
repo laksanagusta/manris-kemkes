@@ -1,9 +1,9 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { api, API_BASE, ApiError } from "@/lib/api";
+import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 import {
   listAllOrganizations,
@@ -25,28 +25,19 @@ import {
 import {
   completedReportCycle,
   currentReportCycle,
-  shiftReportCycle,
 } from "@/lib/quarterly-report";
 import type {
   QuarterlyReport,
-  QuarterlyReportOverview,
 } from "@/types/quarterly-report";
+import type { QuarterlyReportExcelFormat } from "@/lib/quarterly-report-export";
 import { reportErrorMessage } from "@/lib/report-feedback";
 import { parseReportPreferences } from "@/lib/report-preferences";
 import { resolveReportUrlFilters } from "@/lib/report-url-filters";
-import { ReportFilterPanel, type ReportExportFormat } from "@/components/report/report-filter-panel";
-import { ReportOverviewSkeleton } from "@/components/report/report-overview-cards";
-import { ReportSummaryCard, ReportSummaryMetrics } from "@/components/report/report-summary-card";
-import { QuarterlyReportDashboard } from "@/components/report/quarterly-report-dashboard";
-import { ReportEmptyState } from "@/components/shared/design-system";
+import { MonitoringOrganizationRecap } from "@/components/report/monitoring-organization-recap";
+import { ReportFilterPanel } from "@/components/report/report-filter-panel";
+import { QuarterlyReportDashboard, RiskSummarySkeleton } from "@/components/report/quarterly-report-dashboard";
+import { PageStack, ReportEmptyState } from "@/components/shared/design-system";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 const EMPTY_SCOPE: ReportsFilterScope = {
@@ -54,49 +45,31 @@ const EMPTY_SCOPE: ReportsFilterScope = {
   organizationGroupId: "",
   organizationIds: [],
 };
-function LoadingReport() {
+function ReportFeedback({ title, message, onRetry, actionLabel = "Coba lagi" }: {
+  title: string;
+  message: string;
+  onRetry: () => void;
+  actionLabel?: string;
+}) {
   return (
-    <div className="space-y-8" aria-label="Memuat laporan" aria-busy="true">
-      <div className="space-y-2">
-        <Skeleton className="h-5 w-64 max-w-full" />
-        <div className="flex flex-wrap gap-x-6 gap-y-2">
-          <Skeleton className="h-4 w-52 max-w-full" />
-          <Skeleton className="h-4 w-52 max-w-full" />
-        </div>
-        <Skeleton className="h-4 w-80 max-w-full" />
-      </div>
-      <ReportOverviewSkeleton />
-      <ReportSummaryCard title="Kejadian dan dampak aktual" aria-busy="true">
-        <ReportSummaryMetrics items={["Kerugian", "Nilai belum diketahui", "Belum terhubung"].map((label) => ({ label, value: <Skeleton className="h-8 w-24" /> }))} />
-        <Skeleton className="h-48 w-full" />
-      </ReportSummaryCard>
-      {[
-        "Perbandingan unit",
-        "Risiko yang perlu ditindaklanjuti",
-      ].map((title) => (
-        <Card data-report-card="" key={title}>
-          <CardHeader>
-            <CardTitle className="text-sm">{title}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Skeleton className="h-32 w-full" />
-          </CardContent>
-        </Card>
-      ))}
-    </div>
+    <Alert variant="destructive">
+      <AlertTitle>{title}</AlertTitle>
+      <AlertDescription>
+        <p>{message}</p>
+        <Button variant="outline" onClick={onRetry}>{actionLabel}</Button>
+      </AlertDescription>
+    </Alert>
   );
 }
 
 export default function ReportsPage() {
-  return <Suspense fallback={<LoadingReport />}><ReportsContent /></Suspense>;
+  return <Suspense fallback={<RiskSummarySkeleton />}><ReportsContent /></Suspense>;
 }
 
 function ReportsContent() {
   const { token, user } = useAuth();
   const reportSearch = useSearchParams().toString();
   const [cycle, setCycle] = useState(completedReportCycle);
-  const [comparisonOverride, setComparisonOverride] = useState("");
-  const comparisonCycle = comparisonOverride || shiftReportCycle(cycle, -1);
   const [organizations, setOrganizations] = useState<OrganizationListItem[]>(
     [],
   );
@@ -109,13 +82,13 @@ function ReportsContent() {
   const [urlOverrides, setUrlOverrides] = useState(false);
   const [metadataReady, setMetadataReady] = useState(false);
   const [metadataError, setMetadataError] = useState<string | null>(null);
-  const [reportData, setReport] = useState<QuarterlyReportOverview | null>(null);
+  const [reportData, setReport] = useState<QuarterlyReport | null>(null);
   const [loadedQuery, setLoadedQuery] = useState("");
   const [reportError, setReportError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [retry, setRetry] = useState(0);
+  const [exporting, setExporting] = useState(false);
   const [metadataRetry, setMetadataRetry] = useState(0);
-  const [exporting, setExporting] = useState<ReportExportFormat | null>(null);
   const needsSelection =
     scope.organizationIds.length === 0 &&
     (needsExplicitReportOrgSelection(user) || Boolean(scope.organizationGroupId));
@@ -151,9 +124,8 @@ function ReportsContent() {
         setGroups(allowedGroups);
         let preferences = null;
         try { preferences = parseReportPreferences(localStorage.getItem(preferencesKey), currentReportCycle(), allowed, allowedGroups); } catch { /* Storage may be unavailable. Keep the default filters. */ }
-        const requested = resolveReportUrlFilters(reportSearch, currentReportCycle(), allowed, preferences ?? { cycle: completedReportCycle(), comparisonOverride: "", scope: resolveDefaultReportsFilterScope(user, allowed) });
+        const requested = resolveReportUrlFilters(reportSearch, currentReportCycle(), allowed, preferences ?? { cycle: completedReportCycle(), scope: resolveDefaultReportsFilterScope(user, allowed) });
         setCycle(requested.filters.cycle);
-        setComparisonOverride(requested.filters.comparisonOverride);
         setScope(requested.filters.scope);
         setLinkError(requested.error);
         setUrlOverrides(requested.hasFilters);
@@ -175,18 +147,17 @@ function ReportsContent() {
 
   useEffect(() => {
     if (!metadataReady || !user || restoredFor !== restoreKey || urlOverrides || linkError) return;
-    try { localStorage.setItem(preferencesKey, JSON.stringify({ cycle, comparisonOverride, scope })); } catch { /* Reporting still works when storage is unavailable. */ }
-  }, [metadataReady, user, restoredFor, restoreKey, preferencesKey, cycle, comparisonOverride, scope, urlOverrides, linkError]);
+    try { localStorage.setItem(preferencesKey, JSON.stringify({ cycle, scope })); } catch { /* Reporting still works when storage is unavailable. */ }
+  }, [metadataReady, user, restoredFor, restoreKey, preferencesKey, cycle, scope, urlOverrides, linkError]);
 
   const query = useMemo(() => {
     const params = new URLSearchParams({
       cycle,
-      compare_cycle: comparisonCycle,
     });
     if (scope.organizationIds.length)
       params.set("org_id", scope.organizationIds.join(","));
     return params.toString();
-  }, [cycle, comparisonCycle, scope.organizationIds]);
+  }, [cycle, scope.organizationIds]);
   const report = restoredFor === restoreKey && !linkError && loadedQuery === query ? reportData : null;
   useEffect(() => {
     if (!token || !metadataReady || restoredFor !== restoreKey || needsSelection || linkError) {
@@ -198,7 +169,7 @@ function ReportsContent() {
     setReportError(null);
     setReport(null);
     api
-      .get<QuarterlyReportOverview>(`/reports/quarterly/overview?${query}`, token)
+      .get<QuarterlyReport>(`/reports/quarterly?${query}`, token)
       .then((data) => {
         if (!cancelled) {
           setReport(data);
@@ -219,77 +190,30 @@ function ReportsContent() {
     };
   }, [token, metadataReady, restoredFor, restoreKey, needsSelection, linkError, query, retry]);
 
-  const loadReportDetails = useCallback(
-    (organizationId?: string) => {
-      if (!token || !metadataReady || restoredFor !== restoreKey || linkError || needsSelection) return Promise.reject(new Error("Pilih cakupan laporan yang tersedia sebelum memuat rincian."));
-      if (organizationId && !organizations.some((organization) => organization.id === organizationId)) return Promise.reject(new Error("Akses ke unit ini tidak tersedia."));
-      const params = new URLSearchParams(query);
-      if (organizationId) {
-        params.delete("org_id");
-        params.delete("organization_group_id");
-        params.set("org_id", organizationId);
-      }
-      return api.get<QuarterlyReport>(
-        `/reports/quarterly?${params.toString()}`,
-        token,
-      );
-    },
-    [query, token, metadataReady, restoredFor, restoreKey, linkError, needsSelection, organizations],
-  );
-
-  async function exportReport(format: ReportExportFormat) {
-    if (!report || !token || exporting) return;
+  async function exportExcel(format: QuarterlyReportExcelFormat = "assessment") {
+    if (!report || !token || loading || exporting || needsSelection || linkError) return;
     const snapshot = report;
-    setExporting(format);
+    setExporting(true);
     try {
-      let blob: Blob;
-      if (format === "xlsx") {
-        const fullReport = await loadReportDetails();
-        if (fullReport.snapshotHash !== snapshot.snapshotHash) {
-          throw new ApiError("Data laporan berubah", 409);
-        }
-        const { createQuarterlyReportWorkbook } =
-          await import("@/lib/quarterly-report-export");
-        const workbook = await createQuarterlyReportWorkbook(fullReport);
-        const bytes = await workbook.xlsx.writeBuffer();
-        blob = new Blob([new Uint8Array(bytes)], {
-          type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        });
-      } else {
-        const pdfQuery = new URLSearchParams(query);
-        pdfQuery.set("expected_updated_at", snapshot.dataUpdatedAt || "none");
-        if (snapshot.snapshotHash) pdfQuery.set("expected_snapshot_hash", snapshot.snapshotHash);
-        const response = await fetch(
-          `${API_BASE}/reports/quarterly-pdf?${pdfQuery}`,
-          { headers: { Authorization: `Bearer ${token}` } },
-        );
-        if (!response.ok) {
-          throw new ApiError("Ekspor PDF gagal", response.status);
-        }
-        blob = await response.blob();
+      const freshReport = await api.get<QuarterlyReport>(`/reports/quarterly?${query}`, token);
+      if (freshReport.snapshotHash !== snapshot.snapshotHash || freshReport.dataUpdatedAt !== snapshot.dataUpdatedAt) {
+        throw new Error("Data laporan berubah. Muat ulang data lalu coba ekspor kembali.");
       }
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `laporan-${snapshot.cycle}-vs-${snapshot.comparisonCycle}.${format}`;
-      link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 1000);
-      toast.success(`Laporan ${format.toUpperCase()} berhasil diunduh`);
-    } catch (error) {
-      toast.error(
-        reportErrorMessage(error, "Ekspor belum dapat diunduh. Coba lagi atau muat ulang data."),
-      );
+      const { downloadQuarterlyReportExcel } = await import("@/lib/quarterly-report-export");
+      await downloadQuarterlyReportExcel(freshReport, format);
+      toast.success(format === "data" ? "Data laporan Excel berhasil diunduh." : "Laporan lengkap Excel berhasil diunduh.");
+    } catch (error: unknown) {
+      toast.error(reportErrorMessage(error, "Ekspor Excel gagal. Coba lagi atau muat ulang data."));
     } finally {
-      setExporting(null);
+      setExporting(false);
     }
   }
+
   return (
-    <div className="w-full min-w-0 space-y-6">
+    <PageStack>
       <ReportFilterPanel
         cycle={cycle}
-        comparisonCycle={comparisonCycle}
         onCycleChange={(value) => { setCycle(value); setLinkError(null); setUrlOverrides(false); }}
-        onComparisonCycleChange={(value) => { setComparisonOverride(value); setLinkError(null); setUrlOverrides(false); }}
         scope={scope}
         onScopeChange={(value) => { setScope(value); setLinkError(null); setUrlOverrides(false); }}
         organizations={organizations}
@@ -308,62 +232,39 @@ function ReportsContent() {
         scopeReady={metadataReady}
         loading={loading}
         exporting={exporting}
-        canExport={Boolean(report)}
-        onExport={(format) => void exportReport(format)}
+        canExport={Boolean(report) && !needsSelection && !linkError}
+        onExportExcel={() => void exportExcel()}
+        onExportDataExcel={() => void exportExcel("data")}
         onReload={() => setRetry((value) => value + 1)}
         onReset={() => {
           setLinkError(null);
           setUrlOverrides(false);
           setCycle(completedReportCycle());
-          setComparisonOverride("");
           setScope(resolveDefaultReportsFilterScope(user, organizations));
         }}
       />
       {metadataError ? (
-        <Alert variant="destructive">
-          <AlertTitle>Unit dan grup gagal dimuat</AlertTitle>
-          <AlertDescription>
-            <p>{metadataError}</p>
-            <Button
-              variant="outline"
-              onClick={() => setMetadataRetry((value) => value + 1)}
-            >
-              Coba lagi
-            </Button>
-          </AlertDescription>
-        </Alert>
+        <ReportFeedback title="Unit dan grup gagal dimuat" message={metadataError} onRetry={() => setMetadataRetry(value => value + 1)} />
       ) : linkError ? (
-        <Alert variant="destructive">
-          <AlertTitle>Filter tautan tidak dapat digunakan</AlertTitle>
-          <AlertDescription><p>{linkError}</p><Button variant="outline" onClick={() => { setLinkError(null); setUrlOverrides(false); }}>Gunakan filter di atas</Button></AlertDescription>
-        </Alert>
+        <ReportFeedback title="Filter tautan tidak dapat digunakan" message={linkError} actionLabel="Gunakan filter di atas" onRetry={() => { setLinkError(null); setUrlOverrides(false); }} />
       ) : needsSelection && metadataReady ? (
         <ReportEmptyState
           title="Pilih unit laporan"
           description="Pilih satu atau beberapa unit di filter untuk menampilkan laporan."
         />
       ) : reportError ? (
-        <Alert variant="destructive">
-          <AlertTitle>Laporan gagal dimuat</AlertTitle>
-          <AlertDescription>
-            <p>{reportError}</p>
-            <Button
-              variant="outline"
-              onClick={() => setRetry((value) => value + 1)}
-            >
-              Coba lagi
-            </Button>
-          </AlertDescription>
-        </Alert>
+        <ReportFeedback title="Laporan gagal dimuat" message={reportError} onRetry={() => setRetry(value => value + 1)} />
       ) : loading || !metadataReady ? (
-        <LoadingReport />
+        <RiskSummarySkeleton />
       ) : report ? (
+        <div className="space-y-6">
         <QuarterlyReportDashboard
-          key={`${report.cycle}:${report.comparisonCycle}:${report.units.map((unit) => unit.id).join(",")}:${report.snapshotHash}`}
-          overview={report}
-          loadDetails={loadReportDetails}
+          key={`${report.cycle}:${report.snapshotHash}`}
+          report={report}
         />
+        <MonitoringOrganizationRecap key={`${report.cycle}:${report.snapshotHash}:${report.organizations.map(org=>org.id).join(",")}`} token={token} cycle={report.cycle} organizations={organizations.filter(org=>report.organizations.some(selected=>selected.id===org.id))} />
+        </div>
       ) : null}
-    </div>
+    </PageStack>
   );
 }

@@ -1,10 +1,13 @@
 "use client";
+import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
+
 
 import Link from "next/link";
 import {
   useDeferredValue,
   useEffect,
   useState,
+  useRef,
   useTransition,
 } from "react";
 import {
@@ -32,6 +35,7 @@ import {
   CollectionToolbar,
   CollectionEmptyState,
   CollectionSearchField,
+  DynamicTableFilters,
   KpiCard,
   MetricGrid,
   PageStack,
@@ -39,13 +43,6 @@ import {
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -176,6 +173,7 @@ export default function UsersManagementPage() {
   const searchParams = useSearchParams();
   const { token, user, loading: authLoading } = useAuth();
   const [isPending, startTransition] = useTransition();
+  const skipUrlWrite = useRef(false);
 
   const [users, setUsers] = useState<UserListItem[]>([]);
   const [total, setTotal] = useState(0);
@@ -205,6 +203,7 @@ export default function UsersManagementPage() {
   const deferredSearch = useDeferredValue(search);
 
   useEffect(() => {
+    skipUrlWrite.current = true;
     const nextSearch = searchParams.get("q") ?? "";
     const nextStatus = getStatusFilter(searchParams.get("status"));
     const nextRole = getRoleFilter(searchParams.get("role"));
@@ -219,6 +218,10 @@ export default function UsersManagementPage() {
   }, [searchParams]);
 
   useEffect(() => {
+    if (skipUrlWrite.current) {
+      skipUrlWrite.current = false;
+      return;
+    }
     const nextParams = new URLSearchParams(searchParams.toString());
     const normalizedSearch = search.trim();
 
@@ -416,53 +419,53 @@ export default function UsersManagementPage() {
       <CollectionToolbar
         className="w-full"
         leading={
-          <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-            <CollectionSearchField
-              containerClassName="w-full sm:w-80 sm:flex-none"
-              placeholder="Cari pengguna, NIP, atau email"
-              aria-label="Cari pengguna, NIP, atau email"
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value);
-                setPage(1);
-              }}
-            />
-            <Select
-              value={statusFilter}
-              onValueChange={(value) => {
-                setStatusFilter(getStatusFilter(value));
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-fit">
-                <SelectValue placeholder="Status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Status</SelectItem>
-                <SelectItem value="pending_activation">Menunggu Aktivasi</SelectItem>
-                <SelectItem value="active">Aktif</SelectItem>
-                <SelectItem value="inactive">Nonaktif</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select
-              value={roleFilter}
-              onValueChange={(value) => {
-                setRoleFilter(getRoleFilter(value));
-                setPage(1);
-              }}
-            >
-              <SelectTrigger className="w-full sm:w-fit">
-                <SelectValue placeholder="Role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Role</SelectItem>
-                <SelectItem value="superadmin">Super Admin</SelectItem>
-                <SelectItem value="unit">Unit Kerja</SelectItem>
-                <SelectItem value="reviewer">Reviewer</SelectItem>
-                <SelectItem value="pimpinan">Pimpinan</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <DynamicTableFilters
+            search={
+              <CollectionSearchField
+                containerClassName="w-full sm:w-80 sm:flex-none"
+                placeholder="Cari pengguna, NIP, atau email"
+                aria-label="Cari pengguna, NIP, atau email"
+                value={search}
+                onChange={(event) => {
+                  setSearch(event.target.value);
+                  setPage(1);
+                }}
+              />
+            }
+            fields={[
+              {
+                id: "status",
+                label: "Status",
+                value: statusFilter,
+                onChange: (value) => {
+                  setStatusFilter(getStatusFilter(value));
+                  setPage(1);
+                },
+                options: [
+                  { value: "all", label: "Semua status" },
+                  { value: "pending_activation", label: "Menunggu aktivasi" },
+                  { value: "active", label: "Aktif" },
+                  { value: "inactive", label: "Nonaktif" },
+                ],
+              },
+              {
+                id: "role",
+                label: "Role",
+                value: roleFilter,
+                onChange: (value) => {
+                  setRoleFilter(getRoleFilter(value));
+                  setPage(1);
+                },
+                options: [
+                  { value: "all", label: "Semua role" },
+                  { value: "superadmin", label: "Super Admin" },
+                  { value: "unit", label: "Unit Kerja" },
+                  { value: "reviewer", label: "Reviewer" },
+                  { value: "pimpinan", label: "Pimpinan" },
+                ],
+              },
+            ]}
+          />
         }
         actions={
           <Button asChild size="default" className="w-full sm:w-auto">
@@ -488,6 +491,7 @@ export default function UsersManagementPage() {
                 <TableHead className="w-40 whitespace-nowrap">Organisasi</TableHead>
                 <TableHead className="w-44 whitespace-nowrap">Terakhir login</TableHead>
                 <TableHead className="w-40 whitespace-nowrap">Status</TableHead>
+                <CreatedAtHead />
                 <TableHead className="w-16 whitespace-nowrap">
                   <span className="sr-only">Aksi</span>
                 </TableHead>
@@ -496,7 +500,7 @@ export default function UsersManagementPage() {
             <TableBody>
               {users.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={10} className="h-24">
+                  <TableCell colSpan={11} className="h-24">
                     <CollectionEmptyState
                       title="Belum ada data pengguna"
                       description="Tambahkan pengguna baru untuk memulai."
@@ -569,6 +573,7 @@ export default function UsersManagementPage() {
                           {status.label}
                         </Badge>
                       </TableCell>
+                      <CreatedAtCell record={managedUser} />
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>

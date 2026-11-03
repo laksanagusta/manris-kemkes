@@ -612,9 +612,10 @@ function buildPenilaianRisikoSheet(
   workbook: ExcelJS.Workbook,
   risks: ExportableRiskRow[],
   signatories: WorkingPaperSignatory[],
-  metadata: WorkingPaperSheetMetadata,
+  metadata?: WorkingPaperSheetMetadata,
+  sheetName = "KK Penilaian Risiko",
 ): void {
-  const ws = workbook.addWorksheet("KK Penilaian Risiko");
+  const ws = workbook.addWorksheet(sheetName);
 
   const COL_COUNT = 25;
   const FIRST_COL = DATA_START_COL; // col 2 (B)
@@ -654,7 +655,7 @@ function buildPenilaianRisikoSheet(
     ws.getColumn(FIRST_COL + index).width = width;
   });
 
-  applyWorkingPaperMetadataBlock(ws, FIRST_COL, LAST_COL, metadata);
+  if (metadata) applyWorkingPaperMetadataBlock(ws, FIRST_COL, LAST_COL, metadata);
 
   const H_FILL: ExcelJS.FillPattern = {
     type: "pattern",
@@ -672,11 +673,11 @@ function buildPenilaianRisikoSheet(
     cell.border = THIN_BORDER;
   }
 
-  const HEADER_ROW_1 = 13;
-  const HEADER_ROW_2 = 14;
-  const HEADER_ROW_3 = 15;
-  const HEADER_ROW_4 = 16;
-  const DATA_START_ROW = 17;
+  const HEADER_ROW_1 = metadata ? 13 : 1;
+  const HEADER_ROW_2 = HEADER_ROW_1 + 1;
+  const HEADER_ROW_3 = HEADER_ROW_1 + 2;
+  const HEADER_ROW_4 = HEADER_ROW_1 + 3;
+  const DATA_START_ROW = HEADER_ROW_1 + 4;
   const C = FIRST_COL; // shorthand
 
   // ── Row 13: top-level group headers ──
@@ -779,9 +780,20 @@ function buildPenilaianRisikoSheet(
 
   const lastDataRow = DATA_START_ROW + risks.length - 1;
   applyDataBorders(ws, DATA_START_ROW, lastDataRow, FIRST_COL, LAST_COL);
-  const lastSigRow = appendSignatureBlock(workbook, ws, signatories, FIRST_COL, LAST_COL, lastDataRow);
-  appendPetunjukPengisian(ws, lastSigRow, FIRST_COL, LAST_COL);
+  if (metadata) {
+    const lastSigRow = appendSignatureBlock(workbook, ws, signatories, FIRST_COL, LAST_COL, lastDataRow);
+    appendPetunjukPengisian(ws, lastSigRow, FIRST_COL, LAST_COL);
+  }
   ws.views = [{ state: "frozen", ySplit: HEADER_ROW_4 }];
+}
+
+/** Reuse the exact KK Penilaian Risiko table without paper identity or signatures. */
+export function addRiskAssessmentWorksheet(
+  workbook: ExcelJS.Workbook,
+  risks: readonly Partial<WorkingPaperRiskData>[],
+  sheetName = "Risiko",
+): void {
+  buildPenilaianRisikoSheet(workbook, [...risks], [], undefined, sheetName);
 }
 
 function buildPemantauanReviuSheet(

@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { ManriskMark } from "@/components/manrisk-mark";
 import {
   LayoutDashboard,
+  BriefcaseIcon,
   Inbox,
   Agreement03,
   Alert02,
@@ -346,7 +347,9 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
       .filter((group) => (group.items?.length ?? 0) > 0);
 
     if (user?.role === "unit" && baseNavigation[0]) {
-      baseNavigation[0].items = [{ label: "Pekerjaan saya", href: "/work", icon: LayoutDashboard }, ...(baseNavigation[0].items ?? [])];
+      const items = baseNavigation[0].items ?? [];
+      const dashboardIndex = items.findIndex((item) => item.href === "/overview");
+      items.splice(dashboardIndex + 1, 0, { label: "To-Do", href: "/work", icon: BriefcaseIcon });
     }
     if (!aiFeaturesDisabled) {
       return baseNavigation;
@@ -359,8 +362,8 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
 
   return (
     <Sidebar
-      className="md:top-0 md:h-svh"
-      style={{ border: 0, boxShadow: "none" }}
+      className="border-r border-border md:top-0 md:h-svh"
+      style={{ boxShadow: "none" }}
       collapsible="icon"
       variant="sidebar"
     >

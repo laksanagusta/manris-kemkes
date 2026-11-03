@@ -1,5 +1,6 @@
 "use client";
 
+import { PropertyList, PropertyLabel } from "../layout/property-list";
 import type { ReactNode } from "react";
 
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +25,7 @@ export interface RiskDetailDrawerProps {
 function DetailRow({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] items-center gap-4 py-3">
-      <dt className="text-[13px] text-muted-foreground">{label}</dt>
+      <PropertyLabel>{label}</PropertyLabel>
       <dd className="min-w-0 text-right text-sm font-medium text-foreground">
         {children}
       </dd>
@@ -105,7 +106,7 @@ export function RiskDetailDrawer({
             >
               Properti sumber
             </h2>
-            <dl className="divide-y divide-border/70 border-y border-border/70">
+            <PropertyList>
               <DetailRow label="Status">
                 <Badge
                   variant="default"
@@ -120,13 +121,13 @@ export function RiskDetailDrawer({
               <DetailRow label="Kategori">
                 <RiskCategoryIndicator
                   category={risk.category}
-                  className="ml-auto max-w-[11rem] justify-end text-right text-foreground"
+                  className="max-w-full justify-start text-left text-foreground"
                 />
               </DetailRow>
               <DetailRow label="Versi">
                 <span className="font-mono">v{risk.versionNumber ?? "-"}</span>
               </DetailRow>
-            </dl>
+            </PropertyList>
           </section>
         </DrawerBody>
       </DrawerContent>

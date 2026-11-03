@@ -346,14 +346,13 @@ test("register tools sit above the single risk collection", () => {
 test("register filter toolbar uses the shared collection composition", () => {
   const toolbar = page.slice(
     page.indexOf("function RiskRegisterFilterToolbar"),
-    page.indexOf("type RiskRegisterFiltersSidebarProps"),
+    page.indexOf("function RiskRowActions"),
   );
 
-  assert.match(
-    toolbar,
-    /className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center"/,
-  );
-  assert.match(page, /<CollectionFilterPopover/);
+  assert.match(toolbar, /<DynamicTableFilters/);
+  assert.match(toolbar, /search=\{\s*<CollectionSearchField/);
+  assert.match(toolbar, /fields=\{\[/);
+  assert.doesNotMatch(toolbar, /<CollectionFilterPopover|<PopoverSelectField/);
   assert.doesNotMatch(page, /from "@\/components\/ui\/popover"/);
   assert.doesNotMatch(page, /<Popover open=\{open\}/);
 });
@@ -389,7 +388,7 @@ test("active register surfaces use shared design-system components", () => {
   assert.doesNotMatch(page, /RegisterTabsList|RegisterTableCard|RegisterPagination|<Tabs/);
   assert.match(page, /<CollectionSearchField/);
   assert.match(page, /<CollectionSearchField[\s\S]*?className="placeholder:text-tertiary-foreground"/);
-  assert.match(page, /<CollectionFilterTrigger/);
+  assert.match(page, /<DynamicTableFilters/);
   assert.match(page, /from "@\/components\/ui\/badge"/);
   assert.match(page, /<CollectionDialogCancel/);
 });

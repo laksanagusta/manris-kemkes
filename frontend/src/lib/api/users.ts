@@ -13,6 +13,7 @@ export interface UserListItem {
   pangkat?: string | null;
   orgName?: string | null;
   lastLoggedIn?: string | null;
+  createdAt?: string;
 }
 
 export interface PaginatedUsersResponse {

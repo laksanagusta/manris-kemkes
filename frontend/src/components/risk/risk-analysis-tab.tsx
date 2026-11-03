@@ -260,7 +260,7 @@ export function RiskAnalysisTab({
                 <CardTitle className="">
                   Tren nilai risiko
                 </CardTitle>
-                <p className="mt-1 text-xs text-secondary-foreground">
+                <p data-slot="card-description" className="mt-1 text-xs text-secondary-foreground">
                   Pergerakan nilai risiko dari versi ke versi, dibandingkan
                   dengan target penanganan.
                 </p>

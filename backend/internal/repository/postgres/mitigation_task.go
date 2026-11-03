@@ -271,7 +271,7 @@ func (r *mitigationTaskRepository) ListAllPaginated(ctx context.Context, orgIDs 
 	}
 
 	offset := (page - 1) * limit
-	orderBy := "t.due_date DESC"
+	orderBy := "t.created_at DESC, t.id DESC"
 	if normalizedStatus == "needs_reporting" {
 		orderBy = "t.due_date ASC, t.created_at ASC, t.id ASC"
 	}

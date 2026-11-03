@@ -59,9 +59,6 @@ const collapsibleCard = readSource(
   "../components/shared/design-system/layout/collapsible-card.tsx",
 );
 const kpiCard = readSource("../components/shared/kpi-card.tsx");
-const expandableSearchField = readSource(
-  "../components/shared/design-system/collections/expandable-search-field.tsx",
-);
 const mitigationPanel = readSource(
   "../app/(app)/compliance/_components/mitigation-monitoring-panel.tsx",
 );
@@ -88,9 +85,6 @@ const riskRegisterForm = readSource(
 );
 const riskLogTimeline = readSource(
   "../components/risk/risk-log-timeline.tsx",
-);
-const communicationLogDialog = readSource(
-  "../components/risk/communication-log-dialog.tsx",
 );
 const workingPaperCreate = readSource(
   "../app/(app)/risk/working-papers/new/page.tsx",
@@ -191,13 +185,11 @@ test("collection routes use the shared CollectionToolbar", () => {
   }
 });
 
-test("monitoring read-only toolbar matches collection control height", () => {
-  assert.match(monitoringWorkspace, /<CollectionSearchField[\s\S]*?h-9/);
-  assert.match(monitoringWorkspace, /className="h-9 w-full rounded-lg/);
-  assert.equal(
-    monitoringWorkspace.match(/<SelectItem[\s\S]*?className="h-9"/g)?.length,
-    2,
-  );
+test("monitoring read-only toolbar uses shared dynamic collection filters", () => {
+  assert.match(monitoringWorkspace, /<DynamicTableFilters[\s\S]*?search=\{[\s\S]*?<CollectionSearchField/);
+  assert.match(monitoringWorkspace, /id: "cycle"[\s\S]*?options: cycleOptions/);
+  assert.match(monitoringWorkspace, /id: "status"[\s\S]*?options: STATUS_OPTIONS/);
+  assert.doesNotMatch(monitoringWorkspace, /<PopoverSelectField|<SelectItem/);
   assert.doesNotMatch(monitoringWorkspace, /Muat ulang pemantauan|RefreshCcw/);
   assert.match(
     monitoringWorkspace,
@@ -228,9 +220,9 @@ test("risk monitoring keeps header actions in the trailing local slot", () => {
   );
 });
 
-test("mitigation monitoring uses the shared expandable search and compact status badge", () => {
-  assert.match(expandableSearchField, /absolute right-2 size-4/);
-  assert.match(mitigationPanel, /<ExpandableSearchField[\s>]/);
+test("mitigation monitoring uses shared dynamic search filters and compact status badge", () => {
+  assert.match(mitigationPanel, /<DynamicTableFilters[\s\S]*?search=\{[\s\S]*?<CollectionSearchField/);
+  assert.doesNotMatch(mitigationPanel, /<ExpandableSearchField[\s>]/);
   assert.match(mitigationPanel, /<Badge\s+variant=\{toBadgeVariant\(/);
   assert.doesNotMatch(mitigationPanel, /bg-muted\/60 px-2 py-1 font-mono/);
   assert.doesNotMatch(mitigationPanel, /Daftar mitigasi/);
@@ -858,19 +850,10 @@ test("risk property metadata labels the cycle as period", () => {
 test("risk activity surfaces use catatan terminology", () => {
   assert.match(riskRegisterForm, />\s*Catatan\s*</);
   assert.match(riskRegisterForm, /menambahkan catatan komunikasi/);
-  assert.match(riskLogTimeline, /Tambah catatan/);
-  assert.match(riskLogTimeline, /<ActionIconButton/);
-  assert.match(riskLogTimeline, /icon=\{<Plus className="size-3\.5" \/>\}/);
-  assert.match(riskLogTimeline, /\{timelineItems\.length\}/);
+  assert.match(riskLogTimeline, /<CommentComposer/);
   assert.match(riskRegisterForm, /canAdd=\{riskStatus !== "draft"\}/);
-  assert.match(
-    riskLogTimeline,
-    /\{canAdd \? \([\s\S]*?<CommunicationLogDialog/,
-  );
-  assert.match(riskLogTimeline, /Semua Catatan/);
-  assert.match(communicationLogDialog, /Tambah Catatan Komunikasi/);
-  assert.doesNotMatch(riskLogTimeline, /> Tambah log/);
-  assert.doesNotMatch(riskLogTimeline, /<Plus className="size-3\.5" \/> Tambah catatan/);
+  assert.doesNotMatch(riskLogTimeline, /CommunicationLogDialog|<Dialog|showAddDialog|setShowAddDialog/);
+
 });
 
 test("risk data reload does not toggle the submit state during draft save", () => {

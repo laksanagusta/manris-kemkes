@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useRef,
   useState,
   useTransition,
 } from "react";
@@ -18,17 +19,14 @@ import type { WorkingPaper, WorkingPaperStatus } from "@/types/working-paper";
 import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 import { WorkingPaperProgressCollapsible } from "./_components/working-paper-progress-collapsible";
 
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent } from "@/components/ui/card";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Table,
   TableBody,
   TableCell,
   TableRow,
 } from "@/components/ui/table";
-import { Calendar as CalendarIcon, ChevronRight, Plus } from "@/components/shared/icons";
+import { ChevronRight, Plus } from "@/components/shared/icons";
 import { Badge } from "@/components/ui/badge";
 import {
   currentAssessmentCycle,
@@ -42,7 +40,7 @@ import {
   CollectionLoadingState,
   CollectionPagination,
   CollectionPageHeader,
-  PopoverSelectField,
+  DynamicTableFilters,
   CollectionSearchField,
   CollectionTableCard,
   CollectionTableHead,
@@ -60,31 +58,6 @@ import {
 } from "@/components/shared/working-paper-create-dialog";
 
 type WorkingPaperStatusFilter = "all" | WorkingPaperStatus;
-
-const createdAtFilterFormatter = new Intl.DateTimeFormat("id-ID", {
-  dateStyle: "medium",
-});
-
-function parseDateFilterValue(value: string): Date | undefined {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
-  if (!match) return undefined;
-
-  const year = Number(match[1]);
-  const month = Number(match[2]);
-  const day = Number(match[3]);
-  const date = new Date(year, month - 1, day);
-
-  return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
-    ? date
-    : undefined;
-}
-
-function formatDateFilterValue(date?: Date): string {
-  if (!date) return "";
-
-  const pad = (value: number) => String(value).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
-}
 
 function getWorkingPaperStatusFilter(
   value: string | null,
@@ -137,7 +110,6 @@ type WorkingPaperFiltersToolbarProps = {
   assessmentCycleOptions: { value: string; label: string }[];
   createdAtFilter: string;
   onCreatedAtFilterChange: (value: string) => void;
-  onReset: () => void;
 };
 
 function WorkingPaperFiltersToolbar({
@@ -152,96 +124,46 @@ function WorkingPaperFiltersToolbar({
   assessmentCycleOptions,
   createdAtFilter,
   onCreatedAtFilterChange,
-  onReset,
 }: WorkingPaperFiltersToolbarProps) {
-  const [datePickerOpen, setDatePickerOpen] = useState(false);
-  const createdAtDate = parseDateFilterValue(createdAtFilter);
-  const hasActiveFilters = Boolean(
-    search || statusFilter !== "all" || assessmentCycleFilter || createdAtFilter,
-  );
-
   return (
-    <div className="flex w-full min-w-0 flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-      <CollectionSearchField
-        containerClassName="w-full sm:w-80 sm:flex-none"
-        value={search}
-        onChange={(event) => onSearchChange(event.target.value)}
-        placeholder={searchPlaceholder}
-        aria-label={searchAriaLabel}
-      />
-
-      <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-        <PopoverSelectField
-          fitContent
-          value={statusFilter}
-          onValueChange={(value) =>
-            onStatusFilterChange(value as WorkingPaperStatusFilter)
-          }
-          options={[
+    <DynamicTableFilters
+      search={
+        <CollectionSearchField
+          containerClassName="w-full sm:w-80 sm:flex-none"
+          value={search}
+          onChange={(event) => onSearchChange(event.target.value)}
+          placeholder={searchPlaceholder}
+          aria-label={searchAriaLabel}
+        />
+      }
+      fields={[
+        {
+          id: "status",
+          label: "Status",
+          value: statusFilter,
+          onChange: (value) => onStatusFilterChange(value as WorkingPaperStatusFilter),
+          options: [
             { value: "all", label: "Semua status" },
-            ...Object.entries(statusLabels).map(([value, label]) => ({
-              value,
-              label,
-            })),
-          ]}
-          placeholder="Semua status"
-          ariaLabel="Filter status kertas kerja"
-          triggerClassName="w-full sm:w-fit"
-        />
-
-        <PopoverSelectField
-          fitContent
-          value={assessmentCycleFilter || "all"}
-          onValueChange={(value) =>
-            onAssessmentCycleFilterChange(value === "all" ? "" : value)
-          }
-          options={assessmentCycleOptions}
-          placeholder="Semua Periode"
-          ariaLabel="Filter siklus asesmen"
-          triggerClassName="w-full sm:w-fit"
-        />
-
-        <Popover open={datePickerOpen} onOpenChange={setDatePickerOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              type="button"
-              variant="outline"
-              aria-label={
-                createdAtDate
-                  ? `Filter tanggal dibuat, ${createdAtFilterFormatter.format(createdAtDate)}`
-                  : "Filter tanggal dibuat"
-              }
-              className="w-full justify-start text-left font-normal sm:w-[168px]"
-            >
-              <CalendarIcon aria-hidden="true" data-icon="inline-start" />
-              {createdAtDate
-                ? createdAtFilterFormatter.format(createdAtDate)
-                : "Tanggal dibuat"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent align="start" className="w-auto p-0">
-            <Calendar
-              mode="single"
-              selected={createdAtDate}
-              onSelect={(date) => {
-                onCreatedAtFilterChange(formatDateFilterValue(date));
-                setDatePickerOpen(false);
-              }}
-            />
-          </PopoverContent>
-        </Popover>
-
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          onClick={onReset}
-          disabled={!hasActiveFilters}
-        >
-          Reset
-        </Button>
-      </div>
-    </div>
+            ...Object.entries(statusLabels).map(([value, label]) => ({ value, label })),
+          ],
+        },
+        {
+          id: "assessment_cycle",
+          label: "Periode",
+          value: assessmentCycleFilter || "all",
+          onChange: (value) => onAssessmentCycleFilterChange(value === "all" ? "" : value),
+          options: assessmentCycleOptions,
+        },
+        {
+          id: "created_at",
+          label: "Tanggal dibuat",
+          type: "date",
+          value: createdAtFilter,
+          defaultValue: "",
+          onChange: onCreatedAtFilterChange,
+        },
+      ]}
+    />
   );
 }
 
@@ -407,6 +329,7 @@ export default function WorkingPapersPage() {
   const searchParams = useSearchParams();
   const { token } = useAuth();
   const [isPending, startTransition] = useTransition();
+  const isApplyingSearchParamsRef = useRef(false);
 
   const [papers, setPapers] = useState<WorkingPaper[]>([]);
   const [availableAssessmentCycles, setAvailableAssessmentCycles] = useState<
@@ -482,14 +405,6 @@ export default function WorkingPapersPage() {
     }));
   })();
 
-  const handleResetFilters = () => {
-    setStatusFilter("all");
-    setSearch("");
-    setAssessmentCycleFilter("");
-    setCreatedAtFilter("");
-    setPage(1);
-  };
-
   const handleExport = useCallback(async (workingPaper: WorkingPaper) => {
     setExportingPaperId(workingPaper.id);
     try {
@@ -550,6 +465,7 @@ export default function WorkingPapersPage() {
   }, [fetchWorkingPapers, token]);
 
   useEffect(() => {
+    isApplyingSearchParamsRef.current = true;
     const nextStatusFilter = getWorkingPaperStatusFilter(
       searchParams.get("status"),
     );
@@ -577,6 +493,13 @@ export default function WorkingPapersPage() {
   }, [searchParams]);
 
   useEffect(() => {
+    if (isApplyingSearchParamsRef.current) {
+      isApplyingSearchParamsRef.current = false;
+      return;
+    }
+    // A browser navigation updates search before its debounce catches up.
+    if (search !== debouncedSearch) return;
+
     const nextParams = new URLSearchParams(searchParams.toString());
     const normalizedSearch = debouncedSearch.trim();
     const normalizedAssessmentCycle = assessmentCycleFilter.trim();
@@ -640,6 +563,7 @@ export default function WorkingPapersPage() {
     page,
     pathname,
     router,
+    search,
     searchParams,
     startTransition,
     statusFilter,
@@ -687,7 +611,6 @@ export default function WorkingPapersPage() {
               setCreatedAtFilter(value);
               setPage(1);
             }}
-            onReset={handleResetFilters}
           />
         }
         actions={

@@ -2,9 +2,11 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import type { QuarterlyReportExcelFormat } from "@/lib/quarterly-report-export";
 import { ReportFilterPanel } from "@/components/report/report-filter-panel";
 import type { ReportsFilterScope } from "@/lib/reports-filter-sheet";
 import type { OrganizationGroupListItem } from "@/lib/api/organization-groups";
+import { MonitoringOrganizationSummaryCollapsible } from "@/components/report/monitoring-organization-recap";
 import { QuarterlyReportDashboard } from "@/components/report/quarterly-report-dashboard";
 import type {
   QuarterlyReport,
@@ -45,16 +47,18 @@ const risks: QuarterlyRisk[] = [
   },
 ];
 risks.push({ ...risks[0], id: "example-risk-c", versionGroupId: "group-c", title: "Keterlambatan tindak lanjut evaluasi", code: "OP-003", organizationId: "example-unit-b", orgName: "Direktorat B", nilai: 12, monitoringObservedNilai: 12 });
+risks.push({ ...risks[0], id: "example-risk-d", versionGroupId: "group-d", title: "Kesiapan sarana pendukung", code: "OP-004", organizationId: "example-unit-b", orgName: "Direktorat B", monitoringObservedNilai: 3.6 });
 const report: QuarterlyReport = {
   cycle: "2026-Q2",
   comparisonCycle: "2026-Q1",
   generatedAt: "2026-07-05T02:00:00Z",
   dataUpdatedAt: "2026-07-04T05:00:00Z",
-  warnings: [],
+  warnings: ["Contoh keterbatasan: sebagian profil belum memiliki hasil pemantauan final."],
   organizations: [
     { id: "example-unit-a", name: "Direktorat A" },
     { id: "example-unit-b", name: "Direktorat B" },
     { id: "example-unit-c", name: "Direktorat C" },
+    ...["D", "E", "F", "G"].map(name => ({ id: `example-unit-${name.toLowerCase()}`, name: `Direktorat ${name}` })),
   ],
   risks,
   previousRisks: [
@@ -129,19 +133,36 @@ const exampleScope: ReportsFilterScope = {
 
 export function QuarterlyReportExample() {
   const [cycle, setCycle] = useState(report.cycle);
-  const [comparisonCycle, setComparisonCycle] = useState(report.comparisonCycle);
   const [scope, setScope] = useState(exampleScope);
+  const [exporting, setExporting] = useState(false);
+  const selected = (organizationId: string) => !scope.organizationIds.length || scope.organizationIds.includes(organizationId);
+  const scopedReport = { ...report, cycle,
+    organizations: report.organizations.filter(unit => selected(unit.id)),
+    risks: risks.filter(risk => selected(risk.organizationId)),
+    previousRisks: report.previousRisks.filter(risk => selected(risk.organizationId)),
+    tasks: report.tasks.filter(task => selected(task.organizationId)),
+    events: report.events.filter(event => selected(event.organizationId)),
+  };
+  async function exportExcel(format: QuarterlyReportExcelFormat = "assessment") {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const { downloadQuarterlyReportExcel } = await import("@/lib/quarterly-report-export");
+      await downloadQuarterlyReportExcel(scopedReport, format);
+      toast.success("Contoh laporan Excel berhasil diunduh.");
+    } catch {
+      toast.error("Contoh laporan belum dapat diunduh.");
+    } finally { setExporting(false); }
+  }
 
   return (
     <div className="space-y-6">
       <p className="text-xs text-muted-foreground">
-        Contoh filter interaktif. Ringkasan memakai data ilustrasi tetap; ekspor dinonaktifkan.
+        Contoh memakai komponen produksi dengan data ilustrasi. Filter mengubah periode dan cakupan contoh.
       </p>
       <ReportFilterPanel
         cycle={cycle}
-        comparisonCycle={comparisonCycle}
         onCycleChange={setCycle}
-        onComparisonCycleChange={setComparisonCycle}
         scope={scope}
         onScopeChange={setScope}
         organizations={exampleOrganizations}
@@ -151,17 +172,18 @@ export function QuarterlyReportExample() {
           : scope.organizationGroupId ? "Pilih minimal satu unit dari grup ini." : "Semua unit contoh"}
         scopeReady
         loading={false}
-        exporting={null}
-        canExport={false}
-        onExport={() => {}}
+        exporting={exporting}
+        canExport={!scope.organizationGroupId || scope.organizationIds.length > 0}
+        onExportExcel={() => void exportExcel()}
+        onExportDataExcel={() => void exportExcel("data")}
         onReload={() => toast.info("Contoh memakai data ilustrasi tetap.")}
         onReset={() => {
           setCycle(report.cycle);
-          setComparisonCycle(report.comparisonCycle);
           setScope(exampleScope);
         }}
       />
-      <QuarterlyReportDashboard report={report} />
+      <QuarterlyReportDashboard illustrative report={scopedReport} />
+      <MonitoringOrganizationSummaryCollapsible cycle={cycle} loading={false} summaries={scopedReport.organizations.map(org=>({id:org.id,name:org.name,total:0,inProgress:0,finalized:0}))} />
     </div>
   );
 }

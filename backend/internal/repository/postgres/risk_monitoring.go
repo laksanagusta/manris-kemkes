@@ -278,10 +278,10 @@ func (r *riskMonitoringRepository) List(ctx context.Context, filter repository.R
 		dataQuery += fmt.Sprintf(" ORDER BY rm.assessment_cycle %s, rm.started_at DESC, rm.id DESC", orderDir)
 	case "status":
 		dataQuery += fmt.Sprintf(" ORDER BY rm.status %s, rm.started_at DESC, rm.id DESC", orderDir)
-	case "started_at", "":
-		fallthrough
-	default:
+	case "started_at":
 		dataQuery += fmt.Sprintf(" ORDER BY rm.started_at %s, rm.id DESC", orderDir)
+	default:
+		dataQuery += fmt.Sprintf(" ORDER BY rm.created_at %s, rm.id DESC", orderDir)
 	}
 	dataQuery += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
 	args = append(args, filter.Limit, (filter.Page-1)*filter.Limit)

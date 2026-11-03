@@ -96,3 +96,34 @@ export async function finalizeMonitoring(
   );
   return result.monitoring;
 }
+
+export async function listAllRiskMonitoringsForCycle(token: string, cycle: string) {
+  const firstPage = await listRiskMonitorings(token, {
+    assessment_cycle: cycle === "all" ? undefined : cycle,
+    page: 1,
+    limit: 100,
+  });
+  const firstData = firstPage.data ?? [];
+  const pageSize = firstPage.limit || 100;
+  const totalPages = Math.max(
+    1,
+    Math.ceil((firstPage.total ?? firstData.length) / pageSize),
+  );
+
+  if (totalPages === 1) return firstData;
+
+  const remainingPages = await Promise.all(
+    Array.from({ length: totalPages - 1 }, (_, index) =>
+      listRiskMonitorings(token, {
+        assessment_cycle: cycle === "all" ? undefined : cycle,
+        page: index + 2,
+        limit: pageSize,
+      }),
+    ),
+  );
+
+  return [
+    ...firstData,
+    ...remainingPages.flatMap((response) => response.data ?? []),
+  ];
+}

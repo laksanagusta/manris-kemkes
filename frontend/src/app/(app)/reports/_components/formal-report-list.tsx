@@ -19,7 +19,7 @@ import {
 import { downloadFormalReport } from "@/lib/api/formal-reports";
 import { formalReportTypeLabels } from "@/lib/formal-report-definitions";
 import { getLinearStatusBadgeClassName, getLinearStatusBadgeTone } from "@/lib/linear-status-badge";
-import { CollectionEmptyState } from "@/components/shared/design-system";
+import { CollectionSearchField, DynamicTableFilters, CollectionEmptyState } from "@/components/shared/design-system";
 import { parseFormalReportSummary } from "@/types/formal-report";
 import type { FormalReport } from "@/types/formal-report";
 
@@ -51,6 +51,17 @@ export function FormalReportList({
 }: FormalReportListProps) {
   const { token } = useAuth();
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [status, setStatus] = useState("all");
+  const [period, setPeriod] = useState("all");
+  const [kind, setKind] = useState("all");
+  const filteredReports = reports.filter((report) =>
+    (status === "all" || report.status === status) &&
+    (period === "all" || report.period === period) &&
+    (kind === "all" || report.reportType === kind) &&
+    [report.period, organizationNameById.get(report.organizationId), formalReportTypeLabels[report.reportType], parseFormalReportSummary(report.metadata)?.headline].join(" ").toLowerCase().includes(search.trim().toLowerCase())
+  );
+
 
   const handleDownload = async (report: FormalReport) => {
     if (!token) {
@@ -95,7 +106,12 @@ export function FormalReportList({
           PDF
         </Badge>
       </div>
-      <CardContent className="">
+      <CardContent className="space-y-4">
+        <DynamicTableFilters search={<CollectionSearchField aria-label="Cari laporan" placeholder="Cari laporan..." value={search} onChange={(event) => setSearch(event.target.value)} />} fields={[
+          { id: "status", label: "Status", value: status, onChange: setStatus, options: [{ value: "all", label: "Semua status" }, ...Object.keys(reportStatusTones).map((value) => ({ value, label: value }))] },
+          { id: "period", label: "Periode", value: period, onChange: setPeriod, options: [{ value: "all", label: "Semua periode" }, ...Array.from(new Set(reports.map((report) => report.period))).sort().reverse().map((value) => ({ value, label: value }))] },
+          { id: "kind", label: "Jenis", value: kind, onChange: setKind, options: [{ value: "all", label: "Semua jenis" }, ...Object.entries(formalReportTypeLabels).map(([value, label]) => ({ value, label }))] },
+        ]} />
         <Table>
           <TableHeader>
             <TableRow>
@@ -110,7 +126,7 @@ export function FormalReportList({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {reports.length === 0 ? (
+            {filteredReports.length === 0 ? (
               <TableRow>
                 <TableCell
                   colSpan={6}
@@ -123,7 +139,7 @@ export function FormalReportList({
                 </TableCell>
               </TableRow>
             ) : (
-              reports.map((report) => {
+              filteredReports.map((report) => {
                 const orgName =
                   organizationNameById.get(report.organizationId) ??
                   report.organizationId;

@@ -1,4 +1,6 @@
 "use client";
+import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
+
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -118,7 +120,6 @@ export default function EvaluationsPage() {
   const [periodFilter, setPeriodFilter] = useState("all");
   const [availablePeriods, setAvailablePeriods] = useState<string[]>([]);
   const [status, setStatus] = useState<EvaluationStatus | "all">("all");
-  const [filterOpen, setFilterOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
   const [evaluations, setEvaluations] = useState<Evaluation[]>([]);
@@ -147,14 +148,6 @@ export default function EvaluationsPage() {
     },
     [router],
   );
-
-  const handleResetFilters = () => {
-    setOrganizationId("all");
-    setOrganizationGroupId("all");
-    setPeriodFilter("all");
-    setStatus("all");
-    setPage(1);
-  };
 
   const requiresOrganizationSelection = needsExplicitReportOrgSelection(user);
   const requiresScopeSelection =
@@ -472,8 +465,6 @@ export default function EvaluationsPage() {
             }}
             queryPlaceholder="Cari evaluasi..."
             queryAriaLabel="Cari evaluasi"
-            filterOpen={filterOpen}
-            onFilterOpenChange={setFilterOpen}
             organizationId={organizationId}
             onOrganizationIdChange={(value) => {
               setOrganizationId(value);
@@ -503,7 +494,7 @@ export default function EvaluationsPage() {
               setStatus(value);
               setPage(1);
             }}
-            onReset={handleResetFilters}
+            organizationRequired={requiresOrganizationSelection}
           />
         }
         actions={
@@ -520,7 +511,7 @@ export default function EvaluationsPage() {
       />
 
       <CollectionTableCard>
-          <Table className="min-w-[1020px] table-fixed">
+          <Table className="min-w-[1180px] table-fixed">
             <colgroup>
               <col className="w-[10%]" />
               <col className="w-[12%]" />
@@ -528,7 +519,8 @@ export default function EvaluationsPage() {
               <col className="w-[14%]" />
               <col className="w-[12%]" />
               <col className="w-[14%]" />
-              <col className="w-[12%]" />
+              <col className="w-40" />
+<col className="w-[12%]" />
             </colgroup>
             <CollectionTableHeader>
               <CollectionTableHeaderRow>
@@ -550,6 +542,7 @@ export default function EvaluationsPage() {
                 <CollectionTableHead >
                   Diperbarui
                 </CollectionTableHead>
+                <CreatedAtHead />
                 <CollectionTableHead className="text-right">
                   <span className="sr-only">Aksi</span>
                 </CollectionTableHead>
@@ -559,7 +552,7 @@ export default function EvaluationsPage() {
               {loading ? (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
+                    colSpan={8}
                     className="text-left"
                   >
                     Memuat evaluasi...
@@ -568,7 +561,7 @@ export default function EvaluationsPage() {
               ) : visibleEvaluations.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
+                    colSpan={8}
                     className="text-left"
                   >
                     <CollectionEmptyState
@@ -618,6 +611,7 @@ export default function EvaluationsPage() {
                       <TableCell className="">
                         {formatDateTime(evaluation.updatedAt)}
                       </TableCell>
+                      <CreatedAtCell record={evaluation} />
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end">
                           <DropdownMenu>

@@ -1,4 +1,9 @@
 "use client";
+import { newestCreatedFirst } from "@/lib/collection-created-at";
+import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
+
+
+import { DynamicTableFilters } from "@/components/shared/design-system/collections/dynamic-table-filters";
 
 import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -76,6 +81,8 @@ export default function RiskCascadingPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [createOpen, setCreateOpen] = useState(false);
@@ -108,7 +115,13 @@ export default function RiskCascadingPage() {
         limit: 100,
       };
       const response = await listRiskCascades(token, params);
-      setItems(response.data ?? []);
+      const allItems = [...(response.data ?? [])];
+      for (let nextPage = 2; allItems.length < response.total; nextPage += 1) {
+        const next = await listRiskCascades(token, { ...params, page: nextPage });
+        if (!next.data?.length) break;
+        allItems.push(...next.data);
+      }
+      setItems([...allItems].sort(newestCreatedFirst));
     } catch (err) {
       const message =
         err instanceof Error ? err.message : "Gagal memuat eskalasi.";
@@ -125,8 +138,7 @@ export default function RiskCascadingPage() {
 
   const filteredItems = useMemo(() => {
     const query = deferredSearch.trim().toLowerCase();
-    if (!query) return items;
-    return items.filter((item) =>
+    return items.filter((item) => (statusFilter === "all" || item.status === statusFilter) && (typeFilter === "all" || item.cascadeType === typeFilter)).filter((item) => !query ||
       [
         item.sourceRiskCode,
         item.sourceRiskTitle,
@@ -140,7 +152,7 @@ export default function RiskCascadingPage() {
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(query)),
     );
-  }, [deferredSearch, items]);
+  }, [deferredSearch, items, statusFilter, typeFilter]);
 
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
   const paginatedItems = useMemo(
@@ -150,7 +162,7 @@ export default function RiskCascadingPage() {
 
   useEffect(() => {
     setPage(1);
-  }, [search]);
+  }, [search, statusFilter, typeFilter]);
 
   useEffect(() => {
     setPage((current) => Math.min(current, totalPages));
@@ -254,6 +266,7 @@ export default function RiskCascadingPage() {
         <CollectionToolbar
           className="w-full"
           leading={
+            <DynamicTableFilters search={
             <CollectionSearchField
               containerClassName="w-full sm:w-80 sm:flex-none"
               value={search}
@@ -261,6 +274,10 @@ export default function RiskCascadingPage() {
               placeholder="Cari kode risiko, organisasi, status, atau catatan..."
               aria-label="Cari eskalasi"
             />
+            } fields={[
+              { id: "status", label: "Status", value: statusFilter, onChange: setStatusFilter, options: [{ value: "all", label: "Semua status" }, ...Object.entries(statusLabels).map(([value, label]) => ({ value, label }))] },
+              { id: "type", label: "Jenis", value: typeFilter, onChange: setTypeFilter, options: [{ value: "all", label: "Semua jenis" }, ...Object.entries(cascadeTypeLabels).map(([value, label]) => ({ value, label: value === "mandatory_top_down" ? "Top-down wajib" : value === "recommended_top_down" ? "Top-down rekomendasi" : label }))] },
+            ]} />
           }
           actions={
             <AccentButton
@@ -278,7 +295,7 @@ export default function RiskCascadingPage() {
         {error ? <CollectionErrorState message={error} /> : null}
 
         <CollectionTableCard>
-          <Table className="min-w-[1120px] table-fixed">
+          <Table className="min-w-[1280px] table-fixed">
             <colgroup>
               <col className="w-[22%]" />
               <col className="w-[18%]" />
@@ -286,7 +303,8 @@ export default function RiskCascadingPage() {
               <col className="w-[12%]" />
               <col className="w-[11%]" />
               <col className="w-[20%]" />
-              <col className="w-[6%]" />
+              <col className="w-40" />
+<col className="w-[6%]" />
             </colgroup>
             <CollectionTableHeader>
               <CollectionTableHeaderRow>
@@ -308,6 +326,7 @@ export default function RiskCascadingPage() {
                   <CollectionTableHead >
                     Catatan
                   </CollectionTableHead>
+                  <CreatedAtHead />
                   <CollectionTableHead className="text-right">
                     <span className="sr-only">Aksi</span>
                   </CollectionTableHead>
@@ -317,7 +336,7 @@ export default function RiskCascadingPage() {
                 {paginatedItems.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={7}
+                      colSpan={8}
                       className="text-center"
                     >
                       <CollectionEmptyState
@@ -372,6 +391,7 @@ export default function RiskCascadingPage() {
                             {item.decisionNote || item.analysisNote || "-"}
                           </p>
                         </TableCell>
+                        <CreatedAtCell record={item} />
                         <TableCell className="text-right">
                           <div className="flex justify-end">
                             <RiskCascadeRowActions

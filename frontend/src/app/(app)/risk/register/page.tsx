@@ -1,4 +1,6 @@
 "use client";
+import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
+
 
 import {
   useDeferredValue,
@@ -41,7 +43,7 @@ import {
   DestructiveButton,
   EmptyStateIllustration,
   IllustratedEmptyState,
-  PopoverSelectField,
+  DynamicTableFilters,
   PageStack,
 } from "@/components/shared/design-system";
 import { Input } from "@/components/ui/input";
@@ -188,6 +190,10 @@ type RiskRegisterFilterToolbarProps = {
   categoryFilter: RiskRegisterCategoryFilter;
   onCategoryFilterChange: (value: RiskRegisterCategoryFilter) => void;
   assessmentCycleOptions: { value: string; label: string }[];
+  lifecycleFilter: RiskRegisterLifecycleFilter;
+  onLifecycleFilterChange: (value: RiskRegisterLifecycleFilter) => void;
+  createdAtFilter: string;
+  onCreatedAtFilterChange: (value: string) => void;
 };
 
 function RiskRegisterFilterToolbar({
@@ -204,62 +210,55 @@ function RiskRegisterFilterToolbar({
   categoryFilter,
   onCategoryFilterChange,
   assessmentCycleOptions,
+  lifecycleFilter,
+  onLifecycleFilterChange,
+  createdAtFilter,
+  onCreatedAtFilterChange,
 }: RiskRegisterFilterToolbarProps) {
   return (
-    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
-      <CollectionSearchField
-        containerClassName="w-full sm:w-64 sm:flex-none"
-        className="placeholder:text-tertiary-foreground"
-        value={search}
-        onChange={(event) => onSearchChange(event.target.value)}
-        placeholder={searchPlaceholder}
-        aria-label={searchAriaLabel}
-      />
-      <div className="w-full sm:w-fit">
-        <PopoverSelectField
-          fitContent
-          value={statusFilter}
-          onValueChange={(value) =>
-            onStatusFilterChange(value as RiskRegisterStatusFilter)
-          }
-          options={[
+    <DynamicTableFilters
+      search={
+        <CollectionSearchField
+          containerClassName="w-full sm:w-64 sm:flex-none"
+          className="placeholder:text-tertiary-foreground"
+          value={search}
+          onChange={(event) => onSearchChange(event.target.value)}
+          placeholder={searchPlaceholder}
+          aria-label={searchAriaLabel}
+        />
+      }
+      fields={[
+        {
+          id: "status",
+          label: "Status risiko",
+          value: statusFilter,
+          onChange: (value) => onStatusFilterChange(value as RiskRegisterStatusFilter),
+          options: [
             { value: "all", label: "Semua Status" },
             { value: "draft", label: "Draf Risiko" },
             { value: "final", label: "Final" },
-          ]}
-          placeholder="Status"
-          ariaLabel="Filter status risiko"
-          contentClassName="register-motion-menu"
-          triggerClassName="h-8 rounded-lg bg-card text-sm"
-        />
-      </div>
-
-      <div className="w-full sm:w-fit"><PopoverSelectField fitContent value={monitoringStatusFilter} onValueChange={value=>onMonitoringStatusFilterChange(value as RiskMonitoringStatusFilter)} options={riskMonitoringStatusOptions} placeholder="Semua pemantauan" ariaLabel="Filter status pemantauan risiko" triggerClassName="h-8 rounded-lg bg-card text-sm"/></div>
-      <div className="w-full sm:w-fit">
-        <PopoverSelectField
-          fitContent
-          value={assessmentCycleFilter || "all"}
-          onValueChange={(value) =>
-            onAssessmentCycleFilterChange(value === "all" ? "" : value)
-          }
-          options={assessmentCycleOptions}
-          placeholder="Semua Periode"
-          ariaLabel="Filter periode kuartal"
-          side="bottom"
-          avoidCollisions={false}
-          contentClassName="register-motion-menu"
-          triggerClassName="h-8 rounded-lg bg-card text-sm"
-        />
-      </div>
-
-      <div className="w-full sm:w-fit">
-        <PopoverSelectField
-          fitContent
-          value={categoryFilter}
-          onValueChange={(value) =>
-            onCategoryFilterChange(value as RiskRegisterCategoryFilter)
-          }
-          options={[
+          ],
+        },
+        {
+          id: "monitoring_status",
+          label: "Pemantauan",
+          value: monitoringStatusFilter,
+          onChange: (value) => onMonitoringStatusFilterChange(value as RiskMonitoringStatusFilter),
+          options: riskMonitoringStatusOptions,
+        },
+        {
+          id: "assessment_cycle",
+          label: "Periode",
+          value: assessmentCycleFilter || "all",
+          onChange: (value) => onAssessmentCycleFilterChange(value === "all" ? "" : value),
+          options: assessmentCycleOptions,
+        },
+        {
+          id: "category",
+          label: "Kategori",
+          value: categoryFilter,
+          onChange: (value) => onCategoryFilterChange(value as RiskRegisterCategoryFilter),
+          options: [
             { value: "all", label: "Semua Kategori" },
             { value: "kebijakan", label: riskCategoryLabels.kebijakan },
             { value: "reputasi", label: riskCategoryLabels.reputasi },
@@ -267,14 +266,30 @@ function RiskRegisterFilterToolbar({
             { value: "legal", label: riskCategoryLabels.legal },
             { value: "kepatuhan", label: riskCategoryLabels.kepatuhan },
             { value: "operasional", label: riskCategoryLabels.operasional },
-          ]}
-          placeholder="Kategori"
-          ariaLabel="Filter kategori risiko"
-          contentClassName="register-motion-menu"
-          triggerClassName="h-8 rounded-lg bg-card text-sm"
-        />
-      </div>
-    </div>
+          ],
+        },
+        {
+          id: "lifecycle",
+          label: "Arsip",
+          value: lifecycleFilter,
+          defaultValue: "active",
+          onChange: (value) => onLifecycleFilterChange(value as RiskRegisterLifecycleFilter),
+          options: [
+            { value: "active", label: "Aktif" },
+            { value: "archived", label: "Diarsipkan" },
+            { value: "all", label: "Semua risiko" },
+          ],
+        },
+        {
+          id: "created_at",
+          label: "Tanggal dibuat",
+          type: "date",
+          value: createdAtFilter,
+          defaultValue: "",
+          onChange: onCreatedAtFilterChange,
+        },
+      ]}
+    />
   );
 }
 
@@ -960,6 +975,16 @@ export default function RiskRegisterPage() {
               onMonitoringStatusFilterChange={value=>{setMonitoringStatusFilter(value);if(value!=="all" && !assessmentCycleFilter)setAssessmentCycleFilter(getDefaultMonitoringCycle());setPage(1);}}
               statusFilter={statusFilter}
               onStatusFilterChange={handleRegisterStatusChange}
+              lifecycleFilter={lifecycleFilter}
+              onLifecycleFilterChange={(value) => {
+                setLifecycleFilter(value);
+                setPage(1);
+              }}
+              createdAtFilter={createdAtFilter}
+              onCreatedAtFilterChange={(value) => {
+                setCreatedAtFilter(value);
+                setPage(1);
+              }}
               categoryFilter={categoryFilter}
               onCategoryFilterChange={handleRegisterCategoryChange}
             />
@@ -999,7 +1024,7 @@ export default function RiskRegisterPage() {
           }
         />
         <CollectionTableCard>
-            <Table className="min-w-[1120px] table-fixed">
+            <Table className="min-w-[1280px] table-fixed">
               <colgroup>
                 <col style={{ width: "34%" }} />
                 <col style={{ width: "14%" }} />
@@ -1007,7 +1032,8 @@ export default function RiskRegisterPage() {
                 <col style={{ width: "13%" }} />
                 <col style={{ width: "9%" }} />
                 <col style={{ width: "14%" }} />
-                <col style={{ width: "8%" }} />
+                <col className="w-40" />
+<col style={{ width: "8%" }} />
               </colgroup>
               <CollectionTableHeader>
                 <CollectionTableHeaderRow>
@@ -1051,6 +1077,7 @@ export default function RiskRegisterPage() {
                   <CollectionTableHead>
                     Pemantauan
                   </CollectionTableHead>
+                  <CreatedAtHead />
                   <CollectionTableHead className="text-center">
                     <span className="sr-only">Aksi</span>
                   </CollectionTableHead>
@@ -1060,7 +1087,7 @@ export default function RiskRegisterPage() {
                 {risks.length === 0 ? (
                   <TableRow>
                   <TableCell
-                      colSpan={7}
+                      colSpan={8}
                       className="text-left text-muted-foreground"
                     >
                       <div data-register-state className="flex min-h-24 flex-col items-center justify-center gap-1 py-6 text-center">
@@ -1134,7 +1161,7 @@ export default function RiskRegisterPage() {
                         key={risk.id}
                       >
                         <TableCell>
-                          <div className="flex min-w-0 flex-col items-start gap-1">
+                          <div className="flex min-w-0 flex-col items-start gap-0.5">
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <Link
@@ -1274,6 +1301,7 @@ export default function RiskRegisterPage() {
                             </TooltipContent>
                           </Tooltip>
                         </TableCell>
+                        <CreatedAtCell record={risk} />
                         <TableCell className="text-center">
                           <div className="flex justify-center">
                             <RiskRowActions

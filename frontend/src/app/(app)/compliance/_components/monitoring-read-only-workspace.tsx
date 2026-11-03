@@ -7,11 +7,10 @@ import {
   listAllOrganizations,
   type OrganizationListItem,
 } from "@/lib/api/organizations";
-import { listRiskMonitorings } from "@/lib/api/risk-monitoring";
+import { listAllRiskMonitoringsForCycle } from "@/lib/api/risk-monitoring";
 import { useAuth } from "@/contexts/auth-context";
 import { filterToAccessibleOrgs } from "@/lib/organization";
 import {
-  buildMonitoringOrganizationSummaries,
   buildMonitoringQueryString,
   buildMonitoringTransactionRows,
   filterMonitoringRows,
@@ -29,7 +28,6 @@ import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 import { getRiskLevelFromNilai, levelToColor } from "@/lib/risk";
 import { formatMonitoringNilai } from "@/lib/risk-register-monitoring";
 import {
-  CollapsibleCard,
   CollectionEmptyState,
   CollectionErrorState,
   CollectionLoadingState,
@@ -42,10 +40,9 @@ import {
   CollectionToolbar,
   KpiCard,
   MetricGrid,
-  PopoverSelectField,
+  DynamicTableFilters,
 } from "@/components/shared/design-system";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { ArrowRight } from "@/components/shared/icons";
 import {
   Table,
@@ -53,8 +50,6 @@ import {
   TableCell,
   TableRow,
 } from "@/components/ui/table";
-
-const MONITORING_PAGE_SIZE = 100;
 
 const STATUS_OPTIONS: Array<{
   value: MonitoringStatusFilter;
@@ -65,36 +60,6 @@ const STATUS_OPTIONS: Array<{
   { value: "finalized", label: "Final" },
 ];
 
-async function listAllRiskMonitoringsForCycle(token: string, cycle: string) {
-  const firstPage = await listRiskMonitorings(token, {
-    assessment_cycle: cycle === "all" ? undefined : cycle,
-    page: 1,
-    limit: MONITORING_PAGE_SIZE,
-  });
-  const firstData = firstPage.data ?? [];
-  const pageSize = firstPage.limit || MONITORING_PAGE_SIZE;
-  const totalPages = Math.max(
-    1,
-    Math.ceil((firstPage.total ?? firstData.length) / pageSize),
-  );
-
-  if (totalPages === 1) return firstData;
-
-  const remainingPages = await Promise.all(
-    Array.from({ length: totalPages - 1 }, (_, index) =>
-      listRiskMonitorings(token, {
-        assessment_cycle: cycle === "all" ? undefined : cycle,
-        page: index + 2,
-        limit: pageSize,
-      }),
-    ),
-  );
-
-  return [
-    ...firstData,
-    ...remainingPages.flatMap((response) => response.data ?? []),
-  ];
-}
 
 function formatMonitoringDate(value: string | null) {
   if (!value) return "-";
@@ -217,117 +182,6 @@ function MitigationProgressIndicator({
   );
 }
 
-function OrganizationSummaryTable({
-  summaries,
-}: {
-  summaries: ReturnType<typeof buildMonitoringOrganizationSummaries>;
-}) {
-  return (
-    <div className="overflow-x-auto">
-      <Table className="w-full min-w-0 table-fixed">
-        <colgroup>
-          <col className="w-[42%]" />
-          <col className="w-[18%]" />
-          <col className="w-[20%]" />
-          <col className="w-[20%]" />
-        </colgroup>
-        <CollectionTableHeader density="compact">
-          <CollectionTableHeaderRow>
-            <CollectionTableHead className="">
-              Organisasi
-            </CollectionTableHead>
-            <CollectionTableHead className="text-right">
-              Total
-            </CollectionTableHead>
-            <CollectionTableHead className="text-right">
-              Draf
-            </CollectionTableHead>
-            <CollectionTableHead className="text-right">
-              Final
-            </CollectionTableHead>
-          </CollectionTableHeaderRow>
-        </CollectionTableHeader>
-        <TableBody>
-          {summaries.map((summary) => (
-            <TableRow key={summary.id}>
-              <TableCell className="">
-                <div className="flex items-center gap-2">
-                  <span
-                    className="truncate text-sm font-medium text-foreground"
-                    title={summary.name}
-                  >
-                    {summary.name}
-                  </span>
-                  {summary.total === 0 ? (
-                    <Badge variant="secondary"
-                      className=""
-                    >
-                      Belum Ada Data
-                    </Badge>
-                  ) : null}
-                </div>
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {summary.total}
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {summary.inProgress}
-              </TableCell>
-              <TableCell className="text-right tabular-nums">
-                {summary.finalized}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </div>
-  );
-}
-
-function MonitoringOrganizationSummaryCollapsible({
-  cycle,
-  loading,
-  summaries,
-}: {
-  cycle: string;
-  loading: boolean;
-  summaries: ReturnType<typeof buildMonitoringOrganizationSummaries>;
-}) {
-  return (
-    <CollapsibleCard.Root defaultOpen={false}>
-      <CollapsibleCard.Trigger>
-        <CollapsibleCard.Header>
-          <CollapsibleCard.Icon />
-          <CollapsibleCard.Title>
-            Rekap per Organisasi
-          </CollapsibleCard.Title>
-        </CollapsibleCard.Header>
-        <CollapsibleCard.Actions>
-          <Badge variant="secondary"
-            className=""
-          >
-            {cycle}
-          </Badge>
-        </CollapsibleCard.Actions>
-      </CollapsibleCard.Trigger>
-
-      <CollapsibleCard.Content>
-        <CollapsibleCard.Body className="p-0">
-          {loading ? (
-            <CollectionLoadingState message="Memuat rekap organisasi..." />
-          ) : summaries.length === 0 ? (
-            <CollectionEmptyState
-              title="Belum ada organisasi dalam scope"
-              description="Scope organisasi yang dapat dibaca belum memiliki data untuk diringkas."
-            />
-          ) : (
-            <OrganizationSummaryTable summaries={summaries} />
-          )}
-        </CollapsibleCard.Body>
-      </CollapsibleCard.Content>
-    </CollapsibleCard.Root>
-  );
-}
 
 export function MonitoringReadOnlyWorkspace() {
   const pathname = usePathname();
@@ -494,15 +348,6 @@ export function MonitoringReadOnlyWorkspace() {
       ),
     [organizationId, rows, search, status, tableOrganizations],
   );
-  const summaries = useMemo(
-    () =>
-      buildMonitoringOrganizationSummaries(
-        rows,
-        accessibleOrganizations,
-        organizationId,
-      ),
-    [accessibleOrganizations, organizationId, rows],
-  );
 
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / limit));
   const currentPage = loading || refreshing ? page : Math.min(page, totalPages);
@@ -515,17 +360,6 @@ export function MonitoringReadOnlyWorkspace() {
   useEffect(() => {
     if (page !== currentPage) setPage(currentPage);
   }, [currentPage, page]);
-
-  const resetFilters = () => {
-    setSearch("");
-    setStatus("all");
-    setCycle("all");
-    setOrganizationId("all");
-    setPage(1);
-  };
-
-  const hasActiveFilters =
-    Boolean(search) || status !== "all" || cycle !== "all" || organizationId !== "all";
 
   const handleRowKeyDown = (
     event: React.KeyboardEvent<HTMLTableRowElement>,
@@ -557,57 +391,58 @@ export function MonitoringReadOnlyWorkspace() {
         <CollectionToolbar
           className="w-full"
           leading={
-            <div className="flex min-w-0 flex-1 flex-col gap-3 sm:flex-row sm:items-center">
-              <CollectionSearchField
-                containerClassName="w-full sm:w-80 sm:flex-none"
-                value={search}
-                onChange={(event) => {
-                  setSearch(event.target.value);
-                  setPage(1);
-                }}
-                placeholder="Cari kode atau risiko"
-                aria-label="Cari kode atau risiko"
-              />
-
-              <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-                <PopoverSelectField
-                  fitContent
-                  value={cycle}
-                  onValueChange={(value) => {
+            <DynamicTableFilters
+              search={
+                <CollectionSearchField
+                  containerClassName="w-full sm:w-80 sm:flex-none"
+                  value={search}
+                  onChange={(event) => {
+                    setSearch(event.target.value);
+                    setPage(1);
+                  }}
+                  placeholder="Cari kode atau risiko"
+                  aria-label="Cari kode atau risiko"
+                />
+              }
+              fields={[
+                {
+                  id: "organization",
+                  label: "Organisasi",
+                  value: organizationId,
+                  onChange: (value) => {
+                    setOrganizationId(value);
+                    setPage(1);
+                  },
+                  options: [
+                    { value: "all", label: "Semua organisasi" },
+                    ...tableOrganizations.map((organization) => ({
+                      value: organization.id,
+                      label: organization.name,
+                    })),
+                  ],
+                },
+                {
+                  id: "cycle",
+                  label: "Siklus",
+                  value: cycle,
+                  onChange: (value) => {
                     setCycle(value);
                     setPage(1);
-                  }}
-                  options={cycleOptions}
-                  placeholder="Siklus"
-                  ariaLabel="Pilih siklus pemantauan"
-                  triggerClassName="w-full sm:w-fit"
-                />
-
-                <PopoverSelectField
-                  fitContent
-                  value={status}
-                  onValueChange={(value) => {
+                  },
+                  options: cycleOptions,
+                },
+                {
+                  id: "status",
+                  label: "Status",
+                  value: status,
+                  onChange: (value) => {
                     setStatus(value as MonitoringStatusFilter);
                     setPage(1);
-                  }}
-                  options={STATUS_OPTIONS}
-                  placeholder="Semua status"
-                  ariaLabel="Filter status pemantauan"
-                  triggerClassName="w-full sm:w-fit"
-                />
-
-                {hasActiveFilters ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={resetFilters}
-                  >
-                    Reset
-                  </Button>
-                ) : null}
-              </div>
-            </div>
+                  },
+                  options: STATUS_OPTIONS,
+                },
+              ]}
+            />
           }
         />
 
@@ -732,11 +567,7 @@ export function MonitoringReadOnlyWorkspace() {
         )}
       </section>
 
-      <MonitoringOrganizationSummaryCollapsible
-        cycle={cycle}
-        loading={loading}
-        summaries={summaries}
-      />
+
     </div>
   );
 }
