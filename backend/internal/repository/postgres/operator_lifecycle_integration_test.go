@@ -95,6 +95,23 @@ func TestOperatorLifecycleIntegration(t *testing.T) {
 	if draft.Final || len(draft.Evidence.Events) != 1 || len(draft.Evidence.Events[0].Notes) != 1 {
 		t.Fatalf("unexpected draft evidence %#v", draft)
 	}
+	for _, scope := range []struct {
+		name   string
+		orgIDs []uuid.UUID
+	}{
+		{name: "nil global scope"},
+		{name: "empty global scope", orgIDs: []uuid.UUID{}},
+	} {
+		t.Run(scope.name, func(t *testing.T) {
+			global, err := evidenceRepo.Get(ctx, monitoring.ID, scope.orgIDs)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if global.Final || global.Evidence == nil || len(global.Evidence.Events) != 1 {
+				t.Fatalf("global user cannot read draft evidence: %#v", global)
+			}
+		})
+	}
 	if _, err := mr.Finalize(ctx, monitoring.ID, nil, actor); err != nil {
 		t.Fatal(err)
 	}
@@ -107,6 +124,13 @@ func TestOperatorLifecycleIntegration(t *testing.T) {
 	}
 	if !final.Final || len(final.Evidence.Events[0].Notes) != 1 {
 		t.Fatal("final evidence changed after adding a later note")
+	}
+	globalFinal, err := evidenceRepo.Get(ctx, monitoring.ID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !globalFinal.Final || globalFinal.Evidence == nil || len(globalFinal.Evidence.Events[0].Notes) != 1 {
+		t.Fatal("global user cannot read finalized evidence snapshot")
 	}
 	if _, err := evidenceRepo.Get(ctx, monitoring.ID, []uuid.UUID{otherOrg}); err == nil {
 		t.Fatal("evidence exposed to another unit")

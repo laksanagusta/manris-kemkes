@@ -134,7 +134,8 @@
   --card-subtle-surface: #f6f6f6;
   --secondary-card-surface: #efefef;
   --sunken: #efefef;
-  --table-header: #f7f7f7;
+  /* Shared table headers follow the opaque Card surface in each theme. */
+  --table-header: var(--card);
   --table-divider: #ececec;
   --table-hover: #fafafa;
   --table-selected: #f0f4f8;
@@ -237,7 +238,7 @@
   --badge-cyan-foreground: #8ed9dd;
   --background: var(--sidebar);
   --foreground: oklch(0.985 0 0);
-  --table-header: oklch(0.23 0 0);
+  --table-header: var(--card);
   --table-footer: oklch(0.23 0 0);
   --table-divider: oklch(1 0 0 / 12%);
   --table-hover: oklch(0.25 0 0);

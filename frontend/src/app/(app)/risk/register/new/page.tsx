@@ -2229,6 +2229,7 @@ export default function RiskInputPage() {
         }
 
         if (!riskApprovalCapabilityBehavior.submitsForApproval) {
+          await loadRiskData(currentRiskId);
           toast.success("Risiko berhasil disimpan dan difinalisasi!");
           router.push(`/risk/register/new?id=${currentRiskId}&saved=final&returnTo=${encodeURIComponent(returnTo)}`);
           return;

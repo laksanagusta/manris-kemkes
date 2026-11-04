@@ -58,7 +58,7 @@ export function MonitoringInsightCard({ motion = true, cycle, total, finalized, 
           <div className="flex min-w-0 flex-col gap-3">
             <div className="rounded-xl bg-card-subtle-surface p-4">
               <p className="text-xs font-medium text-muted-foreground">Prioritas pemantauan</p>
-              <p className="mt-1 text-2xl font-semibold tracking-tight tabular-nums">{metric(highPending)} <span className="text-base font-normal">risiko tinggi & ekstrem belum dipantau</span></p>
+              <p className="mt-1 text-pretty text-sm"><span className="font-semibold tabular-nums">{metric(highPending)}</span> risiko tinggi & ekstrem belum dipantau</p>
             </div>
             <p className="rounded-xl bg-card-subtle-surface p-4 text-pretty text-sm"><span className="font-semibold tabular-nums">{metric(total - finalized)}</span> risiko belum memiliki pemantauan final pada {cycle}.</p>
             <p className="rounded-xl bg-card-subtle-surface p-4 text-pretty text-sm"><span className="font-semibold tabular-nums">{metric(increased)}</span> risiko naik level dibandingkan profil awal {cycle}.</p>
