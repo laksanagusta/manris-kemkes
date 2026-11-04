@@ -3,7 +3,6 @@ import Link from "next/link";
 import { ManriskMark } from "@/components/manrisk-mark";
 import { MarketingReveal } from "@/components/marketing/marketing-reveal";
 import { MarketingHeader } from "@/components/marketing/marketing-header";
-import { LogoCarousel } from "@/components/marketing/logo-carousel";
 import { MarketingActions, MarketingFeatures, MarketingPreview } from "@/components/marketing/marketing-primitives";
 import {
   ArrowRight, BarChart3, Building2, ClipboardCheck,
@@ -58,7 +57,6 @@ export default function HomePage() {
             <MarketingActions />
           </div>
           <div className={styles.heroMedia}><MarketingPreview hero /></div>
-          <LogoCarousel />
         </section>
 
         <section id="fitur" className={`${styles.container} ${styles.section}`} aria-labelledby="features-heading">
