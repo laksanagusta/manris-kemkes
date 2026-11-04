@@ -29,7 +29,7 @@ func (r *RiskMonitoringEvidenceRepository) Get(ctx context.Context, id uuid.UUID
 	var sourceID uuid.UUID
 	var cycle, status string
 	var snapshot []byte
-	err := r.pool.QueryRow(ctx, `SELECT rm.source_risk_id,rm.assessment_cycle,rm.status,rm.evidence_snapshot FROM risk_monitorings rm JOIN risks r ON r.id=rm.source_risk_id WHERE rm.id=$1 AND (cardinality($2::uuid[])=0 OR r.organization_id=ANY($2::uuid[]))`, id, orgIDs).Scan(&sourceID, &cycle, &status, &snapshot)
+	err := r.pool.QueryRow(ctx, `SELECT rm.source_risk_id,rm.assessment_cycle,rm.status,rm.evidence_snapshot FROM risk_monitorings rm JOIN risks r ON r.id=rm.source_risk_id WHERE rm.id=$1 AND (cardinality($2::uuid[])=0 OR r.organization_id=ANY($2::uuid[]))`, id, uuidArrayToStrings(orgIDs)).Scan(&sourceID, &cycle, &status, &snapshot)
 	if err != nil {
 		return nil, fmt.Errorf("get evidence monitoring: %w", err)
 	}
