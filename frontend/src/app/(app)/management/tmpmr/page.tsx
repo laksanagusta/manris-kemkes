@@ -1,4 +1,7 @@
 "use client";
+import { useCollectionSorting, CollectionSortProvider } from "@/components/shared/design-system/collections/collection-sorting";
+import { CollectionTableHead } from "@/components/shared/design-system/collections/collection-table-head";
+import { sortDate } from "@/lib/collection-sort";
 import { newestCreatedFirst } from "@/lib/collection-created-at";
 import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
 
@@ -25,7 +28,6 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
@@ -157,10 +159,11 @@ export default function TMPMRListPage() {
     });
   }, [items, organizationMap, periodFilter, search, statusFilter]);
 
+  const collectionSort = useCollectionSorting(filteredItems, {"Periode": r => r.period, "Organisasi": r => organizationMap.get(r.organizationId), "Skor": r => r.score, "Maturity": r => r.maturityLevel, "Status": r => r.status, "Diperbarui": r => sortDate(r.updatedAt)}, () => setPage(1));
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
   const paginatedItems = useMemo(
-    () => filteredItems.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [filteredItems, page],
+    () => collectionSort.rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [collectionSort.rows, page],
   );
 
   const availablePeriods = useMemo(() => getFilteredPeriods(items), [items]);
@@ -283,19 +286,19 @@ export default function TMPMRListPage() {
             </div>
           ) : (
             <div className="space-y-4">
-              <Table>
+              <CollectionSortProvider controls={collectionSort.controls}><Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="whitespace-nowrap">Periode</TableHead>
-                    <TableHead className="whitespace-nowrap">Organisasi</TableHead>
-                    <TableHead className="whitespace-nowrap">Skor</TableHead>
-                    <TableHead className="whitespace-nowrap">Maturity</TableHead>
-                    <TableHead className="whitespace-nowrap">Status</TableHead>
-                    <TableHead className="whitespace-nowrap">Diperbarui</TableHead>
+                    <CollectionTableHead className="whitespace-nowrap">Periode</CollectionTableHead>
+                    <CollectionTableHead className="whitespace-nowrap">Organisasi</CollectionTableHead>
+                    <CollectionTableHead className="whitespace-nowrap">Skor</CollectionTableHead>
+                    <CollectionTableHead className="whitespace-nowrap">Maturity</CollectionTableHead>
+                    <CollectionTableHead className="whitespace-nowrap">Status</CollectionTableHead>
+                    <CollectionTableHead className="whitespace-nowrap">Diperbarui</CollectionTableHead>
                     <CreatedAtHead />
-                    <TableHead className="text-right whitespace-nowrap">
+                    <CollectionTableHead className="text-right whitespace-nowrap">
                       <span className="sr-only">Aksi</span>
-                    </TableHead>
+                    </CollectionTableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -348,7 +351,7 @@ export default function TMPMRListPage() {
                     })
                   )}
                 </TableBody>
-              </Table>
+              </Table></CollectionSortProvider>
 
               {shouldShowCollectionPagination(filteredItems.length) ? (
                 <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-table-footer px-5 py-3 text-sm">

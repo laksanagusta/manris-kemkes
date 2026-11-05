@@ -35,13 +35,13 @@ func TestRiskCharterValidate(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name: "missing period",
+			name: "versioned charter without annual period",
 			charter: RiskCharter{
 				Title:          "Piagam Direktorat",
 				OrganizationID: orgID,
 				UPRLevel:       "upr_t1",
 			},
-			wantErr: true,
+			wantErr: false,
 		},
 	}
 

@@ -178,14 +178,14 @@ func (r *riskCharterRepository) UpdateDraft(ctx context.Context, charter *entity
 	return nil
 }
 
-func (r *riskCharterRepository) FindExistingByOrgPeriodLevel(ctx context.Context, organizationID uuid.UUID, period, uprLevel string) (*entity.RiskCharter, error) {
+func (r *riskCharterRepository) FindExistingByOrgLevel(ctx context.Context, organizationID uuid.UUID, uprLevel string) (*entity.RiskCharter, error) {
 	query := `SELECT ` + riskCharterColumns + `
 		FROM risk_charters
-		WHERE organization_id = $1 AND period = $2 AND upr_level = $3
+		WHERE organization_id = $1 AND upr_level = $2
 		  AND (is_current OR status = 'draft')
 		ORDER BY (status = 'draft') DESC, is_current DESC, version_number DESC
 		LIMIT 1`
-	charter, err := scanRiskCharter(r.pool.QueryRow(ctx, query, organizationID, period, uprLevel))
+	charter, err := scanRiskCharter(r.pool.QueryRow(ctx, query, organizationID, uprLevel))
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
@@ -367,15 +367,13 @@ func (r *riskCharterRepository) Restore(ctx context.Context, charter *entity.Ris
 		  AND NOT EXISTS (
 			SELECT 1 FROM risk_charters existing
 			WHERE existing.organization_id = $2
-			  AND existing.period = $3
-			  AND existing.upr_level = $4
+			  AND existing.upr_level = $3
 			  AND existing.is_current = true
 			  AND existing.id <> $1
 		  )
 		RETURNING status, is_current, updated_at`,
 		charter.ID,
 		charter.OrganizationID,
-		charter.Period,
 		charter.UPRLevel,
 	).Scan(
 		&charter.Status,

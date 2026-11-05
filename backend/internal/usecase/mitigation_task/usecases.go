@@ -126,6 +126,8 @@ func NewListTasksUseCase(taskRepo repository.MitigationTaskRepository, riskRepo 
 }
 
 type ListTasksInput struct {
+	SortBy       string
+	SortOrder    string
 	RiskID       *uuid.UUID
 	MitigationID *uuid.UUID
 	UserID       *uuid.UUID
@@ -172,7 +174,16 @@ func (uc *ListTasksUseCase) ExecutePaginated(ctx context.Context, input ListTask
 		input.Limit = 100
 	}
 
-	tasks, total, err := uc.taskRepo.ListAllPaginated(ctx, input.OrgIDs, input.Query, input.Status, input.Period, input.Page, input.Limit)
+	var tasks []*entity.MitigationTask
+	var total int
+	var err error
+	if repo, ok := uc.taskRepo.(interface {
+		ListAllSorted(context.Context, []uuid.UUID, string, string, string, int, int, string, string) ([]*entity.MitigationTask, int, error)
+	}); ok {
+		tasks, total, err = repo.ListAllSorted(ctx, input.OrgIDs, input.Query, input.Status, input.Period, input.Page, input.Limit, input.SortBy, input.SortOrder)
+	} else {
+		tasks, total, err = uc.taskRepo.ListAllPaginated(ctx, input.OrgIDs, input.Query, input.Status, input.Period, input.Page, input.Limit)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("gagal mengambil daftar tugas mitigasi: %w", err)
 	}

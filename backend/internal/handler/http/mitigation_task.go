@@ -102,6 +102,7 @@ func (h *MitigationTaskHandler) ListAll(c *fiber.Ctx) error {
 	}
 
 	input := mtuc.ListTasksInput{
+		SortBy: c.Query("sort_by"), SortOrder: c.Query("sort_order"),
 		OrgIDs: orgIDs,
 		Query:  strings.TrimSpace(c.Query("q")),
 		Status: strings.TrimSpace(c.Query("status")),

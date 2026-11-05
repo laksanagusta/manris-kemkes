@@ -13,7 +13,7 @@
 .agent-new-intro h1 { font-size:1.5rem; line-height:1.4; font-weight:500; letter-spacing:-.035em; text-wrap:balance; }
 .agent-new-intro p { max-width:65ch; font-size:14px; line-height:1.6; color:var(--muted-foreground); margin-top:8px; }
 .agent-composer-wrap { width:100%; min-width:0; }
-[data-agent-composer] { background:var(--card); border-color:var(--border); border-radius:14px; box-shadow:var(--tw-inset-shadow,0 0 #0000),var(--tw-inset-ring-shadow,0 0 #0000),var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 #0000),0 2px 3px color-mix(in oklch,var(--foreground) 5%,transparent); }
+[data-agent-composer] { background:var(--card); border-color:var(--border); border-radius:14px; box-shadow:var(--tw-inset-shadow,0 0 #0000),var(--tw-inset-ring-shadow,0 0 #0000),var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 #0000),var(--surface-shadow-low); }
 [data-agent-composer] > [data-slot="input-group-control"] { min-height:92px; max-height:220px; overflow-y:auto; padding:16px 18px 8px; font-size:14px; line-height:1.6; }
 [data-agent-composer][data-mode="reply"] > [data-slot="input-group-control"] { min-height:64px; max-height:180px; }
 [data-agent-composer] > [data-align="block-end"] { padding:8px 10px 10px; }
@@ -124,12 +124,12 @@
 .agent-clarification,
 .agent-widget-fallback,
 .agent-proposal {
-  border:0;
+  border:1px solid var(--border);
   background:var(--card);
-  box-shadow:0 0 0 1px var(--border),0 2px 3px color-mix(in oklch,var(--foreground) 5%,transparent);
+  box-shadow:var(--surface-shadow-low);
 }
 .agent-metrics,.agent-bars,.agent-clarification { padding:16px; border-radius:12px; }
-.agent-attachment { box-shadow:0 2px 3px color-mix(in oklch,var(--foreground) 5%,transparent); }
+.agent-attachment { box-shadow:var(--surface-shadow-low); }
 .agent-proposal-heading { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-start; justify-content:space-between; padding:16px 18px; }
 .agent-operation { padding:18px; border-top:1px solid var(--border); }
 .agent-operation-title { display:block; font-size:14px; line-height:1.4; margin-bottom:4px; }

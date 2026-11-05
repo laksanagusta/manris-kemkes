@@ -1,4 +1,6 @@
 "use client";
+import { useCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
+import { sortDate } from "@/lib/collection-sort";
 
 import { newestCreatedFirst } from "@/lib/collection-created-at";
 import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
@@ -125,8 +127,9 @@ function MinutesPageContent() {
     });
   }, [items, query, authorFilter, dateFilter]);
 
+  const collectionSort = useCollectionSorting(filteredItems, {"Judul Notulen": r => r.title, "Tanggal": r => sortDate(r.date), "Peserta": r => r.participants?.length ?? 0, "Dibuat Oleh": r => r.createdByName}, () => setPage(1));
   const visiblePage = Math.min(page, Math.max(1, Math.ceil(filteredItems.length / limit)));
-  const paginatedItems = filteredItems.slice((visiblePage - 1) * limit, visiblePage * limit);
+  const paginatedItems = collectionSort.rows.slice((visiblePage - 1) * limit, visiblePage * limit);
   const authors = useMemo(() => {
     const names = new Map(items.filter((item) => item.createdBy).map((item) => [item.createdBy, item.createdByName || item.createdBy]));
     if (authorFilter !== "all" && !names.has(authorFilter)) names.set(authorFilter, authorFilter);
@@ -301,7 +304,7 @@ function MinutesPageContent() {
         }
       />
 
-      <CollectionTableCard>
+      <CollectionTableCard sorting={collectionSort.controls}>
         {loading ? (
           <CollectionLoadingState message="Memuat daftar notulen..." />
         ) : items.length === 0 && !query.trim() && authorFilter === "all" && !dateFilter ? (

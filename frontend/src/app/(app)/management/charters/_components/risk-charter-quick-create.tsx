@@ -8,7 +8,6 @@ import { ArrowRight, FilePlus2 } from "@/components/shared/icons";
 import { useAuth } from "@/contexts/auth-context";
 import { listAllOrganizations } from "@/lib/api/organizations";
 import { createRiskCharter } from "@/lib/api/risk-charters";
-import { currentAssessmentCycle } from "@/lib/risk-cycle-options";
 import type { RiskCharter, RiskCharterUPRLevel } from "@/types/risk-charter";
 import { FormHeader, FormPage } from "@/components/shared/form-shell";
 import {
@@ -37,10 +36,6 @@ function normalizeUPRLevel(value?: string): RiskCharterUPRLevel | null {
   if (value === "kementerian" || value === "eksekutif") return "eksekutif";
   if (value === "upr_t1" || value === "upr_t2") return value;
   return null;
-}
-
-function currentFiscalYear() {
-  return currentAssessmentCycle().slice(0, 4);
 }
 
 export function RiskCharterQuickCreate({
@@ -156,7 +151,6 @@ export function RiskCharterQuickCreate({
         title: normalizedTitle,
         organizationId: user.organizationId,
         uprLevel,
-        period: currentFiscalYear(),
       });
       if (response.existing) {
         setExisting(response.data);
@@ -218,8 +212,8 @@ export function RiskCharterQuickCreate({
         <div className="space-y-3">
           <CollectionNotice>
             {existing.status === "draft"
-              ? "Piagam tahun berjalan sudah memiliki draf."
-              : "Piagam tahun berjalan sudah tersedia."}
+              ? "Piagam organisasi ini sudah memiliki draf."
+              : "Piagam organisasi ini sudah tersedia."}
           </CollectionNotice>
           <AccentButton
             type="button"
@@ -241,7 +235,7 @@ export function RiskCharterQuickCreate({
       <FormPage>
         <FormHeader
           title="Buat Piagam"
-          subtitle="Beri judul untuk membuat draf Piagam tahun berjalan."
+          subtitle="Beri judul untuk membuat draf Piagam versi pertama."
         />
         <Card className="mx-auto w-full max-w-xl">
           <CardContent className="space-y-5">
@@ -289,7 +283,7 @@ export function RiskCharterQuickCreate({
           <DialogHeader>
             <DialogTitle className="text-base">Buat Piagam</DialogTitle>
             <DialogDescription>
-              Beri judul untuk membuat draf Piagam tahun berjalan.
+              Beri judul untuk membuat draf Piagam versi pertama.
             </DialogDescription>
           </DialogHeader>
           <div>{content}</div>

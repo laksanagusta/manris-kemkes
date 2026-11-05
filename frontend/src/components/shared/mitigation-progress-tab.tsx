@@ -32,9 +32,6 @@ import {
   AccentButton,
   ActionButton,
   CollectionEmptyState,
-  CollectionSearchField,
-  DynamicTableFilters,
-  CollectionToolbar,
   CollectionTableCard,
   CollectionPagination,
   MitigationProgressFlowDialog,
@@ -103,19 +100,13 @@ export function MitigationProgressTab({
   loadTasks,
   submitReport,
   mitigationFilter = "all",
-  onMitigationFilterChange,
 }: MitigationProgressTabProps) {
   const [tasks, setTasks] = useState<MitigationTask[]>([]);
-  const [search, setSearch] = useState("");
   const [pagination, setPagination] = useState({
     query: "",
     page: 1,
     pageSize: 10,
   });
-  const resetTaskPage = () =>
-    setPagination((current) => ({ ...current, query: "", page: 1 }));
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [periodFilter, setPeriodFilter] = useState("all");
   const [loading, setLoading] = useState(true);
   const requestGeneration = useRef(0);
   const detailTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -300,17 +291,6 @@ export function MitigationProgressTab({
     }
   };
 
-  const periodOptions = useMemo(
-    () => [
-      { value: "all", label: "Semua periode" },
-      ...Array.from(
-        new Set(tasks.map((task) => task.periodLabel || "Tanpa periode")),
-      )
-        .sort((a, b) => b.localeCompare(a, "id", { numeric: true }))
-        .map((period) => ({ value: period, label: period })),
-    ],
-    [tasks],
-  );
   const tableTasks = useMemo(() => {
     const statusOrder: Record<string, number> = {
       overdue: 0,
@@ -320,7 +300,6 @@ export function MitigationProgressTab({
       not_reported: 4,
     };
 
-    const query = search.trim().toLocaleLowerCase("id");
     return tasks
       .filter((task) => {
         if (
@@ -328,27 +307,7 @@ export function MitigationProgressTab({
           task.mitigationId !== mitigationFilter
         )
           return false;
-        if (statusFilter !== "all" && task.status !== statusFilter)
-          return false;
-        if (
-          periodFilter !== "all" &&
-          (task.periodLabel || "Tanpa periode") !== periodFilter
-        )
-          return false;
-        return (
-          !query ||
-          [
-            task.riskCode,
-            task.riskTitle,
-            task.mitigationAction,
-            task.mitigationOwner,
-            task.periodLabel,
-            task.reportedByName,
-          ]
-            .join(" ")
-            .toLocaleLowerCase("id")
-            .includes(query)
-        );
+        return true;
       })
       .sort((a, b) => {
         const statusDelta =
@@ -363,12 +322,9 @@ export function MitigationProgressTab({
 
         return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
       });
-  }, [tasks, search, statusFilter, periodFilter, mitigationFilter]);
+  }, [tasks, mitigationFilter]);
 
   const paginationQuery = JSON.stringify([
-    search,
-    statusFilter,
-    periodFilter,
     mitigationFilter,
   ]);
   const taskPage = Math.min(
@@ -436,183 +392,111 @@ export function MitigationProgressTab({
     );
   }
 
-  const summaryItemClass = showTaskList
-    ? "flex items-center gap-2 py-1.5"
-    : "flex items-center justify-between gap-4 py-1.5";
+  const summaryItemClass = "flex items-center justify-between gap-4 py-1.5";
+
+  const summary = tasks.length > 0 ? (
+    <div
+      className="space-y-0.5"
+      role="list"
+      aria-label="Ringkasan progres penanganan"
+    >
+      <div className={summaryItemClass} role="listitem">
+        <span className="text-[13px] font-medium text-tertiary-foreground">Total</span>
+        <span className="font-mono text-sm font-normal tabular-nums text-muted-foreground">
+          {stats.total}
+        </span>
+      </div>
+      <div className={summaryItemClass} role="listitem">
+        <span className="text-[13px] font-medium text-tertiary-foreground">
+          Sudah dilaporkan
+        </span>
+        <span className="font-mono text-sm font-normal tabular-nums text-muted-foreground">
+          {stats.done}
+        </span>
+      </div>
+      <div className={summaryItemClass} role="listitem">
+        <span className="text-[13px] font-medium text-tertiary-foreground">Menunggu</span>
+        <span className="font-mono text-sm font-normal tabular-nums text-muted-foreground">
+          {stats.pending}
+        </span>
+      </div>
+      <div className={summaryItemClass} role="listitem">
+        <span className="text-[13px] font-medium text-tertiary-foreground">Terlambat</span>
+        <span className="font-mono text-sm font-normal tabular-nums text-muted-foreground">
+          {stats.overdue}
+        </span>
+      </div>
+      {stats.notReported > 0 ? (
+        <div className={summaryItemClass} role="listitem">
+          <span className="text-[13px] font-medium text-tertiary-foreground">
+            Tidak dilaporkan
+          </span>
+          <span className="font-mono text-sm font-normal tabular-nums text-muted-foreground">
+            {stats.notReported}
+          </span>
+        </div>
+      ) : null}
+    </div>
+  ) : null;
 
   return (
     <>
-      {/* Summary Stats */}
-      {tasks.length > 0 && (
-        <div
-          className={
-            showTaskList
-              ? "mb-6 grid grid-cols-2 gap-x-6 gap-y-2 lg:grid-cols-4"
-              : "space-y-0.5"
-          }
-          role="list"
-          aria-label="Ringkasan progres penanganan"
-        >
-          <div className={summaryItemClass} role="listitem">
-            <span className="text-[13px] text-muted-foreground">Total</span>
-            <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
-              {stats.total}
-            </span>
-          </div>
-          <div className={summaryItemClass} role="listitem">
-            <span className="text-[13px] text-muted-foreground">
-              Sudah dilaporkan
-            </span>
-            <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
-              {stats.done}
-            </span>
-          </div>
-          <div className={summaryItemClass} role="listitem">
-            <span className="text-[13px] text-muted-foreground">Menunggu</span>
-            <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
-              {stats.pending}
-            </span>
-          </div>
-          <div className={summaryItemClass} role="listitem">
-            <span className="text-[13px] text-muted-foreground">Terlambat</span>
-            <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
-              {stats.overdue}
-            </span>
-          </div>
-          {stats.notReported > 0 ? (
-            <div className={summaryItemClass} role="listitem">
-              <span className="text-[13px] text-muted-foreground">
-                Tidak dilaporkan
-              </span>
-              <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
-                {stats.notReported}
-              </span>
+      <div className={showTaskList && tasks.length > 0 ? "grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_280px]" : undefined}>
+        {showTaskList ? (
+          summary && <aside aria-label="Ringkasan pelaporan penanganan" className="order-2 min-w-0 self-start">
+            <div className="rounded-2xl bg-muted/30 px-4 py-3">
+              {summary}
             </div>
-          ) : null}
-        </div>
-      )}
+          </aside>
+        ) : summary}
 
-      {showTaskList && (
-        <div className="space-y-4">
-          {tasks.length > 0 && (
-            <CollectionToolbar
-              leading={
-                <DynamicTableFilters
-                  search={
-                    <CollectionSearchField
-                      value={search}
-                      onChange={(event) => {
-                        resetTaskPage();
-                        setSearch(event.target.value);
-                      }}
-                      placeholder="Cari penanganan..."
-                      aria-label="Cari penanganan risiko"
-                      containerClassName="w-full sm:w-80 sm:flex-none"
-                    />
-                  }
-                  fields={[
-                    ...(onMitigationFilterChange
-                      ? [
-                          {
-                            id: "mitigation",
-                            label: "Mitigasi",
-                            value: mitigationFilter,
-                            onChange: (value: string) => {
-                              resetTaskPage();
-                              onMitigationFilterChange?.(value);
-                            },
-                            options: [
-                              { value: "all", label: "Semua mitigasi" },
-                              ...Array.from(
-                                new Map(
-                                  tasks.map((task) => [
-                                    task.mitigationId,
-                                    {
-                                      value: task.mitigationId,
-                                      label:
-                                        task.mitigationAction ||
-                                        "Rencana mitigasi",
-                                    },
-                                  ]),
-                                ).values(),
-                              ),
-                            ],
-                          },
-                        ]
-                      : []),
-                    {
-                      id: "status",
-                      label: "Status",
-                      value: statusFilter,
-                      onChange: (value: string) => {
-                        resetTaskPage();
-                        setStatusFilter(value);
-                      },
-                      options: [
-                        { value: "all", label: "Semua status" },
-                        ...Object.entries(STATUS_CONFIG).map(
-                          ([value, config]) => ({ value, label: config.label }),
-                        ),
-                      ],
-                    },
-                    {
-                      id: "period",
-                      label: "Periode",
-                      value: periodFilter,
-                      onChange: (value: string) => {
-                        resetTaskPage();
-                        setPeriodFilter(value);
-                      },
-                      options: periodOptions,
-                    },
-                  ]}
+        {showTaskList && (
+          <div className="order-1 min-w-0 space-y-4">
+            <CollectionTableCard>
+              {tasks.length === 0 ? (
+                <CollectionEmptyState
+                  title="Belum ada task penanganan"
+                  description="Task akan muncul otomatis saat risiko difinalisasi dan setiap mitigasi hanya memiliki satu laporan."
                 />
-              }
-            />
-          )}
-          <CollectionTableCard>
-            {tasks.length === 0 ? (
-              <CollectionEmptyState
-                title="Belum ada task penanganan"
-                description="Task akan muncul otomatis saat risiko difinalisasi dan setiap mitigasi hanya memiliki satu laporan."
-              />
-            ) : tableTasks.length === 0 ? (
-              <CollectionEmptyState
-                title="Tidak ada task yang sesuai"
-                description="Coba ubah kata kunci atau filter pencarian."
-              />
-            ) : (
-              <MitigationTaskTable
-                tasks={visibleTasks}
-                readOnly={readOnly}
-                onOpenDetail={handleOpenDetail}
-                onReport={(task, trigger) => {
-                  detailTriggerRef.current = trigger;
-                  handleOpenSubmit(task);
-                }}
-              />
-            )}
-            {tableTasks.length > 0 ? (
-              <CollectionPagination
-                itemLabel="mitigasi"
-                page={taskPage}
-                pageSize={pagination.pageSize}
-                total={tableTasks.length}
-                onPageChange={(page) =>
-                  setPagination((current) => ({
-                    ...current,
-                    query: paginationQuery,
-                    page,
-                  }))
-                }
-                onPageSizeChange={(pageSize) =>
-                  setPagination({ query: paginationQuery, page: 1, pageSize })
-                }
-              />
-            ) : null}
-          </CollectionTableCard>
-        </div>
-      )}
+              ) : tableTasks.length === 0 ? (
+                <CollectionEmptyState
+                  title="Tidak ada task yang sesuai"
+                  description="Coba ubah kata kunci atau filter pencarian."
+                />
+              ) : (
+                <MitigationTaskTable
+                  tasks={visibleTasks}
+                  readOnly={readOnly}
+                  onOpenDetail={handleOpenDetail}
+                  onReport={(task, trigger) => {
+                    detailTriggerRef.current = trigger;
+                    handleOpenSubmit(task);
+                  }}
+                />
+              )}
+              {tableTasks.length > 0 ? (
+                <CollectionPagination
+                  itemLabel="mitigasi"
+                  page={taskPage}
+                  pageSize={pagination.pageSize}
+                  total={tableTasks.length}
+                  onPageChange={(page) =>
+                    setPagination((current) => ({
+                      ...current,
+                      query: paginationQuery,
+                      page,
+                    }))
+                  }
+                  onPageSizeChange={(pageSize) =>
+                    setPagination({ query: paginationQuery, page: 1, pageSize })
+                  }
+                />
+              ) : null}
+            </CollectionTableCard>
+          </div>
+        )}
+
+      </div>
 
       <MitigationProgressFlowDialog
         open={showMitigationDialog && (!readOnly || dialogView === "detail")}

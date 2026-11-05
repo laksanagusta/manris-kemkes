@@ -11,12 +11,12 @@ test("mitigation progress summary uses 13px for every label", () => {
   for (const label of ["Total", "Sudah dilaporkan", "Menunggu", "Terlambat"]) {
     assert.match(
       componentSource,
-      new RegExp(`<span className="text-\\[13px\\] text-muted-foreground">\\s*${label}\\s*<\\/span>`),
+      new RegExp(`<span className="text-\\[13px\\] font-medium text-tertiary-foreground">\\s*${label}\\s*<\\/span>`),
     );
   }
   assert.match(
     componentSource,
-    /<span className="text-\[13px\] text-muted-foreground">\s*Tidak dilaporkan\s*<\/span>/,
+    /<span className="text-\[13px\] font-medium text-tertiary-foreground">\s*Tidak dilaporkan\s*<\/span>/,
   );
-  assert.doesNotMatch(componentSource, /<span className="text-xs text-muted-foreground">/);
+  assert.doesNotMatch(componentSource, /<span className="text-xs font-medium text-tertiary-foreground">/);
 });

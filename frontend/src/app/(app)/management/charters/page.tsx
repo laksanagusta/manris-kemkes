@@ -1,4 +1,6 @@
 "use client";
+import { useCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
+import { sortDate } from "@/lib/collection-sort";
 import { newestCreatedFirst } from "@/lib/collection-created-at";
 import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
 
@@ -48,7 +50,6 @@ import {
   CollectionPagination,
   CollectionPageHeader,
   CollectionSearchField,
-  DynamicTableFilters,
   CollectionTableCard,
   CollectionTableHead,
   CollectionTableHeader,
@@ -95,7 +96,6 @@ export default function RiskChartersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [periodFilter, setPeriodFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -190,41 +190,33 @@ export default function RiskChartersPage() {
   const filteredItems = useMemo(() => {
     const query = deferredSearch.trim().toLowerCase();
     return items.filter((item) => {
-      if (periodFilter !== "all" && item.period !== periodFilter) return false;
       if (!query) return true;
       const orgName =
         organizationMap.get(item.organizationId)?.toLowerCase() ?? "";
       return [
         item.title.toLowerCase(),
         orgName,
-        item.period.toLowerCase(),
+        `v${item.versionNumber}`,
         uprLevelLabel[item.uprLevel]?.toLowerCase() ??
           item.uprLevel.toLowerCase(),
       ].some((value) => value.includes(query));
     });
-  }, [deferredSearch, items, organizationMap, periodFilter]);
+  }, [deferredSearch, items, organizationMap]);
 
+  const collectionSort = useCollectionSorting(filteredItems, {"Judul Piagam": r => r.title, "UPR": r => uprLevelLabel[r.uprLevel], "Versi": r => r.versionNumber, "Status": r => charterStatusLabel[r.status], "Diperbarui": r => sortDate(r.updatedAt)}, () => setPage(1));
   const paginatedItems = useMemo(
-    () => filteredItems.slice((page - 1) * pageSize, page * pageSize),
-    [filteredItems, page, pageSize],
+    () => collectionSort.rows.slice((page - 1) * pageSize, page * pageSize),
+    [collectionSort.rows, page, pageSize],
   );
 
   useEffect(() => {
     setPage(1);
-  }, [search, periodFilter]);
+  }, [search]);
 
   useEffect(() => {
     const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
     setPage((current) => Math.min(current, totalPages));
   }, [filteredItems.length, pageSize]);
-
-  const availablePeriods = useMemo(
-    () =>
-      [...new Set(items.map((item) => item.period).filter(Boolean))]
-        .sort()
-        .reverse(),
-    [items],
-  );
 
   const showInitialLoading = loading && items.length === 0;
 
@@ -259,27 +251,10 @@ export default function RiskChartersPage() {
       <CollectionToolbar
         className="w-full"
         leading={
-          <DynamicTableFilters
-            search={
-              <CollectionSearchField
-                id="charter-search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Cari judul, organisasi, UPR, atau tahun"
-              />
-            }
-            fields={[
-              {
-                id: "period",
-                label: "Periode",
-                value: periodFilter,
-                onChange: setPeriodFilter,
-                options: [
-                  { value: "all", label: "Semua periode" },
-                  ...availablePeriods.map((period) => ({ value: period, label: period })),
-                ],
-              },
-            ]}
+          <CollectionSearchField
+            id="charter-search" value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Cari judul, organisasi, UPR, atau versi"
           />
         }
         actions={
@@ -292,14 +267,14 @@ export default function RiskChartersPage() {
         }
       />
 
-      <CollectionTableCard>
+      <CollectionTableCard sorting={collectionSort.controls}>
         {filteredItems.length === 0 ? (
           <CollectionEmptyState
             title={items.length === 0 ? "Belum ada piagam Manrisk" : "Tidak ada piagam yang cocok"}
             description={
               items.length === 0
                 ? "Buat piagam untuk menetapkan arah dan mandat manajemen risiko."
-                : "Ubah kata kunci pencarian atau periode untuk melihat piagam lain."
+                : "Ubah kata kunci pencarian untuk melihat piagam lain."
             }
           />
         ) : (
@@ -319,7 +294,7 @@ export default function RiskChartersPage() {
                   Judul Piagam
                 </CollectionTableHead>
                 <CollectionTableHead >UPR</CollectionTableHead>
-                <CollectionTableHead >Periode</CollectionTableHead>
+                <CollectionTableHead >Versi</CollectionTableHead>
                 <CollectionTableHead >Status</CollectionTableHead>
                 <CollectionTableHead >Diperbarui</CollectionTableHead>
                 <CreatedAtHead />
@@ -352,7 +327,7 @@ export default function RiskChartersPage() {
                     {uprLevelLabel[item.uprLevel] ?? item.uprLevel}
                   </TableCell>
                   <TableCell className="whitespace-nowrap align-middle">
-                    {item.period}
+                    v{item.versionNumber}
                   </TableCell>
                   <TableCell className="align-middle">
                     <Badge variant={toBadgeVariant(charterStatusTone[item.status] ?? "neutral")}
@@ -378,7 +353,7 @@ export default function RiskChartersPage() {
                             size="icon-xs"
                             className="text-muted-foreground"
                             icon={<MoreHorizontal className="size-3.5" />}
-                            aria-label={`Tindakan piagam ${item.period}`}
+                            aria-label={`Tindakan piagam $v{item.versionNumber}`}
                             title="Tindakan"
                           />
                         </DropdownMenuTrigger>

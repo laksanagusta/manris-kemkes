@@ -106,7 +106,7 @@ func (r *controlRepository) List(ctx context.Context, orgIDs []uuid.UUID) ([]*en
 		argIdx++
 	}
 
-	query += " ORDER BY c.created_at DESC"
+	query += " ORDER BY c.created_at DESC, c.id DESC"
 
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {

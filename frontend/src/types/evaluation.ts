@@ -71,6 +71,8 @@ export type PaginatedEvaluationResponse = {
 };
 
 export type ListEvaluationsParams = {
+ sort_by?: string;
+ sort_order?: string;
   organizationId?: string;
   organizationGroupId?: string;
   period?: string;

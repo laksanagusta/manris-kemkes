@@ -13,7 +13,7 @@ export function RiskCommentsExample() {
       <DetailSidePanel>
         <section aria-label="Contoh catatan risiko">
           <h2 className="text-sm font-semibold text-primary">Catatan</h2>
-          <p className="mt-3 text-sm text-muted-foreground">Contoh interaktif lokal, tanpa menyimpan ke server.</p>
+          <p className="mt-3 text-sm text-muted-foreground">Label Komentar memakai warna secondary. Contoh interaktif lokal, tanpa menyimpan ke server.</p>
           {comments.map((text, index) => <CommentThreadItem key={index} author="Tim pengelola risiko" timestamp="Contoh">{text}</CommentThreadItem>)}
           <CommentComposer message={message} stakeholder={stakeholder} onMessageChange={setMessage} onStakeholderChange={setStakeholder} onSubmit={() => {
             if (!message.trim() || !stakeholder.trim()) return;

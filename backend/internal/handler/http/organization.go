@@ -50,6 +50,7 @@ func (h *OrganizationHandler) List(c *fiber.Ctx) error {
 	}
 
 	result, err := h.listFilterUC.Execute(c.Context(), organizationuc.ListOrganizationsWithFilterInput{
+		SortBy: c.Query("sort_by"), SortOrder: c.Query("sort_order"),
 		Page:       page,
 		Limit:      limit,
 		Q:          q,

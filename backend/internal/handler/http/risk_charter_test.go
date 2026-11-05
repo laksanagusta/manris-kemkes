@@ -62,7 +62,7 @@ func (s *handlerRiskCharterRepo) List(_ context.Context, _ domainrepo.RiskCharte
 	return items, len(items), nil
 }
 
-func (s *handlerRiskCharterRepo) FindExistingByOrgPeriodLevel(_ context.Context, _ uuid.UUID, _ string, _ string) (*entity.RiskCharter, error) {
+func (s *handlerRiskCharterRepo) FindExistingByOrgLevel(_ context.Context, _ uuid.UUID, _ string) (*entity.RiskCharter, error) {
 	return nil, nil
 }
 

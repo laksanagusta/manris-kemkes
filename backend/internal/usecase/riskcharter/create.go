@@ -37,7 +37,6 @@ func (uc *CreateRiskCharterUseCase) Execute(ctx context.Context, input CreateRis
 		return nil, errors.ErrForbidden
 	}
 	title := strings.TrimSpace(input.Title)
-	period := strings.TrimSpace(input.Period)
 	uprLevel := strings.TrimSpace(input.UPRLevel)
 	groupID := uuid.New()
 	createdBy := input.CreatedBy
@@ -45,7 +44,7 @@ func (uc *CreateRiskCharterUseCase) Execute(ctx context.Context, input CreateRis
 		Title:          title,
 		OrganizationID: input.OrganizationID,
 		UPRLevel:       uprLevel,
-		Period:         period,
+		Period:         "",
 		Status:         entity.RiskCharterStatusDraft,
 		VersionGroupID: groupID,
 		VersionNumber:  1,
@@ -59,7 +58,7 @@ func (uc *CreateRiskCharterUseCase) Execute(ctx context.Context, input CreateRis
 		return nil, errors.Wrap(errors.ErrInvalidInput, err.Error())
 	}
 
-	existing, err := uc.repo.FindExistingByOrgPeriodLevel(ctx, input.OrganizationID, period, uprLevel)
+	existing, err := uc.repo.FindExistingByOrgLevel(ctx, input.OrganizationID, uprLevel)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to find current risk charter")
 	}
@@ -68,7 +67,7 @@ func (uc *CreateRiskCharterUseCase) Execute(ctx context.Context, input CreateRis
 	}
 
 	if err := uc.repo.Create(ctx, charter); err != nil {
-		concurrent, findErr := uc.repo.FindExistingByOrgPeriodLevel(ctx, input.OrganizationID, period, uprLevel)
+		concurrent, findErr := uc.repo.FindExistingByOrgLevel(ctx, input.OrganizationID, uprLevel)
 		if findErr == nil && concurrent != nil {
 			return &CreateRiskCharterOutput{Charter: concurrent, Existing: true}, nil
 		}

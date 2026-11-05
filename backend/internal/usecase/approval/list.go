@@ -47,6 +47,7 @@ type ApprovalOutput struct {
 	RequestedBy           string  `json:"requestedBy"`
 	RequestedByName       string  `json:"requestedByName"`
 	RequestedAt           string  `json:"requestedAt"`
+	CreatedAt             string  `json:"createdAt"`
 	CurrentStatus         string  `json:"currentStatus"`
 	CurrentApproverRole   string  `json:"currentApproverRole"`
 	CurrentApproverUserID *string `json:"currentApproverUserId,omitempty"`
@@ -87,6 +88,7 @@ func (uc *ListApprovalUseCase) Execute(ctx context.Context, input ListApprovalIn
 			RequestedBy:           req.RequestedBy.String(),
 			RequestedByName:       req.RequestedByName,
 			RequestedAt:           req.RequestedAt.Format("2006-01-02T15:04:05Z07:00"),
+			CreatedAt:             req.CreatedAt.Format("2006-01-02T15:04:05.999999999Z07:00"),
 			CurrentStatus:         req.CurrentStatus,
 			CurrentApproverRole:   req.CurrentApproverRole,
 			CurrentApproverUserID: approverUserID,

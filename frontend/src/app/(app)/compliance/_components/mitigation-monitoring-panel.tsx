@@ -1,5 +1,5 @@
 "use client";
-import { newestCreatedFirst } from "@/lib/collection-created-at";
+import { useRemoteCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
 import { MitigationTaskTable } from "@/components/shared/mitigation-task-table";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -249,9 +249,12 @@ export function MitigationMonitoringPanel() {
     queryState.search,
   ]);
 
+  const collectionSort = useRemoteCollectionSorting({"Rencana Penanganan":"action",PIC:"owner",Periode:"period",Deadline:"due_date",Status:"status"},()=>pushQueryState({page:1}));
+  const loadGeneration=useRef(0);
   const fetchMitigations = useCallback(async () => {
     if (!token) return;
 
+    const generation=++loadGeneration.current;
     setLoading(true);
     try {
       const query = buildMitigationMonitoringApiQueryString({
@@ -261,11 +264,16 @@ export function MitigationMonitoringPanel() {
         page,
         limit,
       });
+      const sortParams = new URLSearchParams(query);
+      if(collectionSort.touched || queryState.status!=="needs_reporting") {
+        sortParams.set("sort_by",collectionSort.sortBy);sortParams.set("sort_order",collectionSort.sortOrder);
+      }
       const response = await api.get<{ data: MitigationTask[]; total: number }>(
-        query ? `/mitigation-tasks/all?${query}` : "/mitigation-tasks/all",
+        `/mitigation-tasks/all?${sortParams}`,
         token,
       );
 
+      if(generation!==loadGeneration.current)return;
       const rawData = response.data || [];
       setTotal(response.total || 0);
 
@@ -298,18 +306,13 @@ export function MitigationMonitoringPanel() {
         };
       });
 
-      setMitigations(
-        processed.sort((a, b) => {
-          if(queryState.status==="needs_reporting")return a.dueDate.localeCompare(b.dueDate) || a.id.localeCompare(b.id);
-          return newestCreatedFirst(a, b);
-        }),
-      );
+      setMitigations(processed);
     } catch (error) {
       console.error(error);
     } finally {
-      setLoading(false);
+      if(generation===loadGeneration.current)setLoading(false);
     }
-  }, [token, page, limit, queryState.search, queryState.status, queryState.period]);
+  }, [token, page, limit, queryState.search, queryState.status, queryState.period, collectionSort.sortBy,collectionSort.sortOrder,collectionSort.touched]);
 
   useEffect(() => {
     fetchMitigations();
@@ -497,7 +500,7 @@ export function MitigationMonitoringPanel() {
             </ActionButton>
           }
         />
-        <CollectionTableCard>
+        <CollectionTableCard sorting={!collectionSort.touched&&queryState.status==="needs_reporting"?{...collectionSort.controls,key:"Deadline",direction:"asc"}:collectionSort.controls}>
 
           {loading ? (
             <CollectionLoadingState message="Memuat data mitigasi..." />

@@ -713,22 +713,10 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 	}
 
 	offset := (filter.Page - 1) * filter.Limit
-	// Sort by priority (nilai * 10000 + impact * 100) by default, or by created_at if specified
-	if filter.SortBy == "created_at" {
-		orderDir := "DESC"
-		if filter.SortOrder == "asc" {
-			orderDir = "ASC"
-		}
-		dataQuery += fmt.Sprintf(" ORDER BY r.created_at %s, r.id DESC LIMIT $%d OFFSET $%d", orderDir, argIdx, argIdx+1)
-	} else {
-		// Default: sort by the same finalized monitoring score shown in the
-		// register. Risks without a finalized monitoring result sort last.
-		orderDir := "DESC"
-		if filter.SortOrder == "asc" {
-			orderDir = "ASC"
-		}
-		dataQuery += fmt.Sprintf(" ORDER BY monitoring_score.observed_nilai %s NULLS LAST, r.created_at DESC, r.id DESC LIMIT $%d OFFSET $%d", orderDir, argIdx, argIdx+1)
-	}
+	dataQuery += " ORDER BY " + collectionOrderBy(filter.SortBy, filter.SortOrder, "r.created_at", "r.id", map[string]string{
+		"created_at": "r.created_at", "title": "r.title", "code": "r.code", "category": "r.category", "status": "r.status", "assessment_cycle": "r.assessment_cycle", "nilai": "monitoring_score.observed_nilai",
+	}) + fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
+
 	args = append(args, filter.Limit, offset)
 
 	rows, err := r.pool.Query(ctx, dataQuery, args...)

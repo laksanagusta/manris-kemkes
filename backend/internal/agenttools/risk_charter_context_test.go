@@ -26,7 +26,7 @@ func (r *charterContextRepository) List(_ context.Context, filter repository.Ris
 	r.filter = filter
 	return r.items, r.total, nil
 }
-func TestRiskCharterDraftContextUsesOnlyActiveOwnAnnualBusinessContext(t *testing.T) {
+func TestRiskCharterDraftContextUsesOnlyActiveOwnVersionedBusinessContext(t *testing.T) {
 	org := uuid.New()
 	scope := &entity.AccessScope{OrganizationID: &org, AccessibleOrgIDs: []uuid.UUID{org}, Role: entity.RoleUnit}
 	active := &entity.RiskCharter{ID: uuid.New(), Title: "Piagam 2026", OrganizationID: org, Period: "2026", Status: "active", IsCurrent: true, Scope: "Pengawasan pintu masuk", InternalContext: "Kapasitas pemeriksaan terbatas", ExternalContext: "Mobilitas meningkat", LegalBases: []entity.RiskCharterLegalBasis{{Reference: "Regulasi uji", Provision: "Kewajiban pengawasan"}}, Stakeholders: []entity.RiskCharterStakeholder{{Name: "Instansi pelabuhan", Relationship: "Koordinasi pemeriksaan"}}, UPRStructure: []entity.RiskCharterUPRMember{{Name: "PRIVATE_PERSON_MARKER"}}}
@@ -47,13 +47,13 @@ func TestRiskCharterDraftContextUsesOnlyActiveOwnAnnualBusinessContext(t *testin
 			t.Errorf("charter context missing %s", marker)
 		}
 	}
-	for _, marker := range []string{"PRIVATE_PERSON_MARKER", "DRAFT_MARKER", "ARCHIVE_MARKER", "OLD_YEAR_MARKER", "OLD_VERSION_MARKER", "uprStructure", "createdBy"} {
+	for _, marker := range []string{"PRIVATE_PERSON_MARKER", "DRAFT_MARKER", "ARCHIVE_MARKER", "OLD_VERSION_MARKER", "uprStructure", "createdBy"} {
 		if strings.Contains(text, marker) {
 			t.Errorf("irrelevant or ineligible charter data exposed: %s", marker)
 		}
 	}
-	if repo.filter.OrganizationID == nil || *repo.filter.OrganizationID != org || repo.filter.Period != "2026" {
-		t.Fatal("context not restricted to home org/year", repo.filter)
+	if repo.filter.OrganizationID == nil || *repo.filter.OrganizationID != org || repo.filter.Period != "" {
+		t.Fatal("context not restricted to home organization", repo.filter)
 	}
 }
 func TestRiskCharterDraftContextPreservesHomeOrganizationAccess(t *testing.T) {

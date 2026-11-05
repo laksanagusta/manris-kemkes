@@ -9,6 +9,8 @@ import (
 
 // UserListFilter holds filter/pagination parameters for listing users
 type UserListFilter struct {
+	SortBy         string
+	SortOrder      string
 	Page           int
 	Limit          int
 	Q              string // search query (name, username, email)

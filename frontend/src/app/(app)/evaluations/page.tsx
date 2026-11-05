@@ -1,4 +1,5 @@
 "use client";
+import { useRemoteCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
 import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
 
 
@@ -106,6 +107,7 @@ const statusStyles: Record<EvaluationStatus, BadgeVariant> = {
 };
 
 export default function EvaluationsPage() {
+  const listRequest=useRef(0);
   const router = useRouter();
   const searchParams = useSearchParams();
   const { token, user } = useAuth();
@@ -155,6 +157,7 @@ export default function EvaluationsPage() {
     organizationGroupId === "all" &&
     organizationId === "all";
 
+  const collectionSort = useRemoteCollectionSorting({"Kode": "code", "Periode": "period", "Organisasi": "organization", "Template": "template", "Status": "status", "Diperbarui": "updated_at"}, () => setPage(1));
   useEffect(() => {
     const handle = window.setTimeout(() => setDebouncedQuery(query), 350);
     return () => window.clearTimeout(handle);
@@ -211,6 +214,7 @@ export default function EvaluationsPage() {
   }, [organizationGroupId, organizations, requiresOrganizationSelection, user]);
 
   useEffect(() => {
+    const request=++listRequest.current;
     if (!token) {
       setEvaluations([]);
       setAvailablePeriods([]);
@@ -227,6 +231,7 @@ export default function EvaluationsPage() {
 
     setLoading(true);
     listEvaluations(token, {
+ sort_by:collectionSort.sortBy, sort_order:collectionSort.sortOrder,
       organizationId:
         organizationGroupId === "all" && organizationId !== "all"
           ? organizationId
@@ -242,6 +247,7 @@ export default function EvaluationsPage() {
       limit,
     })
       .then((response) => {
+        if(request!==listRequest.current)return;
         const responseEvaluations = response.data ?? [];
         setEvaluations(responseEvaluations);
         setAvailablePeriods(response.periods ?? []);
@@ -249,11 +255,12 @@ export default function EvaluationsPage() {
         setPage(response.page ?? page);
       })
       .catch((error) => {
+        if(request!==listRequest.current)return;
         console.error(error);
         toast.error("Gagal memuat daftar evaluasi.");
       })
       .finally(() => {
-        setLoading(false);
+        if(request===listRequest.current)setLoading(false);
       });
   }, [
     token,
@@ -264,7 +271,7 @@ export default function EvaluationsPage() {
     debouncedQuery,
     page,
     limit,
-    requiresScopeSelection,
+    requiresScopeSelection, collectionSort.sortBy, collectionSort.sortOrder,
   ]);
 
   useEffect(() => {
@@ -510,7 +517,7 @@ export default function EvaluationsPage() {
         }
       />
 
-      <CollectionTableCard>
+      <CollectionTableCard sorting={collectionSort.controls}>
           <Table className="min-w-[1180px] table-fixed">
             <colgroup>
               <col className="w-[10%]" />

@@ -1,4 +1,5 @@
 "use client";
+import { useCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
 import { newestCreatedFirst } from "@/lib/collection-created-at";
 import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
 
@@ -154,10 +155,11 @@ export default function RiskCascadingPage() {
     );
   }, [deferredSearch, items, statusFilter, typeFilter]);
 
+  const collectionSort = useCollectionSorting(filteredItems, {"Risiko": r => formatCascadeTitle(r), "Organisasi": r => r.sourceOrgName, "Jenis": r => cascadeTypeLabels[r.cascadeType], "Status": r => statusLabels[r.status], "Adopsi": r => r.adoptionType}, () => setPage(1));
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
   const paginatedItems = useMemo(
-    () => filteredItems.slice((page - 1) * pageSize, page * pageSize),
-    [filteredItems, page, pageSize],
+    () => collectionSort.rows.slice((page - 1) * pageSize, page * pageSize),
+    [collectionSort.rows, page, pageSize],
   );
 
   useEffect(() => {
@@ -294,7 +296,7 @@ export default function RiskCascadingPage() {
 
         {error ? <CollectionErrorState message={error} /> : null}
 
-        <CollectionTableCard>
+        <CollectionTableCard sorting={collectionSort.controls}>
           <Table className="min-w-[1280px] table-fixed">
             <colgroup>
               <col className="w-[22%]" />

@@ -10,6 +10,8 @@ import type {
 
 function buildEvaluationQuery(params?: ListEvaluationsParams) {
   const searchParams = new URLSearchParams();
+  if(params?.sort_by) searchParams.set("sort_by",params.sort_by);
+  if(params?.sort_order) searchParams.set("sort_order",params.sort_order);
 
   if (params?.organizationId) searchParams.set("organization_id", params.organizationId);
   if (params?.organizationGroupId) {

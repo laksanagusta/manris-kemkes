@@ -1,4 +1,6 @@
 "use client";
+import { sortDate } from "@/lib/collection-sort";
+import { useCollectionSorting, CollectionSortProvider } from "@/components/shared/design-system/collections/collection-sorting";
 import { newestCreatedFirst } from "@/lib/collection-created-at";
 import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
 
@@ -454,13 +456,14 @@ export function OrganizationGroupManagement({
     });
   }, [groups, groupSearch, groupFilter, ownerFilter]);
 
+  const collectionSort = useCollectionSorting(visibleGroups, {"Nama Grup": r => r.name, "Pemilik": r => r.ownerOrganizationName, "Anggota": r => r.memberCount, "Diperbarui":r=>sortDate(r.updatedAt)}, () => setPage(1));
   const totalGroups = visibleGroups.length;
   const totalPages = Math.max(1, Math.ceil(totalGroups / limit));
   const currentPage = Math.min(page, totalPages);
   const paginatedGroups = useMemo(() => {
     const start = (currentPage - 1) * limit;
-    return visibleGroups.slice(start, start + limit);
-  }, [visibleGroups, currentPage, limit]);
+    return collectionSort.rows.slice(start, start + limit);
+  }, [collectionSort.rows, currentPage, limit]);
 
   useEffect(() => {
     if (page !== currentPage) {
@@ -525,7 +528,7 @@ export function OrganizationGroupManagement({
           />
           <div className="-mx-(--card-spacing) -mb-(--card-spacing) min-w-0 border-t border-border/60">
             <CollectionTableSurface>
-              <Table className="min-w-[1080px]">
+              <CollectionSortProvider controls={collectionSort.controls}><Table className="min-w-[1080px]">
                 <TableHeader className="[&_tr]:border-b [&_tr]:border-border/60">
                   <TableRow className="transition-colors hover:bg-transparent">
                     <CollectionTableHead density="compact" className="w-[30%] whitespace-nowrap text-left align-middle">
@@ -622,7 +625,7 @@ export function OrganizationGroupManagement({
                     ))
                   )}
                 </TableBody>
-              </Table>
+              </Table></CollectionSortProvider>
             </CollectionTableSurface>
           </div>
         </CardContent>

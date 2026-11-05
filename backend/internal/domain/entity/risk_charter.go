@@ -79,7 +79,7 @@ func (r RiskCharter) Validate() error {
 	if r.OrganizationID == uuid.Nil {
 		return fmt.Errorf("organization id is required")
 	}
-	if !riskCharterYearPattern.MatchString(strings.TrimSpace(r.Period)) {
+	if period := strings.TrimSpace(r.Period); period != "" && !riskCharterYearPattern.MatchString(period) {
 		return fmt.Errorf("period must use YYYY format")
 	}
 

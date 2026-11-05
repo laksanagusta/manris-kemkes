@@ -34,22 +34,18 @@ export function OperatorWorkSections({
   onNavigate?: () => void;
 }) {
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <OperatorMonitoringPeriod today={today} />
       {sections.map((section) => (
-        <Card
-          key={section.key}
-          data-operator-work-card=""
-          className="gap-0 py-0"
-        >
+        <div key={section.key}>
           {section.total === 0 ? (
             <>
-              <div className="flex min-h-11 items-center justify-between gap-3 px-(--card-spacing) py-2">
+              <div className="flex min-h-11 items-center gap-2 py-2">
                 <h2 className="text-sm font-medium text-muted-foreground">
                   {workSectionTitles[section.key]}
                 </h2>
                 <span
-                  className="min-w-6 text-right text-sm tabular-nums text-muted-foreground"
+                  className="shrink-0 text-xs tabular-nums text-tertiary-foreground"
                   aria-label="0 pekerjaan"
                 >
                   0
@@ -58,22 +54,21 @@ export function OperatorWorkSections({
             </>
           ) : (
             <Collapsible
+              className="space-y-1"
               open={open[section.key]}
               onOpenChange={(value) => onOpenChange(section.key, value)}
             >
               <h2>
-                <CollapsibleTrigger className="group flex min-h-11 w-full items-center gap-3 rounded-lg px-(--card-spacing) py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                  <span className="flex min-w-0 flex-1 items-center gap-2">
-                    <span className="text-sm font-medium">
-                      {workSectionTitles[section.key]}
-                    </span>
+                <CollapsibleTrigger className="group flex min-h-11 w-full items-center gap-3 rounded-lg py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
                     <ChevronDown
                       aria-hidden
                       className="size-4 shrink-0 text-muted-foreground transition-transform duration-150 group-data-[state=closed]:-rotate-90 motion-reduce:transition-none"
                     />
-                  </span>
+                    <span className="min-w-0 text-sm font-medium">
+                      {workSectionTitles[section.key]}
+                    </span>
                   <span
-                    className="min-w-6 text-right text-sm tabular-nums text-muted-foreground"
+                    className="shrink-0 text-xs tabular-nums text-tertiary-foreground"
                     aria-label={`${section.total} pekerjaan`}
                   >
                     {section.total}
@@ -81,7 +76,8 @@ export function OperatorWorkSections({
                 </CollapsibleTrigger>
               </h2>
               <CollapsibleContent>
-                <CardContent className="pt-0 pb-3">
+                <Card data-operator-work-card="" className="gap-0 py-0">
+                <CardContent className="py-3">
                   <OperatorWorkList
                     items={section.items}
                     today={today}
@@ -101,10 +97,11 @@ export function OperatorWorkSections({
                     </div>
                   ) : null}
                 </CardContent>
+                </Card>
               </CollapsibleContent>
             </Collapsible>
           )}
-        </Card>
+        </div>
       ))}
     </div>
   );

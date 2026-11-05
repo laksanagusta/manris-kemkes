@@ -4,7 +4,6 @@ import {
   Layers3,
   MoreHorizontal,
   Pencil,
-  Plus,
   Trash2,
 } from "@/components/shared/icons";
 import { Button } from "@/components/ui/button";
@@ -48,6 +47,7 @@ export function MitigationPlanLedger({
 }) {
   return (
     <div data-risk-plan-list className="min-w-0 space-y-3">
+      <div className="overflow-hidden rounded-lg border border-border shadow-(--surface-shadow-low)">
       <Table className="min-w-[640px] table-fixed">
         <TableHeader>
           <TableRow>
@@ -146,14 +146,14 @@ export function MitigationPlanLedger({
           )}
         </TableBody>
       </Table>
+      </div>
       {!hideAddButton && (
         <Button
           type="button"
-          variant="outline"
+          variant="ghost"
           disabled={disabled}
           onClick={() => onEdit(null)}
         >
-          <Plus data-icon="inline-start" />
           Tambah Rencana Penanganan
         </Button>
       )}

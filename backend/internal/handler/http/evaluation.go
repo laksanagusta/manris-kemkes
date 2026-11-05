@@ -129,6 +129,7 @@ func (h *EvaluationHandler) List(c *fiber.Ctx) error {
 	}
 
 	result, err := h.listUC.Execute(c.Context(), evaluationuc.ListInput{
+		SortBy: c.Query("sort_by"), SortOrder: c.Query("sort_order"),
 		OrganizationID:  organizationID,
 		OrganizationIDs: organizationIDs,
 		Period:          c.Query("period"),

@@ -1,8 +1,9 @@
-import { TableCell, TableHead } from "@/components/ui/table";
+import { TableCell } from "@/components/ui/table";
+import { CollectionTableHead } from "./collection-table-head";
 import { collectionCreatedAt } from "@/lib/collection-created-at";
 
 export function CreatedAtHead() {
-  return <TableHead className="w-40 whitespace-nowrap" title="created_at · terbaru lebih dulu">Dibuat</TableHead>;
+  return <CollectionTableHead className="w-40 whitespace-nowrap" title="created_at · terbaru lebih dulu">Dibuat</CollectionTableHead>;
 }
 export function CreatedAtCell({ record }: { record: unknown }) {
   const value = collectionCreatedAt(record);

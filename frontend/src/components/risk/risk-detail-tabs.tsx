@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { Tabs, TabsContent, TabsTrigger } from "@/components/ui/tabs";
-import { PillTabsList } from "@/components/shared/design-system/collections/pill-tabs";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function RiskDetailTabs({
   enabled,
@@ -30,11 +29,11 @@ export function RiskDetailTabs({
       className="min-w-0 gap-6"
     >
       {enabled && (
-        <PillTabsList aria-label="Bagian detail risiko">
+        <TabsList data-risk-detail-segments="" data-active-tab={value} aria-label="Bagian detail risiko">
           <TabsTrigger value="overview">Ringkasan</TabsTrigger>
           <TabsTrigger value="monitoring">Pemantauan</TabsTrigger>
           <TabsTrigger value="treatment">Penanganan</TabsTrigger>
-        </PillTabsList>
+        </TabsList>
       )}
       <TabsContent
         value="overview"

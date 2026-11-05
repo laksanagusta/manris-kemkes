@@ -227,6 +227,7 @@ func main() {
 	api.Get("/dashboard/heatmap", organizationAPIKeyHandler.WithOrganizationAPIKey(cleanRiskHandler.HeatmapData))
 
 	protected := api.Group("", middleware.IdentityRequired(container.IdentityService, identitydomain.ManrisApplication), middleware.RequireFullSession())
+	protected.Post("/feedback", httpHandler.NewFeedbackHandler(container.FeedbackService).Create)
 	httpHandler.NewAgentHandler(container.AgentService).RegisterRoutes(protected)
 	protected.Get("/organization-api-key", organizationAPIKeyHandler.Get)
 	protected.Post("/organization-api-key/generate", organizationAPIKeyHandler.Generate)

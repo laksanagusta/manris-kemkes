@@ -173,7 +173,7 @@ func (r *userRepository) ListWithFilter(ctx context.Context, filter repository.U
 	}
 
 	offset := (filter.Page - 1) * filter.Limit
-	dataQuery += " ORDER BY u.created_at DESC, u.id DESC"
+	dataQuery += " ORDER BY " + collectionOrderBy(filter.SortBy, filter.SortOrder, "u.created_at", "u.id", map[string]string{"created_at": "u.created_at", "name": "u.name", "username": "u.username", "email": "u.email", "role": "u.role", "status": "u.status", "organization": "o.name", "last_login": "u.last_logged_in"})
 	dataQuery += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
 	args = append(args, filter.Limit, offset)
 

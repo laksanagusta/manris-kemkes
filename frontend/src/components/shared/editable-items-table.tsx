@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-import { Plus, Trash2, GripVertical } from "@/components/shared/icons";
+import { Plus, Trash2 } from "@/components/shared/icons";
 import { Input } from "@/components/shared/design-system";
 import { IllustratedEmptyState } from "@/components/shared/design-system/feedback/illustrated-empty-state";
 import { cn } from "@/lib/utils";
@@ -124,11 +124,11 @@ export function EditableItemsTable({
         emptyStatePresentation === "plain" ? (
           <div
             className={cn(
-              "rounded-lg bg-sunken py-8 text-center text-state-foreground shadow-[inset_0_1px_2px_rgb(0_0_0/0.12),inset_0_-1px_0_rgb(255_255_255/0.6)] dark:shadow-[inset_0_1px_2px_rgb(0_0_0/0.35),inset_0_-1px_0_rgb(255_255_255/0.06)]",
+              "rounded-lg border border-dashed border-border py-8 text-center text-tertiary-foreground",
               invalid && "ring-1 ring-destructive",
             )}
           >
-            <p className="text-xs text-state-foreground">{emptyMessage}</p>
+            <p className="text-xs text-tertiary-foreground">{emptyMessage}</p>
           </div>
         ) : (
           <div className={cn("rounded-lg", invalid && "ring-1 ring-destructive")}>
@@ -140,28 +140,19 @@ export function EditableItemsTable({
           </div>
         )
       ) : (
-        <div className={cn("border rounded-lg overflow-hidden", invalid ? "border-destructive" : "border-border/50")}>
+        <div className={cn("border border-solid rounded-lg overflow-hidden", invalid ? "border-destructive" : "border-border")}>
           <Table className="w-full">
             <TableBody>
               {items.map((item, index) => (
                 <TableRow
                   key={item.id}
                   className={cn(
-                    "h-auto border-t-0 transition-colors hover:bg-muted/30",
+                    "h-auto border-t-0 border-separator! transition-colors",
+                    emptyStatePresentation === "plain" ? "hover:bg-transparent!" : "hover:bg-muted/30",
                     animatingItemIds.has(item.id) &&
                       "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-top-2 motion-safe:duration-200 motion-safe:ease-(--ease-out) motion-safe:fill-mode-both motion-reduce:animate-none",
                   )}
                 >
-                  <TableCell className="w-8">
-                    <div className="flex items-center justify-center text-muted-foreground">
-                      <GripVertical className="size-3.5" />
-                    </div>
-                  </TableCell>
-                  <TableCell className="w-8">
-                    <span className="text-[10px] font-medium text-muted-foreground bg-muted/50 rounded-full w-5 h-5 flex items-center justify-center">
-                      {index + 1}
-                    </span>
-                  </TableCell>
                   <TableCell className="flex-1">
                     <Input
                       aria-label={`${itemLabel} ${index + 1}`}
@@ -196,12 +187,13 @@ export function EditableItemsTable({
 
       {!hideAddButton ? (
         <Button
+          data-sidebar-hover={emptyStatePresentation === "plain" ? "" : undefined}
           type="button"
           variant="ghost"
           size="sm"
           onClick={addItem}
           disabled={disabled}
-          className="w-full"
+          className={cn("w-full", emptyStatePresentation === "plain" && "hover:text-current!")}
         >
           <Plus className="size-3.5" />
           {addItemLabel}

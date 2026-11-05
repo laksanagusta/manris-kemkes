@@ -62,7 +62,7 @@
   --color-risk-extreme: var(--risk-extreme);
   --color-success: var(--risk-low);
   --color-warning: var(--risk-medium);
-  --color-main-content: var(--background);
+  --color-main-content: var(--card);
   --color-surface-border: var(--border);
   --color-field-border: var(--input);
   --color-component-border: var(--border);
@@ -82,39 +82,39 @@
 }
 
 :root {
+  --surface-shadow-ink: #202020;
+  --surface-shadow-low: 0 1px 4px color-mix(in srgb, var(--surface-shadow-ink) 6%, transparent);
+  --surface-shadow-floating: 0 4px 12px color-mix(in srgb, var(--surface-shadow-ink) 8%, transparent);
+  --surface-shadow-modal: 0 8px 24px color-mix(in srgb, var(--surface-shadow-ink) 10%, transparent);
+  --button-hover-surface: #f7f7f7;
+  --button-outline-border: #e5e5e5;
+  --button-outline-hover-border: #e3e3e3;
+  --button-primary-hover: #282828;
+  --button-outline-shadow: 0 1px 2px color-mix(in srgb, var(--surface-shadow-ink) 6%, transparent);
   --notice-info-surface: #f6f8fe;
   --notice-info-border: #dbe5ff;
   --notice-info-foreground: #2066e8;
-  --badge-neutral-surface: #fafafa;
-  --badge-neutral-border: #e4e4e7;
-  --badge-neutral-foreground: #71717b;
-  --badge-green-surface: #f3fdf9;
-  --badge-green-border: #a4f4d0;
-  --badge-green-foreground: #007a56;
-  --badge-red-surface: #fef7f7;
-  --badge-red-border: #ffccd3;
-  --badge-red-foreground: #c70036;
-  --badge-blue-surface: #f4fbff;
-  --badge-blue-border: #b8e6ff;
-  --badge-blue-foreground: #0069a8;
-  --badge-yellow-surface: #fffdf2;
-  --badge-yellow-border: #f5e5a4;
+  /* Shared borderless badge palette; foregrounds retain readable text contrast. */
+  --badge-neutral-surface: #efeff1;
+  --badge-neutral-foreground: #62626c;
+  --badge-green-surface: #e5f4ed;
+  --badge-green-foreground: #127d4d;
+  --badge-red-surface: #fdeaea;
+  --badge-red-foreground: #ba304a;
+  --badge-blue-surface: #e8f1fd;
+  --badge-blue-foreground: #2863ae;
+  --badge-yellow-surface: #faf3d7;
   --badge-yellow-foreground: #8a6500;
-  --badge-amber-surface: #fffbf2;
-  --badge-amber-border: #f8dda4;
+  --badge-amber-surface: #fbefd9;
   --badge-amber-foreground: #945b00;
-  --badge-orange-surface: #fff8f3;
-  --badge-orange-border: #ffd4b0;
+  --badge-orange-surface: #fcebdd;
   --badge-orange-foreground: #a84b0a;
-  --badge-purple-surface: #faf7ff;
-  --badge-purple-border: #dfceff;
+  --badge-purple-surface: #f0e9fa;
   --badge-purple-foreground: #7446a8;
-  --badge-pink-surface: #fff7fc;
-  --badge-pink-border: #f7c9e5;
+  --badge-pink-surface: #fae8f2;
   --badge-pink-foreground: #a53576;
-  --badge-cyan-surface: #f2fcfc;
-  --badge-cyan-border: #a7e7e7;
-  --badge-cyan-foreground: #087b80;
+  --badge-cyan-surface: #e1f3f3;
+  --badge-cyan-foreground: #07797e;
   --card: oklch(1 0 0);
   --card-foreground: #202020;
   --popover: oklch(1 0 0);
@@ -137,11 +137,11 @@
   /* Shared table headers follow the opaque Card surface in each theme. */
   --table-header: var(--card);
   --table-divider: #ececec;
-  --table-hover: #fafafa;
+  --table-hover: #e8e8e8;
   --table-selected: #f0f4f8;
   --table-header-foreground: var(--tertiary-foreground);
   --table-footer: #fcfcfc;
-  --accent: #e5e5e5;
+  --accent: #e8e8e8;
   --accent-foreground: #202020;
   --active: #dddddd;
   --destructive: oklch(0.577 0.245 27.325);
@@ -160,7 +160,7 @@
   --sidebar-foreground: #202020;
   --sidebar-primary: oklch(0.205 0 0);
   --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: #e5e5e5;
+  --sidebar-accent: #e8e8e8;
   --sidebar-accent-foreground: #202020;
   --sidebar-border: #f6f6f6;
   --sidebar-ring: oklch(0.708 0 0);
@@ -203,38 +203,37 @@
 }
 
 .dark {
+  --surface-shadow-ink: #000000;
+  --surface-shadow-low: 0 1px 4px color-mix(in srgb, var(--surface-shadow-ink) 18%, transparent);
+  --surface-shadow-floating: 0 4px 12px color-mix(in srgb, var(--surface-shadow-ink) 24%, transparent);
+  --surface-shadow-modal: 0 8px 24px color-mix(in srgb, var(--surface-shadow-ink) 30%, transparent);
+  --button-hover-surface: var(--accent);
+  --button-outline-border: var(--input);
+  --button-outline-hover-border: var(--border);
+  --button-primary-hover: #dedede;
+  --button-outline-shadow: 0 1px 2px color-mix(in srgb, var(--surface-shadow-ink) 18%, transparent);
   --notice-info-surface: #142238;
   --notice-info-border: #29466f;
   --notice-info-foreground: #91bcff;
   --badge-neutral-surface: #242426;
-  --badge-neutral-border: #424247;
   --badge-neutral-foreground: #a3a3ad;
   --badge-green-surface: #122c24;
-  --badge-green-border: #245944;
   --badge-green-foreground: #8ce4bc;
   --badge-red-surface: #321b22;
-  --badge-red-border: #68303f;
   --badge-red-foreground: #ffa8bb;
   --badge-blue-surface: #142a36;
-  --badge-blue-border: #2d526b;
   --badge-blue-foreground: #91d4ff;
   --badge-yellow-surface: #302b18;
-  --badge-yellow-border: #665a2a;
   --badge-yellow-foreground: #e9d17a;
   --badge-amber-surface: #302719;
-  --badge-amber-border: #665032;
   --badge-amber-foreground: #f3cb83;
   --badge-orange-surface: #33251e;
-  --badge-orange-border: #704832;
   --badge-orange-foreground: #ffc494;
   --badge-purple-surface: #2a2036;
-  --badge-purple-border: #55406d;
   --badge-purple-foreground: #d1b5f7;
   --badge-pink-surface: #321f2d;
-  --badge-pink-border: #673f59;
   --badge-pink-foreground: #f0b0d6;
   --badge-cyan-surface: #142c2e;
-  --badge-cyan-border: #2b595c;
   --badge-cyan-foreground: #8ed9dd;
   --background: var(--sidebar);
   --foreground: oklch(0.985 0 0);
@@ -380,80 +379,66 @@
   border-radius: 4px;
 }
 
-/* Badge color families share the reference's pale surface, pastel outline and deep text.
+/* Badge color families share the Active reference's soft fill and semibold pill.
  * Existing domain classes select a hue; chart and score-picker palettes stay separate. */
 [data-slot="badge"] {
   --badge-surface: var(--badge-neutral-surface);
-  --badge-outline: var(--badge-neutral-border);
   --badge-ink: var(--badge-neutral-foreground);
-  border-width: 1px;
-  font-weight: 400;
   transition-property: color, background-color, border-color, box-shadow;
 }
 
 [data-slot="badge"][data-variant="destructive"] {
   --badge-surface: var(--badge-red-surface);
-  --badge-outline: var(--badge-red-border);
   --badge-ink: var(--badge-red-foreground);
 }
 
 [data-slot="badge"]:is([class*="bg-green-"], [class*="bg-emerald-"], [class*="bg-risk-low"], [class*="bg-success"], [class*="bg-lime-"]) {
   --badge-surface: var(--badge-green-surface);
-  --badge-outline: var(--badge-green-border);
   --badge-ink: var(--badge-green-foreground);
 }
 
 [data-slot="badge"]:is([class*="bg-red-"], [class*="bg-rose-"], [class*="bg-risk-extreme"], [class*="bg-destructive"]) {
   --badge-surface: var(--badge-red-surface);
-  --badge-outline: var(--badge-red-border);
   --badge-ink: var(--badge-red-foreground);
 }
 
 [data-slot="badge"]:is([class*="bg-blue-"], [class*="bg-sky-"], [class*="bg-info-foreground"]) {
   --badge-surface: var(--badge-blue-surface);
-  --badge-outline: var(--badge-blue-border);
   --badge-ink: var(--badge-blue-foreground);
 }
 
 [data-slot="badge"]:is([class*="bg-yellow-"], [class*="bg-risk-medium"]) {
   --badge-surface: var(--badge-yellow-surface);
-  --badge-outline: var(--badge-yellow-border);
   --badge-ink: var(--badge-yellow-foreground);
 }
 
 [data-slot="badge"]:is([class*="bg-amber-"], [class*="bg-warning"]) {
   --badge-surface: var(--badge-amber-surface);
-  --badge-outline: var(--badge-amber-border);
   --badge-ink: var(--badge-amber-foreground);
 }
 
 [data-slot="badge"]:is([class*="bg-orange-"], [class*="bg-risk-high"]) {
   --badge-surface: var(--badge-orange-surface);
-  --badge-outline: var(--badge-orange-border);
   --badge-ink: var(--badge-orange-foreground);
 }
 
 [data-slot="badge"]:is([class*="bg-purple-"], [class*="bg-violet-"], [class*="bg-indigo-"]) {
   --badge-surface: var(--badge-purple-surface);
-  --badge-outline: var(--badge-purple-border);
   --badge-ink: var(--badge-purple-foreground);
 }
 
 [data-slot="badge"]:is([class*="bg-pink-"], [class*="bg-fuchsia-"]) {
   --badge-surface: var(--badge-pink-surface);
-  --badge-outline: var(--badge-pink-border);
   --badge-ink: var(--badge-pink-foreground);
 }
 
 [data-slot="badge"]:is([class*="bg-teal-"], [class*="bg-cyan-"]) {
   --badge-surface: var(--badge-cyan-surface);
-  --badge-outline: var(--badge-cyan-border);
   --badge-ink: var(--badge-cyan-foreground);
 }
 
 [data-slot="badge"][aria-invalid="true"] {
   --badge-surface: var(--badge-red-surface);
-  --badge-outline: var(--badge-red-border);
   --badge-ink: var(--badge-red-foreground);
 }
 
@@ -461,22 +446,47 @@
 @layer base {
   [data-slot="badge"] {
     background-color: var(--badge-surface) !important;
-    border-color: var(--badge-outline) !important;
+    border-width: 0 !important;
+    border-radius: 9999px !important;
     color: var(--badge-ink) !important;
     font-size: 12px !important;
-    line-height: 16px;
+    font-weight: 600 !important;
+    line-height: 16px !important;
+    min-height: 22px;
+    padding: 2px 8px;
   }
 }
 
-[data-slot="table"] [data-slot="badge"] {
-  height: 22px;
-  border-radius: 8px;
-  padding: 2px 8px;
+/* One semantic border and one subtle elevation, replacing the stock surface ring. */
+[data-slot="card"] {
+  border: 1px solid var(--border);
+  box-shadow: var(--surface-shadow-low);
 }
 
-/* The stock Card edge is a ring, so use the shared surface border. */
-[data-slot="card"] {
-  --tw-ring-color: var(--border);
+:is([data-slot="popover-content"], [data-slot="dropdown-menu-content"], [data-slot="dropdown-menu-sub-content"], [data-slot="select-content"], [data-slot="combobox-content"]) {
+  border: 1px solid var(--border);
+  box-shadow: var(--surface-shadow-floating);
+}
+
+[data-slot="tooltip-content"] {
+  border: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+  box-shadow: var(--surface-shadow-floating);
+}
+
+:is([data-slot="dialog-content"], [data-slot="alert-dialog-content"], [data-slot="sheet-content"]),
+[data-slot="drawer-content"] > div:first-child {
+  border: 1px solid var(--border);
+  box-shadow: var(--surface-shadow-modal);
+}
+
+[data-slot="drawer-content"] {
+  border: 0;
+  box-shadow: none;
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-styled="true"] {
+  border: 1px solid var(--border);
+  box-shadow: var(--surface-shadow-floating);
 }
 
 /* Card titles and subtitles form one group without an extra vertical gap. */
@@ -500,16 +510,16 @@
   border-radius: 12px;
   --tw-ring-color: var(--table-divider);
   border: 1px solid var(--table-divider);
-  box-shadow: none;
+  box-shadow: var(--surface-shadow-low);
 }
 
-/* Toolbar and table share one bordered panel without a drop shadow. */
+/* Toolbar and table share one bordered, subtly raised outer panel. */
 :where(div, section):has(> [data-slot="collection-toolbar"] + [data-collection-table]) {
   overflow: clip;
   border-radius: 12px;
   background: var(--card);
   border: 1px solid var(--table-divider);
-  box-shadow: none;
+  box-shadow: var(--surface-shadow-low);
 }
 
 [data-slot="collection-toolbar"]:has(+ [data-collection-table]) {
@@ -534,18 +544,71 @@
   background-color: var(--separator);
 }
 
+/* Prevent boundary rubber-banding from exposing the shell behind app content. */
+html:has([data-app-shell]),
+body:has([data-app-shell]) {
+  overscroll-behavior-y: none;
+}
+
 /* The mobile sidebar keeps its existing sheet treatment. */
 [data-slot="sidebar"][data-mobile="true"] {
   border: 0 !important;
 }
 
-/* Neutral button interaction colors share the application palette. */
-:root:not(.dark) [data-slot="button"]:is([data-variant="outline"], [data-variant="ghost"], [data-variant="secondary"]):hover {
-  background-color: var(--accent);
+/* Non-button light-mode background hovers share #e8e8e8; buttons keep their own tone.
+ * Explicit transparent/no-hover treatments and flat plan rows remain intentional. */
+:root:not(.dark) :is([class^="hover:bg-"], [class*=" hover:bg-"]):hover:not(:active):not(:disabled):not([aria-disabled="true"]):not([data-disabled]):not([data-slot="button"]):not([class*="hover:bg-transparent"]):not([data-risk-plan-list] *) {
+  background-color: var(--accent) !important;
 }
 
-:root:not(.dark) [data-slot="button"]:is([data-variant="outline"], [data-variant="ghost"], [data-variant="secondary"]):is(:active, [aria-expanded="true"]) {
+[data-slot="button"][data-variant="default"]:hover:not(:disabled):not([aria-disabled="true"]):not([data-feedback-send]) {
+  background-color: var(--button-primary-hover);
+  color: var(--primary-foreground);
+}
+
+[data-slot="button"][data-variant="outline"] {
+  box-shadow:
+    var(--tw-inset-shadow, 0 0 #0000),
+    var(--tw-inset-ring-shadow, 0 0 #0000),
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000),
+    var(--button-outline-shadow);
+}
+
+/* Match the reference outline while leaving focus and validation borders authoritative. */
+[data-slot="button"][data-variant="outline"]:not(:disabled):not([aria-disabled="true"]):not([aria-invalid="true"]):not(:focus-visible) {
+  border-color: var(--button-outline-border);
+}
+
+[data-slot="button"][data-variant="outline"]:hover:not(:disabled):not([aria-disabled="true"]):not([aria-invalid="true"]):not(:focus-visible) {
+  border-color: var(--button-outline-hover-border);
+}
+
+/* Options share the sidebar highlight for pointer and keyboard navigation. */
+:is([data-slot="select-item"], [data-slot="dropdown-menu-item"], [data-slot="dropdown-menu-radio-item"], [data-slot="dropdown-menu-checkbox-item"], [data-slot="dropdown-menu-sub-trigger"], [data-slot="combobox-item"], [data-slot="command-item"]):is(:hover, :focus, [data-highlighted], [data-selected="true"]):not([data-disabled=""]):not([data-disabled="true"]):not([aria-disabled="true"]):not([data-variant="destructive"]) {
+  background-color: var(--sidebar-accent);
+}
+
+/* Button hovers follow the supplied soft neutral reference; pressed states stay distinct. */
+[data-slot="button"]:is([data-variant="outline"], [data-variant="ghost"], [data-variant="secondary"]):hover:not(:disabled):not([aria-disabled="true"]):not([class*="hover:bg-transparent"]) {
+  background-color: var(--button-hover-surface);
+}
+
+[data-slot="button"]:is([data-variant="outline"], [data-variant="ghost"], [data-variant="secondary"])[aria-expanded="true"]:not([class*="hover:bg-transparent"]) {
+  background-color: var(--button-hover-surface);
+}
+
+:root:not(.dark) [data-slot="button"]:is([data-variant="outline"], [data-variant="ghost"], [data-variant="secondary"]):active:not([class*="hover:bg-transparent"]) {
   background-color: var(--active);
+}
+
+/* Form pickers and plain-list add actions share the outline-button hover fill. */
+[data-slot="button"][data-sidebar-hover]:is(:hover, :active, [aria-expanded="true"]):not(:disabled):not([aria-disabled="true"]) {
+  background-color: var(--button-hover-surface) !important;
+}
+
+[data-slot="button"][data-sidebar-hover][data-variant="outline"]:is(:hover, :active, [aria-expanded="true"]):not(:disabled):not([aria-disabled="true"]):not([aria-invalid="true"]):not(:focus-visible) {
+  border-color: var(--button-outline-hover-border);
 }
 
 :root:not(.dark) [data-slot="button"]:disabled {
@@ -858,18 +921,19 @@ body[data-scroll-locked] [data-component="monitoring-baseline-floating"] {
   }
 }
 
-/* Work cards: real semantic border, no ring or drop shadow. */
+/* Work cards share the low surface elevation without a duplicate ring. */
 [data-slot="card"][data-operator-work-card] {
   border-radius: 12px;
   border: 1px solid var(--border);
-  box-shadow: none;
+  box-shadow: var(--surface-shadow-low);
 }
 
 /* Ringkasan Risiko reference widgets, shared with the design-system catalog. */
 [data-slot="card"][data-risk-summary-card] {
   --card-spacing: 1.5rem;
   border-radius: 12px;
-  box-shadow: 0 0 0 1px var(--border), 0 2px 3px color-mix(in oklch, var(--foreground) 5%, transparent);
+  border: 1px solid var(--border);
+  box-shadow: var(--surface-shadow-low);
 }
 [data-risk-summary-card] [data-slot="card-title"] {
   font-size: 0.875rem;
@@ -1459,6 +1523,67 @@ body[data-scroll-locked] [data-component="monitoring-baseline-floating"] {
   [data-pill-tabs] [data-slot="tabs-trigger"] { transition: none; transform: none; }
 }
 
+/* Rounded segmented tabs with a transform-only sliding active indicator. */
+[data-slot="tabs-list"][data-risk-detail-segments] {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 336px;
+  height: 32px;
+  max-width: 100%;
+  gap: 0;
+  padding: 3px;
+  border: 1px solid var(--button-outline-border);
+  border-radius: 8px;
+  background: var(--card);
+  box-shadow: var(--button-outline-shadow);
+}
+[data-risk-detail-segments]::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: 3px;
+  bottom: 3px;
+  left: 3px;
+  width: calc((100% - 6px) / 3);
+  background: var(--muted);
+  border-radius: 5px;
+  transform: translateX(0);
+  transition: transform 200ms var(--ease-out);
+  pointer-events: none;
+}
+[data-risk-detail-segments][data-active-tab="monitoring"]::before { transform: translateX(100%); }
+[data-risk-detail-segments][data-active-tab="treatment"]::before { transform: translateX(200%); }
+[data-risk-detail-segments] [data-slot="tabs-trigger"] {
+  z-index: 1;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--tertiary-foreground);
+  box-shadow: none;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 500;
+}
+[data-risk-detail-segments] [data-slot="tabs-trigger"][data-state="active"] {
+  background: transparent;
+  color: var(--foreground);
+  box-shadow: none;
+  font-weight: 500;
+}
+[data-risk-detail-segments] [data-slot="tabs-trigger"]::after { display: none; }
+@media (prefers-reduced-motion: reduce) {
+  [data-risk-detail-segments]::before { transition: none; }
+}
+@media (max-width: 400px) {
+  [data-risk-detail-segments] [data-slot="tabs-trigger"] { padding-inline: 10px; }
+}
+
 /* Risk treatment plans: compact 12px/8px cells, rounded header, no hover. */
 [data-risk-plan-list] {
   background: var(--card);
@@ -1466,8 +1591,9 @@ body[data-scroll-locked] [data-component="monitoring-baseline-floating"] {
 [data-risk-plan-list] [data-slot="table-head"] {
   height: 40px;
   background: var(--table-header) !important;
-  font-size: 12px;
-  font-weight: 400;
+  font-size: 11px;
+  font-weight: 500;
+  text-transform: uppercase;
 }
 [data-risk-plan-list] [data-slot="table-head"],
 [data-risk-plan-list] [data-slot="table-cell"] {
@@ -1480,8 +1606,23 @@ body[data-scroll-locked] [data-component="monitoring-baseline-floating"] {
   color: var(--muted-foreground);
 }
 [data-risk-plan-list] [data-slot="table-row"] {
-  border-color: var(--table-divider);
+  position: relative;
+  border: 0;
   transition: none;
+}
+[data-risk-plan-list] [data-slot="table-header"] [data-slot="table-row"]::after,
+[data-risk-plan-list] [data-slot="table-body"] [data-slot="table-row"]:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 12px;
+  right: 12px;
+  height: 1px;
+  background: var(--separator);
+  pointer-events: none;
+}
+[data-risk-plan-list] [data-slot="table-header"] [data-slot="table-row"]::after {
+  background: color-mix(in srgb, var(--border) 70%, var(--card));
 }
 [data-risk-plan-list] [data-slot="table-body"] > [data-slot="table-row"] {
   height: 48px;
@@ -1510,6 +1651,11 @@ body[data-scroll-locked] [data-component="monitoring-baseline-floating"] {
 }
 [data-slot="alert"][data-variant="info"] [data-slot="alert-description"] { color: inherit; }
 
+/* Compact corners for the persistent To-Do schedule banner. */
+[data-slot="alert"][data-operator-monitoring-period] {
+  border-radius: var(--radius-md);
+}
+
 /* Shared property list: icon/label column and aligned leading-edge values. */
 [data-property-list] { border: 0; }
 [data-property-list] > div {
@@ -1520,6 +1666,7 @@ body[data-scroll-locked] [data-component="monitoring-baseline-floating"] {
   border: 0;
   padding-block: 4px;
 }
+[data-property-list][data-compact="true"] > div { padding-block: 2px; }
 [data-property-list] > div > dd {
   min-width: 0;
   max-width: 100%;

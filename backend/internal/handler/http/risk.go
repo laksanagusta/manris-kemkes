@@ -175,7 +175,7 @@ func (h *RiskHandler) ListRiskRegister(c *fiber.Ctx) error {
 		SortOrder:        strings.TrimSpace(c.Query("sort_order", "")),
 	}
 	// Validate sort_by — only "created_at" or "nilai" (priority) allowed
-	if input.SortBy != "" && input.SortBy != "created_at" && input.SortBy != "nilai" {
+	if input.SortBy != "" && input.SortBy != "created_at" && input.SortBy != "nilai" && input.SortBy != "title" && input.SortBy != "code" && input.SortBy != "category" && input.SortBy != "status" && input.SortBy != "assessment_cycle" {
 		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "sort_by tidak valid")
 	}
 	// Validate sort_order

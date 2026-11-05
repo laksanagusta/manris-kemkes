@@ -24,7 +24,7 @@ export function CollectionLayoutExample() {
   const [period, setPeriod] = useState("all");
 
   return (
-    <PageStack className="rounded-[12px] border bg-background p-4">
+    <PageStack className="rounded-[12px] border bg-card p-4">
       <MetricGrid>
         {["Total", "Aktif", "Menunggu", "Selesai"].map((label, index) => (
           <KpiCard

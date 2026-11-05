@@ -69,7 +69,7 @@ func (uc *WorkflowUseCase) CreateRevision(ctx context.Context, input CreateRevis
 		return nil, errors.Wrap(errors.ErrInvalidInput, "alasan revisi minimal 10 karakter")
 	}
 
-	existing, err := uc.repo.FindExistingByOrgPeriodLevel(ctx, source.OrganizationID, source.Period, source.UPRLevel)
+	existing, err := uc.repo.FindExistingByOrgLevel(ctx, source.OrganizationID, source.UPRLevel)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to find existing revision")
 	}
@@ -77,13 +77,23 @@ func (uc *WorkflowUseCase) CreateRevision(ctx context.Context, input CreateRevis
 		return &CreateRevisionOutput{Charter: existing, Existing: true}, nil
 	}
 
+	versions, err := uc.repo.ListVersions(ctx, source.VersionGroupID)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to read risk charter version sequence")
+	}
+	nextVersion := source.VersionNumber + 1
+	for _, version := range versions {
+		if version != nil && version.VersionNumber >= nextVersion {
+			nextVersion = version.VersionNumber + 1
+		}
+	}
 	actor := input.Actor
 	sourceID := source.ID
 	revision := *source
 	revision.ID = uuid.Nil
 	revision.Status = entity.RiskCharterStatusDraft
 	revision.PreviousVersionID = &sourceID
-	revision.VersionNumber = source.VersionNumber + 1
+	revision.VersionNumber = nextVersion
 	revision.IsCurrent = false
 	revision.RevisionReason = reason
 	revision.CreatedBy = &actor
@@ -94,6 +104,10 @@ func (uc *WorkflowUseCase) CreateRevision(ctx context.Context, input CreateRevis
 	revision.CreatedAt = time.Time{}
 	revision.UpdatedAt = time.Time{}
 	if err := uc.repo.CreateRevision(ctx, source, &revision); err != nil {
+		concurrent, findErr := uc.repo.FindExistingByOrgLevel(ctx, source.OrganizationID, source.UPRLevel)
+		if findErr == nil && concurrent != nil && concurrent.Status == entity.RiskCharterStatusDraft && concurrent.VersionGroupID == source.VersionGroupID {
+			return &CreateRevisionOutput{Charter: concurrent, Existing: true}, nil
+		}
 		return nil, errors.Wrap(err, "failed to create risk charter revision")
 	}
 	return &CreateRevisionOutput{Charter: &revision}, nil
@@ -140,12 +154,12 @@ func (uc *WorkflowUseCase) Restore(ctx context.Context, input CharterActionInput
 	if charter.Status != entity.RiskCharterStatusArchived {
 		return nil, errors.Wrap(errors.ErrInvalidInput, "hanya piagam arsip yang dapat dipulihkan")
 	}
-	existing, err := uc.repo.FindExistingByOrgPeriodLevel(ctx, charter.OrganizationID, charter.Period, charter.UPRLevel)
+	existing, err := uc.repo.FindExistingByOrgLevel(ctx, charter.OrganizationID, charter.UPRLevel)
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to validate risk charter restoration")
 	}
 	if existing != nil && existing.ID != charter.ID && existing.IsCurrent {
-		return nil, errors.Wrap(errors.ErrInvalidInput, "piagam current untuk tahun yang sama sudah ada")
+		return nil, errors.Wrap(errors.ErrInvalidInput, "piagam current untuk organisasi dan level UPR ini sudah ada")
 	}
 	if err := uc.repo.Restore(ctx, charter); err != nil {
 		return nil, errors.Wrap(err, "failed to restore risk charter")

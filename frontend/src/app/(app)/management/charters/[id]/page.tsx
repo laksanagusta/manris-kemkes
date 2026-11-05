@@ -1302,7 +1302,7 @@ export default function RiskCharterDetailPage() {
             <AlertDialogTitle>Pulihkan Piagam?</AlertDialogTitle>
             <AlertDialogDescription>
               Piagam akan kembali menjadi versi aktif jika belum ada Piagam
-              current untuk organisasi, level UPR, dan tahun yang sama.
+              current untuk organisasi dan level UPR yang sama.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="gap-2 sm:justify-end">

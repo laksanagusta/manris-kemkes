@@ -27,6 +27,7 @@ import (
 	controluc "github.com/manris/backend/internal/usecase/control"
 	evaluationuc "github.com/manris/backend/internal/usecase/evaluation"
 	externalextPICuc "github.com/manris/backend/internal/usecase/external_pic"
+	feedbackuc "github.com/manris/backend/internal/usecase/feedback"
 	formalreportuc "github.com/manris/backend/internal/usecase/formalreport"
 	impactcriteriauc "github.com/manris/backend/internal/usecase/impactcriteria"
 	likelihoodassessmentuc "github.com/manris/backend/internal/usecase/likelihoodassessment"
@@ -51,6 +52,7 @@ import (
 
 // Container holds all application dependencies.
 type Container struct {
+	FeedbackService      *feedbackuc.Service
 	OperatorWorkService  *workuc.Service
 	RiskEventNoteService *riskeventuc.NoteService
 	AgentService         *agent.Service
@@ -307,6 +309,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	c.OrgGroupRepository = postgresrepo.NewOrganizationGroupRepository(pool)
 	c.RiskRepository = postgresrepo.NewRiskRepository(pool)
 	c.OperatorWorkService = workuc.NewService(postgresrepo.NewOperatorWorkRepository(pool))
+	c.FeedbackService = feedbackuc.NewService(postgresrepo.NewFeedbackRepository(pool))
 	c.RiskCascadeRepository = postgresrepo.NewRiskCascadeRepository(pool)
 	c.IncidentRepository = postgresrepo.NewIncidentRepository(pool)
 	c.ControlRepository = postgresrepo.NewControlRepository(pool)

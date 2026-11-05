@@ -1,6 +1,8 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
+import { Check } from "@/components/shared/icons";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { levelToColor } from "@/lib/risk";
 import { getStatusBadgeClassName } from "@/lib/badge-variant";
 import {
@@ -13,6 +15,10 @@ import {
 export function BadgeSystemExample() {
   return (
     <div className="space-y-5 rounded-[12px] bg-card p-6 shadow-black">
+      <div>
+        <p className="mb-3 text-xs font-medium text-foreground">Referensi Active · pill tanpa border · semibold</p>
+        <Badge variant="secondary" className="bg-green-50">Active</Badge>
+      </div>
       <div>
         <p className="mb-3 text-xs font-medium text-foreground">Palet referensi · 12px</p>
         <div className="flex flex-wrap gap-2">
@@ -80,11 +86,15 @@ export function BadgeSystemExample() {
       <div>
         <p className="mb-3 text-xs font-medium text-foreground">With Icon & Counter</p>
         <div className="flex flex-wrap gap-2">
-          <Badge variant="outline">Current</Badge>
+          <Badge variant="outline" className="bg-green-50"><Check aria-hidden="true" />Active</Badge>
           <Badge variant="outline">3</Badge>
           <Badge variant="secondary">RO</Badge>
         </div>
       </div>
+      <Table>
+        <TableHeader><TableRow><TableHead>Konteks tabel</TableHead><TableHead>Status</TableHead></TableRow></TableHeader>
+        <TableBody><TableRow><TableCell>Contoh ilustratif</TableCell><TableCell><Badge className="bg-green-50">Active</Badge></TableCell></TableRow></TableBody>
+      </Table>
     </div>
   );
 }

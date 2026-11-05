@@ -7,7 +7,7 @@ export function OperatorMonitoringPeriod({ today }: { today: string }) {
   if (!period) return null;
 
   return (
-    <Alert variant="info" role="note" aria-label="Periode pemantauan">
+    <Alert variant="info" data-operator-monitoring-period="" role="note" aria-label="Periode pemantauan">
       <AlertCircle aria-hidden="true" />
       <AlertTitle>Periode pemantauan</AlertTitle>
       <AlertDescription className="space-y-1" aria-label="Jadwal pemantauan">

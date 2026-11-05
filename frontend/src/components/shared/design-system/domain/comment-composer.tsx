@@ -17,7 +17,7 @@ export function CommentComposer({ message, stakeholder, busy = false, error, onM
   const id = useId();
   return (
     <div className="mt-4 min-w-0 rounded-2xl bg-card-subtle-surface p-1" aria-label="Tulis catatan">
-      <div className="px-3 py-2 text-sm font-medium text-foreground">Komentar</div>
+      <div className="px-3 py-2 text-sm font-medium text-secondary-foreground">Komentar</div>
       <div className="min-w-0 overflow-hidden rounded-xl border border-border bg-card focus-within:ring-2 focus-within:ring-ring/30">
         <div className="mx-3 flex min-w-0 flex-wrap items-center gap-x-2 border-b border-border py-2">
           <label htmlFor={`${id}-party`} className="shrink-0 text-sm text-muted-foreground">Pihak terkait:</label>

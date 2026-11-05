@@ -218,6 +218,10 @@ func (r *mitigationTaskRepository) ListAll(ctx context.Context, orgIDs []uuid.UU
 }
 
 func (r *mitigationTaskRepository) ListAllPaginated(ctx context.Context, orgIDs []uuid.UUID, query, status, period string, page, limit int) ([]*entity.MitigationTask, int, error) {
+	return r.ListAllSorted(ctx, orgIDs, query, status, period, page, limit, "", "")
+}
+
+func (r *mitigationTaskRepository) ListAllSorted(ctx context.Context, orgIDs []uuid.UUID, query, status, period string, page, limit int, sortBy, sortOrder string) ([]*entity.MitigationTask, int, error) {
 	baseFrom := ` FROM mitigation_tasks t
 		 JOIN mitigations m ON t.mitigation_id = m.id
 		 JOIN risks r ON t.risk_id = r.id
@@ -272,7 +276,9 @@ func (r *mitigationTaskRepository) ListAllPaginated(ctx context.Context, orgIDs 
 
 	offset := (page - 1) * limit
 	orderBy := "t.created_at DESC, t.id DESC"
-	if normalizedStatus == "needs_reporting" {
+	if sortBy != "" {
+		orderBy = collectionOrderBy(sortBy, sortOrder, "t.created_at", "t.id", map[string]string{"created_at": "t.created_at", "action": "m.action", "owner": "m.owner", "period": "t.period_label", "due_date": "t.due_date", "status": "t.status"})
+	} else if normalizedStatus == "needs_reporting" {
 		orderBy = "t.due_date ASC, t.created_at ASC, t.id ASC"
 	}
 	countQuery := `SELECT COUNT(*)` + baseFrom + whereClause

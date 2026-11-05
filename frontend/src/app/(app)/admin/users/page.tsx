@@ -1,4 +1,6 @@
 "use client";
+import { CollectionTableHead as TableHead } from "@/components/shared/design-system/collections/collection-table-head";
+import { useRemoteCollectionSorting, CollectionSortProvider } from "@/components/shared/design-system/collections/collection-sorting";
 import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
 
 
@@ -53,7 +55,7 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
+
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
@@ -202,6 +204,7 @@ export default function UsersManagementPage() {
 
   const deferredSearch = useDeferredValue(search);
 
+  const collectionSort = useRemoteCollectionSorting({"User": "name", "Role": "role", "Organisasi": "organization", "Terakhir login": "last_login", "Status": "status"}, () => setPage(1));
   useEffect(() => {
     skipUrlWrite.current = true;
     const nextSearch = searchParams.get("q") ?? "";
@@ -287,6 +290,7 @@ export default function UsersManagementPage() {
     let cancelled = false;
 
     listUsers(token, {
+ sort_by:collectionSort.sortBy, sort_order:collectionSort.sortOrder,
       q: deferredSearch.trim() || undefined,
       status: statusFilter === "all" ? undefined : statusFilter,
       role: roleFilter === "all" ? undefined : roleFilter,
@@ -315,7 +319,7 @@ export default function UsersManagementPage() {
     return () => {
       cancelled = true;
     };
-  }, [authLoading, isSuperadmin, token, deferredSearch, statusFilter, roleFilter, page, limit]);
+  }, [authLoading, isSuperadmin, token, deferredSearch, statusFilter, roleFilter, page, limit, collectionSort.sortBy, collectionSort.sortOrder]);
 
   if (authLoading || (isSuperadmin && pageState === "loading")) {
     return (
@@ -479,7 +483,7 @@ export default function UsersManagementPage() {
 
       <Card className="overflow-hidden">
         <CardContent className="">
-          <Table>
+          <CollectionSortProvider controls={collectionSort.controls}><Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
                 <TableHead className="whitespace-nowrap">User</TableHead>
@@ -630,7 +634,7 @@ export default function UsersManagementPage() {
                 })
               )}
             </TableBody>
-          </Table>
+          </Table></CollectionSortProvider>
 
           <CollectionPagination
             itemLabel="pengguna"

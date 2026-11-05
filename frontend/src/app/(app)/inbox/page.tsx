@@ -1,6 +1,8 @@
 "use client";
+import { useCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
 
 import Link from "next/link";
+import { newestCreatedFirst } from "@/lib/collection-created-at";
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -49,6 +51,7 @@ interface ApprovalRequest {
   requestedBy: string;
   requestedByName: string;
   requestedAt: string;
+  createdAt?: string;
   currentStatus: "pending" | "approved" | "rejected";
   currentApproverRole: string;
   currentApproverUserId?: string | null;
@@ -104,7 +107,8 @@ const requestTypeConfig: Record<
   },
 };
 
-function formatDate(dateString: string) {
+function formatDate(dateString?: string) {
+  if (!dateString || !Number.isFinite(Date.parse(dateString))) return "—";
   return new Date(dateString).toLocaleDateString("id-ID", {
     day: "numeric",
     month: "short",
@@ -184,11 +188,7 @@ async function getAllInboxItems(token: string): Promise<InboxItem[]> {
     })(),
     getWorkingPaperSigningItems(token).catch(() => []),
   ]);
-  return [...approvals, ...signingItems].sort((a, b) => {
-    const dateA = "createdAt" in a ? a.createdAt : a.requestedAt;
-    const dateB = "createdAt" in b ? b.createdAt : b.requestedAt;
-    return new Date(dateB).getTime() - new Date(dateA).getTime();
-  });
+  return [...approvals, ...signingItems].sort(newestCreatedFirst);
 }
 
 export default function InboxPage() {
@@ -454,8 +454,9 @@ export default function InboxPage() {
     });
   }, [filter, requests, search, typeFilter, isMyApproval]);
 
+  const collectionSort = useCollectionSorting(filteredRequests, {"Kode": r => ("workingPaperId" in r?r.workingPaperId:r.entityCode), "Entitas": r => ("workingPaperId" in r?r.title:r.entityTitle), "Status": r => ("currentStatus" in r?r.currentStatus:r.status), "Jenis": r => r.requestType}, () => setPage(1));
   const visiblePage = Math.min(page, Math.max(1, Math.ceil(filteredRequests.length / limit)));
-  const paginatedRequests = filteredRequests.slice((visiblePage - 1) * limit, visiblePage * limit);
+  const paginatedRequests = collectionSort.rows.slice((visiblePage - 1) * limit, visiblePage * limit);
 
   if (loading) {
     return (
@@ -543,7 +544,7 @@ export default function InboxPage() {
         }
       />
 
-      <CollectionTableCard>
+      <CollectionTableCard sorting={collectionSort.controls}>
         <Table className="min-w-[760px] table-fixed">
           <colgroup>
             <col className="w-[14%]" />
@@ -600,7 +601,7 @@ export default function InboxPage() {
                     `Menunggu review ${approvalItem!.currentApproverRole}`;
                 const displayDate = isWorkingPaper
                   ? wpItem!.createdAt
-                  : approvalItem!.requestedAt;
+                  : approvalItem!.createdAt;
                 const entityId = isWorkingPaper
                   ? wpItem!.workingPaperId
                   : approvalItem!.entityId;
