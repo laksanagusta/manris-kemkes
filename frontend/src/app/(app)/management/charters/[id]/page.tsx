@@ -15,7 +15,6 @@ import { toast } from "sonner";
 import {
   Archive,
   Check,
-  GitBranch,
   History,
   Pencil,
   RotateCcw,
@@ -202,6 +201,7 @@ export default function RiskCharterDetailPage() {
   const [versions, setVersions] = useState<RiskCharter[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [finalizeOpen, setFinalizeOpen] = useState(false);
+  const [checkingRevision, setCheckingRevision] = useState(false);
   const [revisionOpen, setRevisionOpen] = useState(false);
   const [revisionReason, setRevisionReason] = useState("");
   const [archiveOpen, setArchiveOpen] = useState(false);
@@ -364,6 +364,24 @@ export default function RiskCharterDetailPage() {
     void loadVersions();
   }, [loadVersions]);
 
+  async function openRevision() {
+    if (!token || !charter) return;
+    setCheckingRevision(true);
+    try {
+      const revisions = await listRiskCharterVersions(token, charter.id);
+      const draft = revisions.find((version) => version.status === "draft");
+      if (draft) {
+        router.push(`/management/charters/${draft.id}`);
+        return;
+      }
+      setRevisionOpen(true);
+    } catch {
+      toast.error("Draf revisi belum bisa diperiksa. Coba lagi.");
+    } finally {
+      setCheckingRevision(false);
+    }
+  }
+
   const runWorkflow = useCallback(
     async (action: () => Promise<RiskCharter>, successMessage: string) => {
       try {
@@ -416,6 +434,8 @@ export default function RiskCharterDetailPage() {
     (charter.createdBy === user?.id ||
       user?.role === "superadmin" ||
       user?.role === "super_admin");
+
+  const canRevise = charter.status === "active" && charter.isCurrent;
 
   function replaceLegalBases(items: RiskCharterLegalBasis[]) {
     form.setValue("legalBases", items, { shouldDirty: true });
@@ -579,62 +599,66 @@ export default function RiskCharterDetailPage() {
           showTitle
           badges={
             <>
-            <Badge variant={toBadgeVariant(status.tone)} className={getStatusBadgeClassName(status.tone)}>
-              {status.label}
-            </Badge>
-          </>
+              <span className="text-xs text-muted-foreground">v{charter.versionNumber}</span>
+              <Badge variant={toBadgeVariant(status.tone)} className={getStatusBadgeClassName(status.tone)}>
+                {status.label}
+              </Badge>
+            </>
           }
           actionsPlacement="header"
           actions={
-            <div className="flex items-center gap-2">
-              <DropdownActionMenu
-                label="Tindakan Piagam"
-                items={[
-                  {
-                    id: "history",
-                    label: "Riwayat versi",
-                    icon: <History className="size-3.5" aria-hidden="true" />,
-                    onSelect: openHistory,
-                  },
-                  ...(charter.status === "active" && charter.isCurrent
-                    ? [
-                        {
-                          id: "revision",
-                          label: "Buat revisi",
-                          icon: <GitBranch className="size-3.5" aria-hidden="true" />,
-                          onSelect: () => setRevisionOpen(true),
-                        },
-                        {
-                          id: "archive",
-                          label: "Arsipkan",
-                          icon: <Archive className="size-3.5" aria-hidden="true" />,
-                          onSelect: () => setArchiveOpen(true),
-                        },
-                      ]
-                    : []),
-                  ...(charter.status === "archived"
-                    ? [
-                        {
-                          id: "restore",
-                          label: "Pulihkan",
-                          icon: <RotateCcw className="size-3.5" aria-hidden="true" />,
-                          onSelect: () => setRestoreOpen(true),
-                        },
-                      ]
-                    : []),
-                  ...(canDelete
-                    ? [
-                        {
-                          id: "delete",
-                          label: "Hapus draf",
-                          tone: "danger" as const,
-                          icon: <Trash2 className="size-3.5" aria-hidden="true" />,
-                          onSelect: () => setDeleteOpen(true),
-                        },
-                      ]
-                    : []),
-                ]}
-              />
+            <div className="flex flex-wrap items-center gap-2">
+              {canRevise || charter.status === "archived" || canDelete ? (
+                <DropdownActionMenu
+                  label="Tindakan Piagam"
+                  items={[
+                    ...(canRevise
+                      ? [
+                          {
+                            id: "archive",
+                            label: "Arsipkan",
+                            icon: <Archive className="size-3.5" aria-hidden="true" />,
+                            onSelect: () => setArchiveOpen(true),
+                          },
+                        ]
+                      : []),
+                    ...(charter.status === "archived"
+                      ? [
+                          {
+                            id: "restore",
+                            label: "Pulihkan",
+                            icon: <RotateCcw className="size-3.5" aria-hidden="true" />,
+                            onSelect: () => setRestoreOpen(true),
+                          },
+                        ]
+                      : []),
+                    ...(canDelete
+                      ? [
+                          {
+                            id: "delete",
+                            label: "Hapus draf",
+                            tone: "danger" as const,
+                            icon: <Trash2 className="size-3.5" aria-hidden="true" />,
+                            onSelect: () => setDeleteOpen(true),
+                          },
+                        ]
+                      : []),
+                  ]}
+                />
+              ) : null}
+              <ActionButton icon={<History className="size-4" />} onClick={openHistory}>
+                Riwayat versi
+              </ActionButton>
+              {canRevise ? (
+                <LoadingActionButton
+                  variant="default"
+                  loading={checkingRevision}
+                  loadingLabel="Memeriksa draf..."
+                  onClick={() => void openRevision()}
+                >
+                  Revisi Piagam
+                </LoadingActionButton>
+              ) : null}
               {isEditable ? (
                 <LoadingActionButton
                   type="button"

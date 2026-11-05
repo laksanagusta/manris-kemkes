@@ -714,7 +714,8 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 
 	offset := (filter.Page - 1) * filter.Limit
 	dataQuery += " ORDER BY " + collectionOrderBy(filter.SortBy, filter.SortOrder, "r.created_at", "r.id", map[string]string{
-		"created_at": "r.created_at", "title": "r.title", "code": "r.code", "category": "r.category", "status": "r.status", "assessment_cycle": "r.assessment_cycle", "nilai": "monitoring_score.observed_nilai",
+		"created_at": "r.created_at", "title": "r.title", "code": "r.code", "category": "r.category", "status": "r.status", "assessment_cycle": "r.assessment_cycle",
+		"nilai": "COALESCE(r.nilai, 0)",
 	}) + fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
 
 	args = append(args, filter.Limit, offset)

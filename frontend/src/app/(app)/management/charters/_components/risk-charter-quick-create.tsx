@@ -1,36 +1,24 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useReducedMotion } from "motion/react";
-import { ArrowRight, FilePlus2 } from "@/components/shared/icons";
+import { toast } from "sonner";
 
 import { useAuth } from "@/contexts/auth-context";
 import { listAllOrganizations } from "@/lib/api/organizations";
 import { createRiskCharter } from "@/lib/api/risk-charters";
-import type { RiskCharter, RiskCharterUPRLevel } from "@/types/risk-charter";
+import type { RiskCharterUPRLevel } from "@/types/risk-charter";
 import { FormHeader, FormPage } from "@/components/shared/form-shell";
 import {
-  AccentButton,
+  ActionButton,
   Card,
   CardContent,
-  CollectionDialogCancel,
-  CollectionNotice,
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
   FieldErrorMessage,
   Input,
   Label,
   LoadingActionButton,
 } from "@/components/shared/design-system";
-
-type RiskCharterQuickCreateProps = {
-  presentation: "dialog" | "page";
-};
 
 function normalizeUPRLevel(value?: string): RiskCharterUPRLevel | null {
   if (value === "kementerian" || value === "eksekutif") return "eksekutif";
@@ -38,60 +26,17 @@ function normalizeUPRLevel(value?: string): RiskCharterUPRLevel | null {
   return null;
 }
 
-export function RiskCharterQuickCreate({
-  presentation,
-}: RiskCharterQuickCreateProps) {
+export function RiskCharterQuickCreate() {
   const router = useRouter();
-  const reducedMotion = useReducedMotion();
   const { token, user } = useAuth();
-  const [open, setOpen] = useState(true);
   const [title, setTitle] = useState("");
   const [uprLevel, setUprLevel] = useState<RiskCharterUPRLevel | null>(null);
   const [loadingContext, setLoadingContext] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [existing, setExisting] = useState<RiskCharter | null>(null);
-  const pendingNavigationRef = useRef<string | null>(null);
-
-  const close = useCallback(() => {
-    if (presentation === "dialog") {
-      pendingNavigationRef.current = "__back__";
-      setOpen(false);
-      if (reducedMotion) {
-        window.requestAnimationFrame(() => {
-          pendingNavigationRef.current = null;
-          router.back();
-        });
-      }
-      return;
-    }
-    router.push("/management/charters");
-  }, [presentation, reducedMotion, router]);
-
-  const flushPendingNavigation = useCallback(() => {
-    const destination = pendingNavigationRef.current;
-    if (!destination) return;
-    pendingNavigationRef.current = null;
-    if (destination === "__back__") {
-      router.back();
-      return;
-    }
-    router.push(destination);
-  }, [router]);
-
-  const navigateAfterClose = useCallback(
-    (destination: string) => {
-      if (presentation === "page") {
-        router.push(destination);
-        return;
-      }
-      pendingNavigationRef.current = destination;
-      setOpen(false);
-      if (reducedMotion) {
-        window.requestAnimationFrame(flushPendingNavigation);
-      }
-    },
-    [flushPendingNavigation, presentation, reducedMotion, router],
+  const openCharter = useCallback(
+    (id: string) => router.replace(`/management/charters/${id}`),
+    [router],
   );
 
   useEffect(() => {
@@ -146,18 +91,20 @@ export function RiskCharterQuickCreate({
     try {
       setSubmitting(true);
       setError(null);
-      setExisting(null);
       const response = await createRiskCharter(token, {
         title: normalizedTitle,
         organizationId: user.organizationId,
         uprLevel,
       });
       if (response.existing) {
-        setExisting(response.data);
-        return;
+        toast.info(
+          response.data.status === "draft"
+            ? "Membuka draf Piagam yang sudah ada."
+            : "Membuka Piagam yang sudah ada.",
+        );
       }
 
-      navigateAfterClose(`/management/charters/${response.data.id}`);
+      openCharter(response.data.id);
     } catch (createError) {
       setError(
         createError instanceof Error
@@ -168,151 +115,65 @@ export function RiskCharterQuickCreate({
       setSubmitting(false);
     }
   }, [
-    navigateAfterClose,
+    openCharter,
     title,
     token,
     uprLevel,
     user?.organizationId,
   ]);
 
-  const content = (
-    <form
-      className="space-y-5"
-      onSubmit={(event) => {
-        event.preventDefault();
-        void handleCreate();
-      }}
-    >
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="charter-title">Judul Piagam</Label>
-        <Input
-          id="charter-title"
-          className="bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500"
-          autoFocus
-          maxLength={120}
-          value={title}
-          onChange={(event) => {
-            setTitle(event.target.value);
-            if (error) setError(null);
-            if (existing) setExisting(null);
-          }}
-          placeholder="Contoh: Piagam Manajemen Risiko Direktorat 2026"
-          aria-invalid={Boolean(error)}
-          aria-describedby={error ? "charter-create-error" : undefined}
-        />
-        <FieldErrorMessage
-          id="charter-create-error"
-          className="text-sm font-normal"
-        >
-          {error}
-        </FieldErrorMessage>
-      </div>
-
-      {existing ? (
-        <div className="space-y-3">
-          <CollectionNotice>
-            {existing.status === "draft"
-              ? "Piagam organisasi ini sudah memiliki draf."
-              : "Piagam organisasi ini sudah tersedia."}
-          </CollectionNotice>
-          <AccentButton
-            type="button"
-            className="w-full justify-center"
-            icon={<ArrowRight className="size-4" />}
-            onClick={() =>
-              navigateAfterClose(`/management/charters/${existing.id}`)
-            }
-          >
-            {existing.status === "draft" ? "Lanjutkan draf" : "Buka Piagam"}
-          </AccentButton>
-        </div>
-      ) : null}
-    </form>
-  );
-
-  if (presentation === "page") {
-    return (
-      <FormPage>
-        <FormHeader
-          title="Buat Piagam"
-          subtitle="Beri judul untuk membuat draf Piagam versi pertama."
-        />
-        <Card className="mx-auto w-full max-w-xl">
-          <CardContent className="space-y-5">
-            <div className="flex size-10 items-center justify-center rounded-lg bg-muted text-foreground">
-              <FilePlus2 className="size-5" />
-            </div>
-            {content}
-            {!existing ? (
-              <LoadingActionButton
-                className="w-full"
-                variant="default"
-                size="default"
-                loading={submitting || loadingContext}
-                loadingLabel={loadingContext ? "Menyiapkan..." : "Membuat draf..."}
-                disabled={!title.trim() || Boolean(error && !uprLevel)}
-                onClick={() => void handleCreate()}
-              >
-                Buat draf
-              </LoadingActionButton>
-            ) : null}
-          </CardContent>
-        </Card>
-      </FormPage>
-    );
-  }
+  const creating = submitting || loadingContext;
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(nextOpen) => {
-        setOpen(nextOpen);
-        if (!nextOpen && !pendingNavigationRef.current) close();
-      }}
-    >
-      <DialogContent
-        className="max-w-2xl no-scrollbar"
-        showCloseButton={false}
-        onAnimationEnd={(event) => {
-          if (event.currentTarget !== event.target) return;
-          if (event.animationName !== "exit") return;
-          flushPendingNavigation();
-        }}
-      >
-        <div className="flex min-h-0 flex-col gap-5">
-          <DialogHeader>
-            <DialogTitle className="text-base">Buat Piagam</DialogTitle>
-            <DialogDescription>
-              Beri judul untuk membuat draf Piagam versi pertama.
-            </DialogDescription>
-          </DialogHeader>
-          <div>{content}</div>
-          <DialogFooter>
-            <CollectionDialogCancel
-              type="button"
-              variant="outline"
-              size="default"
-              className="border-0 shadow-black"
-              onClick={close}
-            >
-              Batal
-            </CollectionDialogCancel>
-            {!existing ? (
+    <FormPage>
+      <FormHeader title="Buat Piagam" showTitle />
+      <Card className="mx-auto w-full max-w-xl">
+        <CardContent>
+          <form
+            className="space-y-5"
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (!creating) void handleCreate();
+            }}
+          >
+            <p className="text-sm text-muted-foreground">
+              Beri judul untuk membuat draf versi pertama. Isi Piagam bisa dilengkapi setelah draf dibuat.
+            </p>
+            <div className="flex flex-col gap-2">
+              <Label htmlFor="charter-title">Judul Piagam</Label>
+              <Input
+                id="charter-title"
+                className="bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500"
+                autoFocus
+                maxLength={120}
+                value={title}
+                onChange={(event) => {
+                  setTitle(event.target.value);
+                  if (error && uprLevel) setError(null);
+                }}
+                placeholder="Contoh: Piagam Manajemen Risiko Direktorat"
+                aria-invalid={Boolean(error && uprLevel)}
+                aria-describedby={error ? "charter-create-error" : undefined}
+              />
+              <FieldErrorMessage id="charter-create-error">{error}</FieldErrorMessage>
+            </div>
+            <div className="flex flex-wrap justify-end gap-2">
+              <ActionButton asChild>
+                <Link href="/management/charters">Kembali</Link>
+              </ActionButton>
               <LoadingActionButton
-                type="button"
+                type="submit"
                 variant="default"
-                size="default"
-                loading={submitting || loadingContext}
+                loading={creating}
                 loadingLabel={loadingContext ? "Menyiapkan..." : "Membuat draf..."}
-                disabled={!title.trim() || Boolean(error && !uprLevel)}
-                onClick={() => void handleCreate()}
+                disabled={!title.trim() || !uprLevel}
               >
                 Buat draf
               </LoadingActionButton>
-            ) : null}
-          </DialogFooter>
-        </div>
-      </DialogContent>
-    </Dialog>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </FormPage>
   );
 }
