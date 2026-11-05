@@ -20,14 +20,14 @@ type createUserRequest struct {
 }
 
 type UserHandler struct {
-	createUC    *useruc.CreateUserUseCase
-	getUC       *useruc.GetUserUseCase
-	updateUC    *useruc.UpdateUserUseCase
-	deleteUC    *useruc.DeleteUserUseCase
-	listUC      *useruc.ListUsersUseCase
+	createUC     *useruc.CreateUserUseCase
+	getUC        *useruc.GetUserUseCase
+	updateUC     *useruc.UpdateUserUseCase
+	deleteUC     *useruc.DeleteUserUseCase
+	listUC       *useruc.ListUsersUseCase
 	listFilterUC *useruc.ListUsersWithFilterUseCase
-	approveUC   *useruc.ApproveRegistrationUseCase
-	rejectUC    *useruc.RejectRegistrationUseCase
+	approveUC    *useruc.ApproveRegistrationUseCase
+	rejectUC     *useruc.RejectRegistrationUseCase
 }
 
 func NewUserHandler(
@@ -186,6 +186,7 @@ func (h *UserHandler) ListUsers(c *fiber.Ctx) error {
 	}
 
 	result, err := h.listFilterUC.Execute(c.Context(), useruc.ListUsersWithFilterInput{
+		SortBy: c.Query("sort_by"), SortOrder: c.Query("sort_order"),
 		Page:           page,
 		Limit:          limit,
 		Q:              q,

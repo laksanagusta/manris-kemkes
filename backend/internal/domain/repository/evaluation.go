@@ -8,6 +8,8 @@ import (
 )
 
 type EvaluationListFilter struct {
+	SortBy          string
+	SortOrder       string
 	OrganizationID  *uuid.UUID
 	OrganizationIDs []uuid.UUID
 	Period          string

@@ -1,4 +1,5 @@
 "use client";
+import { useRemoteCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
 
 import {
   useCallback,
@@ -371,6 +372,7 @@ export default function WorkingPapersPage() {
   const [selectedPeriod, setSelectedPeriod] = useState("");
   const [exportingPaperId, setExportingPaperId] = useState<string | null>(null);
 
+  const collectionSort = useRemoteCollectionSorting({"Judul": "title", "Periode": "assessment_cycle", "Status": "status", "Jumlah risiko": "risk_count"}, () => setPage(1));
   useEffect(() => {
     if (!token) {
       setAvailableAssessmentCycles([]);
@@ -420,12 +422,15 @@ export default function WorkingPapersPage() {
     }
   }, []);
 
+  const listRequest=useRef(0);
   const fetchWorkingPapers = useCallback(
     async (activeToken: string) => {
+      const request=++listRequest.current;
       try {
         setLoading(true);
         setError(null);
         const res = await listWorkingPapers(activeToken, {
+ sort_by:collectionSort.sortBy, sort_order:collectionSort.sortOrder,
           status: statusFilter === "all" ? undefined : statusFilter,
           q: debouncedSearch.trim() || undefined,
           assessment_cycle: deferredAssessmentCycleFilter.trim() || undefined,
@@ -433,11 +438,13 @@ export default function WorkingPapersPage() {
           page,
           limit,
         });
+        if(request!==listRequest.current)return;
         setPapers(res.data ?? []);
         setTotal(res.total ?? 0);
         setPage(res.page ?? page);
         setLimit(res.limit ?? limit);
       } catch (err) {
+        if(request!==listRequest.current)return;
         console.error(err);
         setError(
           err instanceof Error
@@ -454,7 +461,7 @@ export default function WorkingPapersPage() {
       debouncedSearch,
       limit,
       page,
-      statusFilter,
+      statusFilter, collectionSort.sortBy, collectionSort.sortOrder,
     ],
   );
 
@@ -629,7 +636,7 @@ export default function WorkingPapersPage() {
         }
       />
 
-        <CollectionTableCard>
+        <CollectionTableCard sorting={collectionSort.controls}>
 
           {showInitialLoading ? (
             <CollectionLoadingState message="Memuat daftar kertas kerja..." />

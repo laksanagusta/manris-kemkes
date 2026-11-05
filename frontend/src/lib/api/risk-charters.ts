@@ -27,7 +27,7 @@ export type CreateRiskCharterRequest = {
   title: string;
   organizationId: string;
   uprLevel: RiskCharterUPRLevel;
-  period: string;
+  period?: string;
 };
 
 export type CreateRiskCharterResponse = {

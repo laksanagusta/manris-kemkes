@@ -1,4 +1,5 @@
 "use client";
+import type { CollectionSortControls } from "@/components/shared/design-system/collections/collection-sorting";
 import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
 
 
@@ -31,7 +32,6 @@ import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { getStatusBadgeClassName, toBadgeVariant, type StatusTone } from "@/lib/badge-variant";
-import { Button } from "@/components/ui/button";
 import { isMonitoringWindowOpen, monitoringWindowMessage } from "@/lib/monitoring-window";
 import {
   AccentButton,
@@ -132,7 +132,6 @@ import {
 } from "@/components/shared/icons";
 
 import { readMotionDuration } from "@/lib/motion-timing";
-import { RegisterSortIcon } from "@/components/shared/design-system/motion/register-motion";
 
 const registerStatusTone: Record<string, StatusTone> = {
   draft: "neutral",
@@ -489,6 +488,10 @@ export default function RiskRegisterPage() {
         .sortOrder,
   );
 
+  const sortFields:Record<string,string> = {Risiko:"title",Kategori:"category",Skor:"nilai",Status:"status",Dibuat:"created_at"};
+  const tableSorting:CollectionSortControls = {columns:Object.keys(sortFields),key:Object.keys(sortFields).find(label=>sortFields[label]===sortBy)??"Dibuat",direction:sortOrder,onChange(label){
+    const key=sortFields[label]; setSortBy(key); setSortOrder(sortBy===key?(sortOrder==="asc"?"desc":"asc"):(key==="created_at"||key==="nilai"?"desc":"asc"));setPage(1);
+  }};
   const deferredSearch = useDeferredValue(search);
   const deferredAssessmentCycleFilter = useDeferredValue(assessmentCycleFilter);
 
@@ -942,12 +945,7 @@ export default function RiskRegisterPage() {
       </PageStack>
     );
   }
-  const scoreAriaSort =
-    sortBy === "nilai"
-      ? sortOrder === "asc"
-        ? "ascending"
-        : "descending"
-      : "none";
+
   const hasAppliedFilters =
     Boolean(search.trim()) ||
     monitoringStatusFilter !== "all" ||
@@ -998,7 +996,7 @@ export default function RiskRegisterPage() {
               />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <ActionButton variant="outline" className="gap-2">
+                  <ActionButton data-slot="button" variant="outline" className="gap-2">
                     <Upload className="size-3.5" strokeWidth={2.5} />
                     Import Risiko
                   </ActionButton>
@@ -1023,7 +1021,7 @@ export default function RiskRegisterPage() {
             </>
           }
         />
-        <CollectionTableCard>
+        <CollectionTableCard sorting={tableSorting}>
             <Table className="min-w-[1280px] table-fixed">
               <colgroup>
                 <col style={{ width: "34%" }} />
@@ -1043,31 +1041,7 @@ export default function RiskRegisterPage() {
                   <CollectionTableHead>
                     Kategori
                   </CollectionTableHead>
-                  <CollectionTableHead
-                    className="pe-6 text-right"
-                    aria-sort={scoreAriaSort}
-                  >
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="w-full justify-end pr-0"
-                      aria-label={`Urutkan berdasarkan skor, saat ini ${scoreAriaSort === "ascending" ? "menaik" : scoreAriaSort === "descending" ? "menurun" : "belum diurutkan"}`}
-                      onClick={() => {
-                        if (sortBy === "nilai") {
-                          setSortOrder((prev) =>
-                            prev === "asc" ? "desc" : "asc",
-                          );
-                        } else {
-                          setSortBy("nilai");
-                          setSortOrder("desc");
-                        }
-                      }}
-                  >
-                      {sortBy === "nilai" && <RegisterSortIcon descending={sortOrder === "desc"} />}
-                      Skor
-                    </Button>
-                  </CollectionTableHead>
+                  <CollectionTableHead className="pe-6 text-right">Skor</CollectionTableHead>
                   <CollectionTableHead className="pl-6">
                     Level
                   </CollectionTableHead>

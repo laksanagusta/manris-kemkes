@@ -44,17 +44,17 @@ export const documentationArticles: DocumentationArticle[] = [
   },
   {
     slug: "risk-charter", title: "Membuat dan memperbarui Piagam Manrisk", category: "TATA KELOLA",
-    description: "Susun piagam manajemen risiko untuk tahun berjalan, lalu jaga riwayat revisinya.", access: "Pengguna dengan akses Tata Kelola Risiko pada organisasi yang dipilih.",
+    description: "Susun piagam manajemen risiko berbasis versi, lalu buat revisi saat konteks organisasi berubah.", access: "Pengguna dengan akses Tata Kelola Risiko pada organisasi yang dipilih.",
     sections: [
       { id: "daftar-piagam", title: "Buka daftar Piagam Manrisk", steps: [
-        { title: "Pilih Piagam Manrisk", detail: "Daftar menampilkan piagam yang dapat Anda akses, beserta organisasi, periode, dan statusnya." },
-        { title: "Periksa piagam aktif", detail: "Pastikan organisasi dan periode pada piagam yang akan ditinjau sudah sesuai." },
-      ], image: { src: "/documentation/screens/piagam-list.png", alt: "Daftar Piagam Manrisk dengan status dan periode", caption: "Snapshot daftar piagam menampilkan organisasi, periode, status aktif, dan waktu pembaruan.", width: 3420, height: 1904 } },
+        { title: "Pilih Piagam Manrisk", detail: "Daftar menampilkan piagam yang dapat Anda akses, beserta organisasi, versi, dan statusnya." },
+        { title: "Periksa piagam aktif", detail: "Pastikan organisasi, level UPR, dan versi piagam yang akan ditinjau sudah sesuai." },
+      ], image: { src: "/documentation/screens/piagam-list.png", alt: "Daftar Piagam Manrisk dengan status dan versi", caption: "Snapshot daftar piagam menampilkan organisasi, versi, status aktif, dan waktu pembaruan.", width: 3420, height: 1904 } },
       { id: "buat-piagam", title: "Buat draf Piagam", steps: [
         { title: "Buka Piagam Manrisk", detail: "Pilih Piagam Manrisk pada kelompok Tata Kelola Risiko." },
-        { title: "Pilih Buat Piagam", detail: "Masukkan judul piagam. Judul membantu membedakan piagam organisasi dan tahun berlakunya." },
+        { title: "Pilih Buat Piagam", detail: "Masukkan judul piagam. Judul menjelaskan konteks piagam organisasi. Versi aktif tetap berlaku sampai revisi difinalisasi." },
         { title: "Buka draf dan lengkapi isinya", detail: "Lengkapi bagian piagam, antara lain dasar hukum, stakeholder, dan struktur Unit Pengelola Risiko (UPR). Simpan perubahan selama status masih Draf." },
-      ], image: { src: "/documentation/screens/piagam-create-dialog.png", alt: "Dialog Buat Piagam untuk memulai draf", caption: "Masukkan judul untuk membuat draf Piagam pada tahun berjalan.", width: 3420, height: 1904 } },
+      ], image: { src: "/documentation/screens/piagam-create-dialog.png", alt: "Dialog Buat Piagam untuk memulai draf", caption: "Masukkan judul untuk membuat draf Piagam versi pertama.", width: 3420, height: 1904 } },
       { id: "lengkapi-piagam", title: "Tinjau kelengkapan", paragraphs: ["Gunakan penanda kelengkapan pada halaman untuk memeriksa bagian yang belum terisi. Pastikan nama organisasi, struktur UPR, dan stakeholder sudah sesuai sebelum memfinalisasi."], fields: [
         { name: "Dasar hukum", description: "Peraturan atau dasar yang menjadi acuan penerapan manajemen risiko." },
         { name: "Stakeholder", description: "Pihak terkait beserta hubungan atau kepentingannya terhadap manajemen risiko." },
@@ -69,7 +69,7 @@ export const documentationArticles: DocumentationArticle[] = [
         { name: "Draf", description: "Piagam sedang disusun dan dapat disunting oleh pengguna berizin." },
         { name: "Aktif", description: "Piagam sudah difinalisasi dan menjadi acuan yang berlaku." },
         { name: "Draf revisi", description: "Draf perubahan beserta alasan. Piagam aktif tetap berlaku sampai revisi tersebut difinalisasi." },
-      ], image: { src: "/documentation/screens/piagam-list-status.png", alt: "Daftar Piagam Manrisk dengan penanda status Aktif", caption: "Status Aktif menandai piagam yang berlaku untuk organisasi dan periode tersebut; isi daftar adalah snapshot.", width: 3420, height: 1904 } },
+      ], image: { src: "/documentation/screens/piagam-list-status.png", alt: "Daftar Piagam Manrisk dengan penanda status Aktif", caption: "Status Aktif menandai piagam yang berlaku untuk organisasi tersebut hingga digantikan revisi baru; isi daftar adalah snapshot.", width: 3420, height: 1904 } },
     ],
   },
   {

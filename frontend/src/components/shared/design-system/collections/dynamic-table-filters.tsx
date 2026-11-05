@@ -110,7 +110,7 @@ export function DynamicTableFilters({ search, fields, className, triggerLabel }:
         {search}
         <Popover open={pickerOpen} onOpenChange={(open) => { setPickerOpen(open); if (open) setPickerQuery(""); }}>
           <PopoverTrigger asChild>
-            <Button ref={filterButton} type="button" variant="outline" size={triggerLabel ? "default" : "icon"} aria-label="Tambah filter" title="Tambah filter">
+            <Button data-slot="button" ref={filterButton} type="button" variant="outline" size={triggerLabel ? "default" : "icon"} aria-label="Tambah filter" title="Tambah filter">
               {triggerLabel ? <><Plus aria-hidden="true" className="size-4" />{triggerLabel}</> : <Filter aria-hidden="true" className="size-4" />}
             </Button>
           </PopoverTrigger>

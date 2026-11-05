@@ -19,6 +19,8 @@ func NewListUseCase(repo repository.EvaluationRepository) *ListUseCase {
 }
 
 type ListInput struct {
+	SortBy          string
+	SortOrder       string
 	OrganizationID  *uuid.UUID
 	OrganizationIDs []uuid.UUID
 	Period          string
@@ -63,6 +65,7 @@ func (uc *ListUseCase) Execute(ctx context.Context, input ListInput) (*ListOutpu
 	}
 
 	items, total, err := uc.repo.List(ctx, repository.EvaluationListFilter{
+		SortBy: input.SortBy, SortOrder: input.SortOrder,
 		OrganizationIDs: orgIDs,
 		Period:          strings.TrimSpace(input.Period),
 		Status:          strings.TrimSpace(input.Status),

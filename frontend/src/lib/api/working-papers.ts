@@ -13,11 +13,15 @@ export async function listWorkingPapers(
     q?: string;
     assessment_cycle?: string;
     created_at?: string;
+    sort_by?: string;
+    sort_order?: string;
     page?: number;
     limit?: number;
   },
 ): Promise<WorkingPaperListResponse> {
   const searchParams = new URLSearchParams();
+  if(params?.sort_by) searchParams.set("sort_by",params.sort_by);
+  if(params?.sort_order) searchParams.set("sort_order",params.sort_order);
   if (params?.status) searchParams.set("status", params.status);
   if (params?.q) searchParams.set("q", params.q);
   if (params?.assessment_cycle) {

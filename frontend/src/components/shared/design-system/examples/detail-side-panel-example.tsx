@@ -8,10 +8,11 @@ export function DetailSidePanelExample() {
       <DetailSidePanel>
         <section aria-labelledby="detail-panel-example-properties">
           <h2 id="detail-panel-example-properties" className="text-sm font-semibold capitalize text-primary">Properti</h2>
-          <PropertyList>
-            <div className="flex items-center justify-between gap-4"><PropertyLabel>Status</PropertyLabel><dd><Badge variant="secondary">Draf</Badge></dd></div>
-            <div className="flex items-center justify-between gap-4"><PropertyLabel>Kode</PropertyLabel><dd className="max-w-[60%] break-words text-right font-mono">KK-2026-001</dd></div>
-            <div className="flex items-center justify-between gap-4"><PropertyLabel>Periode</PropertyLabel><dd className="text-right">2026-Q3</dd></div>
+          <PropertyList compact className="[&_dt]:text-tertiary-foreground">
+            <div className="flex items-center justify-between gap-4"><PropertyLabel showIcon={false}>Status</PropertyLabel><dd><Badge variant="secondary">Draf</Badge></dd></div>
+            <div className="flex items-center justify-between gap-4"><PropertyLabel showIcon={false}>Kode risiko</PropertyLabel><dd className="max-w-[60%] break-words text-right font-sans">R-001</dd></div>
+            <div className="flex items-center justify-between gap-4"><PropertyLabel showIcon={false}>Versi</PropertyLabel><dd className="text-right font-sans">v1</dd></div>
+            <div className="flex items-center justify-between gap-4"><PropertyLabel showIcon={false}>Periode</PropertyLabel><dd className="text-right font-sans">2026-Q3</dd></div>
           </PropertyList>
         </section>
         <section className="border-t border-dashed border-border/70 pt-5" aria-labelledby="detail-panel-example-signatures">

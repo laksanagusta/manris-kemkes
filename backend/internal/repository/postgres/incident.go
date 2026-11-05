@@ -199,7 +199,7 @@ func (r *incidentRepository) List(ctx context.Context, orgIDs []uuid.UUID) ([]*e
 		argIdx++
 	}
 
-	query += ` ORDER BY i."when" DESC NULLS LAST, i.created_at DESC`
+	query += ` ORDER BY i.created_at DESC, i.id DESC`
 
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {

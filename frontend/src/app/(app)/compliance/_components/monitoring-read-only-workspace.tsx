@@ -1,4 +1,6 @@
 "use client";
+import { useCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
+import { sortDate } from "@/lib/collection-sort";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
@@ -23,10 +25,6 @@ import {
   currentMonitoringCycle,
   getSelectableMonitoringCycles,
 } from "@/lib/risk-cycle-options";
-import { getLinearRiskLevelBadgeTone } from "@/lib/linear-status-badge";
-import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
-import { getRiskLevelFromNilai, levelToColor } from "@/lib/risk";
-import { formatMonitoringNilai } from "@/lib/risk-register-monitoring";
 import {
   CollectionEmptyState,
   CollectionErrorState,
@@ -43,7 +41,7 @@ import {
   DynamicTableFilters,
 } from "@/components/shared/design-system";
 import { Badge } from "@/components/ui/badge";
-import { ArrowRight } from "@/components/shared/icons";
+import { MonitoringScoreComparison, MonitoringLevelBadge } from "@/components/shared/design-system/domain/monitoring-score-cells";
 import {
   Table,
   TableBody,
@@ -78,55 +76,6 @@ function getActionHref(row: MonitoringOverviewRow) {
   return row.monitoringId
     ? `/risk/monitoring/${row.monitoringId}`
     : `/risk/register/${row.sourceRiskId}`;
-}
-
-function ScoreComparison({ row }: { row: MonitoringOverviewRow }) {
-  const observedLabel = row.observedLevel !== "-" ? row.observedLevel : null;
-  const observedRiskLevel =
-    row.observedScore !== null
-      ? getRiskLevelFromNilai(row.observedScore)
-      : null;
-  const observedTone = observedLabel
-    ? getLinearRiskLevelBadgeTone(observedLabel)
-    : "neutral";
-
-  return (
-    <div
-      className="flex min-w-0 max-w-full items-center gap-1.5 overflow-hidden whitespace-nowrap"
-      aria-label={`Skor awal ${formatMonitoringNilai(row.sourceScore)}; skor hasil pemantauan ${formatMonitoringNilai(row.observedScore)}${observedLabel ? `, ${observedLabel}` : ""}`}
-    >
-      <span className="font-mono text-sm tabular-nums text-muted-foreground/70 line-through decoration-border">
-        {formatMonitoringNilai(row.sourceScore)}
-      </span>
-      <ArrowRight
-        aria-hidden="true"
-        className="size-3.5 shrink-0 text-muted-foreground/60"
-      />
-      {row.observedScore !== null ? (
-        <span className="flex items-center gap-1.5">
-          <span className="font-mono text-sm font-medium tabular-nums text-foreground">
-            {formatMonitoringNilai(row.observedScore)}
-          </span>
-          {observedLabel ? (
-            <Badge
-              variant={observedRiskLevel ? "outline" : toBadgeVariant(observedTone)}
-              className={
-                observedRiskLevel
-                  ? levelToColor(observedRiskLevel)
-                  : getStatusBadgeClassName(observedTone)
-              }
-            >
-              {observedLabel}
-            </Badge>
-          ) : null}
-        </span>
-      ) : (
-        <span className="font-mono text-sm tabular-nums text-muted-foreground">
-          -
-        </span>
-      )}
-    </div>
-  );
 }
 
 function MitigationProgressIndicator({
@@ -349,9 +298,10 @@ export function MonitoringReadOnlyWorkspace() {
     [organizationId, rows, search, status, tableOrganizations],
   );
 
+  const collectionSort = useCollectionSorting(filteredRows,{Risiko:r=>r.title,Periode:r=>r.assessmentCycle,Status:r=>r.status,"Perubahan Skor":r=>r.observedScore !== null && r.sourceScore !== null ? r.observedScore-r.sourceScore : null,Level:r=>r.observedScore,"Tanggal Dibuat":r=>sortDate(r.createdAt),Penanganan:r=>r.mitigationCompletionPercent},()=>setPage(1),"Tanggal Dibuat");
   const totalPages = Math.max(1, Math.ceil(filteredRows.length / limit));
   const currentPage = loading || refreshing ? page : Math.min(page, totalPages);
-  const pageRows = filteredRows.slice(
+  const pageRows = collectionSort.rows.slice(
     (currentPage - 1) * limit,
     currentPage * limit,
   );
@@ -453,20 +403,20 @@ export function MonitoringReadOnlyWorkspace() {
             onReload={() => void loadData(false)}
           />
         ) : loading ? (
-          <CollectionTableCard>
+          <CollectionTableCard sorting={collectionSort.controls}>
             <CollectionLoadingState message="Memuat status pemantauan..." />
           </CollectionTableCard>
         ) : (
-          <CollectionTableCard>
-            <Table className="w-full min-w-0 table-fixed">
+          <CollectionTableCard sorting={collectionSort.controls}>
+            <Table className="w-full min-w-[1120px] table-fixed">
               <colgroup>
-                <col className="w-[33%]" />
+                <col className="w-[30%]" />
+                <col className="w-[10%]" />
                 <col className="w-[9%]" />
-                <col className="w-[10%]" />
-                <col className="w-[15%]" />
-                <col className="w-[11%]" />
                 <col className="w-[12%]" />
-                <col className="w-[10%]" />
+                <col className="w-[13%]" />
+                <col className="w-[13%]" />
+                <col className="w-[13%]" />
               </colgroup>
               <CollectionTableHeader density="compact">
                 <CollectionTableHeaderRow>
@@ -474,9 +424,9 @@ export function MonitoringReadOnlyWorkspace() {
                   <CollectionTableHead >Periode</CollectionTableHead>
                   <CollectionTableHead >Status</CollectionTableHead>
                   <CollectionTableHead >Perubahan Skor</CollectionTableHead>
+                  <CollectionTableHead >Level</CollectionTableHead>
                   <CollectionTableHead >Tanggal Dibuat</CollectionTableHead>
-                  <CollectionTableHead >Kelengkapan pelaporan</CollectionTableHead>
-                  <CollectionTableHead >Update Terakhir</CollectionTableHead>
+                  <CollectionTableHead>Penanganan</CollectionTableHead>
                 </CollectionTableHeaderRow>
               </CollectionTableHeader>
               <TableBody>
@@ -530,7 +480,10 @@ export function MonitoringReadOnlyWorkspace() {
                           </Badge>
                         </TableCell>
                         <TableCell className="max-w-0 overflow-hidden">
-                          <ScoreComparison row={row} />
+                          <MonitoringScoreComparison row={row} />
+                        </TableCell>
+                        <TableCell>
+                          <MonitoringLevelBadge row={row} />
                         </TableCell>
                         <TableCell className="max-w-0">
                           {formatMonitoringDate(row.createdAt)}
@@ -540,9 +493,6 @@ export function MonitoringReadOnlyWorkspace() {
                             riskTitle={row.title}
                             value={row.mitigationCompletionPercent}
                           />
-                        </TableCell>
-                        <TableCell className="max-w-0">
-                          {formatMonitoringDate(row.updatedAt)}
                         </TableCell>
                       </TableRow>
                     );

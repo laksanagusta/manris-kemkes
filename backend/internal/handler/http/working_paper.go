@@ -28,11 +28,11 @@ func NewWorkingPaperHandler(uc *workingpaper.UseCase, wpRepo repository.WorkingP
 
 // createWorkingPaperRequest is the JSON body for POST /working-papers.
 type createWorkingPaperRequest struct {
-	OrganizationID  uuid.UUID                      `json:"organization_id"`
-	AssessmentCycle string                         `json:"assessment_cycle"`
-	RosterRevision  string                         `json:"roster_revision"`
-	RosterDecisions []workingPaperRosterDecision   `json:"roster_decisions"`
-	Signatories     []createSignatoryRequest       `json:"signatories"`
+	OrganizationID  uuid.UUID                    `json:"organization_id"`
+	AssessmentCycle string                       `json:"assessment_cycle"`
+	RosterRevision  string                       `json:"roster_revision"`
+	RosterDecisions []workingPaperRosterDecision `json:"roster_decisions"`
+	Signatories     []createSignatoryRequest     `json:"signatories"`
 }
 
 type workingPaperRosterDecision struct {
@@ -169,7 +169,7 @@ func (h *WorkingPaperHandler) List(c *fiber.Ctx) error {
 		limit = 100
 	}
 
-	wps, total, err := h.uc.List(c.Context(), orgIDs, status, query, assessmentCycle, createdAt, page, limit)
+	wps, total, err := h.uc.List(c.Context(), orgIDs, status, query, assessmentCycle, createdAt, page, limit, c.Query("sort_by"), c.Query("sort_order"))
 	if err != nil {
 		return handleWPError(c, err)
 	}

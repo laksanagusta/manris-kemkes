@@ -1,9 +1,8 @@
 "use client";
 import { CreatedAtHead, CreatedAtCell } from "../collections/collection-created-at";
-import { newestCreatedFirst } from "@/lib/collection-created-at";
+import { useCollectionSorting } from "../collections/collection-sorting";
 
 import { useState } from "react";
-import { ArrowDown, ArrowUp, ChevronsUpDown } from "@/components/shared/icons";
 import {
   CollectionTableCard,
   CollectionEmptyState,
@@ -15,7 +14,6 @@ import {
   DynamicTableFilters,
 } from "@/components/shared/design-system";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 
@@ -31,12 +29,10 @@ const rows = [
 export function TableExample() {
   const [status, setStatus] = useState("Semua");
   const [search, setSearch] = useState("");
-  const [descending, setDescending] = useState<boolean | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
-  const visible = rows.filter((row) =>
-    (status === "Semua" || row.status === status) &&
-    `${row.title} ${row.unit}`.toLowerCase().includes(search.toLowerCase()),
-  ).sort((a, b) => descending === null ? newestCreatedFirst(a, b) : descending ? b.title.localeCompare(a.title) : a.title.localeCompare(b.title));
+  const filtered = rows.filter(row => (status === "Semua" || row.status === status) && `${row.title} ${row.unit}`.toLowerCase().includes(search.toLowerCase()));
+  const collectionSort = useCollectionSorting(filtered,{Risiko:r=>r.title,Status:r=>r.status,Skor:r=>r.score,Penanganan:r=>r.plans,Kategori:r=>r.category,Unit:r=>r.unit});
+  const visible = collectionSort.rows;
   const allSelected = visible.length > 0 && visible.every((row) => selected.includes(row.id));
   const someSelected = visible.some((row) => selected.includes(row.id));
 
@@ -49,16 +45,9 @@ export function TableExample() {
             fields={[{ id: "status", label: "Status", value: status, defaultValue: "Semua", onChange: setStatus, options: ["Semua", "Aktif", "Draf", "Diarsipkan"].map((value) => ({ value, label: value })) }]}
           />
         }
-        actions={
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" aria-label="Ubah urutan risiko contoh"
-              aria-pressed={descending ?? false} onClick={() => setDescending(!descending)}>
-              {descending ? <ArrowDown strokeWidth={1.5} /> : <ArrowUp strokeWidth={1.5} />}
-            </Button>
-          </div>
-        }
+
       />
-      <CollectionTableCard>
+      <CollectionTableCard sorting={collectionSort.controls}>
         <Table aria-label="Tabel referensi risiko" className="min-w-[880px] table-fixed">
           <colgroup>
             <col className="w-[56px]" /><col className="w-[32%]" /><col className="w-[12%]" />
@@ -70,10 +59,7 @@ export function TableExample() {
                 <Checkbox aria-label="Pilih semua risiko contoh" checked={allSelected ? true : someSelected ? "indeterminate" : false}
                   disabled={!visible.length} onCheckedChange={(checked) => setSelected(checked ? visible.map((row) => row.id) : [])} />
               </CollectionTableHead>
-              <CollectionTableHead aria-sort={descending ? "descending" : "ascending"}>
-                <button className="inline-flex min-h-7 items-center gap-1 text-left focus-visible:outline-2 focus-visible:outline-ring"
-                  onClick={() => setDescending(!descending)}>Risiko <ChevronsUpDown className="size-3.5" /></button>
-              </CollectionTableHead>
+              <CollectionTableHead>Risiko</CollectionTableHead>
               <CollectionTableHead>Status</CollectionTableHead><CollectionTableHead>Skor</CollectionTableHead>
               <CollectionTableHead>Penanganan</CollectionTableHead><CollectionTableHead>Kategori</CollectionTableHead>
               <CollectionTableHead>Unit</CollectionTableHead><CreatedAtHead />

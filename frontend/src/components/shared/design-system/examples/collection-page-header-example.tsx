@@ -16,7 +16,7 @@ export function CollectionPageHeaderExample() {
       actionsPlacement="title"
       actions={
         <>
-          <ActionButton>Import Risiko</ActionButton>
+          <ActionButton data-slot="button" variant="outline">Import Risiko</ActionButton>
           <AccentButton>Tambah Risiko</AccentButton>
         </>
       }

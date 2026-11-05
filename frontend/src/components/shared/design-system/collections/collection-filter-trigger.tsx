@@ -14,6 +14,7 @@ export function CollectionFilterTrigger({
   return (
     <ActionButton
       {...props}
+      data-slot="button"
       variant="outline"
       size="default"
       className={cn("h-8 w-8 !px-0", className)}

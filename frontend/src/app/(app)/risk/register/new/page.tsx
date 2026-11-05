@@ -39,6 +39,7 @@ import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { AiAssistIconButton } from "@/components/shared/ai-assist-icon-button";
 import { Label } from "@/components/ui/label";
 import {
   Dialog,
@@ -425,7 +426,7 @@ function RiskVersionHistoryList({
 }) {
   return (
     <div className="relative pl-6">
-      <div className="space-y-5">
+      <div className="space-y-3">
         {versions.map((version, index) => (
           <Link
             key={version.id}
@@ -436,7 +437,7 @@ function RiskVersionHistoryList({
             {index < versions.length - 1 && (
               <span
                 aria-hidden="true"
-                className="absolute -bottom-[30px] -left-[16px] top-[10px] z-0 w-px bg-border/70"
+                className="absolute -bottom-[22px] -left-[16px] top-[10px] z-0 w-px bg-border/70"
               />
             )}
             <span
@@ -456,7 +457,7 @@ function RiskVersionHistoryList({
                     : "Versi"}
                 </span>
               </div>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="mt-0 text-sm text-muted-foreground">
                 {new Date(version.createdAt).toLocaleDateString("id-ID", {
                   day: "numeric",
                   month: "short",
@@ -466,11 +467,11 @@ function RiskVersionHistoryList({
                   ? ` · ${version.assessmentCycle}`
                   : ""}
               </p>
-              <p className="mt-1 line-clamp-2 text-sm font-medium text-foreground/80">
+              <p className="mt-0 line-clamp-2 text-sm font-medium text-foreground/80">
                 {version.title || "Tanpa judul"}
               </p>
               {version.changeReason && (
-                <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">
+                <p className="mt-0 line-clamp-2 text-sm text-muted-foreground">
                   {version.changeReason}
                 </p>
               )}
@@ -519,28 +520,7 @@ function AiFieldButton({
   onClick: () => void;
   label: string;
 }) {
-  return (
-    <Button
-      type="button"
-      variant="outline"
-      size="xs"
-      onClick={onClick}
-      disabled={disabled || loading}
-      aria-busy={loading}
-      aria-label={loading ? "Memproses..." : label}
-      data-loading={loading}
-      className="risk-ai-button"
-    >
-      <span aria-hidden="true" className="grid overflow-hidden leading-5">
-        <span className="risk-ai-idle-label col-start-1 row-start-1">
-          {label}
-        </span>
-        <span className="risk-ai-loading-label col-start-1 row-start-1">
-          Memproses...
-        </span>
-      </span>
-    </Button>
-  );
+  return <AiAssistIconButton label={label} loading={loading} disabled={disabled} onClick={onClick} />;
 }
 
 // ----------------------
@@ -3097,21 +3077,16 @@ export default function RiskInputPage() {
                         <Label className="text-sm font-medium text-foreground">
                           Prioritas Risiko
                         </Label>
-                        <div className="flex min-h-9 flex-wrap items-center gap-x-2 gap-y-1 font-normal text-muted-foreground">
-                          <span>{riskPriority}</span>
-                        </div>
+                        <Input aria-label="Prioritas Risiko" value={riskPriority} readOnly />
                       </div>
                       <div className="flex flex-col gap-2">
                         <Label className="text-sm font-medium text-foreground">
                           Selera Risiko
                         </Label>
-                        <div className="flex min-h-9 flex-wrap items-center gap-x-2 gap-y-1 font-normal text-muted-foreground">
-                          <span>
-                            {advisoryAppetite === "di_atas_batas"
+                        <Input aria-label="Selera Risiko" readOnly
+                          value={advisoryAppetite === "di_atas_batas"
                               ? "Di atas batas selera risiko"
-                              : "Dalam batas selera risiko"}
-                          </span>
-                        </div>
+                              : "Dalam batas selera risiko"} />
                       </div>
                     </div>
                     <div className="flex flex-col gap-2">
@@ -3156,7 +3131,7 @@ export default function RiskInputPage() {
                     <div className="space-y-3">
                       <div className="flex flex-wrap items-center justify-start gap-2">
                         {!aiFeaturesDisabled && !isRiskLocked ? (
-                          <MitigationPicker
+                          <MitigationPicker iconOnly
                             title={title}
                             description={description}
                             cause={(causes || [])
@@ -3380,9 +3355,9 @@ export default function RiskInputPage() {
                       >
                         Properti
                       </h2>
-                      <PropertyList>
+                      <PropertyList compact className="[&_dt]:text-tertiary-foreground">
                         <div className="flex items-center justify-between gap-4">
-                          <PropertyLabel>Status</PropertyLabel>
+                          <PropertyLabel showIcon={false}>Status</PropertyLabel>
                           <dd className="shrink-0 text-right">
                             <Badge variant={toBadgeVariant(getRiskStatusTone(riskStatus))}
                               className={getStatusBadgeClassName(getRiskStatusTone(riskStatus))}
@@ -3392,20 +3367,20 @@ export default function RiskInputPage() {
                           </dd>
                         </div>
                         <div className="flex items-center justify-between gap-4">
-                          <PropertyLabel>Kode risiko</PropertyLabel>
-                          <dd className="max-w-[60%] truncate text-right font-mono text-foreground">
+                          <PropertyLabel showIcon={false}>Kode risiko</PropertyLabel>
+                          <dd className="max-w-[60%] truncate text-right font-sans text-foreground">
                             {riskCode || "Belum dibuat"}
                           </dd>
                         </div>
                         <div className="flex items-center justify-between gap-4">
-                          <PropertyLabel>Versi</PropertyLabel>
-                          <dd className="shrink-0 text-right font-mono text-foreground">
+                          <PropertyLabel showIcon={false}>Versi</PropertyLabel>
+                          <dd className="shrink-0 text-right font-sans text-foreground">
                             {riskVersionNumber ? `v${riskVersionNumber}` : "-"}
                           </dd>
                         </div>
                         <div className="flex items-center justify-between gap-4">
-                          <PropertyLabel>Periode</PropertyLabel>
-                          <dd className="shrink-0 text-right font-mono text-foreground">
+                          <PropertyLabel showIcon={false}>Periode</PropertyLabel>
+                          <dd className="shrink-0 text-right font-sans text-foreground">
                             {assessmentCycleDisplay || "-"}
                           </dd>
                         </div>

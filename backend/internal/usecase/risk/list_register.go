@@ -41,6 +41,12 @@ type ListRiskRegisterResult struct {
 }
 
 func (uc *ListRiskRegisterUseCase) Execute(ctx context.Context, input ListRiskRegisterInput) (*ListRiskRegisterResult, error) {
+	if input.SortBy == "" {
+		input.SortBy = "created_at"
+	}
+	if input.SortOrder == "" {
+		input.SortOrder = "desc"
+	}
 	input.Status = canonicalRiskStatus(input.Status)
 	if input.MonitoringStatus != "" && input.MonitoringStatus != "all" {
 		if (input.MonitoringStatus != "monitored" && input.MonitoringStatus != "not_monitored") || !IsValidQuarterFormat(input.AssessmentCycle) {

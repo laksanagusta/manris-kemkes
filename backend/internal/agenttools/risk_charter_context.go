@@ -55,7 +55,7 @@ func loadRiskCharterDraftContext(ctx context.Context, repo repository.RiskCharte
 		result.Warning = "Organisasi akun belum tersedia; konteks piagam tidak dimuat."
 		return result, nil
 	}
-	listing, err := riskcharteruc.NewListRiskChartersUseCase(repo).Execute(ctx, riskcharteruc.ListRiskChartersInput{Period: year, Page: 1, Limit: 100, Scope: scope})
+	listing, err := riskcharteruc.NewListRiskChartersUseCase(repo).Execute(ctx, riskcharteruc.ListRiskChartersInput{Page: 1, Limit: 100, Scope: scope})
 	if err != nil {
 		return result, err
 	}
@@ -71,7 +71,7 @@ func loadRiskCharterDraftContext(ctx context.Context, repo repository.RiskCharte
 		if charter.OrganizationID != *scope.OrganizationID {
 			return result, domainerrors.ErrForbidden
 		}
-		eligible := charter.IsCurrent && charter.Status == entity.RiskCharterStatusActive && charter.Period == year
+		eligible := charter.IsCurrent && charter.Status == entity.RiskCharterStatusActive
 		if !eligible {
 			continue
 		}
@@ -85,7 +85,7 @@ func loadRiskCharterDraftContext(ctx context.Context, repo repository.RiskCharte
 		result.Charters = append(result.Charters, item)
 	}
 	if len(result.Charters) == 0 {
-		result.Warning = "Piagam risiko aktif untuk organisasi dan tahun ini belum tersedia. Jangan mengarang isi piagam; minta konteks kegiatan bila diperlukan."
+		result.Warning = "Piagam risiko aktif untuk organisasi ini belum tersedia. Jangan mengarang isi piagam; minta konteks kegiatan bila diperlukan."
 		return result, nil
 	}
 	result.Status = "available"

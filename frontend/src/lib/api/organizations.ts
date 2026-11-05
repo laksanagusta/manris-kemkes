@@ -18,6 +18,8 @@ export interface PaginatedOrganizationsResponse {
 }
 
 export interface ListOrganizationsParams {
+ sort_by?: string;
+ sort_order?: string;
   q?: string;
   ancestorId?: string;
   page?: number;
@@ -36,6 +38,8 @@ export async function listOrganizations(
   params?: ListOrganizationsParams,
 ): Promise<PaginatedOrganizationsResponse> {
   const searchParams = new URLSearchParams();
+  if(params?.sort_by) searchParams.set("sort_by",params.sort_by);
+  if(params?.sort_order) searchParams.set("sort_order",params.sort_order);
 
   if (params?.q) searchParams.set("q", params.q);
   if (params?.ancestorId) searchParams.set("ancestor_id", params.ancestorId);

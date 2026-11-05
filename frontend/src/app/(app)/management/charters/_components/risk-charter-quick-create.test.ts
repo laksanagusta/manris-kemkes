@@ -16,19 +16,20 @@ test("quick create asks for title only and never prefills it", () => {
   assert.match(source, /className="flex flex-col gap-2"/);
 });
 
-test("quick create uses annual identity and waits for modal exit", () => {
-  assert.match(source, /currentAssessmentCycle\(\)\.slice\(0, 4\)/);
+test("quick create uses version identity and opens the new or existing charter directly", () => {
+  assert.doesNotMatch(source, /currentFiscalYear|currentAssessmentCycle|period:/);
   assert.match(source, /response\.existing/);
-  assert.match(source, /Lanjutkan draf/);
-  assert.match(source, /Buka Piagam/);
-  assert.match(source, /setOpen\(false\)/);
-  assert.match(source, /onAnimationEnd/);
-  assert.match(source, /animationName !== "exit"/);
+  assert.match(source, /Membuka draf Piagam yang sudah ada/);
+  assert.doesNotMatch(source, /Lanjutkan draf|setExisting/);
+  assert.match(source, /openCharter\(response\.data\.id\)/);
+  assert.match(source, /router\.replace\(/);
+  assert.doesNotMatch(source, /onAnimationEnd/);
 });
 
-test("quick create uses the mitigation-report modal shell", () => {
-  assert.match(source, /className="max-w-2xl no-scrollbar"/);
-  assert.match(source, /showCloseButton=\{false\}/);
-  assert.match(source, /CollectionDialogCancel/);
-  assert.match(source, /size="md"/);
+test("quick create is a dedicated page with a single form submit path", () => {
+  assert.match(source, /<FormPage>/);
+  assert.match(source, /onSubmit=/);
+  assert.match(source, /type="submit"/);
+  assert.match(source, /href="\/management\/charters"/);
+  assert.doesNotMatch(source, /<Dialog/);
 });

@@ -171,7 +171,7 @@ func (r *planningHierarchyRepository) ListObjectiveCompatibilityRows(ctx context
 	}
 	offset := (page - 1) * limit
 
-	dataQuery += fmt.Sprintf(" ORDER BY plan.updated_at DESC, goal.updated_at DESC, obj.sort_order, iku.sort_order, prog.sort_order, act.sort_order, COALESCE(ro.title, '') LIMIT $%d OFFSET $%d", argPos, argPos+1)
+	dataQuery += fmt.Sprintf(" ORDER BY plan.created_at DESC, plan.id DESC, goal.created_at DESC, goal.id DESC, obj.sort_order, iku.sort_order, prog.sort_order, act.sort_order, COALESCE(ro.title, '') LIMIT $%d OFFSET $%d", argPos, argPos+1)
 	args = append(args, limit, offset)
 
 	rows, err := r.pool.Query(ctx, dataQuery, args...)

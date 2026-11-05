@@ -24,6 +24,8 @@ export interface PaginatedUsersResponse {
 }
 
 export interface ListUsersParams {
+ sort_by?: string;
+ sort_order?: string;
   q?: string;
   status?: string;
   role?: string;
@@ -37,6 +39,8 @@ export async function listUsers(
   params?: ListUsersParams,
 ): Promise<PaginatedUsersResponse> {
   const searchParams = new URLSearchParams();
+  if(params?.sort_by) searchParams.set("sort_by",params.sort_by);
+  if(params?.sort_order) searchParams.set("sort_order",params.sort_order);
 
   if (params?.q) searchParams.set("q", params.q);
   if (params?.status) searchParams.set("status", params.status);

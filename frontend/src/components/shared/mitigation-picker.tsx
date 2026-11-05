@@ -9,6 +9,7 @@ import { getAIErrorMessage } from "@/lib/ai-error";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { useAuth } from "@/contexts/auth-context";
 import { AiSuggestionModal, type SuggestionItem } from "./ai-suggestion-modal";
+import { AiAssistIconButton } from "./ai-assist-icon-button";
 
 interface MitigationPickerProps {
   title: string;
@@ -18,10 +19,11 @@ interface MitigationPickerProps {
   onSelect: (action: string) => void;
   existingActions: string[];
   disabled?: boolean;
+  iconOnly?: boolean;
 }
 
 
-export function MitigationPicker({ title, description, cause, impactDescription, onSelect, existingActions, disabled }: MitigationPickerProps) {
+export function MitigationPicker({ title, description, cause, impactDescription, onSelect, existingActions, disabled, iconOnly = false }: MitigationPickerProps) {
   const aiFeaturesDisabled = isAIFeaturesDisabled();
   const { token } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -63,7 +65,8 @@ export function MitigationPicker({ title, description, cause, impactDescription,
 
   return (
     <>
-      <Button
+      {iconOnly ? <AiAssistIconButton label="Minta rekomendasi mitigasi" loading={loading}
+        disabled={aiFeaturesDisabled || disabled || !description.trim() || !title.trim()} onClick={handleGenerate} /> : <Button
         type="button"
         variant="outline"
         size="sm"
@@ -79,7 +82,7 @@ export function MitigationPicker({ title, description, cause, impactDescription,
       >
         {loading ? <Loader2 className="size-3.5 animate-spin" /> : <Sparkles className="size-3.5" />}
         {loading ? "Memproses..." : "Minta rekomendasi mitigasi"}
-      </Button>
+      </Button>}
 
       <AiSuggestionModal
         open={modalOpen}

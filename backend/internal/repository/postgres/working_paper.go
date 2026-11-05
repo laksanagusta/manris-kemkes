@@ -725,6 +725,10 @@ func (r *workingPaperRepository) GetByID(ctx context.Context, id uuid.UUID) (*en
 
 // List retrieves working papers with optional filters and pagination
 func (r *workingPaperRepository) List(ctx context.Context, orgIDs []uuid.UUID, status, query, assessmentCycle, createdAt string, page, limit int) ([]*entity.WorkingPaper, int, error) {
+	return r.ListSorted(ctx, orgIDs, status, query, assessmentCycle, createdAt, page, limit, "", "")
+}
+
+func (r *workingPaperRepository) ListSorted(ctx context.Context, orgIDs []uuid.UUID, status, query, assessmentCycle, createdAt string, page, limit int, sortBy, sortOrder string) ([]*entity.WorkingPaper, int, error) {
 	countQuery := `SELECT COUNT(*) FROM working_papers WHERE 1=1`
 	dataQuery := `SELECT id, sequence_no, code, title, org_id, status, assessment_cycle,
 	                     document_hash, current_signatory_sequence, created_by,
@@ -780,7 +784,7 @@ func (r *workingPaperRepository) List(ctx context.Context, orgIDs []uuid.UUID, s
 	}
 
 	offset := (page - 1) * limit
-	dataQuery += " ORDER BY created_at DESC, id DESC"
+	dataQuery += " ORDER BY " + collectionOrderBy(sortBy, sortOrder, "created_at", "id", map[string]string{"created_at": "created_at", "title": "title", "assessment_cycle": "assessment_cycle", "status": "status", "risk_count": "(SELECT COUNT(*) FROM working_paper_risks wpr WHERE wpr.working_paper_id=working_papers.id)"})
 	dataQuery += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
 	args = append(args, limit, offset)
 
@@ -903,7 +907,7 @@ func (r *workingPaperRepository) GetPendingSigningByUserID(ctx context.Context, 
 		argIdx++
 	}
 
-	query += " ORDER BY wp.created_at DESC"
+	query += " ORDER BY wp.created_at DESC, wp.id DESC"
 
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {

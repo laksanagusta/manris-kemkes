@@ -1,11 +1,8 @@
 "use client";
+
 import { newestCreatedFirst } from "@/lib/collection-created-at";
-import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
-
-
 import {
   useCallback,
-  useDeferredValue,
   useEffect,
   useMemo,
   useState,
@@ -34,30 +31,18 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableRow,
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import {
   CollectionEmptyState,
   CollectionErrorState,
   CollectionLoadingState,
-  CollectionPagination,
   CollectionPageHeader,
-  CollectionSearchField,
-  DynamicTableFilters,
-  CollectionTableCard,
-  CollectionTableHead,
-  CollectionTableHeader,
-  CollectionTableHeaderRow,
-  CollectionToolbar,
 } from "@/components/shared/design-system";
 import {
   AccentButton,
   ActionButton,
+  Card,
+  CardContent,
   PageStack,
 } from "@/components/shared/design-system";
 import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
@@ -86,7 +71,7 @@ const charterStatusTone: Record<
 };
 
 export default function RiskChartersPage() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
 
   const [items, setItems] = useState<RiskCharter[]>([]);
   const [organizations, setOrganizations] = useState<OrganizationListItem[]>(
@@ -94,12 +79,6 @@ export default function RiskChartersPage() {
   );
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
-  const [periodFilter, setPeriodFilter] = useState("all");
-  const [page, setPage] = useState(1);
-  const [pageSize, setPageSize] = useState(10);
-
-  const deferredSearch = useDeferredValue(search);
 
   const loadData = useCallback(
     async (showLoading = true) => {
@@ -187,45 +166,6 @@ export default function RiskChartersPage() {
     [organizations],
   );
 
-  const filteredItems = useMemo(() => {
-    const query = deferredSearch.trim().toLowerCase();
-    return items.filter((item) => {
-      if (periodFilter !== "all" && item.period !== periodFilter) return false;
-      if (!query) return true;
-      const orgName =
-        organizationMap.get(item.organizationId)?.toLowerCase() ?? "";
-      return [
-        item.title.toLowerCase(),
-        orgName,
-        item.period.toLowerCase(),
-        uprLevelLabel[item.uprLevel]?.toLowerCase() ??
-          item.uprLevel.toLowerCase(),
-      ].some((value) => value.includes(query));
-    });
-  }, [deferredSearch, items, organizationMap, periodFilter]);
-
-  const paginatedItems = useMemo(
-    () => filteredItems.slice((page - 1) * pageSize, page * pageSize),
-    [filteredItems, page, pageSize],
-  );
-
-  useEffect(() => {
-    setPage(1);
-  }, [search, periodFilter]);
-
-  useEffect(() => {
-    const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
-    setPage((current) => Math.min(current, totalPages));
-  }, [filteredItems.length, pageSize]);
-
-  const availablePeriods = useMemo(
-    () =>
-      [...new Set(items.map((item) => item.period).filter(Boolean))]
-        .sort()
-        .reverse(),
-    [items],
-  );
-
   const showInitialLoading = loading && items.length === 0;
 
   if (showInitialLoading) {
@@ -247,143 +187,80 @@ export default function RiskChartersPage() {
     );
   }
 
+  const createAction = (
+    <AccentButton asChild>
+      <Link href="/management/charters/new">
+        <Plus className="size-4" />
+        Buat Piagam
+      </Link>
+    </AccentButton>
+  );
+  const canCreateOwn = user?.organizationId &&
+    !items.some((item) => item.organizationId === user.organizationId);
+
   return (
     <PageStack>
-      <CollectionPageHeader title="Piagam Manrisk" />
+      <CollectionPageHeader
+        title="Piagam Manrisk"
+        actions={items.length > 0 && canCreateOwn ? createAction : undefined}
+      />
 
       {error ? (
         <CollectionErrorState message={error} onReload={() => loadData()} />
       ) : null}
 
-      <div className="space-y-4">
-      <CollectionToolbar
-        className="w-full"
-        leading={
-          <DynamicTableFilters
-            search={
-              <CollectionSearchField
-                id="charter-search"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Cari judul, organisasi, UPR, atau tahun"
-              />
-            }
-            fields={[
-              {
-                id: "period",
-                label: "Periode",
-                value: periodFilter,
-                onChange: setPeriodFilter,
-                options: [
-                  { value: "all", label: "Semua periode" },
-                  ...availablePeriods.map((period) => ({ value: period, label: period })),
-                ],
-              },
-            ]}
-          />
-        }
-        actions={
-          <AccentButton asChild>
-            <Link href="/management/charters/new">
-              <Plus className="size-4" />
-              Buat Piagam
-            </Link>
-          </AccentButton>
-        }
-      />
+      {items.length === 0 ? (
+        <Card>
+          <CardContent>
+            <CollectionEmptyState
+              title="Belum ada piagam Manrisk"
+              description="Buat piagam untuk menetapkan arah dan mandat manajemen risiko."
+              action={createAction}
+            />
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4">
+          {items.map((item) => {
+            const tone = charterStatusTone[item.status] ?? "neutral";
+            const canArchive = item.status === "active" && item.isCurrent;
+            const canRestore = item.status === "archived";
 
-      <CollectionTableCard>
-        {filteredItems.length === 0 ? (
-          <CollectionEmptyState
-            title={items.length === 0 ? "Belum ada piagam Manrisk" : "Tidak ada piagam yang cocok"}
-            description={
-              items.length === 0
-                ? "Buat piagam untuk menetapkan arah dan mandat manajemen risiko."
-                : "Ubah kata kunci pencarian atau periode untuk melihat piagam lain."
-            }
-          />
-        ) : (
-          <Table className="min-w-[1040px] table-fixed">
-            <colgroup>
-              <col className="w-[36%]" />
-              <col className="w-[12%]" />
-              <col className="w-[12%]" />
-              <col className="w-[13%]" />
-              <col className="w-[17%]" />
-              <col className="w-40" />
-<col className="w-[10%]" />
-            </colgroup>
-            <CollectionTableHeader density="compact">
-              <CollectionTableHeaderRow>
-                <CollectionTableHead className="">
-                  Judul Piagam
-                </CollectionTableHead>
-                <CollectionTableHead >UPR</CollectionTableHead>
-                <CollectionTableHead >Periode</CollectionTableHead>
-                <CollectionTableHead >Status</CollectionTableHead>
-                <CollectionTableHead >Diperbarui</CollectionTableHead>
-                <CreatedAtHead />
-                <CollectionTableHead className="sticky right-0 z-10 w-[84px] text-center">
-                  <span className="sr-only">Aksi</span>
-                </CollectionTableHead>
-              </CollectionTableHeaderRow>
-            </CollectionTableHeader>
-            <TableBody>
-              {paginatedItems.map((item) => (
-                <TableRow
-                  key={item.id}
-                  className="h-10 hover:bg-transparent hover:[&>td]:bg-muted/50 [&>td]:transition-[background-color]"
-                >
-                  <TableCell className="max-w-[280px] truncate align-middle">
-                    <div className="min-w-0">
-                      <Link
-                        href={`/management/charters/${item.id}`}
-                        className="block truncate font-medium text-foreground transition-colors hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
-                      >
-                        {item.title}
-                      </Link>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {organizationMap.get(item.organizationId) ??
-                          "Organisasi tidak ditemukan"}
-                      </p>
+            return (
+              <Card key={item.id}>
+                <CardContent className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="min-w-0 flex-1 basis-56 space-y-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs text-muted-foreground">
+                        {uprLevelLabel[item.uprLevel] ?? item.uprLevel} · v{item.versionNumber}
+                      </span>
+                      <Badge variant={toBadgeVariant(tone)} className={getStatusBadgeClassName(tone)}>
+                        {charterStatusLabel[item.status] ?? item.status}
+                      </Badge>
                     </div>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap align-middle">
-                    {uprLevelLabel[item.uprLevel] ?? item.uprLevel}
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap align-middle">
-                    {item.period}
-                  </TableCell>
-                  <TableCell className="align-middle">
-                    <Badge variant={toBadgeVariant(charterStatusTone[item.status] ?? "neutral")}
-                      className={getStatusBadgeClassName(charterStatusTone[item.status] ?? "neutral")}
-                    >
-                      {charterStatusLabel[item.status] ?? item.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="whitespace-nowrap align-middle">
-                    {new Date(item.updatedAt).toLocaleDateString("id-ID", {
-                      year: "numeric",
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </TableCell>
-                  <CreatedAtCell record={item} />
-                  <TableCell className="sticky right-0 bg-card">
-                    <div className="flex justify-center">
+                    <h2 className="break-words text-base font-semibold">{item.title}</h2>
+                    <p className="text-sm text-muted-foreground">
+                      {organizationMap.get(item.organizationId) ?? "Organisasi tidak ditemukan"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <ActionButton variant="outline" asChild>
+                      <Link href={`/management/charters/${item.id}`}>
+                        {item.status === "draft" ? "Lanjutkan draf" : "Buka Piagam"}
+                      </Link>
+                    </ActionButton>
+                    {canArchive || canRestore ? (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <ActionButton
                             variant="ghost"
                             size="icon-xs"
-                            className="text-muted-foreground"
                             icon={<MoreHorizontal className="size-3.5" />}
-                            aria-label={`Tindakan piagam ${item.period}`}
-                            title="Tindakan"
+                            aria-label={`Tindakan untuk ${item.title}`}
                           />
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-44">
-                          {item.status === "active" && item.isCurrent ? (
+                        <DropdownMenuContent align="end">
+                          {canArchive ? (
                             <DropdownMenuItem
                               variant="destructive"
                               onClick={() => handleArchive(item.id)}
@@ -391,36 +268,22 @@ export default function RiskChartersPage() {
                               <Archive className="size-3.5" />
                               Arsipkan
                             </DropdownMenuItem>
-                          ) : null}
-                          {item.status === "archived" ? (
+                          ) : (
                             <DropdownMenuItem onClick={() => handleRestore(item.id)}>
                               <RotateCcw className="size-3.5" />
                               Pulihkan
                             </DropdownMenuItem>
-                          ) : null}
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
-        <CollectionPagination
-          itemLabel="piagam"
-          page={page}
-          pageSize={pageSize}
-          total={filteredItems.length}
-          disabled={loading}
-          onPageChange={setPage}
-          onPageSizeChange={(nextPageSize) => {
-            setPageSize(nextPageSize);
-            setPage(1);
-          }}
-        />
-      </CollectionTableCard>
-      </div>
+                    ) : null}
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </PageStack>
   );
 }

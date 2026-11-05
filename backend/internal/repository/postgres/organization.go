@@ -127,7 +127,7 @@ func (r *organizationRepository) ListWithFilter(ctx context.Context, filter repo
 	}
 
 	offset := (filter.Page - 1) * filter.Limit
-	dataQuery += " ORDER BY o.created_at DESC, o.id DESC"
+	dataQuery += " ORDER BY " + collectionOrderBy(filter.SortBy, filter.SortOrder, "o.created_at", "o.id", map[string]string{"created_at": "o.created_at", "name": "o.name", "upr_level": "o.upr_level", "parent": "(SELECT parent.name FROM organizations parent WHERE parent.id = o.parent_id)"})
 	dataQuery += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
 	args = append(args, filter.Limit, offset)
 

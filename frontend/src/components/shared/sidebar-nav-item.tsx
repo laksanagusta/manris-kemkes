@@ -53,7 +53,7 @@ export function SidebarNavItem({
           {isActive && (
             <span
               aria-hidden="true"
-              className="pointer-events-none absolute inset-0 z-0 rounded-md bg-active"
+              className="pointer-events-none absolute inset-0 z-0 rounded-md bg-sidebar-accent"
             />
           )}
           {Icon ? (

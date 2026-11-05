@@ -63,6 +63,8 @@ export function PopoverSelectField({
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button
+          data-slot="button"
+          data-sidebar-hover=""
           id={id}
           type="button"
           variant="outline"

@@ -4,20 +4,17 @@ import test from "node:test";
 
 const source = readFileSync(new URL("./page.tsx", import.meta.url), "utf8");
 
-test("charter collection follows the shared design-system grammar", () => {
+test("charter overview uses one card per current record and opens details", () => {
   assert.match(source, /<PageStack>/);
-  assert.match(source, /<CollectionToolbar/);
-  assert.match(source, /<CollectionSearchField/);
-  assert.match(source, /<CollectionTableCard>/);
-  assert.match(source, /<CollectionTableHeader density="compact">/);
+  assert.match(source, /items\.map/);
+  assert.match(source, /<Card key=\{item\.id\}>/);
+  assert.match(source, /v\{item\.versionNumber\}/);
   assert.match(source, /<Badge/);
-  assert.match(source, /h-10 border-0 hover:bg-transparent hover:\[&>td\]:bg-muted\/50/);
-  assert.match(source, /sticky right-0 bg-card px-3 py-2/);
-  assert.match(source, /sticky right-0 z-10/);
+  assert.match(source, /Lanjutkan draf/);
+  assert.match(source, /Buka Piagam/);
   assert.match(source, /<CollectionLoadingState/);
   assert.match(source, /<CollectionErrorState/);
   assert.match(source, /<CollectionEmptyState/);
-  assert.match(source, /className="block truncate font-medium text-foreground/);
-  assert.doesNotMatch(source, /ArrowUpRight|>\s*Buka\s*</);
-  assert.doesNotMatch(source, /getCharterStatusBadgeClass/);
+  assert.match(source, /action=\{createAction\}/);
+  assert.doesNotMatch(source, /<Table|CollectionPagination|CollectionSearchField/);
 });

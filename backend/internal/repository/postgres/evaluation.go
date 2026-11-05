@@ -279,7 +279,8 @@ func (r *evaluationRepository) List(ctx context.Context, filter repository.Evalu
 	}
 	offset := (page - 1) * limit
 
-	dataQuery += fmt.Sprintf(" ORDER BY e.created_at DESC, e.id DESC LIMIT $%d OFFSET $%d", argPos, argPos+1)
+	dataQuery += " ORDER BY " + collectionOrderBy(filter.SortBy, filter.SortOrder, "e.created_at", "e.id", map[string]string{"created_at": "e.created_at", "code": "e.code", "organization": "o.name", "template": "et.name", "period": "e.period", "status": "e.status", "updated_at": "e.updated_at"})
+	dataQuery += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argPos, argPos+1)
 	args = append(args, limit, offset)
 
 	rows, err := r.pool.Query(ctx, dataQuery, args...)

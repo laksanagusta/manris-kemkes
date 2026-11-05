@@ -1,4 +1,7 @@
 "use client";
+import { sortCollection, sortDate } from "@/lib/collection-sort";
+import { CollectionTableHead as TableHead } from "@/components/shared/design-system/collections/collection-table-head";
+import { useRemoteCollectionSorting, CollectionSortProvider } from "@/components/shared/design-system/collections/collection-sorting";
 
 import { newestCreatedFirst } from "@/lib/collection-created-at";
 
@@ -35,7 +38,7 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
+
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
@@ -187,6 +190,7 @@ export default function OrganizationsManagementPage() {
 
   const deferredSearch = useDeferredValue(search);
 
+  const collectionSort = useRemoteCollectionSorting({"Nama Organisasi": "name", "Parent Unit": "parent", "UPR Level": "upr_level"}, () => setPage(1));
   useEffect(() => {
     skipUrlWrite.current = true;
     const nextSearch = searchParams.get("q") ?? "";
@@ -258,6 +262,7 @@ export default function OrganizationsManagementPage() {
 
     Promise.all([
       listOrganizations(token, {
+ sort_by:collectionSort.sortBy, sort_order:collectionSort.sortOrder,
         q: deferredSearch.trim() || undefined,
         page,
         limit,
@@ -271,8 +276,7 @@ export default function OrganizationsManagementPage() {
 
         const normalized = (result.data ?? [])
           .map((item) => normalizeOrganization(item))
-          .filter((org): org is Organization => org !== null)
-          .sort(newestCreatedFirst);
+          .filter((org): org is Organization => org !== null);
 
         setOrganizations(normalized);
         setAllOrganizations(
@@ -295,7 +299,7 @@ export default function OrganizationsManagementPage() {
     return () => {
       cancelled = true;
     };
-  }, [token, deferredSearch, page, limit]);
+  }, [token, deferredSearch, page, limit, collectionSort.sortBy, collectionSort.sortOrder]);
 
   const handleRefetch = useCallback(() => {
     if (!token) return;
@@ -303,6 +307,7 @@ export default function OrganizationsManagementPage() {
     setLoading(true);
     Promise.all([
       listOrganizations(token, {
+ sort_by:collectionSort.sortBy, sort_order:collectionSort.sortOrder,
         q: deferredSearch.trim() || undefined,
         page,
         limit,
@@ -314,8 +319,7 @@ export default function OrganizationsManagementPage() {
       .then(([result, allResult]) => {
         const normalized = (result.data ?? [])
           .map((item) => normalizeOrganization(item))
-          .filter((org): org is Organization => org !== null)
-          .sort(newestCreatedFirst);
+          .filter((org): org is Organization => org !== null);
 
         setOrganizations(normalized);
         setAllOrganizations(
@@ -332,7 +336,7 @@ export default function OrganizationsManagementPage() {
         toast.error("Gagal memuat data organisasi");
         setLoading(false);
       });
-  }, [token, deferredSearch, page, limit]);
+  }, [token, deferredSearch, page, limit, collectionSort.sortBy, collectionSort.sortOrder]);
 
   const handleCreateClick = () => {
     setDialogMode("create");
@@ -372,7 +376,7 @@ export default function OrganizationsManagementPage() {
     ? Math.min(page, Math.max(1, Math.ceil(visibleTotal / limit)))
     : page;
   const visibleOrganizations = hasFieldFilters
-    ? filteredOrganizations.slice((visiblePage - 1) * limit, visiblePage * limit)
+    ? sortCollection(filteredOrganizations, org => collectionSort.sortBy === "name" ? org.name : collectionSort.sortBy === "upr_level" ? org.uprLevel : collectionSort.sortBy === "parent" ? allOrganizations.find(parent=>parent.id===org.parentId)?.name : sortDate(org.createdAt), collectionSort.sortOrder).slice((visiblePage - 1) * limit, visiblePage * limit)
     : organizations;
   const uprLevels = useMemo(() => [...new Set([
     ...Object.keys(uprLevelLabel),
@@ -461,7 +465,7 @@ export default function OrganizationsManagementPage() {
         />
 
         <Card className="overflow-hidden">
-          <Table>
+          <CollectionSortProvider controls={collectionSort.controls}><Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
                 <TableHead className="w-[220px] whitespace-nowrap">Nama Organisasi</TableHead>
@@ -501,7 +505,7 @@ export default function OrganizationsManagementPage() {
                 ))
               )}
             </TableBody>
-          </Table>
+          </Table></CollectionSortProvider>
 
           <CollectionPagination
             itemLabel="organisasi"

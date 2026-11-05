@@ -63,6 +63,7 @@ import { useEffect, useMemo, useState } from "react";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { useSettings } from "@/components/settings/settings-provider";
 import { useAuth } from "@/contexts/auth-context";
+import { SidebarFeedback } from "@/components/feedback/sidebar-feedback";
 
 interface NavItem {
   label: string;
@@ -421,6 +422,9 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
           aria-hidden="true"
           className="pointer-events-none absolute inset-x-0 -top-10 z-10 h-10 bg-gradient-to-b from-transparent via-sidebar/75 to-sidebar backdrop-blur-md"
         />
+        {user && (
+          <SidebarFeedback />
+        )}
         {user && (
           <div className="flex min-w-0 items-center justify-center gap-2">
             <DropdownMenu modal={false}>

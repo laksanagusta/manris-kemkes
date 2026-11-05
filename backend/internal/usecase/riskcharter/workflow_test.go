@@ -13,6 +13,7 @@ type workflowRiskCharterRepo struct {
 	item     *entity.RiskCharter
 	existing *entity.RiskCharter
 	deleted  uuid.UUID
+	versions []*entity.RiskCharter
 }
 
 func (r *workflowRiskCharterRepo) Create(context.Context, *entity.RiskCharter) error { return nil }
@@ -25,7 +26,7 @@ func (r *workflowRiskCharterRepo) UpdateDraft(context.Context, *entity.RiskChart
 func (r *workflowRiskCharterRepo) List(context.Context, repository.RiskCharterListFilter) ([]*entity.RiskCharter, int, error) {
 	return nil, 0, nil
 }
-func (r *workflowRiskCharterRepo) FindExistingByOrgPeriodLevel(context.Context, uuid.UUID, string, string) (*entity.RiskCharter, error) {
+func (r *workflowRiskCharterRepo) FindExistingByOrgLevel(context.Context, uuid.UUID, string) (*entity.RiskCharter, error) {
 	return r.existing, nil
 }
 func (r *workflowRiskCharterRepo) Finalize(_ context.Context, charter *entity.RiskCharter) error {
@@ -38,6 +39,9 @@ func (r *workflowRiskCharterRepo) CreateRevision(_ context.Context, _ *entity.Ri
 	return nil
 }
 func (r *workflowRiskCharterRepo) ListVersions(context.Context, uuid.UUID) ([]*entity.RiskCharter, error) {
+	if r.versions != nil {
+		return r.versions, nil
+	}
 	return []*entity.RiskCharter{r.item}, nil
 }
 func (r *workflowRiskCharterRepo) Archive(context.Context, uuid.UUID) error { return nil }
@@ -139,5 +143,53 @@ func TestWorkflowCreateRevisionClonesActiveVersion(t *testing.T) {
 	}
 	if result.Charter.VersionNumber != active.VersionNumber+1 || result.Charter.IsCurrent {
 		t.Fatalf("revision version metadata = %#v", result.Charter)
+	}
+}
+
+func TestCreateCharterReusesExistingAcrossYears(t *testing.T) {
+	orgID, actorID := uuid.New(), uuid.New()
+	existing := completeDraft(orgID, actorID)
+	existing.Period = "2025"
+	repo := &workflowRiskCharterRepo{existing: existing}
+	output, err := NewCreateRiskCharterUseCase(repo).Execute(t.Context(), CreateRiskCharterInput{
+		Title: "Piagam unit", OrganizationID: orgID, UPRLevel: "upr_t1", CreatedBy: actorID,
+		Scope: &entity.AccessScope{OrganizationID: &orgID},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !output.Existing || output.Charter.ID != existing.ID {
+		t.Fatal("created an annual duplicate instead of reusing charter")
+	}
+}
+
+func TestCreateCharterStartsVersionOneWithoutYear(t *testing.T) {
+	orgID, actorID := uuid.New(), uuid.New()
+	output, err := NewCreateRiskCharterUseCase(&workflowRiskCharterRepo{}).Execute(t.Context(), CreateRiskCharterInput{
+		Title: "Piagam unit", OrganizationID: orgID, UPRLevel: "upr_t1", Period: "2030", CreatedBy: actorID,
+		Scope: &entity.AccessScope{OrganizationID: &orgID},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if output.Existing || output.Charter.Period != "" || output.Charter.VersionNumber != 1 {
+		t.Fatalf("annual identity remains: %+v", output)
+	}
+}
+
+func TestRevisionContinuesMergedVersionSequence(t *testing.T) {
+	org, actor := uuid.New(), uuid.New()
+	source := completeDraft(org, actor)
+	source.Status = entity.RiskCharterStatusActive
+	repo := &workflowRiskCharterRepo{item: source, versions: []*entity.RiskCharter{source, {VersionNumber: 8}}}
+	result, err := NewWorkflowUseCase(repo).CreateRevision(t.Context(), CreateRevisionInput{
+		CharterActionInput: CharterActionInput{ID: source.ID, Actor: actor, Scope: &entity.AccessScope{OrganizationID: &org}},
+		Reason:             "Perubahan konteks organisasi",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Charter.VersionNumber != 9 || result.Charter.IsCurrent || source.Status != entity.RiskCharterStatusActive {
+		t.Fatalf("invalid revision sequence or active version: %+v", result.Charter)
 	}
 }

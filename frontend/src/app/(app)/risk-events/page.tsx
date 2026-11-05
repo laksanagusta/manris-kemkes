@@ -1,4 +1,6 @@
 "use client";
+import { useCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
+import { sortDate } from "@/lib/collection-sort";
 import { newestCreatedFirst } from "@/lib/collection-created-at";
 import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
 
@@ -62,6 +64,7 @@ export default function RiskEventsPage() {
   }, [items, query, severityFilter]);
   const hasActiveFilters = Boolean(query.trim()) || severityFilter !== "all";
 
+  const collectionSort = useCollectionSorting(filtered, {"Kejadian": r => r.description, "Tingkat": r => ({low:1,medium:2,high:3,extreme:4})[r.severity], "Dicatat oleh": r => r.createdByName, "Tanggal": r => sortDate(r.occurredAt)});
   if (loading) return <PageStack><CollectionLoadingState message="Memuat kejadian risiko…" /></PageStack>;
   if (error) return <PageStack><CollectionErrorState title="Tidak dapat memuat kejadian risiko" message={error} onReload={() => void load()} /></PageStack>;
 
@@ -109,7 +112,7 @@ export default function RiskEventsPage() {
             </>
           }
         />
-        <CollectionTableCard>
+        <CollectionTableCard sorting={collectionSort.controls}>
           <Table className="min-w-[1340px] table-fixed">
           <colgroup>
             <col className="w-[42%]" />
@@ -165,7 +168,7 @@ export default function RiskEventsPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((item) => (
+              collectionSort.rows.map((item) => (
                 <TableRow key={item.id} className="group hover:bg-transparent">
                   <TableCell className="align-middle">
                     <Link href={`/risk-events/${item.id}`} className="line-clamp-2 text-sm font-medium leading-5 text-foreground transition-colors hover:text-primary">

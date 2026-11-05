@@ -1,4 +1,6 @@
 "use client";
+import { useCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
+import { sortCollection } from "@/lib/collection-sort";
 
 import {
   Fragment,
@@ -587,6 +589,13 @@ export function PlanningManagementPage() {
     () => buildPlanningHierarchyTree(filtered),
     [filtered],
   );
+  const nodeColumns={Struktur:(node:PlanningHierarchyNode)=>node.title,Level:(node:PlanningHierarchyNode)=>hierarchyLevelLabel[node.level],Periode:(node:PlanningHierarchyNode)=>node.periods.join(","),Jumlah:(node:PlanningHierarchyNode)=>node.count};
+  const collectionSort=useCollectionSorting(planningHierarchyTree,nodeColumns);
+  const sortNodes=(nodes:PlanningHierarchyNode[]):PlanningHierarchyNode[]=> {
+    const accessor=nodeColumns[collectionSort.controls.key as keyof typeof nodeColumns];
+    const sorted=accessor?sortCollection(nodes,accessor,collectionSort.controls.direction):nodes;
+    return sorted.map(node=>({...node,children:sortNodes(node.children)}));
+  };
   const [expandedNodeKeys, setExpandedNodeKeys] = useState<Set<string>>(
     () => new Set(),
   );
@@ -657,7 +666,7 @@ export function PlanningManagementPage() {
 
       {error ? <CollectionErrorState message={error} /> : null}
 
-      <CollectionTableCard>
+      <CollectionTableCard sorting={collectionSort.controls}>
         {loading ? (
           <PlanningHierarchyLoadingState />
         ) : planningHierarchyTree.length === 0 ? (
@@ -667,7 +676,7 @@ export function PlanningManagementPage() {
           />
         ) : (
           <PlanningHierarchyTable
-            nodes={planningHierarchyTree}
+            nodes={sortNodes(planningHierarchyTree)}
             expandedNodeKeys={expandedNodeKeys}
             onToggleNode={toggleNode}
           />

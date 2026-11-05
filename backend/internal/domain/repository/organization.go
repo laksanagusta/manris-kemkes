@@ -9,6 +9,8 @@ import (
 
 // OrganizationListFilter holds filter/pagination parameters for listing organizations
 type OrganizationListFilter struct {
+	SortBy     string
+	SortOrder  string
 	Page       int
 	Limit      int
 	Q          string

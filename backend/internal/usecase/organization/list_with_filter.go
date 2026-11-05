@@ -17,6 +17,8 @@ func NewListOrganizationsWithFilterUseCase(orgRepo repository.OrganizationReposi
 }
 
 type ListOrganizationsWithFilterInput struct {
+	SortBy     string
+	SortOrder  string
 	Page       int
 	Limit      int
 	Q          string
@@ -39,6 +41,7 @@ func (uc *ListOrganizationsWithFilterUseCase) Execute(ctx context.Context, input
 	}
 
 	orgs, total, err := uc.orgRepo.ListWithFilter(ctx, repository.OrganizationListFilter{
+		SortBy: input.SortBy, SortOrder: input.SortOrder,
 		Page:       input.Page,
 		Limit:      input.Limit,
 		Q:          input.Q,
