@@ -9,7 +9,7 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -45,7 +45,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <SettingsProvider>
       <TooltipProvider delayDuration={200}>
-        <SidebarProvider>
+        <SidebarProvider style={{ "--sidebar-width": "260px" } as CSSProperties}>
           <div data-app-shell="" className="relative flex min-h-svh w-full flex-col bg-sidebar pt-14 md:pt-0">
             <AppTopbar />
             <div className="flex min-h-0 flex-1 w-full">

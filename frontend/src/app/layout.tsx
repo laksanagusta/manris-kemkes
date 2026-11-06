@@ -7,6 +7,7 @@ import { AppToaster } from "@/components/app-toaster";
 import { MotionFeedback } from "@/components/shared/design-system/motion/motion-feedback";
 import { SuppressRadixWarnings } from "@/components/suppress-radix-warnings";
 import "./globals.css";
+import "./table-hover.css";
 import { cn } from "@/lib/utils";
 import { SITE_URL } from "@/lib/site";
 

@@ -4,6 +4,8 @@ import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/
 
 
 import {
+  Fragment,
+  type ReactNode,
   useDeferredValue,
   useEffect,
   useMemo,
@@ -37,6 +39,7 @@ import {
   AccentButton,
   ActionButton,
   ActionIconButton,
+  CollectionColumnPicker,
   CollectionPageHeader,
   CollectionSearchField,
   CollectionToolbar,
@@ -45,6 +48,7 @@ import {
   IllustratedEmptyState,
   DynamicTableFilters,
   PageStack,
+  useCollectionColumns,
 } from "@/components/shared/design-system";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -105,7 +109,6 @@ import {
   formatMonitoringNilai,
   getMonitoringCycleBadgeStatus,
 } from "@/lib/risk-register-monitoring";
-import { RegisterMonitoringInsights } from "./_components/register-monitoring-insights";
 import {
   CollectionPagination,
   CollectionErrorState,
@@ -132,6 +135,19 @@ import {
 } from "@/components/shared/icons";
 
 import { readMotionDuration } from "@/lib/motion-timing";
+
+const riskColumns = [
+  { id: "risk", label: "Risiko", width: 350, locked: true },
+  { id: "category", label: "Kategori", width: 180 },
+  { id: "organization", label: "Nama Organisasi", width: 224 },
+  { id: "score", label: "Skor", width: 100, className: "pe-6 text-right" },
+  { id: "level", label: "Level", width: 165, className: "pl-6" },
+  { id: "status", label: "Status", width: 115 },
+  { id: "monitoring", label: "Pemantauan", width: 150 },
+  { id: "created", label: "Dibuat", width: 160 },
+] as const;
+
+const riskActionsWidth = 60;
 
 const registerStatusTone: Record<string, StatusTone> = {
   draft: "neutral",
@@ -176,6 +192,7 @@ function getRiskMonitoringStatusForCycle(
 }
 
 type RiskRegisterFilterToolbarProps = {
+  columns: ReactNode;
   search: string;
   onSearchChange: (value: string) => void;
   searchPlaceholder: string;
@@ -196,6 +213,7 @@ type RiskRegisterFilterToolbarProps = {
 };
 
 function RiskRegisterFilterToolbar({
+  columns,
   search,
   onSearchChange,
   searchPlaceholder,
@@ -216,6 +234,7 @@ function RiskRegisterFilterToolbar({
 }: RiskRegisterFilterToolbarProps) {
   return (
     <DynamicTableFilters
+      columns={columns}
       search={
         <CollectionSearchField
           containerClassName="w-full sm:w-64 sm:flex-none"
@@ -358,6 +377,11 @@ export default function RiskRegisterPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { token, user } = useAuth();
+  const { visible: visibleColumns, picker: columnPicker } = useCollectionColumns(
+    riskColumns,
+    user?.id ? `manris:risk-register:columns:${user.id}` : undefined,
+  );
+  const tableMinWidth = visibleColumns.reduce((width, column) => width + column.width, riskActionsWidth);
   const [isPending, startTransition] = useTransition();
   const isApplyingSearchParamsRef = useRef(false);
   const [risks, setRisks] = useState<RiskListItem[]>([]);
@@ -957,11 +981,11 @@ export default function RiskRegisterPage() {
   return (
     <PageStack data-register-motion data-busy={loading || isPending}>
       <CollectionPageHeader title="Risiko" />
-      <RegisterMonitoringInsights refreshKey={risks} />
       <div className="space-y-4">
         <CollectionToolbar
           leading={
             <RiskRegisterFilterToolbar
+              columns={<CollectionColumnPicker {...columnPicker} />}
               search={search}
               onSearchChange={handleRegisterSearchChange}
               searchPlaceholder="Cari risiko..."
@@ -1021,38 +1045,24 @@ export default function RiskRegisterPage() {
             </>
           }
         />
-        <CollectionTableCard sorting={tableSorting}>
-            <Table className="min-w-[1280px] table-fixed">
+        <CollectionTableCard sorting={tableSorting} stickyActions>
+            <Table className="table-fixed" style={{ minWidth: tableMinWidth }}>
               <colgroup>
-                <col style={{ width: "34%" }} />
-                <col style={{ width: "14%" }} />
-                <col style={{ width: "8%" }} />
-                <col style={{ width: "13%" }} />
-                <col style={{ width: "9%" }} />
-                <col style={{ width: "14%" }} />
-                <col className="w-40" />
-<col style={{ width: "8%" }} />
+                {visibleColumns.map((column) => (
+                  <col key={column.id} style={column.id === "risk" ? undefined : { width: column.width }} />
+                ))}
+                <col style={{ width: riskActionsWidth }} />
               </colgroup>
               <CollectionTableHeader>
                 <CollectionTableHeaderRow>
-                  <CollectionTableHead>
-                    Risiko
-                  </CollectionTableHead>
-                  <CollectionTableHead>
-                    Kategori
-                  </CollectionTableHead>
-                  <CollectionTableHead className="pe-6 text-right">Skor</CollectionTableHead>
-                  <CollectionTableHead className="pl-6">
-                    Level
-                  </CollectionTableHead>
-                  <CollectionTableHead>
-                    Status
-                  </CollectionTableHead>
-                  <CollectionTableHead>
-                    Pemantauan
-                  </CollectionTableHead>
-                  <CreatedAtHead />
-                  <CollectionTableHead className="text-center">
+                  {visibleColumns.map((column) => column.id === "created" ? (
+                    <CreatedAtHead key={column.id} />
+                  ) : (
+                    <CollectionTableHead key={column.id} className={"className" in column ? column.className : undefined}>
+                      {column.label}
+                    </CollectionTableHead>
+                  ))}
+                  <CollectionTableHead className="text-center" data-collection-action="">
                     <span className="sr-only">Aksi</span>
                   </CollectionTableHead>
                 </CollectionTableHeaderRow>
@@ -1061,7 +1071,7 @@ export default function RiskRegisterPage() {
                 {risks.length === 0 ? (
                   <TableRow>
                   <TableCell
-                      colSpan={8}
+                      colSpan={visibleColumns.length + 1}
                       className="text-left text-muted-foreground"
                     >
                       <div data-register-state className="flex min-h-24 flex-col items-center justify-center gap-1 py-6 text-center">
@@ -1130,10 +1140,8 @@ export default function RiskRegisterPage() {
                           ? risk.monitoringResultNilai
                           : undefined),
                     }));
-                    return (
-                      <TableRow
-                        key={risk.id}
-                      >
+                    const cells: Record<(typeof riskColumns)[number]["id"], ReactNode> = {
+                      risk: (
                         <TableCell>
                           <div className="flex min-w-0 flex-col items-start gap-0.5">
                             <Tooltip>
@@ -1154,9 +1162,18 @@ export default function RiskRegisterPage() {
                             </span>
                           </div>
                         </TableCell>
+                      ),
+                      category: (
                         <TableCell className="whitespace-nowrap">
                           <RiskCategoryIndicator category={risk.category} />
                         </TableCell>
+                      ),
+                      organization: (
+                        <TableCell className="whitespace-normal wrap-break-word">
+                          {risk.orgName?.trim() || "—"}
+                        </TableCell>
+                      ),
+                      score: (
                         <TableCell className="pe-6 text-right">
                           <span className="block text-right text-sm font-medium tabular-nums text-foreground">
                             {formatMonitoringNilai(
@@ -1164,6 +1181,8 @@ export default function RiskRegisterPage() {
                             )}
                           </span>
                         </TableCell>
+                      ),
+                      level: (
                         <TableCell className="pl-6">
                           {riskLevel ? (
                             <Badge
@@ -1176,6 +1195,8 @@ export default function RiskRegisterPage() {
                             <span className="text-sm text-muted-foreground">-</span>
                           )}
                         </TableCell>
+                      ),
+                      status: (
                         <TableCell>
                           <div className="flex items-center gap-1.5 whitespace-nowrap">
                             <Badge variant={toBadgeVariant(
@@ -1193,6 +1214,8 @@ export default function RiskRegisterPage() {
                             </Badge>
                           </div>
                         </TableCell>
+                      ),
+                      monitoring: (
                         <TableCell>
                           <Tooltip>
                             <TooltipTrigger asChild>
@@ -1275,8 +1298,19 @@ export default function RiskRegisterPage() {
                             </TooltipContent>
                           </Tooltip>
                         </TableCell>
+                      ),
+                      created: (
                         <CreatedAtCell record={risk} />
-                        <TableCell className="text-center">
+                      ),
+                    };
+                    return (
+                      <TableRow
+                        key={risk.id}
+                      >
+                        {visibleColumns.map(({ id }) => (
+                          <Fragment key={id}>{cells[id]}</Fragment>
+                        ))}
+                        <TableCell className="text-center" data-collection-action="">
                           <div className="flex justify-center">
                             <RiskRowActions
                               risk={risk}

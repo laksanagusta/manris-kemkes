@@ -2,6 +2,7 @@ export { OperatorWorkLayout } from "./layout/operator-work-layout";
 export { OperatorMonitoringPeriod } from "./domain/operator-monitoring-period";
 export { MitigationCollectionTable, treatmentTableColumns, type MitigationTableColumn } from "./collections/mitigation-collection-table";
 export { PillTabsList } from "./collections/pill-tabs";
+export { CollectionColumnPicker, useCollectionColumns } from "./collections/collection-column-picker";
 export { DynamicTableFilters, type TableFilterField, type TableFilterOption } from "./collections/dynamic-table-filters";
 export { OperatorWorkSections } from "./domain/operator-work-sections";
 export { AccentButton } from "./actions/accent-button";
@@ -93,7 +94,6 @@ export {
 export { PageStack } from "./layout/page-stack";
 export { CollectionPageHeader } from "./layout/collection-page-header";
 export { StandardCard, type StandardCardProps } from "./layout/standard-card";
-export { MonitoringInsightCard, type MonitoringInsightCardProps } from "./domain/monitoring-insight-card";
 export {
   MonitoringCycleSelect,
   type MonitoringCycleSelectOption,

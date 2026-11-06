@@ -14,7 +14,7 @@ import {
 
 export function BadgeSystemExample() {
   return (
-    <div className="space-y-5 rounded-[12px] bg-card p-6 shadow-black">
+    <div className="space-y-5 rounded-(--surface-radius) bg-card p-6 shadow-black">
       <div>
         <p className="mb-3 text-xs font-medium text-foreground">Referensi Active · pill tanpa border · semibold</p>
         <Badge variant="secondary" className="bg-green-50">Active</Badge>

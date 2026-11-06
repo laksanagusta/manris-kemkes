@@ -295,7 +295,7 @@ export function MitigationTable({
                           {expanded ? "Sembunyikan" : "Rincian"}
                         </Button>
                       </TableCell>
-                      <TableCell className="sticky right-0 align-top transition-colors group-hover:bg-muted/50">
+                      <TableCell className="sticky right-0 align-top transition-colors group-hover:bg-(--table-hover)">
                         <Button
                           type="button"
                           variant="ghost"

@@ -169,7 +169,7 @@ export default function RiskEventsPage() {
               </TableRow>
             ) : (
               collectionSort.rows.map((item) => (
-                <TableRow key={item.id} className="group hover:bg-transparent">
+                <TableRow key={item.id} className="group">
                   <TableCell className="align-middle">
                     <Link href={`/risk-events/${item.id}`} className="line-clamp-2 text-sm font-medium leading-5 text-foreground transition-colors hover:text-primary">
                       {item.description}

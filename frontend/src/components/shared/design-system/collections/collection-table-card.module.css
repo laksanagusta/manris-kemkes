@@ -1,0 +1,47 @@
+/* Keep table rows free of generated boxes so cells stay in the native column grid. */
+.tableCard[data-collection-table] :global([data-slot="table-body"] > [data-slot="table-row"])::before {
+  content: none !important;
+}
+
+.tableCard[data-collection-table] :global([data-slot="table-body"] > [data-slot="table-row"]:not([data-state="selected"]):hover) {
+  background-color: var(--table-hover);
+}
+
+
+.tableCard :global([data-collection-action]) {
+  --action-surface: var(--card);
+  position: sticky;
+  inset-inline-end: 0;
+  z-index: 1;
+  padding-inline: 8px !important;
+  background-color: var(--action-surface);
+}
+
+.tableCard :global([data-slot="table-head"][data-collection-action]) {
+  --action-surface: var(--table-header);
+}
+
+.tableCard :global([data-slot="table-row"]:hover > [data-slot="table-cell"][data-collection-action]) {
+  --action-surface: var(--table-hover);
+}
+
+.tableCard :global([data-slot="table-row"][data-state="selected"] > [data-slot="table-cell"][data-collection-action]) {
+  --action-surface: var(--table-selected);
+}
+
+.tableCard :global([data-action-overlap] [data-collection-action])::before {
+  --fade-direction: to right;
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 100%;
+  width: 20px;
+  pointer-events: none;
+  background: linear-gradient(var(--fade-direction), transparent, var(--action-surface));
+  backdrop-filter: blur(3px);
+  mask-image: linear-gradient(var(--fade-direction), transparent, black);
+}
+
+.tableCard :global([data-action-overlap] [data-collection-action]:dir(rtl))::before {
+  --fade-direction: to left;
+}

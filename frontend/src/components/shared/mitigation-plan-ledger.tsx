@@ -47,7 +47,7 @@ export function MitigationPlanLedger({
 }) {
   return (
     <div data-risk-plan-list className="min-w-0 space-y-3">
-      <div className="overflow-hidden rounded-lg border border-border shadow-(--surface-shadow-low)">
+      <div className="overflow-hidden rounded-(--surface-radius) border border-border shadow-(--surface-shadow-low)">
       <Table className="min-w-[640px] table-fixed">
         <TableHeader>
           <TableRow>

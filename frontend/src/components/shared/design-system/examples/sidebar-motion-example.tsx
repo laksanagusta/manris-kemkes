@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { ManriskMark } from "@/components/manrisk-mark";
 
 import {
   BookOpen,
   LayoutDashboard,
   Search,
 } from "@/components/shared/icons";
-import { SidebarGroup, SidebarGroupLabel, SidebarMenu, SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarBrandHeader, SidebarNavigationGroup } from "@/components/shared/sidebar-navigation-layout";
 import { SidebarNavItem } from "@/components/shared/sidebar-nav-item";
 
 const items = [
@@ -18,18 +18,19 @@ const items = [
 ] as const;
 
 export function SidebarMotionExample() {
+  const [collapsed, setCollapsed] = useState(false);
   const [activeHref, setActiveHref] = useState<string>(items[0].href);
 
   return (
-    <div className="space-y-4 rounded-[12px] bg-card p-6 shadow-black">
-      <SidebarProvider className="min-h-0 w-full">
-        <div className="flex w-full max-w-xs flex-col gap-1 border-r border-border bg-sidebar py-2">
-          <div className="font-logo flex items-center gap-2 px-4 py-3 text-xl font-semibold lowercase tracking-[-0.4px] text-sidebar-foreground">
-            <ManriskMark />
-            <span>Manrisk</span>
-          </div>
-          <SidebarGroup>
-            <SidebarMenu className="gap-1">
+    <div className="space-y-4 rounded-(--surface-radius) bg-card p-6 shadow-black">
+      <SidebarProvider open={!collapsed} className="min-h-0 w-full">
+        <div
+          className="group flex w-[260px] max-w-full flex-col overflow-hidden rounded-(--surface-radius) border border-border bg-sidebar data-[collapsible=icon]:w-12"
+          data-collapsible={collapsed ? "icon" : undefined}
+        >
+          <SidebarBrandHeader collapsed={collapsed} onToggle={() => setCollapsed((value) => !value)} />
+          <div className="flex flex-col gap-5 pb-3 group-data-[collapsible=icon]:gap-2">
+            <SidebarNavigationGroup>
               {items.slice(0, 1).map((item) => (
                 <SidebarNavItem
                   key={item.href}
@@ -43,11 +44,8 @@ export function SidebarMotionExample() {
                   }}
                 />
               ))}
-            </SidebarMenu>
-          </SidebarGroup>
-          <SidebarGroup>
-            <SidebarGroupLabel>OPERASIONAL</SidebarGroupLabel>
-            <SidebarMenu className="gap-1">
+            </SidebarNavigationGroup>
+            <SidebarNavigationGroup title="OPERASIONAL">
               {items.slice(1).map((item) => (
                 <SidebarNavItem
                   key={item.href}
@@ -61,8 +59,8 @@ export function SidebarMotionExample() {
                   }}
                 />
               ))}
-            </SidebarMenu>
-          </SidebarGroup>
+            </SidebarNavigationGroup>
+          </div>
         </div>
       </SidebarProvider>
       <p className="text-xs text-muted-foreground">

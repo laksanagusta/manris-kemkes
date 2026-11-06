@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ManriskMark } from "@/components/manrisk-mark";
 import {
   LayoutDashboard,
   BriefcaseIcon,
@@ -51,13 +50,10 @@ import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
-  SidebarGroup,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarMenu,
   SidebarMenuButton,
-  SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
+import { SidebarBrandHeader, SidebarNavigationGroup } from "@/components/shared/sidebar-navigation-layout";
 import { SidebarNavItem } from "@/components/shared/sidebar-nav-item";
 import { useEffect, useMemo, useState } from "react";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
@@ -330,6 +326,7 @@ function useLocationHash() {
 }
 
 export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
+  const { isMobile, state, toggleSidebar } = useSidebar();
   const { user, logout } = useAuth();
   const router = useRouter();
   const { openSettings } = useSettings();
@@ -368,56 +365,34 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
       collapsible="icon"
       variant="sidebar"
     >
-      <SidebarHeader className="h-14 justify-center px-2">
-        <Link
-          href="/overview"
-          className="font-logo hidden min-w-0 items-center gap-2 rounded-md px-2 py-1 text-2xl leading-7 font-semibold lowercase tracking-[-0.4px] text-foreground outline-hidden transition-colors duration-150 hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-ring md:flex md:group-data-[state=collapsed]/sidebar-wrapper:hidden"
-        >
-          <ManriskMark />
-          <span className="min-w-0 truncate">Manrisk</span>
-        </Link>
-        <SidebarMenu className="md:hidden">
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild size="lg" tooltip="Manrisk">
-              <Link href="/overview">
-                <ManriskMark size={20} />
-                <span className="text-lg leading-6 font-normal text-sidebar-foreground group-data-[collapsible=icon]:hidden">
-                  Manrisk
-                </span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
+      <SidebarBrandHeader
+        collapsed={!isMobile && state === "collapsed"}
+        mobile={isMobile}
+        onToggle={toggleSidebar}
+      />
 
       <SidebarContent>
         <ScrollArea className="min-h-0 flex-1">
-          <div className="flex flex-col gap-1 pt-2">
+          <div className="flex flex-col gap-5 pb-3 group-data-[collapsible=icon]:gap-2">
             {visibleNavigation.map((group) => (
-              <SidebarGroup key={group.title ?? group.items?.[0]?.href}>
-                {group.title ? (
-                  <SidebarGroupLabel>{group.title}</SidebarGroupLabel>
-                ) : null}
-
-                <SidebarMenu className="gap-1">
-                  {group.items?.map((item) => (
-                    <NavLink
-                      key={item.href}
-                      item={item}
-                      currentHash={currentHash}
-                      badgeOverride={
-                        item.href === "/inbox" ? inboxBadge : undefined
-                      }
-                    />
-                  ))}
-                </SidebarMenu>
-              </SidebarGroup>
+              <SidebarNavigationGroup key={group.title ?? group.items?.[0]?.href} title={group.title}>
+                {group.items?.map((item) => (
+                  <NavLink
+                    key={item.href}
+                    item={item}
+                    currentHash={currentHash}
+                    badgeOverride={
+                      item.href === "/inbox" ? inboxBadge : undefined
+                    }
+                  />
+                ))}
+              </SidebarNavigationGroup>
             ))}
           </div>
         </ScrollArea>
       </SidebarContent>
 
-      <SidebarFooter className="relative isolate gap-2 px-2 py-3">
+      <SidebarFooter className="relative isolate gap-2 px-2.5 py-3 group-data-[collapsible=icon]:px-2">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute inset-x-0 -top-10 z-10 h-10 bg-gradient-to-b from-transparent via-sidebar/75 to-sidebar backdrop-blur-md"

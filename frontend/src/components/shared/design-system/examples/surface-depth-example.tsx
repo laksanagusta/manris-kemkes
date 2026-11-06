@@ -11,11 +11,12 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 export function SurfaceDepthExample() {
   return (
     <div className="flex flex-col gap-4">
+      <p className="text-sm text-muted-foreground">Surface memakai radius 10 px melalui token bersama.</p>
       <Card>
         <CardHeader><CardTitle>Surface rendah</CardTitle></CardHeader>
         <CardContent className="flex flex-col gap-4">
           <p className="text-sm text-muted-foreground">Border 1px dengan shadow 0 1px 4px · 6% pada tema terang.</p>
-          <div className="rounded-xl bg-card-subtle-surface p-4 text-sm text-muted-foreground">Isi inset tetap datar.</div>
+          <div className="rounded-(--surface-radius) bg-card-subtle-surface p-4 text-sm text-muted-foreground">Isi inset tetap datar.</div>
         </CardContent>
       </Card>
       <div className="flex flex-wrap gap-2">

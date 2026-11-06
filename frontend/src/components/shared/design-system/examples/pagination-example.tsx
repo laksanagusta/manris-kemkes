@@ -4,7 +4,7 @@ import { CollectionPagination } from "@/components/shared/design-system";
 
 export function PaginationExample() {
   return (
-    <div className="overflow-hidden rounded-[12px] bg-card shadow-black">
+    <div className="overflow-hidden rounded-(--surface-radius) bg-card shadow-black">
       <CollectionPagination
         itemLabel="risiko"
         page={1}

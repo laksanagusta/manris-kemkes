@@ -26,7 +26,7 @@ export function AccordionExample() {
         title="Another Section"
         description="All accordion items follow the exact same pattern."
       >
-        <div className="space-y-3 rounded-[12px] bg-card p-5 shadow-black">
+        <div className="space-y-3 rounded-(--surface-radius) bg-card p-5 shadow-black">
           <p className="text-sm font-medium text-foreground">Nested Card</p>
           <p className="text-xs text-muted-foreground">
             Digunakan untuk approval line dan grouped content.

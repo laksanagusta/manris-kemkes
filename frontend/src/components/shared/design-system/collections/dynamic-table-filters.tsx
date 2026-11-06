@@ -83,8 +83,9 @@ function FilterChip({ field, open, onOpenChange, onRemove }: FilterChipProps) {
   );
 }
 
-export function DynamicTableFilters({ search, fields, className, triggerLabel }: {
+export function DynamicTableFilters({ search, columns, fields, className, triggerLabel }: {
   search?: ReactNode;
+  columns?: ReactNode;
   triggerLabel?: string;
   fields: readonly TableFilterField[];
   className?: string;
@@ -108,6 +109,7 @@ export function DynamicTableFilters({ search, fields, className, triggerLabel }:
     <div data-slot="dynamic-table-filters" className={cn("flex min-w-0 flex-1 flex-col gap-3", className)}>
       <div className="flex min-w-0 flex-wrap items-center gap-2">
         {search}
+        {columns}
         <Popover open={pickerOpen} onOpenChange={(open) => { setPickerOpen(open); if (open) setPickerQuery(""); }}>
           <PopoverTrigger asChild>
             <Button data-slot="button" ref={filterButton} type="button" variant="outline" size={triggerLabel ? "default" : "icon"} aria-label="Tambah filter" title="Tambah filter">

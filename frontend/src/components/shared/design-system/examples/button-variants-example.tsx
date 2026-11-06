@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 
 export function ButtonVariantsExample() {
   return (
-    <div className="space-y-4 rounded-[12px] bg-card p-6 shadow-black">
+    <div className="space-y-4 rounded-(--surface-radius) bg-card p-6 shadow-black">
       <div className="flex flex-wrap items-center gap-3">
         <AccentButton>Primary</AccentButton>
         <Button variant="secondary" size="default">
