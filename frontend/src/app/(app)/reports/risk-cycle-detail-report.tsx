@@ -1,5 +1,6 @@
 "use client";
 
+import { businessYear } from "@/lib/business-clock";
 import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
 import { ReportFilterCard } from "@/components/report/report-filter-card";
 import { Fragment, useEffect, useMemo, useState } from "react";
@@ -132,7 +133,7 @@ function previousGlobalCycle(cycle: string) {
 }
 
 function buildCycleOptions() {
-  const currentYear = new Date().getFullYear();
+  const currentYear = businessYear();
   const result: string[] = [];
   for (let year = currentYear + 1; year >= currentYear - 3; year -= 1) {
     result.push(`${year}-Q4`, `${year}-Q3`, `${year}-Q2`, `${year}-Q1`);

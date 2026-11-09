@@ -14,6 +14,7 @@ import (
 	"github.com/manris/backend/internal/domain/entity"
 	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
+	"github.com/manris/backend/internal/timeutil"
 )
 
 type riskMonitoringRepository struct {
@@ -450,7 +451,7 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 	if err != nil {
 		return nil, fmt.Errorf("lock source risk for finalization: %w", err)
 	}
-	now := time.Now().UTC()
+	now := timeutil.BusinessNow().UTC()
 	if review.ReportRevision != nil && !entity.MonitoringWindowOpen(monitoring.AssessmentCycle, now) {
 		return nil, domainerrors.ErrMonitoringWindowClosed
 	}
@@ -556,7 +557,7 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 		return nil, fmt.Errorf("close unreported mitigation tasks: %w", err)
 	}
 
-	evidence, err := readMonitoringEvidence(ctx, tx, source.ID, monitoringID, monitoring.AssessmentCycle, time.Now().UTC())
+	evidence, err := readMonitoringEvidence(ctx, tx, source.ID, monitoringID, monitoring.AssessmentCycle, now)
 	if err != nil {
 		return nil, err
 	}

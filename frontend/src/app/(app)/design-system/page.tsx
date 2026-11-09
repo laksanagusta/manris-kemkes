@@ -1,6 +1,7 @@
 "use client";
 
 import { MonitoringScheduleNotice } from "@/components/shared/design-system/domain/monitoring-schedule-notice";
+import { SimulatedTimeNotice } from "@/components/shared/design-system/domain/simulated-time-notice";
 import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
 import { RiskCharterCard } from "@/components/shared/design-system/domain/risk-charter-card";
 import { RiskCreationGuidanceExample } from "@/components/shared/design-system/examples/risk-creation-guidance-example";
@@ -90,7 +91,7 @@ import { MonitoringScoreColumnsExample } from "@/components/shared/design-system
 export default function DesignSystemPage() {
   return (
     <div className="flex flex-col gap-8">
-      <p className="text-sm text-muted-foreground">To-Do memakai satu panel Pekerjaan saya. Jumlah tugas dan keterangan tenggat memakai teks 12px. Banner jadwal pemantauan tampil di atas panel dengan label Periode dan ikon informasi.</p>
+      <p className="text-sm text-muted-foreground">To-Do memakai satu panel Pekerjaan saya. Judul bagian sejajar dengan judul kartu, dengan pemisah yang tetap terlihat saat bagian ditutup. Judul bagian tidak berubah warna saat disorot kursor. Tiap baris hanya berisi judul yang membuka detail, tanpa garis bawah. Tautan masuk 16px dan judul panjang membungkus pada lebar maksimum 75ch. Jadwal pemantauan menampilkan status pengisian dan memisahkan periode berjalan dari periode berikutnya.</p>
       <OperatorWorkExample />
       <header className="flex flex-col gap-2">
         <h1 className="text-page-title tracking-normal">Design System</h1>
@@ -400,6 +401,9 @@ export default function DesignSystemPage() {
             </Field>
             </FieldGroup>
             <Alert className="mt-4"><AlertDescription>Pesan formulir memakai Alert bawaan.</AlertDescription></Alert>
+            <div className="mt-4">
+              <SimulatedTimeNotice date={new Date("2027-01-15T10:00:00+07:00")} />
+            </div>
             <div className="mt-4 space-y-2">
               <p className="text-sm text-muted-foreground">Impor dokumen dengan AI eksternal menampilkan pemberitahuan ini sebelum area unggah. Pemberitahuan tetap terlihat setelah file dipilih, tanpa dialog atau checkbox tambahan.</p>
               <ExternalAIProcessingNotice />

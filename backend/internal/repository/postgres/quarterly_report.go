@@ -276,7 +276,7 @@ func loadQuarterlyRisks(ctx context.Context, q riskQueryer, cycle string, start,
 		        monitoring.observed_nilai,
 		        monitoring.observed_level, monitoring.finalized_at,
 	        GREATEST(r.updated_at, monitoring.updated_at),
-	        (COALESCE(lifecycle.archived_at >= $2 AND lifecycle.archived_at < LEAST($3::timestamptz, CURRENT_TIMESTAMP), FALSE) OR EXISTS (SELECT 1 FROM lifecycle_events e WHERE e.version_group_id = r.version_group_id AND e.action = 'archive' AND e.created_at >= $2 AND e.created_at < LEAST($3::timestamptz, CURRENT_TIMESTAMP)))
+	        (COALESCE(lifecycle.archived_at >= $2 AND lifecycle.archived_at < LEAST($3::timestamptz, ` + businessNowSQL + `), FALSE) OR EXISTS (SELECT 1 FROM lifecycle_events e WHERE e.version_group_id = r.version_group_id AND e.action = 'archive' AND e.created_at >= $2 AND e.created_at < LEAST($3::timestamptz, ` + businessNowSQL + `)))
 	 FROM risk_snapshots r
 	 LEFT JOIN lifecycle ON lifecycle.version_group_id = r.version_group_id
 	 LEFT JOIN organizations o ON r.organization_id = o.id

@@ -1,3 +1,4 @@
+import { businessNow } from "./business-clock.ts";
 import { currentAssessmentCycle } from "./risk-cycle-options.ts";
 
 export function riskPeriodLabel(cycle: string) {
@@ -6,7 +7,7 @@ export function riskPeriodLabel(cycle: string) {
   return `Triwulan ${["I", "II", "III", "IV"][Number(match[2]) - 1]} ${match[1]}`;
 }
 
-export function riskFinalizationCycle(cycle: string, initialProfile: boolean, now = new Date()) {
+export function riskFinalizationCycle(cycle: string, initialProfile: boolean, now = businessNow()) {
   return initialProfile ? currentAssessmentCycle(now) : cycle;
 }
 

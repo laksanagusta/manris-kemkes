@@ -16,6 +16,7 @@ import (
 	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
 	"github.com/manris/backend/internal/middleware"
+	"github.com/manris/backend/internal/timeutil"
 	riskuc "github.com/manris/backend/internal/usecase/risk"
 )
 
@@ -1151,7 +1152,7 @@ func (h *RiskHandler) HeatmapData(c *fiber.Ctx) error {
 func (h *RiskHandler) HeatmapMulti(c *fiber.Ctx) error {
 	year, err := strconv.Atoi(c.Query("year"))
 	if err != nil || year <= 0 {
-		year = time.Now().Year()
+		year = timeutil.BusinessNow().Year()
 	}
 	scope := middleware.GetAccessScope(c)
 	orgIDs, err := resolveOperationalOrgIDs(scope, "")

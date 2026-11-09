@@ -1,6 +1,7 @@
+import { businessNow } from "./business-clock.ts";
 import type { RiskRegisterListItem } from "./api/risk-register";
 
-export function getRecentRegisterMonitoring(risk: Pick<RiskRegisterListItem, "recentMonitoring" | "semesterMonitoring">, now = new Date()) {
+export function getRecentRegisterMonitoring(risk: Pick<RiskRegisterListItem, "recentMonitoring" | "semesterMonitoring">, now = businessNow()) {
   const parts = new Intl.DateTimeFormat("en-US", { timeZone: "Asia/Jakarta", year: "numeric", month: "numeric" }).formatToParts(now);
   const year = Number(parts.find(part => part.type === "year")?.value);
   const month = Number(parts.find(part => part.type === "month")?.value);

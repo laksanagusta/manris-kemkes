@@ -1,5 +1,6 @@
 "use client";
 
+import { businessNow } from "@/lib/business-clock";
 import { createDisplayDateFormatter } from "@/lib/display-date";
 import { PropertyList, PropertyLabel } from "@/components/shared/design-system/layout/property-list";
 
@@ -364,7 +365,7 @@ export default function WorkingPaperDetailPage(props: {
     },
   ];
 
-  const monitoringWindowOpen = isMonitoringWindowOpen(data.assessment_cycle || "", new Date());
+  const monitoringWindowOpen = isMonitoringWindowOpen(data.assessment_cycle || "", businessNow());
   const monitoringBlockers = status === "draft" || status === "signing" ? viewModel.monitoringBlockers : [];
   const currentAction = viewModel.currentAction;
 

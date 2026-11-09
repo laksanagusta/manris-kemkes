@@ -181,7 +181,7 @@ func rosterPreviewQuery() string {
 				(make_date(substring($2::text, 1, 4)::int,
 				 (substring($2::text, 7, 1)::int - 1) * 3 + 1, 1)::timestamp
 				 + interval '3 months') AT TIME ZONE 'Asia/Jakarta',
-				CURRENT_TIMESTAMP
+				` + businessNowSQL + `
 			) AS cutoff
 		), eligible_versions AS (
 			SELECT DISTINCT ON (r.version_group_id)

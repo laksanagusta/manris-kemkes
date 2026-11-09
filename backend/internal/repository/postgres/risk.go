@@ -597,9 +597,9 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 			             WHERE rm.version_group_id = r.version_group_id
 			               AND rm.status IN ('draft', 'final')
 			               AND rm.assessment_cycle = CASE
-			                 WHEN EXTRACT(QUARTER FROM CURRENT_DATE)::int = 1
-			                   THEN (EXTRACT(YEAR FROM CURRENT_DATE)::int - 1)::text || '-Q4'
-			                 ELSE EXTRACT(YEAR FROM CURRENT_DATE)::text || '-Q' || (EXTRACT(QUARTER FROM CURRENT_DATE)::int - 1)::text
+			                 WHEN EXTRACT(QUARTER FROM ` + businessDateSQL + `)::int = 1
+			                   THEN (EXTRACT(YEAR FROM ` + businessDateSQL + `)::int - 1)::text || '-Q4'
+			                 ELSE EXTRACT(YEAR FROM ` + businessDateSQL + `)::text || '-Q' || (EXTRACT(QUARTER FROM ` + businessDateSQL + `)::int - 1)::text
 			               END
 			             ORDER BY rm.updated_at DESC, rm.id DESC
 			             LIMIT 1
@@ -897,7 +897,7 @@ func (r *riskRepository) NextRiskCode(ctx context.Context) (string, error) {
 }
 
 func currentQuarterCycle() string {
-	now := time.Now().In(timeutil.JakartaLocation())
+	now := timeutil.BusinessNow().In(timeutil.JakartaLocation())
 	return fmt.Sprintf("%d-Q%d", now.Year(), (int(now.Month())-1)/3+1)
 }
 
@@ -967,13 +967,13 @@ func (r *riskRepository) DashboardSummary(ctx context.Context, cycle string, org
 	}
 	if len(orgIDs) > 0 {
 		err := r.pool.QueryRow(ctx,
-			"SELECT COUNT(*) FROM mitigation_tasks t JOIN risks r ON r.id = t.risk_id AND r.status = 'final' AND r.archived_at IS NULL WHERE t.due_date < CURRENT_DATE AND (t.status IN ('pending','overdue') OR (t.status = 'done' AND (t.reported_at IS NULL OR NULLIF(BTRIM(COALESCE(t.notes, '')), '') IS NULL))) AND r.organization_id = ANY($1)",
+			"SELECT COUNT(*) FROM mitigation_tasks t JOIN risks r ON r.id = t.risk_id AND r.status = 'final' AND r.archived_at IS NULL WHERE t.due_date < "+businessDateSQL+" AND (t.status IN ('pending','overdue') OR (t.status = 'done' AND (t.reported_at IS NULL OR NULLIF(BTRIM(COALESCE(t.notes, '')), '') IS NULL))) AND r.organization_id = ANY($1)",
 			orgIDs).Scan(&s.OverdueMitig)
 		if err != nil {
 			return nil, fmt.Errorf("count overdue: %w", err)
 		}
 	} else {
-		err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM mitigation_tasks t JOIN risks r ON r.id = t.risk_id AND r.status = 'final' AND r.archived_at IS NULL WHERE t.due_date < CURRENT_DATE AND (t.status IN ('pending','overdue') OR (t.status = 'done' AND (t.reported_at IS NULL OR NULLIF(BTRIM(COALESCE(t.notes, '')), '') IS NULL)))").Scan(&s.OverdueMitig)
+		err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM mitigation_tasks t JOIN risks r ON r.id = t.risk_id AND r.status = 'final' AND r.archived_at IS NULL WHERE t.due_date < "+businessDateSQL+" AND (t.status IN ('pending','overdue') OR (t.status = 'done' AND (t.reported_at IS NULL OR NULLIF(BTRIM(COALESCE(t.notes, '')), '') IS NULL)))").Scan(&s.OverdueMitig)
 		if err != nil {
 			return nil, fmt.Errorf("count overdue: %w", err)
 		}
@@ -1616,8 +1616,8 @@ func (r *riskRepository) ListReviewQueue(ctx context.Context, cycle string, orgI
 			CASE
 				WHEN monitoring.status = 'draft' THEN 'in_draft'
 				WHEN monitoring.status = 'final' THEN 'final'
-				WHEN period.due_date IS NOT NULL AND period.due_date < CURRENT_DATE THEN 'overdue'
-				WHEN period.due_date IS NULL AND base.next_review_date IS NOT NULL AND base.next_review_date::date < CURRENT_DATE THEN 'overdue'
+				WHEN period.due_date IS NOT NULL AND period.due_date < `+businessDateSQL+` THEN 'overdue'
+				WHEN period.due_date IS NULL AND base.next_review_date IS NOT NULL AND base.next_review_date::date < `+businessDateSQL+` THEN 'overdue'
 				WHEN monitoring.id IS NULL THEN 'due'
 				ELSE 'due'
 			END
@@ -1651,8 +1651,8 @@ func (r *riskRepository) ListReviewQueue(ctx context.Context, cycle string, orgI
 		CASE
 			WHEN monitoring.status = 'draft' THEN 'in_draft'
 			WHEN monitoring.status = 'final' THEN 'final'
-			WHEN period.due_date IS NOT NULL AND period.due_date < CURRENT_DATE THEN 'overdue'
-			WHEN period.due_date IS NULL AND base.next_review_date IS NOT NULL AND base.next_review_date::date < CURRENT_DATE THEN 'overdue'
+			WHEN period.due_date IS NOT NULL AND period.due_date < `+businessDateSQL+` THEN 'overdue'
+			WHEN period.due_date IS NULL AND base.next_review_date IS NOT NULL AND base.next_review_date::date < `+businessDateSQL+` THEN 'overdue'
 			WHEN monitoring.id IS NULL THEN 'due'
 			ELSE 'due'
 		END AS review_status,
@@ -2092,8 +2092,8 @@ func (r *riskRepository) GetOverdueMitigationTimeline(ctx context.Context, orgID
 					OR NULLIF(BTRIM(COALESCE(mt.notes, '')), '') IS NULL
 				))
 			)
-				AND mt.due_date < CURRENT_DATE
-				AND CURRENT_DATE - mt.due_date <= 7
+				AND mt.due_date < ` + businessDateSQL + `
+				AND ` + businessDateSQL + ` - mt.due_date <= 7
 		) AS overdue_7_count,
 		COUNT(*) FILTER (
 			WHERE (
@@ -2103,8 +2103,8 @@ func (r *riskRepository) GetOverdueMitigationTimeline(ctx context.Context, orgID
 					OR NULLIF(BTRIM(COALESCE(mt.notes, '')), '') IS NULL
 				))
 			)
-				AND mt.due_date < CURRENT_DATE
-				AND CURRENT_DATE - mt.due_date BETWEEN 8 AND 30
+				AND mt.due_date < ` + businessDateSQL + `
+				AND ` + businessDateSQL + ` - mt.due_date BETWEEN 8 AND 30
 		) AS overdue_30_count,
 		COUNT(*) FILTER (
 			WHERE (
@@ -2114,8 +2114,8 @@ func (r *riskRepository) GetOverdueMitigationTimeline(ctx context.Context, orgID
 					OR NULLIF(BTRIM(COALESCE(mt.notes, '')), '') IS NULL
 				))
 			)
-				AND mt.due_date < CURRENT_DATE
-				AND CURRENT_DATE - mt.due_date > 30
+				AND mt.due_date < ` + businessDateSQL + `
+				AND ` + businessDateSQL + ` - mt.due_date > 30
 		) AS overdue_30_plus_count,
 		COUNT(*) AS total_count
 	FROM mitigation_tasks mt

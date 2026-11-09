@@ -76,7 +76,7 @@ func (r *riskRepository) EnsureMonitoringPeriods(ctx context.Context, versionGro
 	_, err := r.pool.Exec(ctx, `
 		UPDATE risk_monitoring_periods
 		SET status = 'overdue', updated_at = now()
-		WHERE version_group_id = $1 AND status = 'pending' AND due_date < CURRENT_DATE
+		WHERE version_group_id = $1 AND status = 'pending' AND due_date < `+businessDateSQL+`
 	`, versionGroupID)
 	if err != nil {
 		return fmt.Errorf("mark overdue monitoring periods: %w", err)

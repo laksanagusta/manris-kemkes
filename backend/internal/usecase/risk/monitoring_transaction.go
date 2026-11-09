@@ -11,6 +11,7 @@ import (
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/errors"
 	domainrepo "github.com/manris/backend/internal/domain/repository"
+	"github.com/manris/backend/internal/timeutil"
 	mtuc "github.com/manris/backend/internal/usecase/mitigation_task"
 )
 
@@ -118,7 +119,7 @@ type FinalizeMonitoringOutput struct {
 }
 
 func NewStartMonitoringUseCase(riskRepo monitoringRiskRepository, monitoringRepo monitoringTransactionRepository, fullRiskRepo domainrepo.RiskRepository, mitigationTaskRepo domainrepo.MitigationTaskRepository, periodRepo MonitoringPeriodRepository) *StartMonitoringUseCase {
-	return &StartMonitoringUseCase{now: time.Now, riskRepo: riskRepo, monitoringRepo: monitoringRepo, fullRiskRepo: fullRiskRepo, mitigationTaskRepo: mitigationTaskRepo, periodRepo: periodRepo}
+	return &StartMonitoringUseCase{now: timeutil.BusinessNow, riskRepo: riskRepo, monitoringRepo: monitoringRepo, fullRiskRepo: fullRiskRepo, mitigationTaskRepo: mitigationTaskRepo, periodRepo: periodRepo}
 }
 
 func NewGetMonitoringUseCase(monitoringRepo monitoringTransactionRepository) *GetMonitoringUseCase {
@@ -126,11 +127,11 @@ func NewGetMonitoringUseCase(monitoringRepo monitoringTransactionRepository) *Ge
 }
 
 func NewUpdateMonitoringUseCase(riskRepo monitoringRiskRepository, monitoringRepo monitoringTransactionRepository) *UpdateMonitoringUseCase {
-	return &UpdateMonitoringUseCase{now: time.Now, riskRepo: riskRepo, monitoringRepo: monitoringRepo}
+	return &UpdateMonitoringUseCase{now: timeutil.BusinessNow, riskRepo: riskRepo, monitoringRepo: monitoringRepo}
 }
 
 func NewFinalizeMonitoringUseCase(riskRepo monitoringRiskRepository, monitoringRepo monitoringTransactionRepository, taskRepo domainrepo.MitigationTaskRepository, fullRiskRepo domainrepo.RiskRepository) *FinalizeMonitoringUseCase {
-	return &FinalizeMonitoringUseCase{now: time.Now, riskRepo: riskRepo, monitoringRepo: monitoringRepo, taskRepo: taskRepo, fullRiskRepo: fullRiskRepo}
+	return &FinalizeMonitoringUseCase{now: timeutil.BusinessNow, riskRepo: riskRepo, monitoringRepo: monitoringRepo, taskRepo: taskRepo, fullRiskRepo: fullRiskRepo}
 }
 
 func (uc *StartMonitoringUseCase) Execute(ctx context.Context, input StartMonitoringInput) (*StartMonitoringOutput, error) {

@@ -22,26 +22,24 @@ export function OperatorWorkSections({
   open,
   onOpenChange,
   today,
-  busyKey,
-  onOpen,
+  itemHref,
   onNavigate,
 }: {
   sections: OperatorWorkSection[];
   open: WorkUIState["open"];
   onOpenChange: (key: OperatorWorkSection["key"], value: boolean) => void;
   today: string;
-  busyKey?: string | null;
-  onOpen: (item: OperatorWorkItem) => void;
+  itemHref: (item: OperatorWorkItem) => string;
   onNavigate?: () => void;
 }) {
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       <OperatorMonitoringPeriod today={today} />
-      <Card className="@container/work gap-0 py-0">
-        <h2 className="flex min-h-11 items-center border-b border-border px-4 py-2 text-sm font-semibold">
+      <Card className="gap-0 py-0">
+        <h2 className="flex min-h-12 items-center border-b border-border px-(--card-spacing) py-3 text-sm font-semibold">
           Pekerjaan saya
         </h2>
-        <div className="px-3 py-1">
+        <div className="divide-y divide-border">
           {sections.map((section) => {
             const title = workSectionTitles[section.key];
             const heading = (
@@ -55,7 +53,7 @@ export function OperatorWorkSections({
 
             if (section.total === 0) {
               return (
-                <h3 key={section.key} className="flex min-h-9 items-center gap-2 py-2 pl-8 text-sm font-medium">
+                <h3 key={section.key} className="flex min-h-11 items-center gap-2 px-(--card-spacing) py-2 text-sm text-muted-foreground">
                   {heading}
                 </h3>
               );
@@ -68,26 +66,25 @@ export function OperatorWorkSections({
                 onOpenChange={(value) => onOpenChange(section.key, value)}
               >
                 <h3>
-                  <CollapsibleTrigger className="group flex min-h-9 w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring pointer-coarse:min-h-11">
+                  <CollapsibleTrigger className="group flex min-h-11 w-full cursor-pointer items-center gap-2 px-(--card-spacing) py-2 text-start text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                    {heading}
                     <ChevronDown
                       aria-hidden
-                      className="size-4 shrink-0 text-muted-foreground transition-transform duration-150 group-data-[state=closed]:-rotate-90 motion-reduce:transition-none"
+                      className="ms-auto size-4 shrink-0 text-muted-foreground transition-transform duration-150 group-data-[state=closed]:-rotate-90 motion-reduce:transition-none"
                     />
-                    {heading}
                   </CollapsibleTrigger>
                 </h3>
-                <CollapsibleContent>
+                <CollapsibleContent className="me-(--card-spacing) ms-[calc(var(--card-spacing)+--spacing(4))] pb-2">
                   <OperatorWorkList
                     items={section.items}
-                    today={today}
-                    busyKey={busyKey}
-                    onOpen={onOpen}
+                    itemHref={itemHref}
+                    onNavigate={onNavigate}
                   />
                   {section.total > 5 ? (
                     <Link
                       href={sectionHref(section.key)}
-                      onClick={onNavigate}
-                      className="inline-flex min-h-9 items-center rounded-sm py-1 pl-6 text-sm font-medium text-foreground hover:underline focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:min-h-11"
+                      onNavigate={onNavigate}
+                      className="flex min-h-9 items-center border-t border-border py-2 text-sm font-medium text-foreground underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:min-h-11"
                       aria-label={`Lihat semua: ${title}`}
                     >
                       Lihat semua ({section.total})

@@ -1,5 +1,6 @@
 "use client";
 
+import { businessNow } from "@/lib/business-clock";
 import { RiskVersionHistoryList } from "@/components/shared/design-system/domain/risk-version-history-list";
 
 import { createDisplayDateFormatter, formatDisplayDate } from "@/lib/display-date";
@@ -850,10 +851,10 @@ export default function RiskInputPage() {
   const nextReviewDate = watch("nextReviewDate") ?? "";
   const riskCode = watch("riskCode") ?? "";
   const hasUnsavedWork = isDirty || (!riskId && Boolean(title.trim() || description.trim() || causes.length || impacts.length));
-  const [monitoringNow,setMonitoringNow]=useState(()=>new Date());
+  const [monitoringNow,setMonitoringNow]=useState(()=>businessNow());
   const isInitialProfile = !riskVersionGroupId || (riskVersionNumber ?? 1) <= 1;
   const finalizationCycle = riskFinalizationCycle(assessmentCycleDisplay, isInitialProfile, monitoringNow);
-  useEffect(()=>{const refresh=()=>setMonitoringNow(new Date());const timer=setInterval(refresh,60000);window.addEventListener("focus",refresh);return()=>{clearInterval(timer);window.removeEventListener("focus",refresh);};},[]);
+  useEffect(()=>{const refresh=()=>setMonitoringNow(businessNow());const timer=setInterval(refresh,60000);window.addEventListener("focus",refresh);return()=>{clearInterval(timer);window.removeEventListener("focus",refresh);};},[]);
   const monitoringCycleOptions = useMemo(
     () =>
       getSelectableMonitoringCyclesForDate(monitoringNow).map((cycle) => ({
@@ -2105,7 +2106,7 @@ export default function RiskInputPage() {
 
   const buildPayload = (data: FormValues, status: string) =>
     buildRiskRegisterPayload(data, status, {
-      assessmentCycle: status === "final" ? riskFinalizationCycle(assessmentCycleDisplay, isInitialProfile, new Date()) : assessmentCycleDisplay,
+      assessmentCycle: status === "final" ? riskFinalizationCycle(assessmentCycleDisplay, isInitialProfile, businessNow()) : assessmentCycleDisplay,
       userRole: user?.role,
       userOrganizationId: user?.organizationId ?? null,
       reviewerId,
@@ -2130,7 +2131,7 @@ export default function RiskInputPage() {
           ? "draft"
           : "final";
       if (!isDraft && isInitialProfile && currentAssessmentCycle() !== currentAssessmentCycle(monitoringNow)) {
-        setMonitoringNow(new Date());
+        setMonitoringNow(businessNow());
         setShowSubmitReviewConfirm(true);
         setSaveState("idle");
         toast.info("Triwulan telah berganti. Tinjau kembali periode finalisasi.");

@@ -1,5 +1,6 @@
 "use client";
 
+import { businessNow } from "@/lib/business-clock";
 import { createDisplayDateFormatter } from "@/lib/display-date";
 import { useRemoteCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
 import { MitigationTaskTable } from "@/components/shared/mitigation-task-table";
@@ -193,7 +194,7 @@ export function MitigationMonitoringPanel() {
   const debouncedSearch = useDebouncedValue(search, 500);
   const debouncedPeriod = useDebouncedValue(period, 400);
   const periodFilterOptions = useMemo(
-    () => getAssessmentCycleFilterOptions(new Date(), period, availablePeriods),
+    () => getAssessmentCycleFilterOptions(businessNow(), period, availablePeriods),
     [availablePeriods, period],
   );
 
@@ -286,14 +287,15 @@ export function MitigationMonitoringPanel() {
       const rawData = response.data || [];
       setTotal(response.total || 0);
 
+      const today = Date.parse(new Intl.DateTimeFormat("sv-SE", {
+        timeZone: "Asia/Jakarta",
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(businessNow()));
       const processed: MitigationTaskRow[] = rawData.map((m) => {
-        const dueDate = new Date(m.dueDate);
-        const today = new Date();
-
-        dueDate.setHours(0, 0, 0, 0);
-        today.setHours(0, 0, 0, 0);
-
-        const diffTime = today.getTime() - dueDate.getTime();
+        const dueDate = Date.parse(m.dueDate.slice(0, 10));
+        const diffTime = today - dueDate;
         const daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
         let tier: MitigationTaskRow["tier"] = "upcoming";
@@ -345,6 +347,15 @@ export function MitigationMonitoringPanel() {
     setShowMitigationDialog(true);
   }, []);
 
+  const openTaskDetail = useCallback((task: MitigationTaskRow, trigger: HTMLButtonElement | null, fromWork = false) => {
+    detailTriggerRef.current = trigger;
+    setOpenedFromWork(fromWork);
+    setReportSent(false);
+    setDetailTask(task);
+    setDialogView("detail");
+    setShowMitigationDialog(true);
+  }, []);
+
   useEffect(() => {
     const taskId = searchParams.get("taskId");
     if (!token || !taskId) return;
@@ -352,25 +363,21 @@ export function MitigationMonitoringPanel() {
     api.get<MitigationTask>(`/mitigation-tasks/${encodeURIComponent(taskId)}`, token).then(task => {
       if (cancelled) return;
       const row: MitigationTaskRow = { ...task, riskCode: task.riskCode || "—", title: task.riskTitle || "—", unit: task.mitigationOwner || "—", daysOverdue: 0, tier: "upcoming", mitigationAction: task.mitigationAction || "—" };
-      detailTriggerRef.current = null;
-      setOpenedFromWork(searchParams.get("returnTo") === "/work");
-      openReportForm(row);
+      if (searchParams.get("returnTo") === "/work") {
+        setSelectedTask(null);
+        openTaskDetail(row, null, true);
+      } else {
+        detailTriggerRef.current = null;
+        setOpenedFromWork(false);
+        openReportForm(row);
+      }
       const next = new URLSearchParams(searchParams.toString());
       next.delete("taskId");
       next.delete("returnTo");
       router.replace(`${pathname}${next.size ? `?${next}` : ""}`, { scroll: false });
     }).catch(() => { if (!cancelled) toast.error("Laporan ini tidak dapat dibuka. Periksa akses dan coba lagi."); });
     return () => { cancelled = true; };
-  }, [token, searchParams, router, pathname, openReportForm]);
-
-  const handleOpenDetail = (task: MitigationTaskRow, trigger: HTMLButtonElement) => {
-    detailTriggerRef.current = trigger;
-    setOpenedFromWork(false);
-    setReportSent(false);
-    setDetailTask(task);
-    setDialogView("detail");
-    setShowMitigationDialog(true);
-  };
+  }, [token, searchParams, router, pathname, openReportForm, openTaskDetail]);
 
   const handleSubmitProgress = async () => {
     if (!selectedTask || !token || submitting) return;
@@ -561,7 +568,7 @@ export function MitigationMonitoringPanel() {
             <MitigationTaskTable
               showCreatedAt
               tasks={mitigations}
-              onOpenDetail={handleOpenDetail}
+              onOpenDetail={openTaskDetail}
               onReport={(task, trigger) => {
                 detailTriggerRef.current = trigger;
                 setOpenedFromWork(false);

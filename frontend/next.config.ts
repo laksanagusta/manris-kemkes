@@ -2,6 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  env: {
+    NEXT_PUBLIC_MANRIS_SIMULATED_NOW: process.env.NODE_ENV === "development"
+      ? process.env.MANRIS_SIMULATED_NOW ?? ""
+      : "",
+  },
   async redirects() {
     return [
       { source: "/panduan", destination: "/docs/introduction", permanent: true },

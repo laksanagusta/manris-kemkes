@@ -13,7 +13,7 @@ import (
 var quarterFormatRe = regexp.MustCompile(`^\d{4}-Q[1-4]$`)
 
 func currentAssessmentCycle() string {
-	return assessmentCycleAt(time.Now())
+	return assessmentCycleAt(timeutil.BusinessNow())
 }
 
 func assessmentCycleAt(now time.Time) string {

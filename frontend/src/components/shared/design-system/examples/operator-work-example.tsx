@@ -18,16 +18,22 @@ export function OperatorWorkExample() {
  const [reportStatus,setReportStatus]=useState<MitigationMonitoringStatusFilter>("needs_reporting");
  const [monitorStatus,setMonitorStatus]=useState<RiskMonitoringStatusFilter>("not_monitored");
  const [open,setOpen]=useState<WorkUIState["open"]>({reports:true,monitoring:true,drafts:true});
- return <OperatorWorkLayout header={<CollectionPageHeader title="To-Do" showTitle className="[&>div]:flex-row [&>div]:flex-wrap [&>div]:items-center [&>div>div:last-child]:ml-auto" actions={<ActionButton asChild><Link href="/risk-events?create=1">Catat kejadian</Link></ActionButton>}/>}><p className="text-sm text-muted-foreground">Data ilustratif. Pekerjaan saya memakai satu Card dengan tiga kelompok yang dapat dibuka secara independen. Judul kelompok dan jumlah tampil bersebelahan. Ikon jenis pekerjaan mengawali baris, garis tipis memisahkan baris, dan tenggat terlambat memakai teks merah serta keterangan. Judul, konteks risiko, tenggat, dan aksi sejajar dalam kolom saat ruang cukup, lalu bertumpuk pada layar sempit. Setiap kelompok menampilkan hingga lima tugas dan menyediakan Lihat semua bila ada tugas lain. Banner periode pemantauan berada di atas Card.</p>
-  <OperatorWorkSections today="2026-10-28" open={open} onOpenChange={(key,value)=>setOpen(current=>({...current,[key]:value}))} onOpen={()=>{}} sections={[
-   {key:"reports",total:6,items:Array.from({length:5},(_,i)=>({...report,key:`report-${i}`,dueDate:i===0?"2026-10-26":i===1?"2026-10-28":"2026-10-30"}))},
+ return <OperatorWorkLayout header={<CollectionPageHeader title="To-Do" showTitle className="[&>div]:flex-row [&>div]:flex-wrap [&>div]:items-center [&>div>div:last-child]:ml-auto" actions={<ActionButton asChild><Link href="/risk-events?create=1">Catat kejadian</Link></ActionButton>}/>}><p id="operator-work-example" className="text-sm text-muted-foreground">Data ilustratif dengan judul panjang, lebih dari lima tugas, dan jadwal pemantauan yang dapat membungkus pada layar sempit.</p>
+  <OperatorWorkSections today="2026-10-28" open={open} onOpenChange={(key,value)=>setOpen(current=>({...current,[key]:value}))} itemHref={()=>"#operator-work-example"} sections={[
+   {key:"reports",total:6,items:[
+    report.mitigationAction ?? "",
+    "Verifikasi daftar kontak eskalasi",
+    "Catat hasil simulasi distribusi",
+    "Konfirmasi kesiapan stok cadangan",
+    "Perbarui prosedur eskalasi untuk distribusi lintas wilayah agar setiap unit mengetahui kapan harus mengaktifkan jalur cadangan dan siapa yang perlu dihubungi",
+   ].map((mitigationAction,i)=>({...report,key:`report-${i}`,mitigationAction}))},
    {key:"monitoring",total:1,items:[{key:"monitor",kind:"monitoring_start",targetId:"risk",riskId:"risk",riskCode:"R-001",riskTitle:"Keterlambatan distribusi",actionLabel:"Mulai pemantauan",period:"2026-Q3",dueDate:"",responsibility:"unit",createdAt:"2026-09-01"}]},
    {key:"drafts",total:1,items:[{key:"draft",kind:"risk_draft",targetId:"draft",riskId:"draft",riskCode:"R-002",riskTitle:"Gangguan layanan",actionLabel:"Lengkapi risiko",period:"2026-Q4",dueDate:"",responsibility:"personal",createdAt:"2026-10-01"}]},
   ]}/>
   <h3 className="pt-3 text-sm font-medium">Contoh section tanpa pekerjaan</h3>
-  <OperatorWorkSections today="2026-10-28" open={open} onOpenChange={(key,value)=>setOpen(current=>({...current,[key]:value}))} onOpen={()=>{}} sections={[{key:"reports",total:0,items:[]}]}/>
+  <OperatorWorkSections today="2026-10-28" open={open} onOpenChange={(key,value)=>setOpen(current=>({...current,[key]:value}))} itemHref={()=>"#operator-work-example"} sections={[{key:"reports",total:0,items:[]}]}/>
   <h3 className="pt-3 text-sm font-medium">Pemantauan ditutup · jadwal berikutnya</h3>
-  <OperatorWorkSections today="2026-11-01" open={open} onOpenChange={(key,value)=>setOpen(current=>({...current,[key]:value}))} onOpen={()=>{}} sections={[{key:"monitoring",total:0,items:[]}]}/>
+  <OperatorWorkSections today="2026-11-01" open={open} onOpenChange={(key,value)=>setOpen(current=>({...current,[key]:value}))} itemHref={()=>"#operator-work-example"} sections={[{key:"monitoring",total:0,items:[]}]}/>
   <h3 className="pt-3 text-sm font-medium">Filter bawaan tabel tujuan</h3>
   <div className="flex flex-wrap items-center gap-2">
    <PopoverSelectField value={reportStatus} onValueChange={value=>setReportStatus(value as MitigationMonitoringStatusFilter)} options={mitigationMonitoringStatusOptions} placeholder="Semua status" ariaLabel="Contoh filter status penanganan" fitContent />

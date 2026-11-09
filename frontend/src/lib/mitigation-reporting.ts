@@ -1,3 +1,4 @@
+import { businessNow } from "./business-clock.ts";
 export interface MitigationSubmissionActionState {
   allowed: boolean;
   message?: string;
@@ -35,7 +36,7 @@ function normalizeDateOnly(value: string): number | null {
 export function isWithinMitigationSubmissionWindow(
   periodEnd: string,
   dueDate: string,
-  now: Date = new Date(),
+  now: Date = businessNow(),
 ): { allowed: boolean; message?: string } {
   const periodEndMs = normalizeDateOnly(periodEnd);
   const dueDateMs = normalizeDateOnly(dueDate);
@@ -104,7 +105,7 @@ export function isWithinMitigationSubmissionWindow(
 export function getMitigationSubmissionActionState(
   periodEnd: string,
   dueDate: string,
-  now: Date = new Date(),
+  now: Date = businessNow(),
 ): MitigationSubmissionActionState {
   const submissionWindow = isWithinMitigationSubmissionWindow(periodEnd, dueDate, now);
   if (submissionWindow.allowed) {

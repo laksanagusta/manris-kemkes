@@ -22,11 +22,16 @@ import (
 	identitydomain "github.com/manris/backend/internal/identity/domain"
 	"github.com/manris/backend/internal/middleware"
 	postgresrepo "github.com/manris/backend/internal/repository/postgres"
+	"github.com/manris/backend/internal/timeutil"
 )
 
 func main() {
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stderr, nil)))
 	cfg := config.Load()
+	simulatedAt, err := timeutil.SimulationTime()
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// ============================================================================
 	// Dependency Injection Bootstrap
@@ -467,6 +472,10 @@ func main() {
 
 	go func() {
 		addr := fmt.Sprintf(":%s", cfg.Port)
+		if !simulatedAt.IsZero() {
+			addr = "127.0.0.1" + addr
+			log.Printf("Waktu simulasi: %s", simulatedAt.In(timeutil.JakartaLocation()))
+		}
 		log.Printf("🚀 MANRIS v2 API starting on %s", addr)
 		if err := app.Listen(addr); err != nil {
 			log.Fatalf("Server error: %v", err)

@@ -32,3 +32,8 @@ migrate-new:
 # Run application
 run:
 	go run cmd/server/main.go
+
+.PHONY: run-simulated
+run-simulated:
+	@test -n "$$MANRIS_SIMULATED_NOW" || (echo "Set MANRIS_SIMULATED_NOW to an RFC3339 date and time." >&2 && exit 1)
+	go run -tags manris_simulation cmd/server/main.go

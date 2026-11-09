@@ -1,5 +1,6 @@
 "use client";
 
+import { businessYear } from "@/lib/business-clock";
 import { createDisplayDateFormatter } from "@/lib/display-date";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -118,7 +119,7 @@ const maturityStyles = [
 ];
 
 function currentPeriod() {
-  return new Date().getFullYear().toString();
+  return businessYear().toString();
 }
 
 function formatDateTime(value?: string | null) {

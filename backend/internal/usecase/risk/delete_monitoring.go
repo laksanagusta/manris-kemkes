@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/errors"
+	"github.com/manris/backend/internal/timeutil"
 )
 
 type monitoringDeletionRepository interface {
@@ -22,7 +23,7 @@ type DeleteMonitoringUseCase struct {
 }
 
 func NewDeleteMonitoringUseCase(monitoringRepo monitoringDeletionRepository, clock ...func() time.Time) *DeleteMonitoringUseCase {
-	now := time.Now
+	now := timeutil.BusinessNow
 	if len(clock) > 0 && clock[0] != nil {
 		now = clock[0]
 	}

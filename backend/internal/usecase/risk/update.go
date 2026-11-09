@@ -11,6 +11,7 @@ import (
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
+	"github.com/manris/backend/internal/timeutil"
 	mtuc "github.com/manris/backend/internal/usecase/mitigation_task"
 )
 
@@ -40,7 +41,7 @@ func NewUpdateRiskUseCase(
 		orgRepo:  orgRepo,
 		wpRepo:   wpRepo,
 		taskRepo: taskRepo,
-		now:      time.Now,
+		now:      timeutil.BusinessNow,
 	}
 	return uc
 }

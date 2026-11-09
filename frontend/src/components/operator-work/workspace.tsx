@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { getOperatorWorkSummary } from "@/lib/api/operator-work";
 import {
   readWorkUIState,
+  workItemHref,
   workUIKey,
   type WorkUIState,
 } from "@/lib/operator-work";
@@ -20,7 +21,6 @@ import {
   CollectionPageHeader,
 } from "@/components/shared/design-system";
 import { OperatorWorkSections } from "@/components/shared/design-system/domain/operator-work-sections";
-import { useOperatorWorkActions } from "./use-operator-work-actions";
 
 export function OperatorWorkWorkspace() {
   const { token, user } = useAuth();
@@ -76,8 +76,6 @@ function WorkContent({ token, userID }: { token: string; userID: string }) {
       /* Storage can be unavailable. */
     }
   }, [userID]);
-  const { open, busyKey, actionError, clearActionError } =
-    useOperatorWorkActions(token, persist);
   const refresh = useCallback(() => {
     setLoading(true);
     setError("");
@@ -160,15 +158,6 @@ function WorkContent({ token, userID }: { token: string; userID: string }) {
       {error ? (
         <CollectionErrorState message={error} onReload={refresh} />
       ) : null}
-      {actionError ? (
-        <CollectionErrorState
-          message={actionError}
-          onReload={() => {
-            clearActionError();
-            refresh();
-          }}
-        />
-      ) : null}
       {!data && loading ? (
         <CollectionLoadingState message="Memuat pekerjaan…" />
       ) : null}
@@ -179,8 +168,7 @@ function WorkContent({ token, userID }: { token: string; userID: string }) {
             open={ui.open}
             onOpenChange={changeSection}
             today={data.today}
-            busyKey={busyKey}
-            onOpen={(item) => void open(item)}
+            itemHref={workItemHref}
             onNavigate={persist}
           />
         </div>

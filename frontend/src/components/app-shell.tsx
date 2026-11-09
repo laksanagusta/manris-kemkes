@@ -12,10 +12,13 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useEffect, useState, type CSSProperties } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
+import { SimulatedTimeNotice } from "@/components/shared/design-system/domain/simulated-time-notice";
+import { simulatedBusinessTime } from "@/lib/business-clock";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const { hasFullSession, token } = useAuth();
   const [inboxCount, setInboxCount] = useState(0);
+  const simulatedTime = simulatedBusinessTime();
 
   useEffect(() => {
     if (!token || !hasFullSession) {
@@ -52,6 +55,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               <div className="flex min-w-0 flex-1 flex-col px-4 pb-8 pt-5 md:px-6 lg:px-8 [--workspace-mobile-nav-space:3.5rem] md:[--workspace-mobile-nav-space:0rem]">
                 <SidebarTrigger aria-label="Buka navigasi" className="mb-3 size-11 md:hidden" />
                 <AppHeader />
+                {simulatedTime && (
+                  <div className="mb-4">
+                    <SimulatedTimeNotice date={simulatedTime} />
+                  </div>
+                )}
                 <div className="w-full min-w-0">{children}</div>
               </div>
             </SidebarInset>

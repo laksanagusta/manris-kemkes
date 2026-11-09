@@ -8,6 +8,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/middleware"
+	"github.com/manris/backend/internal/timeutil"
 	mtuc "github.com/manris/backend/internal/usecase/mitigation_task"
 )
 
@@ -222,7 +223,7 @@ func (h *MitigationTaskHandler) SubmitReport(c *fiber.Ctx) error {
 // TriggerGenerate handles POST /api/v1/mitigation-tasks/generate (admin/cron trigger)
 func (h *MitigationTaskHandler) TriggerGenerate(c *fiber.Ctx) error {
 	dateStr := c.Query("date")
-	now := time.Now()
+	now := timeutil.BusinessNow()
 	if dateStr != "" {
 		if parsedTime, err := time.Parse("2006-01-02", dateStr); err == nil {
 			now = parsedTime

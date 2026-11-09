@@ -1,3 +1,4 @@
+import { businessNow } from "./business-clock.ts";
 import { createDisplayDateFormatter } from "./display-date.ts";
 import type {
   QuarterlyReportOverview,
@@ -33,7 +34,7 @@ export const severityLabels = {
   extreme: "Sangat tinggi",
 };
 
-export function currentReportCycle(date = new Date()) {
+export function currentReportCycle(date = businessNow()) {
   const parts = new Intl.DateTimeFormat("en", {
     timeZone: "Asia/Jakarta",
     year: "numeric",
@@ -44,7 +45,7 @@ export function currentReportCycle(date = new Date()) {
   return `${year}-Q${Math.ceil(month / 3)}`;
 }
 
-export function riskPopulationLabel(cycle: string, date = new Date()) {
+export function riskPopulationLabel(cycle: string, date = businessNow()) {
   return cycle >= currentReportCycle(date)
     ? "Risiko aktif saat ini · Final"
     : "Risiko aktif akhir periode · Final";
@@ -55,7 +56,7 @@ export function shiftReportCycle(cycle: string, delta: number) {
   const index = Number(match[1]) * 4 + Number(match[2]) - 1 + delta;
   return `${Math.floor(index / 4)}-Q${(index % 4) + 1}`;
 }
-export const completedReportCycle = (date = new Date()) =>
+export const completedReportCycle = (date = businessNow()) =>
   shiftReportCycle(currentReportCycle(date), -1);
 export function percentage(
   numerator: number,

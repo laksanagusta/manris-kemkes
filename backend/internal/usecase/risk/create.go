@@ -9,6 +9,7 @@ import (
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
+	"github.com/manris/backend/internal/timeutil"
 )
 
 // CreateRiskUseCase handles risk creation business logic
@@ -28,7 +29,7 @@ func NewCreateRiskUseCase(
 		riskRepo: riskRepo,
 		userRepo: userRepo,
 		orgRepo:  orgRepo,
-		now:      time.Now,
+		now:      timeutil.BusinessNow,
 	}
 	return uc
 }

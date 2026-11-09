@@ -1,5 +1,6 @@
 "use client";
 
+import { businessNow } from "@/lib/business-clock";
 import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
 import { formatDisplayDate } from "@/lib/display-date";
 import { useRemoteCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
@@ -260,7 +261,7 @@ export default function WorkingPapersPage() {
     500,
   );
   const assessmentCycleOptions = getAssessmentCycleFilterOptions(
-    new Date(),
+    businessNow(),
     assessmentCycleFilter,
     availableAssessmentCycles,
   );

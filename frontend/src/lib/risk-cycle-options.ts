@@ -1,3 +1,4 @@
+import { businessNow } from "./business-clock.ts";
 export type AssessmentCycleOption = {
   value: string;
   label: string;
@@ -20,18 +21,18 @@ function quarterCycleFromIndex(index: number) {
   return `${year}-Q${quarter}`;
 }
 
-export function currentAssessmentCycle(referenceDate = new Date()) {
+export function currentAssessmentCycle(referenceDate = businessNow()) {
   const parts=new Intl.DateTimeFormat("en-US",{timeZone:"Asia/Jakarta",year:"numeric",month:"numeric"}).formatToParts(referenceDate);
   const year=Number(parts.find(part=>part.type==="year")?.value);
   const month=Number(parts.find(part=>part.type==="month")?.value);
   return `${year}-Q${Math.floor((month-1)/3)+1}`;
 }
 
-export function currentMonitoringCycle(referenceDate = new Date()) {
+export function currentMonitoringCycle(referenceDate = businessNow()) {
   return currentAssessmentCycle(referenceDate);
 }
 
-export function isCurrentMonitoringCycleAvailable(referenceDate = new Date()) {
+export function isCurrentMonitoringCycleAvailable(referenceDate = businessNow()) {
   void referenceDate;
   return false; // Current-quarter monitoring is never open.
 }
@@ -96,7 +97,7 @@ export function getSelectableAssessmentCycles(
 }
 
 export function getAssessmentCycleFilterOptions(
-  referenceDate = new Date(),
+  referenceDate = businessNow(),
   selectedCycle = "",
   persistedCycles: string[] = [],
 ): AssessmentCycleOption[] {
@@ -154,7 +155,7 @@ export function getSelectableMonitoringCycles(
 }
 
 export function getSelectableMonitoringCyclesForDate(
-  referenceDate = new Date(),
+  referenceDate = businessNow(),
 ): AssessmentCycleOption[] {
   const currentCycle = currentMonitoringCycle(referenceDate);
   const month=Number(new Intl.DateTimeFormat("en-US",{month:"numeric",timeZone:"Asia/Jakarta"}).format(referenceDate));

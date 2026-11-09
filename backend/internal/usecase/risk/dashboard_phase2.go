@@ -11,6 +11,7 @@ import (
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
+	"github.com/manris/backend/internal/timeutil"
 )
 
 type dashboardTaskRepo interface {
@@ -36,7 +37,7 @@ type DashboardActionPressureUseCase struct {
 func NewDashboardActionPressureUseCase(taskRepo dashboardTaskRepo) *DashboardActionPressureUseCase {
 	return &DashboardActionPressureUseCase{
 		taskRepo: taskRepo,
-		now:      time.Now,
+		now:      timeutil.BusinessNow,
 	}
 }
 
@@ -104,7 +105,7 @@ func NewExecutiveAlertsUseCase(riskRepo dashboardRiskRepo, taskRepo dashboardTas
 	return &ExecutiveAlertsUseCase{
 		riskRepo: riskRepo,
 		taskRepo: taskRepo,
-		now:      time.Now,
+		now:      timeutil.BusinessNow,
 	}
 }
 

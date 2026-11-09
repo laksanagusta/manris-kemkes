@@ -1,4 +1,5 @@
 "use client";
+import { businessNow } from "@/lib/business-clock";
 import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
 import type { CollectionSortControls } from "@/components/shared/design-system/collections/collection-sorting";
 import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
@@ -166,7 +167,7 @@ const statusLabel: Record<string, string> = {
 };
 
 function getRiskRegisterPeriodOptions(selectedCycle: string) {
-  return getAssessmentCycleFilterOptions(new Date(), selectedCycle);
+  return getAssessmentCycleFilterOptions(businessNow(), selectedCycle);
 }
 
 type RiskListItem = RiskRegisterListItem;
@@ -474,8 +475,8 @@ export default function RiskRegisterPage() {
   const [selectedAssessmentCycle, setSelectedAssessmentCycle] = useState(
     () => getDefaultMonitoringCycle(),
   );
-  const [monitoringNow,setMonitoringNow]=useState(()=>new Date());
-  useEffect(()=>{const refresh=()=>setMonitoringNow(new Date());const timer=setInterval(refresh,60000);window.addEventListener("focus",refresh);return()=>{clearInterval(timer);window.removeEventListener("focus",refresh);};},[]);
+  const [monitoringNow,setMonitoringNow]=useState(()=>businessNow());
+  useEffect(()=>{const refresh=()=>setMonitoringNow(businessNow());const timer=setInterval(refresh,60000);window.addEventListener("focus",refresh);return()=>{clearInterval(timer);window.removeEventListener("focus",refresh);};},[]);
   const selectableMonitoringCycles = useMemo(()=>getSelectableMonitoringCyclesForDate(monitoringNow),[monitoringNow]);
   const monitoringCycleOptions = useMemo(() => {
     const currentCycle = currentMonitoringCycle();

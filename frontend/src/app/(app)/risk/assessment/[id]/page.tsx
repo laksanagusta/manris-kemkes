@@ -1,5 +1,6 @@
 "use client";
 
+import { businessNow } from "@/lib/business-clock";
 import { MonitoringScheduleNotice } from "@/components/shared/design-system/domain/monitoring-schedule-notice";
 import { shiftAssessmentCycle } from "@/lib/risk-cycle-options";
 import { formatDisplayDate } from "@/lib/display-date";
@@ -231,8 +232,8 @@ export default function AssessmentFormPage() {
   const searchParams=useSearchParams();
   const returnTarget=getWorkReturnLink(searchParams.get("returnTo"));
   const { token, user } = useAuth();
-  const [windowNow,setWindowNow]=useState(()=>new Date());
-  useEffect(()=>{const refresh=()=>setWindowNow(new Date());const timer=setInterval(refresh,60000);window.addEventListener("focus",refresh);return()=>{clearInterval(timer);window.removeEventListener("focus",refresh);};},[]);
+  const [windowNow,setWindowNow]=useState(()=>businessNow());
+  useEffect(()=>{const refresh=()=>setWindowNow(businessNow());const timer=setInterval(refresh,60000);window.addEventListener("focus",refresh);return()=>{clearInterval(timer);window.removeEventListener("focus",refresh);};},[]);
   // The former /risk/assessment route is retained as a URL compatibility
   // alias, but it must use the same monitoring transaction flow. There is no
   // standalone profile-edit/reassessment screen anymore.
@@ -541,7 +542,7 @@ export default function AssessmentFormPage() {
         showFinalizedMonitoring(latest);
         return;
       }
-      if (!isMonitoringWindowOpen(latest.assessmentCycle, new Date())) {
+      if (!isMonitoringWindowOpen(latest.assessmentCycle, businessNow())) {
         setFinalizeNotice(monitoringWindowMessage(latest.assessmentCycle));
         setFinalizeBlocked(true);
         return;
@@ -906,7 +907,7 @@ export default function AssessmentFormPage() {
 
   const onSubmit = async (values: AssessmentFormValues) => {
     const cycle = monitoringDraft?.assessmentCycle || draftRisk?.assessmentCycle || "";
-    if (isMonitoringRoute && !isMonitoringWindowOpen(cycle, new Date())) {
+    if (isMonitoringRoute && !isMonitoringWindowOpen(cycle, businessNow())) {
       const message = monitoringWindowMessage(cycle);
       if (submitTarget.current === "review") {
         setFinalizeNotice(message);

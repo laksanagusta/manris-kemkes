@@ -2,13 +2,13 @@ package riskcascade
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/google/uuid"
+	"github.com/manris/backend/internal/timeutil"
 )
 
 func currentAssessmentCycle() string {
-	now := time.Now().UTC()
+	now := timeutil.BusinessNow().In(timeutil.JakartaLocation())
 	quarter := (int(now.Month())-1)/3 + 1
 	return fmt.Sprintf("%d-Q%d", now.Year(), quarter)
 }
