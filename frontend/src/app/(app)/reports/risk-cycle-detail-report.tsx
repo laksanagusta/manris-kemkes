@@ -1,5 +1,6 @@
 "use client";
 
+import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
 import { ReportFilterCard } from "@/components/report/report-filter-card";
 import { Fragment, useEffect, useMemo, useState } from "react";
 import {
@@ -237,11 +238,12 @@ function FieldDiffTable({ diffs }: { diffs: RiskFieldDiff[] }) {
   }
 
   return (
-    <div className="overflow-x-auto rounded-md border border-border/60">
+    <div className="overflow-hidden rounded-(--surface-radius) shadow-(--surface-shadow-low)">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead className="w-36 whitespace-nowrap">Kolom</TableHead>
+            <TableHead>Nama field</TableHead>
             <TableHead className="w-28 whitespace-nowrap">Status</TableHead>
             <TableHead className="min-w-[200px] max-w-[400px] whitespace-nowrap">
               Sebelum
@@ -254,14 +256,8 @@ function FieldDiffTable({ diffs }: { diffs: RiskFieldDiff[] }) {
         <TableBody>
           {diffs.map((diff) => (
             <TableRow key={`${diff.field}-${diff.changeType}`}>
-              <TableCell>
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-foreground">
-                    {diff.label}
-                  </p>
-                  <p className="text-xs text-muted-foreground">{diff.field}</p>
-                </div>
-              </TableCell>
+              <TableCell className="max-w-[240px] font-medium">{diff.label}</TableCell>
+              <TableCell className="max-w-[240px] text-muted-foreground">{diff.field}</TableCell>
               <TableCell>
                 <Badge
                   variant={changeTypeMeta[diff.changeType] ?? "secondary"}
@@ -269,16 +265,8 @@ function FieldDiffTable({ diffs }: { diffs: RiskFieldDiff[] }) {
                   {diff.changeType}
                 </Badge>
               </TableCell>
-              <TableCell className="">
-                <div className="break-words whitespace-pre-wrap py-1">
-                  {formatValue(diff.before)}
-                </div>
-              </TableCell>
-              <TableCell className="">
-                <div className="break-words whitespace-pre-wrap py-1">
-                  {formatValue(diff.after)}
-                </div>
-              </TableCell>
+              <TableCell className="max-w-[400px]">{formatValue(diff.before)}</TableCell>
+              <TableCell className="max-w-[400px]">{formatValue(diff.after)}</TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -760,15 +748,16 @@ export function RiskCycleDetailReport({
               baris.
             </div>
 
-            <div className="overflow-x-auto rounded-lg border border-border/60">
+            <div className="overflow-hidden rounded-(--surface-radius) shadow-(--surface-shadow-low)">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-14 whitespace-nowrap" />
-                    <TableHead className="w-24 whitespace-nowrap">
+                    <TableHead className="w-40 whitespace-nowrap">
                       Kode
                     </TableHead>
+                    <TableHead className="w-14 whitespace-nowrap" />
                     <TableHead className="whitespace-nowrap">Risiko</TableHead>
+                    <TableHead>Keterangan perubahan</TableHead>
                     <TableHead className="w-40 whitespace-nowrap">
                       Unit
                     </TableHead>
@@ -783,7 +772,7 @@ export function RiskCycleDetailReport({
                 <TableBody>
                   {filteredItems.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-24">
+                      <TableCell colSpan={7} className="">
                         <CollectionEmptyState
                           title="Tidak ada data untuk filter report ini"
                           description="Coba ubah kriteria filter untuk melihat hasil yang berbeda."
@@ -797,9 +786,11 @@ export function RiskCycleDetailReport({
                         categoryMeta.changed;
                       const Icon = meta.icon;
                       const isExpanded = expandedRows[item.versionGroupId];
+                      const riskId = item.toRiskId || item.fromRiskId;
                       return (
                         <Fragment key={item.versionGroupId}>
                           <TableRow key={item.versionGroupId}>
+                            <TableCell><CollectionCode code={item.code} href={riskId ? `/risk/register/${riskId}` : undefined} /></TableCell>
                             <TableCell>
                               <Button
                                 type="button"
@@ -817,20 +808,9 @@ export function RiskCycleDetailReport({
                                 )}
                               </Button>
                             </TableCell>
-                            <TableCell className="">
-                              {item.code || "-"}
-                            </TableCell>
-                            <TableCell className="max-w-[300px]">
-                              <div className="space-y-1">
-                                <p className="truncate text-sm font-medium text-foreground">
-                                  {item.title || "-"}
-                                </p>
-                                <p className="truncate text-xs text-muted-foreground">
-                                  {item.changeReason ||
-                                    item.reviewSummary ||
-                                    fieldDiffLabel(item)}
-                                </p>
-                              </div>
+                            <TableCell className="max-w-[300px] font-medium">{item.title || "—"}</TableCell>
+                            <TableCell className="max-w-[320px] text-muted-foreground">
+                              {item.changeReason || item.reviewSummary || fieldDiffLabel(item)}
                             </TableCell>
                             <TableCell className="">
                               {item.orgName || "-"}
@@ -848,7 +828,7 @@ export function RiskCycleDetailReport({
                           </TableRow>
                           {isExpanded ? (
                             <TableRow className="">
-                              <TableCell colSpan={6}>
+                              <TableCell colSpan={7}>
                                 <div className="space-y-4 py-3">
                                   <div className="grid gap-3 md:grid-cols-2">
                                     <Card size="sm">

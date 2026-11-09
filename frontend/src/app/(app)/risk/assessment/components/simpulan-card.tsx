@@ -2,6 +2,7 @@ import { memo } from "react";
 import { cn } from "@/lib/utils";
 import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 import { Badge } from "@/components/ui/badge";
+import { PropertyLabel, PropertyList } from "@/components/shared/design-system/layout/property-list";
 import {
   getBobot,
   getRiskLevelLabel,
@@ -57,11 +58,11 @@ export const SimpulanCard = memo(function SimpulanCard({
   return (
     <div className="space-y-4">
       <section aria-label="Hasil Pemantauan">
-        <dl>
-          <div className="flex items-center justify-between gap-3 py-2">
-            <dt className="text-[13px] text-muted-foreground">Skor risiko</dt>
+        <PropertyList compact className="mt-0 [&_dt]:text-tertiary-foreground">
+          <div className="flex items-center justify-between gap-4">
+            <PropertyLabel showIcon={false}>Skor risiko</PropertyLabel>
             <dd className="flex items-center gap-2 text-right">
-              <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
+              <span className="text-sm font-medium tabular-nums text-foreground">
                 {newScore}
               </span>
               <Badge variant={toBadgeVariant(riskLevelTone)} className={getStatusBadgeClassName(riskLevelTone)}
@@ -70,20 +71,20 @@ export const SimpulanCard = memo(function SimpulanCard({
               </Badge>
             </dd>
           </div>
-          <div className="flex items-center justify-between gap-3 py-2">
-            <dt className="text-[13px] text-muted-foreground">Bobot</dt>
-            <dd className="font-mono text-sm font-semibold tabular-nums text-foreground">
+          <div className="flex items-center justify-between gap-4">
+            <PropertyLabel showIcon={false}>Bobot</PropertyLabel>
+            <dd className="text-sm font-medium tabular-nums text-foreground">
               {bobot.toFixed(2)}
             </dd>
           </div>
-          <div className="flex items-center justify-between gap-3 py-2">
-            <dt className="text-[13px] text-muted-foreground">Prioritas</dt>
+          <div className="flex items-center justify-between gap-4">
+            <PropertyLabel showIcon={false}>Prioritas</PropertyLabel>
             <dd className="text-sm font-semibold tabular-nums text-foreground">
               {scoreClassification.priority}
             </dd>
           </div>
-          <div className="flex items-center justify-between gap-3 py-2">
-            <dt className="text-[13px] text-muted-foreground">Selera risiko</dt>
+          <div className="flex items-center justify-between gap-4">
+            <PropertyLabel showIcon={false}>Selera risiko</PropertyLabel>
             <dd>
               <Badge variant={
                   scoreClassification.appetite === "di_atas_batas"
@@ -97,21 +98,21 @@ export const SimpulanCard = memo(function SimpulanCard({
               </Badge>
             </dd>
           </div>
-        </dl>
+        </PropertyList>
       </section>
 
       <section
         aria-labelledby="monitoring-score-change"
-        className="border-t border-dashed border-border/50 pt-3.5"
+        className="border-t border-dashed border-border/70 pt-5"
       >
         <h3
           id="monitoring-score-change"
-          className="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground/70"
+          className="text-sm font-semibold text-primary"
         >
           Perubahan Skor
         </h3>
         <div className="mt-3 flex items-center justify-between gap-3">
-          <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
+          <span className="text-sm font-medium tabular-nums text-foreground">
             {currentScore} &rarr; {newScore}
           </span>
         </div>
@@ -119,17 +120,17 @@ export const SimpulanCard = memo(function SimpulanCard({
 
       <section
         aria-labelledby="monitoring-risk-evaluation"
-        className="border-t border-dashed border-border/50 pt-3.5"
+        className="border-t border-dashed border-border/70 pt-5"
       >
         <h3
           id="monitoring-risk-evaluation"
-          className="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground/70"
+          className="text-sm font-semibold text-primary"
         >
           Evaluasi
         </h3>
-        <dl className="mt-3">
-          <div className="flex items-start justify-between gap-3 py-2">
-            <dt className="text-[13px] text-muted-foreground">Tingkat risiko</dt>
+        <PropertyList compact className="[&_dt]:text-tertiary-foreground">
+          <div className="flex items-start justify-between gap-4">
+            <PropertyLabel showIcon={false}>Tingkat risiko</PropertyLabel>
             <dd
               className={cn(
                 "min-w-0 max-w-[70%] whitespace-normal break-words text-right text-sm font-medium",
@@ -148,7 +149,7 @@ export const SimpulanCard = memo(function SimpulanCard({
             </dd>
           </div>
 
-        </dl>
+        </PropertyList>
       </section>
     </div>
   );

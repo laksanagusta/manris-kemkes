@@ -1,4 +1,5 @@
 "use client";
+import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
 import type { CollectionSortControls } from "@/components/shared/design-system/collections/collection-sorting";
 import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
 
@@ -40,17 +41,21 @@ import {
   ActionButton,
   ActionIconButton,
   CollectionColumnPicker,
+  RiskRegisterCards,
+  RiskTableIdentity,
+  RiskTableScore,
+  type RiskRegisterCardItem,
   CollectionPageHeader,
   CollectionSearchField,
   CollectionToolbar,
   DestructiveButton,
   EmptyStateIllustration,
-  IllustratedEmptyState,
   DynamicTableFilters,
   PageStack,
   useCollectionColumns,
 } from "@/components/shared/design-system";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -118,12 +123,8 @@ import {
   CollectionTableHead,
   CollectionTableHeader,
   CollectionTableHeaderRow,
-  MonitoringTransactionProgress,
   MonitoringCycleSelect,
   RiskCategoryIndicator,
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
 } from "@/components/shared/design-system";
 import {
   Plus,
@@ -132,19 +133,21 @@ import {
   Archive,
   RefreshCcw,
   RotateCcw,
+  LayoutGridIcon,
+  AlignLeft,
 } from "@/components/shared/icons";
+
 
 import { readMotionDuration } from "@/lib/motion-timing";
 
 const riskColumns = [
-  { id: "risk", label: "Risiko", width: 350, locked: true },
-  { id: "category", label: "Kategori", width: 180 },
-  { id: "organization", label: "Nama Organisasi", width: 224 },
-  { id: "score", label: "Skor", width: 100, className: "pe-6 text-right" },
-  { id: "level", label: "Level", width: 165, className: "pl-6" },
-  { id: "status", label: "Status", width: 115 },
-  { id: "monitoring", label: "Pemantauan", width: 150 },
-  { id: "created", label: "Dibuat", width: 160 },
+  { id: "code", label: "Kode risiko", width: 156, locked: true },
+  { id: "risk", label: "Risiko", width: 400, locked: true },
+  { id: "category", label: "Kategori", width: 160 },
+  { id: "organization", label: "Nama Organisasi", width: 180 },
+  { id: "score", label: "Skor", width: 88, className: "text-left" },
+  { id: "status", label: "Status", width: 112 },
+  { id: "created", label: "Dibuat", width: 208 },
 ] as const;
 
 const riskActionsWidth = 60;
@@ -237,7 +240,6 @@ function RiskRegisterFilterToolbar({
       columns={columns}
       search={
         <CollectionSearchField
-          containerClassName="w-full sm:w-64 sm:flex-none"
           className="placeholder:text-tertiary-foreground"
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}
@@ -372,6 +374,27 @@ function RiskRowActions({
   );
 }
 
+function getRegisterRiskDisplay(risk: RiskListItem) {
+  const statusText =
+    risk.archivedAt
+      ? "Diarsipkan"
+      : risk.status === "draft" &&
+          risk.versionNumber == 1
+        ? "Draft"
+        : statusLabel[risk.status || ""] ||
+          risk.status ||
+          "-";
+  const riskScore = risk.nilai ?? risk.inherentScore;
+  const riskLevel =
+    riskScore == null
+      ? null
+      : getRiskLevelFromNilai(riskScore);
+  const tone = risk.archivedAt
+    ? registerStatusTone.archived
+    : registerStatusTone[risk.status || ""] || "neutral";
+  return { statusText, riskScore, riskLevel, tone };
+}
+
 export default function RiskRegisterPage() {
   const pathname = usePathname();
   const router = useRouter();
@@ -384,6 +407,7 @@ export default function RiskRegisterPage() {
   const tableMinWidth = visibleColumns.reduce((width, column) => width + column.width, riskActionsWidth);
   const [isPending, startTransition] = useTransition();
   const isApplyingSearchParamsRef = useRef(false);
+  const [registerView, setRegisterView] = useState<"table" | "cards">("table");
   const [risks, setRisks] = useState<RiskListItem[]>([]);
   const [drafts, setDrafts] = useState<RiskListItem[]>([]);
   const [actionRisk, setActionRisk] = useState<RiskListItem | null>(null);
@@ -978,14 +1002,101 @@ export default function RiskRegisterPage() {
     categoryFilter !== "all" ||
     Boolean(assessmentCycleFilter.trim()) ||
     Boolean(createdAtFilter.trim());
+  const renderRiskActions = (risk: RiskListItem) => {
+    const isReadOnly = isReadOnlyForOrg(
+      user,
+      risk.organizationId || "",
+    );
+    const canArchive =
+      lifecycleFilter !== "archived" &&
+      risk.status === "final" &&
+      risk.isCurrent &&
+      !risk.archivedAt &&
+      !isReadOnly;
+    const canRestore = !!risk.archivedAt && !isReadOnly;
+    const canReassess =
+      selectableMonitoringCycles.length>0 &&
+      isMonitoringCycleApplicable(getDefaultMonitoringCycle(),risk.assessmentCycle) &&
+      risk.status === "final" &&
+      risk.isCurrent &&
+      !risk.archivedAt &&
+      !isReadOnly;
+    if (!canReassess && !canArchive && !canRestore && (risk.status !== "draft" || isReadOnly)) return null;
+    return (
+      <RiskRowActions
+        risk={risk}
+        isReadOnly={isReadOnly}
+        onContinueMonitoring={
+          canReassess && risk.monitoringStatus === "draft"
+            ? () => handleOpenConfirmDialog(risk)
+            : undefined
+        }
+        onStartMonitoring={
+          canReassess && risk.monitoringStatus !== "draft"
+            ? () => handleOpenConfirmDialog(risk)
+            : undefined
+        }
+        onArchive={
+          canArchive
+            ? () => { setArchiveReason(""); setArchiveNote(""); setArchiveReasonInvalid(false); setActionRisk(risk); setRiskToArchive(risk); }
+            : undefined
+        }
+        onRestore={
+          canRestore
+            ? () => { setActionRisk(risk); setRiskToRestore(risk); }
+            : undefined
+        }
+        onDeleteDraft={
+          risk.status === "draft"
+            ? () => { setActionRisk(risk); setRiskToDeleteDraft(risk); }
+            : undefined
+        }
+      />
+    );
+  };
+  const cardGroups = new Map<string, RiskRegisterCardItem[]>();
+  if (registerView === "cards") {
+    for (const risk of risks) {
+      const category = risk.category?.trim().toLowerCase() ?? "";
+      const group = cardGroups.get(category) ?? [];
+      const { statusText, riskScore, riskLevel, tone } = getRegisterRiskDisplay(risk);
+      group.push({
+        id: risk.id,
+        title: risk.title || "Risiko tanpa judul",
+        href: `/risk/register/${risk.id}`,
+        code: risk.code || "—",
+        score: formatMonitoringNilai(riskScore),
+        level: riskLevel ? <Badge variant="outline" className={levelToColor(riskLevel)}>{getRiskLevelDisplayLabel(riskLevel)}</Badge> : "—",
+        status: <Badge variant={toBadgeVariant(tone)} className={getStatusBadgeClassName(tone)}>{statusText}</Badge>,
+        actions: renderRiskActions(risk),
+      });
+      cardGroups.set(category, group);
+    }
+  }
+  const pagination = (
+    <CollectionPagination
+      standalone={registerView === "cards"}
+      itemLabel="risiko"
+      page={page}
+      pageSize={limit}
+      total={registerTotal}
+      disabled={loading || isPending}
+      onPageChange={setPage}
+      onPageSizeChange={(nextLimit) => {
+        setLimit(nextLimit);
+        setPage(1);
+      }}
+    />
+  );
   return (
     <PageStack data-register-motion data-busy={loading || isPending}>
       <CollectionPageHeader title="Risiko" />
       <div className="space-y-4">
         <CollectionToolbar
+          wrapActions
           leading={
             <RiskRegisterFilterToolbar
-              columns={<CollectionColumnPicker {...columnPicker} />}
+              columns={registerView === "table" ? <CollectionColumnPicker {...columnPicker} /> : undefined}
               search={search}
               onSearchChange={handleRegisterSearchChange}
               searchPlaceholder="Cari risiko..."
@@ -1013,6 +1124,14 @@ export default function RiskRegisterPage() {
           }
           actions={
             <>
+              <div className="workspace-segmented self-start" role="group" aria-label="Tampilan register risiko">
+                <Button variant="ghost" size="icon-sm" data-workspace-segment="" aria-label="Tabel" title="Tabel" aria-pressed={registerView === "table"} onClick={() => setRegisterView("table")}>
+                  <AlignLeft aria-hidden="true" />
+                </Button>
+                <Button variant="ghost" size="icon-sm" data-workspace-segment="" aria-label="Kartu" title="Kartu" aria-pressed={registerView === "cards"} onClick={() => setRegisterView("cards")}>
+                  <LayoutGridIcon aria-hidden="true" />
+                </Button>
+              </div>
               <RiskExportButton
                 loading={exporting}
                 disabled={loading || !!error || registerTotal === 0 || isPending || search !== deferredSearch || assessmentCycleFilter !== deferredAssessmentCycleFilter}
@@ -1045,11 +1164,18 @@ export default function RiskRegisterPage() {
             </>
           }
         />
+        {registerView === "cards" && risks.length > 0 ? (
+          <>
+            <RiskRegisterCards groups={Array.from(cardGroups, ([category, items]) => ({ category, items }))} />
+            {pagination}
+          </>
+        ) : (
+        <>
         <CollectionTableCard sorting={tableSorting} stickyActions>
             <Table className="table-fixed" style={{ minWidth: tableMinWidth }}>
               <colgroup>
                 {visibleColumns.map((column) => (
-                  <col key={column.id} style={column.id === "risk" ? undefined : { width: column.width }} />
+                  <col key={column.id} style={{ width: column.width }} />
                 ))}
                 <col style={{ width: riskActionsWidth }} />
               </colgroup>
@@ -1058,7 +1184,10 @@ export default function RiskRegisterPage() {
                   {visibleColumns.map((column) => column.id === "created" ? (
                     <CreatedAtHead key={column.id} />
                   ) : (
-                    <CollectionTableHead key={column.id} className={"className" in column ? column.className : undefined}>
+                    <CollectionTableHead
+                      key={column.id}
+                      className={"className" in column ? column.className : undefined}
+                    >
                       {column.label}
                     </CollectionTableHead>
                   ))}
@@ -1091,212 +1220,40 @@ export default function RiskRegisterPage() {
                   </TableRow>
                 ) : (
                   risks.map((risk) => {
-                    const isReadOnly = isReadOnlyForOrg(
-                      user,
-                      risk.organizationId || "",
-                    );
-                    const canArchive =
-                      lifecycleFilter !== "archived" &&
-                      risk.status === "final" &&
-                      risk.isCurrent &&
-                      !risk.archivedAt &&
-                      !isReadOnly;
-                    const canRestore = !!risk.archivedAt && !isReadOnly;
-                    const canReassess =
-                      selectableMonitoringCycles.length>0 &&
-                      isMonitoringCycleApplicable(getDefaultMonitoringCycle(),risk.assessmentCycle) &&
-                      risk.status === "final" &&
-                      risk.isCurrent &&
-                      !risk.archivedAt &&
-                      !isReadOnly;
-                    const statusText =
-                      risk.archivedAt
-                        ? "Diarsipkan"
-                        : risk.status === "draft" &&
-                            risk.versionNumber == 1
-                          ? "Draft"
-                          : statusLabel[risk.status || ""] ||
-                            risk.status ||
-                            "-";
-                    const riskScore = risk.nilai ?? risk.inherentScore;
-                    const riskLevel =
-                      riskScore == null
-                        ? null
-                        : getRiskLevelFromNilai(riskScore);
-                    const monitoringQuarters = [
-                      { label: "Q1", status: risk.semesterMonitoring?.q1, score: risk.semesterMonitoring?.q1Nilai },
-                      { label: "Q2", status: risk.semesterMonitoring?.q2, score: risk.semesterMonitoring?.q2Nilai },
-                      { label: "Q3", status: risk.semesterMonitoring?.q3, score: risk.semesterMonitoring?.q3Nilai },
-                      { label: "Q4", status: risk.semesterMonitoring?.q4, score: risk.semesterMonitoring?.q4Nilai },
-                    ].filter((quarter) => quarter.status);
-                    const latestFinalQuarter = [...monitoringQuarters]
-                      .reverse()
-                      .find((quarter) => quarter.status === "final" || quarter.status === "finalized");
-                    const monitoringHistory = monitoringQuarters.map((quarter) => ({
-                      ...quarter,
-                      score:
-                        quarter.score ??
-                        (quarter.label === latestFinalQuarter?.label
-                          ? risk.monitoringResultNilai
-                          : undefined),
-                    }));
+                    const { statusText, riskScore, riskLevel, tone } = getRegisterRiskDisplay(risk);
                     const cells: Record<(typeof riskColumns)[number]["id"], ReactNode> = {
                       risk: (
                         <TableCell>
-                          <div className="flex min-w-0 flex-col items-start gap-0.5">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Link
-                                  href={`/risk/register/${risk.id}`}
-                                  className="min-w-0 max-w-full truncate text-sm font-medium leading-5 text-foreground transition-colors hover:text-primary"
-                                >
-                                  {risk.title || "-"}
-                                </Link>
-                              </TooltipTrigger>
-                              <TooltipContent className="register-motion-tooltip" side="top" align="start">
-                                {risk.title || "-"}
-                              </TooltipContent>
-                            </Tooltip>
-                            <span className="font-sans text-sm leading-5 text-muted-foreground">
-                              {risk.code || "-"}
-                            </span>
-                          </div>
+                          <RiskTableIdentity
+                            title={risk.title || "Risiko tanpa judul"}
+                            href={`/risk/register/${risk.id}`}
+                          />
                         </TableCell>
                       ),
+                      code: <TableCell><CollectionCode code={risk.code} href={`/risk/register/${risk.id}`} /></TableCell>,
                       category: (
                         <TableCell className="whitespace-nowrap">
-                          <RiskCategoryIndicator category={risk.category} />
+                          <RiskCategoryIndicator showDot={false} category={risk.category} className="max-w-full" />
                         </TableCell>
                       ),
                       organization: (
-                        <TableCell className="whitespace-normal wrap-break-word">
+                        <TableCell>
                           {risk.orgName?.trim() || "—"}
                         </TableCell>
                       ),
                       score: (
-                        <TableCell className="pe-6 text-right">
-                          <span className="block text-right text-sm font-medium tabular-nums text-foreground">
-                            {formatMonitoringNilai(
-                              riskScore,
-                            )}
-                          </span>
-                        </TableCell>
-                      ),
-                      level: (
-                        <TableCell className="pl-6">
-                          {riskLevel ? (
-                            <Badge
-                              variant="outline"
-                              className={levelToColor(riskLevel)}
-                            >
-                              {getRiskLevelDisplayLabel(riskLevel)}
-                            </Badge>
-                          ) : (
-                            <span className="text-sm text-muted-foreground">-</span>
-                          )}
+                        <TableCell className="text-left">
+                          <RiskTableScore score={formatMonitoringNilai(riskScore)} level={riskLevel} />
                         </TableCell>
                       ),
                       status: (
                         <TableCell>
                           <div className="flex items-center gap-1.5 whitespace-nowrap">
-                            <Badge variant={toBadgeVariant(
-                                risk.archivedAt
-                                  ? registerStatusTone.archived
-                                  : registerStatusTone[risk.status || ""] ||
-                                    "neutral"
-                              )} className={getStatusBadgeClassName(
-                                risk.archivedAt
-                                  ? registerStatusTone.archived
-                                  : registerStatusTone[risk.status || ""] || "neutral"
-                              )}
+                            <Badge variant={toBadgeVariant(tone)} className={getStatusBadgeClassName(tone)}
                             >
                               {statusText}
                             </Badge>
                           </div>
-                        </TableCell>
-                      ),
-                      monitoring: (
-                        <TableCell>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <span
-                                role="group"
-                                tabIndex={0}
-                                aria-label={`Riwayat pemantauan ${new Date().getFullYear()}`}
-                                className="inline-flex rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-                              >
-                                <MonitoringTransactionProgress
-                                  data={risk.semesterMonitoring}
-                                  showCount={false}
-                                  nativeTitle={false}
-                                />
-                              </span>
-                            </TooltipTrigger>
-                            <TooltipContent
-                              side="bottom"
-                              align="start"
-                              sideOffset={8}
-                              className="register-motion-tooltip block w-64 max-w-[calc(100vw-2rem)] rounded-2xl border border-border bg-sidebar p-1 text-foreground shadow-lg [&>span]:!hidden"
-                            >
-                              <div>
-                                <div className="flex items-center justify-between gap-3 px-2 pb-2 pt-2">
-                                  <p className="text-xs font-medium uppercase text-tertiary-foreground">
-                                    RIWAYAT PEMANTAUAN
-                                  </p>
-                                  <span className="shrink-0 text-xs tabular-nums text-tertiary-foreground">
-                                    {new Date().getFullYear()}
-                                  </span>
-                                </div>
-                                {monitoringQuarters.length === 0 ? (
-                                  <IllustratedEmptyState
-                                    title="Belum ada riwayat pemantauan tahun ini."
-                                    size="compact"
-                                    className="py-3"
-                                  />
-                                ) : (
-                                  <div className="space-y-0.5 rounded-xl bg-card p-1.5">
-                                    {monitoringHistory.map((quarter) => {
-                                      const level =
-                                        quarter.score == null
-                                          ? undefined
-                                          : getRiskLevelFromNilai(quarter.score);
-
-                                      const scoreColor = level ? {
-                                        sangat_rendah: "text-green-600 dark:text-green-400",
-                                        rendah: "text-risk-low",
-                                        sedang: "text-risk-medium",
-                                        tinggi: "text-risk-high",
-                                        sangat_tinggi: "text-risk-extreme",
-                                      }[level] : "text-muted-foreground";
-
-                                      return (
-                                        <div
-                                          key={quarter.label}
-                                          className="flex min-h-10 items-center justify-between gap-4 px-1 py-1"
-                                        >
-                                          <span className="shrink-0 text-sm font-medium">
-                                            {quarter.label}
-                                          </span>
-                                          {quarter.score != null && level ? (
-                                            <span
-                                              className={`min-w-10 shrink-0 text-end text-sm font-medium tabular-nums ${scoreColor}`}
-                                              title={getRiskLevelDisplayLabel(level)}
-                                            >
-                                              {formatMonitoringNilai(quarter.score)}
-                                            </span>
-                                          ) : (
-                                            <span className="min-w-10 shrink-0 text-end text-sm tabular-nums text-muted-foreground">
-                                              -
-                                            </span>
-                                          )}
-                                        </div>
-                                      );
-                                    })}
-                                  </div>
-                                )}
-                              </div>
-                            </TooltipContent>
-                          </Tooltip>
                         </TableCell>
                       ),
                       created: (
@@ -1304,43 +1261,13 @@ export default function RiskRegisterPage() {
                       ),
                     };
                     return (
-                      <TableRow
-                        key={risk.id}
-                      >
+                      <TableRow key={risk.id}>
                         {visibleColumns.map(({ id }) => (
                           <Fragment key={id}>{cells[id]}</Fragment>
                         ))}
                         <TableCell className="text-center" data-collection-action="">
                           <div className="flex justify-center">
-                            <RiskRowActions
-                              risk={risk}
-                              isReadOnly={isReadOnly}
-                              onContinueMonitoring={
-                                canReassess && risk.monitoringStatus === "draft"
-                                  ? () => handleOpenConfirmDialog(risk)
-                                  : undefined
-                              }
-                              onStartMonitoring={
-                                canReassess && risk.monitoringStatus !== "draft"
-                                  ? () => handleOpenConfirmDialog(risk)
-                                  : undefined
-                              }
-                              onArchive={
-                                canArchive
-                                  ? () => { setArchiveReason(""); setArchiveNote(""); setArchiveReasonInvalid(false); setActionRisk(risk); setRiskToArchive(risk); }
-                                  : undefined
-                              }
-                              onRestore={
-                                canRestore
-                                  ? () => { setActionRisk(risk); setRiskToRestore(risk); }
-                                  : undefined
-                              }
-                              onDeleteDraft={
-                                risk.status === "draft"
-                                  ? () => { setActionRisk(risk); setRiskToDeleteDraft(risk); }
-                                  : undefined
-                              }
-                            />
+                            {renderRiskActions(risk)}
                           </div>
                         </TableCell>
                       </TableRow>
@@ -1349,19 +1276,10 @@ export default function RiskRegisterPage() {
                 )}
                   </TableBody>
                 </Table>
-                <CollectionPagination
-                  itemLabel="risiko"
-                  page={page}
-                  pageSize={limit}
-                  total={registerTotal}
-                  disabled={loading || isPending}
-                  onPageChange={setPage}
-                  onPageSizeChange={(nextLimit) => {
-                    setLimit(nextLimit);
-                    setPage(1);
-                  }}
-                />
+          {pagination}
         </CollectionTableCard>
+        </>
+        )}
       </div>
 
       <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>

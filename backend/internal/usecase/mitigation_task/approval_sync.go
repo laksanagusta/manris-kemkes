@@ -66,9 +66,6 @@ func (uc *EnsureTasksForRiskVersionUseCase) Execute(
 		if mitigation.ID == uuid.Nil {
 			continue
 		}
-		if mitigation.IsExistingControl {
-			continue
-		}
 
 		exists, err := uc.taskRepo.TaskExistsForPeriod(ctx, mitigation.ID, periodStart, periodEnd)
 		if err != nil {

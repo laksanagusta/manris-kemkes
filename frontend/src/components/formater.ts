@@ -14,12 +14,12 @@ export function formatDate(isoDate: string, style: DashboardDateStyle): string {
 	}
 	if (style === "day-month") {
 		return date.toLocaleDateString(DASHBOARD_LOCALE, {
-			day: "numeric",
+			day: "2-digit",
 			month: "short",
 		});
 	}
 	return date.toLocaleDateString(DASHBOARD_LOCALE, {
-		day: "numeric",
+		day: "2-digit",
 		month: "short",
 		year: "numeric",
 	});
@@ -47,7 +47,7 @@ export function formatChartTooltipDate(
 	const date = parseIsoCalendarDate(isoDate);
 	return date.toLocaleDateString(DASHBOARD_LOCALE, {
 		weekday: weekdayStyle,
-		day: "numeric",
+		day: "2-digit",
 		month: "short",
 	});
 }

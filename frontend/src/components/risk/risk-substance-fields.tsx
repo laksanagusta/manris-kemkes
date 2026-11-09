@@ -101,15 +101,6 @@ function mapMitigationsToItems(values: RiskMitigation[]): MitigationItem[] {
     externalPicId: mitigation.externalPicId,
     dueDate: mitigation.dueDate ?? "",
     mitigationType: mitigation.mitigationType ?? "reduce_probability",
-    activityStage: mitigation.activityStage ?? "",
-    expectedOutput: mitigation.expectedOutput ?? "",
-    quantitativeTarget: mitigation.quantitativeTarget ?? "",
-    supportingUnit: mitigation.supportingUnit ?? "",
-	resourcesRequired: mitigation.resourcesRequired ?? "",
-	contingencyPlan: mitigation.contingencyPlan ?? "",
-	potentialObstacle: mitigation.potentialObstacle ?? "",
-	isBreakthroughActivity: mitigation.isBreakthroughActivity ?? false,
-    isExistingControl: mitigation.isExistingControl ?? false,
   }));
 }
 
@@ -178,15 +169,6 @@ export function RiskSubstanceFields({
           executionScheduleText: item.executionScheduleText,
           targetCost: item.targetCost,
           mitigationType: item.mitigationType as MitigationType,
-          activityStage: item.activityStage,
-          expectedOutput: item.expectedOutput,
-          quantitativeTarget: item.quantitativeTarget,
-          supportingUnit: item.supportingUnit,
-		resourcesRequired: item.resourcesRequired,
-		contingencyPlan: item.contingencyPlan,
-		potentialObstacle: item.potentialObstacle,
-		isBreakthroughActivity: Boolean(item.isBreakthroughActivity),
-          isExistingControl: Boolean(item.isExistingControl),
         })),
       );
     },

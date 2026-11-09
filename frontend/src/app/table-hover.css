@@ -1,11 +1,11 @@
 :root:not(.dark) {
-  --table-hover: #f6f6f6;
+  --table-hover: #f7f7f7;
 }
 
 :root.dark {
   --table-hover: var(--sidebar-accent);
 }
 
-[data-slot="table-body"] [data-slot="table-row"]:not([data-state="selected"], [data-risk-plan-list] *):hover {
+[data-slot="table-body"] > [data-slot="table-row"]:not([data-state="selected"]):is(:hover, :focus-within) {
   background-color: var(--table-hover);
 }

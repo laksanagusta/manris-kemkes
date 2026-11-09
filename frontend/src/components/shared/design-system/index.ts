@@ -76,8 +76,9 @@ export {
   type DocumentListItem,
   type DocumentListSectionProps,
 } from "./layout/document-list";
-export { FormContainer } from "./layout/form-container";
+export { FormContainer, FormGroup, FormPanel } from "./layout/form-container";
 export { InlineCard } from "./layout/inline-card";
+export { InsetList, InsetListItem } from "./layout/inset-list";
 export {
   LabeledList,
   LabeledListItem,
@@ -93,6 +94,10 @@ export {
 } from "./layout/page-header-actions-portal";
 export { PageStack } from "./layout/page-stack";
 export { CollectionPageHeader } from "./layout/collection-page-header";
+export { WorkspaceMetrics } from "./layout/workspace-metrics";
+export { ThemePreference } from "./layout/theme-preference";
+export { RiskRegisterCards, type RiskRegisterCardItem } from "./domain/risk-register-cards";
+export { RiskTableIdentity } from "./domain/risk-table-identity";
 export { StandardCard, type StandardCardProps } from "./layout/standard-card";
 export {
   MonitoringCycleSelect,
@@ -244,3 +249,6 @@ export { SettingsDialog, type SettingsSection } from "./layout/settings-dialog";
 
 export { RiskManagementCondition } from "./domain/risk-management-condition";
 export { RiskConditionCharts } from "./domain/risk-condition-charts";
+
+export { RiskTableScore } from "./domain/risk-table-score";
+export { RiskCreationContext, RiskFormReadiness, RiskFinalizationReview } from "./domain/risk-creation-guidance";

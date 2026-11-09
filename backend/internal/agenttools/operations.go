@@ -613,27 +613,17 @@ func monitoringCondition(ctx context.Context, tx pgx.Tx, group uuid.UUID, cycle 
 }
 
 type eventInput struct {
-	Description           string                     `json:"description"`
-	OccurredAt            time.Time                  `json:"occurredAt"`
-	ImpactTypes           []string                   `json:"impactTypes"`
-	OtherImpactType       string                     `json:"otherImpactType"`
-	ActualImpact          string                     `json:"actualImpact"`
-	Severity              string                     `json:"severity"`
-	ImmediateResponse     string                     `json:"immediateResponse"`
-	PostResponseCondition string                     `json:"postResponseCondition"`
-	Location              string                     `json:"location"`
-	AffectedParties       string                     `json:"affectedParties"`
-	SuspectedCause        string                     `json:"suspectedCause"`
-	DisruptionDuration    string                     `json:"disruptionDuration"`
-	ExtraordinaryReason   string                     `json:"extraordinaryReason"`
-	OngoingAction         string                     `json:"ongoingAction"`
-	EvidenceURL           string                     `json:"evidenceUrl"`
-	FinancialLoss         *float64                   `json:"financialLoss"`
-	FinancialLossKnown    *bool                      `json:"financialLossKnown"`
-	RiskIDs               []uuid.UUID                `json:"riskIds"`
-	SourceDocumentName    string                     `json:"sourceDocumentName"`
-	SourceRefs            []entity.DocumentSourceRef `json:"sourceRefs"`
-	ExtractionKey         string                     `json:"extractionKey"`
+	Description        string                     `json:"description"`
+	OccurredAt         time.Time                  `json:"occurredAt"`
+	ImpactTypes        []string                   `json:"impactTypes"`
+	OtherImpactType    string                     `json:"otherImpactType"`
+	Severity           string                     `json:"severity"`
+	FinancialLoss      *float64                   `json:"financialLoss"`
+	FinancialLossKnown *bool                      `json:"financialLossKnown"`
+	RiskIDs            []uuid.UUID                `json:"riskIds"`
+	SourceDocumentName string                     `json:"sourceDocumentName"`
+	SourceRefs         []entity.DocumentSourceRef `json:"sourceRefs"`
+	ExtractionKey      string                     `json:"extractionKey"`
 }
 
 func eventPayload(after map[string]any, org, actor uuid.UUID) (eventuc.CreateInput, error) {
@@ -648,13 +638,7 @@ func eventPayload(after map[string]any, org, actor uuid.UUID) (eventuc.CreateInp
 	if p.FinancialLoss != nil && *p.FinancialLoss < 0 {
 		return eventuc.CreateInput{}, agent.ErrInvalid
 	}
-	if p.EvidenceURL != "" {
-		u, e := url.ParseRequestURI(p.EvidenceURL)
-		if e != nil || (u.Scheme != "http" && u.Scheme != "https") {
-			return eventuc.CreateInput{}, invalid("URL bukti tidak valid")
-		}
-	}
-	return eventuc.CreateInput{Description: p.Description, OccurredAt: p.OccurredAt, ImpactTypes: p.ImpactTypes, OtherImpactType: p.OtherImpactType, ActualImpact: p.ActualImpact, Severity: p.Severity, ImmediateResponse: p.ImmediateResponse, PostResponseCondition: p.PostResponseCondition, Location: p.Location, AffectedParties: p.AffectedParties, SuspectedCause: p.SuspectedCause, DisruptionDuration: p.DisruptionDuration, ExtraordinaryReason: p.ExtraordinaryReason, OngoingAction: p.OngoingAction, EvidenceURL: p.EvidenceURL, FinancialLoss: p.FinancialLoss, FinancialLossKnown: p.FinancialLossKnown, RiskIDs: p.RiskIDs, SourceDocumentName: p.SourceDocumentName, SourceRefs: p.SourceRefs, ExtractionKey: p.ExtractionKey, OrganizationID: org, ActorID: actor, OrgIDs: []uuid.UUID{org}}, nil
+	return eventuc.CreateInput{Description: p.Description, OccurredAt: p.OccurredAt, ImpactTypes: p.ImpactTypes, OtherImpactType: p.OtherImpactType, Severity: p.Severity, FinancialLoss: p.FinancialLoss, FinancialLossKnown: p.FinancialLossKnown, RiskIDs: p.RiskIDs, SourceDocumentName: p.SourceDocumentName, SourceRefs: p.SourceRefs, ExtractionKey: p.ExtractionKey, OrganizationID: org, ActorID: actor, OrgIDs: []uuid.UUID{org}}, nil
 }
 
 // Capturing repositories run the actual usecases' validation without writes.

@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
@@ -314,7 +315,7 @@ func (r *riskMonitoringRepository) UpdateDraft(ctx context.Context, monitoring *
 		return fmt.Errorf("marshal profile changes: %w", err)
 	}
 	draftPayload := mustJSON(monitoring.DraftPayloadSnapshot())
-	tag, err := r.pool.Exec(ctx, `
+	err = r.pool.QueryRow(ctx, `
 		UPDATE risk_monitorings
 		SET mode = $2,
 		    observed_probability = $3,
@@ -328,8 +329,9 @@ func (r *riskMonitoringRepository) UpdateDraft(ctx context.Context, monitoring *
 			draft_payload = $11,
 			profile_change_summary = $12,
 			change_reason = $13,
-		    updated_at = now()
-		WHERE id = $1 AND status = 'draft'
+		    updated_at = clock_timestamp()
+		WHERE id = $1 AND status = 'draft' AND updated_at = $14
+		RETURNING updated_at
 	`,
 		monitoring.ID,
 		monitoring.Mode,
@@ -344,12 +346,13 @@ func (r *riskMonitoringRepository) UpdateDraft(ctx context.Context, monitoring *
 		draftPayload,
 		profileChanges,
 		monitoring.ChangeReason,
-	)
+		monitoring.UpdatedAt,
+	).Scan(&monitoring.UpdatedAt)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domainerrors.ErrMonitoringReviewChanged
+	}
 	if err != nil {
 		return fmt.Errorf("update monitoring draft: %w", err)
-	}
-	if tag.RowsAffected() == 0 {
-		return pgx.ErrNoRows
 	}
 	return nil
 }
@@ -408,7 +411,7 @@ func (r *riskMonitoringRepository) DeleteDraft(ctx context.Context, id uuid.UUID
 	return nil
 }
 
-func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uuid.UUID, resultRisk *entity.Risk, finalizedBy uuid.UUID) (*entity.RiskMonitoring, error) {
+func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uuid.UUID, resultRisk *entity.Risk, finalizedBy uuid.UUID, review repository.MonitoringFinalizeReview) (*entity.RiskMonitoring, error) {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("begin monitoring finalization: %w", err)
@@ -422,9 +425,37 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 	if monitoring.Status != entity.RiskMonitoringStatusDraft {
 		return nil, domainerrors.ErrMonitoringNotFinalizable
 	}
-	now := time.Now().UTC()
 
-	source, err := getRiskByIDWithQueryer(ctx, tx, monitoring.SourceRiskID)
+	if !review.DraftUpdatedAt.IsZero() && !monitoring.UpdatedAt.Equal(review.DraftUpdatedAt) {
+		return nil, domainerrors.ErrMonitoringReviewChanged
+	}
+	if review.ReportRevision != nil {
+		if _, err := tx.Exec(ctx, "SELECT id FROM mitigation_tasks WHERE monitoring_id = $1 ORDER BY id FOR UPDATE", monitoringID); err != nil {
+			return nil, fmt.Errorf("lock mitigation tasks for finalization: %w", err)
+		}
+		counts, err := (&mitigationTaskRepository{pool: tx}).CountByMonitoringAndStatus(ctx, monitoringID, nil)
+		if err != nil {
+			return nil, err
+		}
+		if counts.Revision != *review.ReportRevision {
+			return nil, domainerrors.ErrMonitoringReviewChanged
+		}
+	}
+
+	var sourceID uuid.UUID
+	err = tx.QueryRow(ctx, "SELECT id FROM risks WHERE id = $1 AND is_current AND status = 'final' FOR UPDATE", monitoring.SourceRiskID).Scan(&sourceID)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil, domainerrors.ErrSourceRiskNoLongerActive
+	}
+	if err != nil {
+		return nil, fmt.Errorf("lock source risk for finalization: %w", err)
+	}
+	now := time.Now().UTC()
+	if review.ReportRevision != nil && !entity.MonitoringWindowOpen(monitoring.AssessmentCycle, now) {
+		return nil, domainerrors.ErrMonitoringWindowClosed
+	}
+
+	source, err := getRiskByIDWithQueryer(ctx, tx, sourceID)
 	if err != nil {
 		return nil, err
 	}
@@ -755,9 +786,12 @@ func containsUUID(values []uuid.UUID, target *uuid.UUID) bool {
 // UpdateTaskMonitoringIDs links pending mitigation_tasks for a given risk+cycle
 func (r *riskMonitoringRepository) UpdateTaskMonitoringIDs(ctx context.Context, monitoringID uuid.UUID, riskID uuid.UUID, cycle string) error {
 	_, err := r.pool.Exec(ctx,
-		`UPDATE mitigation_tasks
+		`WITH draft AS (
+		   SELECT id FROM risk_monitorings WHERE id = $1 AND status = 'draft' FOR UPDATE
+		 )
+		 UPDATE mitigation_tasks
 		 SET monitoring_id = $1, updated_at = NOW()
-		 WHERE risk_id = $2 AND period_label = $3 AND monitoring_id IS NULL`,
+		 WHERE risk_id = $2 AND period_label = $3 AND monitoring_id IS NULL AND EXISTS (SELECT 1 FROM draft)`,
 		monitoringID, riskID, cycle,
 	)
 	return err

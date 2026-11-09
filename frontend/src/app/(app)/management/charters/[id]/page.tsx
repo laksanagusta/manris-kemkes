@@ -46,7 +46,9 @@ import {
   DialogTitle,
   DropdownActionMenu,
   DocumentListSection,
+  DocumentForm,
   DocumentFormSection,
+  FormGroup,
   FieldErrorMessage,
   IllustratedEmptyState,
   Input,
@@ -696,38 +698,35 @@ export default function RiskCharterDetailPage() {
       </div>
 
       <form onSubmit={form.handleSubmit((values) => saveDraft(values))}>
-        <div className="space-y-3 pb-8 lg:pb-10">
-        <section className="px-6 lg:px-8">
-          <div className="flex flex-col gap-3">
-            <Label htmlFor="charter-title">
-              Judul Piagam
-            </Label>
-            {isEditable ? (
-              <Textarea
-                id="charter-title"
-                {...form.register("title")}
-                maxLength={120}
-                rows={1}
-                placeholder="Judul Piagam"
-                aria-invalid={Boolean(errors.title)}
-                className="resize-none overflow-hidden bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500 focus-visible:border-0 focus-visible:ring-0"
-              />
-            ) : (
-              <h1 className="break-words whitespace-pre-wrap text-2xl font-semibold leading-tight tracking-tight text-foreground lg:text-3xl">
-                {watched.title}
-              </h1>
-            )}
-            <FieldErrorMessage>{errors.title?.message}</FieldErrorMessage>
-          </div>
-        </section>
+        <DocumentForm title="Isi Piagam" className="mb-8 lg:mb-10">
+          <FormGroup>
+            <div className="flex flex-col gap-3">
+              <Label htmlFor="charter-title">
+                Judul Piagam
+              </Label>
+              {isEditable ? (
+                <Textarea
+                  id="charter-title"
+                  {...form.register("title")}
+                  maxLength={120}
+                  rows={1}
+                  placeholder="Judul Piagam"
+                  aria-invalid={Boolean(errors.title)}
+                  className="resize-none overflow-hidden bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500 focus-visible:border-0 focus-visible:ring-0"
+                />
+              ) : (
+                <h1 className="break-words whitespace-pre-wrap text-2xl font-semibold leading-tight tracking-normal text-foreground lg:text-3xl">
+                  {watched.title}
+                </h1>
+              )}
+              <FieldErrorMessage>{errors.title?.message}</FieldErrorMessage>
+            </div>
+          </FormGroup>
 
-        <DocumentFormSection
-          showDivider={false}
-          stacked
-          title="Ruang Lingkup"
-          titleId="charter-scope-label"
-          className="!mt-6 gap-3 py-0 lg:py-0"
-        >
+          <DocumentFormSection
+            title="Ruang Lingkup"
+            titleId="charter-scope-label"
+          >
             {isEditable ? (
               <Textarea
                 id="charter-scope"
@@ -739,54 +738,53 @@ export default function RiskCharterDetailPage() {
             ) : (
               <ReadOnlyValue>{watched.scope}</ReadOnlyValue>
             )}
-        </DocumentFormSection>
+          </DocumentFormSection>
 
-          <DocumentListSection
-            title="Dasar Hukum"
-            addLabel="Tambah dasar hukum"
-            onAdd={isEditable ? () => openLegalEditor() : undefined}
-            emptyMessage="Belum ada dasar hukum."
-            className="mx-6 !mt-6 lg:mx-8"
-            items={watched.legalBases.map((item, index) => ({
-              id: item.id,
-              title: item.reference || "Referensi belum diisi",
-              meta: item.provision || "Ketentuan relevan belum diisi",
-              action: isEditable ? (
-                <DropdownActionMenu
-                  label={`Tindakan dasar hukum ${index + 1}`}
-                  className="border-0 bg-transparent text-muted-foreground shadow-none hover:bg-transparent hover:text-muted-foreground"
-                  items={[
-                    {
-                      id: "edit",
-                      label: "Edit",
-                      icon: <Pencil className="size-3.5" aria-hidden="true" />,
-                      onSelect: () => openLegalEditor(index),
-                    },
-                    {
-                      id: "delete",
-                      label: "Hapus",
-                      tone: "danger",
-                      icon: <Trash2 className="size-3.5" aria-hidden="true" />,
-                      onSelect: () =>
-                        replaceLegalBases(
-                          watched.legalBases.filter(
-                            (candidate) => candidate.id !== item.id,
+          <FormGroup>
+            <DocumentListSection
+              title="Dasar Hukum"
+              density="compact"
+              addLabel="Tambah dasar hukum"
+              onAdd={isEditable ? () => openLegalEditor() : undefined}
+              emptyMessage="Belum ada dasar hukum."
+              items={watched.legalBases.map((item, index) => ({
+                id: item.id,
+                title: item.reference || "Referensi belum diisi",
+                meta: item.provision || "Ketentuan relevan belum diisi",
+                action: isEditable ? (
+                  <DropdownActionMenu
+                    label={`Tindakan dasar hukum ${index + 1}`}
+                    className="border-0 bg-transparent text-muted-foreground shadow-none hover:bg-transparent hover:text-muted-foreground"
+                    items={[
+                      {
+                        id: "edit",
+                        label: "Edit",
+                        icon: <Pencil className="size-3.5" aria-hidden="true" />,
+                        onSelect: () => openLegalEditor(index),
+                      },
+                      {
+                        id: "delete",
+                        label: "Hapus",
+                        tone: "danger",
+                        icon: <Trash2 className="size-3.5" aria-hidden="true" />,
+                        onSelect: () =>
+                          replaceLegalBases(
+                            watched.legalBases.filter(
+                              (candidate) => candidate.id !== item.id,
+                            ),
                           ),
-                        ),
-                    },
-                  ]}
-                />
-              ) : null,
-            }))}
-          />
+                      },
+                    ]}
+                  />
+                ) : null,
+              }))}
+            />
+          </FormGroup>
 
-        <DocumentFormSection
-          showDivider={false}
-          stacked
-          title="Konteks Internal"
-          titleId="charter-internal-context-label"
-          className="!mt-6 gap-3 py-0 lg:py-0"
-        >
+          <DocumentFormSection
+            title="Konteks Internal"
+            titleId="charter-internal-context-label"
+          >
             {isEditable ? (
               <Textarea
                 id="charter-internal-context"
@@ -798,15 +796,12 @@ export default function RiskCharterDetailPage() {
             ) : (
               <ReadOnlyValue>{watched.internalContext}</ReadOnlyValue>
             )}
-        </DocumentFormSection>
+          </DocumentFormSection>
 
-        <DocumentFormSection
-          showDivider={false}
-          stacked
-          title="Konteks Eksternal"
-          titleId="charter-external-context-label"
-          className="!mt-6 gap-3 py-0 lg:py-0"
-        >
+          <DocumentFormSection
+            title="Konteks Eksternal"
+            titleId="charter-external-context-label"
+          >
             {isEditable ? (
               <Textarea
                 id="charter-external-context"
@@ -818,88 +813,92 @@ export default function RiskCharterDetailPage() {
             ) : (
               <ReadOnlyValue>{watched.externalContext}</ReadOnlyValue>
             )}
-        </DocumentFormSection>
+          </DocumentFormSection>
 
-          <DocumentListSection
-            title="Stakeholder Eksternal"
-            addLabel="Tambah stakeholder"
-            onAdd={isEditable ? () => openStakeholderEditor() : undefined}
-            emptyMessage="Belum ada stakeholder eksternal."
-            className="mx-6 !mt-6 lg:mx-8"
-            items={watched.stakeholders.map((item, index) => ({
-              id: item.id,
-              title: item.name || "Nama pihak belum diisi",
-              meta: item.relationship || "Hubungan belum diisi",
-              action: isEditable ? (
-                <DropdownActionMenu
-                  label={`Tindakan stakeholder ${index + 1}`}
-                  className="border-0 bg-transparent text-muted-foreground shadow-none hover:bg-transparent hover:text-muted-foreground"
-                  items={[
-                    {
-                      id: "edit",
-                      label: "Edit",
-                      icon: <Pencil className="size-3.5" aria-hidden="true" />,
-                      onSelect: () => openStakeholderEditor(index),
-                    },
-                    {
-                      id: "delete",
-                      label: "Hapus",
-                      tone: "danger",
-                      icon: <Trash2 className="size-3.5" aria-hidden="true" />,
-                      onSelect: () =>
-                        replaceStakeholders(
-                          watched.stakeholders.filter(
-                            (candidate) => candidate.id !== item.id,
+          <FormGroup>
+            <DocumentListSection
+              title="Stakeholder Eksternal"
+              density="compact"
+              addLabel="Tambah stakeholder"
+              onAdd={isEditable ? () => openStakeholderEditor() : undefined}
+              emptyMessage="Belum ada stakeholder eksternal."
+              items={watched.stakeholders.map((item, index) => ({
+                id: item.id,
+                title: item.name || "Nama pihak belum diisi",
+                meta: item.relationship || "Hubungan belum diisi",
+                action: isEditable ? (
+                  <DropdownActionMenu
+                    label={`Tindakan stakeholder ${index + 1}`}
+                    className="border-0 bg-transparent text-muted-foreground shadow-none hover:bg-transparent hover:text-muted-foreground"
+                    items={[
+                      {
+                        id: "edit",
+                        label: "Edit",
+                        icon: <Pencil className="size-3.5" aria-hidden="true" />,
+                        onSelect: () => openStakeholderEditor(index),
+                      },
+                      {
+                        id: "delete",
+                        label: "Hapus",
+                        tone: "danger",
+                        icon: <Trash2 className="size-3.5" aria-hidden="true" />,
+                        onSelect: () =>
+                          replaceStakeholders(
+                            watched.stakeholders.filter(
+                              (candidate) => candidate.id !== item.id,
+                            ),
                           ),
-                        ),
-                    },
-                  ]}
-                />
-              ) : null,
-            }))}
-          />
+                      },
+                    ]}
+                  />
+                ) : null,
+              }))}
+            />
+          </FormGroup>
 
-          <DocumentListSection
-            title="Struktur UPR"
-            addLabel="Tambah personel"
-            onAdd={isEditable ? () => openUPREditor() : undefined}
-            emptyMessage="Belum ada personel UPR."
-            className="mx-6 !mt-6 lg:mx-8"
-            items={watched.uprStructure.map((member, index) => ({
-              id: member.id,
-              title: member.name || "Personel belum diisi",
-              meta:
-                [roleLabel[member.role], member.position].filter(Boolean).join(" · ") ||
-                "Peran dan jabatan belum diisi",
-              action: isEditable ? (
-                <DropdownActionMenu
-                  label={`Tindakan personel ${index + 1}`}
-                  className="border-0 bg-transparent text-muted-foreground shadow-none hover:bg-transparent hover:text-muted-foreground"
-                  items={[
-                    {
-                      id: "edit",
-                      label: "Edit",
-                      icon: <Pencil className="size-3.5" aria-hidden="true" />,
-                      onSelect: () => openUPREditor(index),
-                    },
-                    {
-                      id: "delete",
-                      label: "Hapus",
-                      tone: "danger",
-                      icon: <Trash2 className="size-3.5" aria-hidden="true" />,
-                      onSelect: () =>
-                        replaceUPRStructure(
-                          watched.uprStructure.filter(
-                            (candidate) => candidate.id !== member.id,
+          <FormGroup>
+            <DocumentListSection
+              title="Struktur UPR"
+              density="compact"
+              addLabel="Tambah personel"
+              onAdd={isEditable ? () => openUPREditor() : undefined}
+              emptyMessage="Belum ada personel UPR."
+              items={watched.uprStructure.map((member, index) => ({
+                id: member.id,
+                title: member.name || "Personel belum diisi",
+                meta:
+                  [roleLabel[member.role], member.position].filter(Boolean).join(" · ") ||
+                  "Peran dan jabatan belum diisi",
+                action: isEditable ? (
+                  <DropdownActionMenu
+                    label={`Tindakan personel ${index + 1}`}
+                    className="border-0 bg-transparent text-muted-foreground shadow-none hover:bg-transparent hover:text-muted-foreground"
+                    items={[
+                      {
+                        id: "edit",
+                        label: "Edit",
+                        icon: <Pencil className="size-3.5" aria-hidden="true" />,
+                        onSelect: () => openUPREditor(index),
+                      },
+                      {
+                        id: "delete",
+                        label: "Hapus",
+                        tone: "danger",
+                        icon: <Trash2 className="size-3.5" aria-hidden="true" />,
+                        onSelect: () =>
+                          replaceUPRStructure(
+                            watched.uprStructure.filter(
+                              (candidate) => candidate.id !== member.id,
+                            ),
                           ),
-                        ),
-                    },
-                  ]}
-                />
-              ) : null,
-            }))}
-          />
-        </div>
+                      },
+                    ]}
+                  />
+                ) : null,
+              }))}
+            />
+          </FormGroup>
+        </DocumentForm>
       </form>
 
       <Dialog open={Boolean(listEditor)} onOpenChange={closeListEditor}>

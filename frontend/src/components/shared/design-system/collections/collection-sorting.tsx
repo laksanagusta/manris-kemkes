@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useContext, useState, type ReactNode } from "react";
-import { ArrowDown } from "@/components/shared/icons";
 import { collectionCreatedAt } from "@/lib/collection-created-at";
 import {
   nextCollectionSort,
@@ -70,14 +69,15 @@ export function CollectionSortLabel({ label, active, direction, onClick }: {
     <button
       type="button"
       onClick={onClick}
-      className="group/sort inline-flex min-h-8 max-w-full cursor-pointer items-center gap-1 rounded-sm text-left [font-weight:inherit] text-inherit outline-none active:opacity-60 focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:min-h-11"
+      data-collection-sort-button=""
+      className="inline-flex min-h-8 max-w-full cursor-pointer items-center gap-1.5 rounded-sm text-start [font-weight:inherit] [letter-spacing:inherit] text-inherit outline-none active:opacity-60 focus-visible:ring-2 focus-visible:ring-ring pointer-coarse:min-h-11"
       aria-label={`Urutkan ${label} ${next.direction === "desc" ? "menurun" : "menaik"}`}
     >
       <span>{label}</span>
-      <ArrowDown
-        aria-hidden="true"
-        className={`size-3 shrink-0 transition-[transform,opacity] duration-150 motion-reduce:transition-none ${active ? "opacity-100" : "opacity-30 group-hover/sort:opacity-70"} ${active && direction === "asc" ? "rotate-180" : ""}`}
-      />
+      <svg aria-hidden="true" data-collection-sort-icon="" className="size-3 shrink-0" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3.5 4.5 6 2l2.5 2.5" opacity={active && direction === "desc" ? 0.35 : 1} />
+        <path d="M3.5 7.5 6 10l2.5-2.5" opacity={active && direction === "asc" ? 0.35 : 1} />
+      </svg>
     </button>
   );
 }

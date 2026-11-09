@@ -18,7 +18,7 @@ type QuarterlyTaskSummary struct {
 type QuarterlyEventSummary struct {
 	Total, Unlinked, UnknownLoss, KnownLossCount int
 	KnownLoss                                    float64
-	Severity, Condition                          map[string]int
+	Severity                                     map[string]int
 }
 
 type QuarterlyMovement struct {
@@ -110,7 +110,7 @@ func QuarterlyTaskReportLate(t *entity.MitigationTask) bool {
 }
 
 func SummarizeQuarterlyReport(data *entity.QuarterlyReportData) QuarterlySummary {
-	s := QuarterlySummary{Events: QuarterlyEventSummary{Severity: map[string]int{}, Condition: map[string]int{}}}
+	s := QuarterlySummary{Events: QuarterlyEventSummary{Severity: map[string]int{}}}
 	previous := make(map[uuid.UUID]*entity.Risk, len(data.PreviousRisks))
 	for _, r := range data.PreviousRisks {
 		if r != nil && r.Risk != nil {
@@ -191,7 +191,6 @@ func SummarizeQuarterlyReport(data *entity.QuarterlyReportData) QuarterlySummary
 		seen[e.ID] = true
 		s.Events.Total++
 		s.Events.Severity[e.Severity]++
-		s.Events.Condition[e.PostResponseCondition]++
 		if (e.HasLinkedRisks == nil && len(e.LinkedRisks) == 0) || (e.HasLinkedRisks != nil && !*e.HasLinkedRisks) {
 			s.Events.Unlinked++
 		}

@@ -13,6 +13,7 @@ import {
 } from "@/lib/risk";
 import type { RiskLevel } from "@/types/risk";
 import { cn } from "@/lib/utils";
+import { hasRiskScore } from "@/lib/risk-creation";
 import { ChevronRight } from "@/components/shared/icons";
 import {
   Dialog,
@@ -65,6 +66,7 @@ export function RiskScorePickerTrigger({
   "aria-describedby": ariaDescribedBy,
 }: RiskScorePickerTriggerProps) {
   const metrics = calculateRiskMetrics(probability, impact);
+  const assessed = hasRiskScore(probability, impact);
 
   return (
     <button
@@ -74,7 +76,7 @@ export function RiskScorePickerTrigger({
       disabled={disabled}
       data-invalid={invalid || undefined}
       aria-describedby={ariaDescribedBy}
-      aria-label={`Pilih ${title.toLowerCase()} dari heatmap. Probabilitas ${probability}, dampak ${impact}, skor ${metrics.inherentScore}.`}
+      aria-label={assessed ? `Pilih ${title.toLowerCase()} dari heatmap. Probabilitas ${probability}, dampak ${impact}, skor ${metrics.inherentScore}.` : `${title} belum dinilai. Pilih probabilitas dan dampak.`}
       className={cn(
         "group self-start border border-border/60 bg-card text-left hover:border-foreground/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:hover:border-border/60 disabled:cursor-not-allowed disabled:opacity-60 data-[invalid]:border-destructive data-[invalid]:ring-2 data-[invalid]:ring-destructive/20",
         presentation === "card"
@@ -82,7 +84,12 @@ export function RiskScorePickerTrigger({
           : "flex min-h-11 w-fit max-w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 transition-[background-color,border-color] hover:bg-muted/20",
       )}
     >
-      {presentation === "card" ? (
+      {!assessed ? (
+        <span className="flex min-h-11 flex-col gap-2">
+          <span className="text-sm font-medium">Belum dinilai</span>
+          <span className="text-xs text-muted-foreground">Pilih probabilitas dan dampak</span>
+        </span>
+      ) : presentation === "card" ? (
         <>
           <span className="flex items-start justify-between gap-4">
             <span className="flex min-w-0 flex-col gap-2">
@@ -280,7 +287,7 @@ export function RiskScoreHeatmapModal({
             </div>
           </div>
 
-          <div className="mt-3 grid gap-2 sm:grid-cols-3">
+          {hasRiskScore(draft.probability, draft.impact) ? <div className="mt-3 grid gap-2 sm:grid-cols-3">
               <div className="min-w-0">
                 <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted-foreground">
                   Probabilitas
@@ -328,7 +335,7 @@ export function RiskScoreHeatmapModal({
                   </span>
                 </p>
               </div>
-          </div>
+          </div> : <p className="mt-3 text-sm text-muted-foreground">Pilih satu sel untuk menetapkan probabilitas dan dampak.</p>}
         </div>
 
         <DialogFooter className="!mt-4 flex-col gap-3 sm:flex-row sm:justify-end">
@@ -343,6 +350,7 @@ export function RiskScoreHeatmapModal({
             <AccentButton
               type="button"
               onClick={handleApply}
+              disabled={!hasRiskScore(draft.probability, draft.impact)}
               className="flex-1 sm:flex-none"
             >
               Terapkan Skor

@@ -154,16 +154,13 @@ export const documentationArticles: DocumentationArticle[] = [
         { name: "Disetujui / Final", description: "Profil aktif setelah finalisasi risiko." },
         { name: "Digantikan", description: "Versi lama yang disimpan dalam riwayat setelah profil baru menjadi aktif." },
       ] },
-      { id: "catatan-komunikasi", title: "Catat komunikasi terkait risiko", paragraphs: ["Catatan komunikasi menyimpan ringkasan pembahasan dengan stakeholder yang berkaitan dengan profil risiko. Catatan yang berhasil disimpan akan muncul pada linimasa Catatan di panel samping."], steps: [
+      { id: "catatan-komunikasi", title: "Catat komunikasi terkait risiko", paragraphs: ["Catatan komunikasi menyimpan komentar yang berkaitan dengan profil risiko. Catatan yang berhasil disimpan akan muncul pada linimasa Catatan di panel samping."], steps: [
         { title: "Buka profil risiko yang sudah difinalisasi", detail: "Pilih risiko dengan status selain Draf agar tindakan tambah catatan tersedia." },
-        { title: "Pilih tambah catatan pada panel Catatan", detail: "Gunakan tombol tambah di samping judul Catatan untuk membuka form komunikasi." },
-        { title: "Isi detail dan simpan", detail: "Lengkapi tanggal, metode, stakeholder atau unit, serta ringkasan komunikasi. Semua kolom bertanda bintang wajib diisi." },
+        { title: "Buka panel Catatan", detail: "Gunakan kotak komentar di bawah daftar catatan." },
+        { title: "Isi detail dan simpan", detail: "Tulis komentar di panel Catatan, lalu tekan tombol kirim." },
       ], fields: [
-        { name: "Tanggal", description: "Tanggal komunikasi berlangsung. Form mengisi tanggal hari ini sebagai nilai awal." },
-        { name: "Metode", description: "Pilih Meeting, Email, Telepon, atau Chat/Pesan." },
-        { name: "Stakeholder", description: "Nama pihak atau unit yang terlibat dalam komunikasi." },
         { name: "Catatan", description: "Ringkasan komunikasi atau hasil diskusi yang relevan dengan risiko." },
-      ], image: { src: "/documentation/screens/catatan-komunikasi.png", alt: "Dialog Tambah Catatan Komunikasi pada profil risiko", caption: "Form komunikasi risiko meminta tanggal, metode, stakeholder, dan ringkasan diskusi.", width: 3420, height: 1900 } },
+      ] },
     ],
   },
   {

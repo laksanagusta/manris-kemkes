@@ -26,6 +26,7 @@ export type PopoverSelectFieldProps = {
   side?: "top" | "right" | "bottom" | "left";
   avoidCollisions?: boolean;
   ariaLabel?: string;
+  "aria-describedby"?: string;
   disabled?: boolean;
   invalid?: boolean;
   fitContent?: boolean;
@@ -44,6 +45,7 @@ export function PopoverSelectField({
   side,
   avoidCollisions,
   ariaLabel,
+  "aria-describedby": ariaDescribedBy,
   disabled = false,
   invalid = false,
   fitContent = false,
@@ -70,6 +72,7 @@ export function PopoverSelectField({
           variant="outline"
           role="combobox"
           aria-label={ariaLabel}
+          aria-describedby={ariaDescribedBy}
           aria-invalid={invalid || undefined}
           disabled={disabled}
           className={cn(

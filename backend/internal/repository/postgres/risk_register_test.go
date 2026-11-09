@@ -188,7 +188,7 @@ func TestRiskListRegisterIncludesQuarterlyMonitoringScoreStatusAndLastMonitoredA
 	result.Nilai = monitoring.ObservedNilai
 	result.InherentScore = int(monitoring.ObservedNilai)
 
-	finalized, err := monitoringRepo.Finalize(ctx, monitoring.ID, &result, actorID)
+	finalized, err := monitoringRepo.Finalize(ctx, monitoring.ID, &result, actorID, repository.MonitoringFinalizeReview{})
 	if err != nil {
 		t.Fatalf("Finalize monitoring: %v", err)
 	}
@@ -229,6 +229,16 @@ func TestRiskListRegisterIncludesQuarterlyMonitoringScoreStatusAndLastMonitoredA
 		}
 		if item.SemesterMonitoring.Q2Nilai == nil || *item.SemesterMonitoring.Q2Nilai != monitoring.ObservedNilai {
 			t.Fatalf("expected Q2 monitoring score %v, got %#v", monitoring.ObservedNilai, item.SemesterMonitoring.Q2Nilai)
+		}
+		if len(item.RecentMonitoring) != 4 {
+			t.Fatalf("expected four recent quarters, got %v", item.RecentMonitoring)
+		}
+		for _, quarter := range item.RecentMonitoring {
+			if quarter.Cycle == monitoring.AssessmentCycle {
+				if quarter.Status == nil || *quarter.Status != entity.RiskMonitoringStatusFinal || quarter.Nilai == nil || *quarter.Nilai != monitoring.ObservedNilai {
+					t.Fatalf("recent monitoring must preserve matching final status/score: %+v", quarter)
+				}
+			}
 		}
 		break
 	}

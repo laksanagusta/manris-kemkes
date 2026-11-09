@@ -1,7 +1,9 @@
 "use client";
+
+import { formatDisplayDate } from "@/lib/display-date";
 import { sortCollection, sortDate } from "@/lib/collection-sort";
 import { CollectionTableHead as TableHead } from "@/components/shared/design-system/collections/collection-table-head";
-import { useRemoteCollectionSorting, CollectionSortProvider } from "@/components/shared/design-system/collections/collection-sorting";
+import { useRemoteCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
 
 import { newestCreatedFirst } from "@/lib/collection-created-at";
 
@@ -21,11 +23,11 @@ import {
 } from "next/navigation";
 import { toast } from "sonner";
 
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   CollectionPageHeader,
   CollectionPagination,
+  CollectionTableCard,
   CollectionToolbar,
   CollectionEmptyState,
   CollectionSearchField,
@@ -124,14 +126,14 @@ function OrgRow({
   const createdAt = new Date(org.createdAt);
   const createdAtLabel = Number.isNaN(createdAt.getTime())
     ? "—"
-    : createdAt.toLocaleDateString("id-ID");
+    : formatDisplayDate(createdAt, { year: "numeric", month: "2-digit", day: "2-digit" });
 
   return (
     <TableRow className="hover:bg-muted/30 transition-colors">
       <TableCell className="max-w-[220px]">
         <div className="flex items-center gap-2">
           <Building2 className="size-4 shrink-0 text-muted-foreground" />
-          <span className="truncate text-xs font-medium text-foreground">
+          <span className="truncate text-sm font-medium text-foreground">
             {org.name}
           </span>
         </div>
@@ -145,9 +147,9 @@ function OrgRow({
         {uprLevelLabel[org.uprLevel || ""] || org.uprLevel || "—"}
       </TableCell>
       <TableCell className="">
-        {createdAtLabel}
+        <span data-date-time="">{createdAtLabel}</span>
       </TableCell>
-      <TableCell>
+      <TableCell data-collection-action="" className="text-center">
         <OrganizationRowActions
           organization={org}
           onEdit={onEdit}
@@ -410,7 +412,6 @@ export default function OrganizationsManagementPage() {
             <DynamicTableFilters
               search={
                 <CollectionSearchField
-                  containerClassName="w-full sm:w-80 sm:flex-none"
                   placeholder="Cari organisasi..."
                   aria-label="Cari organisasi"
                   value={search}
@@ -464,29 +465,29 @@ export default function OrganizationsManagementPage() {
           }
         />
 
-        <Card className="overflow-hidden">
-          <CollectionSortProvider controls={collectionSort.controls}><Table>
+        <CollectionTableCard stickyActions sorting={collectionSort.controls}>
+          <Table className="min-w-[760px]">
             <TableHeader>
               <TableRow className="hover:bg-transparent">
                 <TableHead className="w-[220px] whitespace-nowrap">Nama Organisasi</TableHead>
                 <TableHead className="w-40 whitespace-nowrap">Parent Unit</TableHead>
                 <TableHead className="w-28 whitespace-nowrap">UPR Level</TableHead>
                 <TableHead className="w-32 whitespace-nowrap">Dibuat</TableHead>
-                <TableHead className="w-10 whitespace-nowrap">
-                  <span className="sr-only">Aksi</span>
+                <TableHead data-collection-action="" className="w-12 text-center whitespace-nowrap">
+                  <span data-collection-action="" className="sr-only">Aksi</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24 text-center">
+                  <TableCell colSpan={5} className="text-center">
                     <Loader2 className="size-5 animate-spin mx-auto text-muted-foreground" />
                   </TableCell>
                 </TableRow>
               ) : visibleOrganizations.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={5} className="h-24">
+                  <TableCell colSpan={5} className="">
                     <CollectionEmptyState
                       title="Belum ada data organisasi"
                       description="Tambahkan organisasi baru untuk memulai."
@@ -505,9 +506,8 @@ export default function OrganizationsManagementPage() {
                 ))
               )}
             </TableBody>
-          </Table></CollectionSortProvider>
-
-          <CollectionPagination
+          </Table>
+        <CollectionPagination
             itemLabel="organisasi"
             page={visiblePage}
             pageSize={limit}
@@ -519,7 +519,7 @@ export default function OrganizationsManagementPage() {
               setPage(1);
             }}
           />
-        </Card>
+        </CollectionTableCard>
         </div>
 
         <OrganizationFormDialog

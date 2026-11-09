@@ -1,6 +1,8 @@
 "use client";
+
+import { createDisplayDateFormatter } from "@/lib/display-date";
 import { sortDate } from "@/lib/collection-sort";
-import { useCollectionSorting, CollectionSortProvider } from "@/components/shared/design-system/collections/collection-sorting";
+import { useCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
 import { newestCreatedFirst } from "@/lib/collection-created-at";
 import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
 
@@ -17,13 +19,13 @@ import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   CollectionPagination,
   DynamicTableFilters,
   CollectionSearchField,
   CollectionTableHead,
-  CollectionTableSurface,
+  CollectionTableCard,
+  CollectionToolbar,
   CollectionEmptyState,
   IllustratedEmptyState,
   DropdownActionMenu,
@@ -104,7 +106,7 @@ function formatDateTime(value?: string | null) {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("id-ID", {
+  return createDisplayDateFormatter("id-ID", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
@@ -472,31 +474,27 @@ export function OrganizationGroupManagement({
   }, [currentPage, page]);
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div className="min-w-0 space-y-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <CardTitle>Grup Organisasi</CardTitle>
-              <Badge variant="secondary" className="tabular-nums">
-                {totalGroups} grup
-              </Badge>
-            </div>
-            <CardDescription>
-              Kelompokkan unit turunan yang sering dipakai sebagai scope laporan.
-            </CardDescription>
-          </div>
-          <div className="flex w-full flex-col gap-2 sm:flex-row sm:items-center sm:justify-end xl:w-auto xl:shrink-0">
-            <Button size="default" variant="outline" onClick={openCreateDialog}>
-              <Plus data-icon="inline-start" />
-              Tambah Grup
-            </Button>
-          </div>
-        </CardHeader>
-
-        <CardContent>
+    <div className="space-y-4">
+      <div className="min-w-0 space-y-1">
+        <div className="flex flex-wrap items-center gap-2">
+          <h2 className="text-sm font-medium">Grup Organisasi</h2>
+          <Badge variant="secondary" className="tabular-nums">
+            {totalGroups} grup
+          </Badge>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Kelompokkan unit turunan yang sering dipakai sebagai scope laporan.
+        </p>
+      </div>
+      <CollectionToolbar
+        actions={
+          <Button size="default" variant="outline" onClick={openCreateDialog}>
+            <Plus data-icon="inline-start" />
+            Tambah Grup
+          </Button>
+        }
+        leading={
           <DynamicTableFilters
-            className="mb-4"
             search={
               <CollectionSearchField
                 value={groupSearch}
@@ -506,7 +504,6 @@ export function OrganizationGroupManagement({
                 }}
                 placeholder="Cari grup..."
                 aria-label="Cari grup organisasi"
-                containerClassName="sm:w-[260px]"
               />
             }
             fields={[
@@ -526,122 +523,113 @@ export function OrganizationGroupManagement({
               },
             ]}
           />
-          <div className="-mx-(--card-spacing) -mb-(--card-spacing) min-w-0 border-t border-border/60">
-            <CollectionTableSurface>
-              <CollectionSortProvider controls={collectionSort.controls}><Table className="min-w-[1080px]">
-                <TableHeader className="[&_tr]:border-b [&_tr]:border-border/60">
-                  <TableRow className="transition-colors hover:bg-transparent">
-                    <CollectionTableHead density="compact" className="w-[30%] whitespace-nowrap text-left align-middle">
-                      Nama Grup
-                    </CollectionTableHead>
-                    <CollectionTableHead density="compact" className="w-[30%] whitespace-nowrap text-left align-middle">
-                      Pemilik
-                    </CollectionTableHead>
-                    <CollectionTableHead density="compact" className="w-24 whitespace-nowrap text-left align-middle">
-                      Anggota
-                    </CollectionTableHead>
-                    <CollectionTableHead density="compact" className="w-32 whitespace-nowrap text-left align-middle">
-                      Diperbarui
-                    </CollectionTableHead>
-                    <CreatedAtHead />
-                    <CollectionTableHead density="compact" className="w-28 whitespace-nowrap text-left align-middle">
-                      <span className="sr-only">Aksi</span>
-                    </CollectionTableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {loading ? (
-                    <TableRow className="transition-colors hover:bg-muted/70">
-                      <TableCell colSpan={6} className="text-left">
-                        <Loader2 className="size-5 animate-spin text-disabled-foreground" />
-                      </TableCell>
-                    </TableRow>
-                  ) : paginatedGroups.length === 0 ? (
-                    <TableRow className="transition-colors hover:bg-muted/70">
-                  <TableCell colSpan={6} className="text-left">
-                    <CollectionEmptyState
-                      title="Tidak ada grup organisasi yang ditemukan."
-                      description="Coba ubah kata kunci atau filter pencarian."
+        }
+      />
+      <CollectionTableCard stickyActions sorting={collectionSort.controls}>
+        <Table className="min-w-[1320px]">
+          <TableHeader>
+            <TableRow className="transition-colors hover:bg-transparent">
+              <CollectionTableHead density="compact" className="w-[20%] whitespace-nowrap text-left align-middle">
+                Nama Grup
+              </CollectionTableHead>
+              <CollectionTableHead className="w-[240px]">Deskripsi</CollectionTableHead>
+              <CollectionTableHead density="compact" className="w-[20%] whitespace-nowrap text-left align-middle">
+                Pemilik
+              </CollectionTableHead>
+              <CollectionTableHead density="compact" className="w-24 whitespace-nowrap text-left align-middle">
+                Anggota
+              </CollectionTableHead>
+              <CollectionTableHead density="compact" className="w-32 whitespace-nowrap text-left align-middle">
+                Diperbarui
+              </CollectionTableHead>
+              <CreatedAtHead />
+              <CollectionTableHead density="compact" data-collection-action="" className="w-12 whitespace-nowrap">
+                <span className="sr-only">Aksi</span>
+              </CollectionTableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
+              <TableRow className="transition-colors hover:bg-muted/70">
+                <TableCell colSpan={7} className="text-center">
+                  <Loader2 className="mx-auto size-5 animate-spin text-disabled-foreground" />
+                </TableCell>
+              </TableRow>
+            ) : paginatedGroups.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="">
+                  <CollectionEmptyState
+                    title="Tidak ada grup organisasi yang ditemukan."
+                    description="Coba ubah kata kunci atau filter pencarian."
+                  />
+                </TableCell>
+              </TableRow>
+            ) : (
+              paginatedGroups.map((group) => (
+                <TableRow
+                  key={group.id}
+                  className="transition-colors hover:bg-muted/70"
+                >
+                  <TableCell className="align-middle">
+                    <span className="block max-w-[250px] truncate font-medium" title={group.name}>{group.name}</span>
+                  </TableCell>
+                  <TableCell className="max-w-[240px] text-muted-foreground">{group.description || "—"}</TableCell>
+                  <TableCell className="align-middle">
+                    <div className="max-w-[280px] truncate text-sm">
+                      {group.ownerOrganizationName}
+                    </div>
+                  </TableCell>
+                  <TableCell className="align-middle">
+                    <Badge variant="secondary">
+                      <Users className="size-3" />
+                      {group.memberCount}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="align-middle">
+                    <span data-date-time="">{formatDateTime(group.updatedAt)}</span>
+                  </TableCell>
+                  <CreatedAtCell record={group} />
+                  <TableCell data-collection-action="" className="text-center">
+                    <DropdownActionMenu
+                      label={`Tindakan grup ${group.name}`}
+                      items={[
+                        {
+                          id: "edit",
+                          label: "Edit grup",
+                          icon: <Pencil className="size-3.5" aria-hidden="true" />,
+                          onSelect: () => openEditDialog(group),
+                        },
+                        {
+                          id: "delete",
+                          label: "Hapus grup",
+                          icon: <Trash2 className="size-3.5" aria-hidden="true" />,
+                          tone: "danger",
+                          onSelect: () => {
+                            setGroupToDelete(group);
+                            setDeleteOpen(true);
+                          },
+                        },
+                      ]}
                     />
                   </TableCell>
-                    </TableRow>
-                  ) : (
-                    paginatedGroups.map((group) => (
-                      <TableRow
-                        key={group.id}
-                        className="transition-colors hover:bg-muted/70"
-                      >
-                        <TableCell className="align-middle">
-                          <div className="max-w-[250px]">
-                            <p className="block truncate text-sm font-medium leading-relaxed text-foreground">
-                              {group.name}
-                            </p>
-                            {group.description ? (
-                              <p className="mt-1 line-clamp-2 text-xs leading-5 text-muted-foreground">
-                                {group.description}
-                              </p>
-                            ) : null}
-                          </div>
-                        </TableCell>
-                        <TableCell className="align-middle text-muted-foreground">
-                          <div className="max-w-[280px] truncate text-sm">
-                            {group.ownerOrganizationName}
-                          </div>
-                        </TableCell>
-                        <TableCell className="align-middle">
-                          <Badge variant="secondary">
-                            <Users className="size-3" />
-                            {group.memberCount}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="align-middle text-muted-foreground">
-                          {formatDateTime(group.updatedAt)}
-                        </TableCell>
-                        <CreatedAtCell record={group} />
-                        <TableCell className="align-middle">
-                          <DropdownActionMenu
-                            label={`Tindakan grup ${group.name}`}
-                            items={[
-                              {
-                                id: "edit",
-                                label: "Edit grup",
-                                icon: <Pencil className="size-3.5" aria-hidden="true" />,
-                                onSelect: () => openEditDialog(group),
-                              },
-                              {
-                                id: "delete",
-                                label: "Hapus grup",
-                                icon: <Trash2 className="size-3.5" aria-hidden="true" />,
-                                tone: "danger",
-                                onSelect: () => {
-                                  setGroupToDelete(group);
-                                  setDeleteOpen(true);
-                                },
-                              },
-                            ]}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table></CollectionSortProvider>
-            </CollectionTableSurface>
-          </div>
-        </CardContent>
-        <CollectionPagination
-          itemLabel="grup"
-          page={currentPage}
-          pageSize={limit}
-          total={totalGroups}
-          disabled={loading}
-          onPageChange={setPage}
-          onPageSizeChange={(nextLimit) => {
-            setLimit(nextLimit);
-            setPage(1);
-          }}
-        />
-      </Card>
+                </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      <CollectionPagination
+        itemLabel="grup"
+        page={currentPage}
+        pageSize={limit}
+        total={totalGroups}
+        disabled={loading}
+        onPageChange={setPage}
+        onPageSizeChange={(nextLimit) => {
+          setLimit(nextLimit);
+          setPage(1);
+        }}
+      />
+      </CollectionTableCard>
 
       <Dialog open={dialogOpen} onOpenChange={handleDialogOpenChange}>
         <DialogContent
@@ -887,7 +875,7 @@ export function OrganizationGroupManagement({
       </Dialog>
 
       <Dialog open={deleteOpen} onOpenChange={setDeleteOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Hapus Grup Organisasi</DialogTitle>
             <DialogDescription>

@@ -91,13 +91,12 @@ type QuarterlyEventSeverityCounts struct {
 }
 
 type QuarterlyReportEventPreview struct {
-	ID                    string    `json:"id"`
-	Code                  string    `json:"code"`
-	Description           string    `json:"description"`
-	OccurredAt            time.Time `json:"occurredAt"`
-	OrganizationName      string    `json:"organizationName"`
-	PostResponseCondition string    `json:"postResponseCondition"`
-	Severity              string    `json:"severity"`
+	ID               string    `json:"id"`
+	Code             string    `json:"code"`
+	Description      string    `json:"description"`
+	OccurredAt       time.Time `json:"occurredAt"`
+	OrganizationName string    `json:"organizationName"`
+	Severity         string    `json:"severity"`
 }
 
 type QuarterlyReportUnitOverview struct {

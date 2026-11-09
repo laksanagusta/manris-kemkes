@@ -93,7 +93,6 @@ func TestValidateRiskMitigationRequirements(t *testing.T) {
 		wantError   bool
 	}{
 		{name: "utama without plans", probability: 4, impact: 3, treatment: "mitigate", wantError: true},
-		{name: "utama with existing control only", probability: 4, impact: 3, treatment: "mitigate", mitigations: []entity.Mitigation{{Action: "Kontrol lama", IsExistingControl: true}}, wantError: true},
 		{name: "utama with new plan", probability: 4, impact: 3, treatment: "mitigate", mitigations: []entity.Mitigation{{Action: "Rencana baru"}}},
 		{name: "below utama threshold", probability: 1, impact: 1, treatment: "mitigate"},
 		{name: "utama accepts risk", probability: 4, impact: 3, treatment: "accept"},

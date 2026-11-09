@@ -31,8 +31,8 @@ export function RiskDetailTabs({
       {enabled && (
         <TabsList data-risk-detail-segments="" data-active-tab={value} aria-label="Bagian detail risiko">
           <TabsTrigger value="overview">Ringkasan</TabsTrigger>
-          <TabsTrigger value="monitoring">Pemantauan</TabsTrigger>
           <TabsTrigger value="treatment">Penanganan</TabsTrigger>
+          <TabsTrigger value="monitoring">Pemantauan</TabsTrigger>
         </TabsList>
       )}
       <TabsContent

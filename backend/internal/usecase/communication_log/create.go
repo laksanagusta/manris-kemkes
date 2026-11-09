@@ -33,18 +33,16 @@ func NewCreateCommunicationLogUseCase(
 
 // Input represents the input for creating a communication log
 type CreateCommunicationLogInput struct {
-	RiskID      string
-	Stakeholder string
-	Notes       string
-	CreatedBy   string
-	OrgIDs      []uuid.UUID
+	RiskID    string
+	Notes     string
+	CreatedBy string
+	OrgIDs    []uuid.UUID
 }
 
 // Output represents the created communication log
 type CreateCommunicationLogOutput struct {
 	ID            string
 	RiskID        string
-	Stakeholder   string
 	Notes         string
 	CreatedBy     string
 	CreatedByName string
@@ -53,9 +51,8 @@ type CreateCommunicationLogOutput struct {
 
 // Execute creates a new communication log
 func (uc *CreateCommunicationLogUseCase) Execute(ctx context.Context, input CreateCommunicationLogInput) (*CreateCommunicationLogOutput, error) {
-	input.Stakeholder = strings.TrimSpace(input.Stakeholder)
 	input.Notes = strings.TrimSpace(input.Notes)
-	if input.Stakeholder == "" || input.Notes == "" {
+	if input.Notes == "" {
 		return nil, domainerrors.ErrInvalidInput
 	}
 
@@ -82,10 +79,9 @@ func (uc *CreateCommunicationLogUseCase) Execute(ctx context.Context, input Crea
 	}
 
 	commLog := &entity.CommunicationLog{
-		RiskID:      riskID,
-		Stakeholder: input.Stakeholder,
-		Notes:       input.Notes,
-		CreatedBy:   createdBy,
+		RiskID:    riskID,
+		Notes:     input.Notes,
+		CreatedBy: createdBy,
 	}
 
 	if err := uc.commLogRepo.Create(ctx, commLog); err != nil {
@@ -95,7 +91,6 @@ func (uc *CreateCommunicationLogUseCase) Execute(ctx context.Context, input Crea
 	return &CreateCommunicationLogOutput{
 		ID:            commLog.ID.String(),
 		RiskID:        commLog.RiskID.String(),
-		Stakeholder:   commLog.Stakeholder,
 		Notes:         commLog.Notes,
 		CreatedBy:     commLog.CreatedBy.String(),
 		CreatedByName: user.Name,

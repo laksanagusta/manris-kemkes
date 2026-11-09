@@ -8,6 +8,7 @@ import { RiskCompositionTrendChart } from "./_components/risk-composition-trend-
 import { CurrentRiskHeatmap } from "./_components/current-risk-heatmap";
 import {
   PageStack,
+  WorkspaceMetrics,
   CollectionPageHeader,
 } from "@/components/shared/design-system";
 import type {
@@ -135,54 +136,70 @@ export default function DashboardPage() {
   };
   return (
     <PageStack className="space-y-5 lg:space-y-6">
-      <CollectionPageHeader title="Dashboard" showTitle />
+      <CollectionPageHeader
+        title="Dashboard"
+        subtitle="Pantau profil risiko dan perubahannya dari kuartal ke kuartal."
+        showTitle
+        showSubtitle
+        actionsPlacement="title"
+        actions={<WorkspaceMetrics items={[
+          { label: "Total risiko", value: totalRisks ?? "—" },
+          { label: "Periode berjalan", value: currentCycle },
+        ]} />}
+      />
 
-      <section
-        data-dashboard-section="trend"
-        aria-label="Tren dan distribusi risiko"
-        className="grid items-stretch gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(22rem,1fr)]"
-      >
-        <div className="flex min-h-0 min-w-0 w-full xl:h-[32rem] [&>*]:h-full [&>*]:w-full">
-          <RiskCountTrendChart
-            risks={trendRisks}
-            currentCycle={currentCycle}
-            currentTotal={totalRisks}
+      <div className="space-y-4 border-t border-border pt-6 lg:pt-8">
+        <h2 className="text-section-title tracking-[-0.015em]">Profil risiko</h2>
+        <section
+          data-dashboard-section="trend"
+          aria-label="Tren dan distribusi risiko"
+          className="grid items-stretch gap-4 xl:grid-cols-2"
+        >
+          <div className="flex min-w-0 [&>*]:w-full">
+            <RiskCountTrendChart
+              risks={trendRisks}
+              currentCycle={currentCycle}
+              currentTotal={totalRisks}
+              loading={trendLoading}
+              error={trendError}
+              onRetry={retryDashboard}
+            />
+          </div>
+          <div className="flex min-w-0 [&>*]:w-full">
+            <RiskCategoryPieChart
+              data={riskCategoryData}
+              loading={riskCategoryLoading}
+              error={riskCategoryError}
+              onRetry={retryDashboard}
+            />
+          </div>
+        </section>
+      </div>
+
+      <div className="space-y-4 border-t border-border pt-6 lg:pt-8">
+        <h2 className="text-section-title tracking-[-0.015em]">Tingkat risiko</h2>
+        <section
+          data-dashboard-section="composition"
+          aria-label="Komposisi risiko dan peta risiko saat ini"
+          className="grid items-start gap-4 pb-4 xl:grid-cols-2 xl:items-stretch"
+        >
+          <div className="flex min-w-0 [&>*]:w-full">
+            <RiskCompositionTrendChart
+              risks={trendRisks}
+              currentCycle={currentCycle}
+              loading={trendLoading}
+              error={trendError}
+              onRetry={retryDashboard}
+            />
+          </div>
+          <CurrentRiskHeatmap
+            matrix={currentHeatmapMatrix}
             loading={trendLoading}
             error={trendError}
             onRetry={retryDashboard}
           />
-        </div>
-        <div className="flex min-h-0 min-w-0 w-full xl:h-[32rem] [&>*]:h-full [&>*]:w-full">
-          <RiskCategoryPieChart
-            data={riskCategoryData}
-            loading={riskCategoryLoading}
-            error={riskCategoryError}
-            onRetry={retryDashboard}
-          />
-        </div>
-      </section>
-
-      <section
-        data-dashboard-section="composition"
-        aria-label="Komposisi risiko dan peta risiko saat ini"
-        className="grid items-start gap-4 pb-4 xl:items-stretch xl:grid-cols-[minmax(0,2fr)_minmax(22rem,1fr)]"
-      >
-        <div className="flex min-h-0 min-w-0 w-full xl:h-[32rem] [&>*]:h-full [&>*]:w-full">
-          <RiskCompositionTrendChart
-            risks={trendRisks}
-            currentCycle={currentCycle}
-            loading={trendLoading}
-            error={trendError}
-            onRetry={retryDashboard}
-          />
-        </div>
-        <CurrentRiskHeatmap
-          matrix={currentHeatmapMatrix}
-          loading={trendLoading}
-          error={trendError}
-          onRetry={retryDashboard}
-        />
-      </section>
+        </section>
+      </div>
     </PageStack>
   );
 }

@@ -9,7 +9,7 @@ import (
 )
 
 // StartSigning moves a draft working paper into signing status.
-func (uc *UseCase) StartSigning(ctx context.Context, workingPaperID uuid.UUID, userID uuid.UUID) (*entity.WorkingPaper, error) {
+func (uc *UseCase) StartSigning(ctx context.Context, workingPaperID uuid.UUID, userID uuid.UUID, reviewedHash string) (*entity.WorkingPaper, error) {
 	wp, err := uc.wpRepo.MutateByIDForUpdate(ctx, workingPaperID, func(wp *entity.WorkingPaper) error {
 		if wp.CreatedBy != userID {
 			return domainerrors.ErrForbidden
@@ -36,6 +36,9 @@ func (uc *UseCase) StartSigning(ctx context.Context, workingPaperID uuid.UUID, u
 			}
 		}
 
+		if err := wp.LockSigningContent(reviewedHash); err != nil {
+			return err
+		}
 		return wp.StartSigning()
 	})
 	if err != nil {

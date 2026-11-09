@@ -49,7 +49,7 @@ for (const [name, source] of [
         "target",
         "approval-line",
       ]) {
-        assert.match(source, new RegExp(`<Card\\s+id="${sectionId}"`));
+        assert.match(source, new RegExp(`<FormContainer\\s+id="${sectionId}"`));
       }
     } else {
       assert.match(source, /<FormHeader/);
@@ -60,19 +60,15 @@ for (const [name, source] of [
   });
 
   if (name === "registration") {
-    test(`${name} retains the stock Card spacing for risk sections`, () => {
-      assert.match(
-        source,
-        /const RISK_FORM_CARD_CLASS[\s\S]{0,140}scroll-mt-28 transition-colors/,
+    test(`${name} uses grouped panels for risk sections`, () => {
+      const identification = source.slice(
+        source.indexOf('id="identifikasi"'),
+        source.indexOf('id="analisis"'),
       );
-      assert.doesNotMatch(source, /const RISK_FORM_CARD_CLASS[^;]*gap-0|const RISK_FORM_CARD_CLASS[^;]*p-0/);
-      assert.doesNotMatch(
-        source,
-        /RISK_FORM_SURFACE_CLASS/,
-      );
+      assert.match(identification, /title="Identifikasi Risiko"/);
+      assert.match(identification, /description=\{sectionStatuses\[0\]\.description\}/);
+      assert.equal(identification.match(/<FormGroup\b/g)?.length, 2);
       assert.doesNotMatch(source, /Accordion/);
-      assert.match(source, /<CardTitle className="transition-colors">Identifikasi Risiko<\/CardTitle>/);
-      assert.match(source, /<CardDescription>\{sectionStatuses\[0\]\.description\}<\/CardDescription>/);
     });
   }
 }
@@ -185,7 +181,7 @@ test("assessment behavior entry points remain intact", () => {
 test("monitoring draft save keeps the form mounted and action layout stable", () => {
   assert.match(
     assessmentSource,
-    /setMonitoringDraft\(updatedMonitoring\);[\s\S]*?setDraftRisk\(buildRiskFromMonitoring\(updatedMonitoring, sourceRisk\)\);/,
+    /setMonitoringDraft\(updatedMonitoring\);[\s\S]*?setDraftRisk\(savedRisk\);[\s\S]*?setSubstanceDraft\(buildSubstanceDefaults\(savedRisk\)\);/,
   );
   assert.doesNotMatch(assessmentSource, /await loadRiskData\(\);/);
   assert.match(
@@ -213,73 +209,45 @@ test("monitoring finalization uses the neutral state warning and concise CTA", (
     assessmentSource,
     /flex items-start gap-2 rounded-lg bg-state-surface px-3 py-3 text-sm text-state-foreground/,
   );
-  assert.match(assessmentSource, /isMonitoringRoute \? "Finalisasi" : "Lanjutkan"/);
+  assert.match(assessmentSource, /"Tinjau finalisasi"/);
+  assert.match(assessmentSource, /"Finalisasi pemantauan"/);
+  assert.match(assessmentSource, /!monitoringValidation\?\.canFinalize/);
+  assert.match(assessmentSource, /Coba cek lagi/);
 });
 
-test("monitoring mitigation status lives in the compact right panel", () => {
-  const rightPanelIndex = assessmentSource.indexOf(
-    "{/* Right Column / Side Panel */}",
-  );
-  const mitigationStatusIndex = assessmentSource.indexOf(
-    "<MitigationStatusTable",
-  );
-
-  assert.ok(rightPanelIndex >= 0);
-  assert.ok(mitigationStatusIndex > rightPanelIndex);
-  assert.match(assessmentSource, /Pelaksanaan Mitigasi/);
-  assert.doesNotMatch(mitigationStatusSource, /<Table/);
-  assert.match(
-    monitoringSummarySource,
-    /<dt className="text-\[13px\] text-muted-foreground">Skor risiko<\/dt>/,
-  );
-  assert.doesNotMatch(monitoringSummarySource, /Math\.round\(delta\)/);
-  assert.match(
-    mitigationStatusSource,
-    /<dt className="text-\[13px\] text-muted-foreground">Total mitigasi<\/dt>/,
-  );
-  assert.match(
-    mitigationStatusSource,
-    /<p className="text-\[13px\] text-muted-foreground">Status pelaporan<\/p>/,
-  );
-  assert.match(mitigationStatusSource, /Total mitigasi/);
-  assert.match(mitigationStatusSource, /Sudah dilaporkan/);
-  assert.match(mitigationStatusSource, /Belum dilaporkan/);
-  assert.match(mitigationStatusSource, /aria-expanded=\{isExpanded\}/);
-  assert.match(mitigationStatusSource, /motion-safe:animate-in/);
-  assert.match(mitigationStatusSource, /motion-safe:slide-in-from-top-2/);
-  assert.doesNotMatch(mitigationStatusSource, /motion-safe:slide-in-from-right-2/);
-  assert.match(mitigationStatusSource, /motion-safe:duration-200/);
-  assert.match(mitigationStatusSource, /motion-safe:ease-\(--ease-out\)/);
-  assert.match(mitigationStatusSource, /motion-reduce:animate-none/);
-  assert.match(mitigationStatusSource, /MitigationProgressDialog/);
-  assert.match(mitigationStatusSource, /updateTaskReport/);
-  assert.doesNotMatch(mitigationStatusSource, /from "next\/link"/);
-  assert.doesNotMatch(mitigationStatusSource, /compliance\/monitoring/);
+test("monitoring shows treatment reports before the score and opens the exact task in Penanganan", () => {
+  const mitigationStatusIndex = assessmentSource.indexOf("<MitigationStatusTable");
+  const scoreIndex = assessmentSource.indexOf('id="risk-score-picker"');
+  assert.ok(mitigationStatusIndex >= 0 && mitigationStatusIndex < scoreIndex);
+  assert.match(assessmentSource, /Laporan Penanganan/);
+  assert.match(mitigationStatusSource, /aria-expanded=\{expanded\}/);
+  assert.match(mitigationStatusSource, /penanganan\?taskId=\$\{encodeURIComponent\(task\.id\)\}/);
+  assert.match(mitigationStatusSource, /target="_blank"/);
+  assert.doesNotMatch(mitigationStatusSource, /MitigationProgressDialog|updateTaskReport/);
 });
 
 test("monitoring header and right panel use the shared detail geometry", () => {
   assert.match(
     assessmentSource,
-    /<div className="w-full min-w-0">\s*<CollectionPageHeader/,
+    /<CollectionPageHeader\s+actionsPlacement="top"/,
   );
   assert.doesNotMatch(
     assessmentSource,
     /<CollectionPageHeader[\s\S]*actionsPlacement="title"/,
   );
-  assert.match(
-    assessmentSource,
-    /<CardContent className="px-5 py-5 text-sm">/,
-  );
-  assert.match(
-    assessmentSource,
-    /<CollapsibleCard\.Body className="space-y-5 border-t-0 px-5 py-5 text-sm">/,
-  );
-  assert.match(
-    assessmentSource,
-    /className="text-xs font-semibold uppercase tracking-\[0\.6px\] text-muted-foreground\/70"/,
-  );
-  assert.match(
-    monitoringSummarySource,
-    /className="text-xs font-semibold uppercase tracking-\[0\.6px\] text-muted-foreground\/70"/,
-  );
+  assert.match(assessmentSource, /<DetailSidePanel>[\s\S]*Simpulan Pemantauan/);
+  assert.match(assessmentSource, /id="monitoring-side-summary"\s+className="text-sm font-semibold text-primary"/);
+  assert.match(monitoringSummarySource, /<PropertyList compact/);
+  assert.match(monitoringSummarySource, /<PropertyLabel showIcon=\{false\}>Skor risiko/);
+});
+
+test("monitoring opens with the two flat disclosure headers", () => {
+  assert.doesNotMatch(assessmentSource, /<MonitoringEvidence\b|\/evidence`/);
+  for (const title of ["Hasil Pemantauan", "Ubah profil risiko"]) {
+    const heading = assessmentSource.indexOf(title, assessmentSource.indexOf('<CollapsibleCard.Root appearance="form"'));
+    assert.notEqual(heading, -1);
+    const trigger = assessmentSource.lastIndexOf("<CollapsibleCard.Trigger", heading);
+    assert.notEqual(trigger, -1);
+    assert.match(assessmentSource.slice(trigger, assessmentSource.indexOf(">", trigger)), /hover:bg-transparent/);
+  }
 });

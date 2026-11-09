@@ -31,14 +31,12 @@ interface RiskLogTimelineProps {
 interface RawCommunicationLog {
   id?: string;
   riskId?: string;
-  stakeholder?: string;
   notes?: string;
   createdBy?: string;
   createdByName?: string;
   createdAt?: string;
   ID?: string;
   RiskID?: string;
-  Stakeholder?: string;
   Notes?: string;
   CreatedBy?: string;
   CreatedByName?: string;
@@ -104,7 +102,6 @@ function normalizeCommunicationLogs(
   return logs.map((item, index) => ({
     id: item.id || item.ID || `comm-${index}`,
     riskId: item.riskId || item.RiskID || "",
-    stakeholder: item.stakeholder || item.Stakeholder || "-",
     notes: item.notes || item.Notes || "",
     createdBy: item.createdBy || item.CreatedBy || "",
     createdByName: item.createdByName || item.CreatedByName || "-",
@@ -209,20 +206,18 @@ export function RiskLogTimeline({
   const [showAll, setShowAll] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
   const [message, setMessage] = useState("");
-  const [stakeholder, setStakeholder] = useState("");
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string>();
   const sendingRef = useRef(false);
 
   const sendComment = async () => {
-    if (!canAdd || sendingRef.current || !message.trim() || !stakeholder.trim()) return;
+    if (!canAdd || sendingRef.current || !message.trim()) return;
     sendingRef.current = true;
     setSending(true);
     setSendError(undefined);
     try {
-      await createCommunicationLog(riskId, { stakeholder: stakeholder.trim(), notes: message.trim() }, token);
+      await createCommunicationLog(riskId, { notes: message.trim() }, token);
       setMessage("");
-      setStakeholder("");
       setRefreshKey(value => value + 1);
       toast.success("Catatan berhasil dikirim");
     } catch {
@@ -284,11 +279,10 @@ export function RiskLogTimeline({
       id: `comm-${log.id}`,
       type: "communication" as const,
       date: log.createdAt,
-      title: `Catatan untuk ${log.stakeholder}`,
+      title: "Catatan",
       description: log.notes,
       metadata: {
         oleh: log.createdByName,
-        stakeholder: log.stakeholder,
 
       },
     })),
@@ -311,13 +305,13 @@ export function RiskLogTimeline({
       <div className="flex items-center justify-between gap-3">
         <h2 id="risk-side-log" className="text-sm font-semibold capitalize text-primary">Catatan</h2>
       </div>
-      <div className="mt-3 space-y-3">
+      <div className="mt-3">
         {loading ? <div role="status" className="flex items-center gap-2 py-2 text-sm text-muted-foreground"><Loader2 className="size-3.5 animate-spin" />Memuat catatan...</div>
-          : timelineItems.length === 0 ? <p className="py-2 text-xs text-muted-foreground">Belum ada catatan.</p>
-          : visibleTimelineItems.map(item => <ActivityFeedRow key={item.id} item={item} />)}
+          : timelineItems.length === 0 ? null
+          : <div data-comment-thread>{visibleTimelineItems.map(item => <ActivityFeedRow key={item.id} item={item} />)}</div>}
+        {timelineItems.length > LOG_PREVIEW_LIMIT ? <Button type="button" variant="ghost" size="sm" className="my-2" onClick={() => setShowAll(value => !value)} aria-expanded={showAll}>{showAll ? "Tampilkan lebih sedikit" : `Lihat semua catatan (${timelineItems.length})`}</Button> : null}
       </div>
-      {timelineItems.length > LOG_PREVIEW_LIMIT ? <Button type="button" variant="ghost" size="sm" className="mt-2" onClick={() => setShowAll(value => !value)} aria-expanded={showAll}>{showAll ? "Tampilkan lebih sedikit" : `Lihat semua catatan (${timelineItems.length})`}</Button> : null}
-      {canAdd ? <CommentComposer message={message} stakeholder={stakeholder} busy={sending} error={sendError} onMessageChange={setMessage} onStakeholderChange={setStakeholder} onSubmit={sendComment} /> : null}
+      {canAdd ? <CommentComposer message={message} busy={sending} error={sendError} onMessageChange={setMessage} onSubmit={sendComment} /> : null}
     </>
   );
 }

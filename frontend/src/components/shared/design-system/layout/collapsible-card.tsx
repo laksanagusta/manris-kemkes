@@ -8,19 +8,22 @@ import {
 } from "@/components/ui/collapsible";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { FormFrame } from "./form-container";
 
 function CollapsibleCardRoot({
   children,
   className,
   defaultOpen = true,
+  appearance = "card",
   ...props
-}: ComponentProps<typeof Collapsible>) {
+}: ComponentProps<typeof Collapsible> & { appearance?: "card" | "form" }) {
+  const Surface = appearance === "form" ? FormFrame : Card;
   return (
-    <Card className={cn("overflow-hidden py-0", className)}>
+    <Surface className={cn(appearance === "card" && "overflow-hidden py-0", className)}>
       <Collapsible defaultOpen={defaultOpen} {...props}>
         {children}
       </Collapsible>
-    </Card>
+    </Surface>
   );
 }
 

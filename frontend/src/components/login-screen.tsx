@@ -74,7 +74,7 @@ export default function LoginScreen() {
           </div>
           <div aria-hidden="true" className="hidden h-7 md:block" />
           <div className="md:mt-10">
-          <h1 className="text-3xl font-semibold tracking-tight text-neutral-900">
+          <h1 className="text-3xl font-semibold tracking-normal text-neutral-900">
             Masuk ke Manrisk
           </h1>
           <p className="mt-2 text-[15px] text-neutral-500">
@@ -91,8 +91,9 @@ export default function LoginScreen() {
                 <Input
                   id="nip"
                   name="nip"
+                  data-field-outline="outer"
                   data-autofill-surface="white"
-                  className="mt-1.5 h-12 rounded-lg bg-white text-neutral-900 placeholder:text-neutral-400"
+                  className="mt-1.5 h-8 rounded-control bg-white text-neutral-900 placeholder:text-neutral-400"
                   placeholder="Masukkan NIP"
                   autoComplete="username"
                   inputMode="numeric"
@@ -105,13 +106,13 @@ export default function LoginScreen() {
                 <FieldLabel htmlFor="password" className="text-sm font-medium text-neutral-900">
                   Password
                 </FieldLabel>
-                <InputGroup className="mt-1.5 h-12 rounded-lg bg-white text-neutral-900">
+                <InputGroup data-field-outline="outer" className="mt-1.5 h-8 rounded-control bg-white text-neutral-900">
                   <InputGroupInput
                     id="password"
                     name="password"
                     type={showPassword ? "text" : "password"}
                     data-autofill-surface="white"
-                    className="h-auto self-stretch rounded-lg bg-transparent text-neutral-900 placeholder:text-neutral-400"
+                    className="h-auto self-stretch bg-transparent text-neutral-900 placeholder:text-neutral-400"
                     placeholder="Masukkan password"
                     autoComplete="current-password"
                     required
@@ -124,7 +125,7 @@ export default function LoginScreen() {
                       aria-pressed={showPassword}
                       onClick={() => setShowPassword((value) => !value)}
                       size="icon-xs"
-                      className="h-12 w-11 text-neutral-500 hover:bg-transparent! hover:text-inherit!"
+                      className="h-8 w-11 text-neutral-500 hover:bg-transparent! hover:text-inherit!"
                     >
                       {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
                     </InputGroupButton>
@@ -133,7 +134,7 @@ export default function LoginScreen() {
               </Field>
             </FieldGroup>
 
-            <Button type="submit" className="h-12 w-full rounded-lg" disabled={isLoading} aria-busy={isLoading}>
+            <Button type="submit" className="h-8 w-full" disabled={isLoading} aria-busy={isLoading}>
               {isLoading ? <Spinner data-icon="inline-start" aria-hidden="true" /> : null}
               {isLoading ? "Memproses..." : "Masuk"}
             </Button>

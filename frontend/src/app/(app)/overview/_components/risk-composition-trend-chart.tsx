@@ -143,7 +143,7 @@ export function RiskCompositionTrendChart({
           <div
             role="img"
             aria-label={`Komposisi jumlah risiko menurut tingkat risiko dari ${chartData[0]?.period} sampai ${chartData.at(-1)?.period}`}
-            className="h-72 w-full sm:h-80 xl:h-[24rem]"
+            className="h-64 w-full sm:h-[17rem]"
           >
             <ChartContainer config={chartConfig} className="h-full w-full">
               <BarChart

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import styles from "./filtered-table-toolbar.module.css";
 import { canApplyFilter, filterDefault, isFilterActive, type TableFilterField } from "./dynamic-table-filter-state";
 
 export type { TableFilterField, TableFilterOption } from "./dynamic-table-filter-state";
@@ -24,13 +25,14 @@ function FilterChip({ field, open, onOpenChange, onRemove }: FilterChipProps) {
   const [draft, setDraft] = useState(field.value);
   const [query, setQuery] = useState("");
   const applied = isFilterActive(field);
+  const hasSelectedValue = applied || (field.required && Boolean(field.value) && field.value !== "all");
   const label = applied || field.required
     ? field.options?.find((option) => option.value === field.value)?.label ?? field.value
     : "Pilih nilai";
   const options = field.options?.filter((option) => option.label.toLocaleLowerCase("id").includes(query.toLocaleLowerCase("id")));
 
   return (
-    <div className={cn("inline-flex min-w-0 max-w-full items-center rounded-control border bg-card text-sm", applied || field.required ? "border-border" : "border-dashed border-muted-foreground/50")}>
+    <div className={cn("inline-flex min-w-0 max-w-full items-center rounded-control border border-dashed bg-card text-sm", styles.filterChip, hasSelectedValue && styles.appliedChip, applied || field.required ? "border-border" : "border-muted-foreground/50")}>
       {!field.required && (
         <Button type="button" variant="ghost" size="icon-xs" className="ml-0.5 shrink-0 text-muted-foreground" aria-label={`Hapus filter ${field.label}`} onClick={onRemove}>
           <XCircle className="size-3.5" aria-hidden="true" />
@@ -43,7 +45,7 @@ function FilterChip({ field, open, onOpenChange, onRemove }: FilterChipProps) {
         <PopoverTrigger asChild>
           <Button type="button" variant="ghost" size="sm" className={cn("h-7 min-w-0 gap-2 px-2 font-normal", field.required && "pl-2.5")} aria-label={`Filter ${field.label}: ${label || "Pilih nilai"}`}>
             <span className="shrink-0 font-medium">{field.label}</span>
-            <span aria-hidden="true" className="h-4 w-px shrink-0 bg-border" />
+            <span data-filter-divider="" aria-hidden="true" className="h-4 w-px shrink-0 bg-border" />
             <span className={cn("max-w-52 truncate", !applied && !field.required && "text-muted-foreground")} title={label}>{label || "Pilih nilai"}</span>
             <ChevronDown aria-hidden="true" className={cn("size-3.5 shrink-0 text-muted-foreground transition-transform motion-reduce:transition-none", open && "rotate-180")} />
           </Button>
@@ -106,28 +108,30 @@ export function DynamicTableFilters({ search, columns, fields, className, trigge
   };
 
   return (
-    <div data-slot="dynamic-table-filters" className={cn("flex min-w-0 flex-1 flex-col gap-3", className)}>
+    <div data-slot="dynamic-table-filters" className={cn("flex min-w-0 flex-1 flex-col gap-2", styles.filters, className)}>
       <div className="flex min-w-0 flex-wrap items-center gap-2">
         {search}
-        {columns}
-        <Popover open={pickerOpen} onOpenChange={(open) => { setPickerOpen(open); if (open) setPickerQuery(""); }}>
-          <PopoverTrigger asChild>
-            <Button data-slot="button" ref={filterButton} type="button" variant="outline" size={triggerLabel ? "default" : "icon"} aria-label="Tambah filter" title="Tambah filter">
-              {triggerLabel ? <><Plus aria-hidden="true" className="size-4" />{triggerLabel}</> : <Filter aria-hidden="true" className="size-4" />}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent aria-label="Pilih field filter" align="start" sideOffset={6} className={filterPopoverClassName} onCloseAutoFocus={(event) => { if (pendingId) event.preventDefault(); }}>
-            {available.length > 8 && <div className="relative px-1 pb-1"><Search aria-hidden="true" className="absolute left-3 top-2 size-4 text-muted-foreground" /><Input aria-label="Cari field filter" value={pickerQuery} onChange={(event) => setPickerQuery(event.target.value)} placeholder="Cari field..." className="pl-7" /></div>}
-            <div className="max-h-64 overflow-y-auto">
-              {available.filter((field) => field.label.toLocaleLowerCase("id").includes(pickerQuery.toLocaleLowerCase("id"))).map((field) => (
-                <Button key={field.id} type="button" variant="ghost" className="w-full justify-start font-normal" onClick={() => {
-                  setPickerOpen(false); setPendingId(field.id); setOpenId(field.id);
-                }}>{field.label}</Button>
-              ))}
-              {available.length === 0 && <p className="px-2 py-3 text-xs text-muted-foreground">Semua filter sudah ditambahkan.</p>}
-            </div>
-          </PopoverContent>
-        </Popover>
+        <div data-slot="table-filter-actions" className="flex shrink-0 items-center gap-2">
+          {columns}
+          <Popover open={pickerOpen} onOpenChange={(open) => { setPickerOpen(open); if (open) setPickerQuery(""); }}>
+            <PopoverTrigger asChild>
+              <Button data-slot="button" ref={filterButton} type="button" variant="outline" size={triggerLabel ? "default" : "icon"} aria-label="Tambah filter" title="Tambah filter">
+                {triggerLabel ? <><Plus aria-hidden="true" className="size-4" />{triggerLabel}</> : <Filter aria-hidden="true" className="size-4" />}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent aria-label="Pilih field filter" align="start" sideOffset={6} className={filterPopoverClassName} onCloseAutoFocus={(event) => { if (pendingId) event.preventDefault(); }}>
+              {available.length > 8 && <div className="relative px-1 pb-1"><Search aria-hidden="true" className="absolute left-3 top-2 size-4 text-muted-foreground" /><Input aria-label="Cari field filter" value={pickerQuery} onChange={(event) => setPickerQuery(event.target.value)} placeholder="Cari field..." className="pl-7" /></div>}
+              <div className="max-h-64 overflow-y-auto">
+                {available.filter((field) => field.label.toLocaleLowerCase("id").includes(pickerQuery.toLocaleLowerCase("id"))).map((field) => (
+                  <Button key={field.id} type="button" variant="ghost" className="w-full justify-start font-normal" onClick={() => {
+                    setPickerOpen(false); setPendingId(field.id); setOpenId(field.id);
+                  }}>{field.label}</Button>
+                ))}
+                {available.length === 0 && <p className="px-2 py-3 text-xs text-muted-foreground">Semua filter sudah ditambahkan.</p>}
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
       {visible.length > 0 && <div className="flex min-w-0 flex-wrap items-center gap-2" aria-label="Filter tabel aktif">
         {visible.map((field) => <FilterChip key={field.id} field={field} open={openId === field.id} onOpenChange={(open) => { setOpenId(open ? field.id : null); if (!open) { if (pendingId === field.id) filterButton.current?.focus(); setPendingId(null); } }} onRemove={() => remove(field)} />)}

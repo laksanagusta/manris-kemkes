@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDisplayDate } from "@/lib/display-date";
+
 import { useEffect, useState, type ReactNode } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AIFeaturesDisabledState } from "@/components/shared/ai-features-disabled-state";
@@ -220,7 +222,7 @@ function MeetingMinuteDetailContent() {
     Record<string, MeetingMinuteWithRisks["actionItems"]>
   >((groups, item) => {
     const deadline = item.deadline
-      ? new Date(item.deadline).toLocaleDateString("id-ID", {
+      ? formatDisplayDate(new Date(item.deadline), {
           weekday: "short",
           year: "numeric",
           month: "long",
@@ -280,30 +282,30 @@ function MeetingMinuteDetailContent() {
             <BriefingProperty label="Dibuat oleh">
               <span className="break-words">{minutes.createdByName}</span>
               <span className="mt-1 block text-sm font-normal leading-5 text-muted-foreground">
-                {new Date(minutes.createdAt).toLocaleDateString("id-ID", {
+                <span data-date-time="">{formatDisplayDate(new Date(minutes.createdAt), {
                   year: "numeric",
                   month: "long",
                   day: "numeric",
                   hour: "2-digit",
                   minute: "2-digit",
-                })}
+                })}</span>
               </span>
             </BriefingProperty>
             <BriefingProperty label="Tanggal rapat">
-              {new Date(minutes.date).toLocaleDateString("id-ID", {
+              <span data-date-time="">{formatDisplayDate(new Date(minutes.date), {
                 year: "numeric",
                 month: "long",
                 day: "numeric",
-              })}
+              })}</span>
             </BriefingProperty>
             <BriefingProperty label="Check-in berikutnya">
-              {minutes.nextCheckIn
-                ? new Date(minutes.nextCheckIn).toLocaleDateString("id-ID", {
+              <span data-date-time="">{minutes.nextCheckIn
+                ? formatDisplayDate(new Date(minutes.nextCheckIn), {
                     year: "numeric",
                     month: "long",
                     day: "numeric",
                   })
-                : "Belum dijadwalkan"}
+                : "Belum dijadwalkan"}</span>
             </BriefingProperty>
             <BriefingProperty label="Peserta">
               {minutes.participants.length > 0 ? (

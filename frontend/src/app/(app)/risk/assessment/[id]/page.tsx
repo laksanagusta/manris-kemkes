@@ -1,8 +1,10 @@
 "use client";
+
+import { MonitoringScheduleNotice } from "@/components/shared/design-system/domain/monitoring-schedule-notice";
+import { shiftAssessmentCycle } from "@/lib/risk-cycle-options";
+import { formatDisplayDate } from "@/lib/display-date";
 import { getWorkReturnLink } from "@/lib/operator-work";
-import { isMonitoringWindowOpen, monitoringWindowMessage } from "@/lib/monitoring-window";
-import { MonitoringEvidence } from "@/components/shared/design-system";
-import type { MonitoringEvidenceResult } from "@/components/shared/design-system/domain/monitoring-evidence";
+import { getMonitoringWindow, isMonitoringWindowOpen, monitoringWindowMessage } from "@/lib/monitoring-window";
 
 import { useEffect, useState, useCallback, useRef, useMemo } from "react";
 import Link from "next/link";
@@ -37,6 +39,7 @@ import {
   getMonitoringDetail,
   updateMonitoringDraft,
 } from "@/lib/api/risk-monitoring";
+import { MonitoringWorkingPaperAction } from "./_components/monitoring-working-paper-action";
 import { validateMonitoringFinalize } from "@/lib/api/mitigation-tasks";
 import {
   getBobot,
@@ -52,14 +55,16 @@ import { listUsers } from "@/lib/api/users";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { DetailSidePanel } from "@/components/shared/design-system/layout/detail-side-panel";
 import { FormHeader, FormPage } from "@/components/shared/form-shell";
 import {
   AccentButton,
   ActionButton,
   CollapsibleCard,
   CollectionPageHeader,
+  FormGroup,
+  FormPanel,
   FieldErrorMessage,
   Textarea,
   RiskScoreHeatmapModal,
@@ -247,26 +252,19 @@ export default function AssessmentFormPage() {
   const [loadError, setLoadError] = useState<AssessmentLoadError | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isCheckingFinalize, setIsCheckingFinalize] = useState(false);
+  const [finalizeCheckFailed, setFinalizeCheckFailed] = useState(false);
+  const [finalizeNotice, setFinalizeNotice] = useState("");
+  const [finalizeBlocked, setFinalizeBlocked] = useState(false);
+  const [reloadDraftRequired, setReloadDraftRequired] = useState(false);
+  const [scoreReviewed, setScoreReviewed] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [exitHref, setExitHref] = useState<string | null>(null);
   const [monitoringValidation, setMonitoringValidation] =
     useState<MonitoringValidationResult | null>(null);
   const [draftRisk, setDraftRisk] = useState<Risk | null>(null);
-  const [evidenceResult, setEvidenceResult] = useState<MonitoringEvidenceResult | null>(null);
-  const [evidenceLoading, setEvidenceLoading] = useState(true);
-  const [evidenceError, setEvidenceError] = useState("");
-  const [evidenceReload, setEvidenceReload] = useState(0);
   const [sourceRisk, setSourceRisk] = useState<Risk | null>(null);
   const [monitoringDraft, setMonitoringDraft] =
     useState<RiskMonitoringDetail | null>(null);
-  useEffect(() => {
-    if (!isMonitoringRoute || !token || !id) return;
-    let cancelled = false;
-    setEvidenceLoading(true); setEvidenceError("");
-    api.get<MonitoringEvidenceResult>(`/risk-monitorings/${encodeURIComponent(id)}/evidence`, token)
-      .then(value => { if (!cancelled) setEvidenceResult(value); })
-      .catch(() => { if (!cancelled) setEvidenceError("Bukti pemantauan belum dapat dimuat."); })
-      .finally(() => { if (!cancelled) setEvidenceLoading(false); });
-    return () => { cancelled = true; };
-  }, [isMonitoringRoute, token, id, evidenceReload, monitoringDraft?.status]);
   const [substanceEditEnabled, setSubstanceEditEnabled] = useState(false);
   const [substanceDraft, setSubstanceDraft] = useState<RiskSubstanceValues>(
     () => buildSubstanceDefaults(null),
@@ -296,6 +294,12 @@ export default function AssessmentFormPage() {
     },
   });
   const { reset } = form;
+  const hasUnsavedProfileChanges = useMemo(
+    () => substanceEditEnabled && diffRiskSubstance(draftRisk, substanceDraft).length > 0,
+    [draftRisk, substanceDraft, substanceEditEnabled],
+  );
+  const hasUnsavedChanges = form.formState.isDirty || hasUnsavedProfileChanges ||
+    (isMonitoringRoute && scoreReviewed !== Boolean(monitoringDraft?.observedScoreConfirmed));
 
   useEffect(() => {
     if (form.formState.submitCount === 0) {
@@ -348,7 +352,8 @@ export default function AssessmentFormPage() {
     draftRisk?.status === "final" ||
     isRiskScoreReady;
   const submitActionLabel =
-    isMonitoringRoute || riskApprovalCapabilityBehavior.usesDirectApprovalCopy
+    isMonitoringRoute ? "Tinjau finalisasi"
+      : riskApprovalCapabilityBehavior.usesDirectApprovalCopy
       ? "Finalisasi"
       : "Ajukan review";
 
@@ -505,29 +510,79 @@ export default function AssessmentFormPage() {
     );
   }, []);
 
+  function showFinalizedMonitoring(finalized: RiskMonitoringDetail) {
+    const finalRisk = buildRiskFromMonitoring(finalized, sourceRisk);
+    setMonitoringDraft(finalized);
+    setDraftRisk(finalRisk);
+    setSubstanceDraft(buildSubstanceDefaults(finalRisk));
+    setSubstanceEditEnabled(finalized.mode === "with_profile_revision");
+    setScoreReviewed(Boolean(finalized.observedScoreConfirmed));
+    reset({
+      probability: finalized.observedProbability,
+      impact: finalized.observedImpact,
+      changeReason: finalized.changeReason || "",
+      reviewSummary: finalized.conclusion || "",
+    });
+    setShowSubmitReviewConfirm(false);
+    setSaveError("");
+  }
+
+  async function checkMonitoringFinalization(expected = monitoringDraft, notice = "") {
+    if (!token || !id || isCheckingFinalize) return;
+    setMonitoringValidation(null);
+    setFinalizeCheckFailed(false);
+    setFinalizeBlocked(false);
+    setReloadDraftRequired(false);
+    setFinalizeNotice(notice);
+    setIsCheckingFinalize(true);
+    try {
+      const latest = await getMonitoringDetail(token, id);
+      if (latest.status === "final") {
+        showFinalizedMonitoring(latest);
+        return;
+      }
+      if (!isMonitoringWindowOpen(latest.assessmentCycle, new Date())) {
+        setFinalizeNotice(monitoringWindowMessage(latest.assessmentCycle));
+        setFinalizeBlocked(true);
+        return;
+      }
+      if (latest.status !== "draft" || latest.sourceRisk?.isCurrent === false || (latest.sourceRisk && latest.sourceRisk.status !== "final")) {
+        setFinalizeNotice("Profil risiko sumber sudah berubah. Muat ulang draf untuk melihat status terbaru.");
+        setFinalizeBlocked(true);
+        setReloadDraftRequired(true);
+        return;
+      }
+      if (latest.updatedAt !== expected?.updatedAt) {
+        setFinalizeNotice("Draf sudah diperbarui di sesi lain. Memuat versi terbaru akan mengganti perubahan yang masih terbuka di halaman ini.");
+        setFinalizeBlocked(true);
+        setReloadDraftRequired(true);
+        return;
+      }
+      const review = await validateMonitoringFinalize(token, id);
+      if (!review.reportRevision) {
+        setFinalizeCheckFailed(true);
+        return;
+      }
+      setMonitoringValidation(review);
+    } catch {
+      setFinalizeCheckFailed(true);
+    } finally {
+      setIsCheckingFinalize(false);
+    }
+  }
+
   const openSubmitReviewConfirm = async () => {
     submitTarget.current = "review";
 
     if (isMonitoringRoute) {
-      if (!isAssessmentSectionReady) {
-        toast.error("Lengkapi skor risiko sebelum finalisasi.");
+      if (!isAssessmentSectionReady || !scoreReviewed) {
+        form.setError("probability", { message: "Gunakan skor yang ditampilkan atau pilih probabilitas dan dampak sebelum finalisasi." });
+        document.getElementById("risk-score-picker")?.focus();
         return;
       }
-      setMonitoringValidation(null);
+      setSaveError("");
       setShowSubmitReviewConfirm(true);
-      if (token && id) {
-        setIsCheckingFinalize(true);
-        try {
-          setMonitoringValidation(await validateMonitoringFinalize(token, id));
-        } catch (error) {
-          setMonitoringValidation(null);
-          toast.error("Status mitigasi belum dapat diverifikasi", {
-            description: error instanceof Error ? error.message : "Silakan coba lagi.",
-          });
-        } finally {
-          setIsCheckingFinalize(false);
-        }
-      }
+      await checkMonitoringFinalization();
       return;
     }
 
@@ -564,6 +619,7 @@ export default function AssessmentFormPage() {
   };
 
   const handleSubmitForReview = async () => {
+    if (isSaving || (isMonitoringRoute && (!scoreReviewed || !monitoringValidation?.canFinalize || isCheckingFinalize))) return;
     if (
       draftRisk?.status === "final"
     ) {
@@ -588,6 +644,8 @@ export default function AssessmentFormPage() {
         const syntheticDraft = buildRiskFromMonitoring(monitoring, source);
 
         setMonitoringDraft(monitoring);
+        setScoreReviewed(Boolean(monitoring.observedScoreConfirmed));
+        setSaveError("");
         setDraftRisk(syntheticDraft);
         setSourceRisk(source);
         setSubstanceEditEnabled(monitoring.mode === "with_profile_revision");
@@ -781,18 +839,43 @@ export default function AssessmentFormPage() {
   }, [loadRiskData]);
 
   useEffect(() => {
-    if (!isMonitoringRoute || draftRisk?.status === "final" || !form.formState.isDirty) {
+    if (!isMonitoringRoute || draftRisk?.status === "final" || !hasUnsavedChanges) {
       return;
     }
 
+    const currentHref = window.location.href;
+    const currentHistoryState = window.history.state;
     const handleBeforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault();
       event.returnValue = "";
     };
+    const handleLeaveLink = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const link = (event.target as Element)?.closest?.("a[href]");
+      if (!(link instanceof HTMLAnchorElement) || link.target === "_blank" || link.hasAttribute("download")) return;
+      const destination = new URL(link.href);
+      if (destination.origin !== window.location.origin || destination.pathname + destination.search === window.location.pathname + window.location.search) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (!isSaving) setExitHref(destination.pathname + destination.search + destination.hash);
+    };
+    const handleHistoryLeave = (event: PopStateEvent) => {
+      if (window.location.href === currentHref) return;
+      const destination = window.location.pathname + window.location.search + window.location.hash;
+      event.stopImmediatePropagation();
+      window.history.pushState(currentHistoryState, "", currentHref);
+      if (!isSaving) setExitHref(destination);
+    };
 
     window.addEventListener("beforeunload", handleBeforeUnload);
-    return () => window.removeEventListener("beforeunload", handleBeforeUnload);
-  }, [draftRisk?.status, form.formState.isDirty, isMonitoringRoute]);
+    window.addEventListener("popstate", handleHistoryLeave, true);
+    document.addEventListener("click", handleLeaveLink, true);
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      window.removeEventListener("popstate", handleHistoryLeave, true);
+      document.removeEventListener("click", handleLeaveLink, true);
+    };
+  }, [draftRisk?.status, hasUnsavedChanges, isMonitoringRoute, isSaving]);
 
   const handleDeleteMonitoringDraft = async () => {
     if (!token || !monitoringDraft?.id || draftRisk?.status === "final") {
@@ -822,7 +905,17 @@ export default function AssessmentFormPage() {
   }, []);
 
   const onSubmit = async (values: AssessmentFormValues) => {
- if(!isMonitoringWindowOpen(monitoringDraft?.assessmentCycle || draftRisk?.assessmentCycle || "",new Date())){toast.error(monitoringWindowMessage(monitoringDraft?.assessmentCycle || draftRisk?.assessmentCycle || ""));return;}
+    const cycle = monitoringDraft?.assessmentCycle || draftRisk?.assessmentCycle || "";
+    if (isMonitoringRoute && !isMonitoringWindowOpen(cycle, new Date())) {
+      const message = monitoringWindowMessage(cycle);
+      if (submitTarget.current === "review") {
+        setFinalizeNotice(message);
+        setFinalizeBlocked(true);
+      } else {
+        setSaveError(message);
+      }
+      return;
+    }
     if (!token || !id || !draftRisk) return;
     if (
       draftRisk.status === "final"
@@ -831,6 +924,8 @@ export default function AssessmentFormPage() {
       return;
     }
     const isFinalizing = submitTarget.current === "review";
+    if (isSaving || (isMonitoringRoute && isFinalizing && (finalizeBlocked || !scoreReviewed || !monitoringValidation?.canFinalize))) return;
+    setSaveError("");
     setIsSaving(true);
     let draftSaved = false;
     try {
@@ -849,6 +944,8 @@ export default function AssessmentFormPage() {
       if (isMonitoringRoute) {
         const monitoring = monitoringDraft;
         const monitoringPayload = {
+          expectedUpdatedAt: monitoring?.updatedAt,
+          observedScoreConfirmed: scoreReviewed,
           observedProbability: values.probability,
           observedImpact: values.impact,
           conclusion: values.reviewSummary,
@@ -891,23 +988,30 @@ export default function AssessmentFormPage() {
 
         const updatedMonitoring = await updateMonitoringDraft(token, id, monitoringPayload);
         draftSaved = true;
-        form.reset(values);
+        form.reset({
+          ...values,
+          changeReason: updatedMonitoring.changeReason || "",
+          reviewSummary: updatedMonitoring.conclusion || "",
+        });
+        const savedRisk = buildRiskFromMonitoring(updatedMonitoring, sourceRisk);
         setMonitoringDraft(updatedMonitoring);
-        setDraftRisk(buildRiskFromMonitoring(updatedMonitoring, sourceRisk));
-        if (isFinalizing) {
+        setScoreReviewed(Boolean(updatedMonitoring.observedScoreConfirmed));
+        setDraftRisk(savedRisk);
+        setSubstanceDraft(buildSubstanceDefaults(savedRisk));
+        setSubstanceEditEnabled(updatedMonitoring.mode === "with_profile_revision");
+        if (isFinalizing && monitoringValidation) {
           try {
-            const finalized = await finalizeMonitoring(token, id);
-            setShowSubmitReviewConfirm(false);
-            toast.success(`Pemantauan ${monitoring?.assessmentCycle || ""} berhasil difinalisasi`);
-            setMonitoringDraft(finalized);
-            setDraftRisk(buildRiskFromMonitoring(finalized, sourceRisk));
-          } catch (finalizeError) {
-            toast.error("Draft tersimpan, tetapi finalisasi gagal.", {
-              description:
-                finalizeError instanceof Error
-                  ? finalizeError.message
-                  : "Silakan cek kembali kesiapan data lalu coba lagi.",
+            const finalized = await finalizeMonitoring(token, id, {
+              expectedUpdatedAt: updatedMonitoring.updatedAt,
+              reportRevision: monitoringValidation.reportRevision,
             });
+            showFinalizedMonitoring(finalized);
+            toast.success(`Pemantauan ${finalized.assessmentCycle} berhasil difinalisasi`);
+          } catch (finalizeError) {
+            const message = finalizeError instanceof ApiError && finalizeError.status < 500
+              ? `Draf tersimpan. ${finalizeError.message}`
+              : "Draf tersimpan. Hasil finalisasi belum terkonfirmasi. Periksa status sebelum mencoba lagi.";
+            await checkMonitoringFinalization(updatedMonitoring, message);
           }
         } else {
           toast.success("Transaksi pemantauan berhasil disimpan");
@@ -1025,9 +1129,17 @@ export default function AssessmentFormPage() {
         router.push(backTarget);
       }
     } catch (error) {
-      toast.error(draftSaved ? "Draft tersimpan, tetapi ada langkah berikutnya yang gagal." : "Gagal menyimpan pemantauan", {
-        description: (error as Error).message || "Silakan coba lagi",
-      });
+      const message = error instanceof Error ? error.message : "Silakan coba lagi.";
+      if (isMonitoringRoute) {
+        const draftMessage = `Draf belum dapat disimpan. Isian masih tersedia. ${message}`;
+        if (isFinalizing) {
+          await checkMonitoringFinalization(monitoringDraft, draftMessage);
+        } else {
+          setSaveError(draftMessage);
+        }
+      } else {
+        toast.error(draftSaved ? "Draf tersimpan, tetapi langkah berikutnya gagal." : "Gagal menyimpan pemantauan", { description: message });
+      }
     } finally {
       setIsSaving(false);
     }
@@ -1090,7 +1202,11 @@ export default function AssessmentFormPage() {
   const windowClosed=!isMonitoringWindowOpen(monitoringDraft?.assessmentCycle || draftRisk.assessmentCycle || "",windowNow);
   const isAssessmentLocked = draftRisk.status === "final" || windowClosed;
   const monitoringCycle = monitoringDraft?.assessmentCycle || draftRisk.assessmentCycle || "";
-  const hasFinalResult = isMonitoringRoute && draftRisk.status === "final";
+  const hasFinalResult = isMonitoringRoute && monitoringDraft?.status === "final";
+  const sourceScore = monitoringDraft?.sourceNilai ?? sourceRisk.nilai ?? sourceRisk.inherentScore ?? 0;
+  const nextCycle = getMonitoringWindow(monitoringCycle) ? shiftAssessmentCycle(monitoringCycle, 1) : null;
+  const acceptsPreviousScore = probability === monitoringDraft?.sourceProbability && impact === monitoringDraft?.sourceImpact;
+  const sourceScoreLabel = formatRiskScore(sourceScore, "—");
   const resultRiskHref = monitoringDraft?.resultRiskId
     ? `/risk/register/${monitoringDraft.resultRiskId}`
     : null;
@@ -1101,7 +1217,9 @@ export default function AssessmentFormPage() {
       >
         {monitoringDraft?.status === "superseded"
           ? "Digantikan"
-          : assessmentStatusLabel[draftRisk.status] ?? draftRisk.status}
+          : windowClosed && draftRisk.status === "draft"
+            ? "Draf terkunci"
+            : assessmentStatusLabel[draftRisk.status] ?? draftRisk.status}
       </Badge>
       <Badge variant="secondary"
         className=""
@@ -1129,17 +1247,17 @@ export default function AssessmentFormPage() {
         <span
           className={cn(
             "mr-1 inline-flex min-h-9 min-w-[7rem] items-center justify-end text-[11px]",
-            form.formState.isDirty
+            hasUnsavedChanges
               ? "text-amber-700"
               : "text-muted-foreground",
           )}
           aria-live="polite"
         >
-          {isSaving
+          <span data-date-time="">{isSaving
             ? "Menyimpan…"
-            : form.formState.isDirty
+            : hasUnsavedChanges
               ? "Belum disimpan"
-              : `Tersimpan${monitoringDraft?.updatedAt ? ` ${new Date(monitoringDraft.updatedAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}` : ""}`}
+              : `Tersimpan${monitoringDraft?.updatedAt ? ` ${formatDisplayDate(new Date(monitoringDraft.updatedAt), { hour: "2-digit", minute: "2-digit" })}` : ""}`}</span>
         </span>
       ) : null}
       <TooltipProvider>
@@ -1159,7 +1277,7 @@ export default function AssessmentFormPage() {
               onClick={handleSaveDraft}
               disabled={isSaving}
             >
-              Simpan draft
+              Simpan draf
             </ActionButton>
             <AccentButton
               icon={<Send className="size-3.5" />}
@@ -1172,7 +1290,7 @@ export default function AssessmentFormPage() {
         ) : null}
         {hasFinalResult && resultRiskHref ? (
           <ActionButton asChild variant="outline" size="default">
-            <Link href={resultRiskHref}>Lihat versi hasil</Link>
+            <Link href={resultRiskHref}>{nextCycle ? `Lihat profil ${nextCycle}` : "Lihat versi hasil"}</Link>
           </ActionButton>
         ) : null}
       </TooltipProvider>
@@ -1184,18 +1302,43 @@ export default function AssessmentFormPage() {
       <FormPage
         className="risk-form-filter-controls space-y-6"
       >
-      {windowClosed && draftRisk.status!=="final" ? <p role="status" className="rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm">{monitoringWindowMessage(monitoringDraft?.assessmentCycle || draftRisk.assessmentCycle || "")}</p> : null}
       {isMonitoringRoute ? (
-        <div className="w-full min-w-0">
+        <div className="w-full min-w-0 space-y-3">
+          {returnTarget && (
+            <ActionButton variant="ghost" disabled={isSaving} onClick={() => {
+              if (hasUnsavedChanges && draftRisk.status === "draft") setExitHref(backTarget);
+              else router.push(backTarget);
+            }}>{returnTarget.label}</ActionButton>
+          )}
           <CollectionPageHeader
             actionsPlacement="top"
             title={
               hasFinalResult
                 ? "Hasil Pemantauan Risiko"
-                : "Pemantauan"
+                : `Pemantauan ${monitoringCycle}`.trim()
             }
             actions={monitoringHeaderActions}
           />
+          <p className="text-sm text-muted-foreground">
+            {[sourceRisk.code || sourceRisk.riskCode, sourceRisk.title].filter(Boolean).join(" · ")}
+          </p>
+          {monitoringDraft?.status === "draft" && <MonitoringScheduleNotice cycle={monitoringCycle} locked={windowClosed} />}
+          {saveError && <p role="alert" className="text-sm text-destructive">{saveError}</p>}
+          {hasFinalResult && (
+            <div className="space-y-2">
+              <p role="status" className="text-sm text-muted-foreground">
+                Pemantauan {monitoringCycle} selesai dan tersedia untuk Kertas Kerja {monitoringCycle}.
+                {resultRiskHref && nextCycle && <> Profil risiko v{draftRisk.versionNumber} berlaku untuk {nextCycle}.</>}
+              </p>
+              <MonitoringWorkingPaperAction
+                token={token}
+                cycle={monitoringCycle}
+                organizationId={riskOrganizationId}
+                canCreate={Boolean(user && (user.isGlobal || user.organizationId === riskOrganizationId))}
+                useOrganizationQuery={Boolean(user?.isGlobal)}
+              />
+            </div>
+          )}
         </div>
       ) : (
       <FormHeader
@@ -1214,7 +1357,7 @@ export default function AssessmentFormPage() {
                       disabled={isSaving || isAssessmentLocked}
                     >
                       <Save className="size-3.5" />{" "}
-                      Simpan draft
+                      Simpan draf
                     </Button>
                     <Button
                       size="default"
@@ -1232,7 +1375,10 @@ export default function AssessmentFormPage() {
           }
         />
       )}
-      <div className="grid w-full min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
+      <div className={cn(
+        "grid w-full min-w-0 gap-6 xl:items-start",
+        isMonitoringRoute ? "xl:grid-cols-[minmax(0,1fr)_420px]" : "xl:grid-cols-[minmax(0,1fr)_360px]",
+      )}>
         {/* Left Column */}
         <div className="space-y-6">
           {!isMonitoringRoute ? (
@@ -1244,12 +1390,19 @@ export default function AssessmentFormPage() {
           ) : null}
 
           <div className="space-y-6">
-            {isMonitoringRoute ? <MonitoringEvidence result={evidenceResult} loading={evidenceLoading} error={evidenceError} onRefresh={() => setEvidenceReload(value => value + 1)} /> : null}
-            <CollapsibleCard.Root className="scroll-mt-28">
-              <CollapsibleCard.Trigger className="flex-wrap">
+            {isMonitoringRoute && monitoringDraft?.id && (
+              <DetailSidePanel>
+                <section aria-labelledby="monitoring-treatment-summary" className="space-y-3">
+                  <h2 id="monitoring-treatment-summary" className="text-sm font-semibold text-primary">Laporan Penanganan</h2>
+                  <MitigationStatusTable key={`${monitoringDraft.id}:${monitoringDraft.status}`} monitoringId={monitoringDraft.id} />
+                </section>
+              </DetailSidePanel>
+            )}
+            <CollapsibleCard.Root appearance="form" className="scroll-mt-28">
+              <CollapsibleCard.Trigger className="flex-wrap hover:bg-transparent sm:px-5">
                 <CollapsibleCard.Header className="min-w-0 flex-1">
                   <CollapsibleCard.Icon />
-                  <CollapsibleCard.Title>
+                  <CollapsibleCard.Title className="overflow-visible whitespace-normal text-base font-medium">
                     Hasil Pemantauan
                   </CollapsibleCard.Title>
                 </CollapsibleCard.Header>
@@ -1258,161 +1411,177 @@ export default function AssessmentFormPage() {
                 </CollapsibleCard.Actions>
               </CollapsibleCard.Trigger>
               <CollapsibleCard.Content>
-              <CardContent className="space-y-5 px-5 py-5 text-sm">
-                  <div className="grid min-w-0 gap-6">
-                  {(() => {
-                    const mitigations =
-                      draftRisk?.mitigations ??
-                      sourceRisk.mitigations ??
-                      (sourceRisk.mitigation ? [sourceRisk.mitigation] : []);
-                    const mitigationItems: MitigationItem[] = mitigations.map(
-                      (m) => ({
-                        id: m.id,
-                        action: m.action ?? "",
-                        owner: m.owner ?? "",
-                        ownerUserId: m.ownerUserId,
-                        treatmentOwnerId: m.ownerUserId ?? m.treatmentOwnerId,
-                        externalPicId: m.externalPicId,
-                        dueDate: m.dueDate ?? "",
-                        mitigationType:
-                          m.mitigationType ?? "reduce_probability",
-                        activityStage: m.activityStage ?? "",
-                        expectedOutput: m.expectedOutput ?? "",
-                        quantitativeTarget: m.quantitativeTarget ?? "",
-                        supportingUnit: m.supportingUnit ?? "",
-						resourcesRequired: m.resourcesRequired ?? "",
-						contingencyPlan: m.contingencyPlan ?? "",
-						potentialObstacle: m.potentialObstacle ?? "",
-						isBreakthroughActivity:
-                          m.isBreakthroughActivity ?? false,
-                        isExistingControl: m.isExistingControl ?? false,
-                      }),
-                    );
+                <FormPanel>
+                  <FormGroup className="grid gap-6">
+                    {(() => {
+                      const mitigations =
+                        draftRisk?.mitigations ??
+                        sourceRisk.mitigations ??
+                        (sourceRisk.mitigation ? [sourceRisk.mitigation] : []);
+                      const mitigationItems: MitigationItem[] = mitigations.map(
+                        (m) => ({
+                          id: m.id,
+                          action: m.action ?? "",
+                          owner: m.owner ?? "",
+                          ownerUserId: m.ownerUserId,
+                          treatmentOwnerId: m.ownerUserId ?? m.treatmentOwnerId,
+                          externalPicId: m.externalPicId,
+                          dueDate: m.dueDate ?? "",
+                          mitigationType:
+                            m.mitigationType ?? "reduce_probability",
+                        }),
+                      );
 
-                    if (isMonitoringRoute) return null;
+                      if (isMonitoringRoute) return null;
 
-                    return (
-                      <div className="w-full min-w-0 space-y-2">
-                        <Label className="text-sm font-medium text-foreground">
-                          {mitigationItems.length > 0
-                            ? "Rencana Penanganan (dari versi terakhir yang disetujui)"
-                            : "Rencana Penanganan"}
-                        </Label>
-                        <MitigationTable
-                          items={mitigationItems}
-                          onChange={() => {}}
-                          disabled
-                        />
-                      </div>
-                    );
-                  })()}
+                      return (
+                        <div className="w-full min-w-0 space-y-2">
+                          <Label className="text-sm font-medium text-foreground">
+                            {mitigationItems.length > 0
+                              ? "Rencana Penanganan (dari versi terakhir yang disetujui)"
+                              : "Rencana Penanganan"}
+                          </Label>
+                          <MitigationTable
+                            items={mitigationItems}
+                          />
+                        </div>
+                      );
+                    })()}
 
-                  <div className="flex min-w-0 flex-col gap-3">
-                    <Label htmlFor="risk-score-picker" className="text-sm font-medium">
-                      Skor Risiko Observasi<span className="text-destructive"> *</span>
-                    </Label>
-                    <RiskScorePickerTrigger
-                      id="risk-score-picker"
-                      title="Skor risiko observasi"
-                      presentation="card"
-                      probability={probability}
-                      impact={impact}
-                      onClick={() => setScorePickerOpen(true)}
-                      disabled={isAssessmentLocked}
-                      aria-describedby={
-                        form.formState.errors.probability || form.formState.errors.impact
-                          ? "risk-score-error"
-                          : undefined
-                      }
-                    />
-                    <FieldErrorMessage id="risk-score-error">
-                      {form.formState.errors.probability ||
-                      form.formState.errors.impact
-                        ? form.formState.errors.probability?.message ||
-                          form.formState.errors.impact?.message ||
-                          "Probabilitas dan dampak wajib diisi"
-                        : undefined}
-                    </FieldErrorMessage>
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="change-reason">
-                      Alasan Perubahan
-                    </Label>
-                    <Controller
-                      control={form.control}
-                      name="changeReason"
-                      render={({ field }) => (
-                        <Textarea
-                          {...field}
-                          id="change-reason"
-                          aria-invalid={
-                            form.formState.errors.changeReason ? true : undefined
-                          }
-                          aria-describedby={
-                            form.formState.errors.changeReason
-                              ? "change-reason-error"
-                              : undefined
-                          }
-                          placeholder="Jelaskan bukti atau pertimbangan yang mendasari perubahan..."
-                          className=""
-                          disabled={isAssessmentLocked}
-                        />
+                    <div className="flex min-w-0 flex-col gap-3">
+                      <Label htmlFor="risk-score-picker" className="text-sm font-medium">
+                        Skor Risiko Observasi<span className="text-destructive"> *</span>
+                      </Label>
+                      {isMonitoringRoute && (
+                        <p className="text-sm text-muted-foreground">
+                          Skor sebelumnya {sourceScoreLabel}.
+                          {!isAssessmentLocked && (scoreReviewed
+                            ? " Skor observasi sudah ditetapkan."
+                            : " Skor yang tampil berasal dari draf. Tetapkan skor observasi sebelum finalisasi.")}
+                        </p>
                       )}
-                    />
-                    <FieldErrorMessage id="change-reason-error">
-                      {form.formState.errors.changeReason
-                        ? form.formState.errors.changeReason.message || "Wajib diisi"
-                        : undefined}
-                    </FieldErrorMessage>
-                  </div>
-
-                  <div className="flex flex-col gap-2">
-                    <Label htmlFor="monitoring-conclusion">
-                      {isMonitoringRoute ? "Simpulan Pemantauan" : "Ringkasan Review / Saran Tindak Lanjut"}
-                    </Label>
-                    <Controller
-                      control={form.control}
-                      name="reviewSummary"
-                      render={({ field }) => (
-                        <Textarea
-                          {...field}
-                          id="monitoring-conclusion"
-                          aria-invalid={
-                            form.formState.errors.reviewSummary ? true : undefined
-                          }
-                          aria-describedby={
-                            form.formState.errors.reviewSummary
-                              ? "monitoring-conclusion-error"
-                              : undefined
-                          }
-                          placeholder={isMonitoringRoute ? "Simpulkan kondisi risiko, efektivitas mitigasi, dan keputusan periode berikutnya..." : "Tuliskan ringkasan dari hasil review dan rekomendasi tindakan..."}
-                          className=""
-                          disabled={isAssessmentLocked}
-                        />
+                      <RiskScorePickerTrigger
+                        id="risk-score-picker"
+                        title="Skor risiko observasi"
+                        presentation="card"
+                        probability={probability}
+                        impact={impact}
+                        onClick={() => setScorePickerOpen(true)}
+                        disabled={isAssessmentLocked || isSaving}
+                        aria-describedby={
+                          form.formState.errors.probability || form.formState.errors.impact
+                            ? "risk-score-error"
+                            : undefined
+                        }
+                      />
+                      {isMonitoringRoute && !isAssessmentLocked && (
+                        <div className="flex flex-wrap gap-2">
+                          <ActionButton type="button" size="sm" disabled={isSaving} onClick={() => {
+                            const previousProbability = monitoringDraft?.sourceProbability ?? sourceRisk.probability;
+                            const previousImpact = monitoringDraft?.sourceImpact ?? sourceRisk.impact;
+                            form.setValue("probability", previousProbability, { shouldDirty: true, shouldValidate: true });
+                            form.setValue("impact", previousImpact, { shouldDirty: true, shouldValidate: true });
+                            setScoreReviewed(true);
+                          }}>Gunakan skor sebelumnya</ActionButton>
+                          {!acceptsPreviousScore && !scoreReviewed && (
+                            <ActionButton type="button" size="sm" disabled={isSaving} onClick={() => {
+                              setScoreReviewed(true);
+                              form.clearErrors(["probability", "impact"]);
+                            }}>Gunakan skor draf</ActionButton>
+                          )}
+                          <ActionButton type="button" size="sm" disabled={isSaving} onClick={() => setScorePickerOpen(true)}>Ubah probabilitas dan dampak</ActionButton>
+                        </div>
                       )}
-                    />
-                    <FieldErrorMessage id="monitoring-conclusion-error">
-                      {form.formState.errors.reviewSummary
-                        ? form.formState.errors.reviewSummary.message || "Wajib diisi"
-                        : undefined}
-                    </FieldErrorMessage>
-                  </div>
-                  </div>
-                </CardContent>
+                      <FieldErrorMessage id="risk-score-error">
+                        {form.formState.errors.probability ||
+                        form.formState.errors.impact
+                          ? form.formState.errors.probability?.message ||
+                            form.formState.errors.impact?.message ||
+                            "Probabilitas dan dampak wajib diisi"
+                          : undefined}
+                      </FieldErrorMessage>
+                    </div>
+                  </FormGroup>
+                  <FormGroup className="grid gap-6">
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="change-reason">
+                        {isMonitoringRoute ? "Alasan penilaian" : "Alasan Perubahan"}
+                      </Label>
+                      <Controller
+                        control={form.control}
+                        name="changeReason"
+                        render={({ field }) => (
+                          <Textarea
+                            {...field}
+                            id="change-reason"
+                            aria-invalid={
+                              form.formState.errors.changeReason ? true : undefined
+                            }
+                            aria-describedby={
+                              form.formState.errors.changeReason
+                                ? "change-reason-error"
+                                : undefined
+                            }
+                            placeholder={isMonitoringRoute ? "Jelaskan data atau pertimbangan yang mendasari skor observasi." : "Jelaskan bukti atau pertimbangan yang mendasari perubahan…"}
+                            className=""
+                            disabled={isAssessmentLocked || isSaving}
+                          />
+                        )}
+                      />
+                      <FieldErrorMessage id="change-reason-error">
+                        {form.formState.errors.changeReason
+                          ? form.formState.errors.changeReason.message || "Wajib diisi"
+                          : undefined}
+                      </FieldErrorMessage>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <Label htmlFor="monitoring-conclusion">
+                        {isMonitoringRoute ? "Simpulan dan tindak lanjut" : "Ringkasan Review / Saran Tindak Lanjut"}
+                      </Label>
+                      <Controller
+                        control={form.control}
+                        name="reviewSummary"
+                        render={({ field }) => (
+                          <Textarea
+                            {...field}
+                            id="monitoring-conclusion"
+                            aria-invalid={
+                              form.formState.errors.reviewSummary ? true : undefined
+                            }
+                            aria-describedby={
+                              form.formState.errors.reviewSummary
+                                ? "monitoring-conclusion-error"
+                                : undefined
+                            }
+                            placeholder={isMonitoringRoute ? "Simpulkan kondisi risiko, efektivitas mitigasi, dan keputusan periode berikutnya..." : "Tuliskan ringkasan dari hasil review dan rekomendasi tindakan..."}
+                            className=""
+                            disabled={isAssessmentLocked || isSaving}
+                          />
+                        )}
+                      />
+                      <FieldErrorMessage id="monitoring-conclusion-error">
+                        {form.formState.errors.reviewSummary
+                          ? form.formState.errors.reviewSummary.message || "Wajib diisi"
+                          : undefined}
+                      </FieldErrorMessage>
+                    </div>
+                  </FormGroup>
+                </FormPanel>
               </CollapsibleCard.Content>
             </CollapsibleCard.Root>
 
             <CollapsibleCard.Root
+              appearance="form"
               className="scroll-mt-28"
               defaultOpen={false}
             >
-              <CollapsibleCard.Trigger>
+              <CollapsibleCard.Trigger className="hover:bg-transparent sm:px-5">
                 <CollapsibleCard.Header>
                   <CollapsibleCard.Icon />
                   <CollapsibleCard.Text>
-                    <CollapsibleCard.Title>
-                      Perubahan Substansi Risiko
+                    <CollapsibleCard.Title className="overflow-visible whitespace-normal text-base font-medium">
+                      {isMonitoringRoute ? "Ubah profil risiko" : "Perubahan Substansi Risiko"}
                     </CollapsibleCard.Title>
                     <CollapsibleCard.Description>
                       Buka hanya jika ada perubahan isi risiko, kontrol, atau
@@ -1442,53 +1611,55 @@ export default function AssessmentFormPage() {
                 </CollapsibleCard.Actions>
               </CollapsibleCard.Trigger>
               <CollapsibleCard.Content>
-                <CardContent className="space-y-5 px-5 py-5 text-sm">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="space-y-1">
-                      <Label className="text-sm font-medium text-foreground">
-                        Aktifkan edit substansi risiko
-                      </Label>
-                      <p className="max-w-2xl text-xs leading-5 text-muted-foreground">
-                        Gunakan bagian ini jika ada perubahan data risiko
-                      </p>
-                    </div>
-                    <Switch
-                      id="substance-edit-enabled"
-                      aria-label="Aktifkan edit substansi risiko"
-                      checked={substanceEditEnabled}
-                      onCheckedChange={setSubstanceEditEnabled}
-                      disabled={isAssessmentLocked}
-                    />
-                  </div>
-
-                  {substanceEditEnabled ? (
-                    <div className="mt-3 space-y-2 border-t border-dashed border-border/60 pt-3">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge
-                          variant="secondary"
-                          className=""
-                        >
-                          {substanceDiffs.length > 0
-                            ? `${substanceDiffs.length} bidang berubah`
-                            : "Belum ada perubahan"}
-                        </Badge>
+                <FormPanel>
+                  <FormGroup className="space-y-5">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="space-y-1">
+                        <Label className="text-sm font-medium text-foreground">
+                          Aktifkan edit substansi risiko
+                        </Label>
+                        <p className="max-w-2xl text-xs leading-5 text-muted-foreground">
+                          Gunakan bagian ini jika ada perubahan data risiko
+                        </p>
                       </div>
-                      <p className="text-xs leading-5 text-muted-foreground">
-                        {substanceDiffSummary}
-                      </p>
+                      <Switch
+                        id="substance-edit-enabled"
+                        aria-label="Aktifkan edit substansi risiko"
+                        checked={substanceEditEnabled}
+                        onCheckedChange={setSubstanceEditEnabled}
+                        disabled={isAssessmentLocked || isSaving}
+                      />
                     </div>
-                  ) : (
-                    <p className="mt-3 text-xs leading-5 text-muted-foreground">
-                      Aktifkan saat ada update data risiko versi terbaru.
-                    </p>
-                  )}
-                  <RiskSubstanceFields
-                    value={substanceDraft}
-                    onChange={setSubstanceDraft}
-                    disabled={isAssessmentLocked || !substanceEditEnabled}
-                    loadPicOptions={loadPicOptions}
-                  />
-                </CardContent>
+
+                    {substanceEditEnabled ? (
+                      <div className="mt-3 space-y-2 border-t border-dashed border-border/60 pt-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <Badge
+                            variant="secondary"
+                            className=""
+                          >
+                            {substanceDiffs.length > 0
+                              ? `${substanceDiffs.length} bidang berubah`
+                              : "Belum ada perubahan"}
+                          </Badge>
+                        </div>
+                        <p className="text-xs leading-5 text-muted-foreground">
+                          {substanceDiffSummary}
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-xs leading-5 text-muted-foreground">
+                        Aktifkan saat ada update data risiko versi terbaru.
+                      </p>
+                    )}
+                    <RiskSubstanceFields
+                      value={substanceDraft}
+                      onChange={setSubstanceDraft}
+                      disabled={isAssessmentLocked || isSaving || !substanceEditEnabled}
+                      loadPicOptions={loadPicOptions}
+                    />
+                  </FormGroup>
+                </FormPanel>
               </CollapsibleCard.Content>
             </CollapsibleCard.Root>
 
@@ -1497,13 +1668,14 @@ export default function AssessmentFormPage() {
               riskApprovalCapabilityBehavior.showsApprovalLineEditor &&
               (!id || draftRisk.status === "draft") && (
                 <CollapsibleCard.Root
+                  appearance="form"
                   id="approval-line"
                   className="scroll-mt-28"
                 >
-                  <CollapsibleCard.Trigger>
+                  <CollapsibleCard.Trigger className="sm:px-5">
                     <CollapsibleCard.Header>
                       <CollapsibleCard.Icon />
-                      <CollapsibleCard.Title>
+                      <CollapsibleCard.Title className="overflow-visible whitespace-normal text-base font-medium">
                         Rantai Persetujuan
                       </CollapsibleCard.Title>
                     </CollapsibleCard.Header>
@@ -1529,63 +1701,62 @@ export default function AssessmentFormPage() {
                     </CollapsibleCard.Actions>
                   </CollapsibleCard.Trigger>
                   <CollapsibleCard.Content>
-                    <CardContent className="space-y-5 px-5 py-5 text-sm">
-                      <div className="space-y-3">
-                      <div className="space-y-1.5">
-                        <Label className="text-sm font-medium text-foreground">
-                          Reviewer (Pemeriksa)
-                          <span className="text-destructive ml-0.5">*</span>
-                        </Label>
-                        <p className="text-xs text-muted-foreground">
-                          Pilih reviewer yang akan memeriksa dan memberikan skor
-                          penilaian resmi sebelum risiko ini diajukan ke
-                          pimpinan.
-                        </p>
-                      </div>
-                      <RemoteUserPicker
-                        title="Pilih Reviewer"
-                        description="Cari reviewer yang akan memeriksa dan memberikan penilaian resmi untuk pemantauan ini."
-                        placeholder="Pilih reviewer"
-                        searchPlaceholder="Cari nama reviewer"
-                        emptyMessage="Reviewer tidak ditemukan."
-                        value={reviewerOption}
-                        onSelect={handleReviewerSelect}
-                        loadOptions={loadReviewerOptions}
-                        disabled={isAssessmentLocked}
-                      />
-                      </div>
+                    <FormPanel>
+                      <FormGroup className="space-y-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-sm font-medium text-foreground">
+                            Reviewer (Pemeriksa)
+                            <span className="text-destructive ml-0.5">*</span>
+                          </Label>
+                          <p className="text-xs text-muted-foreground">
+                            Pilih reviewer yang akan memeriksa dan memberikan skor
+                            penilaian resmi sebelum risiko ini diajukan ke
+                            pimpinan.
+                          </p>
+                        </div>
+                        <RemoteUserPicker
+                          title="Pilih Reviewer"
+                          description="Cari reviewer yang akan memeriksa dan memberikan penilaian resmi untuk pemantauan ini."
+                          placeholder="Pilih reviewer"
+                          searchPlaceholder="Cari nama reviewer"
+                          emptyMessage="Reviewer tidak ditemukan."
+                          value={reviewerOption}
+                          onSelect={handleReviewerSelect}
+                          loadOptions={loadReviewerOptions}
+                          disabled={isAssessmentLocked || isSaving}
+                        />
+                      </FormGroup>
+                      <FormGroup className="space-y-4">
+                        <div className="space-y-1.5">
+                          <Label className="text-sm font-medium text-foreground">
+                            Rantai Persetujuan (Pimpinan)
+                            <span className="text-destructive ml-0.5">*</span>
+                          </Label>
+                          <p className="text-xs text-muted-foreground">
+                            Susun rantai persetujuan pimpinan. Persetujuan
+                            dilakukan secara berurutan.
+                          </p>
+                        </div>
 
-                      <div className="space-y-4 border-t border-border/60 pt-5">
-                      <div className="space-y-1.5">
-                        <Label className="text-sm font-medium text-foreground">
-                          Rantai Persetujuan (Pimpinan)
-                          <span className="text-destructive ml-0.5">*</span>
-                        </Label>
-                        <p className="text-xs text-muted-foreground">
-                          Susun rantai persetujuan pimpinan. Persetujuan
-                          dilakukan secara berurutan.
-                        </p>
-                      </div>
-
-                      <OrderedUserSelectionTable
-                        rows={approvalLine}
-                        loadOptions={loadApproverOptions}
-                        onSelectRow={handleApproverSelect}
-                        onAddRow={handleAddApproverRow}
-                        onRemoveRow={removeApprover}
-                        onMoveRow={moveApprover}
-                        pickerTitle="Pilih pimpinan"
-                        pickerDescription="Cari pimpinan untuk disusun ke dalam rantai persetujuan berurutan."
-                        pickerPlaceholder="Pilih pimpinan"
-                        pickerSearchPlaceholder="Cari nama approver"
-                        pickerEmptyMessage="Pimpinan tidak ditemukan."
-                        emptyStateMessage="Belum ada pimpinan. Tambahkan minimal satu user sebelum klik Ajukan review."
-                        addRowLabel="Tambah Pimpinan"
-                        footerNote="Urutan baris menentukan sequence persetujuan pimpinan."
-                        dndGroup="assessment-approval-line"
-                      />
-                      </div>
-                    </CardContent>
+                        <OrderedUserSelectionTable
+                          rows={approvalLine}
+                          loadOptions={loadApproverOptions}
+                          onSelectRow={handleApproverSelect}
+                          onAddRow={handleAddApproverRow}
+                          onRemoveRow={removeApprover}
+                          onMoveRow={moveApprover}
+                          pickerTitle="Pilih pimpinan"
+                          pickerDescription="Cari pimpinan untuk disusun ke dalam rantai persetujuan berurutan."
+                          pickerPlaceholder="Pilih pimpinan"
+                          pickerSearchPlaceholder="Cari nama approver"
+                          pickerEmptyMessage="Pimpinan tidak ditemukan."
+                          emptyStateMessage="Belum ada pimpinan. Tambahkan minimal satu user sebelum klik Ajukan review."
+                          addRowLabel="Tambah Pimpinan"
+                          footerNote="Urutan baris menentukan sequence persetujuan pimpinan."
+                          dndGroup="assessment-approval-line"
+                        />
+                      </FormGroup>
+                    </FormPanel>
                   </CollapsibleCard.Content>
                 </CollapsibleCard.Root>
               )}
@@ -1595,45 +1766,25 @@ export default function AssessmentFormPage() {
         {/* Right Column / Side Panel */}
         <aside className="min-w-0 xl:sticky xl:top-6 xl:self-start">
           <div className="space-y-6">
-            <Card className="overflow-hidden transition-colors duration-300">
-              <CardContent className="">
-                <section aria-labelledby="monitoring-side-summary">
-                  <h2
-                    id="monitoring-side-summary"
-                    className="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground/70"
-                  >
-                    Simpulan Pemantauan
-                  </h2>
-                  <div className="mt-3">
-                    <SimpulanCard
-                      nilaiCurrent={
-                        sourceRisk.nilai ?? sourceRisk.inherentScore ?? 0
-                      }
-                      currentInherentScore={sourceRisk.inherentScore}
-                      nilaiBaru={computedNilai}
-                      probability={probability}
-                      impact={impact}
-                    />
-                  </div>
-                </section>
-                {isMonitoringRoute && monitoringDraft?.id ? (
-                  <section
-                    aria-labelledby="monitoring-side-mitigation"
-                    className="mt-5 border-t border-dashed border-border/70 pt-5"
-                  >
-                    <h2
-                      id="monitoring-side-mitigation"
-                      className="text-xs font-semibold uppercase tracking-[0.6px] text-muted-foreground/70"
-                    >
-                      Pelaksanaan Mitigasi
-                    </h2>
-                    <div className="mt-3">
-                      <MitigationStatusTable monitoringId={monitoringDraft.id} />
-                    </div>
-                  </section>
-                ) : null}
-              </CardContent>
-            </Card>
+            <DetailSidePanel>
+              <section aria-labelledby="monitoring-side-summary">
+                <h2
+                  id="monitoring-side-summary"
+                  className="text-sm font-semibold text-primary"
+                >
+                  Simpulan Pemantauan
+                </h2>
+                <div className="mt-3">
+                  <SimpulanCard
+                    nilaiCurrent={sourceScore}
+                    currentInherentScore={isMonitoringRoute ? undefined : sourceRisk.inherentScore}
+                    nilaiBaru={computedNilai}
+                    probability={probability}
+                    impact={impact}
+                  />
+                </div>
+              </section>
+            </DetailSidePanel>
             {!isMonitoringRoute && (
               <ReviewSidePanel
                 approvalId={approvalId}
@@ -1663,6 +1814,8 @@ export default function AssessmentFormPage() {
         probability={probability}
         impact={impact}
         onApply={({ probability: nextProbability, impact: nextImpact }) => {
+          if (isAssessmentLocked || isSaving) return;
+          if (isMonitoringRoute) setScoreReviewed(true);
           form.setValue("probability", nextProbability, {
             shouldDirty: true,
             shouldValidate: true,
@@ -1675,19 +1828,20 @@ export default function AssessmentFormPage() {
       />
       <AlertDialog
         open={showSubmitReviewConfirm}
-        onOpenChange={setShowSubmitReviewConfirm}
+        onOpenChange={(open) => { if (!isSaving) setShowSubmitReviewConfirm(open); }}
       >
         <AlertDialogContent data-monitoring-finalize-dialog={isMonitoringRoute ? "" : undefined}>
           <AlertDialogHeader>
             <AlertDialogTitle className="text-base">
-              {isMonitoringRoute ||
+              {isMonitoringRoute ? "Tinjau finalisasi pemantauan" : (
               riskApprovalCapabilityBehavior.usesDirectApprovalCopy
                 ? "Finalisasi pemantauan?"
-                : "Ajukan Pemantauan untuk Review?"}
+                : "Ajukan Pemantauan untuk Review?")}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {isMonitoringRoute ||
-              riskApprovalCapabilityBehavior.usesDirectApprovalCopy
+              {isMonitoringRoute
+                ? "Hasil periode ini akan dikunci dan versi profil risiko untuk periode berikutnya akan dibuat."
+                : riskApprovalCapabilityBehavior.usesDirectApprovalCopy
                 ? "Pemantauan akan dikunci dan snapshot versi resmi akan dibuat. Tindakan ini tidak dapat dibatalkan."
                 : "Pemantauan akan disimpan lalu dikirim ke reviewer dan approval line yang sudah dipilih. Pastikan seluruh bagian sudah final sebelum melanjutkan."}
             </AlertDialogDescription>
@@ -1701,12 +1855,7 @@ export default function AssessmentFormPage() {
               <div className="space-y-0.5">
                 <span className="text-xs uppercase text-muted-foreground">Skor</span>
                 <p className="font-medium tabular-nums">
-                  {formatRiskScore(
-                    monitoringDraft?.sourceNilai ??
-                      sourceRisk.nilai ??
-                      sourceRisk.inherentScore,
-                    "—",
-                  )} → {formatRiskScore(computedNilai, "—")}
+                  {sourceScoreLabel} → {formatRiskScore(computedNilai, "—")}
                 </p>
               </div>
               <div className="space-y-0.5">
@@ -1717,12 +1866,38 @@ export default function AssessmentFormPage() {
               </div>
           </div>
           ) : null}
+          {isMonitoringRoute && isCheckingFinalize && <p role="status" className="text-sm text-muted-foreground">Memeriksa laporan penanganan…</p>}
+          {isMonitoringRoute && finalizeNotice && (
+            <div role="status" className="space-y-2 text-sm">
+              <p>{finalizeNotice}</p>
+              {reloadDraftRequired && (
+                <ActionButton type="button" size="sm" onClick={() => {
+                  setShowSubmitReviewConfirm(false);
+                  void loadRiskData();
+                }}>Muat ulang draf</ActionButton>
+              )}
+            </div>
+          )}
+          {isMonitoringRoute && finalizeCheckFailed && (
+            <div className="space-y-2">
+              <p role="alert" className="text-sm text-destructive">Status laporan penanganan belum dapat diverifikasi.</p>
+              <ActionButton type="button" size="sm" onClick={() => void checkMonitoringFinalization(monitoringDraft, finalizeNotice)}>Coba cek lagi</ActionButton>
+            </div>
+          )}
+          {isMonitoringRoute && monitoringValidation && !monitoringValidation.canFinalize && (
+            <p role="alert" className="text-sm text-destructive">Pemantauan belum dapat difinalisasi. Periksa status periode dan coba lagi.</p>
+          )}
+          {isMonitoringRoute && monitoringValidation && monitoringValidation.pendingTasks === 0 && (
+            <p className="text-sm text-muted-foreground">
+              {monitoringValidation.totalTasks ? "Semua tindakan penanganan sudah dilaporkan." : "Tidak ada tugas penanganan pada periode ini."}
+            </p>
+          )}
           {isMonitoringRoute && monitoringValidation && monitoringValidation.pendingTasks > 0 ? (
             <div className="flex items-start gap-2 rounded-lg bg-state-surface px-3 py-3 text-sm text-state-foreground">
               <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
               <p>
-                <span className="font-medium">{monitoringValidation.pendingTasks} mitigasi belum dilaporkan.</span>{" "}
-                Jika dilanjutkan, mitigasi tersebut akan berstatus{" "}
+                <span className="font-medium">{monitoringValidation.pendingTasks} tindakan belum dilaporkan.</span>{" "}
+                Setelah finalisasi, laporan untuk tindakan tersebut ditutup dengan status{" "}
                 <Badge variant="secondary"
                   className=""
                 >
@@ -1762,17 +1937,34 @@ export default function AssessmentFormPage() {
             </div>
           )}
           <AlertDialogFooter>
-            <AlertDialogCancel variant="outline" size="default">
+            <AlertDialogCancel variant="outline" size="default" disabled={isSaving}>
               Batal
             </AlertDialogCancel>
             <AlertDialogAction
               variant="default"
               size="default"
-              onClick={handleSubmitForReview}
-              disabled={isSaving || isAssessmentLocked || isCheckingFinalize}
+              onClick={(event) => {
+                if (isMonitoringRoute) event.preventDefault();
+                void handleSubmitForReview();
+              }}
+              disabled={isSaving || isAssessmentLocked || isCheckingFinalize || (isMonitoringRoute && (finalizeBlocked || !monitoringValidation?.canFinalize))}
             >
-              {isMonitoringRoute ? "Finalisasi" : "Lanjutkan"}
+              {isMonitoringRoute ? (isSaving ? "Memfinalisasi…" : "Finalisasi pemantauan") : "Lanjutkan"}
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={Boolean(exitHref)} onOpenChange={(open) => { if (!open) setExitHref(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Keluar dengan perubahan belum disimpan?</AlertDialogTitle>
+            <AlertDialogDescription>{windowClosed
+              ? "Tenggat pengisian sudah lewat. Perubahan yang belum disimpan akan hilang saat keluar."
+              : "Simpan draf agar perubahan bisa dilanjutkan nanti."}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Lanjut mengisi</AlertDialogCancel>
+            <AlertDialogAction variant="destructive" onClick={() => { if (exitHref) router.push(exitHref); }}>Keluar tanpa menyimpan</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

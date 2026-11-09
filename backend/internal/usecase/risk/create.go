@@ -16,6 +16,7 @@ type CreateRiskUseCase struct {
 	riskRepo repository.RiskRepository
 	userRepo repository.UserRepository
 	orgRepo  repository.OrganizationRepository
+	now      func() time.Time
 }
 
 func NewCreateRiskUseCase(
@@ -27,6 +28,7 @@ func NewCreateRiskUseCase(
 		riskRepo: riskRepo,
 		userRepo: userRepo,
 		orgRepo:  orgRepo,
+		now:      time.Now,
 	}
 	return uc
 }
@@ -196,15 +198,13 @@ func (uc *CreateRiskUseCase) Execute(ctx context.Context, input CreateRiskInput)
 		if err := validateRiskMitigationRequirements(risk); err != nil {
 			return nil, err
 		}
-		now := time.Now().UTC()
+		now := uc.now().UTC()
+		risk.AssessmentCycle = assessmentCycleAt(now)
 		risk.ReviewSubmittedAt = &now
 		risk.ReviewApprovedAt = &now
 		risk.FinalizedAt = &now
 		risk.FinalizedBy = input.CreatedBy
-		effectiveFrom, err := CycleStartDate(risk.AssessmentCycle)
-		if err != nil {
-			return nil, err
-		}
+		effectiveFrom := finalizationDateAt(now)
 		risk.EffectiveFrom = &effectiveFrom
 	}
 

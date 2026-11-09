@@ -1,9 +1,14 @@
 "use client";
+
+import { isMonitoringWindowOpen } from "@/lib/monitoring-window";
+
+import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
+import { createDisplayDateFormatter } from "@/lib/display-date";
 import { useCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
 import { sortDate } from "@/lib/collection-sort";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
+import { RiskTableIdentity } from "@/components/shared/design-system/domain/risk-table-identity";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   listAllOrganizations,
@@ -65,7 +70,7 @@ function formatMonitoringDate(value: string | null) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
 
-  return new Intl.DateTimeFormat("id-ID", {
+  return createDisplayDateFormatter("id-ID", {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -315,7 +320,7 @@ export function MonitoringReadOnlyWorkspace() {
     event: React.KeyboardEvent<HTMLTableRowElement>,
     row: MonitoringOverviewRow,
   ) => {
-    if (event.key !== "Enter" && event.key !== " ") return;
+    if (event.target !== event.currentTarget || (event.key !== "Enter" && event.key !== " ")) return;
     event.preventDefault();
     router.push(getActionHref(row));
   };
@@ -344,7 +349,6 @@ export function MonitoringReadOnlyWorkspace() {
             <DynamicTableFilters
               search={
                 <CollectionSearchField
-                  containerClassName="w-full sm:w-80 sm:flex-none"
                   value={search}
                   onChange={(event) => {
                     setSearch(event.target.value);
@@ -407,113 +411,111 @@ export function MonitoringReadOnlyWorkspace() {
             <CollectionLoadingState message="Memuat status pemantauan..." />
           </CollectionTableCard>
         ) : (
-          <CollectionTableCard sorting={collectionSort.controls}>
-            <Table className="w-full min-w-[1120px] table-fixed">
-              <colgroup>
-                <col className="w-[30%]" />
-                <col className="w-[10%]" />
-                <col className="w-[9%]" />
-                <col className="w-[12%]" />
-                <col className="w-[13%]" />
-                <col className="w-[13%]" />
-                <col className="w-[13%]" />
-              </colgroup>
-              <CollectionTableHeader density="compact">
-                <CollectionTableHeaderRow>
-                  <CollectionTableHead className="">Risiko</CollectionTableHead>
-                  <CollectionTableHead >Periode</CollectionTableHead>
-                  <CollectionTableHead >Status</CollectionTableHead>
-                  <CollectionTableHead >Perubahan Skor</CollectionTableHead>
-                  <CollectionTableHead >Level</CollectionTableHead>
-                  <CollectionTableHead >Tanggal Dibuat</CollectionTableHead>
-                  <CollectionTableHead>Penanganan</CollectionTableHead>
-                </CollectionTableHeaderRow>
-              </CollectionTableHeader>
-              <TableBody>
-                {pageRows.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="">
-                      <CollectionEmptyState
-                        title="Belum ada transaksi pemantauan"
-                        description="Belum ada transaksi pemantauan untuk siklus atau filter yang dipilih."
-                      />
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  pageRows.map((row) => {
-                    const actionHref = getActionHref(row);
+          <>
+            <CollectionTableCard sorting={collectionSort.controls}>
+              <Table className="w-full min-w-[1292px] table-fixed">
+                <colgroup>
+                  <col style={{ width: 132 }} />
+                  <col style={{ width: 340 }} />
+                  <col style={{ width: 118 }} />
+                  <col style={{ width: 110 }} />
+                  <col style={{ width: 154 }} />
+                  <col style={{ width: 140 }} />
+                  <col style={{ width: 156 }} />
+                  <col style={{ width: 142 }} />
+                </colgroup>
+                <CollectionTableHeader density="compact">
+                  <CollectionTableHeaderRow>
+                    <CollectionTableHead>Kode risiko</CollectionTableHead>
+                    <CollectionTableHead className="">Risiko</CollectionTableHead>
+                    <CollectionTableHead >Periode</CollectionTableHead>
+                    <CollectionTableHead >Status</CollectionTableHead>
+                    <CollectionTableHead >Perubahan Skor</CollectionTableHead>
+                    <CollectionTableHead >Level</CollectionTableHead>
+                    <CollectionTableHead >Tanggal Dibuat</CollectionTableHead>
+                    <CollectionTableHead>Penanganan</CollectionTableHead>
+                  </CollectionTableHeaderRow>
+                </CollectionTableHeader>
+                <TableBody>
+                  {pageRows.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={8} className="">
+                        <CollectionEmptyState
+                          title="Belum ada transaksi pemantauan"
+                          description="Belum ada transaksi pemantauan untuk siklus atau filter yang dipilih."
+                        />
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    pageRows.map((row) => {
+                      const actionHref = getActionHref(row);
 
-                    return (
-                      <TableRow
-                        key={row.id}
-                        tabIndex={0}
-                        className="group h-16 cursor-pointer hover:bg-muted/50 focus-visible:bg-muted/50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/30"
-                        aria-label={`${row.code} ${row.title}, status ${getMonitoringStatusLabel(row.status)}`}
-                        onClick={(event) => {
-                          if ((event.target as Element).closest("a,button")) return;
-                          router.push(actionHref);
-                        }}
-                        onKeyDown={(event) => handleRowKeyDown(event, row)}
-                      >
-                        <TableCell className="min-w-0 max-w-0 overflow-hidden">
-                          <div className="min-w-0">
-                            <Link
-                              href={actionHref}
-                              className="block truncate text-sm font-medium text-foreground hover:text-primary focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
-                              title={row.title}
+                      const statusLabel = row.status === "in_progress" && row.assessmentCycle &&
+                        !isMonitoringWindowOpen(row.assessmentCycle)
+                        ? "Draf terkunci"
+                        : getMonitoringStatusLabel(row.status);
+                      return (
+                        <TableRow
+                          key={row.id}
+                          tabIndex={0}
+                          className="cursor-pointer focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring/30"
+                          aria-label={`${row.code} ${row.title}, status ${statusLabel}`}
+                          onClick={(event) => {
+                            if ((event.target as Element).closest("a,button")) return;
+                            router.push(actionHref);
+                          }}
+                          onKeyDown={(event) => handleRowKeyDown(event, row)}
+                        >
+                          <TableCell><CollectionCode code={row.code} href={actionHref} /></TableCell>
+                          <TableCell className="min-w-0 max-w-0 overflow-hidden">
+                            <RiskTableIdentity title={row.title} href={actionHref} />
+                          </TableCell>
+                          <TableCell className="max-w-0 truncate">
+                            {row.assessmentCycle || "-"}
+                          </TableCell>
+                          <TableCell className="max-w-0">
+                            <Badge variant={row.status === "finalized" ? "default" : "secondary"}
+                              className={row.status === "finalized" ? "max-w-full truncate border-transparent bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300" : "max-w-full truncate"}
                             >
-                              {row.title}
-                            </Link>
-                            <span className="mt-0.5 block truncate font-mono text-sm leading-5 text-muted-foreground">
-                              {row.code}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="max-w-0 truncate">
-                          {row.assessmentCycle || "-"}
-                        </TableCell>
-                        <TableCell className="max-w-0">
-                          <Badge variant={row.status === "finalized" ? "default" : "secondary"}
-                            className={row.status === "finalized" ? "max-w-full truncate border-transparent bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300" : "max-w-full truncate"}
-                          >
-                            {getMonitoringStatusLabel(row.status)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="max-w-0 overflow-hidden">
-                          <MonitoringScoreComparison row={row} />
-                        </TableCell>
-                        <TableCell>
-                          <MonitoringLevelBadge row={row} />
-                        </TableCell>
-                        <TableCell className="max-w-0">
-                          {formatMonitoringDate(row.createdAt)}
-                        </TableCell>
-                        <TableCell className="max-w-0 overflow-hidden">
-                          <MitigationProgressIndicator
-                            riskTitle={row.title}
-                            value={row.mitigationCompletionPercent}
-                          />
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })
-                )}
-              </TableBody>
-            </Table>
+                              {statusLabel}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="max-w-0 overflow-hidden">
+                            <MonitoringScoreComparison row={row} />
+                          </TableCell>
+                          <TableCell>
+                            <MonitoringLevelBadge row={row} />
+                          </TableCell>
+                          <TableCell className="max-w-0">
+                            <span data-date-time="">{formatMonitoringDate(row.createdAt)}</span>
+                          </TableCell>
+                          <TableCell className="max-w-0 overflow-hidden">
+                            <MitigationProgressIndicator
+                              riskTitle={row.title}
+                              value={row.mitigationCompletionPercent}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
+                  )}
+                </TableBody>
+              </Table>
             <CollectionPagination
-              itemLabel="risiko"
-              page={currentPage}
-              pageSize={limit}
-              pageSizeOptions={[25, 50, 100]}
-              total={filteredRows.length}
-              disabled={loading || refreshing}
-              onPageChange={setPage}
-              onPageSizeChange={(nextLimit) => {
-                setLimit(nextLimit);
-                setPage(1);
-              }}
-            />
-          </CollectionTableCard>
+                itemLabel="risiko"
+                page={currentPage}
+                pageSize={limit}
+                pageSizeOptions={[25, 50, 100]}
+                total={filteredRows.length}
+                disabled={loading || refreshing}
+                onPageChange={setPage}
+                onPageSizeChange={(nextLimit) => {
+                  setLimit(nextLimit);
+                  setPage(1);
+                }}
+              />
+            </CollectionTableCard>
+          </>
         )}
       </section>
 

@@ -133,7 +133,7 @@ export function MarketingSystemExample() {
         <div className={styles.exampleCopy}>
           <span className={styles.eyebrow}>Public homepage</span>
           <h3>Kelola risiko bersama tim.<br /><span>Mulai dengan Manrisk.</span></h3>
-          <p>Geist, palet netral, tombol pill, dan preview produk dari homepage Manrisk.</p>
+          <p>Inter, palet netral, tombol pill, dan preview produk dari homepage Manrisk.</p>
           <MarketingActions />
           <Link href="/" className={styles.textLink}>Lihat homepage <ArrowRight size={16} /></Link>
         </div>

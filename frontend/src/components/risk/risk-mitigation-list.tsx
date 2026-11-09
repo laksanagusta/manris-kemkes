@@ -35,21 +35,12 @@ const typeLabels: Record<string, string> = {
   reduce_both: "Turunkan probabilitas dan dampak",
 };
 const columns: readonly MitigationTableColumn[] = [
-  { key: "plan", label: "Rencana Mitigasi", width: "35%" },
+  { key: "plan", label: "Rencana Mitigasi", width: "25%" },
   { key: "owner", label: "PIC", width: "20%" },
   { key: "type", label: "Tipe mitigasi", width: "25%" },
   { key: "schedule", label: "Jadwal", width: "15%" },
   { key: "actions", label: "Aksi", width: "5%", action: true },
 ];
-const detailFields = [
-  ["activityStage", "Tahap aktivitas"],
-  ["expectedOutput", "Output"],
-  ["quantitativeTarget", "Target kuantitatif"],
-  ["supportingUnit", "Unit pendukung"],
-  ["resourcesRequired", "Sumber daya"],
-  ["contingencyPlan", "Rencana kontingensi"],
-  ["potentialObstacle", "Potensi hambatan"],
-] as const;
 type Plan = Partial<RiskMitigation>;
 const schedule = (item: Plan) =>
   item.executionScheduleText || item.dueDate?.split("T")[0] || "—";
@@ -75,7 +66,6 @@ export function RiskMitigationList({
         item.action,
         item.owner,
         schedule(item),
-        ...detailFields.map(([key]) => item[key]),
       ]
         .join(" ")
         .toLowerCase()
@@ -148,11 +138,6 @@ export function RiskMitigationList({
                       <span className="block truncate">
                         {item.action || "Rencana belum diisi"}
                       </span>
-                      {item.isExistingControl && (
-                        <span className="mt-0.5 block text-sm font-normal text-muted-foreground">
-                          Pengendalian yang ada
-                        </span>
-                      )}
                     </button>
                   </TableCell>
                   <TableCell className="align-middle">
@@ -256,26 +241,6 @@ export function RiskMitigationList({
                 <div>
                   <dt className="text-xs text-muted-foreground">Jadwal</dt>
                   <dd className="mt-1">{schedule(selected)}</dd>
-                </div>
-                {detailFields.map(([key, label]) => (
-                  <div key={key}>
-                    <dt className="text-xs text-muted-foreground">{label}</dt>
-                    <dd className="mt-1 whitespace-pre-wrap wrap-break-word">
-                      {selected[key] || "—"}
-                    </dd>
-                  </div>
-                ))}
-                <div>
-                  <dt className="text-xs text-muted-foreground">
-                    Terobosan aktivitas
-                  </dt>
-                  <dd className="mt-1">
-                    {selected.isBreakthroughActivity === undefined
-                      ? "Belum dicatat"
-                      : selected.isBreakthroughActivity
-                        ? "Ya"
-                        : "Tidak"}
-                  </dd>
                 </div>
               </dl>
             </div>

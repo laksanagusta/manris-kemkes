@@ -7,9 +7,10 @@ import { toast } from "sonner";
 import {
   AccentButton,
   CollectionFilterGrid,
-  CollectionFilterTrigger,
+  CollectionSearchField,
   CollectionTableCard,
   CollectionToolbar,
+  DynamicTableFilters,
   ExpandableSearchField,
   PopoverSelectField,
 } from "@/components/shared/design-system";
@@ -24,7 +25,7 @@ export function CollectionLayoutExample() {
   const [period, setPeriod] = useState("all");
 
   return (
-    <PageStack className="rounded-[12px] border bg-card p-4">
+    <PageStack className="rounded-[12px] border bg-workspace p-4">
       <MetricGrid>
         {["Total", "Aktif", "Menunggu", "Selesai"].map((label, index) => (
           <KpiCard
@@ -41,15 +42,27 @@ export function CollectionLayoutExample() {
         </p>
         <CollectionToolbar
           leading={
-            <div className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row sm:items-center">
-              <ExpandableSearchField
-                value={search}
-                onChange={setSearch}
-                ariaLabel="Cari contoh"
-                placeholder="Cari data..."
-              />
-              <CollectionFilterTrigger />
-            </div>
+            <DynamicTableFilters
+              search={
+                <CollectionSearchField
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                  aria-label="Cari contoh"
+                  placeholder="Cari data..."
+                />
+              }
+              fields={[{
+                id: "period",
+                label: "Periode",
+                value: period,
+                onChange: setPeriod,
+                options: [
+                  { value: "all", label: "Semua Periode" },
+                  { value: "2026-Q2", label: "2026-Q2" },
+                  { value: "2026-Q3", label: "2026-Q3" },
+                ],
+              }]}
+            />
           }
           actions={
             <>

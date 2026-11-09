@@ -3,10 +3,10 @@
 import { SettingsProvider } from "@/components/settings/settings-provider";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AppHeader } from "@/components/app-header";
-import { AppTopbar } from "@/components/app-topbar";
 import {
   SidebarInset,
   SidebarProvider,
+  SidebarTrigger,
 } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useEffect, useState, type CSSProperties } from "react";
@@ -46,19 +46,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <SettingsProvider>
       <TooltipProvider delayDuration={200}>
         <SidebarProvider style={{ "--sidebar-width": "260px" } as CSSProperties}>
-          <div data-app-shell="" className="relative flex min-h-svh w-full flex-col bg-sidebar pt-14 md:pt-0">
-            <AppTopbar />
-            <div className="flex min-h-0 flex-1 w-full">
-              <AppSidebar inboxBadge={hasFullSession ? inboxCount : 0} />
-              <SidebarInset className="min-w-0 overflow-x-clip bg-card border-0 shadow-none p-4 md:px-6 md:pt-4 md:pb-6 text-pretty">
+          <div data-app-shell="" className="relative flex min-h-svh w-full bg-workspace">
+            <AppSidebar inboxBadge={hasFullSession ? inboxCount : 0} />
+            <SidebarInset className="min-w-0 overflow-x-clip border-0 bg-workspace text-pretty shadow-none">
+              <div className="flex min-w-0 flex-1 flex-col px-4 pb-8 pt-5 md:px-6 lg:px-8 [--workspace-mobile-nav-space:3.5rem] md:[--workspace-mobile-nav-space:0rem]">
+                <SidebarTrigger aria-label="Buka navigasi" className="mb-3 size-11 md:hidden" />
                 <AppHeader />
-                <main className="flex min-w-0 flex-1 flex-col gap-4">
-                  <div className="w-full min-w-0 pb-8">
-                    {children}
-                  </div>
-                </main>
-              </SidebarInset>
-            </div>
+                <div className="w-full min-w-0">{children}</div>
+              </div>
+            </SidebarInset>
           </div>
         </SidebarProvider>
       </TooltipProvider>

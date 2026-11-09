@@ -1,4 +1,6 @@
 "use client";
+
+import { createDisplayDateFormatter } from "@/lib/display-date";
 import { useCollectionSorting, CollectionSortProvider } from "@/components/shared/design-system/collections/collection-sorting";
 import { CollectionTableHead } from "@/components/shared/design-system/collections/collection-table-head";
 import { sortDate } from "@/lib/collection-sort";
@@ -72,7 +74,7 @@ function formatDateTime(value: string) {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("id-ID", {
+  return createDisplayDateFormatter("id-ID", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
@@ -225,7 +227,6 @@ export default function TMPMRListPage() {
             search={
               <CollectionSearchField
                 id="tmpmr-search"
-                containerClassName="w-full sm:w-[28rem] sm:flex-none"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
                 placeholder="Cari organisasi, skor, maturity level, atau periode"
@@ -335,7 +336,7 @@ export default function TMPMRListPage() {
                             </Badge>
                           </TableCell>
                           <TableCell className="whitespace-nowrap">
-                            {formatDateTime(item.updatedAt)}
+                            <span data-date-time="">{formatDateTime(item.updatedAt)}</span>
                           </TableCell>
                           <CreatedAtCell record={item} />
                           <TableCell className="text-right">

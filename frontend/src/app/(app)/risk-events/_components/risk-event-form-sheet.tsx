@@ -1,30 +1,29 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createDisplayDateFormatter } from "@/lib/display-date";
+
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 
+import { listAllOrganizations, type OrganizationListItem } from "@/lib/api/organizations";
 import { createRiskEvent } from "@/lib/api/risk-events";
-import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
-import type { RiskEvent, RiskEventCondition, RiskEventSeverity, CreateRiskEventInput } from "@/types/risk-event";
+import type { RiskEvent, RiskEventSeverity, CreateRiskEventInput } from "@/types/risk-event";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
+import { Field, FieldContent, FieldDescription, FieldGroup, FieldLabel, FieldSet } from "@/components/ui/field";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Separator } from "@/components/ui/separator";
 import {
   AccentButton, ActionButton, CollectionDialogCancel, Dialog, DialogContent,
   DialogDescription, DialogFooter, DialogHeader, DialogTitle, Input, Select, SelectContent, SelectItem, SelectTrigger,
   SelectValue, Textarea,
 } from "@/components/shared/design-system";
-import { Calendar as CalendarIcon, Lock, Search } from "@/components/shared/icons";
+import { Calendar as CalendarIcon, Lock } from "@/components/shared/icons";
 
 import { RiskEventSourceCard } from "@/components/shared/risk-event-source-card";
 
-type RiskOption = { id: string; code?: string; title: string; organizationId?: string };
 
 const impactOptions = [
   ["operational", "Operasional"], ["service", "Layanan"], ["financial", "Keuangan"],
@@ -36,16 +35,10 @@ const impactLabels = Object.fromEntries(impactOptions) as Record<string, string>
 const severityLabels: Record<RiskEventSeverity, string> = {
   low: "Rendah", medium: "Sedang", high: "Tinggi", extreme: "Ekstrem",
 };
-const conditionLabels: Record<RiskEventCondition, string> = {
-  recovered: "Pulih", controlled: "Terkendali", ongoing: "Masih berlangsung",
-  worsening: "Memburuk", unknown: "Belum diketahui",
-};
 
 const steps = [
   { title: "Fakta utama", description: "Mulai dari apa yang benar-benar terjadi." },
-  { title: "Dampak & penanganan", description: "Lengkapi dampak dan kondisi setelah respons awal." },
-  { title: "Risiko terkait", description: "Pilih risiko yang berkaitan dengan kejadian ini." },
-  { title: "Detail tambahan", description: "Tambahkan konteks yang sudah tersedia sebelum record dikunci." },
+  { title: "Tingkat kejadian", description: "Tentukan tingkat kejadian dan kerugian keuangan jika ada." },
   { title: "Periksa", description: "Pastikan ringkasan sudah tepat sebelum record dikunci." },
 ] as const;
 
@@ -113,13 +106,11 @@ function RiskEventStepModal({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <Separator />
         <div data-slot="modal-body" className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
           <div ref={modalBodyContentRef} className="w-full">
             {children}
           </div>
         </div>
-        <Separator />
         <DialogFooter className="m-0 shrink-0 rounded-none border-0 bg-transparent p-4 sm:flex-col">
           <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-2" role="status" aria-label={`Langkah ${step + 1} dari ${steps.length}`}>
@@ -163,26 +154,18 @@ export function RiskEventFormDialog({
   missingFields?: string[];
   onCreated: (event: RiskEvent) => void;
 }) {
-  const [risks, setRisks] = useState<RiskOption[]>([]);
-  const [riskQuery, setRiskQuery] = useState("");
-  const [riskIds, setRiskIds] = useState<string[]>(initialRiskId ? [initialRiskId] : []);
+  const [selectedOrganizationId, setSelectedOrganizationId] = useState("");
+  const [organizations, setOrganizations] = useState<OrganizationListItem[]>([]);
+  const requiresOrganization = !organizationId && !initialRiskId;
+  const resolvedOrganizationId = organizationId || selectedOrganizationId || undefined;
+  const organizationValid = !requiresOrganization || Boolean(resolvedOrganizationId);
   const [description, setDescription] = useState(initialDraft?.description ?? "");
   const [occurredAt, setOccurredAt] = useState(initialDraft ? (initialDraft.occurredAt ? `${initialDraft.occurredAt.slice(0, 10)}T12:00` : "") : localDateTimeValue());
   const [impactTypes, setImpactTypes] = useState<string[]>(initialDraft?.impactTypes ?? []);
-  const [actualImpact, setActualImpact] = useState(initialDraft?.actualImpact ?? "");
   const [otherImpactType, setOtherImpactType] = useState(initialDraft?.otherImpactType ?? "");
   const [financialLossState, setFinancialLossState] = useState<"" | "known" | "unknown">(initialDraft?.financialLossKnown === true ? "known" : initialDraft?.financialLossKnown === false ? "unknown" : "");
   const [financialLoss, setFinancialLoss] = useState(initialDraft?.financialLoss != null ? String(initialDraft.financialLoss) : "");
   const [severity, setSeverity] = useState<RiskEventSeverity | "">(initialDraft ? initialDraft.severity ?? "" : "medium");
-  const [immediateResponse, setImmediateResponse] = useState(initialDraft?.immediateResponse ?? "");
-  const [condition, setCondition] = useState<RiskEventCondition | "">(initialDraft ? initialDraft.postResponseCondition ?? "" : "unknown");
-  const [location, setLocation] = useState(initialDraft?.location ?? "");
-  const [affectedParties, setAffectedParties] = useState(initialDraft?.affectedParties ?? "");
-  const [suspectedCause, setSuspectedCause] = useState(initialDraft?.suspectedCause ?? "");
-  const [disruptionDuration, setDisruptionDuration] = useState(initialDraft?.disruptionDuration ?? "");
-  const [evidenceUrl, setEvidenceUrl] = useState(initialDraft?.evidenceUrl ?? "");
-  const [extraordinaryReason, setExtraordinaryReason] = useState(initialDraft?.extraordinaryReason ?? "");
-  const [ongoingAction, setOngoingAction] = useState(initialDraft?.ongoingAction ?? "");
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [modalContentElement, setModalContentElement] = useState<HTMLDivElement | null>(null);
@@ -274,30 +257,25 @@ export function RiskEventFormDialog({
       observer.disconnect();
       if (frame) window.cancelAnimationFrame(frame);
     };
-  }, [open, step, impactTypes, financialLossState, severity, condition, modalContentElement, modalBodyContentElement]);
+  }, [open, step, impactTypes, financialLossState, severity, modalContentElement, modalBodyContentElement]);
 
-  useEffect(() => {
-    if (!open || !token) return;
-    api.get<RiskOption[]>("/risks", token).then(setRisks).catch(() => toast.error("Daftar risiko gagal dimuat."));
-  }, [open, token]);
   useEffect(() => {
     if (!open) {
       setStep(0);
     }
   }, [open]);
-  useEffect(() => { if (initialRiskId) setRiskIds([initialRiskId]); }, [initialRiskId]);
-
-  const filteredRisks = useMemo(() => {
-    const query = riskQuery.trim().toLowerCase();
-    return risks.filter((risk) => (!organizationId || risk.organizationId === organizationId) && (!query || `${risk.code ?? ""} ${risk.title}`.toLowerCase().includes(query))).slice(0, 10);
-  }, [organizationId, riskQuery, risks]);
-  const selectedRisks = risks.filter((risk) => riskIds.includes(risk.id));
-  const valid = description.trim() && occurredAt && impactTypes.length > 0 &&
+  useEffect(() => {
+    if (!open || !token || !requiresOrganization) return;
+    let cancelled = false;
+    listAllOrganizations(token).then((items) => { if (!cancelled) setOrganizations(items); }).catch(() => { if (!cancelled) toast.error("Daftar unit gagal dimuat. Tutup lalu buka kembali form untuk mencoba lagi."); });
+    return () => { cancelled = true; };
+  }, [open, token, requiresOrganization]);
+  const valid = organizationValid && description.trim() && occurredAt && impactTypes.length > 0 &&
     (!impactTypes.includes("other") || otherImpactType.trim()) &&
     (!impactTypes.includes("financial") || (financialLossState && (financialLossState === "unknown" || (financialLoss.trim() !== "" && Number(financialLoss) >= 0)))) &&
     Boolean(severity);
   const factStepValid = Boolean(
-    occurredAt && description.trim() && impactTypes.length > 0 &&
+    organizationValid && occurredAt && description.trim() && impactTypes.length > 0 &&
     (!impactTypes.includes("other") || otherImpactType.trim()),
   );
   const handlingStepValid = Boolean(
@@ -308,7 +286,6 @@ export function RiskEventFormDialog({
   const stepValid = step === 0 ? factStepValid : step === 1 ? handlingStepValid : Boolean(valid);
 
   const toggleImpact = (value: string) => setImpactTypes((current) => current.includes(value) ? current.filter((item) => item !== value) : [...current, value]);
-  const toggleRisk = (id: string) => setRiskIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   const updateOccurredDate = (date: Date | undefined) => {
     if (!date) return;
     setOccurredAt(`${formatLocalDate(date)}T12:00`);
@@ -320,11 +297,7 @@ export function RiskEventFormDialog({
     try {
       const event = await createRiskEvent(token, {
         description: description.trim(), occurredAt: new Date(occurredAt).toISOString(), impactTypes, otherImpactType: otherImpactType.trim(),
-        actualImpact: actualImpact.trim(), severity, immediateResponse: immediateResponse.trim(),
-        postResponseCondition: condition || "unknown", location: location.trim(), affectedParties: affectedParties.trim(),
-        suspectedCause: suspectedCause.trim(), disruptionDuration: disruptionDuration.trim(),
-        extraordinaryReason: extraordinaryReason.trim(), ongoingAction: ongoingAction.trim(),
-        evidenceUrl: evidenceUrl.trim(), organizationId, riskIds,
+        severity, organizationId: resolvedOrganizationId, riskIds: initialRiskId ? [initialRiskId] : [],
         sourceDocumentName: initialDraft?.sourceDocumentName, sourceRefs: initialDraft?.sourceRefs, extractionKey: initialDraft?.extractionKey,
         financialLossKnown: impactTypes.includes("financial") ? financialLossState === "known" : undefined,
         financialLoss: impactTypes.includes("financial") && financialLossState === "known" ? Number(financialLoss) : undefined,
@@ -340,6 +313,13 @@ export function RiskEventFormDialog({
     <section aria-labelledby="risk-event-facts">
       <h2 id="risk-event-facts" className="sr-only">Fakta utama</h2>
       <FieldGroup>
+        {requiresOrganization ? <Field>
+          <FieldLabel htmlFor="event-organization">Unit pemilik <span className="text-destructive">*</span></FieldLabel>
+          <Select value={selectedOrganizationId} onValueChange={setSelectedOrganizationId}>
+            <SelectTrigger id="event-organization" className="w-full"><SelectValue placeholder="Pilih unit pemilik" /></SelectTrigger>
+            <SelectContent>{organizations.map((unit) => <SelectItem key={unit.id} value={unit.id}>{unit.name}</SelectItem>)}</SelectContent>
+          </Select>
+        </Field> : null}
         <Field>
           <FieldLabel htmlFor="event-occurred-date">Tanggal kejadian <span className="text-destructive">*</span></FieldLabel>
           <Popover>
@@ -351,9 +331,9 @@ export function RiskEventFormDialog({
                 className="w-full justify-start text-left font-normal"
               >
                 <CalendarIcon aria-hidden="true" data-icon="inline-start" />
-                {occurredDate
-                  ? new Intl.DateTimeFormat("id-ID", { dateStyle: "long" }).format(occurredDate)
-                  : "Pilih tanggal"}
+                <span data-date-time="">{occurredDate
+                  ? createDisplayDateFormatter("id-ID", { dateStyle: "long" }).format(occurredDate)
+                  : "Pilih tanggal"}</span>
               </Button>
             </PopoverTrigger>
             <PopoverContent align="start" className="w-auto p-0">
@@ -366,11 +346,19 @@ export function RiskEventFormDialog({
           </Popover>
         </Field>
         <Field>
-          <FieldLabel htmlFor="event-description">Apa yang terjadi? <span className="text-destructive">*</span></FieldLabel>
-          <Textarea id="event-description" rows={4} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Jelaskan kejadian secara faktual dan ringkas." />
+          <FieldContent>
+            <FieldLabel htmlFor="event-description">Apa yang terjadi? <span className="text-destructive">*</span></FieldLabel>
+            <FieldDescription id="event-description-help" className="text-xs leading-5">
+              Tulis apa yang terjadi dan akibat yang sudah terlihat.
+            </FieldDescription>
+          </FieldContent>
+          <Textarea id="event-description" aria-describedby="event-description-help" rows={4} value={description} onChange={(e) => setDescription(e.target.value)} />
         </Field>
-        <fieldset>
-          <legend className="mb-2 block text-sm font-medium">Jenis dampak <span className="text-destructive">*</span></legend>
+        <FieldSet className="gap-2" aria-describedby="event-impact-types-help">
+          <legend className="mb-0.5 text-sm leading-snug font-medium">Jenis dampak <span className="text-destructive">*</span></legend>
+          <FieldDescription id="event-impact-types-help" className="text-xs leading-5 nth-last-2:mt-0">
+            Pilih semua dampak yang terjadi.
+          </FieldDescription>
           <div className="grid gap-2 sm:grid-cols-2">
             {impactOptions.map(([value, label]) => (
               <FieldLabel key={value}>
@@ -381,7 +369,7 @@ export function RiskEventFormDialog({
               </FieldLabel>
             ))}
           </div>
-        </fieldset>
+        </FieldSet>
         {impactTypes.includes("other") ? (
           <Field>
             <FieldLabel htmlFor="event-other-impact">Jenis dampak lainnya <span className="text-destructive">*</span></FieldLabel>
@@ -392,7 +380,7 @@ export function RiskEventFormDialog({
     </section>
   ) : step === 1 ? (
     <section aria-labelledby="risk-event-response">
-      <h2 id="risk-event-response" className="sr-only">Dampak dan penanganan</h2>
+      <h2 id="risk-event-response" className="sr-only">Tingkat kejadian</h2>
       <FieldGroup>
         {impactTypes.includes("financial") ? (
           <div className="grid gap-4 sm:grid-cols-2">
@@ -405,79 +393,25 @@ export function RiskEventFormDialog({
           </Field>
           {financialLossState === "known" ? (
             <Field>
-              <FieldLabel htmlFor="event-financial-loss">Nilai kerugian <span className="text-destructive">*</span></FieldLabel>
-              <Input id="event-financial-loss" type="number" min="0" inputMode="decimal" value={financialLoss} onChange={(event) => setFinancialLoss(event.target.value)} placeholder="0" />
+              <FieldLabel htmlFor="event-financial-loss">Nilai kerugian (Rp) <span className="text-destructive">*</span></FieldLabel>
+              <Input id="event-financial-loss" type="number" min="0" inputMode="decimal" value={financialLoss} onChange={(event) => setFinancialLoss(event.target.value)} />
             </Field>
           ) : null}
           </div>
         ) : null}
         <Field>
-          <FieldLabel htmlFor="event-impact">Dampak aktual</FieldLabel>
-          <Textarea id="event-impact" rows={3} value={actualImpact} onChange={(e) => setActualImpact(e.target.value)} placeholder="Tuliskan dampak yang benar-benar terjadi." />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="event-severity">Tingkat kejadian <span className="text-destructive">*</span></FieldLabel>
+          <FieldContent>
+            <FieldLabel htmlFor="event-severity">Tingkat kejadian <span className="text-destructive">*</span></FieldLabel>
+            <FieldDescription id="event-severity-help" className="text-xs leading-5">
+              Nilai tingkat kejadian dari dampak yang sudah terjadi.
+            </FieldDescription>
+          </FieldContent>
           <Select value={severity} onValueChange={(value) => setSeverity(value as RiskEventSeverity)}>
-            <SelectTrigger id="event-severity" className="w-full"><SelectValue placeholder="Pilih tingkat kejadian" /></SelectTrigger>
+            <SelectTrigger id="event-severity" aria-describedby="event-severity-help" className="w-full"><SelectValue placeholder="Pilih tingkat kejadian" /></SelectTrigger>
             <SelectContent>{Object.entries(severityLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
           </Select>
         </Field>
-        {severity === "extreme" ? (
-          <Field>
-            <FieldLabel htmlFor="event-extraordinary">Alasan tingkat ekstrem</FieldLabel>
-            <Textarea id="event-extraordinary" value={extraordinaryReason} onChange={(e) => setExtraordinaryReason(e.target.value)} />
-          </Field>
-        ) : null}
-        <Field>
-          <FieldLabel htmlFor="event-response">Penanganan langsung</FieldLabel>
-          <Textarea id="event-response" rows={3} value={immediateResponse} onChange={(e) => setImmediateResponse(e.target.value)} placeholder="Jika belum ada, tuliskan “Belum ada penanganan”." />
-        </Field>
-        <Field>
-          <FieldLabel htmlFor="event-condition">Kondisi setelah penanganan</FieldLabel>
-          <Select value={condition} onValueChange={(value) => setCondition(value as RiskEventCondition)}>
-            <SelectTrigger id="event-condition" className="w-full"><SelectValue placeholder="Pilih kondisi" /></SelectTrigger>
-            <SelectContent>{Object.entries(conditionLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent>
-          </Select>
-        </Field>
-        {["ongoing", "worsening"].includes(condition) ? (
-          <Field>
-            <FieldLabel htmlFor="event-ongoing">Tindakan yang sedang berjalan</FieldLabel>
-            <Textarea id="event-ongoing" value={ongoingAction} onChange={(e) => setOngoingAction(e.target.value)} />
-          </Field>
-        ) : null}
       </FieldGroup>
-    </section>
-  ) : step === 2 ? (
-    <section className="space-y-4" aria-labelledby="risk-event-risk">
-      <h2 id="risk-event-risk" className="sr-only">Risiko terkait</h2>
-      <InputGroup>
-        <InputGroupAddon><Search aria-hidden="true" /></InputGroupAddon>
-        <InputGroupInput aria-label="Cari risiko terkait" value={riskQuery} onChange={(e) => setRiskQuery(e.target.value)} placeholder="Cari kode atau nama risiko" />
-      </InputGroup>
-      <div className="max-h-52 space-y-2 overflow-y-auto" role="group" aria-label="Pilihan risiko terkait">
-        {filteredRisks.length ? filteredRisks.map((risk) => (
-          <FieldLabel key={risk.id}>
-            <Field orientation="horizontal">
-              <Checkbox checked={riskIds.includes(risk.id)} onCheckedChange={() => toggleRisk(risk.id)} />
-              <span className="min-w-0">
-                <span className="block font-mono text-xs text-muted-foreground">{risk.code || "Tanpa kode"}</span>
-                <span className="mt-0.5 block text-sm text-foreground">{risk.title}</span>
-              </span>
-            </Field>
-          </FieldLabel>
-        )) : <p className="py-3 text-sm text-muted-foreground">Risiko tidak ditemukan.</p>}
-      </div>
-    </section>
-  ) : step === 3 ? (
-    <section aria-labelledby="risk-event-details">
-      <h2 id="risk-event-details" className="sr-only">Detail tambahan</h2>
-      <div className="grid gap-5 sm:grid-cols-2">
-        <Field><FieldLabel htmlFor="event-location">Lokasi</FieldLabel><Input id="event-location" value={location} onChange={(e) => setLocation(e.target.value)} /></Field>
-        <Field><FieldLabel htmlFor="event-parties">Pihak terdampak</FieldLabel><Input id="event-parties" value={affectedParties} onChange={(e) => setAffectedParties(e.target.value)} /></Field>
-        <Field className="sm:col-span-2"><FieldLabel htmlFor="event-cause">Dugaan penyebab</FieldLabel><Textarea id="event-cause" value={suspectedCause} onChange={(e) => setSuspectedCause(e.target.value)} /></Field>
-        <Field><FieldLabel htmlFor="event-duration">Durasi gangguan</FieldLabel><Input id="event-duration" value={disruptionDuration} onChange={(e) => setDisruptionDuration(e.target.value)} placeholder="Contoh: 4 jam" /></Field>
-        <Field><FieldLabel htmlFor="event-evidence">Tautan bukti</FieldLabel><Input id="event-evidence" type="url" value={evidenceUrl} onChange={(e) => setEvidenceUrl(e.target.value)} placeholder="https://" /></Field>
-      </div>
     </section>
   ) : (
     <section className="space-y-4" aria-labelledby="risk-event-review">
@@ -485,13 +419,12 @@ export function RiskEventFormDialog({
       <Card>
         <CardContent>
         <dl className="grid gap-4 text-sm sm:grid-cols-2">
-          <div><dt className="text-xs text-muted-foreground">Tanggal kejadian</dt><dd className="mt-1 text-foreground">{occurredDate ? new Intl.DateTimeFormat("id-ID", { dateStyle: "long" }).format(occurredDate) : "-"}</dd></div>
-          <div><dt className="text-xs text-muted-foreground">Jenis dampak</dt><dd className="mt-1 text-foreground">{impactTypes.map((impact) => impactLabels[impact] || impact).join(", ") || "-"}</dd></div>
+          {requiresOrganization ? <div><dt className="text-xs text-muted-foreground">Unit pemilik</dt><dd className="mt-1 text-foreground">{organizations.find((unit) => unit.id === selectedOrganizationId)?.name}</dd></div> : null}
+          <div><dt className="text-xs text-muted-foreground">Tanggal kejadian</dt><dd className="mt-1 text-foreground"><span data-date-time="">{occurredDate ? createDisplayDateFormatter("id-ID", { dateStyle: "long" }).format(occurredDate) : "-"}</span></dd></div>
+          <div><dt className="text-xs text-muted-foreground">Jenis dampak</dt><dd className="mt-1 text-foreground">{impactTypes.map((impact) => impact === "other" ? otherImpactType : impactLabels[impact] || impact).join(", ") || "-"}</dd></div>
           <div className="sm:col-span-2"><dt className="text-xs text-muted-foreground">Apa yang terjadi</dt><dd className="mt-1 whitespace-pre-wrap text-foreground">{description || "-"}</dd></div>
-          <div><dt className="text-xs text-muted-foreground">Dampak aktual</dt><dd className="mt-1 whitespace-pre-wrap text-foreground">{actualImpact || "-"}</dd></div>
+          {impactTypes.includes("financial") ? <div><dt className="text-xs text-muted-foreground">Kerugian keuangan</dt><dd className="mt-1 text-foreground">{financialLossState === "known" ? new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR" }).format(Number(financialLoss)) : "Belum diketahui"}</dd></div> : null}
           <div><dt className="text-xs text-muted-foreground">Tingkat kejadian</dt><dd className="mt-1 text-foreground">{severity ? severityLabels[severity] : "Belum dipilih"}</dd></div>
-          <div><dt className="text-xs text-muted-foreground">Kondisi</dt><dd className="mt-1 text-foreground">{condition ? conditionLabels[condition] : "Belum tercantum"}</dd></div>
-          <div><dt className="text-xs text-muted-foreground">Risiko terkait</dt><dd className="mt-1 text-foreground">{selectedRisks.length ? selectedRisks.map((risk) => risk.code || risk.title).join(", ") : "Belum dipetakan"}</dd></div>
         </dl>
         </CardContent>
       </Card>
@@ -517,7 +450,7 @@ export function RiskEventFormDialog({
       onNext={() => setStep((current) => current + 1)}
       onConfirm={() => { void submit(); }}
     >
-      {initialDraft && (step === 0 || step === 4) ? (
+      {initialDraft && (step === 0 || step === 2) ? (
         <div className="mb-5 space-y-3">
           {missingFields?.length ? <p className="text-sm text-secondary-foreground">Belum tercantum dalam dokumen: {missingFields.join(", ")}. Lengkapi informasi yang diketahui sebelum menyimpan.</p> : null}
           <RiskEventSourceCard name={initialDraft.sourceDocumentName} sources={initialDraft.sourceRefs} />

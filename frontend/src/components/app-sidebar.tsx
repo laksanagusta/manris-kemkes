@@ -3,17 +3,17 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
-  LayoutDashboard,
+  DashboardCircle,
   BriefcaseIcon,
   Inbox,
-  Agreement03,
-  Alert02,
+  Note,
+  MessageSquareWarning,
   Certificate01,
-  Folder01,
+  Brochure,
   ShieldAlert,
   ClipboardCheck,
   BookOpen,
-  FileBarChart,
+  PieChart09,
   ClipboardList,
   FileText,
   MonitorDot,
@@ -78,16 +78,16 @@ interface NavGroup {
 }
 
 const iconMap: Record<string, React.ElementType> = {
-  LayoutDashboard,
+  DashboardCircle,
   Inbox,
-  Agreement03,
-  Alert02,
+  Note,
+  MessageSquareWarning,
   Certificate01,
-  Folder01,
+  Brochure,
   ShieldAlert,
   ClipboardCheck,
   BookOpen,
-  FileBarChart,
+  PieChart09,
   ClipboardList,
   FileSignature,
   ClipboardPenLine,
@@ -106,22 +106,22 @@ const reportsNavigation: NavGroup = {
     {
       label: "Ringkasan Risiko",
       href: "/reports",
-      icon: FileBarChart,
+      icon: PieChart09,
     },
     {
       label: "Kondisi Pengelolaan Risiko",
       href: "/reports/risk-condition",
-      icon: FileBarChart,
+      icon: PieChart09,
     },
     // {
     //   label: "Laporan Formal",
     //   href: "/reports/formal",
-    //   icon: FileText,
+    //   icon: PieChart09,
     // },
     // {
     //   label: "Detail Siklus Risiko",
     //   href: "/reports/cycle-detail",
-    //   icon: GitBranch,
+    //   icon: PieChart09,
     // },
   ],
 };
@@ -129,7 +129,7 @@ const reportsNavigation: NavGroup = {
 const dashboardNavigation: NavItem = {
   label: "Dashboard",
   href: "/overview",
-  icon: LayoutDashboard,
+  icon: DashboardCircle,
 };
 
 const agentNavigation: NavItem = {
@@ -146,7 +146,7 @@ const managementRiskNavigation: NavItem[] = (managementRiskGroup?.items ?? [])
   .filter((item) => item.href !== "/overview" && item.href !== "/reports")
   .map((item) => ({
     ...item,
-    icon: iconMap[item.icon] ?? LayoutDashboard,
+    icon: iconMap[item.icon] ?? DashboardCircle,
   }));
 
 const approvalNavigation = managementRiskNavigation.filter(
@@ -172,7 +172,7 @@ const navigation: NavGroup[] = [
         .filter((item) => item.href !== "/overview" && item.href !== "/reports")
         .map((item) => ({
           ...item,
-          icon: iconMap[item.icon] ?? LayoutDashboard,
+          icon: iconMap[item.icon] ?? DashboardCircle,
         }));
 
       return {
@@ -325,14 +325,10 @@ function useLocationHash() {
   return hash;
 }
 
-export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
-  const { isMobile, state, toggleSidebar } = useSidebar();
-  const { user, logout } = useAuth();
-  const router = useRouter();
-  const { openSettings } = useSettings();
-  const currentHash = useLocationHash();
+export function useAppNavigation() {
+  const { user } = useAuth();
   const aiFeaturesDisabled = isAIFeaturesDisabled();
-  const visibleNavigation = useMemo(() => {
+  return useMemo(() => {
     const baseNavigation = navigation
       .map((group) => ({
         ...group,
@@ -354,9 +350,16 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
     }
 
     return baseNavigation.filter((group) => group.title !== "OTOMASI");
-  }, [aiFeaturesDisabled, user]);
+  }, [aiFeaturesDisabled, user?.role]);
+}
 
-
+export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
+  const { isMobile, state, toggleSidebar } = useSidebar();
+  const { user, logout } = useAuth();
+  const router = useRouter();
+  const { openSettings } = useSettings();
+  const currentHash = useLocationHash();
+  const visibleNavigation = useAppNavigation();
 
   return (
     <Sidebar
@@ -404,7 +407,7 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
           <div className="flex min-w-0 items-center justify-center gap-2">
             <DropdownMenu modal={false}>
               <DropdownMenuTrigger asChild>
-                <SidebarMenuButton className="min-w-0 flex-1" aria-label="Open user menu">
+                <SidebarMenuButton className="min-w-0 flex-1" aria-label="Open user menu" data-settings-return="">
                   <span className="inline-flex shrink-0 items-center justify-center">
                     <DitherAvatar name={user?.name || "User"} size={24} className="overflow-hidden rounded-full" />
                   </span>

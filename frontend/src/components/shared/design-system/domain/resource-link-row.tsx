@@ -220,7 +220,7 @@ export function ResourceLinkRow({
       </div>
 
       <Dialog open={isEditOpen} onOpenChange={closeEdit}>
-        <DialogContent showCloseButton={false} className="max-w-md">
+        <DialogContent showCloseButton={false}>
           <form onSubmit={saveEdit} className="flex flex-col gap-5">
             <DialogHeader>
               <DialogTitle>Edit Link</DialogTitle>

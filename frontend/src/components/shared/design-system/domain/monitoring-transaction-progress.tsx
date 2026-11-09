@@ -42,6 +42,7 @@ export function MonitoringTransactionProgress({
   showCount = true,
   ariaLabelOverride,
   nativeTitle = true,
+  presentation = "segments",
 }: {
   data?: MonitoringTransactionQuarters | null;
   className?: string;
@@ -50,6 +51,7 @@ export function MonitoringTransactionProgress({
   showCount?: boolean;
   ariaLabelOverride?: string;
   nativeTitle?: boolean;
+  presentation?: "segments" | "meter" | "volume";
 }) {
   const transactions =
     items ??
@@ -69,6 +71,41 @@ export function MonitoringTransactionProgress({
       ? `${completed} dari ${total} ${countContext}berstatus selesai${detail ? `. ${detail}` : ""}`
       : `${completed} dari ${total} transaksi pemantauan berstatus final${detail ? `. ${detail}` : ""}`);
 
+  if (presentation === "volume") {
+    return (
+      <span role="img" aria-label={ariaLabel} title={nativeTitle ? ariaLabel : undefined} className={cn("inline-flex items-center gap-2", className)}>
+        <span aria-hidden="true" className="flex items-end gap-1">
+          {transactions.map(({ label, status }, index) => (
+            <span key={label} className="flex flex-col items-center gap-1">
+              <span className="flex h-5 items-end">
+                <span className={cn("block w-5 rounded-sm", isCompleted(status) ? "bg-workspace-data" : "bg-secondary")} style={{ height: `${8 + index * 4}px` }} />
+              </span>
+              <span className="text-xs leading-none text-muted-foreground">{label.split(" ")[0]}</span>
+            </span>
+          ))}
+        </span>
+        {showCount && <span aria-hidden="true" className="shrink-0 text-xs font-medium tabular-nums">{completed}/{total}</span>}
+      </span>
+    );
+  }
+
+  if (presentation === "meter") {
+    const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+    return (
+      <span
+        role="img"
+        aria-label={ariaLabel}
+        title={nativeTitle ? ariaLabel : undefined}
+        className={cn("flex w-full items-center gap-2", className)}
+      >
+        <span aria-hidden="true" className="h-2.5 min-w-0 max-w-41 flex-1 rounded-full bg-secondary">
+          <span className="block h-full rounded-full bg-workspace-data" style={{ width: `${percentage}%` }} />
+        </span>
+        {showCount && <span aria-hidden="true" className="shrink-0 font-medium tabular-nums">{percentage}%</span>}
+      </span>
+    );
+  }
+
   return (
     <span
       aria-label={ariaLabel}
@@ -84,8 +121,8 @@ export function MonitoringTransactionProgress({
           key={label}
           aria-hidden="true"
           className={cn(
-            "h-4 w-3 rounded-[3px]",
-            isCompleted(status) ? "bg-foreground" : "bg-muted-foreground/25",
+            "h-2 w-3 rounded-full",
+            isCompleted(status) ? "bg-workspace-data" : "bg-muted-foreground/25",
           )}
         />
       ))}

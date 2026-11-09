@@ -1,6 +1,8 @@
 "use client";
+
+import { createDisplayDateFormatter } from "@/lib/display-date";
 import { CollectionTableHead as TableHead } from "@/components/shared/design-system/collections/collection-table-head";
-import { useRemoteCollectionSorting, CollectionSortProvider } from "@/components/shared/design-system/collections/collection-sorting";
+import { useRemoteCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
 import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
 
 
@@ -34,6 +36,7 @@ import { AdminOnlyState } from "@/components/admin/admin-only-state";
 import {
   CollectionPageHeader,
   CollectionPagination,
+  CollectionTableCard,
   CollectionToolbar,
   CollectionEmptyState,
   CollectionSearchField,
@@ -44,7 +47,6 @@ import {
 } from "@/components/shared/design-system";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -126,7 +128,7 @@ function formatLastLoggedIn(value?: string | null): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "—";
 
-  return new Intl.DateTimeFormat("id-ID", {
+  return createDisplayDateFormatter("id-ID", {
     dateStyle: "medium",
     timeStyle: "short",
     timeZone: "Asia/Jakarta",
@@ -426,7 +428,6 @@ export default function UsersManagementPage() {
           <DynamicTableFilters
             search={
               <CollectionSearchField
-                containerClassName="w-full sm:w-80 sm:flex-none"
                 placeholder="Cari pengguna, NIP, atau email"
                 aria-label="Cari pengguna, NIP, atau email"
                 value={search}
@@ -481,12 +482,12 @@ export default function UsersManagementPage() {
         }
       />
 
-      <Card className="overflow-hidden">
-        <CardContent className="">
-          <CollectionSortProvider controls={collectionSort.controls}><Table>
+      <CollectionTableCard stickyActions sorting={collectionSort.controls}>
+          <Table className="min-w-[1710px]">
             <TableHeader>
               <TableRow className="hover:bg-transparent">
                 <TableHead className="whitespace-nowrap">User</TableHead>
+                <TableHead className="w-[230px]">Email</TableHead>
                 <TableHead className="w-32 whitespace-nowrap">Phone</TableHead>
                 <TableHead className="w-32 whitespace-nowrap">NIP</TableHead>
                 <TableHead className="w-28 whitespace-nowrap">Role</TableHead>
@@ -496,15 +497,15 @@ export default function UsersManagementPage() {
                 <TableHead className="w-44 whitespace-nowrap">Terakhir login</TableHead>
                 <TableHead className="w-40 whitespace-nowrap">Status</TableHead>
                 <CreatedAtHead />
-                <TableHead className="w-16 whitespace-nowrap">
-                  <span className="sr-only">Aksi</span>
+                <TableHead data-collection-action="" className="w-12 text-center whitespace-nowrap">
+                  <span data-collection-action="" className="sr-only">Aksi</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {users.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={11} className="h-24">
+                  <TableCell colSpan={12} className="">
                     <CollectionEmptyState
                       title="Belum ada data pengguna"
                       description="Tambahkan pengguna baru untuk memulai."
@@ -527,16 +528,10 @@ export default function UsersManagementPage() {
                           <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-medium text-primary">
                             {getInitials(managedUser.name)}
                           </div>
-                          <div className="min-w-0">
-                            <p className="truncate text-xs font-medium text-foreground">
-                              {managedUser.name}
-                            </p>
-                            <p className="truncate text-[10px] text-muted-foreground">
-                              {managedUser.email}
-                            </p>
-                          </div>
+                          <span className="truncate font-medium" title={managedUser.name}>{managedUser.name}</span>
                         </div>
                       </TableCell>
+                      <TableCell className="max-w-[230px]">{managedUser.email || "—"}</TableCell>
                        <TableCell className="">
                          {managedUser.phoneNumber || "\u2014"}
                        </TableCell>
@@ -564,7 +559,7 @@ export default function UsersManagementPage() {
                          </span>
                        </TableCell>
                       <TableCell className="whitespace-nowrap text-muted-foreground">
-                        {formatLastLoggedIn(managedUser.lastLoggedIn)}
+                        <span data-date-time="">{formatLastLoggedIn(managedUser.lastLoggedIn)}</span>
                       </TableCell>
                       <TableCell>
                         <Badge variant={toBadgeVariant(status.tone)} className={getStatusBadgeClassName(status.tone)}>
@@ -578,7 +573,7 @@ export default function UsersManagementPage() {
                         </Badge>
                       </TableCell>
                       <CreatedAtCell record={managedUser} />
-                      <TableCell>
+                      <TableCell data-collection-action="" className="text-center">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
@@ -634,22 +629,20 @@ export default function UsersManagementPage() {
                 })
               )}
             </TableBody>
-          </Table></CollectionSortProvider>
-
-          <CollectionPagination
-            itemLabel="pengguna"
-            page={page}
-            pageSize={limit}
-            total={total}
-            disabled={isPending}
-            onPageChange={setPage}
-            onPageSizeChange={(nextLimit) => {
-              setLimit(nextLimit);
-              setPage(1);
-            }}
-          />
-      </CardContent>
-      </Card>
+          </Table>
+        <CollectionPagination
+          itemLabel="pengguna"
+          page={page}
+          pageSize={limit}
+          total={total}
+          disabled={isPending}
+          onPageChange={setPage}
+          onPageSizeChange={(nextLimit) => {
+            setLimit(nextLimit);
+            setPage(1);
+          }}
+        />
+      </CollectionTableCard>
       </div>
     </PageStack>
   );

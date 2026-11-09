@@ -1,18 +1,21 @@
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 import { PageStack } from "@/components/shared/design-system";
 
 export default function RiskDetailRedirect() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
+  const monitoringTab = useSearchParams().get("tab") === "monitoring";
 
   useEffect(() => {
     if (id) {
-      router.replace(`/risk/register/new?id=${id}`);
+      const query = new URLSearchParams({ id });
+      if (monitoringTab) query.set("tab", "monitoring");
+      router.replace(`/risk/register/new?${query}`);
     }
-  }, [id, router]);
+  }, [id, monitoringTab, router]);
 
   return (
     <PageStack className="flex min-h-[400px] items-center justify-center rounded-lg bg-state-surface text-state-foreground">

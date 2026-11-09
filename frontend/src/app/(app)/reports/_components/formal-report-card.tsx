@@ -1,5 +1,7 @@
 "use client";
 
+import { createDisplayDateFormatter } from "@/lib/display-date";
+
 import { ArrowUpRight, FileText, Loader2 } from "@/components/shared/icons";
 
 import { Badge } from "@/components/ui/badge";
@@ -24,7 +26,7 @@ function formatDateTime(value?: string | null) {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("id-ID", {
+  return createDisplayDateFormatter("id-ID", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
@@ -77,7 +79,7 @@ export function FormalReportCard({
               latestAt ? "text-foreground" : "text-muted-foreground",
             )}
           >
-            {latestAt ? formatDateTime(latestAt) : "Belum pernah dibuat"}
+            <span data-date-time="">{latestAt ? formatDateTime(latestAt) : "Belum pernah dibuat"}</span>
           </p>
         </div>
         {latestReport ? (

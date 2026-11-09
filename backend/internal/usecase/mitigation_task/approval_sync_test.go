@@ -232,37 +232,3 @@ func TestSemesterDates(t *testing.T) {
 		t.Fatal("expected invalid quarter to be rejected")
 	}
 }
-
-func TestEnsureTasksForApprovedRiskUseCase_ExecuteSkipsExistingControls(t *testing.T) {
-	riskID := uuid.New()
-	newMitigationID := uuid.New()
-	existingControlID := uuid.New()
-	dueDate := "2026-06-10"
-
-	riskRepo := &fakeApprovalSyncRiskRepo{
-		risk: &entity.Risk{
-			ID:     riskID,
-			Status: entity.RiskStatusApproved,
-			Mitigations: []entity.Mitigation{
-				{ID: existingControlID, RiskID: riskID, Action: "Kontrol lama", Owner: "PIC A", DueDate: &dueDate, IsExistingControl: true},
-				{ID: newMitigationID, RiskID: riskID, Action: "Mitigasi baru", Owner: "PIC B", DueDate: &dueDate},
-			},
-		},
-	}
-	taskRepo := &fakeApprovalSyncTaskRepo{}
-	uc := NewEnsureTasksForRiskVersionUseCase(taskRepo, riskRepo)
-
-	created, err := uc.Execute(context.Background(), riskID, "2026-H1", nil)
-	if err != nil {
-		t.Fatalf("expected no error, got %v", err)
-	}
-	if created != 1 {
-		t.Fatalf("expected 1 created task, got %d", created)
-	}
-	if len(taskRepo.created) != 1 {
-		t.Fatalf("expected 1 persisted task, got %d", len(taskRepo.created))
-	}
-	if taskRepo.created[0].MitigationID != newMitigationID {
-		t.Fatalf("expected task for new mitigation, got %s", taskRepo.created[0].MitigationID)
-	}
-}

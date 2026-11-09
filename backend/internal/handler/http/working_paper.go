@@ -2,6 +2,7 @@ package http
 
 import (
 	"errors"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -148,6 +149,17 @@ func (h *WorkingPaperHandler) List(c *fiber.Ctx) error {
 		orgIDs = scope.AccessibleOrgIDs
 	}
 
+	if requestedOrg := strings.TrimSpace(c.Query("org_id")); requestedOrg != "" {
+		orgID, err := uuid.Parse(requestedOrg)
+		if err != nil {
+			return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
+		}
+		if scope == nil || (!scope.IsGlobal && !slices.Contains(scope.AccessibleOrgIDs, orgID)) {
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
+		}
+		orgIDs = []uuid.UUID{orgID}
+	}
+
 	status := strings.TrimSpace(c.Query("status", ""))
 	query := strings.TrimSpace(c.Query("q", ""))
 	assessmentCycle := strings.TrimSpace(c.Query("assessment_cycle", ""))
@@ -254,7 +266,13 @@ func (h *WorkingPaperHandler) StartSigning(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 401, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "tidak sah")
 	}
 
-	wp, err := h.uc.StartSigning(c.Context(), id, userID)
+	var req struct {
+		ReviewHash string `json:"review_hash"`
+	}
+	if err := c.BodyParser(&req); err != nil || req.ReviewHash == "" {
+		return sendProblemDetails(c, fiber.StatusBadRequest, "Tinjauan diperlukan", "https://api.manris.com/errors/working-paper-review-required", "Tinjau Kertas Kerja sebelum memulai TTE.")
+	}
+	wp, err := h.uc.StartSigning(c.Context(), id, userID, req.ReviewHash)
 	if err != nil {
 		return handleWPError(c, err)
 	}
@@ -373,7 +391,13 @@ func handleWPError(c *fiber.Ctx, err error) error {
 	var appErr *domainerrors.AppError
 	if errors.As(err, &appErr) {
 		switch appErr.Code {
-		case "INVALID_STATUS", "ROSTER_STALE", "MONITORING_CONFLICT", "SEMESTER_CONFLICT":
+		case "WORKING_PAPER_REVIEW_CHANGED":
+			return sendProblemDetails(c, fiber.StatusConflict, "Tinjauan perlu diperbarui", "https://api.manris.com/errors/working-paper-review-changed", appErr.Message)
+		case "ROSTER_STALE":
+			return sendProblemDetails(c, fiber.StatusConflict, "Daftar risiko berubah", "https://api.manris.com/errors/working-paper-roster-stale", appErr.Message)
+		case "SEMESTER_CONFLICT":
+			return sendProblemDetails(c, fiber.StatusConflict, "Kertas Kerja sudah ada", "https://api.manris.com/errors/working-paper-period-conflict", appErr.Message)
+		case "INVALID_STATUS", "MONITORING_CONFLICT":
 			return sendProblemDetails(c, fiber.StatusConflict, "Konflik", "https://api.manris.com/errors/conflict", appErr.Message)
 		case "MONITORING_INCOMPLETE":
 			return sendProblemDetailsWithDetails(

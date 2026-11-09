@@ -49,6 +49,7 @@ export interface RiskRegisterListItem {
   archivedReason?: string;
   beforeMonitoringNilai?: number | null;
   monitoringResultNilai?: number | null;
+  recentMonitoring?: { cycle: string; status: string | null; nilai: number | null }[];
   semesterMonitoring?: {
     q1?: string | null;
     q2?: string | null;

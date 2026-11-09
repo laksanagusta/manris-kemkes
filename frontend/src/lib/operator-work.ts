@@ -61,7 +61,7 @@ export function getWorkReturnLink(raw:string | null): {href:string;label:string}
  try {
   const url=new URL(raw,"http://manris.local");
   if(url.origin!=="http://manris.local")return null;
-  const label=url.pathname==="/work"?"Kembali ke pekerjaan":url.pathname==="/compliance/monitoring"?"Kembali ke pemantauan":url.pathname==="/risk/register"?"Kembali ke risiko":null;
+  const label=url.pathname==="/work"?"Kembali ke pekerjaan":url.pathname==="/compliance/monitoring"?"Kembali ke pemantauan":url.pathname==="/risk/register"?"Kembali ke risiko":/^\/risk\/working-papers\/[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(url.pathname)?"Kembali ke Kertas Kerja":null;
   return label?{href:url.pathname+url.search,label}:null;
  } catch {return null;}
 }

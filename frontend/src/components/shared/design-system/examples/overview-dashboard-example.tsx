@@ -11,6 +11,9 @@ import {
   RiskHeatmapGrid,
   StandardCard,
 } from "@/components/shared/design-system";
+import { RiskCountTrendChart } from "@/app/(app)/overview/_components/risk-count-trend-chart";
+import { RiskCategoryPieChart } from "@/app/(app)/overview/_components/risk-category-pie-chart";
+import { WorkspaceMetrics } from "../layout/workspace-metrics";
 import { ArrowExpand } from "@/components/shared/icons";
 import { Button } from "@/components/ui/button";
 
@@ -22,32 +25,6 @@ import { RISK_CHART_COLORS } from "@/lib/chart-colors";
 
 const fixtureMatrix = () =>
   designSystemCurrentRiskMatrix.map((row) => [...row]);
-
-function TrendChartExample() {
-  return (
-    <svg
-      viewBox="0 0 360 180"
-      className="h-64 w-full"
-      role="img"
-      aria-label="Line chart contoh satu seri untuk tren jumlah risiko"
-    >
-      <g fill="none" stroke="oklch(0.5 0 0 / 10%)" strokeWidth="1">
-        <path d="M16 36 H344" />
-        <path d="M16 72 H344" />
-        <path d="M16 108 H344" />
-        <path d="M16 144 H344" />
-      </g>
-      <path
-        d="M16 48 L92 42 L168 58 L244 44 L320 52"
-        fill="none"
-        stroke="var(--color-violet-400)"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
 
 const compositionLevels = [
   { label: "Sangat Rendah", color: RISK_CHART_COLORS.veryLow },
@@ -63,6 +40,13 @@ const compositionPeriods = [
   { period: "2026-Q2", values: [4, 11, 10, 7, 4] },
   { period: "2026-Q3", values: [3, 10, 10, 8, 6] },
 ] as const;
+
+const trendRisks = compositionPeriods.flatMap(({ period, values }) =>
+  Array.from({ length: values.reduce((total, value) => total + value, 0) }, (_, index) => ({
+    id: `${period}-${index}`,
+    assessmentCycle: period,
+  })),
+);
 
 function RiskCompositionChartExample() {
   const baseline = 158;
@@ -160,33 +144,32 @@ function RiskCompositionExample() {
 export function OverviewDashboardExample() {
   return (
     <div className="space-y-5 lg:space-y-6">
-      <section aria-label="Ringkasan metrik risiko">
-        <MetricGrid className="gap-3">
-          {designSystemOverviewDashboardKpis.map((item) => (
-            <DashboardKpiCard key={item.title} {...item} />
-          ))}
-        </MetricGrid>
+      <WorkspaceMetrics items={[
+        { label: "Total risiko", value: 37 },
+        { label: "Periode berjalan", value: "2026-Q3" },
+      ]} />
+      <section aria-label="Profil risiko" className="space-y-4 border-t border-border pt-6">
+        <h3 className="text-section-title tracking-[-0.015em]">Profil risiko</h3>
+        <div className="grid items-stretch gap-4 xl:grid-cols-2">
+          <RiskCountTrendChart risks={trendRisks} currentCycle="2026-Q3" currentTotal={37} />
+          <RiskCategoryPieChart data={[
+            { label: "Operasional", count: 27, sangatRendah: 3, rendah: 7, sedang: 8, tinggi: 5, ekstrem: 4 },
+            { label: "Kepatuhan", count: 10, sangatRendah: 0, rendah: 3, sedang: 2, tinggi: 3, ekstrem: 2 },
+          ]} />
+        </div>
       </section>
 
-      <section aria-label="Tren risiko">
-        <OverviewTrendCard
-          title="Tren Jumlah Risiko"
-          summary={<p className="flex items-baseline gap-2"><span className="text-3xl font-semibold tabular-nums">4</span><span className="text-sm text-muted-foreground">Risiko</span></p>}
-          chart={<TrendChartExample />}
-        />
-      </section>
-
+      <h3 className="border-t border-border pt-6 text-section-title tracking-[-0.015em]">Tingkat risiko</h3>
       <section
         aria-label="Komposisi risiko dan peta risiko saat ini"
-        className="grid items-start gap-4 pb-4 xl:items-stretch xl:grid-cols-[minmax(0,2fr)_minmax(22rem,1fr)]"
+        className="grid items-stretch gap-4 pb-4 xl:grid-cols-2"
       >
-        <div className="flex min-h-0 min-w-0 w-full xl:h-[32rem] [&>*]:h-full [&>*]:w-full">
+        <div className="flex min-w-0 [&>*]:w-full">
           <RiskCompositionExample />
         </div>
         <Dialog>
           <StandardCard
             title="Peta Risiko Saat Ini"
-            subtitle="Distribusi probabilitas dan dampak pada kuartal berjalan."
             className="h-full"
             contentClassName="flex flex-1 flex-col"
             action={
@@ -203,7 +186,7 @@ export function OverviewDashboardExample() {
             }
           >
             <div className="flex flex-1 flex-col justify-center">
-              <div className="mx-auto grid w-full max-w-[22rem] grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2">
+              <div className="mx-auto grid w-full max-w-[17rem] grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2">
                 <span className="rotate-180 text-xs text-muted-foreground [writing-mode:vertical-rl]">
                   Probabilitas
                 </span>
@@ -280,6 +263,14 @@ export function OverviewDashboardExample() {
             </div>
           </DialogContent>
         </Dialog>
+      </section>
+      <section aria-label="Spesimen kartu KPI" className="space-y-4 border-t border-border pt-6">
+        <h3 className="text-base font-medium">Kartu KPI</h3>
+        <MetricGrid className="gap-3">
+          {designSystemOverviewDashboardKpis.map((item) => (
+            <DashboardKpiCard key={item.title} {...item} />
+          ))}
+        </MetricGrid>
       </section>
     </div>
   );

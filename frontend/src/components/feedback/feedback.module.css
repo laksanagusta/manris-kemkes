@@ -1,4 +1,4 @@
-.popover {
+.popover:global([data-slot="popover-content"]) {
   width: min(420px, calc(100vw - 24px));
   max-width: var(--radix-popover-content-available-width);
   max-height: var(--radix-popover-content-available-height);
@@ -18,7 +18,7 @@
   background: var(--card);
 }
 
-.textarea {
+.form .textarea[data-slot="textarea"] {
   field-sizing: fixed;
   flex-shrink: 0;
   min-height: 96px;
@@ -68,14 +68,12 @@
   padding: 12px 14px;
 }
 
-.send:enabled {
-  color: white;
-  background: var(--color-blue-500);
-  border-color: var(--color-blue-400);
-  box-shadow: inset 0 1px 1px color-mix(in srgb, white 25%, transparent), 0 1px 2px color-mix(in srgb, var(--foreground) 15%, transparent);
+.send[data-feedback-send]:enabled {
+  --button-primary-surface: var(--color-blue-500);
+  --button-primary-hover: var(--color-blue-600);
+  --button-primary-foreground: white;
+  --tw-inset-shadow: inset 0 1px 1px rgb(255 255 255 / 25%);
 }
-
-.send:enabled:hover { background: var(--color-blue-600); }
 
 @media (pointer: coarse) {
   .send { min-height: 44px; }

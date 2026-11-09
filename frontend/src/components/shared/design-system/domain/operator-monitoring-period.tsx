@@ -12,11 +12,11 @@ export function OperatorMonitoringPeriod({ today }: { today: string }) {
       <AlertTitle>Periode pemantauan</AlertTitle>
       <AlertDescription className="space-y-1" aria-label="Jadwal pemantauan">
         <p>
-          <strong className="font-medium">{period.label}</strong> · {period.isOpen ? "Pengisian dibuka" : "Pengisian ditutup"}. Periode {period.windowLabel} (WIB).
+          <strong className="font-medium">{period.label}</strong> · {period.isOpen ? "Pengisian dibuka" : "Pengisian ditutup"}. Periode <span data-date-time="">{period.windowLabel}</span> (WIB).
         </p>
         {period.next ? (
           <p>
-            Periode berikutnya: <strong className="font-medium">{period.next.label}</strong>. Periode {period.next.windowLabel} (WIB).
+            Periode berikutnya: <strong className="font-medium">{period.next.label}</strong>. Periode <span data-date-time="">{period.next.windowLabel}</span> (WIB).
           </p>
         ) : null}
       </AlertDescription>

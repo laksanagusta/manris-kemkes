@@ -1,3 +1,4 @@
+import { formatDisplayDate, createDisplayDateFormatter } from "./display-date.ts";
 import {
   calculateRiskMetrics,
   getRiskLevelLabel,
@@ -79,7 +80,7 @@ export function buildVersionHistoryItem(
     riskId: version.id,
     title: version.title || current.title || "-",
     unit: current.orgName || version.orgName || "—",
-    cycle: version.assessmentCycle || new Date(version.createdAt).toLocaleDateString("id-ID", { year: "numeric", month: "short" }),
+    cycle: version.assessmentCycle || formatDisplayDate(new Date(version.createdAt), { year: "numeric", month: "short" }),
     versionNumber: version.versionNumber,
     status: version.status,
     previousLevel: getRiskLevelLabel(previousSemantics.effective.level),
@@ -90,7 +91,7 @@ export function buildVersionHistoryItem(
     changeReason: version.changeReason || `Skor ${previousScore} dibanding current ${currentScore}`,
     reviewSummary: version.reviewSummary || "",
     changedAt: version.createdAt,
-    changedAtLabel: new Intl.DateTimeFormat("id-ID", {
+    changedAtLabel: createDisplayDateFormatter("id-ID", {
       day: "numeric",
       month: "short",
       year: "numeric",
@@ -136,7 +137,7 @@ export function buildSequentialVersionHistory(
         unit: version.orgName || "—",
         cycle:
           version.assessmentCycle ||
-          new Date(version.createdAt).toLocaleDateString("id-ID", {
+          formatDisplayDate(new Date(version.createdAt), {
             year: "numeric",
             month: "short",
           }),
@@ -150,7 +151,7 @@ export function buildSequentialVersionHistory(
         changeReason: version.changeReason || "Baseline awal risiko.",
         reviewSummary: version.reviewSummary || "",
         changedAt: version.createdAt,
-        changedAtLabel: new Intl.DateTimeFormat("id-ID", {
+        changedAtLabel: createDisplayDateFormatter("id-ID", {
           day: "numeric",
           month: "short",
           year: "numeric",
@@ -170,7 +171,7 @@ export function buildSequentialVersionHistory(
       unit: version.orgName || previousVersion.orgName || "—",
       cycle:
         version.assessmentCycle ||
-        new Date(version.createdAt).toLocaleDateString("id-ID", {
+        formatDisplayDate(new Date(version.createdAt), {
           year: "numeric",
           month: "short",
         }),
@@ -178,7 +179,7 @@ export function buildSequentialVersionHistory(
       status: version.status,
       reviewSummary: version.reviewSummary || "",
       changedAt: version.createdAt,
-      changedAtLabel: new Intl.DateTimeFormat("id-ID", {
+      changedAtLabel: createDisplayDateFormatter("id-ID", {
         day: "numeric",
         month: "short",
         year: "numeric",

@@ -2,13 +2,16 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/manris/backend/internal/domain/entity"
+	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
 )
 
@@ -68,18 +71,42 @@ func (r *mitigationTaskRepository) GetByID(ctx context.Context, id uuid.UUID, or
 }
 
 func (r *mitigationTaskRepository) Update(ctx context.Context, task *entity.MitigationTask) error {
-	_, err := r.pool.Exec(ctx,
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("begin mitigation report update: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	// Lock the monitoring before the task, in the same order as finalization.
+	if task.MonitoringID != nil {
+		var status string
+		err = tx.QueryRow(ctx, "SELECT status FROM risk_monitorings WHERE id = $1 FOR UPDATE", *task.MonitoringID).Scan(&status)
+		if errors.Is(err, pgx.ErrNoRows) || (err == nil && status != entity.RiskMonitoringStatusDraft) {
+			return domainerrors.ErrMonitoringReportClosed
+		}
+		if err != nil {
+			return fmt.Errorf("lock monitoring for mitigation report: %w", err)
+		}
+	}
+
+	tag, err := tx.Exec(ctx,
 		`UPDATE mitigation_tasks SET
 		 status=$2, evidence_url=$3, notes=$4,
 		 report_output=$5, report_obstacle=$6,
-		 reported_by=$7, reported_at=$8, updated_at=now()
-		 WHERE id=$1`,
+		 reported_by=$7, reported_at=$8, updated_at=clock_timestamp()
+		 WHERE id=$1 AND monitoring_id IS NOT DISTINCT FROM $9 AND status <> 'not_reported'`,
 		task.ID, task.Status, task.EvidenceURL, task.Notes,
 		task.ReportOutput, task.ReportObstacle,
-		task.ReportedBy, task.ReportedAt,
+		task.ReportedBy, task.ReportedAt, task.MonitoringID,
 	)
 	if err != nil {
 		return fmt.Errorf("update mitigation task: %w", err)
+	}
+	if tag.RowsAffected() == 0 {
+		return domainerrors.ErrMonitoringReviewChanged
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("commit mitigation report update: %w", err)
 	}
 	return nil
 }
@@ -168,7 +195,7 @@ func (r *mitigationTaskRepository) GetRecurringMitigations(ctx context.Context) 
 		`SELECT m.id, m.risk_id, m.action, m.owner, m.owner_user_id, m.due_date::text,
 		        m.frequency, m.recurring_interval, m.report_day, m.report_date,
 		        m.target_cost, m.sort_order, m.created_at, COALESCE(r.assessment_cycle, ''),
-		        m.mitigation_type, m.activity_stage, m.expected_output, m.quantitative_target, m.supporting_unit, m.resources_required, m.contingency_plan, m.potential_obstacle, m.is_breakthrough_activity, m.is_existing_control
+		        m.mitigation_type
 		 FROM mitigations m
 		 JOIN risks r ON m.risk_id = r.id
 		 WHERE m.frequency = 'rutin'
@@ -188,7 +215,7 @@ func (r *mitigationTaskRepository) GetRecurringMitigations(ctx context.Context) 
 			&m.ID, &m.RiskID, &m.Action, &m.Owner, &m.OwnerUserID, &m.DueDate,
 			&m.Frequency, &m.RecurringInterval, &m.ReportDay, &m.ReportDate,
 			&m.TargetCost, &m.SortOrder, &m.CreatedAt, &m.AssessmentCycle,
-			&m.MitigationType, &m.ActivityStage, &m.ExpectedOutput, &m.QuantitativeTarget, &m.SupportingUnit, &m.ResourcesRequired, &m.ContingencyPlan, &m.PotentialObstacle, &m.IsBreakthroughActivity, &m.IsExistingControl,
+			&m.MitigationType,
 		); err != nil {
 			return nil, fmt.Errorf("scan recurring mitigation: %w", err)
 		}
@@ -343,26 +370,25 @@ func (r *mitigationTaskRepository) ListByMonitoring(ctx context.Context, monitor
 // the unreported count for historical summaries.
 func (r *mitigationTaskRepository) CountByMonitoringAndStatus(ctx context.Context, monitoringID uuid.UUID, orgIDs []uuid.UUID) (*repository.MonitoringTaskCounts, error) {
 	query := `
-		SELECT
-			COUNT(*) AS total,
-			COUNT(*) FILTER (
-				WHERE status = 'done'
-				  AND reported_at IS NOT NULL
-				  AND NULLIF(BTRIM(COALESCE(notes, '')), '') IS NOT NULL
-			) AS done,
-			COUNT(*) FILTER (
-				WHERE status IS DISTINCT FROM 'done'
-				   OR reported_at IS NULL
-				   OR NULLIF(BTRIM(COALESCE(notes, '')), '') IS NULL
-			) AS pending
-		FROM mitigation_tasks
-		WHERE monitoring_id = $1
+		SELECT COUNT(t.id), COUNT(t.id) FILTER (
+			WHERE t.status = 'done' AND t.reported_at IS NOT NULL
+			  AND NULLIF(BTRIM(COALESCE(t.notes, '')), '') IS NOT NULL
+		), md5(COALESCE(string_agg(
+			t.id::text || ':' || t.status || ':' || EXTRACT(EPOCH FROM t.updated_at)::text,
+			',' ORDER BY t.id
+		), ''))
+		FROM risk_monitorings rm
+		JOIN risks r ON r.id = rm.source_risk_id
+		LEFT JOIN mitigation_tasks t ON t.monitoring_id = rm.id
+		WHERE rm.id = $1 AND (COALESCE(cardinality($2::uuid[]), 0) = 0 OR r.organization_id = ANY($2::uuid[]))
+		GROUP BY rm.id
 	`
 	var counts repository.MonitoringTaskCounts
-	err := r.pool.QueryRow(ctx, query, monitoringID).Scan(&counts.Total, &counts.Done, &counts.Pending)
+	err := r.pool.QueryRow(ctx, query, monitoringID, orgIDs).Scan(&counts.Total, &counts.Done, &counts.Revision)
 	if err != nil {
 		return nil, fmt.Errorf("count monitoring tasks: %w", err)
 	}
+	counts.Pending = counts.Total - counts.Done
 	return &counts, nil
 }
 

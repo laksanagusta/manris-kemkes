@@ -31,7 +31,7 @@ export function WorkingPaperStatusActions({
   onSkipTTE: () => void;
   onCancel: () => void;
   onDelete: () => void;
-  onExport: () => void;
+  onExport?: () => void;
 }) {
   const hasWorkflowActions = canSkipTTE || canCancel || canDelete;
   const hasActions = hasWorkflowActions || Boolean(onExport);
@@ -74,11 +74,13 @@ export function WorkingPaperStatusActions({
             Hapus kertas kerja
           </DropdownMenuItem>
         ) : null}
-        {hasWorkflowActions ? <DropdownMenuSeparator /> : null}
-        <DropdownMenuItem className="gap-2" onClick={onExport}>
-          <Download className="size-3.5" />
-          Ekspor Excel
-        </DropdownMenuItem>
+        {hasWorkflowActions && onExport ? <DropdownMenuSeparator /> : null}
+        {onExport ? (
+          <DropdownMenuItem className="gap-2" onClick={onExport}>
+            <Download className="size-3.5" />
+            Ekspor Excel
+          </DropdownMenuItem>
+        ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
   );

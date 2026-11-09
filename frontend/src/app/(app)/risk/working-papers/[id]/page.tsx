@@ -1,13 +1,16 @@
 "use client";
+
+import { createDisplayDateFormatter } from "@/lib/display-date";
 import { PropertyList, PropertyLabel } from "@/components/shared/design-system/layout/property-list";
 
 import { DetailSidePanel } from "@/components/shared/design-system/layout/detail-side-panel";
 
 import { use, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
-import type { WorkingPaper, WorkingPaperStatus } from "@/types/working-paper";
+import type { WorkingPaper, WorkingPaperRiskLink, WorkingPaperStatus } from "@/types/working-paper";
 import {
   getWorkingPaper,
   startSigningWorkingPaper,
@@ -16,6 +19,8 @@ import {
   skipTTEWorkingPaper,
   deleteWorkingPaper,
 } from "@/lib/api/working-papers";
+import { startMonitoring } from "@/lib/api/risk-monitoring";
+import { isMonitoringWindowOpen } from "@/lib/monitoring-window";
 import { buildWorkingPaperDetailViewModel } from "@/lib/working-paper-detail-view-model";
 import { WorkingPaperMonitoringTable } from "./working-paper-monitoring-table";
 import { WorkingPaperStatusActions } from "./working-paper-status-actions";
@@ -26,6 +31,7 @@ import { ChartContainer } from "@/components/ui/chart";
 import { PolarAngleAxis, RadialBar, RadialBarChart } from "recharts";
 import {
   AccentButton,
+  ActionButton,
   CollectionPageHeader,
   CollectionTableCard,
 } from "@/components/shared/design-system";
@@ -54,13 +60,13 @@ import { Pen } from "@/components/shared/icons";
 import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 
 
-const dateFormatter = new Intl.DateTimeFormat("id-ID", {
+const dateFormatter = createDisplayDateFormatter("id-ID", {
   year: "numeric",
   month: "long",
   day: "numeric",
 });
 
-const dateTimeFormatter = new Intl.DateTimeFormat("id-ID", {
+const dateTimeFormatter = createDisplayDateFormatter("id-ID", {
   year: "numeric",
   month: "long",
   day: "numeric",
@@ -69,7 +75,7 @@ const dateTimeFormatter = new Intl.DateTimeFormat("id-ID", {
 });
 
 const statusLabel: Record<WorkingPaperStatus, string> = {
-  draft: "Draft",
+  draft: "Draf",
   signing: "Proses Tanda Tangan",
   completed: "Selesai",
   cancelled: "Dibatalkan",
@@ -105,7 +111,9 @@ function monitoringStatusLabel(status: string) {
     case "final":
       return "Selesai";
     case "missing":
-      return "Belum Dimulai";
+      return "Belum dimulai";
+    case "wrong_period":
+      return "Periode tidak sesuai";
     default:
       return status;
   }
@@ -118,7 +126,7 @@ function formatSigningError(err: unknown): string {
       const items = details
         .map((b) => `${b.code} (${monitoringStatusLabel(b.monitoring_status)})`)
       .join(", ");
-      return `Monitoring belum final: ${items}`;
+      return `Pemantauan belum final untuk ${items}.`;
     }
   }
   if (err instanceof Error) {
@@ -139,6 +147,8 @@ export default function WorkingPaperDetailPage(props: {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [startingMonitoringId, setStartingMonitoringId] = useState<string | null>(null);
+  const [isSubmittingSignature, setIsSubmittingSignature] = useState(false);
   const [signDialogOpen, setSignDialogOpen] = useState(false);
   const [startSigningDialogOpen, setStartSigningDialogOpen] = useState(false);
   const [skipDialogOpen, setSkipDialogOpen] = useState(false);
@@ -184,26 +194,46 @@ export default function WorkingPaperDetailPage(props: {
   }, [loadData, token]);
 
   const handleSign = async () => {
-    if (!token || !data) return;
+    if (!token || !data || isSubmittingSignature) return;
+    setIsSubmittingSignature(true);
     try {
-      await signWorkingPaper(id, token);
-      toast.success("Kertas kerja berhasil ditandatangani.");
+      setData(await signWorkingPaper(id, token));
+      toast.success("Kertas Kerja berhasil ditandatangani.");
       setSignDialogOpen(false);
-      loadData();
     } catch (err) {
       toast.error(formatSigningError(err));
+    } finally {
+      setIsSubmittingSignature(false);
     }
   };
 
   const handleStartSigning = async () => {
-    if (!token || !data) return;
+    if (!token || !data?.review_hash || isSubmittingSignature) return;
+    setIsSubmittingSignature(true);
     try {
-      await startSigningWorkingPaper(id, token);
-      toast.success("Kertas kerja siap diproses untuk tanda tangan elektronik.");
+      setData(await startSigningWorkingPaper(id, token, data.review_hash));
+      toast.success("Proses tanda tangan dimulai.");
       setStartSigningDialogOpen(false);
-      loadData();
     } catch (err) {
       toast.error(formatSigningError(err));
+      setStartSigningDialogOpen(false);
+      void loadData();
+    } finally {
+      setIsSubmittingSignature(false);
+    }
+  };
+
+  const handleStartMonitoring = async (riskId: string) => {
+    const cycle = data?.assessment_cycle;
+    if (!token || !cycle || startingMonitoringId) return;
+    setStartingMonitoringId(riskId);
+    try {
+      const result = await startMonitoring(token, riskId, cycle);
+      const returnTo = encodeURIComponent(`/risk/working-papers/${id}`);
+      router.push(`/risk/monitoring/${encodeURIComponent(result.monitoring.id)}?returnTo=${returnTo}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Pemantauan belum dapat dimulai.");
+      setStartingMonitoringId(null);
     }
   };
 
@@ -334,6 +364,43 @@ export default function WorkingPaperDetailPage(props: {
     },
   ];
 
+  const monitoringWindowOpen = isMonitoringWindowOpen(data.assessment_cycle || "", new Date());
+  const monitoringBlockers = status === "draft" || status === "signing" ? viewModel.monitoringBlockers : [];
+  const currentAction = viewModel.currentAction;
+
+  const renderMonitoringBlocker = (link: WorkingPaperRiskLink) => {
+    const monitoring = link.risk.monitoring;
+    const matchingMonitoring = monitoring?.assessmentCycle === data.assessment_cycle ? monitoring : undefined;
+    const riskId = link.source_risk_id && link.source_risk_id !== "00000000-0000-0000-0000-000000000000" ? link.source_risk_id : link.risk_id;
+    const monitoringHref = matchingMonitoring?.id
+      ? `/risk/monitoring/${encodeURIComponent(matchingMonitoring.id)}?returnTo=${encodeURIComponent(`/risk/working-papers/${id}`)}`
+      : null;
+    const label = matchingMonitoring?.status === "draft"
+      ? monitoringWindowOpen ? "Draf pemantauan" : "Draf terkunci"
+      : monitoringWindowOpen ? "Belum dimulai" : "Periode ditutup";
+    return (
+      <li key={link.id} className="flex flex-wrap items-center justify-between gap-2 border-t border-border py-2">
+        <div className="min-w-0">
+          <p className="font-medium">{link.risk.code} · {link.risk.title}</p>
+          <p className="text-xs text-muted-foreground">{label}</p>
+        </div>
+        {monitoringHref ? (
+          <ActionButton asChild size="sm" variant="outline">
+            <Link href={monitoringHref}>{monitoringWindowOpen ? "Buka draf Pemantauan" : "Lihat draf terkunci"}</Link>
+          </ActionButton>
+        ) : monitoringWindowOpen ? (
+          <ActionButton type="button" size="sm" variant="outline" onClick={() => void handleStartMonitoring(riskId)} disabled={Boolean(startingMonitoringId)}>
+            {startingMonitoringId === riskId ? "Membuka…" : "Mulai Pemantauan"}
+          </ActionButton>
+        ) : (
+          <ActionButton asChild size="sm" variant="outline">
+            <Link href={`/risk/register/${encodeURIComponent(riskId)}?tab=monitoring`}>Lihat riwayat Pemantauan</Link>
+          </ActionButton>
+        )}
+      </li>
+    );
+  };
+
   const headerActions = (
     <>
       <WorkingPaperStatusActions
@@ -343,15 +410,19 @@ export default function WorkingPaperDetailPage(props: {
         onSkipTTE={() => setSkipDialogOpen(true)}
         onCancel={() => setCancelDialogOpen(true)}
         onDelete={() => setDeleteDialogOpen(true)}
-        onExport={handleExport}
+        onExport={status === "completed" ? undefined : handleExport}
       />
       {viewModel.canStartSigning && (
         <AccentButton
+          disabled={!data.review_hash}
           onClick={() => setStartSigningDialogOpen(true)}
           icon={<Pen className="size-3.5" />}
         >
-          Mulai Proses TTE
+          Tinjau dan mulai TTE
         </AccentButton>
+      )}
+      {status === "completed" && (
+        <AccentButton onClick={handleExport}>Unduh Kertas Kerja</AccentButton>
       )}
       {viewModel.canSign && (
         <AccentButton
@@ -372,24 +443,22 @@ export default function WorkingPaperDetailPage(props: {
         actions={headerActions}
       />
 
-      {viewModel.monitoringBlockers.length > 0 ? (
-        <Card className="">
-          <CardContent className="space-y-1">
-            <p className="font-semibold">Finalisasi monitoring terlebih dahulu</p>
-            <p>
-              Berikut risiko yang masih memiliki monitoring draft atau belum
-              memiliki monitoring final:
-            </p>
-            <ul className="mt-2 space-y-1 text-sm">
-              {viewModel.monitoringBlockers.map((item) => (
-                <li key={item} className="font-medium">
-                  {item}
-                </li>
-              ))}
-            </ul>
+      {currentAction && (
+        <Card>
+          <CardContent className="space-y-2">
+            <div role="status">
+              <p className="font-semibold">{currentAction.title}</p>
+              <p className="text-sm text-muted-foreground">{currentAction.description}</p>
+              {data.content_locked && (
+                <p className="mt-1 text-sm text-muted-foreground">Isi dikunci saat TTE dimulai dan digunakan untuk tanda tangan serta unduhan.</p>
+              )}
+            </div>
+            {monitoringBlockers.length > 0 && (
+              <ul className="pt-1 text-sm">{monitoringBlockers.map(renderMonitoringBlocker)}</ul>
+            )}
           </CardContent>
         </Card>
-      ) : null}
+      )}
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
         <div className="min-w-0 space-y-4">
@@ -417,7 +486,7 @@ export default function WorkingPaperDetailPage(props: {
                         <dd
                           className={cn(
                             "max-w-[60%] break-words text-right text-foreground",
-                            label === "Kode" && "font-mono",
+                            (label === "Kode" || label.endsWith("pada")) && "font-mono tabular-nums",
                           )}
                         >
                           {label === "Status" ? (
@@ -538,31 +607,46 @@ export default function WorkingPaperDetailPage(props: {
       {/* Dialogs */}
       <AlertDialog
         open={startSigningDialogOpen}
-        onOpenChange={setStartSigningDialogOpen}
+        onOpenChange={(open) => { if (!isSubmittingSignature) setStartSigningDialogOpen(open); }}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Mulai proses TTE
+              Tinjau Kertas Kerja sebelum TTE
             </AlertDialogTitle>
             <AlertDialogDescription>
-              Status akan diubah dari draft menjadi proses tanda tangan.
-              Setelah itu, para penandatangan bisa mulai menandatangani
-              dokumen ini.
+              Setelah TTE dimulai, hasil Pemantauan dan isi Kertas Kerja dikunci untuk semua penandatangan.
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-3 text-sm">
+            <dl className="grid grid-cols-2 gap-3">
+              <div><dt className="text-muted-foreground">Periode</dt><dd className="font-medium">{data.assessment_cycle}</dd></div>
+              <div><dt className="text-muted-foreground">Risiko disertakan</dt><dd className="font-medium">{totalRiskCount}</dd></div>
+            </dl>
+            <div>
+              <p className="font-medium">Urutan penandatangan</p>
+              <ol className="mt-1 max-h-40 list-decimal space-y-1 overflow-y-auto ps-5">
+                {[...data.signatories].sort((a, b) => a.sequence_no - b.sequence_no).map((signatory) => (
+                  <li key={signatory.id}>{signatory.signer_name}</li>
+                ))}
+              </ol>
+            </div>
+          </div>
           <AlertDialogFooter>
-            <CollectionDialogCancel onClick={() => setStartSigningDialogOpen(false)}>
+            <CollectionDialogCancel disabled={isSubmittingSignature} onClick={() => setStartSigningDialogOpen(false)}>
               Batal
             </CollectionDialogCancel>
-            <AlertDialogAction variant="default" size="default" onClick={handleStartSigning}>
-              Mulai proses TTE
+            <AlertDialogAction variant="default" size="default" disabled={isSubmittingSignature || !data.review_hash} onClick={(event) => {
+              event.preventDefault();
+              void handleStartSigning();
+            }}>
+              {isSubmittingSignature ? "Memulai…" : "Mulai proses TTE"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={signDialogOpen} onOpenChange={setSignDialogOpen}>
+      <AlertDialog open={signDialogOpen} onOpenChange={(open) => { if (!isSubmittingSignature) setSignDialogOpen(open); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
@@ -574,11 +658,14 @@ export default function WorkingPaperDetailPage(props: {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <CollectionDialogCancel onClick={() => setSignDialogOpen(false)}>
+            <CollectionDialogCancel disabled={isSubmittingSignature} onClick={() => setSignDialogOpen(false)}>
               Batal
             </CollectionDialogCancel>
-            <AlertDialogAction variant="default" size="default" onClick={handleSign}>
-              Tanda Tangani
+            <AlertDialogAction variant="default" size="default" disabled={isSubmittingSignature} onClick={(event) => {
+              event.preventDefault();
+              void handleSign();
+            }}>
+              {isSubmittingSignature ? "Menandatangani…" : "Tanda Tangani"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

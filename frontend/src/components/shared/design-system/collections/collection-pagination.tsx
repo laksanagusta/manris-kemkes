@@ -17,6 +17,7 @@ import { shouldShowCollectionPagination } from "./collection-pagination-visibili
 
 export function CollectionPagination({
   itemLabel,
+  standalone = false,
   page,
   pageSize,
   pageSizeOptions = [10, 20, 50, 100],
@@ -26,6 +27,7 @@ export function CollectionPagination({
   onPageSizeChange,
 }: {
   itemLabel: string;
+  standalone?: boolean;
   page: number;
   pageSize: number;
   pageSizeOptions?: number[];
@@ -38,8 +40,10 @@ export function CollectionPagination({
 
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
+  const Container = standalone ? "div" : CardFooter;
+
   return (
-    <CardFooter data-collection-pagination="" className="min-w-0 flex-col items-stretch gap-3 bg-table-footer px-5 py-3 text-sm md:flex-row md:flex-wrap md:items-center md:justify-between">
+    <Container data-collection-pagination="" className={`flex min-w-0 flex-col items-stretch gap-3 text-sm md:flex-row md:flex-wrap md:items-center md:justify-between ${standalone ? "bg-transparent" : "bg-table-footer px-5 py-3"}`}>
       <p className="text-secondary-foreground">
         Menampilkan {total === 0 ? 0 : (page - 1) * pageSize + 1} sampai{" "}
         {Math.min(page * pageSize, total)} dari {total} {itemLabel}
@@ -100,6 +104,6 @@ export function CollectionPagination({
           </Select>
         </div>
       </div>
-    </CardFooter>
+    </Container>
   );
 }

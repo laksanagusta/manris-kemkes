@@ -43,12 +43,12 @@ export const mainMenuItems: MainMenuGroup[] = [
   {
     title: "MANAJEMEN RISIKO",
     items: [
-      { label: "Dashboard", href: "/overview", icon: "LayoutDashboard" },
-      { label: "Risiko", href: "/risk/register", icon: "Folder01" },
+      { label: "Dashboard", href: "/overview", icon: "DashboardCircle" },
+      { label: "Risiko", href: "/risk/register", icon: "Brochure" },
       {
         label: "Kejadian Risiko",
         href: "/risk-events",
-        icon: "Alert02",
+        icon: "MessageSquareWarning",
       },
       {
         label: "Penanganan",
@@ -64,10 +64,16 @@ export const mainMenuItems: MainMenuGroup[] = [
       {
         label: "Kertas Kerja",
         href: "/risk/working-papers",
-        icon: "Agreement03",
+        icon: "Note",
+      },
+      {
+        label: "Evaluasi",
+        href: "/evaluations",
+        icon: "ClipboardCheck",
+        matchHrefs: ["/evaluations"],
       },
       { label: "Tanda tangan", href: "/inbox", icon: "FileSignature" },
-      { label: "Ringkasan Risiko", href: "/reports", icon: "FileBarChart" },
+      { label: "Ringkasan Risiko", href: "/reports", icon: "PieChart09" },
     ],
   },
 ];

@@ -227,7 +227,7 @@ export function OrganizationFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md" showCloseButton={!isSubmitting}>
+      <DialogContent showCloseButton={!isSubmitting}>
         <DialogHeader>
           <DialogTitle className="text-lg">{title}</DialogTitle>
           <DialogDescription>

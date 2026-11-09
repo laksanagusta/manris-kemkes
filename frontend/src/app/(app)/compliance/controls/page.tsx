@@ -110,7 +110,7 @@ function ControlTestingRecords({ tests, readOnly }: {
           { id: "date", label: "Tanggal", type: "date", value: dateFilter, onChange: setDateFilter },
         ]}
       />
-      <Table>
+      <Table framed>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
             <TableHead className="w-28 whitespace-nowrap">Tanggal</TableHead>
@@ -134,7 +134,7 @@ function ControlTestingRecords({ tests, readOnly }: {
             </TableRow>
           )) : (
             <TableRow>
-              <TableCell colSpan={4} className="h-24">
+              <TableCell colSpan={4} className="">
                 <CollectionEmptyState
                   title={tests.length === 0 ? "Belum ada testing record untuk control ini" : "Tidak ada testing record yang cocok"}
                   description={tests.length === 0 ? "Testing record yang tersedia akan tampil di sini." : "Ubah kata kunci atau filter untuk melihat testing record lain."}
@@ -191,7 +191,6 @@ export default function ControlsPage() {
         className="w-full"
         leading={
           <CollectionSearchField
-            containerClassName="sm:w-80 sm:flex-none"
             aria-label="Cari kontrol"
             placeholder="Cari kontrol..."
             value={search}

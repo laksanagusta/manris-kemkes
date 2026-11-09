@@ -3,36 +3,39 @@
 import * as React from "react"
 import { cn } from "cn"
 
-function Table({ className, ...props }: React.ComponentProps<"table">) {
+function Table({
+  className,
+  framed = false,
+  ...props
+}: React.ComponentProps<"table"> & { framed?: boolean }) {
   return (
     <div
       data-slot="table-container"
+      data-framed={framed ? "" : undefined}
       className="relative w-full overflow-x-auto"
     >
       <table
         data-slot="table"
-        className={cn("w-full caption-bottom text-sm", className)}
+        className={cn("w-full caption-bottom", className)}
         {...props}
       />
     </div>
   )
 }
 
-function TableHeader({ className, ...props }: React.ComponentProps<"thead">) {
+function TableHeader(props: React.ComponentProps<"thead">) {
   return (
     <thead
       data-slot="table-header"
-      className={cn("[&_tr]:border-b", className)}
       {...props}
     />
   )
 }
 
-function TableBody({ className, ...props }: React.ComponentProps<"tbody">) {
+function TableBody(props: React.ComponentProps<"tbody">) {
   return (
     <tbody
       data-slot="table-body"
-      className={cn("[&_tr:last-child]:border-0", className)}
       {...props}
     />
   )
@@ -43,7 +46,7 @@ function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
     <tfoot
       data-slot="table-footer"
       className={cn(
-        "border-t bg-table-footer font-medium text-secondary-foreground [&>tr]:last:border-b-0",
+        "bg-table-footer font-medium text-secondary-foreground [&>tr:first-child>*]:border-t",
         className
       )}
       {...props}
@@ -51,42 +54,46 @@ function TableFooter({ className, ...props }: React.ComponentProps<"tfoot">) {
   )
 }
 
-function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
+function TableRow(props: React.ComponentProps<"tr">) {
   return (
     <tr
       data-slot="table-row"
-      className={cn(
-        "border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted",
-        className
-      )}
       {...props}
     />
   )
 }
 
-function TableHead({ className, ...props }: React.ComponentProps<"th">) {
+function TableHead({ className, children, ...props }: React.ComponentProps<"th">) {
   return (
     <th
       data-slot="table-head"
       className={cn(
-        "h-10 bg-table-header px-2 text-left align-middle text-[13px] font-medium whitespace-nowrap !text-secondary-foreground first:ps-6 last:pe-6 [&:has([role=checkbox])]:pr-0",
+        "text-left align-middle whitespace-nowrap",
         className
       )}
       {...props}
-    />
+    >
+      <div data-table-header-content="">{children}</div>
+    </th>
   )
 }
 
-function TableCell({ className, ...props }: React.ComponentProps<"td">) {
+function TableCell({ className, children, colSpan, title, ...props }: React.ComponentProps<"td">) {
+  const text = typeof children === "string" ? children : undefined;
   return (
     <td
       data-slot="table-cell"
       className={cn(
-        "p-2 align-middle whitespace-nowrap first:ps-6 last:pe-6 [&:has([role=checkbox])]:pr-0",
+        "align-middle",
+        (!colSpan || colSpan === 1) && (text === undefined ? "whitespace-nowrap" : "truncate"),
         className
       )}
+      colSpan={colSpan}
+      title={title ?? text}
       {...props}
-    />
+    >
+      {children}
+    </td>
   )
 }
 

@@ -1,4 +1,7 @@
 "use client";
+
+import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
+import { createDisplayDateFormatter } from "@/lib/display-date";
 import { useCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
 import { sortDate } from "@/lib/collection-sort";
 import { newestCreatedFirst } from "@/lib/collection-created-at";
@@ -6,6 +9,7 @@ import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/
 
 
 import Link from "next/link";
+import { RiskTableIdentity } from "@/components/shared/design-system/domain/risk-table-identity";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
@@ -57,7 +61,7 @@ export default function RiskEventsPage() {
   const filtered = useMemo(() => {
     const value = query.trim().toLowerCase();
     return items.filter((item) => {
-      const matchesQuery = !value || `${item.code} ${item.description} ${item.actualImpact} ${item.linkedRisks.map((risk) => `${risk.code} ${risk.title}`).join(" ")}`.toLowerCase().includes(value);
+      const matchesQuery = !value || `${item.code} ${item.description} ${item.linkedRisks.map((risk) => `${risk.code} ${risk.title}`).join(" ")}`.toLowerCase().includes(value);
       const matchesSeverity = severityFilter === "all" || item.severity === severityFilter;
       return matchesQuery && matchesSeverity;
     });
@@ -76,7 +80,6 @@ export default function RiskEventsPage() {
             <DynamicTableFilters
               search={
                 <CollectionSearchField
-                  containerClassName="w-full sm:w-80 sm:flex-none"
                   value={query}
                   onChange={(event) => setQuery(event.target.value)}
                   placeholder="Cari kode, kejadian, atau risiko"
@@ -113,20 +116,20 @@ export default function RiskEventsPage() {
           }
         />
         <CollectionTableCard sorting={collectionSort.controls}>
-          <Table className="min-w-[1340px] table-fixed">
+          <Table className="min-w-[1228px] table-fixed">
           <colgroup>
-            <col className="w-[42%]" />
-            <col className="w-[11%]" />
-            <col className="w-[21%]" />
-            <col className="w-[12%]" />
-            <col className="w-40" />
-<col className="w-[14%]" />
+            <col style={{ width: 132 }} />
+            <col style={{ width: 430 }} />
+            <col style={{ width: 140 }} />
+            <col style={{ width: 162 }} />
+            <col style={{ width: 156 }} />
+            <col style={{ width: 208 }} />
           </colgroup>
           <CollectionTableHeader>
             <CollectionTableHeaderRow className="h-9 hover:bg-transparent">
+              <CollectionTableHead>Kode kejadian</CollectionTableHead>
               <CollectionTableHead className="">Kejadian</CollectionTableHead>
               <CollectionTableHead >Tingkat</CollectionTableHead>
-              <CollectionTableHead >Risiko terkait</CollectionTableHead>
               <CollectionTableHead >Dicatat oleh</CollectionTableHead>
               <CollectionTableHead >Tanggal</CollectionTableHead>
             <CreatedAtHead />
@@ -170,21 +173,19 @@ export default function RiskEventsPage() {
             ) : (
               collectionSort.rows.map((item) => (
                 <TableRow key={item.id} className="group">
+                  <TableCell><CollectionCode code={item.code} href={`/risk-events/${item.id}`} /></TableCell>
                   <TableCell className="align-middle">
-                    <Link href={`/risk-events/${item.id}`} className="line-clamp-2 text-sm font-medium leading-5 text-foreground transition-colors hover:text-primary">
-                      {item.description}
-                    </Link>
-                    <span className="mt-0.5 block truncate font-mono text-xs text-muted-foreground">{item.code}</span>
+                    <RiskTableIdentity
+                      title={item.description}
+                      href={`/risk-events/${item.id}`}
+                    />
                   </TableCell>
                   <TableCell className="align-middle">
                     <Badge variant={severityTone[item.severity]} className={getStatusBadgeClassName(item.severity)}>{severityLabel[item.severity]}</Badge>
                   </TableCell>
-                  <TableCell className="align-middle text-muted-foreground">
-                    {item.linkedRisks.length ? item.linkedRisks.map((risk) => risk.code || risk.title).join(", ") : <Badge variant="secondary">Belum dipetakan</Badge>}
-                  </TableCell>
-                  <TableCell className="align-middle text-muted-foreground">{item.createdByName || "-"}</TableCell>
-                  <TableCell className="align-middle text-muted-foreground">
-                    {new Intl.DateTimeFormat("id-ID", { dateStyle: "medium" }).format(new Date(item.occurredAt))}
+                  <TableCell className="align-middle">{item.createdByName || "-"}</TableCell>
+                  <TableCell className="align-middle">
+                    <span data-date-time="">{createDisplayDateFormatter("id-ID", { dateStyle: "medium" }).format(new Date(item.occurredAt))}</span>
                   </TableCell>
                 <CreatedAtCell record={item} />
 </TableRow>

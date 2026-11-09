@@ -92,7 +92,7 @@ test("overview and catalogue use the same dashboard primitives", () => {
   assert.doesNotMatch(catalogue, /\n\s*Bandingkan\n/);
   assert.match(
     overviewPage,
-    /xl:grid-cols-\[minmax\(0,2fr\)_minmax\(22rem,1fr\)\]/,
+    /xl:grid-cols-2/,
   );
 });
 

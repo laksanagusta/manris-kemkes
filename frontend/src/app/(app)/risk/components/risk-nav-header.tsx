@@ -34,7 +34,7 @@ export function RiskNavHeader({ title, description, badge }: { title: string, de
     <div className="flex flex-col gap-4 md:flex-row md:items-center justify-between animate-fade-in">
       <div>
         <div className="flex items-center gap-3">
-          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+          <h1 className="text-2xl font-semibold tracking-normal">{title}</h1>
           {badge && <Badge variant="outline" className="">{badge}</Badge>}
         </div>
         <p className="mt-1 text-sm text-secondary-foreground">

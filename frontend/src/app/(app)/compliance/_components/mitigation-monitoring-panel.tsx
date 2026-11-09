@@ -1,4 +1,6 @@
 "use client";
+
+import { createDisplayDateFormatter } from "@/lib/display-date";
 import { useRemoteCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
 import { MitigationTaskTable } from "@/components/shared/mitigation-task-table";
 
@@ -31,7 +33,8 @@ import {
   UserRound,
   Upload,
 } from "@/components/shared/icons";
-import { api } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
+import { updateTaskReport } from "@/lib/api/mitigation-tasks";
 import { useAuth } from "@/contexts/auth-context";
 import { cn } from "@/lib/utils";
 import {
@@ -41,7 +44,7 @@ import {
   type MitigationProgressFlowView,
 } from "@/components/shared/design-system";
 import { validateMitigationReportForm } from "@/lib/validation/reporting";
-import { getMitigationSubmissionActionState } from "@/lib/mitigation-reporting";
+import { getMitigationTaskReportAction } from "@/lib/mitigation-reporting";
 import { getAssessmentCycleFilterOptions } from "@/lib/risk-cycle-options";
 import {
   buildMitigationMonitoringApiQueryString,
@@ -144,6 +147,12 @@ export function MitigationMonitoringPanel() {
     null,
   );
   const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [reportSent, setReportSent] = useState(false);
+  const [openedFromWork, setOpenedFromWork] = useState(false);
+  const detailTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const detailReportAction = detailTask ? getMitigationTaskReportAction(detailTask) : null;
+  const detailStatus = detailReportAction?.isOverdue ? "overdue" : detailTask?.status;
   const [evidenceUrl, setEvidenceUrl] = useState("");
   const [notes, setNotes] = useState("");
   const evidenceInputRef = useRef<HTMLInputElement | null>(null);
@@ -318,26 +327,23 @@ export function MitigationMonitoringPanel() {
     fetchMitigations();
   }, [fetchMitigations]);
 
-  const handleOpenSubmit = useCallback((task: MitigationTaskRow) => {
+  const openReportForm = useCallback((task: MitigationTaskRow, preserveInput = false) => {
     setDetailTask(task);
-    setSelectedTask(task);
-    setEvidenceUrl(task.evidenceUrl || "");
-    setNotes(task.notes || "");
-    setShowValidationErrors(false);
-    setDialogView("form");
+    if (!getMitigationTaskReportAction(task).allowed) {
+      setDialogView("detail");
+    } else {
+      if (!preserveInput) {
+        setSelectedTask(task);
+        setEvidenceUrl(task.evidenceUrl || "");
+        setNotes(task.notes || "");
+        setShowValidationErrors(false);
+        setSubmitError("");
+      }
+      setDialogView("form");
+    }
+    setReportSent(false);
     setShowMitigationDialog(true);
   }, []);
-
-  const handleOpenSubmitFromDetail = useCallback(
-    (task: MitigationTaskRow) => {
-      setSelectedTask(task);
-      setEvidenceUrl(task.evidenceUrl || "");
-      setNotes(task.notes || "");
-      setShowValidationErrors(false);
-      setDialogView("form");
-    },
-    [],
-  );
 
   useEffect(() => {
     const taskId = searchParams.get("taskId");
@@ -346,23 +352,34 @@ export function MitigationMonitoringPanel() {
     api.get<MitigationTask>(`/mitigation-tasks/${encodeURIComponent(taskId)}`, token).then(task => {
       if (cancelled) return;
       const row: MitigationTaskRow = { ...task, riskCode: task.riskCode || "—", title: task.riskTitle || "—", unit: task.mitigationOwner || "—", daysOverdue: 0, tier: "upcoming", mitigationAction: task.mitigationAction || "—" };
-      const state = getMitigationSubmissionActionState(task.periodEnd, task.dueDate);
-      if (task.status !== "done" && task.status !== "not_reported" && task.status !== "skipped" && state.allowed) handleOpenSubmit(row);
-      else { setDetailTask(row); setDialogView("detail"); setShowMitigationDialog(true); }
-      const next = new URLSearchParams(searchParams.toString()); next.delete("taskId");
+      detailTriggerRef.current = null;
+      setOpenedFromWork(searchParams.get("returnTo") === "/work");
+      openReportForm(row);
+      const next = new URLSearchParams(searchParams.toString());
+      next.delete("taskId");
+      next.delete("returnTo");
       router.replace(`${pathname}${next.size ? `?${next}` : ""}`, { scroll: false });
     }).catch(() => { if (!cancelled) toast.error("Laporan ini tidak dapat dibuka. Periksa akses dan coba lagi."); });
     return () => { cancelled = true; };
-  }, [token, searchParams, router, pathname, handleOpenSubmit]);
+  }, [token, searchParams, router, pathname, openReportForm]);
 
-  const handleOpenDetail = (task: MitigationTaskRow) => {
+  const handleOpenDetail = (task: MitigationTaskRow, trigger: HTMLButtonElement) => {
+    detailTriggerRef.current = trigger;
+    setOpenedFromWork(false);
+    setReportSent(false);
     setDetailTask(task);
     setDialogView("detail");
     setShowMitigationDialog(true);
   };
 
   const handleSubmitProgress = async () => {
-    if (!selectedTask || !token) return;
+    if (!selectedTask || !token || submitting) return;
+    setSubmitError("");
+    const action = getMitigationTaskReportAction(selectedTask);
+    if (!action.allowed) {
+      setSubmitError(action.message || "Pelaporan untuk tugas ini sudah ditutup.");
+      return;
+    }
     if (hasFormErrors) {
       setShowValidationErrors(true);
       window.requestAnimationFrame(() => {
@@ -372,27 +389,25 @@ export function MitigationMonitoringPanel() {
           notesInputRef.current?.focus();
         }
       });
-      toast.error("Lengkapi seluruh field wajib sebelum mengirim laporan.");
       return;
     }
 
     setSubmitting(true);
     try {
-      await api.put(
-        `/mitigation-tasks/${selectedTask.id}/report`,
-        {
-          status: "done",
-          evidenceUrl,
-          notes,
-        },
-        token,
-      );
-      toast.success("Laporan pelaksanaan tersimpan.");
-      setShowMitigationDialog(false);
-      await fetchMitigations();
+      const updated = await updateTaskReport(token, selectedTask.id, {
+        status: "done",
+        evidenceUrl,
+        notes,
+      });
+      setDetailTask({ ...selectedTask, ...updated });
+      setSelectedTask(null);
+      setReportSent(true);
+      setDialogView("detail");
+      void fetchMitigations();
     } catch (error) {
-      console.error(error);
-      toast.error("Gagal mengirim laporan progress");
+      setSubmitError(error instanceof ApiError && error.status < 500
+        ? error.message
+        : "Pengiriman belum terkonfirmasi. Isian tetap tersedia. Coba kirim lagi.");
     } finally {
       setSubmitting(false);
     }
@@ -417,7 +432,7 @@ export function MitigationMonitoringPanel() {
     const parsed = new Date(value);
     if (Number.isNaN(parsed.getTime())) return value;
 
-    return new Intl.DateTimeFormat("id-ID", {
+    return createDisplayDateFormatter("id-ID", {
       day: "2-digit",
       month: "short",
       year: "numeric",
@@ -463,7 +478,6 @@ export function MitigationMonitoringPanel() {
             <DynamicTableFilters
               search={
                 <CollectionSearchField
-                  containerClassName="w-full sm:w-80 sm:flex-none"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   placeholder="Cari mitigasi..."
@@ -500,8 +514,14 @@ export function MitigationMonitoringPanel() {
             </ActionButton>
           }
         />
-        <CollectionTableCard sorting={!collectionSort.touched&&queryState.status==="needs_reporting"?{...collectionSort.controls,key:"Deadline",direction:"asc"}:collectionSort.controls}>
-
+        <CollectionTableCard
+          stickyActions
+          sorting={
+            !collectionSort.touched && queryState.status === "needs_reporting"
+              ? { ...collectionSort.controls, key: "Deadline", direction: "asc" }
+              : collectionSort.controls
+          }
+        >
           {loading ? (
             <CollectionLoadingState message="Memuat data mitigasi..." />
           ) : mitigations.length === 0 ? (
@@ -538,22 +558,31 @@ export function MitigationMonitoringPanel() {
               }
             />
           ) : (
-            <MitigationTaskTable showCreatedAt tasks={mitigations} onOpenDetail={handleOpenDetail} onReport={handleOpenSubmit} />
-          )}
-
-          {!loading && mitigations.length > 0 && (
-            <CollectionPagination
-              itemLabel="mitigasi"
-              page={page}
-              pageSize={limit}
-              total={total}
-              disabled={loading}
-              onPageChange={handlePageChange}
-              onPageSizeChange={(nextLimit) => {
-                handleLimitChange(nextLimit);
+            <MitigationTaskTable
+              showCreatedAt
+              tasks={mitigations}
+              onOpenDetail={handleOpenDetail}
+              onReport={(task, trigger) => {
+                detailTriggerRef.current = trigger;
+                setOpenedFromWork(false);
+                openReportForm(task);
               }}
             />
           )}
+
+        {!loading && mitigations.length > 0 && (
+          <CollectionPagination
+            itemLabel="mitigasi"
+            page={page}
+            pageSize={limit}
+            total={total}
+            disabled={loading}
+            onPageChange={handlePageChange}
+            onPageSizeChange={(nextLimit) => {
+              handleLimitChange(nextLimit);
+            }}
+          />
+        )}
         </CollectionTableCard>
       </div>
 
@@ -563,10 +592,28 @@ export function MitigationMonitoringPanel() {
           setShowMitigationDialog(open);
           if (!open) {
             setShowValidationErrors(false);
+            setSelectedTask(null);
+            setSubmitError("");
+            setReportSent(false);
             setDialogView("detail");
           }
         }}
+        onCloseAutoFocus={(event) => {
+          if (detailTriggerRef.current?.isConnected) {
+            event.preventDefault();
+            detailTriggerRef.current.focus();
+          }
+        }}
         view={dialogView}
+        reportTask={detailTask}
+        availabilityMessage={detailReportAction?.allowed ? undefined : detailReportAction?.message}
+        reportSent={reportSent}
+        submitError={submitError}
+        dirty={Boolean(selectedTask && (
+          notes !== (selectedTask.notes || "") ||
+          evidenceUrl !== (selectedTask.evidenceUrl || "")
+        ))}
+        submitting={submitting}
         onViewChange={setDialogView}
         detailTitle="Detail Laporan Penanganan"
         detailDescription="Tinjau status, bukti, dan catatan penanganan."
@@ -595,15 +642,15 @@ export function MitigationMonitoringPanel() {
                       <span
                         className={cn(
                           "size-2.5 shrink-0 rounded-full",
-                          detailTask.status === "done"
+                          detailStatus === "done"
                             ? "bg-success"
-                            : detailTask.status === "overdue"
+                            : detailStatus === "overdue"
                               ? "bg-destructive"
                               : "bg-muted-foreground",
                         )}
                         aria-hidden="true"
                       />
-                      {getMitigationReportLabel(detailTask)}
+                      {getMitigationReportLabel({ ...detailTask, status: detailStatus ?? detailTask.status })}
                     </div>
                   </div>
                   <div className="flex flex-col gap-2">
@@ -627,7 +674,7 @@ export function MitigationMonitoringPanel() {
                         strokeWidth={1.6}
                         aria-hidden="true"
                       />
-                      <span>{formatDate(detailTask.dueDate)}</span>
+                      <span><span data-date-time="">{formatDate(detailTask.dueDate)}</span></span>
                     </div>
                   </div>
                   <div className="flex flex-col gap-2">
@@ -647,7 +694,7 @@ export function MitigationMonitoringPanel() {
                       </span>
                       {detailTask.reportedAt ? (
                         <span className="text-muted-foreground">
-                          {formatDate(detailTask.reportedAt)}
+                          <span data-date-time="">{formatDate(detailTask.reportedAt)}</span>
                         </span>
                       ) : null}
                     </div>
@@ -717,27 +764,20 @@ export function MitigationMonitoringPanel() {
           ) : null
         }
         detailAction={
-          detailTask &&
-          (detailTask.status === "pending" || detailTask.status === "overdue") ? (
-            detailTask.status === "overdue" ? (
-              <ActionButton
-                variant="destructive"
-                onClick={() => handleOpenSubmitFromDetail(detailTask)}
-                icon={<Send className="size-3" />}
-              >
-                Isi laporan
-              </ActionButton>
-            ) : (
-              <AccentButton
-                onClick={() => handleOpenSubmitFromDetail(detailTask)}
-                icon={<Send className="size-3" />}
-              >
-                Isi laporan
-              </AccentButton>
-            )
+          reportSent && openedFromWork ? (
+            <ActionButton asChild>
+              <Link href="/work">Kembali ke To-Do</Link>
+            </ActionButton>
+          ) : detailTask && detailReportAction?.allowed ? (
+            <AccentButton
+              onClick={() => openReportForm(detailTask, selectedTask?.id === detailTask.id)}
+              icon={<Send className="size-3" />}
+            >
+              {detailReportAction.label}
+            </AccentButton>
           ) : null
         }
-        formTitle="Isi laporan"
+        formTitle={detailReportAction?.allowed ? detailReportAction.label : "Isi laporan"}
         onFormCancel={() => setDialogView("detail")}
         evidenceUrl={evidenceUrl}
         onEvidenceUrlChange={setEvidenceUrl}
@@ -761,7 +801,7 @@ export function MitigationMonitoringPanel() {
               )
             }
           >
-            {submitting ? "Mengirim..." : "Kirim Laporan"}
+            {submitting ? "Mengirim…" : submitError ? "Coba kirim lagi" : "Kirim laporan"}
           </AccentButton>
         }
         evidenceId="monitoring-evidence-url"

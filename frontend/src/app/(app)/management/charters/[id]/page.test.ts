@@ -33,18 +33,6 @@ test("risk charter uses the canonical desktop document editor", () => {
   assert.match(source, /variant="secondary"/);
   assert.match(source, /variant="primary"\s+size="primary"[\s\S]*icon=\{<Check/);
   assert.match(source, /label="Tindakan Piagam"/);
-  assert.match(source, /showDivider=\{false\}/);
-  assert.match(source, /stacked/);
-  assert.match(source, /<div className="space-y-3 pb-8 lg:pb-10">/);
-  assert.equal((source.match(/className="gap-1 py-0 lg:py-0"/g) ?? []).length, 0);
-  assert.equal(
-    (source.match(/className="!mt-6 gap-3 py-0 lg:py-0"/g) ?? []).length,
-    3,
-  );
-  assert.equal((source.match(/mx-6(?: !mt-6)? lg:mx-8/g) ?? []).length, 3);
-  assert.equal((source.match(/className="mx-6 !mt-6 lg:mx-8"/g) ?? []).length, 3);
-  assert.equal((source.match(/titleId="charter-/g) ?? []).length, 3);
-  assert.equal((source.match(/aria-labelledby="charter-/g) ?? []).length, 3);
   assert.doesNotMatch(source, /className="sr-only"/);
   assert.match(source, /<Label htmlFor="charter-title">[\s\S]*Judul Piagam/);
   assert.match(source, /<div className="flex flex-col gap-3">/);
@@ -52,7 +40,6 @@ test("risk charter uses the canonical desktop document editor", () => {
   assert.match(source, /nama dan jabatan terisi otomatis/);
   assert.match(source, /rows=\{1\}/);
   assert.match(source, /resize-none[\s\S]*rounded-none border-0 bg-transparent/);
-  assert.doesNotMatch(source, /<DocumentForm>/);
   assert.doesNotMatch(source, /<dl/);
   for (const subtitle of [
     "Jelaskan proses, unit, area kerja",
@@ -81,6 +68,14 @@ test("risk charter uses the canonical desktop document editor", () => {
     assert.ok(nextIndex > previousIndex, `${title} must follow the approved order`);
     previousIndex = nextIndex;
   }
+});
+
+test("charter fields and document lists use the shared inset form groups", () => {
+  assert.match(source, /<DocumentForm title="Isi Piagam"/);
+  assert.equal((source.match(/<FormGroup>/g) ?? []).length, 4);
+  assert.doesNotMatch(source, /showDivider=\{false\}|!mt-6 gap-3 py-0/);
+  assert.equal((source.match(/titleId="charter-/g) ?? []).length, 3);
+  assert.equal((source.match(/aria-labelledby="charter-/g) ?? []).length, 3);
 });
 
 test("draft persistence and finalization are explicit and separate", () => {

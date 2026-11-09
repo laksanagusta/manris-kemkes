@@ -29,7 +29,11 @@ export function AppHeader() {
     return null;
   }
 
-  if (isCharterDetail) {
+  const isEvaluationDetail =
+    /^\/evaluations\/[^/]+$/.test(pathname) &&
+    pathname !== "/evaluations/new";
+
+  if (isCharterDetail || isEvaluationDetail) {
     return null;
   }
 

@@ -39,18 +39,18 @@ func (r *incidentRepository) Create(ctx context.Context, incident *entity.Incide
 
 	query := `
 		INSERT INTO incidents (
-			title, what, who, "when", "where", why_how, severity, status,
+			title, what, "when", severity, status,
 			corrective_action, preventive_action, linked_risk_id, reporter_id, organization_id, created_at, updated_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, $7, $8,
-			$9, $10, $11, $12, $13, NOW(), NOW()
+			$1, $2, $3, $4, $5,
+			$6, $7, $8, $9, $10, NOW(), NOW()
 		) RETURNING id, created_at, updated_at,
-		(SELECT code FROM risks WHERE id = $11) as linked_risk_code,
-		(SELECT name FROM users WHERE id = $12) as reporter_name
+		(SELECT code FROM risks WHERE id = $8) as linked_risk_code,
+		(SELECT name FROM users WHERE id = $9) as reporter_name
 	`
 
 	err = tx.QueryRow(ctx, query,
-		incident.Title, incident.What, incident.Who, incident.When, incident.Where, incident.WhyHow, incident.Severity, incident.Status,
+		incident.Title, incident.What, incident.When, incident.Severity, incident.Status,
 		incident.CorrectiveAction, incident.PreventiveAction, primaryRiskID, incident.ReporterID, incident.OrganizationID,
 	).Scan(&incident.ID, &incident.CreatedAt, &incident.UpdatedAt, &incident.LinkedRiskCode, &incident.ReporterName)
 	if err != nil {
@@ -85,7 +85,7 @@ func (r *incidentRepository) Create(ctx context.Context, incident *entity.Incide
 // GetByID retrieves an incident by ID.
 func (r *incidentRepository) GetByID(ctx context.Context, id string, orgIDs []uuid.UUID) (*entity.Incident, error) {
 	query := `
-		SELECT i.id, i.code, i.title, i.what, i.who, i."when", i."where", i.why_how,
+		SELECT i.id, i.code, i.title, i.what, i."when",
 		       i.severity, i.status, i.corrective_action, i.preventive_action,
 		       i.linked_risk_id, r.code as linked_risk_code,
 		       i.reporter_id, u.name as reporter_name, i.organization_id, i.created_at, i.updated_at
@@ -102,7 +102,7 @@ func (r *incidentRepository) GetByID(ctx context.Context, id string, orgIDs []uu
 
 	var incident entity.Incident
 	if err := r.pool.QueryRow(ctx, query, args...).Scan(
-		&incident.ID, &incident.Code, &incident.Title, &incident.What, &incident.Who, &incident.When, &incident.Where, &incident.WhyHow,
+		&incident.ID, &incident.Code, &incident.Title, &incident.What, &incident.When,
 		&incident.Severity, &incident.Status, &incident.CorrectiveAction, &incident.PreventiveAction,
 		&incident.LinkedRiskID, &incident.LinkedRiskCode, &incident.ReporterID, &incident.ReporterName, &incident.OrganizationID, &incident.CreatedAt, &incident.UpdatedAt,
 	); err != nil {
@@ -136,15 +136,15 @@ func (r *incidentRepository) Update(ctx context.Context, incident *entity.Incide
 
 	query := `
 		UPDATE incidents SET
-			title = $1, what = $2, who = $3, "when" = $4, "where" = $5, why_how = $6,
-			severity = $7, status = $8, corrective_action = $9, preventive_action = $10,
-			linked_risk_id = $11, organization_id = $12, updated_at = NOW()
-		WHERE id = $13
+			title = $1, what = $2, "when" = $3,
+			severity = $4, status = $5, corrective_action = $6, preventive_action = $7,
+			linked_risk_id = $8, organization_id = $9, updated_at = NOW()
+		WHERE id = $10
 		RETURNING updated_at,
-		(SELECT code FROM risks WHERE id = $11) as linked_risk_code
+		(SELECT code FROM risks WHERE id = $8) as linked_risk_code
 	`
 	if err := tx.QueryRow(ctx, query,
-		incident.Title, incident.What, incident.Who, incident.When, incident.Where, incident.WhyHow,
+		incident.Title, incident.What, incident.When,
 		incident.Severity, incident.Status, incident.CorrectiveAction, incident.PreventiveAction,
 		primaryRiskID, incident.OrganizationID, incident.ID,
 	).Scan(&incident.UpdatedAt, &incident.LinkedRiskCode); err != nil {
@@ -181,7 +181,7 @@ func (r *incidentRepository) Delete(ctx context.Context, id string) error {
 // List retrieves incidents with optional filters.
 func (r *incidentRepository) List(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.Incident, error) {
 	query := `
-		SELECT i.id, i.code, i.title, i.what, i.who, i."when", i."where", i.why_how,
+		SELECT i.id, i.code, i.title, i.what, i."when",
 		       i.severity, i.status, i.corrective_action, i.preventive_action,
 		       i.linked_risk_id, r.code as linked_risk_code,
 		       i.reporter_id, u.name as reporter_name, i.organization_id, i.created_at, i.updated_at
@@ -212,7 +212,7 @@ func (r *incidentRepository) List(ctx context.Context, orgIDs []uuid.UUID) ([]*e
 	for rows.Next() {
 		var incident entity.Incident
 		if err := rows.Scan(
-			&incident.ID, &incident.Code, &incident.Title, &incident.What, &incident.Who, &incident.When, &incident.Where, &incident.WhyHow,
+			&incident.ID, &incident.Code, &incident.Title, &incident.What, &incident.When,
 			&incident.Severity, &incident.Status, &incident.CorrectiveAction, &incident.PreventiveAction,
 			&incident.LinkedRiskID, &incident.LinkedRiskCode, &incident.ReporterID, &incident.ReporterName, &incident.OrganizationID, &incident.CreatedAt, &incident.UpdatedAt,
 		); err != nil {

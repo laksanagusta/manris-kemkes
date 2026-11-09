@@ -41,20 +41,22 @@ export function CollectionTableCard({
       viewport.removeEventListener("scroll", update);
       viewport.removeAttribute("data-action-overlap");
     };
-  }, [stickyActions]);
+  });
 
   const items = Children.toArray(children);
   const isPagination = (item: ReactNode) =>
     isValidElement(item) && item.type === CollectionPagination;
 
   return (
-    <CollectionSortProvider controls={sorting}><Card className={cn("gap-0 py-0", styles.tableCard, className)} data-collection-table="" {...props}>
-      <CardContent className="min-w-0 p-0">
-        <div ref={contentRef} className="min-w-0">
-          {items.filter((item) => !isPagination(item))}
-        </div>
-      </CardContent>
-      {items.filter(isPagination)}
-    </Card></CollectionSortProvider>
+    <CollectionSortProvider controls={sorting}>
+      <Card className={cn("gap-0 py-0", styles.tableCard, className)} data-collection-table="" {...props}>
+        <CardContent className="min-w-0 p-0">
+          <div ref={contentRef} className="min-w-0">
+            {items.filter((item) => !isPagination(item))}
+          </div>
+        </CardContent>
+        {items.filter(isPagination)}
+      </Card>
+    </CollectionSortProvider>
   );
 }

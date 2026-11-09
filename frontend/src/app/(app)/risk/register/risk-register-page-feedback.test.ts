@@ -262,18 +262,15 @@ test("risk form uses concise finalization copy and medium-weight field labels", 
   assert.match(riskFormPage, /\[&_\[data-slot=label\]\]:font-medium/);
 });
 
-test("risk form section headings use stock Card title and description slots", () => {
-  const sectionHeadingClass =
-    /<CardTitle className="transition-colors">/g;
-  const sectionSubtitleClass =
-    /<CardDescription>/g;
+test("risk form section headings use the shared form container", () => {
+  const sections = riskFormPage.match(/<FormContainer\s+[\s\S]*?className="scroll-mt-28"/g) ?? [];
 
-  assert.equal(riskFormPage.match(sectionHeadingClass)?.length, 6);
-  assert.equal(riskFormPage.match(sectionSubtitleClass)?.length, 6);
-  assert.match(
-    riskFormPage,
-    /<CardTitle className="transition-colors">Identifikasi Risiko<\/CardTitle>/,
-  );
+  assert.equal(sections.length, 6);
+  for (const section of sections) {
+    assert.match(section, /title="/);
+    assert.match(section, /description=/);
+  }
+  assert.match(sections[0], /title="Identifikasi Risiko"/);
 });
 
 test("risk evaluation metadata keeps values concise, normal, and muted", () => {

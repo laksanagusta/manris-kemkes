@@ -1,5 +1,7 @@
 "use client";
 
+import { createDisplayDateFormatter } from "@/lib/display-date";
+
 import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -53,9 +55,9 @@ export function BottomFormDrawerExample() {
                       className="w-full justify-start text-left font-normal"
                     >
                       <CalendarIcon aria-hidden="true" data-icon="inline-start" />
-                      {occurredDate
-                        ? new Intl.DateTimeFormat("id-ID", { dateStyle: "long" }).format(occurredDate)
-                        : "Pilih tanggal"}
+                      <span data-date-time="">{occurredDate
+                        ? createDisplayDateFormatter("id-ID", { dateStyle: "long" }).format(occurredDate)
+                        : "Pilih tanggal"}</span>
                     </Button>
                   </PopoverTrigger>
                   <PopoverContent align="start" className="w-auto p-0">

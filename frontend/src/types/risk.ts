@@ -35,15 +35,7 @@ export interface RiskMitigation {
   executionScheduleText?: string;
   targetCost?: number;
   mitigationType?: MitigationType;
-  activityStage?: string;
-  expectedOutput?: string;
-  quantitativeTarget?: string;
-  supportingUnit?: string;
-  resourcesRequired?: string;
-	contingencyPlan?: string;
-	potentialObstacle?: string;
-	isBreakthroughActivity?: boolean;
-  isExistingControl?: boolean;
+
 }
 
 export type MitigationTaskStatus =
@@ -81,6 +73,7 @@ export interface MitigationTask {
 }
 
 export interface MonitoringValidationResult {
+  reportRevision: string;
   canFinalize: boolean;
   totalTasks: number;
   reportedTasks: number;

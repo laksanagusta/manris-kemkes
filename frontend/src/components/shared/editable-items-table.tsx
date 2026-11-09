@@ -22,6 +22,7 @@ interface EditableItemsTableProps {
   addItemLabel?: string;
   emptyMessage?: string;
   itemLabel?: string;
+  "aria-describedby"?: string;
   invalid?: boolean;
   itemErrors?: Array<string | undefined>;
   emptyStatePresentation?: "illustrated" | "plain";
@@ -36,6 +37,7 @@ export function EditableItemsTable({
   addItemLabel = "Tambah Item",
   emptyMessage = "Belum ada item",
   itemLabel = "Item",
+  "aria-describedby": ariaDescribedBy,
   invalid = false,
   itemErrors,
   emptyStatePresentation = "illustrated",
@@ -113,10 +115,40 @@ export function EditableItemsTable({
     onChange(items.filter((item) => item.id !== id));
   };
 
+  const renderInput = (item: EditableItem, index: number) => (
+    <>
+      <Input
+        aria-label={`${itemLabel} ${index + 1}`}
+        value={item.text}
+        onChange={(e) => updateItem(item.id, e.target.value)}
+        placeholder={placeholder}
+        disabled={disabled}
+      />
+      {itemErrors?.[index] ? (
+        <p className="mt-1 text-xs text-destructive">{itemErrors[index]}</p>
+      ) : null}
+    </>
+  );
+
+  const renderRemoveButton = (item: EditableItem, index: number) => (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon"
+      aria-label={`Hapus ${itemLabel.toLowerCase()} ${index + 1}`}
+      className="w-8"
+      onClick={() => removeItem(item.id)}
+      disabled={disabled}
+    >
+      <Trash2 className="size-3.5" />
+    </Button>
+  );
+
   return (
     <div
       role="group"
       aria-label={itemLabel}
+      aria-describedby={ariaDescribedBy}
       data-invalid={invalid || undefined}
       className="space-y-2"
     >
@@ -154,29 +186,10 @@ export function EditableItemsTable({
                   )}
                 >
                   <TableCell className="flex-1">
-                    <Input
-                      aria-label={`${itemLabel} ${index + 1}`}
-                      value={item.text}
-                      onChange={(e) => updateItem(item.id, e.target.value)}
-                      placeholder={placeholder}
-                      className=""
-                      disabled={disabled}
-                    />
-                    {itemErrors?.[index] ? (
-                      <p className="mt-1 text-xs text-destructive">{itemErrors[index]}</p>
-                    ) : null}
+                    {renderInput(item, index)}
                   </TableCell>
                   <TableCell className="w-10">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      aria-label={`Hapus ${itemLabel.toLowerCase()} ${index + 1}`}
-                      className="w-8"
-                      onClick={() => removeItem(item.id)}
-                      disabled={disabled}
-                    >
-                      <Trash2 className="size-3.5" />
-                    </Button>
+                    {renderRemoveButton(item, index)}
                   </TableCell>
                 </TableRow>
               ))}

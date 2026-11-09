@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-const viewModelLib = await import(new URL("./working-paper-detail-view-model", import.meta.url).href);
+const viewModelLib = await import(new URL("./working-paper-detail-view-model.ts", import.meta.url).href);
 
 const { buildWorkingPaperDetailViewModel } = viewModelLib as typeof import("./working-paper-detail-view-model");
 
@@ -29,7 +29,7 @@ function makeWorkingPaper(overrides: Partial<WorkingPaper> = {}): WorkingPaper {
           code: "R-001",
           title: "Keterlambatan distribusi vaksin",
           category: "operasional",
-          status: "approved",
+          status: "final",
           probability: 4,
           impact: 4,
           bobot: 1,
@@ -81,7 +81,7 @@ test("buildWorkingPaperDetailViewModel highlights the current signer action", ()
   assert.equal(result.canSkipTTE, false);
   assert.equal(result.canCancel, true);
   assert.equal(result.canDelete, false);
-  assert.equal(result.currentAction?.title, "Tindakan Anda diperlukan");
+  assert.equal(result.currentAction?.title, "Giliran Anda");
   assert.equal(result.currentAction?.buttonLabel, "Tanda tangani sekarang");
   assert.equal(result.timeline[0]?.label, "Giliran Anda");
   assert.match(result.timeline[0]?.description ?? "", /periksa isi dokumen/i);
@@ -163,7 +163,7 @@ test("buildWorkingPaperDetailViewModel allows creator to skip TTE when all risks
             code: "R-001",
             title: "Keterlambatan distribusi vaksin",
             category: "operasional",
-            status: "approved",
+            status: "final",
             probability: 4,
             impact: 4,
             bobot: 1,
@@ -179,7 +179,7 @@ test("buildWorkingPaperDetailViewModel allows creator to skip TTE when all risks
 
   assert.equal(result.canStartSigning, true);
   assert.equal(result.canSkipTTE, true);
-  assert.equal(result.currentAction?.title, "Siap ditandatangani");
+  assert.equal(result.currentAction?.title, "Siap mulai TTE");
   assert.equal(result.currentAction?.buttonLabel, "Mulai proses TTE");
   assert.match(
     result.currentAction?.description ?? "",
@@ -203,7 +203,7 @@ test("buildWorkingPaperDetailViewModel blocks signing when monitoring is still d
             code: "R-001",
             title: "Keterlambatan distribusi vaksin",
             category: "operasional",
-            status: "approved",
+            status: "final",
             probability: 4,
             impact: 4,
             bobot: 1,
@@ -238,7 +238,7 @@ test("buildWorkingPaperDetailViewModel blocks signing when monitoring is still d
 
   assert.equal(result.canSign, false);
   assert.equal(result.canSkipTTE, false);
-  assert.match(result.currentAction?.title ?? "", /monitoring/i);
+  assert.match(result.currentAction?.title ?? "", /pemantauan/i);
   assert.equal(result.monitoringBlockers.length, 1);
 });
 
@@ -260,4 +260,14 @@ test("buildWorkingPaperDetailViewModel shows skipped state when tte_skipped is t
   assert.equal(result.timeline[0]?.state, "skipped");
   assert.equal(result.timeline[0]?.label, "TTE dilewati");
   assert.equal(result.timeline[1]?.state, "skipped");
+});
+
+test("a new period roster blocks signing when every included risk lacks monitoring", () => {
+  const paper = makeWorkingPaper({ status: "draft", assessment_cycle: "2026-Q1" });
+  paper.risks[0].source_mode = "roster";
+  const result = buildWorkingPaperDetailViewModel(paper, paper.created_by);
+
+  assert.equal(result.canStartSigning, false);
+  assert.equal(result.canSkipTTE, false);
+  assert.deepEqual(result.monitoringBlockers.map((link) => link.risk.code), ["R-001"]);
 });

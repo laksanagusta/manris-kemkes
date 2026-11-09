@@ -1,9 +1,17 @@
-import type { ComponentProps, KeyboardEvent } from "react";
-import { Search } from "@/components/shared/icons";
-import { Kbd } from "@/components/ui/kbd";
+"use client";
 
+import type { ComponentProps, KeyboardEvent } from "react";
+import { Search, X } from "@/components/shared/icons";
 import { SearchInput } from "@/components/shared/search-input";
 import { cn } from "@/lib/utils";
+
+function clearSearch(input: HTMLInputElement) {
+  if (!input.value || input.disabled || input.readOnly) return;
+
+  const setValue = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+  setValue?.call(input, "");
+  input.dispatchEvent(new Event("input", { bubbles: true }));
+}
 
 export function CollectionSearchField({
   className,
@@ -13,29 +21,17 @@ export function CollectionSearchField({
 }: ComponentProps<typeof SearchInput> & { containerClassName?: string }) {
   const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     onKeyDown?.(event);
-
-    if (event.defaultPrevented || event.key !== "Escape" || !event.currentTarget.value) {
-      return;
+    if (!event.defaultPrevented && event.key === "Escape") {
+      clearSearch(event.currentTarget);
     }
-
-    const input = event.currentTarget;
-    const valueSetter = Object.getOwnPropertyDescriptor(
-      HTMLInputElement.prototype,
-      "value",
-    )?.set;
-
-    valueSetter?.call(input, "");
-    input.dispatchEvent(new Event("input", { bubbles: true }));
   };
 
   return (
     <div
-      className={cn(
-        "relative min-w-0 w-full sm:w-80 sm:flex-none",
-        containerClassName,
-      )}
+      data-slot="collection-search"
+      className={cn("relative w-full min-w-0 sm:w-[340px] sm:max-w-full sm:flex-none", containerClassName)}
     >
-      <Search className="pointer-events-none absolute left-3 top-1/2 z-10 size-4 -translate-y-1/2 text-muted-foreground" />
+      <Search aria-hidden="true" className="pointer-events-none absolute start-2 top-1/2 z-10 size-[18px] -translate-y-1/2 text-table-sort-indicator" />
       <SearchInput
         {...props}
         type="text"
@@ -43,17 +39,24 @@ export function CollectionSearchField({
         aria-keyshortcuts="Escape"
         placeholder={props.placeholder ?? " "}
         onKeyDown={handleKeyDown}
-        className={cn(
-          "peer h-8 bg-card pl-10 pr-12 text-sm peer-placeholder-shown:pr-3",
-          className,
-        )}
+        className={cn("h-8 ps-[34px] pe-9 font-normal", className)}
       />
-      <Kbd
-        aria-hidden="true"
-        className="absolute right-3 top-1/2 z-10 -translate-y-1/2 peer-placeholder-shown:hidden"
+      <button
+        type="button"
+        aria-label="Kosongkan pencarian"
+        disabled={props.disabled || props.readOnly}
+        onMouseDown={(event) => event.preventDefault()}
+        onClick={(event) => {
+          const input = event.currentTarget.parentElement?.querySelector("input");
+          if (input) {
+            clearSearch(input);
+            input.focus();
+          }
+        }}
+        className="absolute end-1 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-control text-table-header-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring disabled:opacity-50"
       >
-        Esc
-      </Kbd>
+        <X aria-hidden="true" className="size-3.5" />
+      </button>
     </div>
   );
 }

@@ -27,7 +27,7 @@ type monitoringTransactionRepository interface {
 	ListByVersionGroup(ctx context.Context, versionGroupID uuid.UUID) ([]*entity.RiskMonitoring, error)
 	Create(ctx context.Context, monitoring *entity.RiskMonitoring) error
 	UpdateDraft(ctx context.Context, monitoring *entity.RiskMonitoring) error
-	Finalize(ctx context.Context, monitoringID uuid.UUID, resultRisk *entity.Risk, finalizedBy uuid.UUID) (*entity.RiskMonitoring, error)
+	Finalize(ctx context.Context, monitoringID uuid.UUID, resultRisk *entity.Risk, finalizedBy uuid.UUID, review domainrepo.MonitoringFinalizeReview) (*entity.RiskMonitoring, error)
 	UpdateTaskMonitoringIDs(ctx context.Context, monitoringID uuid.UUID, riskID uuid.UUID, cycle string) error
 }
 
@@ -83,8 +83,10 @@ type StartMonitoringOutput struct {
 }
 
 type UpdateMonitoringInput struct {
-	MonitoringID uuid.UUID
-	OrgIDs       []uuid.UUID
+	ExpectedUpdatedAt      *time.Time
+	ObservedScoreConfirmed *bool
+	MonitoringID           uuid.UUID
+	OrgIDs                 []uuid.UUID
 
 	ObservedProbability int
 	ObservedImpact      int
@@ -103,9 +105,11 @@ type UpdateMonitoringOutput struct {
 }
 
 type FinalizeMonitoringInput struct {
-	MonitoringID uuid.UUID
-	OrgIDs       []uuid.UUID
-	FinalizedBy  uuid.UUID
+	ExpectedUpdatedAt *time.Time
+	ReportRevision    *string
+	MonitoringID      uuid.UUID
+	OrgIDs            []uuid.UUID
+	FinalizedBy       uuid.UUID
 }
 
 type FinalizeMonitoringOutput struct {
@@ -255,6 +259,10 @@ func (uc *UpdateMonitoringUseCase) Execute(ctx context.Context, input UpdateMoni
 		return nil, errors.ErrMonitoringNotDraft
 	}
 
+	if input.ExpectedUpdatedAt != nil && !monitoring.UpdatedAt.Equal(*input.ExpectedUpdatedAt) {
+		return nil, errors.ErrMonitoringReviewChanged
+	}
+
 	if !entity.MonitoringWindowOpen(monitoring.AssessmentCycle, uc.now()) {
 		return nil, errors.ErrMonitoringWindowClosed
 	}
@@ -302,7 +310,14 @@ func (uc *UpdateMonitoringUseCase) Execute(ctx context.Context, input UpdateMoni
 	monitoring.Mode = mode
 	monitoring.ProfileChangeSummary = changedFields
 	monitoring.ChangeReason = strings.TrimSpace(draftValues.ChangeReason)
-	monitoring.SetDraftPayload(entity.NewRiskMonitoringDraftPayloadFromValues(draftValues))
+	payload := entity.NewRiskMonitoringDraftPayloadFromValues(draftValues)
+	sameScore := input.ObservedProbability == monitoring.ObservedProbability &&
+		input.ObservedImpact == monitoring.ObservedImpact
+	payload.ObservedScoreConfirmed = sameScore && monitoring.ObservedScoreConfirmed
+	if input.ObservedScoreConfirmed != nil {
+		payload.ObservedScoreConfirmed = *input.ObservedScoreConfirmed
+	}
+	monitoring.SetDraftPayload(payload)
 	monitoring.ObservedProbability = input.ObservedProbability
 	monitoring.ObservedImpact = input.ObservedImpact
 	monitoring.Conclusion = input.Conclusion
@@ -384,6 +399,10 @@ func (uc *FinalizeMonitoringUseCase) Execute(ctx context.Context, input Finalize
 		return nil, errors.ErrMonitoringNotFinalizable
 	}
 
+	if input.ExpectedUpdatedAt != nil && !monitoring.UpdatedAt.Equal(*input.ExpectedUpdatedAt) {
+		return nil, errors.ErrMonitoringReviewChanged
+	}
+
 	if !entity.MonitoringWindowOpen(monitoring.AssessmentCycle, uc.now()) {
 		return nil, errors.ErrMonitoringWindowClosed
 	}
@@ -417,17 +436,17 @@ func (uc *FinalizeMonitoringUseCase) Execute(ctx context.Context, input Finalize
 		return nil, err
 	}
 
-	finalizedMonitoring, err := uc.monitoringRepo.Finalize(ctx, monitoring.ID, resultRisk, input.FinalizedBy)
+	finalizedMonitoring, err := uc.monitoringRepo.Finalize(ctx, monitoring.ID, resultRisk, input.FinalizedBy, domainrepo.MonitoringFinalizeReview{
+		DraftUpdatedAt: monitoring.UpdatedAt,
+		ReportRevision: input.ReportRevision,
+	})
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to finalize monitoring transaction")
 	}
 
 	if uc.fullRiskRepo != nil && uc.taskRepo != nil {
 		ensureUC := mtuc.NewEnsureTasksForRiskVersionUseCase(uc.taskRepo, uc.fullRiskRepo)
-		nextCycle, cycleErr := NextQuarterCycle(monitoring.AssessmentCycle)
-		if cycleErr != nil {
-			return nil, cycleErr
-		}
+		nextCycle := resultRisk.AssessmentCycle
 		nextRiskID := resultRisk.ID
 		if _, err := ensureUC.Execute(ctx, nextRiskID, nextCycle, input.OrgIDs); err != nil {
 			log.Printf("[WARN] ensure mitigation tasks after finalize for next cycle %s: %v", nextCycle, err)

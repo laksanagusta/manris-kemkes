@@ -24,6 +24,7 @@ type UpdateRiskUseCase struct {
 	orgRepo  repository.OrganizationRepository
 	wpRepo   WorkingPaperLockChecker
 	taskRepo repository.MitigationTaskRepository
+	now      func() time.Time
 }
 
 func NewUpdateRiskUseCase(
@@ -39,6 +40,7 @@ func NewUpdateRiskUseCase(
 		orgRepo:  orgRepo,
 		wpRepo:   wpRepo,
 		taskRepo: taskRepo,
+		now:      time.Now,
 	}
 	return uc
 }
@@ -243,7 +245,10 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 		}
 	}
 	if input.Status == entity.RiskStatusFinal && !wasFinal {
-		now := time.Now().UTC()
+		now := uc.now().UTC()
+		if existingRisk.PreviousRiskID == nil && existingRisk.VersionNumber <= 1 {
+			existingRisk.AssessmentCycle = assessmentCycleAt(now)
+		}
 		existingRisk.ReviewSubmittedAt = &now
 		existingRisk.ReviewApprovedAt = &now
 		existingRisk.FinalizeRequested = true
@@ -256,6 +261,10 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 			return nil, cycleErr
 		}
 		existingRisk.EffectiveFrom = &effectiveFrom
+		if existingRisk.PreviousRiskID == nil && existingRisk.VersionNumber <= 1 {
+			effectiveDate := finalizationDateAt(now)
+			existingRisk.EffectiveFrom = &effectiveDate
+		}
 	}
 
 	// 8. Save to database

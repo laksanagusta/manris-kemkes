@@ -122,6 +122,11 @@ import {
   WandSparklesIcon as hugeIconData118,
   XCircle as hugeIconData119,
   XIcon as hugeIconData120,
+  BrochureIcon,
+  NoteIcon,
+  DashboardCircleIcon,
+  PieChart09Icon,
+  MessageSquareWarningIcon,
 } from "@hugeicons/core-free-icons";
 
 /**
@@ -147,6 +152,12 @@ function createHugeIcon(icon: HugeiconsIconProps["icon"], displayName: string) {
   Icon.displayName = displayName;
   return Icon;
 }
+
+export const Brochure = createHugeIcon(BrochureIcon, "Brochure");
+export const Note = createHugeIcon(NoteIcon, "Note");
+export const DashboardCircle = createHugeIcon(DashboardCircleIcon, "DashboardCircle");
+export const PieChart09 = createHugeIcon(PieChart09Icon, "PieChart09");
+export const MessageSquareWarning = createHugeIcon(MessageSquareWarningIcon, "MessageSquareWarning");
 
 const Activity = createHugeIcon(hugeIconData0, "Activity");
 const Agreement03 = createHugeIcon(hugeIconData57, "Agreement03");

@@ -1,6 +1,6 @@
 export type WorkingPaperStatus = 'draft' | 'signing' | 'completed' | 'cancelled';
 export type SignatoryStatus = 'pending' | 'signed';
-export type WorkingPaperRiskSourceMode = "latest_approved" | "review_periodic";
+export type WorkingPaperRiskSourceMode = "latest_approved" | "review_periodic" | "roster";
 
 export interface WorkingPaperRiskMonitoring {
   id: string;
@@ -154,6 +154,8 @@ export interface WorkingPaper {
   assessment_cycle?: string;
   risks: WorkingPaperRiskLink[];
   document_hash?: string;
+  review_hash?: string;
+  content_locked?: boolean;
   current_signatory_sequence: number;
   created_by: string;
   created_at: string;

@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import {
   BookOpen,
+  ClipboardCheck,
   LayoutDashboard,
   Search,
 } from "@/components/shared/icons";
@@ -13,6 +14,7 @@ import { SidebarNavItem } from "@/components/shared/sidebar-nav-item";
 
 const items = [
   { label: "Dashboard", href: "/overview", icon: LayoutDashboard },
+  { label: "Evaluasi", href: "/evaluations", icon: ClipboardCheck },
   { label: "Library", href: "/library", icon: BookOpen },
   { label: "Search", href: "/search", icon: Search },
 ] as const;

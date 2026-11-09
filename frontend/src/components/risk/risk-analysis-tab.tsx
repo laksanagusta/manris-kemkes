@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDisplayDate } from "@/lib/display-date";
+
 import { useMemo } from "react";
 import {
   Line,
@@ -66,7 +68,7 @@ const chartConfig = {
 function formatShortDate(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "Tanggal tidak valid";
-  return date.toLocaleDateString("id-ID", {
+  return formatDisplayDate(date, {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -407,7 +409,7 @@ export function RiskAnalysisTab({
                           </div>
                         </TableCell>
                         <TableCell className="align-middle whitespace-nowrap">
-                          {formatShortDate(row.createdAt)}
+                          <span data-date-time="">{formatShortDate(row.createdAt)}</span>
                         </TableCell>
                         <TableCell className="align-middle whitespace-nowrap">
                           <Badge variant={row.supersededByRiskId ? "secondary" : "outline"}>
@@ -447,7 +449,7 @@ export function RiskAnalysisTab({
                         </TableCell>
                         <TableCell className="align-middle whitespace-nowrap">
                           <span
-                            className="block max-w-[28rem] truncate text-xs leading-relaxed text-muted-foreground"
+                            className="block max-w-[28rem] truncate leading-relaxed text-muted-foreground"
                             title={row.changeReason}
                           >
                             {row.changeReason}

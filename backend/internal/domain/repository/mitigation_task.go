@@ -53,7 +53,8 @@ type MitigationTaskRepository interface {
 }
 
 type MonitoringTaskCounts struct {
-	Total   int `json:"total"`
-	Done    int `json:"done"`
-	Pending int `json:"pending"`
+	Revision string `json:"revision"`
+	Total    int    `json:"total"`
+	Done     int    `json:"done"`
+	Pending  int    `json:"pending"`
 }

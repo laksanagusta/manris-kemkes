@@ -6,7 +6,6 @@ import {
   buildQuarterlyAnalysis,
   movementLabels,
   taskStateLabels,
-  conditionLabels,
   severityLabels,
   eventHasRiskLinks,
 } from "./quarterly-report";
@@ -424,17 +423,10 @@ export async function createQuarterlyReportWorkbook(report: QuarterlyReport, for
       "Unit",
       "Tanggal kejadian",
       "Tingkat",
-      "Kondisi pascarespons tercatat",
-      "Dampak aktual",
       "Jenis dampak",
-      "Respons langsung",
-      "Tindak lanjut",
       "Kerugian diketahui",
       "Kerugian (Rp)",
       "Risiko terkait",
-      "Lokasi",
-      "Pihak terdampak",
-      "Bukti URL",
       "Dicatat oleh",
       "Catatan tambahan",
       "Diperbarui pada",
@@ -449,11 +441,7 @@ export async function createQuarterlyReportWorkbook(report: QuarterlyReport, for
         "",
       event.occurredAt,
       severityLabels[event.severity],
-      conditionLabels[event.postResponseCondition],
-      event.actualImpact || "",
       event.impactTypes?.join("; ") || "",
-      event.immediateResponse || "",
-      event.ongoingAction || "",
       event.financialLossKnown === true,
       event.financialLossKnown === true &&
       typeof event.financialLoss === "number" &&
@@ -467,9 +455,6 @@ export async function createQuarterlyReportWorkbook(report: QuarterlyReport, for
         (eventHasRiskLinks(event)
           ? "Risiko terkait di luar scope"
           : "Belum terhubung"),
-      event.location || "",
-      event.affectedParties || "",
-      event.evidenceUrl || "",
       event.createdByName || "",
       (event.notes ?? []).map(note => `${note.createdByName}: ${note.body}`).join("\n"),
       event.updatedAt || "",

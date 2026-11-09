@@ -2,6 +2,18 @@
 
 import { useLayoutEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { formatDisplayDate } from "@/lib/display-date";
+import type { MitigationTask } from "@/types/risk";
 import { Separator } from "@/components/ui/separator";
 import {
   Dialog,
@@ -33,6 +45,12 @@ type MitigationProgressFlowDialogProps = MitigationProgressFormProps & {
   formTitle: ReactNode;
   formDescription?: ReactNode;
   footerActions: ReactNode;
+  reportTask?: Pick<MitigationTask, "mitigationAction" | "riskCode" | "periodLabel" | "dueDate"> | null;
+  availabilityMessage?: string;
+  reportSent?: boolean;
+  submitError?: string;
+  dirty?: boolean;
+  submitting?: boolean;
   onFormCancel?: () => void;
   className?: string;
   onCloseAutoFocus?: ComponentProps<typeof DialogContent>["onCloseAutoFocus"];
@@ -48,13 +66,27 @@ export function MitigationProgressFlowDialog({
   detailContent,
   detailAction,
   formTitle,
-  formDescription = "Masukkan bukti dan catatan untuk melaporkan progres penanganan.",
+  formDescription = "Catat pelaksanaan tindakan penanganan untuk periode ini.",
   footerActions,
+  reportTask,
+  availabilityMessage,
+  reportSent,
+  submitError,
+  dirty,
+  submitting,
   onFormCancel,
   className,
   onCloseAutoFocus,
   ...formProps
 }: MitigationProgressFlowDialogProps) {
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  const previousViewRef = useRef(view);
+  useLayoutEffect(() => {
+    if (open && previousViewRef.current !== view) titleRef.current?.focus();
+    previousViewRef.current = view;
+  }, [open, view]);
+
   const [modalElement, setModalElement] = useState<HTMLDivElement | null>(null);
   const [bodyContentElement, setBodyContentElement] =
     useState<HTMLDivElement | null>(null);
@@ -155,11 +187,19 @@ export function MitigationProgressFlowDialog({
     };
   }, [bodyContentElement, modalElement, open, view]);
 
+  const dueDate = reportTask ? new Date(reportTask.dueDate) : null;
+  const heading = reportSent ? "Laporan penanganan terkirim" : detailTitle;
+
+  const close = () => {
+    setConfirmDiscard(false);
+    onViewChange("detail");
+    onOpenChange(false);
+  };
+
   const handleOpenChange = (nextOpen: boolean) => {
-    if (!nextOpen) {
-      onViewChange("detail");
-    }
-    onOpenChange(nextOpen);
+    if (nextOpen) onOpenChange(true);
+    else if (!submitting && dirty) setConfirmDiscard(true);
+    else if (!submitting) close();
   };
 
   const handleFormCancel = () => {
@@ -180,14 +220,18 @@ export function MitigationProgressFlowDialog({
           "flex max-h-[calc(100dvh-1rem)] w-[calc(100%-1rem)] max-w-2xl flex-col gap-0 overflow-hidden rounded-2xl p-0",
           className,
         )}
-        showCloseButton={false}
+        showCloseButton={view === "form" && !submitting}
       >
-        <DialogHeader className="w-full shrink-0 gap-0.5 p-4 text-left">
-          <DialogTitle className="text-base">
-            {view === "detail" ? detailTitle : formTitle}
+        <DialogHeader className={cn("w-full shrink-0 gap-0.5 p-4 text-left", view === "form" && "pr-16")}>
+          <DialogTitle ref={titleRef} tabIndex={-1} className="text-base outline-none">
+            {view === "detail" ? heading : formTitle}
           </DialogTitle>
           <DialogDescription>
-            {view === "detail" ? detailDescription : formDescription}
+            {view === "form"
+              ? formDescription
+              : reportSent
+                ? `Laporan ini menjadi bahan pemantauan periode ${reportTask?.periodLabel || "ini"}.`
+                : detailDescription}
           </DialogDescription>
         </DialogHeader>
         <Separator />
@@ -202,9 +246,41 @@ export function MitigationProgressFlowDialog({
         >
           <div ref={setBodyContentElement}>
             {view === "detail" ? (
-              detailContent
+              <>
+                {availabilityMessage && (
+                  <p className="mb-4 text-sm text-muted-foreground">{availabilityMessage}</p>
+                )}
+                {detailContent}
+              </>
             ) : (
-              <MitigationProgressForm {...formProps} />
+              <div className="space-y-4">
+                {reportTask && (
+                  <div className="space-y-1 border-b border-border pb-3 pr-6">
+                    <p className="wrap-break-word text-sm font-medium">
+                      {reportTask.mitigationAction || "Tindakan penanganan"}
+                    </p>
+                    <ul className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                      <li>{reportTask.riskCode || "Kode risiko belum tersedia"}</li>
+                      <li>Periode {reportTask.periodLabel || "belum tersedia"}</li>
+                      {dueDate && Number.isFinite(dueDate.getTime()) && (
+                        <li>
+                          Tenggat{" "}
+                          <time dateTime={reportTask.dueDate} data-date-time="">
+                            {formatDisplayDate(dueDate, {
+                              dateStyle: "medium",
+                              timeZone: "Asia/Jakarta",
+                            })}
+                          </time>
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                )}
+                <fieldset disabled={submitting} className="min-w-0">
+                  <MitigationProgressForm {...formProps} />
+                </fieldset>
+                {submitError && <p role="alert" className="text-sm text-destructive">{submitError}</p>}
+              </div>
             )}
           </div>
         </div>
@@ -215,11 +291,27 @@ export function MitigationProgressFlowDialog({
             variant="outline"
             size="default"
             onClick={handleFormCancel}
+            disabled={submitting}
           >
-            {view === "detail" ? "Tutup" : onFormCancel ? "Batal" : "Tutup"}
+            {view === "detail" ? "Tutup" : onFormCancel ? "Kembali ke detail" : "Tutup"}
           </CollectionDialogCancel>
           {view === "detail" ? detailAction : footerActions}
         </DialogFooter>
+        <AlertDialog open={open && confirmDiscard} onOpenChange={setConfirmDiscard}>
+          <AlertDialogContent onCloseAutoFocus={(event) => {
+            event.preventDefault();
+            titleRef.current?.focus();
+          }}>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Buang isian laporan?</AlertDialogTitle>
+              <AlertDialogDescription>Catatan dan link bukti yang belum dikirim akan hilang.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Lanjut mengisi</AlertDialogCancel>
+              <AlertDialogAction variant="destructive" onClick={close}>Buang isian</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </DialogContent>
     </Dialog>
   );

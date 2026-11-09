@@ -3,7 +3,6 @@ import { readFileSync } from "node:fs";
 import test from "node:test";
 
 const source = readFileSync(new URL("./drawer.tsx", import.meta.url), "utf8");
-const topbarSource = readFileSync(new URL("../app-topbar.tsx", import.meta.url), "utf8");
 
 test("Vaul right drawer uses the floating 8px inset treatment", () => {
   assert.match(source, /direction = "right"/);
@@ -13,12 +12,6 @@ test("Vaul right drawer uses the floating 8px inset treatment", () => {
   assert.match(source, /rounded-\[12px\] bg-card/);
   assert.match(source, /px-5 py-5/);
   assert.match(source, /frosted-scrim fixed inset-0 z-\[60\]/);
-});
-
-test("drawer scrim sits above fixed shell chrome", () => {
-  assert.match(topbarSource, /data-slot="app-topbar"[\s\S]*z-50/);
-  assert.match(source, /fixed inset-0 z-\[60\]/);
-  assert.match(source, /fixed bottom-2 right-2 top-2 z-\[70\]/);
 });
 
 test("drawer close action matches the canonical modal close button", () => {

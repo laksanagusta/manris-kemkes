@@ -42,12 +42,29 @@ func TestStartSigningMovesDraftWorkingPaperToSigning(t *testing.T) {
 
 	uc := NewWorkingPaperUseCase(repo, nil, nil)
 
-	got, err := uc.StartSigning(context.Background(), wpID, creatorID)
+	reviewHash, err := repo.wp.SigningReviewHash()
+	if err != nil {
+		t.Fatal(err)
+	}
+	repo.wp.Risks[0].Risk.Monitoring.ObservedProbability = 3
+	_, err = uc.StartSigning(context.Background(), wpID, creatorID, reviewHash)
+	var conflict *domainerrors.AppError
+	if !errors.As(err, &conflict) || conflict.Code != "WORKING_PAPER_REVIEW_CHANGED" || repo.updated != nil {
+		t.Fatalf("expected stale review to leave the draft untouched, got %v", err)
+	}
+	reviewHash, err = repo.wp.SigningReviewHash()
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := uc.StartSigning(context.Background(), wpID, creatorID, reviewHash)
 	if err != nil {
 		t.Fatalf("StartSigning returned error: %v", err)
 	}
 	if got.Status != entity.WorkingPaperStatusSigning {
 		t.Fatalf("expected signing status, got %s", got.Status)
+	}
+	if !got.ContentLocked || got.DocumentHash != reviewHash || len(got.SigningSnapshot) == 0 {
+		t.Fatal("expected the reviewed content and hash to be locked")
 	}
 	if repo.updated == nil || repo.updated.Status != entity.WorkingPaperStatusSigning {
 		t.Fatal("expected working paper update to persist signing status")
@@ -75,7 +92,7 @@ func TestStartSigningRejectsNonCreator(t *testing.T) {
 
 	uc := NewWorkingPaperUseCase(repo, nil, nil)
 
-	_, err := uc.StartSigning(context.Background(), wpID, uuid.New())
+	_, err := uc.StartSigning(context.Background(), wpID, uuid.New(), "")
 	if err == nil {
 		t.Fatal("expected error")
 	}

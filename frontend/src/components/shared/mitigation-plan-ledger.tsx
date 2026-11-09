@@ -4,6 +4,7 @@ import {
   Layers3,
   MoreHorizontal,
   Pencil,
+  Plus,
   Trash2,
 } from "@/components/shared/icons";
 import { Button } from "@/components/ui/button";
@@ -47,8 +48,7 @@ export function MitigationPlanLedger({
 }) {
   return (
     <div data-risk-plan-list className="min-w-0 space-y-3">
-      <div className="overflow-hidden rounded-(--surface-radius) border border-border shadow-(--surface-shadow-low)">
-      <Table className="min-w-[640px] table-fixed">
+      <Table framed className="min-w-[800px] table-fixed">
         <TableHeader>
           <TableRow>
             <TableHead className="w-[45%]">Rencana Penanganan</TableHead>
@@ -63,31 +63,27 @@ export function MitigationPlanLedger({
           {items.length ? (
             items.map((item, index) => (
               <TableRow key={item.id ?? index}>
-                <TableCell className="align-top whitespace-normal">
+                <TableCell className="align-middle">
                   <button
                     type="button"
+                    title={item.action}
                     disabled={disabled}
                     aria-label={`Edit rencana mitigasi ${index + 1}: ${item.action || "Belum diisi"}`}
                     onClick={() => onEdit(index)}
-                    className="w-full rounded-control text-left text-sm font-normal break-words outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default"
+                    className="w-full rounded-control truncate text-left text-sm font-normal outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-default"
                   >
                     {item.action || "Rencana belum diisi"}
                   </button>
-                  {item.isExistingControl && (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Pengendalian yang ada
-                    </p>
-                  )}
                   {actionErrors?.[index] && (
                     <p role="alert" className="mt-1 text-xs text-destructive">
                       {actionErrors[index]}
                     </p>
                   )}
                 </TableCell>
-                <TableCell className="align-top whitespace-normal text-muted-foreground">
+                <TableCell className="align-middle text-muted-foreground">
                   {item.owner || "PIC belum dipilih"}
                 </TableCell>
-                <TableCell className="align-top whitespace-normal text-muted-foreground">
+                <TableCell className="align-middle text-muted-foreground">
                   {types.find(
                     (t) =>
                       t.value === (item.mitigationType || "reduce_probability"),
@@ -146,7 +142,6 @@ export function MitigationPlanLedger({
           )}
         </TableBody>
       </Table>
-      </div>
       {!hideAddButton && (
         <Button
           type="button"
@@ -154,6 +149,7 @@ export function MitigationPlanLedger({
           disabled={disabled}
           onClick={() => onEdit(null)}
         >
+          <Plus data-icon="inline-start" aria-hidden="true" />
           Tambah Rencana Penanganan
         </Button>
       )}

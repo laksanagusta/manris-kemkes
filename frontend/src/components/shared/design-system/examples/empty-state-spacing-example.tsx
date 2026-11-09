@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { EditableItemsTable, type EditableItem } from "@/components/shared/editable-items-table";
+import { AiAssistIconButton } from "@/components/shared/ai-assist-icon-button";
+import { EditableInsetItems } from "@/components/shared/editable-inset-items";
+import type { EditableItem } from "@/components/shared/editable-items-table";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
@@ -28,9 +30,22 @@ export function CauseImpactEditorExample() {
   const [impacts, setImpacts] = useState<EditableItem[]>([]);
   return (
     <div className="grid gap-5 md:grid-cols-2">
-      <p className="text-sm text-muted-foreground">Teks kosong sebab dan dampak memakai warna tertiary. Area kosong memakai border putus-putus; daftar berisi memakai border solid dan divider separator yang lebih terang, tanpa ikon drag atau nomor serta tanpa hover background pada area kosong dan baris; tombol tambah memakai hover button outline (#f7f7f7).</p>
-      <EditableItemsTable items={causes} onChange={setCauses} emptyStatePresentation="plain" emptyMessage="Belum ada sebab" addItemLabel="Tambah sebab" itemLabel="Sebab" />
-      <EditableItemsTable items={impacts} onChange={setImpacts} emptyStatePresentation="plain" addItemLabel="Tambah dampak" itemLabel="Dampak" />
+      <EditableInsetItems
+        items={causes}
+        onChange={setCauses}
+        emptyMessage="Belum ada sebab"
+        itemLabel="Sebab"
+        header={<span className="text-sm font-medium">Sebab</span>}
+        beforeAdd={<AiAssistIconButton label="Susun sebab dengan AI" disabled onClick={() => {}} />}
+      />
+      <EditableInsetItems
+        items={impacts}
+        onChange={setImpacts}
+        emptyMessage="Belum ada dampak"
+        itemLabel="Dampak"
+        header={<span className="text-sm font-medium">Dampak</span>}
+        beforeAdd={<AiAssistIconButton label="Susun dampak dengan AI" disabled onClick={() => {}} />}
+      />
     </div>
   );
 }

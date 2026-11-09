@@ -243,7 +243,7 @@ export function DocumentProcessingWorkspace({
         </AnimatePresence>
 
         <div className="mb-6 max-w-2xl space-y-1 sm:mb-8">
-          <h1 className="page-title">
+          <h1 className="page-title tracking-normal">
             {heading}
           </h1>
           <p className="text-sm leading-6 text-secondary-foreground">

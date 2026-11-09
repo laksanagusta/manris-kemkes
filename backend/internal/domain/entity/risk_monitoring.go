@@ -44,6 +44,7 @@ type RiskMonitoring struct {
 	MitigationProgressSummary   string                      `json:"mitigationProgressSummary"`
 	MitigationCompletionPercent int                         `json:"mitigationCompletionPercent"`
 	DraftPayload                *RiskMonitoringDraftPayload `json:"-"`
+	ObservedScoreConfirmed      bool                        `json:"observedScoreConfirmed"`
 	DraftTitle                  string                      `json:"draftTitle"`
 	DraftDescription            string                      `json:"draftDescription"`
 	DraftCategory               string                      `json:"draftCategory"`
@@ -68,17 +69,18 @@ type RiskMonitoring struct {
 }
 
 type RiskMonitoringDraftPayload struct {
-	Title                string       `json:"title"`
-	Description          string       `json:"description"`
-	Category             string       `json:"category"`
-	Cause                []string     `json:"cause"`
-	RiskSource           string       `json:"riskSource"`
-	Controllability      string       `json:"controllability"`
-	ImpactDesc           []string     `json:"impactDesc"`
-	ExistingControl      string       `json:"existingControl"`
-	ControlEffectiveness string       `json:"controlEffectiveness"`
-	TreatmentOption      string       `json:"treatmentOption"`
-	Mitigations          []Mitigation `json:"mitigations"`
+	ObservedScoreConfirmed bool         `json:"observedScoreConfirmed,omitempty"`
+	Title                  string       `json:"title"`
+	Description            string       `json:"description"`
+	Category               string       `json:"category"`
+	Cause                  []string     `json:"cause"`
+	RiskSource             string       `json:"riskSource"`
+	Controllability        string       `json:"controllability"`
+	ImpactDesc             []string     `json:"impactDesc"`
+	ExistingControl        string       `json:"existingControl"`
+	ControlEffectiveness   string       `json:"controlEffectiveness"`
+	TreatmentOption        string       `json:"treatmentOption"`
+	Mitigations            []Mitigation `json:"mitigations"`
 }
 
 type RiskMonitoringDraftValues struct {
@@ -167,6 +169,7 @@ func NewRiskMonitoringDraftPayloadFromValues(values RiskMonitoringDraftValues) *
 func (m *RiskMonitoring) SetDraftPayload(payload *RiskMonitoringDraftPayload) {
 	if payload == nil {
 		m.DraftPayload = nil
+		m.ObservedScoreConfirmed = false
 		m.DraftTitle = ""
 		m.DraftDescription = ""
 		m.DraftCategory = ""
@@ -192,17 +195,18 @@ func (m *RiskMonitoring) DraftPayloadSnapshot() *RiskMonitoringDraftPayload {
 		return m.DraftPayload.Clone()
 	}
 	return &RiskMonitoringDraftPayload{
-		Title:                m.DraftTitle,
-		Description:          m.DraftDescription,
-		Category:             m.DraftCategory,
-		Cause:                append([]string(nil), m.DraftCause...),
-		RiskSource:           m.DraftRiskSource,
-		Controllability:      m.DraftControllability,
-		ImpactDesc:           append([]string(nil), m.DraftImpactDesc...),
-		ExistingControl:      m.DraftExistingControl,
-		ControlEffectiveness: m.DraftControlEffectiveness,
-		TreatmentOption:      m.DraftTreatmentOption,
-		Mitigations:          append([]Mitigation(nil), m.DraftMitigations...),
+		ObservedScoreConfirmed: m.ObservedScoreConfirmed,
+		Title:                  m.DraftTitle,
+		Description:            m.DraftDescription,
+		Category:               m.DraftCategory,
+		Cause:                  append([]string(nil), m.DraftCause...),
+		RiskSource:             m.DraftRiskSource,
+		Controllability:        m.DraftControllability,
+		ImpactDesc:             append([]string(nil), m.DraftImpactDesc...),
+		ExistingControl:        m.DraftExistingControl,
+		ControlEffectiveness:   m.DraftControlEffectiveness,
+		TreatmentOption:        m.DraftTreatmentOption,
+		Mitigations:            append([]Mitigation(nil), m.DraftMitigations...),
 	}
 }
 
@@ -210,6 +214,7 @@ func (m *RiskMonitoring) syncDraftFieldsFromPayload() {
 	if m == nil || m.DraftPayload == nil {
 		return
 	}
+	m.ObservedScoreConfirmed = m.DraftPayload.ObservedScoreConfirmed
 	m.DraftTitle = m.DraftPayload.Title
 	m.DraftDescription = m.DraftPayload.Description
 	m.DraftCategory = m.DraftPayload.Category
@@ -298,7 +303,6 @@ func mitigationPlanChanged(source []Mitigation, draft []Mitigation) bool {
 			source[i].Owner != draft[i].Owner ||
 			source[i].DueDate != draft[i].DueDate ||
 			source[i].TargetCost != draft[i].TargetCost ||
-			source[i].ExpectedOutput != draft[i].ExpectedOutput ||
 			source[i].MitigationType != draft[i].MitigationType {
 			return true
 		}

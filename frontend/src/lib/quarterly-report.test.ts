@@ -253,8 +253,8 @@ test("condition preserves critical risk warnings despite complete reporting", ()
   assert.equal(result.summary.mitigation.rate, 100);
   assert.equal(result.metrics[1].numerator, 1);
 });
-test("condition does not count existing controls or blank actions as plans", () => {
-  const profiles = [risk("r1", { mitigations: [{ action: "Existing", owner: "A", isExistingControl: true }, { action: "  ", owner: "A" }] })];
+test("condition does not count blank actions as plans", () => {
+  const profiles = [risk("r1", { mitigations: [{ action: "  ", owner: "A" }] })];
   assert.equal(buildRiskManagementCondition(report(), profiles, []).missingPlans, 1);
 });
 test("condition uses active snapshots including restored risks and filters historical tasks", () => {

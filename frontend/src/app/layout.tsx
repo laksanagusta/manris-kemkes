@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Agentation } from "agentation";
-import { Geist } from "next/font/google";
+import { Inter } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/contexts/auth-context";
 import { AppToaster } from "@/components/app-toaster";
@@ -11,7 +11,12 @@ import "./table-hover.css";
 import { cn } from "@/lib/utils";
 import { SITE_URL } from "@/lib/site";
 
-const geist = Geist({ subsets: ["latin"], variable: "--font-geist-sans", display: "swap" });
+const inter = Inter({
+  subsets: ["latin"],
+  axes: ["opsz"],
+  variable: "--font-inter",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -34,7 +39,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html suppressHydrationWarning lang="id" className={cn("font-sans", geist.variable)}>
+    <html suppressHydrationWarning lang="id" className={cn("font-sans", inter.variable)}>
       <body className="bg-background antialiased">
         <ThemeProvider>
           <AuthProvider>

@@ -290,10 +290,11 @@ func (h *MitigationTaskHandler) ValidateFinalize(c *fiber.Ctx) error {
 		"data": fiber.Map{
 			// Any task without a valid report is finalized as a terminal
 			// "not_reported" outcome, not a gate for the monitoring transaction.
-			"canFinalize":   true,
-			"totalTasks":    counts.Total,
-			"reportedTasks": counts.Done,
-			"pendingTasks":  counts.Pending,
+			"canFinalize":    true,
+			"totalTasks":     counts.Total,
+			"reportedTasks":  counts.Done,
+			"pendingTasks":   counts.Pending,
+			"reportRevision": counts.Revision,
 		},
 	})
 }

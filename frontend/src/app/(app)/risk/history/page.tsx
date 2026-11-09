@@ -1,5 +1,6 @@
 "use client";
 
+import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,7 +27,7 @@ import {
 import { useState, useEffect } from "react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
-import { buildApprovedRiskHistoryItem } from "@/lib/risk-history";
+import { buildApprovedRiskHistoryItem, getRiskVersionDetailHref } from "@/lib/risk-history";
 import {
   CollectionEmptyState,
   CollectionPageHeader,
@@ -93,7 +94,7 @@ export default function RiskHistoryPage() {
                   </div>
                   <div className="flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground">
                     <Calendar className="size-3" />
-                    <span>{ver.date}</span>
+                    <time dateTime={ver.date}>{ver.date}</time>
                   </div>
                 </div>
               </button>
@@ -108,8 +109,9 @@ export default function RiskHistoryPage() {
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
-                    <TableHead className="w-20 whitespace-nowrap">Kode</TableHead>
-                    <TableHead className="whitespace-nowrap">Risiko & Alasan Perubahan</TableHead>
+                    <TableHead className="w-48 whitespace-nowrap">Kode</TableHead>
+                    <TableHead className="whitespace-nowrap">Risiko</TableHead>
+                    <TableHead>Alasan perubahan</TableHead>
                     <TableHead className="w-28 whitespace-nowrap">Versi Lama</TableHead>
                     <TableHead className="text-center w-12 whitespace-nowrap">→</TableHead>
                     <TableHead className="w-28 whitespace-nowrap">Versi Current</TableHead>
@@ -119,13 +121,13 @@ export default function RiskHistoryPage() {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center h-24">
+                      <TableCell colSpan={7} className="text-center">
                         Memuat data history...
                       </TableCell>
                     </TableRow>
                   ) : historyData.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="h-24">
+                      <TableCell colSpan={7} className="">
                         <CollectionEmptyState
                           title="Belum ada riwayat untuk snapshot ini"
                           description="Snapshot ini belum memiliki rekam jejak yang tercatat."
@@ -134,11 +136,9 @@ export default function RiskHistoryPage() {
                     </TableRow>
                   ) : historyData.map((history) => (
                     <TableRow key={history.riskId} className="hover:bg-muted/30">
-                      <TableCell className="">{history.riskId}</TableCell>
-                      <TableCell className="max-w-[300px]">
-                        <p className="truncate text-xs font-medium leading-relaxed text-foreground">{history.title}</p>
-                        <p className="truncate text-[10px] text-muted-foreground mt-0.5 italic text-primary/70">{history.changeReason}</p>
-                      </TableCell>
+                      <TableCell className="max-w-48"><CollectionCode code={history.riskId} href={getRiskVersionDetailHref(history)} /></TableCell>
+                      <TableCell className="max-w-[300px] font-medium">{history.title}</TableCell>
+                      <TableCell className="max-w-[320px] text-muted-foreground">{history.changeReason || "—"}</TableCell>
                       <TableCell>
                         <Badge variant={getLinearRiskLevelBadgeTone(history.previousLevel)}>
                           {history.previousLevel}

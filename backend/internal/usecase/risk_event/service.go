@@ -21,26 +21,20 @@ func NewService(events repository.RiskEventRepository, risks repository.RiskRepo
 }
 
 type CreateInput struct {
-	Description, ActualImpact, Severity, ImmediateResponse, PostResponseCondition string
-	Location, AffectedParties, SuspectedCause, DisruptionDuration                 string
-	OtherImpactType                                                               string
-	ExtraordinaryReason, OngoingAction, EvidenceURL                               string
-	SourceDocumentName, ExtractionKey                                             string
-	SourceRefs                                                                    []entity.DocumentSourceRef
-	OccurredAt                                                                    time.Time
-	ImpactTypes                                                                   []string
-	FinancialLoss                                                                 *float64
-	FinancialLossKnown                                                            *bool
-	OrganizationID, ActorID                                                       uuid.UUID
-	RiskIDs                                                                       []uuid.UUID
-	OrgIDs                                                                        []uuid.UUID
+	Description, Severity             string
+	OtherImpactType                   string
+	SourceDocumentName, ExtractionKey string
+	SourceRefs                        []entity.DocumentSourceRef
+	OccurredAt                        time.Time
+	ImpactTypes                       []string
+	FinancialLoss                     *float64
+	FinancialLossKnown                *bool
+	OrganizationID, ActorID           uuid.UUID
+	RiskIDs                           []uuid.UUID
+	OrgIDs                            []uuid.UUID
 }
 
 func (s *Service) Create(ctx context.Context, input CreateInput) (*entity.RiskEvent, error) {
-	postResponseCondition := strings.TrimSpace(input.PostResponseCondition)
-	if postResponseCondition == "" {
-		postResponseCondition = "unknown"
-	}
 	for _, riskID := range input.RiskIDs {
 		risk, err := s.risks.GetByID(ctx, riskID, input.OrgIDs)
 		if err != nil {
@@ -56,13 +50,9 @@ func (s *Service) Create(ctx context.Context, input CreateInput) (*entity.RiskEv
 	event := &entity.RiskEvent{
 		SourceDocumentName: strings.TrimSpace(input.SourceDocumentName), SourceRefs: input.SourceRefs, ExtractionKey: input.ExtractionKey,
 		Description: strings.TrimSpace(input.Description), OccurredAt: input.OccurredAt,
-		ImpactTypes: input.ImpactTypes, OtherImpactType: strings.TrimSpace(input.OtherImpactType), ActualImpact: strings.TrimSpace(input.ActualImpact), Severity: input.Severity,
-		ImmediateResponse: strings.TrimSpace(input.ImmediateResponse), PostResponseCondition: postResponseCondition,
-		Location: strings.TrimSpace(input.Location), AffectedParties: strings.TrimSpace(input.AffectedParties),
-		SuspectedCause: strings.TrimSpace(input.SuspectedCause), FinancialLoss: input.FinancialLoss,
-		FinancialLossKnown: input.FinancialLossKnown, DisruptionDuration: strings.TrimSpace(input.DisruptionDuration),
-		ExtraordinaryReason: strings.TrimSpace(input.ExtraordinaryReason), OngoingAction: strings.TrimSpace(input.OngoingAction),
-		EvidenceURL: strings.TrimSpace(input.EvidenceURL), OrganizationID: input.OrganizationID, CreatedBy: input.ActorID,
+		ImpactTypes: input.ImpactTypes, OtherImpactType: strings.TrimSpace(input.OtherImpactType), Severity: input.Severity,
+		FinancialLoss: input.FinancialLoss, FinancialLossKnown: input.FinancialLossKnown,
+		OrganizationID: input.OrganizationID, CreatedBy: input.ActorID,
 	}
 	if event.SourceRefs == nil {
 		event.SourceRefs = []entity.DocumentSourceRef{}

@@ -1,4 +1,7 @@
 "use client";
+
+import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
+import { formatDisplayDate } from "@/lib/display-date";
 import { useCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
 
 import Link from "next/link";
@@ -109,7 +112,7 @@ const requestTypeConfig: Record<
 
 function formatDate(dateString?: string) {
   if (!dateString || !Number.isFinite(Date.parse(dateString))) return "—";
-  return new Date(dateString).toLocaleDateString("id-ID", {
+  return formatDisplayDate(new Date(dateString), {
     day: "numeric",
     month: "short",
     year: "numeric",
@@ -545,10 +548,11 @@ export default function InboxPage() {
       />
 
       <CollectionTableCard sorting={collectionSort.controls}>
-        <Table className="min-w-[760px] table-fixed">
+        <Table className="min-w-[980px] table-fixed">
           <colgroup>
             <col className="w-[14%]" />
-            <col className="w-[44%]" />
+            <col className="w-[25%]" />
+            <col className="w-[19%]" />
             <col className="w-[16%]" />
             <col className="w-[14%]" />
             <col className="w-[12%]" />
@@ -557,6 +561,7 @@ export default function InboxPage() {
             <CollectionTableHeaderRow>
               <CollectionTableHead>Kode</CollectionTableHead>
               <CollectionTableHead className="">Entitas</CollectionTableHead>
+              <CollectionTableHead>Keterangan</CollectionTableHead>
               <CollectionTableHead>Jenis</CollectionTableHead>
               <CollectionTableHead title="Waktu pembuatan permintaan">Dibuat</CollectionTableHead>
               <CollectionTableHead>Status</CollectionTableHead>
@@ -565,7 +570,7 @@ export default function InboxPage() {
           <TableBody>
             {filteredRequests.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5}>
+                <TableCell colSpan={6}>
                   <CollectionEmptyState
                     title="Belum ada permintaan persetujuan yang sesuai filter"
                     description="Ubah filter pencarian untuk melihat data lain."
@@ -609,21 +614,18 @@ export default function InboxPage() {
                 return (
                   <TableRow key={item.id} className="hover:bg-muted/50">
                     <TableCell>
-                      {displayCode || `REQ-${item.id.slice(0, 8)}`}
+                      <CollectionCode code={displayCode || `REQ-${item.id.slice(0, 8)}`} href={typeConfig.href(entityId)} />
                     </TableCell>
                     <TableCell className="">
-                      <div className="min-w-0">
-                        <Link
-                          href={typeConfig.href(entityId)}
-                          className="block min-w-0 truncate text-sm font-normal leading-relaxed text-foreground hover:text-primary"
-                        >
-                          {displayTitle || "Tanpa judul"}
-                        </Link>
-                        <p className="mt-0.5 truncate text-sm text-muted-foreground">
-                          {displaySubtitle}
-                        </p>
-                      </div>
+                      <Link
+                        href={typeConfig.href(entityId)}
+                        className="block truncate hover:text-primary"
+                        title={displayTitle || "Tanpa judul"}
+                      >
+                        {displayTitle || "Tanpa judul"}
+                      </Link>
                     </TableCell>
+                    <TableCell className="text-muted-foreground">{displaySubtitle}</TableCell>
                     <TableCell>
                       <Badge variant="outline">
                         <span className="inline-flex items-center gap-1">
@@ -635,7 +637,7 @@ export default function InboxPage() {
                     <TableCell>
                       <span className="inline-flex items-center gap-1.5">
                         <Clock className="size-3" />
-                        {formatDate(displayDate)}
+                        <span data-date-time="">{formatDate(displayDate)}</span>
                       </span>
                     </TableCell>
                     <TableCell>

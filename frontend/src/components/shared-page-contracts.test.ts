@@ -570,20 +570,8 @@ test("sidebar navigation keeps inactive labels normal and icons static", () => {
   assert.match(sidebarMotionExample, /Search/);
 });
 
-test("sidebar frame uses the same subtle divider as the topbar", () => {
-  assert.match(
-    sidebarPrimitive,
-    /group-data-\[side=left\]:border-r group-data-\[side=left\]:border-border\/60/,
-  );
-  assert.match(
-    sidebarPrimitive,
-    /group-data-\[side=right\]:border-l group-data-\[side=right\]:border-border\/60/,
-  );
-  assert.match(
-    readSource("../components/app-topbar.tsx"),
-    /border-e border-sidebar-border/,
-  );
-  assert.match(appSidebar, /md:border-sidebar-border/);
+test("sidebar frame uses a trailing divider", () => {
+  assert.match(appSidebar, /className="border-r border-border md:top-0 md:h-svh"/);
 });
 
 test("sidebar hierarchy prioritizes operations and consolidates administration", () => {

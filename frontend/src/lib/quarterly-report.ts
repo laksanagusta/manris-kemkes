@@ -1,3 +1,4 @@
+import { createDisplayDateFormatter } from "./display-date.ts";
 import type {
   QuarterlyReportOverview,
   QuarterlyReport,
@@ -24,13 +25,6 @@ export const taskStateLabels: Record<TaskState, string> = {
   overdue: "Melewati tenggat",
   not_reported: "Tidak dilaporkan",
   skipped: "Dilewati",
-};
-export const conditionLabels = {
-  recovered: "Pulih",
-  controlled: "Terkendali",
-  ongoing: "Masih berlangsung",
-  worsening: "Memburuk",
-  unknown: "Belum diketahui",
 };
 export const severityLabels = {
   low: "Rendah",
@@ -83,7 +77,7 @@ export function formatReportNumber(value: number | null | undefined) {
 }
 export function formatReportDate(value?: string | null) {
   if (!value || !Number.isFinite(Date.parse(value))) return "—";
-  return new Intl.DateTimeFormat("id-ID", {
+  return createDisplayDateFormatter("id-ID", {
     timeZone: "Asia/Jakarta",
     dateStyle: "medium",
     timeStyle: "short",
@@ -410,7 +404,6 @@ export function buildQuarterlyOverview(
       description: event.description,
       occurredAt: event.occurredAt,
       organizationName: event.organizationName ?? "",
-      postResponseCondition: event.postResponseCondition,
       severity: event.severity,
     }));
   return {
@@ -462,7 +455,7 @@ export function buildRiskManagementCondition(report: QuarterlyReport, activeProf
   const main = assessed.filter((row) => row.aboveAppetite);
   const planned = main.filter(({ risk }) =>
     (risk.mitigations ?? (risk.mitigation ? [risk.mitigation] : [])).some(
-      (plan) => !plan.isExistingControl && Boolean(plan.action?.trim()),
+      (plan) => Boolean(plan.action?.trim()),
     ),
   ).length;
   const high = assessed.filter((row) => Math.round(row.profile!) >= 15).length;

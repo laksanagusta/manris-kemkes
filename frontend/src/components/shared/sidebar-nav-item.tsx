@@ -39,7 +39,7 @@ export function SidebarNavItem({
           "relative transition-[width,height,padding,background-color,color] duration-[180ms] ease-(--ease-out) data-active:bg-transparent [&_svg]:text-current",
           isActive
             ? "text-sidebar-accent-foreground"
-            : "text-muted-foreground",
+            : "text-sidebar-muted-foreground",
           className,
         )}
         isActive={isActive}

@@ -34,10 +34,12 @@ export const ROSTER_STATUS_BADGE_CLASSES: Record<WorkingPaperRosterStatus, strin
 
 export function buildInitialRosterDecisions(
   preview: WorkingPaperRosterPreview,
+  previousDecisions: RosterDecision[] = [],
 ): RosterDecision[] {
+  const priorChoices = new Map(previousDecisions.map((decision) => [decision.versionGroupId, decision.included]));
   return preview.entries.map((entry) => ({
     versionGroupId: entry.versionGroupId,
-    included: true,
+    included: priorChoices.get(entry.versionGroupId) ?? true,
   }));
 }
 

@@ -1,4 +1,7 @@
 "use client";
+
+import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
+import { formatDisplayDate } from "@/lib/display-date";
 import { useRemoteCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
 
 import {
@@ -8,7 +11,7 @@ import {
   useState,
   useTransition,
 } from "react";
-import Link from "next/link";
+import { RiskTableIdentity } from "@/components/shared/design-system/domain/risk-table-identity";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
@@ -20,14 +23,13 @@ import type { WorkingPaper, WorkingPaperStatus } from "@/types/working-paper";
 import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 import { WorkingPaperProgressCollapsible } from "./_components/working-paper-progress-collapsible";
 
-import { Card, CardContent } from "@/components/ui/card";
 import {
   Table,
   TableBody,
   TableCell,
   TableRow,
 } from "@/components/ui/table";
-import { ChevronRight, Plus } from "@/components/shared/icons";
+import { Plus } from "@/components/shared/icons";
 import { Badge } from "@/components/ui/badge";
 import {
   currentAssessmentCycle,
@@ -130,7 +132,6 @@ function WorkingPaperFiltersToolbar({
     <DynamicTableFilters
       search={
         <CollectionSearchField
-          containerClassName="w-full sm:w-80 sm:flex-none"
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder={searchPlaceholder}
@@ -178,7 +179,7 @@ function formatWorkingPaperDate(
     return "-";
   }
 
-  return parsed.toLocaleDateString("id-ID", options);
+  return formatDisplayDate(parsed, options);
 }
 
 function useDebouncedValue<T>(value: T, delay: number) {
@@ -195,111 +196,7 @@ function useDebouncedValue<T>(value: T, delay: number) {
   return debouncedValue;
 }
 
-function getWorkingPaperSigningProgress(paper: WorkingPaper) {
-  const signedCount =
-    paper.signatories?.filter((signatory) => signatory.status === "signed")
-      .length || 0;
-  const totalSignatories = paper.signatories?.length || 0;
-
-  return {
-    totalSignatories,
-    progressPercent:
-      totalSignatories > 0 ? (signedCount / totalSignatories) * 100 : 0,
-    progressText:
-      totalSignatories > 0 ? `${signedCount}/${totalSignatories}` : "-",
-  };
-}
-
-type WorkingPaperCardProps = {
-  paper: WorkingPaper;
-};
-
-function WorkingPaperCode({ code }: { code: string }) {
-  return (
-    <span className="font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
-      {code}
-    </span>
-  );
-}
-
 function WorkingPaperSigningProgress({
-  totalSignatories,
-  progressPercent,
-  progressText,
-}: {
-  totalSignatories: number;
-  progressPercent: number;
-  progressText: string;
-}) {
-  if (totalSignatories === 0) return null;
-
-  return (
-    <div className="mt-3 flex items-center gap-3">
-      <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-muted">
-        <div
-          className="h-full rounded-full bg-emerald-500 transition-[width]"
-          style={{ width: `${progressPercent}%` }}
-        />
-      </div>
-      <span className="text-xs font-medium tabular-nums text-muted-foreground">
-        {progressText} TTE
-      </span>
-    </div>
-  );
-}
-
-function WorkingPaperMobileCard({
-  paper,
-  totalSignatories,
-  progressPercent,
-  progressText,
-  createdDate,
-}: WorkingPaperCardProps & {
-  totalSignatories: number;
-  progressPercent: number;
-  progressText: string;
-  createdDate: string;
-}) {
-  return (
-    <Card className="transition-colors hover:bg-muted/50">
-      <CardContent>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <WorkingPaperCode code={paper.code} />
-            <Badge variant={toBadgeVariant(statusTones[paper.status])}
-              className={getStatusBadgeClassName(statusTones[paper.status])}
-            >
-              {statusLabels[paper.status] || paper.status}
-            </Badge>
-          </div>
-          <Link
-            href={`/risk/working-papers/${paper.id}`}
-            className="mt-1 line-clamp-2 text-sm font-medium text-foreground transition-colors hover:text-primary"
-          >
-            {paper.title || "Tanpa Judul"}
-          </Link>
-          <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-            <span>{paper.assessment_cycle || "Tanpa siklus"}</span>
-            <span className="text-border">|</span>
-            <span>{paper.risks?.length || 0} risiko</span>
-            <span className="text-border">|</span>
-            <span>{createdDate}</span>
-          </div>
-        </div>
-        <ChevronRight className="mt-1 size-4 shrink-0 text-muted-foreground" />
-      </div>
-      <WorkingPaperSigningProgress
-        totalSignatories={totalSignatories}
-        progressPercent={progressPercent}
-        progressText={progressText}
-      />
-      </CardContent>
-    </Card>
-  );
-}
-
-function WorkingPaperDesktopSigningProgress({
   signatories,
 }: {
   signatories: WorkingPaper["signatories"];
@@ -646,132 +543,102 @@ export default function WorkingPapersPage() {
               description="Ubah filter pencarian atau tab status untuk melihat data lain."
             />
           ) : (
-            <>
-              <div className="space-y-2 p-4 md:hidden">
+            <Table className="min-w-[1240px] table-fixed">
+              <colgroup>
+                <col style={{ width: 160 }} />
+                <col style={{ width: 360 }} />
+                <col style={{ width: 124 }} />
+                <col style={{ width: 112 }} />
+                <col style={{ width: 132 }} />
+                <col style={{ width: 204 }} />
+                <col style={{ width: 148 }} />
+              </colgroup>
+              <CollectionTableHeader density="compact">
+                <CollectionTableHeaderRow>
+                  <CollectionTableHead>Kode kertas kerja</CollectionTableHead>
+                  <CollectionTableHead className="">
+                    Judul
+                  </CollectionTableHead>
+                  <CollectionTableHead >
+                    Periode
+                  </CollectionTableHead>
+                  <CollectionTableHead >
+                    Status
+                  </CollectionTableHead>
+                  <CollectionTableHead className="text-right">
+                    Jumlah risiko
+                  </CollectionTableHead>
+                  <CollectionTableHead >
+                    Progres TTE
+                  </CollectionTableHead>
+                  <CollectionTableHead >
+                    Dibuat
+                  </CollectionTableHead>
+                </CollectionTableHeaderRow>
+              </CollectionTableHeader>
+              <TableBody>
                 {papers.map((paper) => {
-                  const { totalSignatories, progressPercent, progressText } =
-                    getWorkingPaperSigningProgress(paper);
-                  const createdDate = formatWorkingPaperDate(paper.created_at, {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  });
+                  const createdDate = formatWorkingPaperDate(
+                    paper.created_at,
+                    {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    },
+                  );
 
                   return (
-                    <WorkingPaperMobileCard
+                    <TableRow
                       key={paper.id}
-                      paper={paper}
-                      totalSignatories={totalSignatories}
-                      progressPercent={progressPercent}
-                      progressText={progressText}
-                      createdDate={createdDate}
-                    />
+                      className="hover:bg-muted/50"
+                    >
+                      <TableCell><CollectionCode code={paper.code} href={`/risk/working-papers/${paper.id}`} /></TableCell>
+                      <TableCell className="min-w-[320px] align-middle">
+                        <RiskTableIdentity
+                          title={paper.title || "Tanpa Judul"}
+                          href={`/risk/working-papers/${paper.id}`}
+                        />
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap align-middle">
+                        {paper.assessment_cycle || "-"}
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap align-middle">
+                        <Badge variant={toBadgeVariant(statusTones[paper.status])}
+                          className={getStatusBadgeClassName(statusTones[paper.status])}
+                        >
+                          {statusLabels[paper.status] || paper.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap text-right align-middle tabular-nums">
+                        {paper.risks?.length || 0}
+                      </TableCell>
+                      <TableCell className="min-w-[180px] align-middle">
+                        <WorkingPaperSigningProgress
+                          signatories={paper.signatories}
+                        />
+                      </TableCell>
+                      <TableCell className="whitespace-nowrap align-middle">
+                        <span data-date-time="">{createdDate}</span>
+                      </TableCell>
+                    </TableRow>
                   );
                 })}
-              </div>
-
-              <div className="hidden md:block">
-                <Table className="min-w-[980px] table-fixed">
-                  <colgroup>
-                    <col className="w-[32%]" />
-                    <col className="w-[14%]" />
-                    <col className="w-[14%]" />
-                    <col className="w-[10%]" />
-                    <col className="w-[20%]" />
-                    <col className="w-[14%]" />
-                  </colgroup>
-                  <CollectionTableHeader density="compact">
-                    <CollectionTableHeaderRow>
-                      <CollectionTableHead className="">
-                        Judul
-                      </CollectionTableHead>
-                      <CollectionTableHead >
-                        Periode
-                      </CollectionTableHead>
-                      <CollectionTableHead >
-                        Status
-                      </CollectionTableHead>
-                      <CollectionTableHead className="text-right">
-                        Jumlah risiko
-                      </CollectionTableHead>
-                      <CollectionTableHead >
-                        Progres TTE
-                      </CollectionTableHead>
-                      <CollectionTableHead >
-                        Dibuat
-                      </CollectionTableHead>
-                    </CollectionTableHeaderRow>
-                  </CollectionTableHeader>
-                  <TableBody>
-                    {papers.map((paper) => {
-                      const createdDate = formatWorkingPaperDate(
-                        paper.created_at,
-                        {
-                          year: "numeric",
-                          month: "short",
-                          day: "numeric",
-                        },
-                      );
-
-                      return (
-                        <TableRow
-                          key={paper.id}
-                          className="hover:bg-muted/50"
-                        >
-                          <TableCell className="min-w-[320px] align-middle">
-                            <Link
-                              href={`/risk/working-papers/${paper.id}`}
-                              className="block max-w-full whitespace-normal break-words text-sm font-medium leading-relaxed text-foreground transition-colors hover:text-primary"
-                              title={paper.title}
-                            >
-                              {paper.title || "Tanpa Judul"}
-                            </Link>
-                            <div className="mt-1 font-mono text-[11px] uppercase tracking-[0.12em] text-muted-foreground">
-                              {paper.code}
-                            </div>
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap align-middle">
-                            {paper.assessment_cycle || "-"}
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap align-middle">
-                            <Badge variant={toBadgeVariant(statusTones[paper.status])}
-                              className={getStatusBadgeClassName(statusTones[paper.status])}
-                            >
-                              {statusLabels[paper.status] || paper.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap text-right align-middle tabular-nums">
-                            {paper.risks?.length || 0}
-                          </TableCell>
-                          <TableCell className="min-w-[180px] align-middle">
-                            <WorkingPaperDesktopSigningProgress
-                              signatories={paper.signatories}
-                            />
-                          </TableCell>
-                          <TableCell className="whitespace-nowrap align-middle">
-                            {createdDate}
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
-              </div>
-            </>
+              </TableBody>
+            </Table>
           )}
-          <CollectionPagination
-            itemLabel="kertas kerja"
-            page={page}
-            pageSize={limit}
-            total={total}
-            disabled={loading || isPending}
-            onPageChange={setPage}
-            onPageSizeChange={(nextLimit) => {
-              setLimit(nextLimit);
-              setPage(1);
-            }}
-          />
-      </CollectionTableCard>
+        <CollectionPagination
+          itemLabel="kertas kerja"
+          page={page}
+          pageSize={limit}
+          total={total}
+          disabled={loading || isPending}
+          onPageChange={setPage}
+          onPageSizeChange={(nextLimit) => {
+            setLimit(nextLimit);
+            setPage(1);
+          }}
+        />
+        </CollectionTableCard>
       </div>
       <WorkingPaperProgressCollapsible
         workingPapers={papers}

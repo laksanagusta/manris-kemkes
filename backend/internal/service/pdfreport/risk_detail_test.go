@@ -46,7 +46,6 @@ func TestRenderRiskDetail_ReturnsPDFBytes(t *testing.T) {
 				Owner:                 "Tim logistik",
 				ExecutionScheduleText: "Mingguan",
 				DueDate:               strPtr("2025-12-31"),
-				PotentialObstacle:     "Keterlambatan pengiriman",
 			},
 		},
 		CreatedByName: "Petugas Contoh",

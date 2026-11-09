@@ -1,19 +1,10 @@
-/* Keep table rows free of generated boxes so cells stay in the native column grid. */
-.tableCard[data-collection-table] :global([data-slot="table-body"] > [data-slot="table-row"])::before {
-  content: none !important;
-}
-
-.tableCard[data-collection-table] :global([data-slot="table-body"] > [data-slot="table-row"]:not([data-state="selected"]):hover) {
-  background-color: var(--table-hover);
-}
-
-
-.tableCard :global([data-collection-action]) {
+.tableCard :global(:is(th, td)[data-collection-action]) {
   --action-surface: var(--card);
   position: sticky;
   inset-inline-end: 0;
   z-index: 1;
-  padding-inline: 8px !important;
+  padding-inline-start: 0;
+  text-align: end;
   background-color: var(--action-surface);
 }
 
@@ -21,7 +12,11 @@
   --action-surface: var(--table-header);
 }
 
-.tableCard :global([data-slot="table-row"]:hover > [data-slot="table-cell"][data-collection-action]) {
+.tableCard :global(td[data-collection-action] > .flex) {
+  justify-content: flex-end;
+}
+
+.tableCard :global([data-slot="table-row"]:is(:hover, :focus-within) > [data-slot="table-cell"][data-collection-action]) {
   --action-surface: var(--table-hover);
 }
 
@@ -29,19 +24,17 @@
   --action-surface: var(--table-selected);
 }
 
-.tableCard :global([data-action-overlap] [data-collection-action])::before {
+.tableCard :global([data-action-overlap] :is(th, td)[data-collection-action])::before {
   --fade-direction: to right;
   content: "";
   position: absolute;
   inset-block: 0;
   inset-inline-end: 100%;
-  width: 20px;
+  width: 16px;
   pointer-events: none;
   background: linear-gradient(var(--fade-direction), transparent, var(--action-surface));
-  backdrop-filter: blur(3px);
-  mask-image: linear-gradient(var(--fade-direction), transparent, black);
 }
 
-.tableCard :global([data-action-overlap] [data-collection-action]:dir(rtl))::before {
+.tableCard :global([data-action-overlap] :is(th, td)[data-collection-action]:dir(rtl))::before {
   --fade-direction: to left;
 }

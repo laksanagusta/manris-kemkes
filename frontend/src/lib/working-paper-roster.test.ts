@@ -129,3 +129,18 @@ describe("summarizeRosterDecisions", () => {
     assert.strictEqual(summary.notStartedCount, 0);
   });
 });
+
+it("preserves a prior exclusion, adds new risks, and removes risks outside the refreshed roster", () => {
+  const preview = makePreview([
+    makeEntry({ versionGroupId: "existing", rosterStatus: "finalized" }),
+    makeEntry({ versionGroupId: "new" }),
+  ]);
+
+  assert.deepEqual(buildInitialRosterDecisions(preview, [
+    { versionGroupId: "existing", included: false },
+    { versionGroupId: "removed", included: true },
+  ]), [
+    { versionGroupId: "existing", included: false },
+    { versionGroupId: "new", included: true },
+  ]);
+});

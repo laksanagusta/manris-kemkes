@@ -1,6 +1,5 @@
 export type RiskEventSeverity = "low" | "medium" | "high" | "extreme";
 export type RiskEventNote = { id: string; eventId: string; body: string; createdBy: string; createdByName: string; createdAt: string };
-export type RiskEventCondition = "recovered" | "controlled" | "ongoing" | "worsening" | "unknown";
 
 export interface RiskEventRiskLink { id: string; code: string; title: string }
 
@@ -17,19 +16,9 @@ export interface RiskEvent {
   occurredAt: string;
   impactTypes: string[];
   otherImpactType?: string;
-  actualImpact: string;
   severity: RiskEventSeverity;
-  immediateResponse: string;
-  postResponseCondition: RiskEventCondition;
-  location?: string;
-  affectedParties?: string;
-  suspectedCause?: string;
   financialLoss?: number;
   financialLossKnown?: boolean;
-  disruptionDuration?: string;
-  extraordinaryReason?: string;
-  ongoingAction?: string;
-  evidenceUrl?: string;
   organizationId: string;
   organizationName?: string;
   createdBy: string;
@@ -48,19 +37,9 @@ export interface CreateRiskEventInput {
   occurredAt: string;
   impactTypes: string[];
   otherImpactType?: string;
-  actualImpact?: string;
   severity: RiskEventSeverity;
-  immediateResponse?: string;
-  postResponseCondition?: RiskEventCondition;
-  location?: string;
-  affectedParties?: string;
-  suspectedCause?: string;
   financialLoss?: number;
   financialLossKnown?: boolean;
-  disruptionDuration?: string;
-  extraordinaryReason?: string;
-  ongoingAction?: string;
-  evidenceUrl?: string;
   organizationId?: string;
   riskIds?: string[];
 }

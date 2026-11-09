@@ -42,17 +42,17 @@ func (userRepo) GetByID(_ context.Context, id uuid.UUID) (*entity.User, error) {
 	return &entity.User{ID: id, Name: "Test author"}, nil
 }
 
-func TestCreateTwoFieldNote(t *testing.T) {
+func TestCreateNoteWithoutStakeholder(t *testing.T) {
 	for _, tc := range []struct {
-		name, party, note string
-		invalid           bool
+		name, note string
+		invalid    bool
 	}{
-		{"valid", " Unit A ", " Follow up ", false}, {"blank stakeholder", "  ", "note", true}, {"blank note", "unit", " \n ", true},
+		{"valid", " Follow up ", false}, {"blank note", " \n ", true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			repo := &noteRepo{}
 			uc := NewCreateCommunicationLogUseCase(repo, riskRepo{}, userRepo{})
-			out, err := uc.Execute(context.Background(), CreateCommunicationLogInput{RiskID: uuid.NewString(), CreatedBy: uuid.NewString(), Stakeholder: tc.party, Notes: tc.note})
+			out, err := uc.Execute(context.Background(), CreateCommunicationLogInput{RiskID: uuid.NewString(), CreatedBy: uuid.NewString(), Notes: tc.note})
 			if tc.invalid {
 				if !errors.Is(err, domainerrors.ErrInvalidInput) || repo.saved != nil {
 					t.Fatalf("invalid input saved: %v", err)
@@ -62,7 +62,7 @@ func TestCreateTwoFieldNote(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if out.Stakeholder != "Unit A" || out.Notes != "Follow up" || out.CreatedAt == "" || out.CreatedByName != "Test author" {
+			if out.Notes != "Follow up" || out.CreatedAt == "" || out.CreatedByName != "Test author" {
 				t.Fatalf("unexpected output: %#v", out)
 			}
 		})
@@ -71,7 +71,7 @@ func TestCreateTwoFieldNote(t *testing.T) {
 func TestCreateRejectsInaccessibleRisk(t *testing.T) {
 	repo := &noteRepo{}
 	uc := NewCreateCommunicationLogUseCase(repo, riskRepo{err: errors.New("outside scope")}, userRepo{})
-	_, err := uc.Execute(context.Background(), CreateCommunicationLogInput{RiskID: uuid.NewString(), CreatedBy: uuid.NewString(), Stakeholder: "Unit", Notes: "note"})
+	_, err := uc.Execute(context.Background(), CreateCommunicationLogInput{RiskID: uuid.NewString(), CreatedBy: uuid.NewString(), Notes: "note"})
 	if !errors.Is(err, domainerrors.ErrRiskNotFound) || repo.saved != nil {
 		t.Fatalf("inaccessible risk saved: %v", err)
 	}
@@ -79,7 +79,7 @@ func TestCreateRejectsInaccessibleRisk(t *testing.T) {
 func TestCreatePropagatesSaveFailure(t *testing.T) {
 	want := errors.New("save failed")
 	uc := NewCreateCommunicationLogUseCase(&noteRepo{err: want}, riskRepo{}, userRepo{})
-	_, err := uc.Execute(context.Background(), CreateCommunicationLogInput{RiskID: uuid.NewString(), CreatedBy: uuid.NewString(), Stakeholder: "Unit", Notes: "note"})
+	_, err := uc.Execute(context.Background(), CreateCommunicationLogInput{RiskID: uuid.NewString(), CreatedBy: uuid.NewString(), Notes: "note"})
 	if !errors.Is(err, want) {
 		t.Fatalf("error: %v", err)
 	}

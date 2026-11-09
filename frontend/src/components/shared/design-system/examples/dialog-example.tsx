@@ -5,20 +5,45 @@ import { useState } from "react";
 import { CollectionDialogCancel, DestructiveButton } from "@/components/shared/design-system";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export function DialogExample() {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [referenceOpen, setReferenceOpen] = useState(false);
 
   return (
     <div className="flex flex-wrap gap-3">
+      <Dialog open={referenceOpen} onOpenChange={setReferenceOpen}>
+        <DialogTrigger asChild>
+          <Button variant="outline">Contoh modal satu isian</Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Tambah referensi</DialogTitle>
+          </DialogHeader>
+          <form className="space-y-6" onSubmit={(event) => {
+            event.preventDefault();
+            setReferenceOpen(false);
+          }}>
+            <div className="space-y-3">
+              <DialogDescription>Tambahkan tautan sebagai referensi.</DialogDescription>
+                <Input type="url" aria-label="Tautan referensi" placeholder="Masukkan URL referensi" className="px-3.5" required />
+            </div>
+            <DialogFooter>
+              <Button type="submit">Tambah referensi</Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogTrigger asChild>
           <Button size="sm">Open Dialog</Button>
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
-          <DialogTitle className="text-base">
+            <DialogTitle className="text-base">
               Hapus Draft Risiko?
             </DialogTitle>
             <DialogDescription>

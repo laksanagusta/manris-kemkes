@@ -12,8 +12,8 @@ import type { RiskCharterUPRLevel } from "@/types/risk-charter";
 import { FormHeader, FormPage } from "@/components/shared/form-shell";
 import {
   ActionButton,
-  Card,
-  CardContent,
+  FormContainer,
+  FormGroup,
   FieldErrorMessage,
   Input,
   Label,
@@ -127,8 +127,12 @@ export function RiskCharterQuickCreate() {
   return (
     <FormPage>
       <FormHeader title="Buat Piagam" showTitle />
-      <Card className="mx-auto w-full max-w-xl">
-        <CardContent>
+      <FormContainer
+        title="Judul Piagam"
+        description="Beri judul untuk membuat draf versi pertama. Isi Piagam bisa dilengkapi setelah draf dibuat."
+        className="mx-auto w-full max-w-xl"
+      >
+        <FormGroup>
           <form
             className="space-y-5"
             onSubmit={(event) => {
@@ -136,9 +140,6 @@ export function RiskCharterQuickCreate() {
               if (!creating) void handleCreate();
             }}
           >
-            <p className="text-sm text-muted-foreground">
-              Beri judul untuk membuat draf versi pertama. Isi Piagam bisa dilengkapi setelah draf dibuat.
-            </p>
             <div className="flex flex-col gap-2">
               <Label htmlFor="charter-title">Judul Piagam</Label>
               <Input
@@ -172,8 +173,8 @@ export function RiskCharterQuickCreate() {
               </LoadingActionButton>
             </div>
           </form>
-        </CardContent>
-      </Card>
+        </FormGroup>
+      </FormContainer>
     </FormPage>
   );
 }

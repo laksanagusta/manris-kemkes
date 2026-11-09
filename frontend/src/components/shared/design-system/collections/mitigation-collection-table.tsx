@@ -13,12 +13,13 @@ export type MitigationTableColumn = {
 };
 
 export const treatmentTableColumns: readonly MitigationTableColumn[] = [
-  { key: "plan", label: "Rencana Penanganan", width: "35%" },
+  { key: "code", label: "Kode risiko", width: "148px" },
+  { key: "plan", label: "Rencana Penanganan", width: "24%" },
   { key: "owner", label: "PIC", width: "16%" },
   { key: "period", label: "Periode", width: "12%" },
   { key: "deadline", label: "Deadline", width: "14%" },
   { key: "status", label: "Status", width: "13%" },
-  { key: "actions", label: "Aksi", width: "10%", action: true },
+  { key: "actions", label: "Aksi", width: "48px", action: true },
 ];
 
 /** Shared table geometry for the treatment collection and risk-detail ledgers. */
@@ -50,7 +51,8 @@ export function MitigationCollectionTable({
             {columns.map((column) => (
               <CollectionTableHead
                 key={column.key}
-                className={column.action ? "text-right" : undefined}
+                className={column.action ? "text-center" : undefined}
+                data-collection-action={column.action ? "" : undefined}
               >
                 {column.action ? (
                   <span className="sr-only">{column.label}</span>

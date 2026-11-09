@@ -1,3 +1,4 @@
+import { createDisplayDateFormatter } from "./display-date.ts";
 import { formatRiskScore } from "./risk";
 
 export type MonitoringCycleBadgeStatus =
@@ -24,7 +25,7 @@ export function getMonitoringCycleBadgeStatus(
   }
 }
 
-const dateFormatter = new Intl.DateTimeFormat("id-ID", {
+const dateFormatter = createDisplayDateFormatter("id-ID", {
   day: "2-digit",
   month: "short",
   year: "numeric",

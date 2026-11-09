@@ -551,6 +551,8 @@ type startMonitoringRequest struct {
 }
 
 type updateMonitoringRequest struct {
+	ExpectedUpdatedAt           *time.Time                       `json:"expectedUpdatedAt"`
+	ObservedScoreConfirmed      *bool                            `json:"observedScoreConfirmed"`
 	ObservedProbability         int                              `json:"observedProbability"`
 	ObservedImpact              int                              `json:"observedImpact"`
 	Conclusion                  string                           `json:"conclusion"`
@@ -560,7 +562,9 @@ type updateMonitoringRequest struct {
 }
 
 type finalizeMonitoringRequest struct {
-	FinalizedBy uuid.UUID `json:"finalizedBy"`
+	ExpectedUpdatedAt *time.Time `json:"expectedUpdatedAt"`
+	ReportRevision    *string    `json:"reportRevision"`
+	FinalizedBy       uuid.UUID  `json:"finalizedBy"`
 }
 
 // CreateRisk handles POST /api/risks
@@ -816,8 +820,10 @@ func (h *RiskHandler) UpdateMonitoring(c *fiber.Ctx) error {
 	}
 
 	result, err := h.updateMonitoringUC.Execute(c.Context(), riskuc.UpdateMonitoringInput{
+		ExpectedUpdatedAt:           req.ExpectedUpdatedAt,
 		MonitoringID:                id,
 		OrgIDs:                      orgIDs,
+		ObservedScoreConfirmed:      req.ObservedScoreConfirmed,
 		ObservedProbability:         req.Values.Probability,
 		ObservedImpact:              req.Values.Impact,
 		Conclusion:                  req.Conclusion,
@@ -892,9 +898,11 @@ func (h *RiskHandler) FinalizeMonitoring(c *fiber.Ctx) error {
 	}
 
 	result, err := h.finalizeMonitoringUC.Execute(c.Context(), riskuc.FinalizeMonitoringInput{
-		MonitoringID: id,
-		OrgIDs:       orgIDs,
-		FinalizedBy:  finalizedBy,
+		ExpectedUpdatedAt: req.ExpectedUpdatedAt,
+		ReportRevision:    req.ReportRevision,
+		MonitoringID:      id,
+		OrgIDs:            orgIDs,
+		FinalizedBy:       finalizedBy,
 	})
 	if err != nil {
 		return handleError(c, err)

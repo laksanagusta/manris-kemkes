@@ -13,26 +13,31 @@ import (
 
 func workingPaperSigningBlockers(wp *entity.WorkingPaper) []entity.WorkingPaperSigningBlocker {
 	blockers := make([]entity.WorkingPaperSigningBlocker, 0)
-	hasMonitoring := false
-
+	// Legacy papers may predate monitoring links. Period rosters require a
+	// final monitoring result for every included risk, even when all are missing.
+	requiresMonitoring := false
 	for _, link := range wp.Risks {
-		if link.Risk.Monitoring != nil {
-			hasMonitoring = true
+		if link.SourceMode == "roster" || link.Risk.Monitoring != nil {
+			requiresMonitoring = true
+			break
 		}
 	}
-
-	if !hasMonitoring {
+	if !requiresMonitoring {
 		return blockers
 	}
 
 	for _, link := range wp.Risks {
-		if link.Risk.Monitoring == nil || link.Risk.Monitoring.Status != entity.RiskMonitoringStatusFinalized {
+		monitoring := link.Risk.Monitoring
+		wrongPeriod := link.SourceMode == "roster" && monitoring != nil && monitoring.AssessmentCycle != wp.AssessmentCycle
+		if monitoring == nil || monitoring.Status != entity.RiskMonitoringStatusFinalized || wrongPeriod {
 			status := "missing"
-			if link.Risk.Monitoring != nil && link.Risk.Monitoring.Status != "" {
-				status = link.Risk.Monitoring.Status
+			if wrongPeriod {
+				status = "wrong_period"
+			} else if monitoring != nil && monitoring.Status != "" {
+				status = monitoring.Status
 			}
 			blockers = append(blockers, entity.WorkingPaperSigningBlocker{
-				VersionGroupID:   uuid.Nil,
+				VersionGroupID:   link.VersionGroupID,
 				Code:             link.Risk.Code,
 				Title:            link.Risk.Title,
 				MonitoringStatus: status,

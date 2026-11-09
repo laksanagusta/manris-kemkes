@@ -313,8 +313,6 @@ func (r *workingPaperRepository) CreateWithPeriodRoster(ctx context.Context, wp 
 	wp.SequenceNo = sequenceNo
 	wp.Code = fmt.Sprintf("KK-%s-%d", wp.AssessmentCycle, sequenceNo)
 
-	wp.DocumentHash = wp.ComputeHash()
-
 	if err := tx.QueryRow(ctx, `
 		INSERT INTO working_papers (id, code, sequence_no, title, org_id, status, assessment_cycle, document_hash, current_signatory_sequence, tte_skipped, created_by, created_at, updated_at)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)

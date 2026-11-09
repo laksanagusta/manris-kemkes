@@ -50,7 +50,6 @@ export function EvaluationFiltersToolbar({
     <DynamicTableFilters
       search={
         <CollectionSearchField
-          containerClassName="w-full sm:w-80 sm:flex-none"
           placeholder={queryPlaceholder}
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}

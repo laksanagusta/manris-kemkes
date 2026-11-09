@@ -1,4 +1,4 @@
-import type { WorkingPaper, WorkingPaperSignatory } from "@/types/working-paper";
+import type { WorkingPaper, WorkingPaperRiskLink, WorkingPaperSignatory } from "@/types/working-paper";
 
 export type WorkingPaperActionTone = "attention" | "neutral" | "success" | "danger";
 
@@ -25,7 +25,7 @@ export type WorkingPaperDetailViewModel = {
   canDelete: boolean;
   canSkipTTE: boolean;
   tteSkipped: boolean;
-  monitoringBlockers: string[];
+  monitoringBlockers: WorkingPaperRiskLink[];
   currentAction: WorkingPaperCurrentAction | null;
   timeline: WorkingPaperTimelineItem[];
 };
@@ -40,24 +40,16 @@ function getNextSignatory(workingPaper: WorkingPaper): WorkingPaperSignatory | n
   );
 }
 
-function getMonitoringBlockers(workingPaper: WorkingPaper): string[] {
+function getMonitoringBlockers(workingPaper: WorkingPaper): WorkingPaperRiskLink[] {
   const risks = workingPaper.risks ?? [];
-  const hasMonitoring = risks.some((link) => link.risk.monitoring);
-  if (!hasMonitoring) {
-    return [];
-  }
+  const requiresMonitoring = risks.some((link) => link.source_mode === "roster" || link.risk.monitoring);
+  if (!requiresMonitoring) return [];
 
-  return risks
-    .filter((link) => !link.risk.monitoring || link.risk.monitoring.status !== "final")
-    .map((link) => {
-      const status =
-        link.risk.monitoring?.status === "draft"
-          ? "Draft"
-          : link.risk.monitoring?.status === "final"
-            ? "Final"
-            : "Missing";
-      return `${link.risk.code} (${status})`;
-    });
+  return risks.filter((link) => {
+    const monitoring = link.risk.monitoring;
+    return monitoring?.status !== "final" ||
+      (link.source_mode === "roster" && monitoring.assessmentCycle !== workingPaper.assessment_cycle);
+  });
 }
 
 function buildCurrentAction(
@@ -67,7 +59,7 @@ function buildCurrentAction(
   canSign: boolean,
   canSkipTTE: boolean,
   allRisksApproved: boolean,
-  monitoringBlockers: string[],
+  monitoringBlockers: WorkingPaperRiskLink[],
   tteSkipped: boolean,
 ): WorkingPaperCurrentAction | null {
   if (workingPaper.status === "cancelled") {
@@ -97,7 +89,7 @@ function buildCurrentAction(
   if (canStartSigning) {
     return {
       tone: "attention" as const,
-      title: "Siap ditandatangani",
+      title: "Siap mulai TTE",
       description: "Periksa kembali isi dokumen lalu mulai proses tanda tangan elektronik.",
       buttonLabel: "Mulai proses TTE",
     };
@@ -106,8 +98,8 @@ function buildCurrentAction(
   if (canSign) {
     return {
       tone: "attention" as const,
-      title: "Tindakan Anda diperlukan",
-      description: "Anda penandatangan aktif. Periksa isi dokumen lalu tandatangani.",
+      title: "Giliran Anda",
+      description: `Anda penandatangan urutan ${nextSignatory?.sequence_no} dari ${workingPaper.signatories.length}. Periksa isi dokumen sebelum menandatangani.`,
       buttonLabel: "Tanda tangani sekarang",
     };
   }
@@ -115,8 +107,8 @@ function buildCurrentAction(
   if (monitoringBlockers.length > 0) {
     return {
       tone: "attention" as const,
-      title: "Finalisasi monitoring terlebih dahulu",
-      description: `Monitoring belum final untuk: ${monitoringBlockers.join(", ")}.`,
+      title: `${monitoringBlockers.length} risiko perlu menyelesaikan pemantauan`,
+      description: "Finalisasi pemantauan untuk setiap risiko ini sebelum memulai tanda tangan.",
     };
   }
 
@@ -137,11 +129,19 @@ function buildCurrentAction(
     };
   }
 
+  if (workingPaper.status === "draft") {
+    return {
+      tone: "neutral",
+      title: "Menunggu pembuat draf",
+      description: "Pembuat draf dapat memulai proses TTE setelah meninjau Kertas Kerja.",
+    };
+  }
+
   if (nextSignatory) {
     return {
       tone: "neutral" as const,
       title: "Menunggu penandatangan aktif",
-      description: `Menunggu tanda tangan ${nextSignatory.signer_name} pada urutan ${nextSignatory.sequence_no}.`,
+      description: `${nextSignatory.signer_name} · urutan ${nextSignatory.sequence_no} dari ${workingPaper.signatories.length}.`,
     };
   }
 

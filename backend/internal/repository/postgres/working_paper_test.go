@@ -2,6 +2,8 @@ package postgres
 
 import (
 	"context"
+	"encoding/json"
+	"errors"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,6 +14,8 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/manris/backend/internal/domain/entity"
+	domainerrors "github.com/manris/backend/internal/domain/errors"
+	"github.com/manris/backend/internal/usecase/workingpaper"
 )
 
 func setupWorkingPaperPool(t *testing.T) *pgxpool.Pool {
@@ -522,5 +526,102 @@ func TestWorkingPaperRepositoryReturnsNilMonitoringWhenNoMatchingTransactionExis
 	}
 	if got.Risks[0].Risk.MonitoringP != 0 || got.Risks[0].Risk.MonitoringNilai != 0 {
 		t.Fatalf("expected empty flat monitoring fields, got %+v", got.Risks[0].Risk)
+	}
+}
+
+func TestWorkingPaperSigningSnapshotStaysFixedThroughSignatures(t *testing.T) {
+	pool := setupWorkingPaperPool(t)
+	ctx := context.Background()
+	repo := NewWorkingPaperRepository(pool)
+	uc := workingpaper.NewWorkingPaperUseCase(repo, nil, nil)
+	orgID := insertWorkingPaperTestOrganization(t, pool, "Working Paper Signing Snapshot")
+	firstSigner := insertWorkingPaperTestUser(t, pool, orgID, "wp-snapshot-first")
+	secondSigner := insertWorkingPaperTestUser(t, pool, orgID, "wp-snapshot-second")
+	risk := &entity.Risk{
+		Code: "R-SNAPSHOT", Title: "Risiko yang ditinjau", Description: "Risiko uji salinan TTE",
+		Category: entity.RiskCategoryOperasional, Status: entity.RiskStatusFinal,
+		VersionGroupID: uuid.New(), OrganizationID: &orgID, CreatedBy: &firstSigner,
+		IsCurrent: true, IsCycleCurrent: true, VersionNumber: 1, AssessmentCycle: "2026-Q1",
+		Probability: 3, Impact: 4, RiskSource: "internal", Controllability: "C", TreatmentOption: "mitigasi",
+	}
+	if err := NewRiskRepository(pool).Create(ctx, risk); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _, _ = pool.Exec(ctx, `DELETE FROM risks WHERE id = $1`, risk.ID) })
+	monitoring := entity.NewRiskMonitoringDraft(risk, "2026-Q1", firstSigner)
+	monitoring.Status = entity.RiskMonitoringStatusFinal
+	monitoring.MitigationProgressSummary = "Satu tindakan selesai."
+	if err := NewRiskMonitoringRepository(pool).Create(ctx, monitoring); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _, _ = pool.Exec(ctx, `DELETE FROM risk_monitorings WHERE id = $1`, monitoring.ID) })
+
+	paper := &entity.WorkingPaper{
+		Title: "Kertas Kerja 2026-Q1", OrgID: orgID, Status: entity.WorkingPaperStatusDraft,
+		AssessmentCycle: "2026-Q1", CreatedBy: firstSigner,
+		Risks: []entity.WorkingPaperRiskLink{{RiskID: risk.ID, SourceMode: "review_periodic"}},
+		Signatories: []entity.WorkingPaperSignatory{
+			{UserID: firstSigner, SequenceNo: 1, SignerName: "Rina", Status: "pending"},
+			{UserID: secondSigner, SequenceNo: 2, SignerName: "Bagus", Status: "pending"},
+		},
+	}
+	if err := repo.Create(ctx, paper); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _, _ = pool.Exec(ctx, `DELETE FROM working_papers WHERE id = $1`, paper.ID) })
+
+	review, err := repo.GetByID(ctx, paper.ID)
+	if err != nil || review.ReviewHash == "" {
+		t.Fatalf("load review: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `UPDATE risk_monitorings SET mitigation_progress_summary = 'Dua tindakan selesai.' WHERE id = $1`, monitoring.ID); err != nil {
+		t.Fatal(err)
+	}
+	_, err = uc.StartSigning(ctx, paper.ID, firstSigner, review.ReviewHash)
+	var conflict *domainerrors.AppError
+	if !errors.As(err, &conflict) || conflict.Code != "WORKING_PAPER_REVIEW_CHANGED" {
+		t.Fatalf("expected new review after content changed, got %v", err)
+	}
+	review, err = repo.GetByID(ctx, paper.ID)
+	if err != nil || review.Status != entity.WorkingPaperStatusDraft {
+		t.Fatalf("load draft after stale review: %v", err)
+	}
+	started, err := uc.StartSigning(ctx, paper.ID, firstSigner, review.ReviewHash)
+	if err != nil || !started.ContentLocked || started.DocumentHash != review.ReviewHash {
+		t.Fatalf("expected review hash to be frozen at start: %v", err)
+	}
+
+	if _, err := pool.Exec(ctx, `UPDATE risk_monitorings SET mitigation_progress_summary = 'Diubah setelah TTE.' WHERE id = $1`, monitoring.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `UPDATE working_paper_signatories SET signer_name = 'Nama baru' WHERE working_paper_id = $1 AND user_id = $2`, paper.ID, firstSigner); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := uc.Sign(ctx, paper.ID, firstSigner); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := uc.Sign(ctx, paper.ID, secondSigner); err != nil {
+		t.Fatal(err)
+	}
+	completed, err := repo.GetByID(ctx, paper.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if completed.Status != entity.WorkingPaperStatusCompleted || completed.DocumentHash != review.ReviewHash || !completed.ContentLocked {
+		t.Fatal("expected completed paper to retain the locked hash")
+	}
+	if got := completed.Risks[0].Risk.Monitoring.MitigationProgressSummary; got != "Dua tindakan selesai." {
+		t.Fatalf("expected export and detail to retain reviewed monitoring, got %q", got)
+	}
+	for i, signatory := range completed.Signatories {
+		var qr struct {
+			DocumentHash string `json:"document_hash"`
+			SignerName   string `json:"signer_name"`
+		}
+		expectedName := review.Signatories[i].SignerName
+		if err := json.Unmarshal(signatory.QRData, &qr); err != nil ||
+			qr.DocumentHash != review.ReviewHash || qr.SignerName != expectedName || signatory.SignerName != expectedName {
+			t.Fatalf("expected signature %d to reference the locked content and signer, got %+v (%v)", i+1, qr, err)
+		}
 	}
 }

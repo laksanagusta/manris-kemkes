@@ -1,32 +1,96 @@
 "use client";
-import type { OperatorWorkItem } from "@/types/operator-work";
-import { deadlineLabel } from "@/lib/operator-work";
-import { ActionButton } from "../actions/action-button";
-import { Badge } from "@/components/ui/badge";
 
-export function OperatorWorkList({ items, busyKey, onOpen, today = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date()) }: {
- items: OperatorWorkItem[]; busyKey?: string | null; onOpen: (item: OperatorWorkItem) => void; today?: string;
+import { CalendarClock, FileText, PencilLine } from "@/components/shared/icons";
+import { createDisplayDateFormatter } from "@/lib/display-date";
+import { deadlineLabel } from "@/lib/operator-work";
+import { cn } from "@/lib/utils";
+import type { OperatorWorkItem } from "@/types/operator-work";
+import { ActionButton } from "../actions/action-button";
+
+const taskIcons = {
+  mitigation_report: FileText,
+  monitoring_start: CalendarClock,
+  monitoring_draft: CalendarClock,
+  risk_draft: PencilLine,
+};
+
+const formatDeadline = createDisplayDateFormatter("id-ID", {
+  dateStyle: "medium",
+  timeZone: "Asia/Jakarta",
+});
+
+export function OperatorWorkList({ items, busyKey, onOpen, today }: {
+  items: OperatorWorkItem[];
+  busyKey?: string | null;
+  onOpen: (item: OperatorWorkItem) => void;
+  today: string;
 }) {
- return <ul className="divide-y divide-dashed divide-border" aria-label="Daftar pekerjaan">
-  {items.map(item => <li key={item.key} className="flex flex-col gap-2 py-2 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
-   <div className="min-w-0 space-y-0.5">
-    {item.kind === "risk_draft" ? (
-     <button type="button" className="flex min-h-7 pointer-coarse:min-h-11 cursor-pointer flex-col gap-0.5 rounded-sm text-left text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-wait disabled:opacity-50" disabled={Boolean(busyKey)} onClick={() => onOpen(item)}>
-      {item.riskCode ? <span className="font-medium text-primary wrap-break-word">{item.riskCode}</span> : null}
-      <span className="text-tertiary-foreground wrap-break-word">{item.riskTitle}</span>
-     </button>
-    ) : <>
-     {item.riskCode ? <p className="text-sm font-medium text-primary wrap-break-word">{item.riskCode}</p> : null}
-     <p className="text-sm text-tertiary-foreground wrap-break-word">{item.riskTitle}</p>
-    </>}
-    {item.mitigationAction ? <p className="text-sm text-foreground wrap-break-word">{item.mitigationAction}</p> : null}
-    {item.responsibility === "unit" || item.dueDate ? <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-     {item.responsibility === "unit" ? <span>Perlu ditangani unit</span> : null}
-     {item.dueDate ? <span>Tenggat {new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeZone: "Asia/Jakarta" }).format(new Date(`${item.dueDate}T12:00:00+07:00`))}</span> : null}
-    </div> : null}
-    {item.kind === "mitigation_report" && item.dueDate ? <p className="text-sm"><Badge className="text-sm" variant={item.dueDate < today ? "destructive" : "secondary"}>{deadlineLabel(item.dueDate,today)}</Badge></p> : null}
-   </div>
-   {item.kind !== "risk_draft" ? <ActionButton variant="outline" className="shrink-0 self-start sm:w-44 sm:self-center" disabled={Boolean(busyKey)} loading={busyKey === item.key} onClick={() => onOpen(item)}>{item.actionLabel}</ActionButton> : null}
-  </li>)}
- </ul>;
+  return (
+    <ul className="divide-y divide-border border-b border-border" aria-label="Daftar pekerjaan">
+      {items.map((item) => {
+        const Icon = taskIcons[item.kind];
+        const isDraft = item.kind === "risk_draft";
+        const title = item.mitigationAction || item.riskTitle;
+        const context = [
+          item.mitigationAction && item.riskTitle,
+          !isDraft && item.riskCode,
+          item.kind === "mitigation_report" && item.period,
+        ].filter(Boolean).join(" · ");
+        const relativeDeadline = deadlineLabel(item.dueDate, today);
+        const overdue = Boolean(relativeDeadline && item.dueDate < today);
+        const deadline = item.dueDate ? new Date(`${item.dueDate}T12:00:00+07:00`) : null;
+
+        return (
+          <li key={item.key} className="grid min-h-11 min-w-0 items-center gap-x-4 gap-y-1.5 py-2 text-sm @min-[44rem]/work:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_8.5rem_10rem]">
+            <div className="flex min-w-0 items-start gap-2">
+              <Icon aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+              {isDraft ? (
+                <button
+                  type="button"
+                  className="min-w-0 cursor-pointer rounded-sm text-left focus-visible:outline-2 focus-visible:outline-ring disabled:cursor-wait disabled:opacity-50 pointer-coarse:min-h-11"
+                  disabled={Boolean(busyKey)}
+                  onClick={() => onOpen(item)}
+                >
+                  <span className="block wrap-break-word font-medium">{title}</span>
+                  {item.riskCode ? <span className="block wrap-break-word text-xs text-muted-foreground">{item.riskCode}</span> : null}
+                </button>
+              ) : (
+                <span className="min-w-0 wrap-break-word font-medium">{title}</span>
+              )}
+            </div>
+            {context || item.responsibility === "unit" ? (
+              <div className="min-w-0 wrap-break-word pl-6 text-sm text-muted-foreground @min-[44rem]/work:pl-0">
+                {context ? <p>{context}</p> : null}
+                {item.responsibility === "unit" ? <p>Perlu ditangani unit</p> : null}
+              </div>
+            ) : null}
+            {deadline && Number.isFinite(deadline.getTime()) ? (
+              <div className={cn(
+                "pl-6 @min-[44rem]/work:col-start-3 @min-[44rem]/work:row-start-1 @min-[44rem]/work:pl-0",
+                overdue ? "text-destructive" : "text-muted-foreground",
+              )}>
+                <time dateTime={item.dueDate} data-date-time="">{formatDeadline.format(deadline)}</time>
+                {item.kind === "mitigation_report" && relativeDeadline ? (
+                  <p className="text-xs">{relativeDeadline}</p>
+                ) : null}
+              </div>
+            ) : null}
+            {!isDraft ? (
+              <div className="pl-6 @min-[44rem]/work:col-start-4 @min-[44rem]/work:row-start-1 @min-[44rem]/work:pl-0">
+                <ActionButton
+                  size="sm"
+                  className="h-auto min-h-8 max-w-full whitespace-normal text-left pointer-coarse:min-h-11 @min-[44rem]/work:w-full"
+                  disabled={Boolean(busyKey)}
+                  loading={busyKey === item.key}
+                  onClick={() => onOpen(item)}
+                >
+                  {item.kind === "mitigation_report" && overdue ? "Lapor terlambat" : item.actionLabel}
+                </ActionButton>
+              </div>
+            ) : null}
+          </li>
+        );
+      })}
+    </ul>
+  );
 }

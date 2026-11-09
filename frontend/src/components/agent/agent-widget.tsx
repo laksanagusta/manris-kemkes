@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
 import { Button } from "@/components/ui/button";
 import { FileText, RefreshCw } from "@/components/shared/icons";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -9,10 +10,19 @@ import type { AgentWidget as Widget, AgentWidgetAction } from "@/types/agent";
 import { AgentComparison, AgentPriorities, AgentResponseActions, AgentRiskCard } from "./agent-response-components";
 
 interface Props { widget: Widget; onRefresh?: (widget: Widget) => void; onClarify?: (value: string) => void; onAction?: (action: AgentWidgetAction) => void; disabled?: boolean }
+function isCodeColumn(column: { key: string; label: string }) {
+  return /^(?:kode|code)\b/i.test(column.label) ||
+    /(?:^|_)(?:code|kode)(?:_|$)/i.test(column.key) ||
+    /Code$/.test(column.key);
+}
+
 const supportedTypes = new Set(["table", "metrics", "bar_chart", "document", "clarification", "risk_detail", "priority_list", "period_comparison"]);
 export function AgentWidget({ widget, onRefresh, onClarify, onAction, disabled }: Props) {
   const rows = widget.rows ?? [];
   const columns = (widget.columns ?? []).filter((column) => column.key !== "href");
+  const tableColumns = widget.type === "table"
+    ? [...columns.filter(isCodeColumn), ...columns.filter((column) => !isCodeColumn(column))]
+    : columns;
   const bars = rows.map((row) => ({ label: agentValue(row.label ?? row.name ?? row[columns[0]?.key]), value: Number(row.value ?? row.count ?? row[columns[1]?.key]) })).filter((bar) => Number.isFinite(bar.value) && bar.value >= 0);
   const max = Math.max(1, ...bars.map((bar) => bar.value));
   const missingPayload = (widget.type === "risk_detail" && !widget.risk) || (widget.type === "priority_list" && !widget.priorities) || (widget.type === "period_comparison" && !widget.comparison);
@@ -24,7 +34,33 @@ export function AgentWidget({ widget, onRefresh, onClarify, onAction, disabled }
     {missingPayload && <p className="agent-widget-empty">Rincian hasil ini belum tersedia. Perbarui hasil untuk membacanya kembali.</p>}
     {!!widget.warnings?.length && <ul className="agent-response-warnings">{widget.warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul>}
     <AgentResponseActions actions={widget.actions} onAction={onAction} disabled={disabled} />
-    {widget.type === "table" && <div className="agent-table"><Table><TableHeader><TableRow>{columns.map((column) => <TableHead key={column.key}>{column.label}</TableHead>)}</TableRow></TableHeader><TableBody>{rows.map((row, index) => <TableRow key={`${widget.id}-${index}`}>{columns.map((column, columnIndex) => <TableCell key={column.key}>{columnIndex === 0 && safeAgentHref(row.href) ? <Link href={safeAgentHref(row.href)!} className="agent-source-link">{agentValue(row[column.key])}</Link> : agentValue(row[column.key])}</TableCell>)}</TableRow>)}</TableBody></Table>{!rows.length && <p className="agent-widget-empty">Tidak ada data pada cakupan ini.</p>}</div>}
+    {widget.type === "table" && (
+      <div className="agent-table">
+        <Table>
+          <TableHeader><TableRow>{tableColumns.map((column) => <TableHead key={column.key}>{column.label}</TableHead>)}</TableRow></TableHeader>
+          <TableBody>
+            {rows.map((row, index) => (
+              <TableRow key={`${widget.id}-${index}`}>
+                {tableColumns.map((column) => {
+                  const value = row[column.key];
+                  const href = column.key === columns[0]?.key ? safeAgentHref(row.href) : undefined;
+                  return (
+                    <TableCell key={column.key}>
+                      {isCodeColumn(column) && (typeof value === "string" || typeof value === "number") ? (
+                        <CollectionCode code={value} href={href ?? undefined} />
+                      ) : href ? (
+                        <Link href={href} className="agent-source-link">{agentValue(value)}</Link>
+                      ) : agentValue(value)}
+                    </TableCell>
+                  );
+                })}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+        {!rows.length && <p className="agent-widget-empty">Tidak ada data pada cakupan ini.</p>}
+      </div>
+    )}
     {widget.type === "metrics" && <dl className="agent-metrics">{(widget.metrics ?? []).map((metric, index) => <div key={`${metric.label}-${index}`}><dt>{metric.label}</dt><dd>{agentValue(metric.value)}</dd>{metric.description && <p>{metric.description}</p>}</div>)}{!widget.metrics?.length && <p className="agent-widget-empty">Metrik belum tersedia.</p>}</dl>}
     {widget.type === "bar_chart" && <div className="agent-bars">{bars.map((bar, index) => <div key={`${bar.label}-${index}`} className="agent-bar-row"><span>{bar.label}</span><div className="agent-bar-track" aria-hidden="true"><div style={{ width: `${bar.value / max * 100}%` }} /></div><span className="tabular-nums">{bar.value.toLocaleString("id-ID")}</span></div>)}{!bars.length && <p className="agent-widget-empty">Data grafik belum tersedia.</p>}</div>}
     {widget.type === "document" && <div className="agent-document"><FileText className="size-5 shrink-0" aria-hidden="true" /><div className="min-w-0 space-y-3">{rows.map((row, index) => <div key={`${widget.id}-${index}`} className="space-y-1">{Object.entries(row).filter(([key]) => key !== "href").map(([key, value]) => <p key={key}><span className="text-muted-foreground">{columns.find((column) => column.key === key)?.label ?? key}: </span>{agentValue(value)}</p>)}{safeAgentHref(row.href) && <Link href={safeAgentHref(row.href)!} className="agent-source-link">Buka sumber</Link>}</div>)}{!rows.length && <p>Rincian dokumen tersedia pada ringkasan di atas.</p>}</div></div>}

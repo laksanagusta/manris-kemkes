@@ -1,5 +1,7 @@
 "use client";
 
+import { formatDisplayDate } from "@/lib/display-date";
+
 import { useState } from "react";
 import {
   CheckCircle2,
@@ -49,7 +51,7 @@ function relativeDate(date: string) {
   if (difference < 60_000) return "baru saja";
   if (difference < 3_600_000) return `${Math.max(1, Math.round(difference / 60_000))} mnt lalu`;
   if (difference < 86_400_000) return `${Math.max(1, Math.round(difference / 3_600_000))} jam lalu`;
-  return new Date(date).toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+  return formatDisplayDate(new Date(date), { day: "numeric", month: "short" });
 }
 
 export function HistoryPanel({
@@ -145,7 +147,7 @@ export function HistoryPanel({
                         <span className="mt-1 flex items-center gap-1.5 text-xs text-muted-foreground">
                           <span>{job.documents.length} dokumen</span>
                           <span aria-hidden="true">·</span>
-                          <span>{relativeDate(job.updatedAt)}</span>
+                          <span><span data-date-time="">{relativeDate(job.updatedAt)}</span></span>
                         </span>
                       </span>
                       <Badge variant={toBadgeVariant(meta.tone)} className={`hidden shrink-0 sm:inline-flex ${getStatusBadgeClassName(meta.tone)}`}>

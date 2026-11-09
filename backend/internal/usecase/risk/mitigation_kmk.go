@@ -14,13 +14,6 @@ func normalizeMitigationKMKFields(m *entity.Mitigation) {
 	m.Action = strings.TrimSpace(m.Action)
 	m.Owner = strings.TrimSpace(m.Owner)
 	m.MitigationType = entity.NormalizeMitigationType(m.MitigationType)
-	m.ActivityStage = strings.TrimSpace(m.ActivityStage)
-	m.ExpectedOutput = strings.TrimSpace(m.ExpectedOutput)
-	m.QuantitativeTarget = strings.TrimSpace(m.QuantitativeTarget)
-	m.SupportingUnit = strings.TrimSpace(m.SupportingUnit)
-	m.ResourcesRequired = strings.TrimSpace(m.ResourcesRequired)
-	m.ContingencyPlan = strings.TrimSpace(m.ContingencyPlan)
-	m.PotentialObstacle = strings.TrimSpace(m.PotentialObstacle)
 }
 
 func pruneEmptyMitigations(mitigations []entity.Mitigation) []entity.Mitigation {
@@ -61,18 +54,6 @@ func mitigationHasContent(m entity.Mitigation) bool {
 	if m.TargetCost != 0 {
 		return true
 	}
-	if strings.TrimSpace(m.ActivityStage) != "" ||
-		strings.TrimSpace(m.ExpectedOutput) != "" ||
-		strings.TrimSpace(m.QuantitativeTarget) != "" ||
-		strings.TrimSpace(m.SupportingUnit) != "" ||
-		strings.TrimSpace(m.ResourcesRequired) != "" ||
-		strings.TrimSpace(m.ContingencyPlan) != "" ||
-		strings.TrimSpace(m.PotentialObstacle) != "" {
-		return true
-	}
-	if m.IsBreakthroughActivity || m.IsExistingControl {
-		return true
-	}
 
 	return false
 }
@@ -93,10 +74,8 @@ func validateRiskMitigationRequirements(risk *entity.Risk) error {
 	if !risk.IsRiskUtama() || !requiresNewMitigationPlan(risk.TreatmentOption) {
 		return nil
 	}
-	for _, mitigation := range risk.Mitigations {
-		if !mitigation.IsExistingControl {
-			return nil
-		}
+	if len(risk.Mitigations) > 0 {
+		return nil
 	}
 	return apperrors.ErrRiskUtamaMitigationRequired
 }

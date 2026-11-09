@@ -1,13 +1,6 @@
 import type { ReactNode } from "react";
 
-import { CollectionPageHeader } from "@/components/shared/design-system";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { CollectionPageHeader, FormContainer, FormGroup } from "@/components/shared/design-system";
 import { cn } from "@/lib/utils";
 
 type FormPageProps = {
@@ -81,30 +74,15 @@ export function FormSection({
   contentClassName,
 }: FormSectionProps) {
   return (
-    <Card
-      className={cn(
-        "transition-colors duration-200",
-        className,
-      )}
+    <FormContainer
+      title={title}
+      description={description}
+      action={action}
+      className={className}
     >
-      <CardHeader>
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div className="space-y-1">
-            <CardTitle className="">
-              {title}
-            </CardTitle>
-            {description ? (
-              <CardDescription className="max-w-2xl">
-                {description}
-              </CardDescription>
-            ) : null}
-          </div>
-          {action ? <div className="shrink-0">{action}</div> : null}
-        </div>
-      </CardHeader>
-      <CardContent className={cn("space-y-6", contentClassName)}>
+      <FormGroup className={cn("space-y-6", contentClassName)}>
         {children}
-      </CardContent>
-    </Card>
+      </FormGroup>
+    </FormContainer>
   );
 }

@@ -1,10 +1,12 @@
 "use client";
+
+import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
+import { createDisplayDateFormatter } from "@/lib/display-date";
 import { useRemoteCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
 import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
 
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Download,
@@ -95,7 +97,7 @@ function formatDateTime(value?: string | null) {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("id-ID", {
+  return createDisplayDateFormatter("id-ID", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
@@ -590,13 +592,7 @@ export default function EvaluationsPage() {
                       className="hover:bg-muted/50"
                     >
                       <TableCell className="">
-                        <Link
-                          href={`/evaluations/${evaluation.id}`}
-                          className="font-medium transition-colors hover:text-primary"
-                          aria-label={`Buka detail evaluasi ${evaluation.code}`}
-                        >
-                          {evaluation.code}
-                        </Link>
+                        <CollectionCode code={evaluation.code} href={`/evaluations/${evaluation.id}`} />
                       </TableCell>
                       <TableCell className="">
                         {evaluation.period}
@@ -616,7 +612,7 @@ export default function EvaluationsPage() {
                         </Badge>
                       </TableCell>
                       <TableCell className="">
-                        {formatDateTime(evaluation.updatedAt)}
+                        <span data-date-time="">{formatDateTime(evaluation.updatedAt)}</span>
                       </TableCell>
                       <CreatedAtCell record={evaluation} />
                       <TableCell className="text-right">

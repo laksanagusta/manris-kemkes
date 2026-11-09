@@ -1,6 +1,7 @@
 package http
 
 import (
+	stderrors "errors"
 	"log/slog"
 	"strconv"
 
@@ -37,6 +38,9 @@ func sendProblemDetailsWithDetails(c *fiber.Ctx, status int, title, errorType, d
 
 // handleError is a unified error handler that converts domain errors to HTTP RFC 7807 Problem Details
 func handleError(c *fiber.Ctx, err error) error {
+	if stderrors.Is(err, errors.ErrMonitoringReviewChanged) {
+		return sendProblemDetails(c, fiber.StatusConflict, "Tinjauan perlu diperbarui", "https://api.manris.com/errors/monitoring-review-changed", err.Error())
+	}
 	if errors.IsNotFound(err) {
 		return sendProblemDetails(c, fiber.StatusNotFound, "Sumber Daya Tidak Ditemukan", "https://api.manris.com/errors/not-found", err.Error())
 	}
