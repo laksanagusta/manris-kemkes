@@ -32,28 +32,25 @@ const appSidebarSource = readFileSync(
   new URL("./app-sidebar.tsx", import.meta.url),
   "utf8",
 );
-const rootLayoutSource = readFileSync(
-  new URL("../app/layout.tsx", import.meta.url),
+const globalsSource = readFileSync(
+  new URL("../app/globals.css", import.meta.url),
   "utf8",
 );
 
-test("workspace uses a standalone mobile sidebar trigger and no global topbar", () => {
-  assert.match(appShellSource, /<SidebarTrigger aria-label="Buka navigasi" className="mb-3 size-11 md:hidden"/);
-  assert.doesNotMatch(appShellSource, /AppTopbar|DesktopWorkspaceBar|pt-14/);
-  assert.match(appSidebarSource, /md:top-0 md:h-svh/);
+test("workspace uses a standalone mobile trigger and a desktop breadcrumb bar", () => {
+  assert.match(appShellSource, /<SidebarTrigger aria-label="Buka navigasi" className="[^"]*size-11[^"]*md:hidden"/);
+  assert.match(appShellSource, /className="hidden[^"]*md:flex[^"]*">\s*<AppBreadcrumbs \/>/);
+  assert.match(appSidebarSource, /collapsible="icon"/);
   assert.match(appSidebarSource, /openSettings\("account"\)/);
 });
 
-test("keeps the application canvas painted through viewport overscroll", () => {
-  assert.match(rootLayoutSource, /<body className="bg-background antialiased">/);
-  assert.match(
-    rootLayoutSource,
-    /className=\{`\$\{inter\.variable\} border-shadow`\}/,
-  );
+test("bounds the workspace to the viewport and scrolls below the topbar", () => {
   assert.match(
     appShellSource,
-    /className="relative flex min-h-svh w-full bg-workspace"/,
+    /data-app-shell="" className="relative flex h-dvh w-full overflow-hidden bg-\(--app-shell-canvas\)/,
   );
+  assert.match(appShellSource, /<AppBreadcrumbs \/>[\s\S]*data-app-shell-body="" className="[^"]*overflow-y-auto/);
+  assert.match(globalsSource, /body:has\(\[data-app-shell\]\)\s*\{\s*overflow: hidden;/);
 });
 
 test("uses inset shell header geometry", () => {

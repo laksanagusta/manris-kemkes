@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { getAppPageMeta } from "@/lib/app-navigation";
 import { useHeaderActions } from "@/lib/header-actions-context";
+import { cn } from "@/lib/utils";
 import {
   CollectionPageHeader,
   PAGE_HEADER_ACTION_SLOT_ID,
@@ -43,6 +44,7 @@ export function AppHeader() {
         title={title}
         subtitle={subtitle}
         showTitle
+        titleClassName="md:sr-only"
         actionsPlacement="title"
         actions={
           <>
@@ -53,7 +55,7 @@ export function AppHeader() {
             />
           </>
         }
-        className="mb-4 w-full"
+        className={cn("mb-4 w-full", !actions && "md:mb-0")}
       />
     </div>
   );

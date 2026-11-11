@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { ChevronDown } from "@/components/shared/icons";
 import { Card } from "@/components/ui/card";
 import {
@@ -14,7 +15,7 @@ import type {
   OperatorWorkItem,
   OperatorWorkSection,
 } from "@/types/operator-work";
-import { OperatorWorkList } from "./operator-work-list";
+import { OperatorWorkList, type OpenWorkReport } from "./operator-work-list";
 import { OperatorMonitoringPeriod } from "./operator-monitoring-period";
 
 export function OperatorWorkSections({
@@ -24,6 +25,9 @@ export function OperatorWorkSections({
   today,
   itemHref,
   onNavigate,
+  onOpenReport,
+  completingKey,
+  onCompletionEnd,
 }: {
   sections: OperatorWorkSection[];
   open: WorkUIState["open"];
@@ -31,7 +35,17 @@ export function OperatorWorkSections({
   today: string;
   itemHref: (item: OperatorWorkItem) => string;
   onNavigate?: () => void;
+  onOpenReport?: OpenWorkReport;
+  completingKey?: string | null;
+  onCompletionEnd?: () => void;
 }) {
+  useEffect(() => {
+    if (!completingKey || !onCompletionEnd) return;
+    // The disclosure may close before the row can finish its exit.
+    const timer = window.setTimeout(onCompletionEnd, 350);
+    return () => window.clearTimeout(timer);
+  }, [completingKey, onCompletionEnd]);
+
   return (
     <div className="flex flex-col gap-4">
       <OperatorMonitoringPeriod today={today} />
@@ -79,6 +93,9 @@ export function OperatorWorkSections({
                     items={section.items}
                     itemHref={itemHref}
                     onNavigate={onNavigate}
+                    onOpenReport={onOpenReport}
+                    completingKey={completingKey}
+                    onCompletionEnd={onCompletionEnd}
                   />
                   {section.total > 5 ? (
                     <Link

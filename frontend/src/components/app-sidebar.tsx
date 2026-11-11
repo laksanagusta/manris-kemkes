@@ -113,6 +113,11 @@ const reportsNavigation: NavGroup = {
       href: "/reports/risk-condition",
       icon: PieChart09,
     },
+    {
+      label: "Progres per Unit",
+      href: "/reports/unit-progress",
+      icon: ClipboardList,
+    },
     // {
     //   label: "Laporan Formal",
     //   href: "/reports/formal",
@@ -363,8 +368,6 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
 
   return (
     <Sidebar
-      className="border-r border-border md:top-0 md:h-svh"
-      style={{ boxShadow: "none" }}
       collapsible="icon"
       variant="sidebar"
     >

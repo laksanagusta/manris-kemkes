@@ -5,6 +5,7 @@ export { PillTabsList } from "./collections/pill-tabs";
 export { CollectionColumnPicker, useCollectionColumns } from "./collections/collection-column-picker";
 export { DynamicTableFilters, type TableFilterField, type TableFilterOption } from "./collections/dynamic-table-filters";
 export { OperatorWorkSections } from "./domain/operator-work-sections";
+export { OperatorWorkReportDialog } from "./domain/operator-work-report-dialog";
 export { AccentButton } from "./actions/accent-button";
 export { OperatorWorkList } from "./domain/operator-work-list";
 export { RiskEventNotes } from "./domain/risk-event-notes";

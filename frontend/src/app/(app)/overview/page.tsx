@@ -140,6 +140,7 @@ export default function DashboardPage() {
         title="Dashboard"
         subtitle="Pantau profil risiko dan perubahannya dari kuartal ke kuartal."
         showTitle
+        titleClassName="md:sr-only"
         showSubtitle
         actionsPlacement="title"
         actions={<WorkspaceMetrics items={[

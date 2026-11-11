@@ -17,6 +17,10 @@ const mitigationStatusSource = readFileSync(
   ),
   "utf8",
 );
+const monitoringTreatmentReportsSource = readFileSync(
+  new URL("../../../../components/shared/design-system/domain/monitoring-treatment-reports.tsx", import.meta.url),
+  "utf8",
+);
 const monitoringSummarySource = readFileSync(
   new URL("../assessment/components/simpulan-card.tsx", import.meta.url),
   "utf8",
@@ -215,15 +219,18 @@ test("monitoring finalization uses the neutral state warning and concise CTA", (
   assert.match(assessmentSource, /Coba cek lagi/);
 });
 
-test("monitoring shows treatment reports before the score and opens the exact task in Penanganan", () => {
+test("monitoring shows treatment reports before the score and opens submitted reports in place", () => {
   const mitigationStatusIndex = assessmentSource.indexOf("<MitigationStatusTable");
   const scoreIndex = assessmentSource.indexOf('id="risk-score-picker"');
   assert.ok(mitigationStatusIndex >= 0 && mitigationStatusIndex < scoreIndex);
   assert.match(assessmentSource, /Laporan Penanganan/);
-  assert.match(mitigationStatusSource, /aria-expanded=\{expanded\}/);
-  assert.match(mitigationStatusSource, /penanganan\?taskId=\$\{encodeURIComponent\(task\.id\)\}/);
-  assert.match(mitigationStatusSource, /target="_blank"/);
-  assert.doesNotMatch(mitigationStatusSource, /MitigationProgressDialog|updateTaskReport/);
+  assert.match(mitigationStatusSource, /getMitigationTask\(token, taskId\)/);
+  assert.match(monitoringTreatmentReportsSource, /aria-expanded=\{expanded\}/);
+  assert.match(monitoringTreatmentReportsSource, /task\.status === "done" \? \(\s*<TreatmentReportDialog task=\{task\}/);
+  assert.match(monitoringTreatmentReportsSource, /<MitigationProgressFlowDialog\s+readOnly/);
+  assert.match(monitoringTreatmentReportsSource, /<MitigationReportDetail task=\{result\}/);
+  assert.match(monitoringTreatmentReportsSource, /hasReportedMitigation\(task\) \? getStatusBadgeClassName\("success"\)/);
+  assert.doesNotMatch(monitoringTreatmentReportsSource, /Tautan dibuka di tab baru|updateTaskReport/);
 });
 
 test("monitoring header and right panel use the shared detail geometry", () => {

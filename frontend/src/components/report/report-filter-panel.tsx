@@ -80,10 +80,10 @@ interface ReportFilterPanelProps {
   scopeSummary: string;
   scopeReady: boolean;
   loading: boolean;
-  exporting: boolean;
-  canExport: boolean;
-  onExportExcel: () => void;
-  onExportDataExcel: () => void;
+  exporting?: boolean;
+  canExport?: boolean;
+  onExportExcel?: () => void;
+  onExportDataExcel?: () => void;
   onReload: () => void;
   onReset: () => void;
 }
@@ -91,7 +91,7 @@ interface ReportFilterPanelProps {
 export function ReportFilterPanel({
   cycle, onCycleChange,
   scope, onScopeChange, organizations, groups, scopeSummary,
-  scopeReady, loading, exporting, canExport, onExportExcel, onExportDataExcel, onReload, onReset,
+  scopeReady, loading, exporting = false, canExport, onExportExcel, onExportDataExcel, onReload, onReset,
 }: ReportFilterPanelProps) {
   const disabled = !scopeReady || exporting;
 
@@ -124,7 +124,7 @@ export function ReportFilterPanel({
           <Button type="button" variant="outline" size="icon" aria-label="Muat ulang" title="Muat ulang" disabled={disabled || loading} aria-busy={loading} onClick={onReload}>
             <RefreshCw aria-hidden="true" className={loading ? "animate-spin motion-reduce:animate-none" : undefined} />
           </Button>
-          <DropdownMenu>
+          {onExportExcel && onExportDataExcel ? <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon" aria-label="Opsi laporan" title="Opsi laporan" disabled={disabled}>
                 {exporting ? <Loader2 className="animate-spin" /> : <MoreHorizontal />}
@@ -141,7 +141,11 @@ export function ReportFilterPanel({
                 <RotateCcw />Atur ulang filter
               </DropdownMenuItem>
             </DropdownMenuContent>
-          </DropdownMenu>
+          </DropdownMenu> : (
+            <Button type="button" variant="outline" size="icon" aria-label="Atur ulang filter" title="Atur ulang filter" disabled={disabled} onClick={onReset}>
+              <RotateCcw aria-hidden="true" />
+            </Button>
+          )}
         </div>
       </ReportFilterRow>
       <p className="sr-only" aria-live="polite">{scopeSummary}</p>

@@ -478,61 +478,63 @@ export default function WorkingPapersPage() {
 
   return (
     <PageStack>
-      <CollectionPageHeader title="Kertas Kerja" />
-
-      {error ? (
-        <CollectionErrorState
-          title="Gagal Memuat Data"
-          message={error}
-          onReload={() => window.location.reload()}
-        />
-      ) : null}
-
       <div className="space-y-4">
-      <CollectionToolbar
-        className="w-full"
-        leading={
-          <WorkingPaperFiltersToolbar
-            search={search}
-            onSearchChange={(value) => {
-              setSearch(value);
-              setPage(1);
-            }}
-            searchPlaceholder="Cari judul kertas kerja..."
-            searchAriaLabel="Cari judul kertas kerja"
-            statusFilter={statusFilter}
-            onStatusFilterChange={(value) => {
-              setStatusFilter(value);
-              setPage(1);
-            }}
-            assessmentCycleFilter={assessmentCycleFilter}
-            onAssessmentCycleFilterChange={(value) => {
-              setAssessmentCycleFilter(value);
-              setPage(1);
-            }}
-            assessmentCycleOptions={assessmentCycleOptions}
-            createdAtFilter={createdAtFilter}
-            onCreatedAtFilterChange={(value) => {
-              setCreatedAtFilter(value);
-              setPage(1);
-            }}
+        <CollectionPageHeader
+          title="Kertas Kerja"
+          actions={
+            <AccentButton
+              onClick={() => {
+                setSelectedPeriod(
+                  getSelectableMonitoringCyclesForDate()[0]?.value ??
+                    shiftAssessmentCycle(currentAssessmentCycle(), -1),
+                );
+                setCreateModalOpen(true);
+              }}
+            >
+              <Plus className="size-3.5" strokeWidth={2.5} />
+              Buat Kertas Kerja
+            </AccentButton>
+          }
+        />
+
+        <CollectionToolbar
+          className="w-full"
+          leading={
+            <WorkingPaperFiltersToolbar
+              search={search}
+              onSearchChange={(value) => {
+                setSearch(value);
+                setPage(1);
+              }}
+              searchPlaceholder="Cari judul kertas kerja..."
+              searchAriaLabel="Cari judul kertas kerja"
+              statusFilter={statusFilter}
+              onStatusFilterChange={(value) => {
+                setStatusFilter(value);
+                setPage(1);
+              }}
+              assessmentCycleFilter={assessmentCycleFilter}
+              onAssessmentCycleFilterChange={(value) => {
+                setAssessmentCycleFilter(value);
+                setPage(1);
+              }}
+              assessmentCycleOptions={assessmentCycleOptions}
+              createdAtFilter={createdAtFilter}
+              onCreatedAtFilterChange={(value) => {
+                setCreatedAtFilter(value);
+                setPage(1);
+              }}
+            />
+          }
+        />
+
+        {error ? (
+          <CollectionErrorState
+            title="Gagal Memuat Data"
+            message={error}
+            onReload={() => window.location.reload()}
           />
-        }
-        actions={
-          <AccentButton
-            onClick={() => {
-              setSelectedPeriod(
-                getSelectableMonitoringCyclesForDate()[0]?.value ??
-                  shiftAssessmentCycle(currentAssessmentCycle(), -1),
-              );
-              setCreateModalOpen(true);
-            }}
-          >
-            <Plus className="size-3.5" strokeWidth={2.5} />
-            Buat Kertas Kerja
-          </AccentButton>
-        }
-      />
+        ) : null}
 
         <CollectionTableCard sorting={collectionSort.controls}>
 

@@ -7,12 +7,10 @@ import {
   useMemo,
   useState,
 } from "react";
-import Link from "next/link";
 import { toast } from "sonner";
 import {
   Archive,
   MoreHorizontal,
-  Plus,
   RotateCcw,
 } from "@/components/shared/icons";
 
@@ -39,12 +37,13 @@ import {
   CollectionPageHeader,
 } from "@/components/shared/design-system";
 import {
-  AccentButton,
   ActionButton,
   Card,
   CardContent,
   PageStack,
 } from "@/components/shared/design-system";
+
+import { RiskCharterQuickCreate } from "./_components/risk-charter-quick-create";
 
 const uprLevelLabel: Record<string, string> = {
   eksekutif: "Eksekutif",
@@ -177,12 +176,9 @@ export default function RiskChartersPage() {
   }
 
   const createAction = (
-    <AccentButton asChild>
-      <Link href="/management/charters/new">
-        <Plus className="size-4" />
-        Buat Piagam
-      </Link>
-    </AccentButton>
+    <RiskCharterQuickCreate
+      organization={organizations.find((item) => item.id === user?.organizationId)}
+    />
   );
   const canCreateOwn = user?.organizationId &&
     !items.some((item) => item.organizationId === user.organizationId);

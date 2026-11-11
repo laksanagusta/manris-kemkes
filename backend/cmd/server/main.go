@@ -180,6 +180,7 @@ func main() {
 	// Report handler
 	cleanReportHandler := httpHandler.NewReportHandler(container.GenerateReportUC, container.PDFReportRenderer, container.OrgGroupResolveUC)
 	quarterlyReportHandler := httpHandler.NewQuarterlyReportHandler(container.QuarterlyReportUC, container.QuarterlyReportPDFRenderer, container.OrgGroupResolveUC)
+	unitProgressHandler := httpHandler.NewUnitProgressHandler(container.UnitProgressUC, container.OrgGroupResolveUC)
 
 	// External PIC handler
 	cleanExternalPICHandler := httpHandler.NewExternalPICHandler(
@@ -376,6 +377,7 @@ func main() {
 	protected.Get("/reports/risk-pdf", cleanReportHandler.GenerateRiskPDF)
 	protected.Get("/reports/quarterly", quarterlyReportHandler.Get)
 	protected.Get("/reports/quarterly/overview", quarterlyReportHandler.Overview)
+	protected.Get("/reports/unit-progress", unitProgressHandler.Get)
 	protected.Get("/reports/quarterly-pdf", quarterlyReportHandler.PDF)
 
 	// Controls (Clean Architecture)

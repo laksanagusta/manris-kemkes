@@ -44,7 +44,7 @@ export function SidebarBrandHeader({
         type="button"
         variant="ghost"
         size="icon"
-        className="text-muted-foreground pointer-coarse:size-11"
+        className="text-muted-foreground hover:bg-transparent aria-expanded:bg-transparent dark:hover:bg-transparent pointer-coarse:size-11"
         aria-label={mobile ? "Tutup navigasi" : collapsed ? "Perluas sidebar" : "Ciutkan sidebar"}
         aria-expanded={!collapsed}
         onClick={onToggle}

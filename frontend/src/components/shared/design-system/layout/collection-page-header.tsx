@@ -13,6 +13,7 @@ export function CollectionPageHeader({
   actions,
   actionsPlacement = "header",
   className,
+  titleClassName,
 }: {
   icon?: ReactNode;
   eyebrow?: ReactNode;
@@ -23,6 +24,7 @@ export function CollectionPageHeader({
   actions?: ReactNode;
   actionsPlacement?: "header" | "title" | "top";
   className?: string;
+  titleClassName?: string;
 }) {
   const actionsInTitleRow =
     showTitle && actionsPlacement === "title" && Boolean(actions);
@@ -65,7 +67,7 @@ export function CollectionPageHeader({
                   )}
                 >
                   <div className={showSubtitle && actionsInTitleRow ? "min-w-0 lg:flex-[1_1_20rem]" : undefined}>
-                    <div className="flex items-center gap-2.5">
+                    <div className={cn("flex items-center gap-2.5", titleClassName)}>
                       {icon ? (
                         <span className="flex size-7 shrink-0 items-center justify-center text-foreground">
                           {icon}

@@ -124,6 +124,11 @@ func (t *Toolkit) Definitions(skills []string) []agent.ToolDefinition {
 		required := []string{}
 		switch kind {
 		case "create_risk":
+			fields["title"] = map[string]any{
+				"type": "string",
+				"description": "Judul risiko yang dirumuskan AI berdasarkan mandat, layanan, atau proses organisasi. " +
+					"Gunakan judul risiko yang sama pada label operasi.",
+			}
 			fields["mitigations"] = list(object(mitigationFields(), "action", "owner"))
 			required = []string{"title", "category", "probability", "impact"}
 		case "add_mitigation":

@@ -62,6 +62,9 @@ const kpiCard = readSource("../components/shared/kpi-card.tsx");
 const mitigationPanel = readSource(
   "../app/(app)/compliance/_components/mitigation-monitoring-panel.tsx",
 );
+const mitigationReportDetail = readSource(
+  "./shared/design-system/domain/mitigation-report-detail.tsx",
+);
 const mitigationProgressFlowDialog = readSource(
   "../components/shared/design-system/domain/mitigation-progress-flow-dialog.tsx",
 );
@@ -259,17 +262,14 @@ test("mitigation detail-to-report handoff keeps one dialog and animates its layo
   assert.match(mitigationPanel, /MitigationProgressFlowDialog/);
   assert.match(mitigationPanel, /view=\{dialogView\}/);
   assert.match(mitigationPanel, /setDialogView\("form"\)/);
-  assert.equal(
-    mitigationPanel.match(/handleOpenSubmitFromDetail\(detailTask\)/g)?.length,
-    2,
-  );
+  assert.match(mitigationPanel, /openReportForm\(detailTask, selectedTask\?\.id === detailTask\.id\)/);
   assert.doesNotMatch(
     mitigationPanel,
     /setShowDetailDialog\(false\)/,
   );
   assert.match(mitigationPanel, /onFormCancel=\{\(\) => setDialogView\("detail"\)\}/);
   assert.match(mitigationPanel, /detailTitle="Detail Laporan Penanganan"/);
-  assert.match(mitigationPanel, /formTitle="Lapor Progress Penanganan"/);
+  assert.match(mitigationPanel, /formTitle=\{detailReportAction\?\.allowed \? detailReportAction\.label : "Isi laporan"\}/);
   assert.match(
     mitigationPanel,
     /detailDescription="Tinjau status, bukti, dan catatan penanganan\."/,
@@ -279,15 +279,16 @@ test("mitigation detail-to-report handoff keeps one dialog and animates its layo
     mitigationPanel,
     /return \(\s*<div className="space-y-6">\s*<MetricGrid>/,
   );
-  assert.match(mitigationPanel, /className="grid gap-x-6 gap-y-5 md:grid-cols-2"/);
-  assert.match(mitigationPanel, /Tindakan Penanganan/);
-  assert.match(mitigationPanel, /CalendarDays/);
-  assert.match(mitigationPanel, /CalendarClock/);
-  assert.match(mitigationPanel, /Link2/);
-  assert.match(mitigationPanel, /MessageSquare/);
+  assert.match(mitigationPanel, /<MitigationReportDetail task=\{detailTask\}/);
+  assert.match(mitigationReportDetail, /className="grid gap-x-6 gap-y-5 md:grid-cols-2"/);
+  assert.match(mitigationReportDetail, /Tindakan Penanganan/);
+  assert.match(mitigationReportDetail, /CalendarDays/);
+  assert.match(mitigationReportDetail, /CalendarClock/);
+  assert.match(mitigationReportDetail, /Link2/);
+  assert.match(mitigationReportDetail, /MessageSquare/);
   assert.match(mitigationProgressFlowDialog, /data-dynamic-height="true"/);
   assert.match(mitigationProgressFlowDialog, /modal\.style\.height = `\$\{targetHeight\}px`/);
-  assert.match(mitigationProgressFlowDialog, /onViewChange\("detail"\)/);
+  assert.match(mitigationProgressFlowDialog, /onViewChange\?\.\("detail"\)/);
   assert.match(mitigationProgressFlowDialog, /onFormCancel\?: \(\) => void/);
   assert.match(mitigationProgressFlowDialog, /view === "form" && onFormCancel/);
   assert.match(mitigationProgressFlowDialog, /view === "form"[\s\S]*?overflow-y-auto/);

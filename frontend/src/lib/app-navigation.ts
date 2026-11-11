@@ -228,6 +228,7 @@ export function getBreadcrumbItems(
   const reportParent = parentBreadcrumb("Ringkasan Risiko", "/reports");
   if (route === "/reports") return [reportParent];
   if (route === "/reports/risk-condition") return detailBreadcrumb(parentBreadcrumb("Laporan", "/reports"), "Kondisi Pengelolaan Risiko");
+  if (route === "/reports/unit-progress") return detailBreadcrumb(parentBreadcrumb("Laporan", "/reports"), "Progres per Unit");
   if (route === "/reports/formal") return detailBreadcrumb(reportParent, "Laporan Formal");
   if (route === "/reports/cycle-detail") {
     return detailBreadcrumb(reportParent, "Detail Siklus Risiko");
@@ -449,6 +450,10 @@ export const appPageMeta: Record<string, AppPageMeta> = {
   "/reports/risk-condition": {
     title: "Kondisi Pengelolaan Risiko",
     subtitle: "Tinjau pengelolaan risiko dan perubahan profil antarperiode.",
+  },
+  "/reports/unit-progress": {
+    title: "Progres per Unit",
+    subtitle: "Tinjau progres dan tindak lanjut pengelolaan risiko per unit.",
   },
   "/reports/formal": {
     title: "Laporan Formal",

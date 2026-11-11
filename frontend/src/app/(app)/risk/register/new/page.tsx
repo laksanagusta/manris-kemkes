@@ -1798,16 +1798,11 @@ export default function RiskInputPage() {
     setTimeout(() => {
       const element = document.getElementById(sectionId);
       if (element) {
-        const offset = 120;
-        const bodyRect = document.body.getBoundingClientRect().top;
-        const elementRect = element.getBoundingClientRect().top;
-        const elementPosition = elementRect - bodyRect;
-        const offsetPosition = elementPosition - offset;
         const prefersReducedMotion = window.matchMedia(
           "(prefers-reduced-motion: reduce)",
         ).matches;
-        window.scrollTo({
-          top: offsetPosition,
+        element.scrollIntoView({
+          block: "start",
           behavior: prefersReducedMotion ? "auto" : "smooth",
         });
       }
@@ -2681,6 +2676,7 @@ export default function RiskInputPage() {
           ) : undefined}
           title="Tambah Risiko"
           showTitle={!isSavedRiskView}
+          titleClassName="md:sr-only"
           actionsPlacement="title"
           actions={hasHeaderActions ? (
             <>

@@ -771,9 +771,33 @@ input:is([type="date"], [type="time"], [type="datetime-local"]) {
   background-color: var(--separator);
 }
 
-/* Prevent boundary rubber-banding from exposing the shell behind app content. */
+[data-app-shell] {
+  --app-shell-canvas: var(--workspace);
+}
+
+@media (width >= 48rem) {
+  [data-app-shell] {
+    --app-shell-canvas: #eee;
+  }
+
+  .dark [data-app-shell] {
+    --app-shell-canvas: oklch(0.17 0 0);
+  }
+
+  [data-app-shell] [data-slot="sidebar-inner"] {
+    --sidebar: var(--app-shell-canvas);
+  }
+
+  :root:not(.dark) [data-app-shell] [data-slot="sidebar-inner"] {
+    --accent: #e4e4e4;
+    --sidebar-accent: var(--accent);
+  }
+}
+
+/* The workspace body owns vertical scrolling while the app shell is mounted. */
 html:has([data-app-shell]),
 body:has([data-app-shell]) {
+  overflow: hidden;
   overscroll-behavior-y: none;
 }
 

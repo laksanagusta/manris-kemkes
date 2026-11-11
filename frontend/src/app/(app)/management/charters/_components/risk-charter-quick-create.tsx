@@ -1,24 +1,32 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
+import { useId, useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { useAuth } from "@/contexts/auth-context";
-import { listAllOrganizations } from "@/lib/api/organizations";
+import type { OrganizationListItem } from "@/lib/api/organizations";
 import { createRiskCharter } from "@/lib/api/risk-charters";
 import type { RiskCharterUPRLevel } from "@/types/risk-charter";
-import { FormHeader, FormPage } from "@/components/shared/form-shell";
+import { Plus } from "@/components/shared/icons";
 import {
-  ActionButton,
-  FormContainer,
-  FormGroup,
+  AccentButton,
+  CollectionDialogCancel,
   FieldErrorMessage,
   Input,
   Label,
   LoadingActionButton,
 } from "@/components/shared/design-system";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 function normalizeUPRLevel(value?: string): RiskCharterUPRLevel | null {
   if (value === "kementerian" || value === "eksekutif") return "eksekutif";
@@ -26,74 +34,49 @@ function normalizeUPRLevel(value?: string): RiskCharterUPRLevel | null {
   return null;
 }
 
-export function RiskCharterQuickCreate() {
+export function RiskCharterQuickCreate({
+  organization,
+}: {
+  organization?: OrganizationListItem;
+}) {
   const router = useRouter();
-  const { token, user } = useAuth();
+  const { token } = useAuth();
+  const titleId = useId();
+  const errorId = `${titleId}-error`;
+  const [open, setOpen] = useState(false);
   const [title, setTitle] = useState("");
-  const [uprLevel, setUprLevel] = useState<RiskCharterUPRLevel | null>(null);
-  const [loadingContext, setLoadingContext] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const openCharter = useCallback(
-    (id: string) => router.replace(`/management/charters/${id}`),
-    [router],
-  );
 
-  useEffect(() => {
-    let active = true;
-    async function loadContext() {
-      if (!token || !user?.organizationId) {
-        if (active) {
-          setError("Organisasi aktif belum tersedia pada akun ini.");
-          setLoadingContext(false);
-        }
-        return;
-      }
-      try {
-        const organizations = await listAllOrganizations(token);
-        const organization = organizations.find(
-          (item) => item.id === user.organizationId,
-        );
-        const level = normalizeUPRLevel(organization?.uprLevel);
-        if (!level) {
-          throw new Error("Level UPR organisasi belum tersedia.");
-        }
-        if (active) setUprLevel(level);
-      } catch (loadError) {
-        if (active) {
-          setError(
-            loadError instanceof Error
-              ? loadError.message
-              : "Konteks organisasi belum dapat dimuat.",
-          );
-        }
-      } finally {
-        if (active) setLoadingContext(false);
-      }
+  const uprLevel = normalizeUPRLevel(organization?.uprLevel);
+  const contextError = !organization
+    ? "Organisasi aktif belum tersedia pada akun ini."
+    : !uprLevel
+      ? "Level UPR organisasi belum tersedia."
+      : null;
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (submitting) return;
+
+    if (nextOpen) {
+      setTitle("");
+      setError(null);
     }
-    void loadContext();
-    return () => {
-      active = false;
-    };
-  }, [token, user?.organizationId]);
+    setOpen(nextOpen);
+  }
 
-  const handleCreate = useCallback(async () => {
+  async function handleCreate(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
     const normalizedTitle = title.trim();
-    if (!normalizedTitle) {
-      setError("Judul Piagam wajib diisi.");
-      return;
-    }
-    if (!token || !user?.organizationId || !uprLevel) {
-      setError("Konteks organisasi belum siap untuk membuat Piagam.");
-      return;
-    }
+    if (submitting || !normalizedTitle || !token || !organization || !uprLevel) return;
 
     try {
       setSubmitting(true);
       setError(null);
       const response = await createRiskCharter(token, {
         title: normalizedTitle,
-        organizationId: user.organizationId,
+        organizationId: organization.id,
         uprLevel,
       });
       if (response.existing) {
@@ -104,77 +87,69 @@ export function RiskCharterQuickCreate() {
         );
       }
 
-      openCharter(response.data.id);
+      setOpen(false);
+      router.push(`/management/charters/${response.data.id}`);
     } catch (createError) {
       setError(
         createError instanceof Error
           ? createError.message
           : "Draf Piagam belum berhasil dibuat.",
       );
-    } finally {
       setSubmitting(false);
     }
-  }, [
-    openCharter,
-    title,
-    token,
-    uprLevel,
-    user?.organizationId,
-  ]);
-
-  const creating = submitting || loadingContext;
+  }
 
   return (
-    <FormPage>
-      <FormHeader title="Buat Piagam" showTitle />
-      <FormContainer
-        title="Judul Piagam"
-        description="Beri judul untuk membuat draf versi pertama. Isi Piagam bisa dilengkapi setelah draf dibuat."
-        className="mx-auto w-full max-w-xl"
-      >
-        <FormGroup>
-          <form
-            className="space-y-5"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (!creating) void handleCreate();
-            }}
-          >
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="charter-title">Judul Piagam</Label>
-              <Input
-                id="charter-title"
-                className="bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500"
-                autoFocus
-                maxLength={120}
-                value={title}
-                onChange={(event) => {
-                  setTitle(event.target.value);
-                  if (error && uprLevel) setError(null);
-                }}
-                placeholder="Contoh: Piagam Manajemen Risiko Direktorat"
-                aria-invalid={Boolean(error && uprLevel)}
-                aria-describedby={error ? "charter-create-error" : undefined}
-              />
-              <FieldErrorMessage id="charter-create-error">{error}</FieldErrorMessage>
-            </div>
-            <div className="flex flex-wrap justify-end gap-2">
-              <ActionButton asChild>
-                <Link href="/management/charters">Kembali</Link>
-              </ActionButton>
-              <LoadingActionButton
-                type="submit"
-                variant="default"
-                loading={creating}
-                loadingLabel={loadingContext ? "Menyiapkan..." : "Membuat draf..."}
-                disabled={!title.trim() || !uprLevel}
-              >
-                Buat draf
-              </LoadingActionButton>
-            </div>
-          </form>
-        </FormGroup>
-      </FormContainer>
-    </FormPage>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger asChild>
+        <AccentButton type="button" disabled={submitting} icon={<Plus className="size-4" />}>
+          Buat Piagam
+        </AccentButton>
+      </DialogTrigger>
+      <DialogContent showCloseButton={!submitting}>
+        <DialogHeader>
+          <DialogTitle>Buat Piagam</DialogTitle>
+          <DialogDescription>
+            Masukkan judul untuk membuat draf. Isi piagam dapat dilengkapi di halaman detail.
+          </DialogDescription>
+        </DialogHeader>
+        <form className="space-y-6" onSubmit={handleCreate}>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor={titleId}>Judul Piagam</Label>
+            <Input
+              id={titleId}
+              className="bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500"
+              maxLength={120}
+              required
+              readOnly={submitting}
+              value={title}
+              onChange={(event) => {
+                setTitle(event.target.value);
+                setError(null);
+              }}
+              placeholder="Contoh: Piagam Manajemen Risiko Direktorat"
+              aria-describedby={contextError || error ? errorId : undefined}
+            />
+            <FieldErrorMessage id={errorId}>{contextError ?? error}</FieldErrorMessage>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <CollectionDialogCancel type="button" disabled={submitting}>
+                Batal
+              </CollectionDialogCancel>
+            </DialogClose>
+            <LoadingActionButton
+              type="submit"
+              variant="default"
+              loading={submitting}
+              loadingLabel="Membuat draf..."
+              disabled={!title.trim() || !token || Boolean(contextError)}
+            >
+              Buat draf
+            </LoadingActionButton>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

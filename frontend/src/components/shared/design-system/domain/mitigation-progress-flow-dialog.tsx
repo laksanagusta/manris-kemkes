@@ -22,6 +22,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
@@ -33,18 +34,15 @@ import {
 
 export type MitigationProgressFlowView = "detail" | "form";
 
-type MitigationProgressFlowDialogProps = MitigationProgressFormProps & {
+type MitigationProgressFlowDialogProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  view: MitigationProgressFlowView;
-  onViewChange: (view: MitigationProgressFlowView) => void;
+  trigger?: ReactNode;
   detailTitle: ReactNode;
   detailDescription: ReactNode;
   detailContent: ReactNode;
   detailAction?: ReactNode;
-  formTitle: ReactNode;
   formDescription?: ReactNode;
-  footerActions: ReactNode;
   reportTask?: Pick<MitigationTask, "mitigationAction" | "riskCode" | "periodLabel" | "dueDate"> | null;
   availabilityMessage?: string;
   reportSent?: boolean;
@@ -56,29 +54,46 @@ type MitigationProgressFlowDialogProps = MitigationProgressFormProps & {
   onCloseAutoFocus?: ComponentProps<typeof DialogContent>["onCloseAutoFocus"];
 };
 
-export function MitigationProgressFlowDialog({
-  open,
-  onOpenChange,
-  view,
-  onViewChange,
-  detailTitle,
-  detailDescription,
-  detailContent,
-  detailAction,
-  formTitle,
-  formDescription = "Catat pelaksanaan tindakan penanganan untuk periode ini.",
-  footerActions,
-  reportTask,
-  availabilityMessage,
-  reportSent,
-  submitError,
-  dirty,
-  submitting,
-  onFormCancel,
-  className,
-  onCloseAutoFocus,
-  ...formProps
-}: MitigationProgressFlowDialogProps) {
+type MitigationProgressDialogMode =
+  | (MitigationProgressFormProps & {
+      readOnly?: false;
+      view: MitigationProgressFlowView;
+      onViewChange: (view: MitigationProgressFlowView) => void;
+      formTitle: ReactNode;
+      footerActions: ReactNode;
+    })
+  | {
+      readOnly: true;
+      view?: never;
+      onViewChange?: never;
+      formTitle?: never;
+      footerActions?: never;
+    };
+
+export function MitigationProgressFlowDialog(props: MitigationProgressFlowDialogProps & MitigationProgressDialogMode) {
+  const {
+    open,
+    onOpenChange,
+    trigger,
+    view = "detail",
+    onViewChange,
+    detailTitle,
+    detailDescription,
+    detailContent,
+    detailAction,
+    formTitle,
+    formDescription = "Catat pelaksanaan tindakan penanganan untuk periode ini.",
+    footerActions,
+    reportTask,
+    availabilityMessage,
+    reportSent,
+    submitError,
+    dirty,
+    submitting,
+    onFormCancel,
+    className,
+    onCloseAutoFocus,
+  } = props;
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const previousViewRef = useRef(view);
@@ -192,7 +207,7 @@ export function MitigationProgressFlowDialog({
 
   const close = () => {
     setConfirmDiscard(false);
-    onViewChange("detail");
+    onViewChange?.("detail");
     onOpenChange(false);
   };
 
@@ -212,6 +227,7 @@ export function MitigationProgressFlowDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
+      {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent
         onCloseAutoFocus={onCloseAutoFocus}
         ref={setModalElement}
@@ -277,7 +293,7 @@ export function MitigationProgressFlowDialog({
                   </div>
                 )}
                 <fieldset disabled={submitting} className="min-w-0">
-                  <MitigationProgressForm {...formProps} />
+                  {!props.readOnly && <MitigationProgressForm {...props} />}
                 </fieldset>
                 {submitError && <p role="alert" className="text-sm text-destructive">{submitError}</p>}
               </div>

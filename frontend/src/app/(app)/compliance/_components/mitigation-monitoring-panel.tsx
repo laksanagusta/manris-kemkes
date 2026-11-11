@@ -1,7 +1,7 @@
 "use client";
 
 import { businessNow } from "@/lib/business-clock";
-import { createDisplayDateFormatter } from "@/lib/display-date";
+import { MitigationReportDetail } from "@/components/shared/design-system/domain/mitigation-report-detail";
 import { useRemoteCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
 import { MitigationTaskTable } from "@/components/shared/mitigation-task-table";
 
@@ -21,23 +21,14 @@ import {
 } from "@/components/shared/design-system";
 
 import { toast } from "sonner";
-import { parseEvidenceUrls } from "@/lib/validation/reporting";
 import {
-  CalendarClock,
-  CalendarDays,
   Loader2,
-  Link2,
-  MessageSquare,
   Send,
-  Target,
-  ExternalLink,
-  UserRound,
   Upload,
 } from "@/components/shared/icons";
 import { api, ApiError } from "@/lib/api";
 import { updateTaskReport } from "@/lib/api/mitigation-tasks";
 import { useAuth } from "@/contexts/auth-context";
-import { cn } from "@/lib/utils";
 import {
   ActionButton,
   AccentButton,
@@ -54,7 +45,6 @@ import {
   mitigationMonitoringStatusOptions,
   type MitigationMonitoringStatusFilter,
 } from "@/lib/mitigation-monitoring-query";
-import { getMitigationReportLabel } from "@/lib/mitigation-report-status";
 import type { MitigationTask } from "@/types/risk";
 
 type MitigationTier = "upcoming" | "reminder" | "light" | "heavy";
@@ -434,18 +424,6 @@ export function MitigationMonitoringPanel() {
     Boolean(queryState.search || queryState.period) ||
     (queryState.status ?? "all") !== "all";
 
-  const formatDate = (value?: string | null) => {
-    if (!value) return "-";
-    const parsed = new Date(value);
-    if (Number.isNaN(parsed.getTime())) return value;
-
-    return createDisplayDateFormatter("id-ID", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-    }).format(parsed);
-  };
-
   const handlePageChange = (newPage: number) => {
     pushQueryState({ page: newPage });
   };
@@ -624,152 +602,7 @@ export function MitigationMonitoringPanel() {
         onViewChange={setDialogView}
         detailTitle="Detail Laporan Penanganan"
         detailDescription="Tinjau status, bukti, dan catatan penanganan."
-        detailContent={
-          detailTask ? (
-            <div className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex flex-col gap-2">
-                  <p className="text-sm text-muted-foreground">
-                    Tindakan Penanganan
-                  </p>
-                  <div className="flex min-w-0 items-start gap-2 text-sm font-medium leading-6">
-                    <Target
-                      className="mt-0.5 size-5 shrink-0 text-muted-foreground"
-                      strokeWidth={1.6}
-                      aria-hidden="true"
-                    />
-                    <span>{detailTask.mitigationAction || "-"}</span>
-                  </div>
-                </div>
-
-                <div className="grid gap-x-6 gap-y-5 md:grid-cols-2">
-                  <div className="flex flex-col gap-2">
-                    <p className="text-sm text-muted-foreground">Status</p>
-                    <div className="flex items-center gap-2 text-sm font-medium">
-                      <span
-                        className={cn(
-                          "size-2.5 shrink-0 rounded-full",
-                          detailStatus === "done"
-                            ? "bg-success"
-                            : detailStatus === "overdue"
-                              ? "bg-destructive"
-                              : "bg-muted-foreground",
-                        )}
-                        aria-hidden="true"
-                      />
-                      {getMitigationReportLabel({ ...detailTask, status: detailStatus ?? detailTask.status })}
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <p className="text-sm text-muted-foreground">Periode</p>
-                    <div className="flex min-w-0 items-center gap-2 text-sm font-medium">
-                      <CalendarDays
-                        className="size-5 shrink-0 text-muted-foreground"
-                        strokeWidth={1.6}
-                        aria-hidden="true"
-                      />
-                      <span className="min-w-0 break-words">
-                        {detailTask.periodLabel || "-"}
-                      </span>
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <p className="text-sm text-muted-foreground">Tenggat</p>
-                    <div className="flex min-w-0 items-center gap-2 text-sm font-medium">
-                      <CalendarClock
-                        className="size-5 shrink-0 text-muted-foreground"
-                        strokeWidth={1.6}
-                        aria-hidden="true"
-                      />
-                      <span><span data-date-time="">{formatDate(detailTask.dueDate)}</span></span>
-                    </div>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <p className="text-sm text-muted-foreground">
-                      Laporan Oleh
-                    </p>
-                    <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-sm font-medium">
-                      <UserRound
-                        className="size-5 shrink-0 text-muted-foreground"
-                        strokeWidth={1.6}
-                        aria-hidden="true"
-                      />
-                      <span className="min-w-0 break-words">
-                        {detailTask.reportedByName ||
-                          detailTask.reportedBy ||
-                          "Belum dilaporkan"}
-                      </span>
-                      {detailTask.reportedAt ? (
-                        <span className="text-muted-foreground">
-                          <span data-date-time="">{formatDate(detailTask.reportedAt)}</span>
-                        </span>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-5">
-                <div className="flex flex-col gap-2">
-                  <p className="text-sm text-muted-foreground">
-                    Link Bukti
-                  </p>
-                  <div className="flex min-w-0 flex-col items-start gap-1 text-sm font-medium">
-                    {parseEvidenceUrls(detailTask.evidenceUrl).length > 0 ? (
-                      parseEvidenceUrls(detailTask.evidenceUrl).map((url) => (
-                        <a
-                          href={url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="inline-flex max-w-full min-w-0 items-start gap-2 text-foreground hover:text-primary"
-                          onClick={(event) => event.stopPropagation()}
-                          title={url}
-                          key={url}
-                        >
-                          <Link2
-                            className="size-5 shrink-0 text-muted-foreground"
-                            strokeWidth={1.6}
-                            aria-hidden="true"
-                          />
-                          <span className="min-w-0 break-all">{url}</span>
-                          <ExternalLink
-                            className="size-3.5 shrink-0 text-muted-foreground"
-                            aria-hidden="true"
-                          />
-                        </a>
-                      ))
-                    ) : (
-                      <>
-                        <Link2
-                          className="size-5 shrink-0 text-muted-foreground"
-                          strokeWidth={1.6}
-                          aria-hidden="true"
-                        />
-                        <span className="text-muted-foreground">-</span>
-                      </>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2">
-                  <p className="text-sm text-muted-foreground">
-                    Catatan Pelaksanaan
-                  </p>
-                  <div className="flex min-w-0 items-start gap-2 text-sm leading-6 text-foreground">
-                    <MessageSquare
-                      className="mt-0.5 size-5 shrink-0 text-muted-foreground"
-                      strokeWidth={1.6}
-                      aria-hidden="true"
-                    />
-                    <p className="min-w-0 whitespace-pre-wrap">
-                      {detailTask.notes || "Belum ada catatan pelaksanaan."}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ) : null
-        }
+        detailContent={detailTask && <MitigationReportDetail task={detailTask} status={detailStatus} />}
         detailAction={
           reportSent && openedFromWork ? (
             <ActionButton asChild>

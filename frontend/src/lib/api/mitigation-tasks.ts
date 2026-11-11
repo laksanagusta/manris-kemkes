@@ -1,6 +1,10 @@
 import { api } from "@/lib/api";
 import type { MitigationTask, MonitoringValidationResult } from "@/types/risk";
 
+export function getMitigationTask(token: string, taskId: string): Promise<MitigationTask> {
+  return api.get<MitigationTask>(`/mitigation-tasks/${encodeURIComponent(taskId)}`, token);
+}
+
 export async function listMonitoringTasks(
   token: string,
   monitoringId: string,

@@ -281,6 +281,7 @@ type Container struct {
 	// Report UseCases
 	GenerateReportUC           *reportuc.GenerateReportUseCase
 	QuarterlyReportUC          *reportuc.QuarterlyReportUseCase
+	UnitProgressUC             *reportuc.UnitProgressUseCase
 	QuarterlyReportPDFRenderer domainsvc.QuarterlyReportPDFRenderer
 	PDFReportRenderer          domainsvc.ReportPDFRenderer
 	FormalReportPDFRenderer    domainsvc.FormalReportPDFRenderer
@@ -601,6 +602,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 
 	c.GenerateReportUC = reportuc.NewGenerateReportUseCase(c.RiskRepository, c.IncidentRepository)
 	c.QuarterlyReportUC = reportuc.NewQuarterlyReportUseCase(postgresrepo.NewQuarterlyReportRepository(pool))
+	c.UnitProgressUC = reportuc.NewUnitProgressUseCase(postgresrepo.NewUnitProgressRepository(pool))
 	c.QuarterlyReportPDFRenderer = reportpdf.NewQuarterlyReportPDFRenderer()
 	var agentClient *openaiapi.Client
 	if strings.TrimSpace(cfg.OpenAIKey) != "" {

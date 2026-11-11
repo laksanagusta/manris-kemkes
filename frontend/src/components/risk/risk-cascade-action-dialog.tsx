@@ -1,14 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Search, GitBranch, CheckCircle2 } from "@/components/shared/icons";
+import { Loader2, Search, GitBranch, CheckCircle2, ChevronDown } from "@/components/shared/icons";
 
 import { useAuth } from "@/contexts/auth-context";
 import {
   AccentButton,
   CollectionDialogCancel,
   DestructiveButton,
-  IllustratedEmptyState,
   PopoverSelectField,
 } from "@/components/shared/design-system";
 import { listOrganizations, type OrganizationListItem } from "@/lib/api/organizations";
@@ -42,7 +41,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
 import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 import { toast } from "sonner";
 
@@ -105,6 +103,12 @@ const statusBadgeTones = {
   rejected: "danger",
   implemented: "success",
 } as const;
+
+const cascadePickerContentClassName = "w-[var(--radix-popover-trigger-width)] max-w-[calc(100vw-2rem)] gap-0 p-1";
+const cascadePickerSearchRowClassName = "group flex items-center gap-2 border-b px-2.5";
+const cascadePickerSearchIconClassName = "size-4 shrink-0 text-muted-foreground group-focus-within:text-foreground";
+const cascadePickerSearchInputClassName = "h-8 min-w-0 rounded-none border-0 bg-transparent p-0 shadow-none focus-visible:border-transparent focus-visible:ring-0";
+const cascadePickerOptionClassName = "flex min-h-10 w-full items-center gap-2 rounded-control px-2.5 py-1 text-left text-sm hover:bg-sidebar-accent focus-visible:bg-sidebar-accent focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring aria-pressed:bg-sidebar-accent pointer-coarse:min-h-11";
 
 function CascadeRiskSelect({
   token,
@@ -170,60 +174,62 @@ function CascadeRiskSelect({
       <PopoverTrigger asChild>
         <Button
           id="cascade-source-risk"
+          data-slot="button"
+          data-sidebar-hover=""
+          type="button"
           variant="outline"
           className="w-full justify-between"
         >
-          <span className="truncate">
+          <span className="min-w-0 flex-1 truncate text-left">
             {selected ? `${selected.code || "Risk"} · ${selected.title || "-"}` : "Pilih risiko asal"}
           </span>
-          <Search className="size-4 shrink-0 opacity-60" />
+          <ChevronDown aria-hidden="true" className="size-4 shrink-0 opacity-60" />
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[var(--radix-popover-trigger-width)]"
+        className={cascadePickerContentClassName}
         align="start"
+        sideOffset={6}
       >
-        <div className="flex items-center border-b px-3">
-          <Search className="mr-2 size-4 shrink-0 opacity-50" />
+        <div className={cascadePickerSearchRowClassName}>
+          <Search aria-hidden="true" className={cascadePickerSearchIconClassName} />
           <SearchInput
             type="search"
-            className="h-10 rounded-none border-0 bg-transparent px-0 py-3 !shadow-none"
+            className={cascadePickerSearchInputClassName}
+            aria-label="Cari kode atau judul risiko"
             placeholder="Cari kode atau judul risiko..."
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
         </div>
-        <div className="max-h-64 overflow-y-auto p-1">
+        <div className="max-h-64 overflow-y-auto pt-1">
           {loading ? (
-            <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
+            <div role="status" className="flex min-h-8 items-center gap-2 px-2.5 text-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin" />
               Memuat risiko...
             </div>
           ) : items.length === 0 ? (
-            <IllustratedEmptyState
-              title="Risiko belum ditemukan."
-              size="compact"
-              className="py-2"
-            />
+            <p role="status" className="px-2.5 py-1.5 text-sm text-muted-foreground">
+              Risiko belum ditemukan.
+            </p>
           ) : (
             items.map((item) => (
               <button
                 key={item.id}
-                className={cn(
-                  "flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-accent",
-                  value === item.id && "bg-accent",
-                )}
+                type="button"
+                aria-pressed={value === item.id}
+                className={cascadePickerOptionClassName}
                 onClick={() => {
                   onChange(item.id);
                   setOpen(false);
                 }}
               >
-                <GitBranch className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
-                <span className="min-w-0">
-                  <span className="block truncate font-medium">
+                <GitBranch aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium leading-5">
                     {item.code || "Risk"} · {item.title || "-"}
                   </span>
-                  <span className="block truncate text-xs text-muted-foreground">
+                  <span className="block truncate text-xs leading-4 text-muted-foreground">
                     {item.orgName || "Organisasi belum dipetakan"}
                   </span>
                 </span>
@@ -300,52 +306,57 @@ function CascadeOrgSelect({
       <PopoverTrigger asChild>
         <Button
           id="cascade-target-organization"
+          data-slot="button"
+          data-sidebar-hover=""
+          type="button"
           variant="outline"
           className="w-full justify-between"
         >
-          <span className="truncate">{selected?.name || triggerLabel}</span>
-          <Search className="size-4 shrink-0 opacity-60" />
+          <span className="min-w-0 flex-1 truncate text-left">{selected?.name || triggerLabel}</span>
+          <ChevronDown aria-hidden="true" className="size-4 shrink-0 opacity-60" />
         </Button>
       </PopoverTrigger>
       <PopoverContent
-        className="w-[var(--radix-popover-trigger-width)]"
+        className={cascadePickerContentClassName}
         align="start"
+        sideOffset={6}
       >
-        <div className="flex items-center border-b px-3">
-          <Search className="mr-2 size-4 shrink-0 opacity-50" />
+        <div className={cascadePickerSearchRowClassName}>
+          <Search aria-hidden="true" className={cascadePickerSearchIconClassName} />
           <SearchInput
             type="search"
-            className="h-10 rounded-none border-0 bg-transparent px-0 py-3 !shadow-none"
+            className={cascadePickerSearchInputClassName}
+            aria-label="Cari organisasi tujuan"
             placeholder="Cari organisasi..."
             value={query}
             onChange={(event) => setQuery(event.target.value)}
           />
         </div>
-        <div className="max-h-64 overflow-y-auto p-1">
+        <div className="max-h-64 overflow-y-auto pt-1">
           {loading ? (
-            <div className="flex items-center justify-center gap-2 py-6 text-sm text-muted-foreground">
+            <div role="status" className="flex min-h-8 items-center gap-2 px-2.5 text-sm text-muted-foreground">
               <Loader2 className="size-4 animate-spin" />
               Memuat organisasi...
             </div>
           ) : items.length === 0 ? (
-            <IllustratedEmptyState
-              title="Organisasi belum ditemukan."
-              size="compact"
-              className="py-2"
-            />
+            <p role="status" className="px-2.5 py-1.5 text-sm text-muted-foreground">
+              Organisasi belum ditemukan.
+            </p>
           ) : (
             items.map((item) => (
               <button
                 key={item.id}
-                className="flex w-full items-start gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-accent"
+                type="button"
+                aria-pressed={value === item.id}
+                className={cascadePickerOptionClassName}
                 onClick={() => {
                   onChange(item.id);
                   setOpen(false);
                 }}
               >
-                <span className="min-w-0">
-                  <span className="block truncate font-medium">{item.name}</span>
-                  <span className="block truncate text-xs text-muted-foreground">
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate font-medium leading-5">{item.name}</span>
+                  <span className="block truncate text-xs leading-4 text-muted-foreground">
                     {item.uprLevel || "Organisasi"}
                   </span>
                 </span>
@@ -471,7 +482,7 @@ export function RiskCascadeActionDialog({
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl no-scrollbar" showCloseButton={false}>
-        <div className="flex min-h-0 flex-col gap-5">
+        <div className="flex min-h-0 flex-col gap-4">
           <DialogHeader>
             <DialogTitle className="text-base">{dialogTitle}</DialogTitle>
             <DialogDescription className="max-w-[48ch]">
@@ -480,42 +491,40 @@ export function RiskCascadeActionDialog({
           </DialogHeader>
 
           {mode === "create" ? (
-            <>
-              <div className="space-y-5">
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="cascade-type">Jenis eskalasi</Label>
-                  <PopoverSelectField
-                    id="cascade-type"
-                    value={cascadeType}
-                    onValueChange={(value) =>
-                      setCascadeType(value as RiskCascadeType)
-                    }
-                    options={createCascadeOptions}
-                    placeholder="Pilih jenis eskalasi"
-                    ariaLabel="Jenis eskalasi"
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="cascade-source-risk">Risiko sumber</Label>
-                  <CascadeRiskSelect
-                    token={token ?? undefined}
-                    value={sourceRiskId}
-                    onChange={setSourceRiskId}
-                    initialRiskId={initialSourceRiskId}
-                  />
-                </div>
-                <div className="flex flex-col gap-2">
-                  <Label htmlFor="cascade-target-organization">
-                    Organisasi tujuan
-                  </Label>
-                  <CascadeOrgSelect
-                    token={token ?? undefined}
-                    value={targetOrgId}
-                    onChange={setTargetOrgId}
-                    flow={targetOrgFlow}
-                    triggerLabel={targetOrgLabel}
-                  />
-                </div>
+            <div className="space-y-3">
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="cascade-type">Jenis eskalasi</Label>
+                <PopoverSelectField
+                  id="cascade-type"
+                  value={cascadeType}
+                  onValueChange={(value) =>
+                    setCascadeType(value as RiskCascadeType)
+                  }
+                  options={createCascadeOptions}
+                  placeholder="Pilih jenis eskalasi"
+                  ariaLabel="Jenis eskalasi"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="cascade-source-risk">Risiko sumber</Label>
+                <CascadeRiskSelect
+                  token={token ?? undefined}
+                  value={sourceRiskId}
+                  onChange={setSourceRiskId}
+                  initialRiskId={initialSourceRiskId}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="cascade-target-organization">
+                  Organisasi tujuan
+                </Label>
+                <CascadeOrgSelect
+                  token={token ?? undefined}
+                  value={targetOrgId}
+                  onChange={setTargetOrgId}
+                  flow={targetOrgFlow}
+                  triggerLabel={targetOrgLabel}
+                />
               </div>
               <div className="flex flex-col gap-2">
                 <Label htmlFor="cascade-analysis-note">Alasan eskalasi</Label>
@@ -524,10 +533,9 @@ export function RiskCascadeActionDialog({
                   value={analysisNote}
                   onChange={(event) => setAnalysisNote(event.target.value)}
                   placeholder="Contoh: risiko ini perlu diteruskan ke unit tujuan karena temuan SPI..."
-                  className=""
                 />
               </div>
-            </>
+            </div>
           ) : (
             <div className="space-y-5">
               <div className="rounded-lg bg-muted/20 p-4 ring-1 ring-inset ring-border/60">
