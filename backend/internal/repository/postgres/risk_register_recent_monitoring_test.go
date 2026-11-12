@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"reflect"
-	"strings"
 	"testing"
 
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -30,10 +29,17 @@ func TestRecentRegisterMonitoringQuarterWindow(t *testing.T) {
 		{"before WIB new year", "2026-12-31 16:59:59+00", []string{"2026-Q1", "2026-Q2", "2026-Q3", "2026-Q4"}},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
-			join := strings.ReplaceAll(riskRegisterRecentMonitoringJoin, "NOW()", "$1::timestamptz")
-			query := "SELECT recent_monitoring.items FROM (SELECT NULL::uuid AS version_group_id) r " + join
+			tx, err := pool.Begin(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer tx.Rollback(ctx)
+			if _, err := tx.Exec(ctx, "SELECT set_config('manris.simulated_now', $1, true)", tc.anchor); err != nil {
+				t.Fatal(err)
+			}
+			query := "SELECT recent_monitoring.items FROM (SELECT NULL::uuid AS version_group_id) r " + riskRegisterRecentMonitoringJoin
 			var periods []entity.RecentMonitoringQuarter
-			if err := pool.QueryRow(ctx, query, tc.anchor).Scan(&periods); err != nil {
+			if err := tx.QueryRow(ctx, query).Scan(&periods); err != nil {
 				t.Fatal(err)
 			}
 			cycles := make([]string, 0, len(periods))

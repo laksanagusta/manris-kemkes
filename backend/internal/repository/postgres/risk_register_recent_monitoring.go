@@ -10,8 +10,8 @@ LEFT JOIN LATERAL (
   FROM (
     SELECT started_at, to_char(started_at, 'YYYY') || '-Q' || EXTRACT(QUARTER FROM started_at)::int AS cycle
     FROM generate_series(
-      date_trunc('quarter', NOW() AT TIME ZONE 'Asia/Jakarta') - interval '9 months',
-      date_trunc('quarter', NOW() AT TIME ZONE 'Asia/Jakarta'),
+      date_trunc('quarter', ` + businessNowSQL + ` AT TIME ZONE 'Asia/Jakarta') - interval '9 months',
+      date_trunc('quarter', ` + businessNowSQL + ` AT TIME ZONE 'Asia/Jakarta'),
       interval '3 months'
     ) AS started_at
   ) periods
