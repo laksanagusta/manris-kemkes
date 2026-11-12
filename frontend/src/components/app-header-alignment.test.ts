@@ -24,10 +24,6 @@ const pageHeaderActionsPortalSource = readFileSync(
   ),
   "utf8",
 );
-const appTopbarSource = readFileSync(
-  new URL("./app-topbar.tsx", import.meta.url),
-  "utf8",
-);
 const appShellSource = readFileSync(
   new URL("./app-shell.tsx", import.meta.url),
   "utf8",
@@ -36,50 +32,25 @@ const appSidebarSource = readFileSync(
   new URL("./app-sidebar.tsx", import.meta.url),
   "utf8",
 );
-const rootLayoutSource = readFileSync(
-  new URL("../app/layout.tsx", import.meta.url),
+const globalsSource = readFileSync(
+  new URL("../app/globals.css", import.meta.url),
   "utf8",
 );
 
-test("uses the compact 56px global topbar geometry", () => {
-  assert.match(appTopbarSource, /className="fixed[\s\S]*flex h-14 w-full/);
-  assert.match(appShellSource, /className="relative flex min-h-svh w-full flex-col bg-white pt-14"/);
-  assert.match(appSidebarSource, /md:top-14 md:h-\[calc\(100svh-3\.5rem\)\]/);
-  assert.doesNotMatch(appTopbarSource, /AI Tools/);
-  assert.doesNotMatch(appTopbarSource, /Semua Modul/);
-  assert.doesNotMatch(appTopbarSource, /src="\/logo\.svg"/);
-  assert.match(
-    appTopbarSource,
-    /border-e border-sidebar-border px-2[\s\S]*font-logo[\s\S]*text-\[20px\][\s\S]*font-semibold/,
-  );
-  assert.match(
-    appTopbarSource,
-    /font-logo[\s\S]*lowercase tracking-\[-0\.4px\][\s\S]*>Manrisk<\/span>/,
-  );
-  assert.doesNotMatch(appTopbarSource, /accessibleOrgIds/);
-  assert.doesNotMatch(appTopbarSource, /Pilih organisasi/);
-  assert.doesNotMatch(appTopbarSource, /<DropdownMenu/);
+test("workspace uses a standalone mobile trigger and a desktop breadcrumb bar", () => {
+  assert.match(appShellSource, /<SidebarTrigger aria-label="Buka navigasi" className="[^"]*size-11[^"]*md:hidden"/);
+  assert.match(appShellSource, /className="hidden[^"]*md:flex[^"]*">\s*<AppBreadcrumbs \/>/);
+  assert.match(appSidebarSource, /collapsible="icon"/);
+  assert.match(appSidebarSource, /openSettings\("account"\)/);
 });
 
-test("uses the sidebar border token for topbar dividers", () => {
-  assert.match(appTopbarSource, /border-e border-sidebar-border/);
-  assert.match(
-    appTopbarSource,
-    /items-center gap-3 border-b border-sidebar-border px-3 md:px-5/,
-  );
-  assert.match(appSidebarSource, /md:border-sidebar-border/);
-});
-
-test("keeps the application canvas painted through viewport overscroll", () => {
-  assert.match(rootLayoutSource, /<body className="bg-background antialiased">/);
-  assert.match(
-    rootLayoutSource,
-    /className=\{`\$\{inter\.variable\} border-shadow`\}/,
-  );
+test("bounds the workspace to the viewport and scrolls below the topbar", () => {
   assert.match(
     appShellSource,
-    /className="relative flex min-h-svh w-full flex-col bg-white pt-14"/,
+    /data-app-shell="" className="relative flex h-dvh w-full overflow-hidden bg-\(--app-shell-canvas\)/,
   );
+  assert.match(appShellSource, /<AppBreadcrumbs \/>[\s\S]*data-app-shell-body="" className="[^"]*overflow-y-auto/);
+  assert.match(globalsSource, /body:has\(\[data-app-shell\]\)\s*\{\s*overflow: hidden;/);
 });
 
 test("uses inset shell header geometry", () => {
@@ -191,18 +162,9 @@ test("defines page-title as 24px semibold", () => {
   );
 });
 
-test("uses the topbar as compact context without a duplicated global page header", () => {
-  assert.match(
-    appTopbarSource,
-    /<AppBreadcrumbs \/>/,
-  );
-  assert.doesNotMatch(appShellSource, /<AppHeader/);
-  assert.doesNotMatch(appShellSource, /HeaderActionsProvider/);
+test("keeps page headers within the workspace content", () => {
+  assert.match(appShellSource, /<SidebarInset[\s\S]*<AppHeader \/>[\s\S]*\{children\}/);
   assert.match(collectionHeaderSource, /showTitle = false/);
-  assert.match(
-    collectionHeaderSource,
-    /const hasHeaderContent = hasLeftContent \|\| Boolean\(actions && !actionsInTopSlot\);/,
-  );
 });
 
 test("keeps route-local header actions visible without a global header slot", () => {

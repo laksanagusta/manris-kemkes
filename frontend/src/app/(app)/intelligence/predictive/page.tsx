@@ -1,4 +1,5 @@
 "use client";
+import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
 import { toast } from "sonner";
 
 
@@ -77,10 +78,28 @@ export default function PredictivePage() {
   return <PredictivePageContent />;
 }
 
+type PredictiveSourceRisk = {
+  id: string;
+  code: string;
+  createdAt?: string;
+  created_at?: string;
+};
+
+type Prediction = {
+  riskCode: string;
+  title: string;
+  currentLevel: string;
+  predictedLevel: string;
+  trend: string;
+  confidence: number;
+  reasoning: string;
+  riskHref?: string;
+};
+
 function PredictivePageContent() {
   const { token, user } = useAuth();
   const [isRunning, setIsRunning] = useState(false);
-  const [predictions, setPredictions] = useState<any[]>([]);
+  const [predictions, setPredictions] = useState<Prediction[]>([]);
 
   useEffect(() => {
     // try to load existing predictions from simple local state / or we could have loaded it from the backend if we saved it
@@ -91,15 +110,21 @@ function PredictivePageContent() {
     if (!token) return;
     setIsRunning(true);
     try {
-      // 1. Fetch all risks (could limit to top 10 as AI endpoint does)
-      const risks = await api.get<any[]>("/risks?status=final", token);
-      const sortedRisks = [...risks].sort((a: any, b: any) => new Date(b.created_at || b.createdAt || 0).getTime() - new Date(a.created_at || a.createdAt || 0).getTime());
-      
-      // 2. Call AI prediction
-      const result = await api.post<any[]>("/ai/predictive-analyses", { risks: sortedRisks.slice(0, 10) }, token);
-      
+      const risks = await api.get<PredictiveSourceRisk[]>("/risks?status=final", token);
+      const sources = [...risks]
+        .sort((a, b) => new Date(b.created_at || b.createdAt || 0).getTime() - new Date(a.created_at || a.createdAt || 0).getTime())
+        .slice(0, 10);
+      const result = await api.post<Prediction[]>("/ai/predictive-analyses", { risks: sources }, token);
+
       if (Array.isArray(result)) {
-        setPredictions(result);
+        setPredictions(result.map((prediction) => {
+          const matches = sources.filter((risk) => risk.code === prediction.riskCode);
+          const riskId = matches.length === 1 ? matches[0].id : undefined;
+          return {
+            ...prediction,
+            riskHref: riskId ? `/risk/register/${riskId}` : undefined,
+          };
+        }));
       } else {
         setPredictions([]);
       }
@@ -194,11 +219,11 @@ function PredictivePageContent() {
       </MetricGrid>
 
       {/* Predictions Table */}
-       <Card className="overflow-hidden">
+       <Card className="overflow-hidden py-0">
          <Table>
            <TableHeader>
              <TableRow className="hover:bg-transparent">
-               <TableHead className="w-20 whitespace-nowrap">Kode</TableHead>
+               <TableHead className="w-40 whitespace-nowrap">Kode</TableHead>
                <TableHead className="whitespace-nowrap">Risiko</TableHead>
                <TableHead className="w-24 whitespace-nowrap">Level Saat Ini</TableHead>
                <TableHead className="text-center w-12 whitespace-nowrap">→</TableHead>
@@ -211,7 +236,7 @@ function PredictivePageContent() {
           <TableBody>
             {predictions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-24">
+                <TableCell colSpan={8} className="">
                   <CollectionEmptyState
                     title="Data prediksi kosong"
                     description='Klik tombol "Run Prediction" untuk memulai analisis profil risiko.'
@@ -224,7 +249,7 @@ function PredictivePageContent() {
                 className="hover:bg-muted/30 transition-colors"
               >
                 <TableCell className="">
-                  {pred.riskCode}
+                  <CollectionCode code={pred.riskCode} href={pred.riskHref} />
                 </TableCell>
                 <TableCell className="max-w-[200px]">
                   <span className="line-clamp-1 text-foreground">{pred.title}</span>
@@ -261,7 +286,7 @@ function PredictivePageContent() {
                   <ConfidenceBar value={pred.confidence} />
                 </TableCell>
                 <TableCell className="max-w-[250px]">
-                  <span className="line-clamp-2">{pred.reasoning}</span>
+                  <span className="block truncate" title={pred.reasoning}>{pred.reasoning}</span>
                 </TableCell>
               </TableRow>
             ))}

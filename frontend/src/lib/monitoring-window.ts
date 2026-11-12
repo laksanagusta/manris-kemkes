@@ -1,10 +1,11 @@
+import { businessNow } from "./business-clock.ts";
 export function getMonitoringWindow(cycle:string) {
  const match=/^(\d{4})-Q([1-4])$/.exec(cycle);
  if(!match)return null;
  const year=Number(match[1]), month=Number(match[2])*3;
  return {start:new Date(Date.UTC(year,month,1)-7*3600000),end:new Date(Date.UTC(year,month+1,1)-7*3600000)};
 }
-export function isMonitoringWindowOpen(cycle:string,now=new Date()) {
+export function isMonitoringWindowOpen(cycle:string,now=businessNow()) {
  const window=getMonitoringWindow(cycle);
  return Boolean(window && now>=window.start && now<window.end);
 }

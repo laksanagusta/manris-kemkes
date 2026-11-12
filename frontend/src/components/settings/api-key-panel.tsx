@@ -1,5 +1,7 @@
 "use client";
 
+import { createDisplayDateFormatter } from "@/lib/display-date";
+
 import { useLayoutEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Copy } from "@/components/shared/icons";
@@ -14,7 +16,7 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 
 function timestamp(value?: string | null) {
-  return value ? new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Jakarta" }).format(new Date(value)) + " WIB" : "Belum digunakan";
+  return value ? createDisplayDateFormatter("id-ID", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Jakarta" }).format(new Date(value)) + " WIB" : "Belum digunakan";
 }
 
 export function APIKeyPanel({ metadata, secret, loading, pending, error, onGenerate, onDismissSecret, onRetry }: {
@@ -130,12 +132,12 @@ export function APIKeyPanel({ metadata, secret, loading, pending, error, onGener
           <Separator />
           <div className="flex flex-wrap items-center justify-between gap-4">
             <p className="text-sm font-medium">Diperbarui</p>
-            <p className="text-sm text-muted-foreground">{timestamp(metadata.updatedAt)}</p>
+            <p className="text-sm text-muted-foreground"><span data-date-time="">{timestamp(metadata.updatedAt)}</span></p>
           </div>
           <Separator />
           <div className="flex flex-wrap items-center justify-between gap-4">
             <p className="text-sm font-medium">Terakhir digunakan</p>
-            <p className="text-sm text-muted-foreground">{timestamp(metadata.lastUsedAt)}</p>
+            <p className="text-sm text-muted-foreground"><span data-date-time="">{timestamp(metadata.lastUsedAt)}</span></p>
           </div>
         </>}
       </div>
@@ -148,7 +150,7 @@ export function APIKeyPanel({ metadata, secret, loading, pending, error, onGener
       <DialogContent
         ref={setModalContentElement}
         data-dynamic-height="true"
-        className="max-h-[calc(100dvh-1rem)] overflow-y-auto sm:max-w-md"
+        className="max-h-[calc(100dvh-1rem)] overflow-y-auto"
       >
         <div ref={setModalBodyContentElement} className="space-y-4">
           {dialogStep === "confirm" ? <>

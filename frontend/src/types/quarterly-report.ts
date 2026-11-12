@@ -90,7 +90,6 @@ export interface QuarterlyReportEventPreview {
   description: string;
   occurredAt: string;
   organizationName: string;
-  postResponseCondition: string;
   severity: string;
 }
 

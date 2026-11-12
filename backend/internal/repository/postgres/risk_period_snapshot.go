@@ -24,8 +24,8 @@ const riskPeriodSnapshotCTE = quarterlyLifecycleCTE + `, period_cutoff AS (
         THEN (make_date(substring($1, 1, 4)::int, (substring($1, 7, 1)::int - 1) * 3 + 1, 1)::timestamp + interval '3 months') AT TIME ZONE 'Asia/Jakarta'
         WHEN $1::text ~ '^[0-9]{4}-H[1-2]$'
         THEN (make_date(substring($1, 1, 4)::int, (substring($1, 7, 1)::int - 1) * 6 + 1, 1)::timestamp + interval '6 months') AT TIME ZONE 'Asia/Jakarta'
-        ELSE CURRENT_TIMESTAMP
-      END, CURRENT_TIMESTAMP
+        ELSE ` + businessNowSQL + `
+      END, ` + businessNowSQL + `
     ) AS cutoff
 ), effective_profiles AS (
     SELECT r.*, ` + riskEffectiveAtSQL + ` AS snapshot_effective_at

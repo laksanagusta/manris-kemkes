@@ -7,6 +7,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/manris/backend/internal/domain/entity"
 	domainerrors "github.com/manris/backend/internal/domain/errors"
+	"github.com/manris/backend/internal/domain/repository"
 	workuc "github.com/manris/backend/internal/usecase/operator_work"
 	eventuc "github.com/manris/backend/internal/usecase/risk_event"
 	"os"
@@ -63,7 +64,7 @@ func TestOperatorLifecycleIntegration(t *testing.T) {
 		t.Fatalf("cross-unit candidates: %v %v", candidates, err)
 	}
 	events := NewRiskEventRepository(pool)
-	event := &entity.RiskEvent{Description: "Test event", OccurredAt: time.Date(2026, 9, 12, 0, 0, 0, 0, time.UTC), ImpactTypes: []string{"operational"}, Severity: "low", PostResponseCondition: "unknown", OrganizationID: org, CreatedBy: actor}
+	event := &entity.RiskEvent{Description: "Test event", OccurredAt: time.Date(2026, 9, 12, 0, 0, 0, 0, time.UTC), ImpactTypes: []string{"operational"}, Severity: "low", OrganizationID: org, CreatedBy: actor}
 	event.SourceRefs = []entity.DocumentSourceRef{}
 	if err := events.Create(ctx, event, []uuid.UUID{risk.ID}); err != nil {
 		t.Fatal(err)
@@ -112,7 +113,7 @@ func TestOperatorLifecycleIntegration(t *testing.T) {
 			}
 		})
 	}
-	if _, err := mr.Finalize(ctx, monitoring.ID, nil, actor); err != nil {
+	if _, err := mr.Finalize(ctx, monitoring.ID, nil, actor, repository.MonitoringFinalizeReview{}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := notes.Add(ctx, scope, event.ID, "New information after finalization", uuid.New()); err != nil {

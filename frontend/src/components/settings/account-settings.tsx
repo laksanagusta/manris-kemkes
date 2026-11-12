@@ -1,5 +1,7 @@
 "use client";
 
+import { createDisplayDateFormatter } from "@/lib/display-date";
+
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { KeyRound, Save } from "@/components/shared/icons";
@@ -17,6 +19,7 @@ import {
   DialogClose,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -25,6 +28,7 @@ import { Label } from "@/components/ui/label";
 import { DitherAvatar } from "@/components/dither-kit/avatar";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Separator } from "@/components/ui/separator";
+import { FormContainer, FormGroup } from "@/components/shared/design-system";
 
 type ProfileFormState = {
   name: string;
@@ -45,7 +49,7 @@ const emptyProfile: ProfileFormState = {
 function ActiveDeviceRow() {
   const [device] = useState(() => {
     if (typeof navigator === "undefined") {
-      return { deviceName: "Macintosh", browserName: "Chrome", lastActive: "Aktif sekarang" };
+      return { deviceName: "Macintosh", browserName: "Chrome", lastActive: "Aktif sekarang", lastActiveTime: "" };
     }
 
     const platform = navigator.platform.toLowerCase();
@@ -63,7 +67,8 @@ function ActiveDeviceRow() {
     return {
       deviceName: platform.includes("mac") ? "Macintosh" : platform.includes("win") ? "Windows" : "Perangkat ini",
       browserName: `${browser}${version ? ` ${version}` : ""}`,
-      lastActive: `Hari ini pukul ${new Intl.DateTimeFormat("id-ID", { hour: "numeric", minute: "2-digit" }).format(new Date())}`,
+      lastActive: "Hari ini pukul",
+      lastActiveTime: createDisplayDateFormatter("id-ID", { hour: "2-digit", minute: "2-digit" }).format(new Date()),
     };
   });
 
@@ -81,7 +86,7 @@ function ActiveDeviceRow() {
             </div>
             <p>{device.browserName}</p>
             <p>Sesi aktif di perangkat ini</p>
-            <p>{device.lastActive}</p>
+            <p>{device.lastActive}{device.lastActiveTime ? <> <time>{device.lastActiveTime}</time></> : null}</p>
           </div>
         </div>
       </div>
@@ -182,42 +187,36 @@ export function AccountSettings({ view = "account" }: { view?: "account" | "secu
 
   return (
     <div className="space-y-8">
-      {view === "account" && <section className="space-y-3" aria-labelledby="account-details-heading">
-        <h2 id="account-details-heading" className="text-sm text-muted-foreground">Detail profil</h2>
+      {view === "account" && <section aria-labelledby="account-details-heading">
         <form onSubmit={handleProfileSubmit} className="space-y-4">
-          <Card>
-            <CardContent>
-              <div className="mb-4 flex items-center justify-between gap-4">
-                <span>Avatar</span>
-                <DitherAvatar name={user?.name || "User"} size={32} className="overflow-hidden rounded-full" />
-              </div>
-              <Separator />
-              <FieldGroup className="mt-4">
-                {([
-                  ["name", "Nama lengkap", "Nama lengkap", true],
-                  ["email", "Email", "nama@manrisk.local", true],
-                  ["nip", "NIP", "Nomor induk pegawai", true],
-                  ["jabatan", "Jabatan", "Jabatan", false],
-                  ["pangkat", "Pangkat", "Pangkat / golongan", false],
-                ] as const).map(([key, label, placeholder, required], index) => (
-                  <div key={key} className="space-y-4">
-                    {index > 0 && <Separator />}
-                    <Field orientation="responsive">
-                      <FieldLabel htmlFor={`account-${key}`}>{label}</FieldLabel>
-                      <div className="w-full @md/field-group:basis-[280px] @md/field-group:shrink-0">
-                        <Input id={`account-${key}`} type={key === "email" ? "email" : "text"} value={profile[key]} onChange={(event) => setProfile((current) => ({ ...current, [key]: event.target.value }))} placeholder={placeholder} required={required} disabled={savingProfile} />
-                      </div>
-                    </Field>
-                  </div>
-                ))}
-                <Separator />
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <span>Unit kerja</span>
-                  <span className="text-sm text-muted-foreground">{user?.orgName || "-"}</span>
-                </div>
-              </FieldGroup>
-            </CardContent>
-          </Card>
+          <FormContainer title="Detail profil" titleId="account-details-heading">
+            <FormGroup className="flex items-center justify-between gap-4">
+              <span>Avatar</span>
+              <DitherAvatar name={user?.name || "User"} size={32} className="overflow-hidden rounded-full" />
+            </FormGroup>
+            {([
+              ["name", "Nama lengkap", "Nama lengkap", true],
+              ["email", "Email", "nama@manrisk.local", true],
+              ["nip", "NIP", "Nomor induk pegawai", true],
+              ["jabatan", "Jabatan", "Jabatan", false],
+              ["pangkat", "Pangkat", "Pangkat / golongan", false],
+            ] as const).map(([key, label, placeholder, required]) => (
+              <FormGroup key={key}>
+                <FieldGroup>
+                  <Field orientation="responsive">
+                    <FieldLabel htmlFor={`account-${key}`}>{label}</FieldLabel>
+                    <div className="w-full @md/field-group:basis-[280px] @md/field-group:shrink-0">
+                      <Input id={`account-${key}`} type={key === "email" ? "email" : "text"} value={profile[key]} onChange={(event) => setProfile((current) => ({ ...current, [key]: event.target.value }))} placeholder={placeholder} required={required} disabled={savingProfile} />
+                    </div>
+                  </Field>
+                </FieldGroup>
+              </FormGroup>
+            ))}
+            <FormGroup className="flex flex-wrap items-center justify-between gap-3">
+              <span>Unit kerja</span>
+              <span className="text-sm text-muted-foreground">{user?.orgName || "-"}</span>
+            </FormGroup>
+          </FormContainer>
           <div className="flex justify-end">
             <Button type="submit" disabled={savingProfile}><Save data-icon="inline-start" />{savingProfile ? "Menyimpan..." : "Simpan profil"}</Button>
           </div>
@@ -241,7 +240,7 @@ export function AccountSettings({ view = "account" }: { view?: "account" | "secu
       </section>}
 
       <Dialog open={isPasswordDialogOpen} onOpenChange={handlePasswordDialogChange}>
-        <DialogContent className="sm:max-w-md" showCloseButton={false} onCloseAutoFocus={(event) => { event.preventDefault(); passwordTriggerRef.current?.focus(); }}>
+        <DialogContent showCloseButton={false} onCloseAutoFocus={(event) => { event.preventDefault(); passwordTriggerRef.current?.focus(); }}>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <KeyRound className="size-4 text-primary" />
@@ -305,7 +304,7 @@ export function AccountSettings({ view = "account" }: { view?: "account" | "secu
               Gunakan kombinasi yang sulit ditebak dan pastikan password baru tidak sama dengan yang lama.
             </p>
 
-            <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
+            <DialogFooter>
               <DialogClose asChild>
                 <Button type="button" variant="outline" className="" disabled={savingPassword}>
                   Batal
@@ -315,7 +314,7 @@ export function AccountSettings({ view = "account" }: { view?: "account" | "secu
                 <KeyRound className="size-4" />
                 {savingPassword ? "Menyimpan..." : "Perbarui Password"}
               </Button>
-            </div>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

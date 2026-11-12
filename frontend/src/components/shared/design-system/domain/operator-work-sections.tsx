@@ -1,7 +1,9 @@
 "use client";
+
 import Link from "next/link";
+import { useEffect } from "react";
 import { ChevronDown } from "@/components/shared/icons";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import {
   Collapsible,
   CollapsibleTrigger,
@@ -13,7 +15,7 @@ import type {
   OperatorWorkItem,
   OperatorWorkSection,
 } from "@/types/operator-work";
-import { OperatorWorkList } from "./operator-work-list";
+import { OperatorWorkList, type OpenWorkReport } from "./operator-work-list";
 import { OperatorMonitoringPeriod } from "./operator-monitoring-period";
 
 export function OperatorWorkSections({
@@ -21,88 +23,96 @@ export function OperatorWorkSections({
   open,
   onOpenChange,
   today,
-  busyKey,
-  onOpen,
+  itemHref,
   onNavigate,
+  onOpenReport,
+  completingKey,
+  onCompletionEnd,
 }: {
   sections: OperatorWorkSection[];
   open: WorkUIState["open"];
   onOpenChange: (key: OperatorWorkSection["key"], value: boolean) => void;
   today: string;
-  busyKey?: string | null;
-  onOpen: (item: OperatorWorkItem) => void;
+  itemHref: (item: OperatorWorkItem) => string;
   onNavigate?: () => void;
+  onOpenReport?: OpenWorkReport;
+  completingKey?: string | null;
+  onCompletionEnd?: () => void;
 }) {
+  useEffect(() => {
+    if (!completingKey || !onCompletionEnd) return;
+    // The disclosure may close before the row can finish its exit.
+    const timer = window.setTimeout(onCompletionEnd, 350);
+    return () => window.clearTimeout(timer);
+  }, [completingKey, onCompletionEnd]);
+
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       <OperatorMonitoringPeriod today={today} />
-      {sections.map((section) => (
-        <div key={section.key}>
-          {section.total === 0 ? (
-            <>
-              <div className="flex min-h-11 items-center gap-2 py-2">
-                <h2 className="text-sm font-medium text-muted-foreground">
-                  {workSectionTitles[section.key]}
-                </h2>
-                <span
-                  className="shrink-0 text-xs tabular-nums text-tertiary-foreground"
-                  aria-label="0 pekerjaan"
-                >
-                  0
+      <Card className="gap-0 py-0">
+        <h2 className="flex min-h-12 items-center border-b border-border px-(--card-spacing) py-3 text-sm font-semibold">
+          Pekerjaan saya
+        </h2>
+        <div className="divide-y divide-border">
+          {sections.map((section) => {
+            const title = workSectionTitles[section.key];
+            const heading = (
+              <>
+                <span className="min-w-0">{title}</span>
+                <span className="shrink-0 text-xs tabular-nums text-muted-foreground" aria-label={`${section.total} pekerjaan`}>
+                  {section.total}
                 </span>
-              </div>
-            </>
-          ) : (
-            <Collapsible
-              className="space-y-1"
-              open={open[section.key]}
-              onOpenChange={(value) => onOpenChange(section.key, value)}
-            >
-              <h2>
-                <CollapsibleTrigger className="group flex min-h-11 w-full items-center gap-3 rounded-lg py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              </>
+            );
+
+            if (section.total === 0) {
+              return (
+                <h3 key={section.key} className="flex min-h-11 items-center gap-2 px-(--card-spacing) py-2 text-sm text-muted-foreground">
+                  {heading}
+                </h3>
+              );
+            }
+
+            return (
+              <Collapsible
+                key={section.key}
+                open={open[section.key]}
+                onOpenChange={(value) => onOpenChange(section.key, value)}
+              >
+                <h3>
+                  <CollapsibleTrigger className="group flex min-h-11 w-full cursor-pointer items-center gap-2 px-(--card-spacing) py-2 text-start text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                    {heading}
                     <ChevronDown
                       aria-hidden
-                      className="size-4 shrink-0 text-muted-foreground transition-transform duration-150 group-data-[state=closed]:-rotate-90 motion-reduce:transition-none"
+                      className="ms-auto size-4 shrink-0 text-muted-foreground transition-transform duration-150 group-data-[state=closed]:-rotate-90 motion-reduce:transition-none"
                     />
-                    <span className="min-w-0 text-sm font-medium">
-                      {workSectionTitles[section.key]}
-                    </span>
-                  <span
-                    className="shrink-0 text-xs tabular-nums text-tertiary-foreground"
-                    aria-label={`${section.total} pekerjaan`}
-                  >
-                    {section.total}
-                  </span>
-                </CollapsibleTrigger>
-              </h2>
-              <CollapsibleContent>
-                <Card data-operator-work-card="" className="gap-0 py-0">
-                <CardContent className="py-3">
+                  </CollapsibleTrigger>
+                </h3>
+                <CollapsibleContent className="me-(--card-spacing) ms-[calc(var(--card-spacing)+--spacing(4))] pb-2">
                   <OperatorWorkList
                     items={section.items}
-                    today={today}
-                    busyKey={busyKey}
-                    onOpen={onOpen}
+                    itemHref={itemHref}
+                    onNavigate={onNavigate}
+                    onOpenReport={onOpenReport}
+                    completingKey={completingKey}
+                    onCompletionEnd={onCompletionEnd}
                   />
                   {section.total > 5 ? (
-                    <div className="mt-2 border-t border-dashed border-border pt-1">
-                      <Link
-                        href={sectionHref(section.key)}
-                        onClick={onNavigate}
-                        className="inline-flex min-h-8 items-center rounded-sm text-sm font-medium text-foreground focus-visible:outline-2 focus-visible:outline-ring"
-                        aria-label={`Lihat semua: ${workSectionTitles[section.key]}`}
-                      >
-                        Lihat semua ({section.total})
-                      </Link>
-                    </div>
+                    <Link
+                      href={sectionHref(section.key)}
+                      onNavigate={onNavigate}
+                      className="flex min-h-9 items-center border-t border-border py-2 text-sm font-medium text-foreground underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring pointer-coarse:min-h-11"
+                      aria-label={`Lihat semua: ${title}`}
+                    >
+                      Lihat semua ({section.total})
+                    </Link>
                   ) : null}
-                </CardContent>
-                </Card>
-              </CollapsibleContent>
-            </Collapsible>
-          )}
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          })}
         </div>
-      ))}
+      </Card>
     </div>
   );
 }

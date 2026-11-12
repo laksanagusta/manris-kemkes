@@ -166,7 +166,7 @@ export default function RegisterScreen() {
         <div className="flex flex-col gap-6">
           <header className="flex w-full flex-col items-start gap-4 text-left">
             <span className="inline-flex items-center gap-2"><ManriskMark /><span className="font-logo text-[24px] leading-6 font-semibold lowercase tracking-[-0.4px] text-tertiary-foreground underline decoration-dashed decoration-2 underline-offset-4">Manrisk</span></span>
-            <h1 className="text-base leading-5 font-medium tracking-tight text-balance">Buat akun baru</h1>
+            <h1 className="text-base leading-5 font-medium tracking-normal text-balance">Buat akun baru</h1>
             <div className="flex w-full flex-col gap-1 text-left text-sm text-muted-foreground">
               <p>Akun yang dibuat akan berstatus menunggu aktivasi sampai admin menyetujui registrasi.</p>
             </div>
@@ -243,12 +243,12 @@ export default function RegisterScreen() {
               </Field>
             </FieldGroup>
             <div className="flex flex-col gap-1">
-              <Button type="submit" className="h-11 w-full rounded-full" disabled={loading || orgLoading} aria-busy={loading}>
+              <Button type="submit" className="h-11 w-full" disabled={loading || orgLoading} aria-busy={loading}>
                 {loading ? <Spinner data-icon="inline-start" aria-hidden="true" /> : null}
                 {loading ? "Memproses..." : "Daftar sekarang"}
               </Button>
               <nav className="flex" aria-label="Bantuan akun">
-                <Button asChild variant="outline" className="h-11 w-full rounded-full"><Link href="/login">Sudah punya akun? Masuk</Link></Button>
+                <Button asChild variant="outline" className="h-11 w-full"><Link href="/login">Sudah punya akun? Masuk</Link></Button>
               </nav>
             </div>
           </form>

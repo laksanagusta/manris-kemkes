@@ -1,0 +1,80 @@
+.button {
+  border-radius: var(--control-radius);
+  --button-primary-surface: #181818;
+  --button-primary-foreground: #fff;
+  --button-primary-hover: #303030;
+  --button-primary-edge: var(--button-primary-surface);
+  --button-outline-edge: rgb(13 13 13 / 16%);
+  --button-secondary-surface: rgb(13 13 13 / 8%);
+  --button-outline-shadow: 0 0 0 1px var(--button-outline-edge);
+}
+
+:global(.dark) .button {
+  --button-primary-surface: #ededed;
+  --button-primary-foreground: #181818;
+  --button-primary-hover: #d5d5d5;
+  --button-outline-edge: rgb(255 255 255 / 20%);
+  --button-secondary-surface: rgb(255 255 255 / 8%);
+}
+
+/* Shared Button treatment follows the Wonder API keys reference. */
+.button.button:global(.button-primary),
+.button.button:global(.button-outline),
+.button.button:global(.button-secondary) {
+  letter-spacing: -0.01em;
+  background-image: none;
+  text-shadow: none;
+}
+
+.button.button:global(.button-primary) {
+  background-color: var(--button-primary-surface);
+  background-clip: border-box;
+  color: var(--button-primary-foreground);
+  box-shadow:
+    var(--tw-inset-shadow, 0 0 #0000),
+    var(--tw-inset-ring-shadow, 0 0 #0000),
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000),
+    0 0 0 1px var(--button-primary-edge);
+}
+
+.button.button:global(.button-primary):hover:not(:disabled, [aria-disabled="true"]) {
+  --button-primary-edge: var(--button-primary-hover);
+  background-color: var(--button-primary-hover);
+  color: var(--button-primary-foreground);
+}
+
+.button.button:global(.button-outline) {
+  border-radius: var(--control-radius);
+  background-color: transparent;
+  box-shadow:
+    var(--tw-inset-shadow, 0 0 #0000),
+    var(--tw-inset-ring-shadow, 0 0 #0000),
+    var(--tw-ring-offset-shadow, 0 0 #0000),
+    var(--tw-ring-shadow, 0 0 #0000),
+    var(--button-outline-shadow);
+}
+
+.button.button:global(.button-outline):not(:disabled, [aria-disabled="true"]) > svg {
+  color: currentColor;
+}
+
+.button.button:global(.button-outline):not(:focus-visible, [aria-invalid="true"]) {
+  border-color: transparent;
+  background-clip: border-box;
+}
+
+.button.button:global(.button-secondary) {
+  background-color: var(--button-secondary-surface);
+  color: var(--foreground);
+}
+
+.button.button:global(.button-primary):is(:disabled, [aria-disabled="true"]) {
+  --button-primary-edge: var(--muted);
+  background-color: var(--muted);
+  color: var(--disabled-foreground);
+}
+
+.button.button:global(.button-outline):is(:hover, [aria-expanded="true"]):not(:disabled, [aria-disabled="true"]) {
+  background-color: var(--button-hover-surface);
+}

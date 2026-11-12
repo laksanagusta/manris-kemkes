@@ -5,6 +5,7 @@ import { Textarea } from "@/components/shared/design-system";
 interface EditableListProps {
   id?: string;
   ariaLabel?: string;
+  "aria-describedby"?: string;
   value: string;
   onChange: (val: string) => void;
   placeholder?: string;
@@ -15,6 +16,7 @@ interface EditableListProps {
 export function EditableList({
   id,
   ariaLabel,
+  "aria-describedby": ariaDescribedBy,
   value,
   onChange,
   placeholder,
@@ -25,6 +27,7 @@ export function EditableList({
     <Textarea
       id={id}
       aria-label={ariaLabel}
+      aria-describedby={ariaDescribedBy}
       aria-invalid={invalid}
       value={value}
       onChange={(e) => onChange(e.target.value)}

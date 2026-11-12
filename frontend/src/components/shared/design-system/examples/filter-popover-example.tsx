@@ -21,7 +21,7 @@ export function FilterPopoverExample() {
           { id: "date", label: "Tanggal", type: "date", value: date, onChange: setDate },
         ]}
       />
-      <p className="text-xs text-muted-foreground">Contoh interaktif: pilih field melalui tombol Filter, isi nilai lalu Terapkan. Batal membuang edit. Chip dapat diedit atau dihapus; Hapus semua filter mempertahankan pencarian.</p>
+      <p className="text-xs text-muted-foreground">Contoh interaktif: pilih field melalui ikon filter, isi nilai lalu Terapkan. Batal membuang edit. Pill berubah biru setelah nilai diterapkan dan dapat diedit atau dihapus; Hapus semua filter mempertahankan pencarian.</p>
       <output aria-live="polite" className="block text-xs text-muted-foreground">{[status !== "all" && `Status: ${status}`, period !== "all" && `Periode: ${period}`, email && `Email: ${email}`, date && `Tanggal: ${date}`].filter(Boolean).join(" · ") || "Belum ada filter diterapkan"}</output>
     </div>
   );

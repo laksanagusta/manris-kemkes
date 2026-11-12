@@ -30,7 +30,7 @@ func (s *Service) List(ctx context.Context, orgID, actorID uuid.UUID, page, limi
 	if orgID == uuid.Nil || actorID == uuid.Nil || page < 1 || page > 100000 || limit < 1 || limit > 50 {
 		return nil, fmt.Errorf("invalid work scope or pagination")
 	}
-	now := time.Now().In(timeutil.JakartaLocation())
+	now := timeutil.BusinessNow().In(timeutil.JakartaLocation())
 	candidates, err := s.repo.ListCandidates(ctx, orgID, now)
 	if err != nil {
 		return nil, fmt.Errorf("list operator work: %w", err)

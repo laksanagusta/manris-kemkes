@@ -15,7 +15,6 @@ export const agentFieldChoices: Record<string, [string, string][]> = {
   frequency: [["rutin", "Rutin"], ["insidental", "Insidental"]],
   mitigationType: [["reduce_probability", "Mengurangi kemungkinan"], ["reduce_impact", "Mengurangi dampak"], ["reduce_both", "Mengurangi kemungkinan dan dampak"]],
   severity: [["low", "Rendah"], ["medium", "Sedang"], ["high", "Tinggi"], ["extreme", "Ekstrem"]],
-  postResponseCondition: [["recovered", "Pulih"], ["controlled", "Terkendali"], ["ongoing", "Masih berlangsung"], ["worsening", "Memburuk"], ["unknown", "Belum diketahui"]],
   status: [["pending", "Belum selesai"], ["done", "Selesai"]],
 };
 export const agentMonitoringNumberFields: Record<string, { min: number; max: number; label: string }> = {
@@ -25,7 +24,7 @@ export const agentMonitoringNumberFields: Record<string, { min: number; max: num
 };
 const monitoringFields = new Set([...Object.keys(agentMonitoringNumberFields), "conclusion", "mitigationProgressSummary", "values"]);
 const profileFields = new Set(["title", "description", "category", "cause", "riskSource", "controllability", "impactDesc", "existingControl", "controlEffectiveness", "treatmentOption", "mitigations", "changeReason"]);
-const mitigationFields = new Set(["id", "action", "owner", "ownerUserId", "dueDate", "frequency", "recurringInterval", "reportDay", "reportDate", "executionScheduleText", "targetCost", "mitigationType", "activityStage", "expectedOutput", "quantitativeTarget", "supportingUnit", "resourcesRequired", "contingencyPlan", "potentialObstacle", "isBreakthroughActivity", "isExistingControl"]);
+const mitigationFields = new Set(["id", "action", "owner", "ownerUserId", "dueDate", "frequency", "recurringInterval", "reportDay", "reportDate", "executionScheduleText", "targetCost", "mitigationType"]);
 const isRecord = (value: unknown): value is Record<string, unknown> => !!value && typeof value === "object" && !Array.isArray(value);
 const nilUUID = "00000000-0000-0000-0000-000000000000";
 const isUUID = (value: unknown): value is string => typeof value === "string" && /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(value) && value !== nilUUID;

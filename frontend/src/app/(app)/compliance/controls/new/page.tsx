@@ -7,7 +7,8 @@ import { Save } from "@/components/shared/icons";
 
 import { api, ApiError } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
-import { FormHeader, FormPage, FormSection } from "@/components/shared/form-shell";
+import { FormHeader, FormPage } from "@/components/shared/form-shell";
+import { FormContainer, FormGroup } from "@/components/shared/design-system";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -94,121 +95,123 @@ export default function NewControlPage() {
         }
       />
 
-      <FormSection
+      <FormContainer
         title="Detail kontrol"
         description="Tulis nama, tujuan, dan pola pelaksanaan kontrol secara ringkas."
-        contentClassName="space-y-5"
       >
-        <div className="space-y-1.5">
-          <Label htmlFor="control-name" className="text-sm font-medium">
-            Nama kontrol<span className="text-destructive ml-0.5">*</span>
-          </Label>
-          <Input
-            id="control-name"
-            value={name}
-            onChange={(e) => {
-              setName(e.target.value);
-              if (fieldErrors.name) {
-                setFieldErrors((current) => ({ ...current, name: undefined }));
-              }
-            }}
-            placeholder="Contoh: Pengecekan suhu cold chain harian"
-            aria-invalid={Boolean(fieldErrors.name)}
-            aria-describedby={fieldErrors.name ? "control-name-error" : undefined}
-            className=""
-          />
-          {fieldErrors.name ? (
-            <p id="control-name-error" className="text-xs text-destructive">
-              {fieldErrors.name}
-            </p>
-          ) : null}
-        </div>
-
-        <div className="space-y-1.5">
-          <Label className="text-sm font-medium">Deskripsi</Label>
-          <Textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Jelaskan bagaimana kontrol ini dijalankan."
-            className=""
-          />
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
+        <FormGroup className="space-y-5">
           <div className="space-y-1.5">
-            <Label htmlFor="control-owner" className="text-sm font-medium">
-              Penanggung jawab<span className="text-destructive ml-0.5">*</span>
+            <Label htmlFor="control-name" className="text-sm font-medium">
+              Nama kontrol<span className="text-destructive ml-0.5">*</span>
             </Label>
             <Input
-              id="control-owner"
-              value={owner}
+              id="control-name"
+              value={name}
               onChange={(e) => {
-                setOwner(e.target.value);
-                if (fieldErrors.owner) {
-                  setFieldErrors((current) => ({ ...current, owner: undefined }));
+                setName(e.target.value);
+                if (fieldErrors.name) {
+                  setFieldErrors((current) => ({ ...current, name: undefined }));
                 }
               }}
-              placeholder="Contoh: Tim logistik vaksin"
-              aria-invalid={Boolean(fieldErrors.owner)}
-              aria-describedby={fieldErrors.owner ? "control-owner-error" : undefined}
+              placeholder="Contoh: Pengecekan suhu cold chain harian"
+              aria-invalid={Boolean(fieldErrors.name)}
+              aria-describedby={fieldErrors.name ? "control-name-error" : undefined}
               className=""
             />
-            {fieldErrors.owner ? (
-              <p id="control-owner-error" className="text-xs text-destructive">
-                {fieldErrors.owner}
+            {fieldErrors.name ? (
+              <p id="control-name-error" className="text-xs text-destructive">
+                {fieldErrors.name}
               </p>
             ) : null}
           </div>
+
           <div className="space-y-1.5">
-            <Label className="text-sm font-medium">Tipe kontrol</Label>
-            <Select value={type} onValueChange={setType}>
+            <Label className="text-sm font-medium">Deskripsi</Label>
+            <Textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Jelaskan bagaimana kontrol ini dijalankan."
+              className=""
+            />
+          </div>
+        </FormGroup>
+        <FormGroup className="space-y-5">
+          <div className="grid gap-4 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="control-owner" className="text-sm font-medium">
+                Penanggung jawab<span className="text-destructive ml-0.5">*</span>
+              </Label>
+              <Input
+                id="control-owner"
+                value={owner}
+                onChange={(e) => {
+                  setOwner(e.target.value);
+                  if (fieldErrors.owner) {
+                    setFieldErrors((current) => ({ ...current, owner: undefined }));
+                  }
+                }}
+                placeholder="Contoh: Tim logistik vaksin"
+                aria-invalid={Boolean(fieldErrors.owner)}
+                aria-describedby={fieldErrors.owner ? "control-owner-error" : undefined}
+                className=""
+              />
+              {fieldErrors.owner ? (
+                <p id="control-owner-error" className="text-xs text-destructive">
+                  {fieldErrors.owner}
+                </p>
+              ) : null}
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-sm font-medium">Tipe kontrol</Label>
+              <Select value={type} onValueChange={setType}>
+                <SelectTrigger className="">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="preventif" className="text-sm">
+                    Preventif
+                  </SelectItem>
+                  <SelectItem value="detektif" className="text-sm">
+                    Detektif
+                  </SelectItem>
+                  <SelectItem value="korektif" className="text-sm">
+                    Korektif
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-1.5 md:max-w-sm">
+            <Label className="text-sm font-medium">Frekuensi</Label>
+            <Select value={frequency} onValueChange={setFrequency}>
               <SelectTrigger className="">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="preventif" className="text-sm">
-                  Preventif
+                <SelectItem value="harian" className="text-sm">
+                  Harian
                 </SelectItem>
-                <SelectItem value="detektif" className="text-sm">
-                  Detektif
+                <SelectItem value="mingguan" className="text-sm">
+                  Mingguan
                 </SelectItem>
-                <SelectItem value="korektif" className="text-sm">
-                  Korektif
+                <SelectItem value="bulanan" className="text-sm">
+                  Bulanan
+                </SelectItem>
+                <SelectItem value="triwulan" className="text-sm">
+                  Triwulan
+                </SelectItem>
+                <SelectItem value="tahunan" className="text-sm">
+                  Tahunan
+                </SelectItem>
+                <SelectItem value="insidental" className="text-sm">
+                  Insidental
                 </SelectItem>
               </SelectContent>
             </Select>
           </div>
-        </div>
-
-        <div className="space-y-1.5 md:max-w-sm">
-          <Label className="text-sm font-medium">Frekuensi</Label>
-          <Select value={frequency} onValueChange={setFrequency}>
-            <SelectTrigger className="">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="harian" className="text-sm">
-                Harian
-              </SelectItem>
-              <SelectItem value="mingguan" className="text-sm">
-                Mingguan
-              </SelectItem>
-              <SelectItem value="bulanan" className="text-sm">
-                Bulanan
-              </SelectItem>
-              <SelectItem value="triwulan" className="text-sm">
-                Triwulan
-              </SelectItem>
-              <SelectItem value="tahunan" className="text-sm">
-                Tahunan
-              </SelectItem>
-              <SelectItem value="insidental" className="text-sm">
-                Insidental
-              </SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </FormSection>
+        </FormGroup>
+      </FormContainer>
     </FormPage>
   );
 }

@@ -142,8 +142,16 @@ type Risk struct {
 	MonitoringObservedLevel       *string                   `json:"monitoringObservedLevel,omitempty"`
 	SemesterMonitoring            *SemesterMonitoringStatus `json:"semesterMonitoring,omitempty"`
 
+	RecentMonitoring []RecentMonitoringQuarter `json:"recentMonitoring,omitempty"`
+
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+type RecentMonitoringQuarter struct {
+	Cycle  string   `json:"cycle"`
+	Status *string  `json:"status"`
+	Nilai  *float64 `json:"nilai"`
 }
 
 type QuarterlyMonitoringStatus struct {
@@ -205,10 +213,12 @@ func (r *Risk) Validate() error {
 	if !IsValidRiskCategory(r.Category) {
 		return errors.ErrInvalidRiskCategory
 	}
-	if r.Probability < 1 || r.Probability > 5 {
+	// A draft may retain an explicitly unassessed score until finalization.
+	unassessedDraft := r.Status == RiskStatusDraft && r.Probability == 0 && r.Impact == 0
+	if !unassessedDraft && (r.Probability < 1 || r.Probability > 5) {
 		return errors.ErrInvalidProbability
 	}
-	if r.Impact < 1 || r.Impact > 5 {
+	if !unassessedDraft && (r.Impact < 1 || r.Impact > 5) {
 		return errors.ErrInvalidImpact
 	}
 	for i := range r.Mitigations {

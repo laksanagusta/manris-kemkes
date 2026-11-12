@@ -44,7 +44,7 @@ func (r *RiskMonitoringEvidenceRepository) Get(ctx context.Context, id uuid.UUID
 		}
 		return result, nil
 	}
-	evidence, err := readMonitoringEvidence(ctx, r.pool, sourceID, id, cycle, time.Now().UTC())
+	evidence, err := readMonitoringEvidence(ctx, r.pool, sourceID, id, cycle, timeutil.BusinessNow().UTC())
 	if err != nil {
 		return nil, err
 	}

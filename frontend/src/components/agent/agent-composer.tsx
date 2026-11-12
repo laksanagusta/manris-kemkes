@@ -32,7 +32,7 @@ export function AgentComposer({ content, onContentChange, skills, selectedSkills
     <div className="agent-composer-wrap">
       <label htmlFor={id} className="sr-only">Pesan untuk Manris Agent</label>
       <InputGroup data-agent-composer data-mode={mode} aria-busy={sending || undefined}>
-        <InputGroupTextarea ref={textareaRef} id={id} value={content} onChange={(event) => onContentChange(event.target.value)} onKeyDown={onKeyDown} disabled={disabled} readOnly={sending} placeholder={placeholder} rows={mode === "reply" ? 2 : 3} maxLength={16000} />
+        <InputGroupTextarea ref={textareaRef} id={id} value={content} onChange={(event) => onContentChange(event.target.value)} onKeyDown={onKeyDown} disabled={disabled} readOnly={sending} placeholder={placeholder} rows={2} maxLength={16000} />
         {files.length > 0 && <div className="agent-attachments">
           {files.map((item) => <div className="agent-attachment" key={item.key}>
             <FileText className="size-3.5 shrink-0" aria-hidden="true" />

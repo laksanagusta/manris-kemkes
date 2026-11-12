@@ -1,4 +1,7 @@
 "use client";
+
+import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
+import { formatDisplayDate } from "@/lib/display-date";
 import { useCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
 import { sortDate } from "@/lib/collection-sort";
 
@@ -8,6 +11,7 @@ import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
+import { RiskTableIdentity } from "@/components/shared/design-system/domain/risk-table-identity";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -304,7 +308,7 @@ function MinutesPageContent() {
         }
       />
 
-      <CollectionTableCard sorting={collectionSort.controls}>
+      <CollectionTableCard stickyActions sorting={collectionSort.controls}>
         {loading ? (
           <CollectionLoadingState message="Memuat daftar notulen..." />
         ) : items.length === 0 && !query.trim() && authorFilter === "all" && !dateFilter ? (
@@ -318,47 +322,45 @@ function MinutesPageContent() {
             description="Coba kata kunci lain atau kosongkan pencarian untuk melihat semua notulen."
           />
         ) : (
-          <Table className="min-w-[920px] table-fixed">
+          <Table className="min-w-[1116px] table-fixed">
             <colgroup>
-              <col className="w-[49%]" />
-              <col className="w-[15%]" />
-              <col className="w-[10%]" />
-              <col className="w-[18%]" />
-              <col className="w-40" />
-<col className="w-[8%]" />
+              <col style={{ width: 132 }} />
+              <col style={{ width: 310 }} />
+              <col style={{ width: 148 }} />
+              <col style={{ width: 100 }} />
+              <col style={{ width: 170 }} />
+              <col style={{ width: 208 }} />
+              <col style={{ width: 48 }} />
             </colgroup>
             <CollectionTableHeader>
               <CollectionTableHeaderRow>
+                <CollectionTableHead>ID notulen</CollectionTableHead>
                 <CollectionTableHead className="">Judul Notulen</CollectionTableHead>
                 <CollectionTableHead >Tanggal</CollectionTableHead>
                 <CollectionTableHead className="text-center">Peserta</CollectionTableHead>
                 <CollectionTableHead >Dibuat Oleh</CollectionTableHead>
                 <CreatedAtHead />
-                <CollectionTableHead className="text-center">
-                  <span className="sr-only">Aksi</span>
+                <CollectionTableHead data-collection-action="" className="text-center">
+                  <span data-collection-action="" className="sr-only">Aksi</span>
                 </CollectionTableHead>
               </CollectionTableHeaderRow>
             </CollectionTableHeader>
             <TableBody>
               {paginatedItems.map((minute) => (
                 <TableRow key={minute.id} className="hover:bg-muted/50">
+                  <TableCell><CollectionCode code={minute.id} href={`/minutes/${minute.id}`} /></TableCell>
                   <TableCell className="max-w-[320px]">
-                    <Link
+                    <RiskTableIdentity
+                      title={minute.title || "-"}
                       href={`/minutes/${minute.id}`}
-                      className="block truncate text-sm font-normal leading-relaxed text-foreground hover:text-primary"
-                    >
-                      {minute.title || "-"}
-                    </Link>
-                    <p className="mt-0.5 truncate font-mono text-xs text-tertiary-foreground">
-                      {minute.id.slice(0, 8)}
-                    </p>
+                    />
                   </TableCell>
                   <TableCell className="whitespace-nowrap">
-                    {new Date(minute.date).toLocaleDateString("id-ID", {
+                    <span data-date-time="">{formatDisplayDate(new Date(minute.date), {
                       day: "numeric",
                       month: "short",
                       year: "numeric",
-                    })}
+                    })}</span>
                   </TableCell>
                   <TableCell className="text-center tabular-nums">
                     {minute.participants?.length || 0}
@@ -367,7 +369,7 @@ function MinutesPageContent() {
                     {minute.createdByName || "-"}
                   </TableCell>
                   <CreatedAtCell record={minute} />
-                  <TableCell className="sticky right-0">
+                  <TableCell data-collection-action="">
                     <div className="flex justify-center">
                       {!isReadOnlyForOrg(user, minute.organizationId || "") && (
                         <DropdownMenu>
@@ -399,20 +401,20 @@ function MinutesPageContent() {
           </Table>
         )}
 
-        {filteredItems.length > 0 && (
-          <CollectionPagination
-            itemLabel="notulen"
-            page={visiblePage}
-            pageSize={limit}
-            total={filteredItems.length}
-            disabled={loading || isPending}
-            onPageChange={setPage}
-            onPageSizeChange={(nextLimit) => {
-              setLimit(nextLimit);
-              setPage(1);
-            }}
-          />
-        )}
+      {filteredItems.length > 0 && (
+        <CollectionPagination
+          itemLabel="notulen"
+          page={visiblePage}
+          pageSize={limit}
+          total={filteredItems.length}
+          disabled={loading || isPending}
+          onPageChange={setPage}
+          onPageSizeChange={(nextLimit) => {
+            setLimit(nextLimit);
+            setPage(1);
+          }}
+        />
+      )}
       </CollectionTableCard>
       </div>
 

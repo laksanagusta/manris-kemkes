@@ -16,6 +16,7 @@ import (
 	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
 	"github.com/manris/backend/internal/middleware"
+	"github.com/manris/backend/internal/timeutil"
 	riskuc "github.com/manris/backend/internal/usecase/risk"
 )
 
@@ -551,6 +552,8 @@ type startMonitoringRequest struct {
 }
 
 type updateMonitoringRequest struct {
+	ExpectedUpdatedAt           *time.Time                       `json:"expectedUpdatedAt"`
+	ObservedScoreConfirmed      *bool                            `json:"observedScoreConfirmed"`
 	ObservedProbability         int                              `json:"observedProbability"`
 	ObservedImpact              int                              `json:"observedImpact"`
 	Conclusion                  string                           `json:"conclusion"`
@@ -560,7 +563,9 @@ type updateMonitoringRequest struct {
 }
 
 type finalizeMonitoringRequest struct {
-	FinalizedBy uuid.UUID `json:"finalizedBy"`
+	ExpectedUpdatedAt *time.Time `json:"expectedUpdatedAt"`
+	ReportRevision    *string    `json:"reportRevision"`
+	FinalizedBy       uuid.UUID  `json:"finalizedBy"`
 }
 
 // CreateRisk handles POST /api/risks
@@ -816,8 +821,10 @@ func (h *RiskHandler) UpdateMonitoring(c *fiber.Ctx) error {
 	}
 
 	result, err := h.updateMonitoringUC.Execute(c.Context(), riskuc.UpdateMonitoringInput{
+		ExpectedUpdatedAt:           req.ExpectedUpdatedAt,
 		MonitoringID:                id,
 		OrgIDs:                      orgIDs,
+		ObservedScoreConfirmed:      req.ObservedScoreConfirmed,
 		ObservedProbability:         req.Values.Probability,
 		ObservedImpact:              req.Values.Impact,
 		Conclusion:                  req.Conclusion,
@@ -892,9 +899,11 @@ func (h *RiskHandler) FinalizeMonitoring(c *fiber.Ctx) error {
 	}
 
 	result, err := h.finalizeMonitoringUC.Execute(c.Context(), riskuc.FinalizeMonitoringInput{
-		MonitoringID: id,
-		OrgIDs:       orgIDs,
-		FinalizedBy:  finalizedBy,
+		ExpectedUpdatedAt: req.ExpectedUpdatedAt,
+		ReportRevision:    req.ReportRevision,
+		MonitoringID:      id,
+		OrgIDs:            orgIDs,
+		FinalizedBy:       finalizedBy,
 	})
 	if err != nil {
 		return handleError(c, err)
@@ -1143,7 +1152,7 @@ func (h *RiskHandler) HeatmapData(c *fiber.Ctx) error {
 func (h *RiskHandler) HeatmapMulti(c *fiber.Ctx) error {
 	year, err := strconv.Atoi(c.Query("year"))
 	if err != nil || year <= 0 {
-		year = time.Now().Year()
+		year = timeutil.BusinessNow().Year()
 	}
 	scope := middleware.GetAccessScope(c)
 	orgIDs, err := resolveOperationalOrgIDs(scope, "")

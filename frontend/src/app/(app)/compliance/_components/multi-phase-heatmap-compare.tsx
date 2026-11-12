@@ -1,5 +1,6 @@
 "use client";
 
+import { businessYear } from "@/lib/business-clock";
 import { useCallback, useEffect, useState } from "react";
 import {
   OverviewPanelState,
@@ -66,7 +67,7 @@ export function MultiPhaseHeatmapCompareCard({
 }) {
   const { token } = useAuth();
 
-  const currentYear = new Date().getFullYear();
+  const currentYear = businessYear();
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const heatmapMode: HeatmapMode = "riskLevel";

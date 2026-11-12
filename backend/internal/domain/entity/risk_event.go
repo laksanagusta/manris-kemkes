@@ -17,35 +17,25 @@ const (
 )
 
 type RiskEvent struct {
-	Notes                 []RiskEventNote     `json:"notes,omitempty"`
-	ID                    uuid.UUID           `json:"id"`
-	Code                  string              `json:"code"`
-	Description           string              `json:"description"`
-	OccurredAt            time.Time           `json:"occurredAt"`
-	ImpactTypes           []string            `json:"impactTypes"`
-	OtherImpactType       string              `json:"otherImpactType,omitempty"`
-	ActualImpact          string              `json:"actualImpact"`
-	Severity              string              `json:"severity"`
-	ImmediateResponse     string              `json:"immediateResponse"`
-	PostResponseCondition string              `json:"postResponseCondition"`
-	Location              string              `json:"location,omitempty"`
-	AffectedParties       string              `json:"affectedParties,omitempty"`
-	SuspectedCause        string              `json:"suspectedCause,omitempty"`
-	FinancialLoss         *float64            `json:"financialLoss,omitempty"`
-	FinancialLossKnown    *bool               `json:"financialLossKnown,omitempty"`
-	DisruptionDuration    string              `json:"disruptionDuration,omitempty"`
-	ExtraordinaryReason   string              `json:"extraordinaryReason,omitempty"`
-	OngoingAction         string              `json:"ongoingAction,omitempty"`
-	SourceDocumentName    string              `json:"sourceDocumentName,omitempty"`
-	SourceRefs            []DocumentSourceRef `json:"sourceRefs,omitempty"`
-	ExtractionKey         string              `json:"extractionKey,omitempty"`
-	EvidenceURL           string              `json:"evidenceUrl,omitempty"`
-	OrganizationID        uuid.UUID           `json:"organizationId"`
-	OrganizationName      string              `json:"organizationName,omitempty"`
-	CreatedBy             uuid.UUID           `json:"createdBy"`
-	CreatedByName         string              `json:"createdByName,omitempty"`
-	UpdatedBy             *uuid.UUID          `json:"updatedBy,omitempty"`
-	LinkedRisks           []IncidentRiskLink  `json:"linkedRisks"`
+	Notes              []RiskEventNote     `json:"notes,omitempty"`
+	ID                 uuid.UUID           `json:"id"`
+	Code               string              `json:"code"`
+	Description        string              `json:"description"`
+	OccurredAt         time.Time           `json:"occurredAt"`
+	ImpactTypes        []string            `json:"impactTypes"`
+	OtherImpactType    string              `json:"otherImpactType,omitempty"`
+	Severity           string              `json:"severity"`
+	FinancialLoss      *float64            `json:"financialLoss,omitempty"`
+	FinancialLossKnown *bool               `json:"financialLossKnown,omitempty"`
+	SourceDocumentName string              `json:"sourceDocumentName,omitempty"`
+	SourceRefs         []DocumentSourceRef `json:"sourceRefs,omitempty"`
+	ExtractionKey      string              `json:"extractionKey,omitempty"`
+	OrganizationID     uuid.UUID           `json:"organizationId"`
+	OrganizationName   string              `json:"organizationName,omitempty"`
+	CreatedBy          uuid.UUID           `json:"createdBy"`
+	CreatedByName      string              `json:"createdByName,omitempty"`
+	UpdatedBy          *uuid.UUID          `json:"updatedBy,omitempty"`
+	LinkedRisks        []IncidentRiskLink  `json:"linkedRisks"`
 	// Quarterly reports keep relation presence without exposing risk details
 	// belonging to organizations outside the authorized report scope.
 	HasLinkedRisks *bool     `json:"hasLinkedRisks,omitempty"`
@@ -91,11 +81,7 @@ func (e *RiskEvent) Validate() error {
 	default:
 		return domainerrors.ErrInvalidSeverity
 	}
-	switch e.PostResponseCondition {
-	case "recovered", "controlled", "ongoing", "worsening", "unknown":
-	default:
-		return domainerrors.ErrInvalidInput
-	}
+
 	if e.OrganizationID == uuid.Nil || e.CreatedBy == uuid.Nil {
 		return domainerrors.ErrInvalidInput
 	}

@@ -1,10 +1,10 @@
-import { CollapsibleCard } from "@/components/shared/design-system";
+import { CollapsibleCard, FormGroup, FormPanel } from "@/components/shared/design-system";
 import { Badge } from "@/components/ui/badge";
 
 export function CollapsibleCardExample() {
   return (
-    <CollapsibleCard.Root>
-      <CollapsibleCard.Trigger>
+    <CollapsibleCard.Root appearance="form">
+      <CollapsibleCard.Trigger className="hover:bg-transparent sm:px-5">
         <CollapsibleCard.Header>
           <CollapsibleCard.Icon />
           <CollapsibleCard.Text>
@@ -23,12 +23,13 @@ export function CollapsibleCardExample() {
         </CollapsibleCard.Actions>
       </CollapsibleCard.Trigger>
       <CollapsibleCard.Content>
-        <CollapsibleCard.Body className="p-4">
-          <p className="text-sm leading-6 text-muted-foreground">
-            Gunakan body ber-padding untuk form dan ringkasan, atau atur padding
-            pada pemanggil ketika kontennya berupa tabel full-bleed.
-          </p>
-        </CollapsibleCard.Body>
+        <FormPanel>
+          <FormGroup>
+            <p className="text-sm leading-6 text-muted-foreground">
+              Bagian ini menampilkan skor observasi dan catatan hasil pemantauan.
+            </p>
+          </FormGroup>
+        </FormPanel>
       </CollapsibleCard.Content>
     </CollapsibleCard.Root>
   );

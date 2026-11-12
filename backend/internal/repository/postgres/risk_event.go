@@ -30,19 +30,16 @@ func (r *riskEventRepository) Create(ctx context.Context, event *entity.RiskEven
 	err = tx.QueryRow(ctx, `
 		INSERT INTO incidents (
 			title, what, "when", severity, status, reporter_id, organization_id,
-			impact_types, other_impact_type, actual_impact, immediate_response, post_response_condition,
-			"where", who, why_how, financial_loss, financial_loss_known,
-			disruption_duration, extraordinary_reason, ongoing_action, evidence_url,
+			impact_types, other_impact_type, financial_loss, financial_loss_known,
 			created_by, updated_by, source_document_name, source_refs, extraction_key
 		) VALUES (
 			LEFT($1, 120), $1, $2, $3, 'recorded', $4, $5,
-			$6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $4, NULL, $20, $21, NULLIF($22, '')
+			$6, $7, $8, $9, $4, NULL, $10, $11, NULLIF($12, '')
 		)
 		RETURNING id, created_at, updated_at
 	`, event.Description, event.OccurredAt, event.Severity, event.CreatedBy, event.OrganizationID,
-		event.ImpactTypes, event.OtherImpactType, event.ActualImpact, event.ImmediateResponse, event.PostResponseCondition,
-		event.Location, event.AffectedParties, event.SuspectedCause, event.FinancialLoss, event.FinancialLossKnown,
-		event.DisruptionDuration, event.ExtraordinaryReason, event.OngoingAction, event.EvidenceURL, event.SourceDocumentName, event.SourceRefs, event.ExtractionKey,
+		event.ImpactTypes, event.OtherImpactType, event.FinancialLoss, event.FinancialLossKnown,
+		event.SourceDocumentName, event.SourceRefs, event.ExtractionKey,
 	).Scan(&event.ID, &event.CreatedAt, &event.UpdatedAt)
 	if err != nil {
 		var pgErr *pgconn.PgError
@@ -74,10 +71,8 @@ func (r *riskEventRepository) Create(ctx context.Context, event *entity.RiskEven
 }
 
 const riskEventSelect = `
-	SELECT i.id, COALESCE(i.code,''), i.what, i."when", i.impact_types, i.other_impact_type, i.actual_impact,
-		i.severity, i.immediate_response, i.post_response_condition, i."where", i.who,
-		i.why_how, i.financial_loss, i.financial_loss_known, i.disruption_duration,
-		i.extraordinary_reason, i.ongoing_action, i.evidence_url, i.organization_id,
+	SELECT i.id, COALESCE(i.code,''), i.what, i."when", i.impact_types, i.other_impact_type,
+		i.severity, i.financial_loss, i.financial_loss_known, i.organization_id,
 		COALESCE(o.name,''), i.created_by, COALESCE(u.name,''), i.updated_by,
 		i.created_at, i.updated_at, i.source_document_name, i.source_refs, COALESCE(i.extraction_key,'')
 	FROM incidents i
@@ -87,10 +82,7 @@ const riskEventSelect = `
 func scanRiskEvent(row pgx.Row) (*entity.RiskEvent, error) {
 	var event entity.RiskEvent
 	err := row.Scan(&event.ID, &event.Code, &event.Description, &event.OccurredAt, &event.ImpactTypes, &event.OtherImpactType,
-		&event.ActualImpact, &event.Severity, &event.ImmediateResponse, &event.PostResponseCondition,
-		&event.Location, &event.AffectedParties, &event.SuspectedCause, &event.FinancialLoss,
-		&event.FinancialLossKnown, &event.DisruptionDuration, &event.ExtraordinaryReason,
-		&event.OngoingAction, &event.EvidenceURL, &event.OrganizationID, &event.OrganizationName,
+		&event.Severity, &event.FinancialLoss, &event.FinancialLossKnown, &event.OrganizationID, &event.OrganizationName,
 		&event.CreatedBy, &event.CreatedByName, &event.UpdatedBy, &event.CreatedAt, &event.UpdatedAt, &event.SourceDocumentName, &event.SourceRefs, &event.ExtractionKey)
 	return &event, err
 }

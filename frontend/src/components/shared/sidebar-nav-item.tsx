@@ -39,7 +39,7 @@ export function SidebarNavItem({
           "relative transition-[width,height,padding,background-color,color] duration-[180ms] ease-(--ease-out) data-active:bg-transparent [&_svg]:text-current",
           isActive
             ? "text-sidebar-accent-foreground"
-            : "text-muted-foreground",
+            : "text-sidebar-muted-foreground",
           className,
         )}
         isActive={isActive}
@@ -53,7 +53,7 @@ export function SidebarNavItem({
           {isActive && (
             <span
               aria-hidden="true"
-              className="pointer-events-none absolute inset-0 z-0 rounded-md bg-sidebar-accent"
+              className="pointer-events-none absolute inset-0 z-0 rounded-[inherit] bg-sidebar-accent"
             />
           )}
           {Icon ? (

@@ -1,5 +1,6 @@
 "use client";
 
+import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
 import Link from "next/link";
 import { MoreHorizontal } from "@/components/shared/icons";
 
@@ -88,7 +89,7 @@ export function WorkingPaperMonitoringTable({
   const rows = links.map((link) => buildWorkingPaperMonitoringRowFromLink(link));
 
   return (
-    <Table className="w-full table-fixed">
+    <Table className="min-w-[860px] table-fixed">
       <colgroup>
         <col className="w-[13%]" />
         <col className="w-[9%]" />
@@ -114,7 +115,7 @@ export function WorkingPaperMonitoringTable({
           <TableRow>
             <TableCell
               colSpan={WORKING_PAPER_MONITORING_COLUMNS.length}
-              className="h-24"
+              className=""
             >
               <CollectionEmptyState
                 title="Belum ada risiko"
@@ -126,10 +127,10 @@ export function WorkingPaperMonitoringTable({
           rows.map((row) => (
             <TableRow
               key={row.id}
-              className="group h-10 hover:bg-muted/50"
+              className="group hover:bg-muted/50"
             >
               <TableCell className="">
-                {row.code}
+                <CollectionCode code={row.code} href={row.id ? `/risk/register/${row.id}` : undefined} />
               </TableCell>
               <TableCell className="truncate">
                 {row.versionNumber != null ? `v${row.versionNumber}` : "-"}

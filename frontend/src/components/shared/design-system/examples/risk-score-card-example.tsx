@@ -4,7 +4,7 @@ import { useState } from "react";
 import { RiskScoreHeatmapModal, RiskScorePickerTrigger } from "@/components/shared/design-system";
 
 export function RiskScoreCardExample() {
-  const [selection, setSelection] = useState({ probability: 3, impact: 4 });
+  const [selection, setSelection] = useState({ probability: 0, impact: 0 });
   const [open, setOpen] = useState(false);
 
   return (

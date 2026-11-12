@@ -2,6 +2,7 @@ package postgres_test
 
 import (
 	"context"
+	"errors"
 	"math"
 	"testing"
 
@@ -240,7 +241,7 @@ func TestRiskMonitoringRepositoryFinalizesAndLinksResultRisk(t *testing.T) {
 		IsCurrent:       true,
 		IsCycleCurrent:  true,
 		VersionNumber:   2,
-		AssessmentCycle: "2025-H2",
+		AssessmentCycle: "2026-Q1",
 		Probability:     3,
 		Impact:          4,
 		Weight:          entity.GetBobot(3, 4),
@@ -260,7 +261,15 @@ func TestRiskMonitoringRepositoryFinalizesAndLinksResultRisk(t *testing.T) {
 	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM risks WHERE id = $1`, source.ID) })
 
 	startedBy := uuid.New()
-	monitoring := entity.NewRiskMonitoringDraft(source, "2026-H1", startedBy)
+	username := "monitor-finalize-" + startedBy.String()[:8]
+	if _, err := pool.Exec(ctx, `
+		INSERT INTO users (id, name, username, email, password_hash, role, organization_id)
+		VALUES ($1, 'Monitoring tester', $2, $3, 'test', 'unit', $4)
+	`, startedBy, username, username+"@example.test", orgID); err != nil {
+		t.Fatalf("insert monitoring actor: %v", err)
+	}
+	t.Cleanup(func() { _, _ = pool.Exec(context.Background(), `DELETE FROM users WHERE id = $1`, startedBy) })
+	monitoring := entity.NewRiskMonitoringDraft(source, "2026-Q1", startedBy)
 	monitoring.ObservedProbability = 4
 	monitoring.ObservedImpact = 5
 	monitoring.CalculateObservedScore()
@@ -268,6 +277,18 @@ func TestRiskMonitoringRepositoryFinalizesAndLinksResultRisk(t *testing.T) {
 	if err := monitoringRepo.Create(ctx, monitoring); err != nil {
 		t.Fatalf("Create monitoring: %v", err)
 	}
+	staleDraft := *monitoring
+	monitoring.Conclusion = "Simpulan pemantauan sudah disimpan."
+	if err := monitoringRepo.UpdateDraft(ctx, monitoring); err != nil {
+		t.Fatalf("save monitoring draft: %v", err)
+	}
+	if !monitoring.UpdatedAt.After(staleDraft.UpdatedAt) {
+		t.Fatal("saving a draft must return the persisted revision")
+	}
+	if err := monitoringRepo.UpdateDraft(ctx, &staleDraft); !errors.Is(err, domainerrors.ErrMonitoringReviewChanged) {
+		t.Fatalf("expected stale draft write to be rejected, got %v", err)
+	}
+
 	var mitigationID uuid.UUID
 	if err := pool.QueryRow(ctx, `SELECT id FROM mitigations WHERE risk_id = $1 LIMIT 1`, source.ID).Scan(&mitigationID); err != nil {
 		t.Fatalf("load source mitigation: %v", err)
@@ -275,7 +296,7 @@ func TestRiskMonitoringRepositoryFinalizesAndLinksResultRisk(t *testing.T) {
 	if _, err := pool.Exec(ctx, `
 		INSERT INTO mitigation_tasks (
 			mitigation_id, risk_id, monitoring_id, period_label, period_start, period_end, due_date, status, generated_by
-		) VALUES ($1, $2, $3, '2026-H1', '2026-01-01', '2026-06-30', '2026-06-30', 'pending', 'manual')
+		) VALUES ($1, $2, $3, '2026-Q1', '2026-01-01', '2026-03-31', '2026-04-05', 'pending', 'manual')
 	`, mitigationID, source.ID, monitoring.ID); err != nil {
 		t.Fatalf("create monitoring mitigation task: %v", err)
 	}
@@ -286,6 +307,7 @@ func TestRiskMonitoringRepositoryFinalizesAndLinksResultRisk(t *testing.T) {
 
 	result := *source
 	result.ID = uuid.Nil
+	result.AssessmentCycle = "2026-Q2"
 	result.Status = entity.RiskStatusApproved
 	result.IsCurrent = true
 	result.IsCycleCurrent = true
@@ -296,13 +318,39 @@ func TestRiskMonitoringRepositoryFinalizesAndLinksResultRisk(t *testing.T) {
 	result.Nilai = monitoring.ObservedNilai
 	result.InherentScore = int(monitoring.ObservedNilai)
 
-	finalized, err := monitoringRepo.Finalize(ctx, monitoring.ID, &result, uuid.New())
+	taskRepo := postgres.NewMitigationTaskRepository(pool)
+	reviewed, err := taskRepo.CountByMonitoringAndStatus(ctx, monitoring.ID, []uuid.UUID{orgID})
+	if err != nil {
+		t.Fatalf("count reviewed reports: %v", err)
+	}
+	var taskID uuid.UUID
+	if err := pool.QueryRow(ctx, `SELECT id FROM mitigation_tasks WHERE monitoring_id = $1`, monitoring.ID).Scan(&taskID); err != nil {
+		t.Fatalf("load task: %v", err)
+	}
+	staleTask, err := taskRepo.GetByID(ctx, taskID, []uuid.UUID{orgID})
+	if err != nil {
+		t.Fatalf("load task before finalization: %v", err)
+	}
+	if _, err := pool.Exec(ctx, `UPDATE mitigation_tasks SET updated_at = updated_at + interval '1 second' WHERE id = $1`, taskID); err != nil {
+		t.Fatalf("simulate concurrent report edit: %v", err)
+	}
+	if _, err := monitoringRepo.Finalize(ctx, monitoring.ID, &result, startedBy, repository.MonitoringFinalizeReview{
+		DraftUpdatedAt: monitoring.UpdatedAt,
+		ReportRevision: &reviewed.Revision,
+	}); !errors.Is(err, domainerrors.ErrMonitoringReviewChanged) {
+		t.Fatalf("expected changed reports to block finalization, got %v", err)
+	}
+
+	finalized, err := monitoringRepo.Finalize(ctx, monitoring.ID, &result, startedBy, repository.MonitoringFinalizeReview{})
 	if err != nil {
 		t.Fatalf("Finalize: %v", err)
 	}
 	if finalized.ResultRiskID == nil {
 		t.Fatal("expected result risk id")
 	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), `DELETE FROM risks WHERE id = $1`, *finalized.ResultRiskID)
+	})
 	if finalized.Status != entity.RiskMonitoringStatusFinalized {
 		t.Fatalf("expected finalized status, got %s", finalized.Status)
 	}
@@ -317,12 +365,18 @@ func TestRiskMonitoringRepositoryFinalizesAndLinksResultRisk(t *testing.T) {
 	if !stored.IsCurrent || !stored.IsCycleCurrent {
 		t.Fatal("expected result risk to be current and cycle-current")
 	}
-	if stored.FinalizedAt == nil {
-		t.Fatal("expected result risk finalized_at")
+	var hasFinalizedAt, hasEffectiveFrom bool
+	if err := pool.QueryRow(ctx, `SELECT finalized_at IS NOT NULL, effective_from = DATE '2026-04-01' FROM risks WHERE id = $1`,
+		*finalized.ResultRiskID,
+	).Scan(&hasFinalizedAt, &hasEffectiveFrom); err != nil || !hasFinalizedAt || !hasEffectiveFrom {
+		t.Fatalf("expected result risk finalization and effective date: %v", err)
 	}
-	if stored.EffectiveFrom == nil {
-		t.Fatal("expected result risk effective_from")
+	staleTask.Status = entity.MitigationTaskStatusDone
+	staleTask.Notes = "Laporan tiba setelah finalisasi."
+	if err := taskRepo.Update(ctx, staleTask); !errors.Is(err, domainerrors.ErrMonitoringReportClosed) {
+		t.Fatalf("expected an in-flight report to be rejected after finalization, got %v", err)
 	}
+
 	var taskStatus string
 	if err := pool.QueryRow(ctx, `SELECT status FROM mitigation_tasks WHERE monitoring_id = $1`, monitoring.ID).Scan(&taskStatus); err != nil {
 		t.Fatalf("load finalized mitigation task: %v", err)

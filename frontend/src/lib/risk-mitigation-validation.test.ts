@@ -32,7 +32,6 @@ test("risiko utama dengan mitigasi membutuhkan rencana baru yang terisi", () => 
   for (const mitigations of [
     [],
     [{ action: "   " }],
-    [{ action: "Kontrol lama", isExistingControl: true }],
   ]) {
     assert.equal(
       getRiskMitigationRequirementError(10, "mitigate", mitigations),
@@ -41,11 +40,10 @@ test("risiko utama dengan mitigasi membutuhkan rencana baru yang terisi", () => 
   }
 });
 
-test("rencana baru memenuhi persyaratan meskipun ada kontrol lama", () => {
+test("rencana baru yang terisi memenuhi persyaratan", () => {
   assert.equal(
     getRiskMitigationRequirementError(12, "mitigate", [
-      { action: "Kontrol lama", isExistingControl: true },
-      { action: "Rencana baru", isExistingControl: false },
+      { action: "Rencana baru" },
     ]),
     undefined,
   );

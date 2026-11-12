@@ -13,10 +13,7 @@ type Incident struct {
 	Code             *string            `json:"code,omitempty"`
 	Title            string             `json:"title"`
 	What             string             `json:"what"`
-	Who              string             `json:"who"`
 	When             *time.Time         `json:"when,omitempty"`
-	Where            string             `json:"where"`
-	WhyHow           string             `json:"whyHow"`
 	Severity         string             `json:"severity"`
 	Status           string             `json:"status"`
 	CorrectiveAction string             `json:"correctiveAction"`
@@ -44,12 +41,6 @@ func (i *Incident) Validate() error {
 		return errors.ErrInvalidTitle
 	}
 	if i.What == "" {
-		return errors.ErrInvalidDescription
-	}
-	if i.Who == "" {
-		return errors.ErrInvalidDescription
-	}
-	if i.Where == "" {
 		return errors.ErrInvalidDescription
 	}
 	if i.Severity == "" {

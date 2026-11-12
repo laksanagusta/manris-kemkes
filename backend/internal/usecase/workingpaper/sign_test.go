@@ -233,3 +233,38 @@ func TestSignBlocksWhenMonitoringDraftRemains(t *testing.T) {
 		t.Fatal("expected working paper not to be updated when monitoring blocks signing")
 	}
 }
+
+func TestPeriodRosterBlocksSigningWhenEveryMonitoringIsMissing(t *testing.T) {
+	actorID := uuid.New()
+	paper := &entity.WorkingPaper{
+		ID:              uuid.New(),
+		CreatedBy:       actorID,
+		Status:          entity.WorkingPaperStatusDraft,
+		AssessmentCycle: "2026-Q1",
+		Risks: []entity.WorkingPaperRiskLink{{
+			SourceMode: "roster",
+			Risk:       entity.WorkingPaperRiskData{Code: "R-001", Status: entity.RiskStatusFinal},
+		}},
+	}
+	repo := &stubSignWorkingPaperRepo{wp: paper}
+	uc := NewWorkingPaperUseCase(repo, nil, nil)
+	ctx := context.Background()
+
+	assertBlocked := func(err error) {
+		t.Helper()
+		var appErr *domainerrors.AppError
+		if !errors.As(err, &appErr) || appErr.Code != "MONITORING_INCOMPLETE" {
+			t.Fatalf("expected missing monitoring to block signing, got %v", err)
+		}
+	}
+	_, err := uc.StartSigning(ctx, paper.ID, actorID, "")
+	assertBlocked(err)
+	_, err = uc.SkipTTE(ctx, paper.ID, actorID)
+	assertBlocked(err)
+	paper.Status = entity.WorkingPaperStatusSigning
+	_, err = uc.Sign(ctx, paper.ID, actorID)
+	assertBlocked(err)
+	if repo.updated != nil {
+		t.Fatal("a blocked operation must not write the working paper")
+	}
+}

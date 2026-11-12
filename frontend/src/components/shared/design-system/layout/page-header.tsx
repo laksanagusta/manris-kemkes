@@ -16,7 +16,7 @@ export function PageHeader({
   return (
     <Card className={className}>
       <CardHeader>
-        <CardTitle><h1>{title}</h1></CardTitle>
+        <CardTitle><h1 className="tracking-normal">{title}</h1></CardTitle>
         {eyebrow ? <CardDescription>{eyebrow}</CardDescription> : null}
         {actions ? <CardAction>{actions}</CardAction> : null}
       </CardHeader>

@@ -399,7 +399,7 @@ func recentQuarterlyEventPreviews(events []*entity.RiskEvent) []entity.Quarterly
 		result = append(result, entity.QuarterlyReportEventPreview{
 			ID: event.ID.String(), Code: event.Code, Description: event.Description,
 			OccurredAt: event.OccurredAt, OrganizationName: event.OrganizationName,
-			PostResponseCondition: event.PostResponseCondition, Severity: event.Severity,
+			Severity: event.Severity,
 		})
 	}
 	return result

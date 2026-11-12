@@ -1,4 +1,7 @@
 "use client";
+
+import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
+import { createDisplayDateFormatter } from "@/lib/display-date";
 import { CreatedAtCell } from "./design-system/collections/collection-created-at";
 import { useRef } from "react";
 import type { MitigationTask } from "@/types/risk";
@@ -18,15 +21,15 @@ import {
   MitigationCollectionTable,
   treatmentTableColumns,
 } from "./design-system/collections/mitigation-collection-table";
-import { Send } from "@/components/shared/icons";
-import { getMitigationSubmissionActionState } from "@/lib/mitigation-reporting";
+import { FileText, Send } from "@/components/shared/icons";
+import { getMitigationTaskReportAction } from "@/lib/mitigation-reporting";
 import { getMitigationReportLabel } from "@/lib/mitigation-report-status";
 import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 
 function formatDeadline(value: string) {
   const date = new Date(value);
   return value && Number.isFinite(date.getTime())
-    ? new Intl.DateTimeFormat("id-ID", {
+    ? createDisplayDateFormatter("id-ID", {
         day: "numeric",
         month: "short",
         year: "numeric",
@@ -52,7 +55,7 @@ export function MitigationTaskTable<T extends MitigationTask>({
     ? treatmentTableColumns
         .filter((column) => !column.action)
         .map((column) =>
-          column.key === "plan" ? { ...column, width: "45%" } : column,
+          column.key === "plan" ? { ...column, width: "34%" } : column,
         )
     : treatmentTableColumns;
   const columns = showCreatedAt
@@ -72,70 +75,61 @@ export function MitigationTaskTable<T extends MitigationTask>({
           </TableRow>
         ) : (
           tasks.map((task) => {
-            const state = getMitigationSubmissionActionState(
-              task.periodEnd,
-              task.dueDate,
-            );
+            const state = getMitigationTaskReportAction(task);
+            const status = state.isOverdue ? "overdue" : task.status;
             const tone =
-              task.status === "done"
+              status === "done"
                 ? "success"
-                : task.status === "overdue" || task.status === "not_reported"
+                : status === "overdue" || status === "not_reported"
                   ? "danger"
                   : "progress";
-            const canReport =
-              task.status !== "done" && task.status !== "not_reported";
             return (
               <TableRow
                 key={task.id}
                 className="group hover:bg-transparent hover:[&>td]:bg-muted/50 [&>td]:transition-[background-color]"
               >
+                <TableCell><CollectionCode code={task.riskCode} href={task.riskId ? `/risk/register/${task.riskId}` : undefined} /></TableCell>
                 <TableCell className="align-middle">
                   <button
                     type="button"
+                    title={task.mitigationAction}
                     onClick={(event) => onOpenDetail(task, event.currentTarget)}
                     className="block w-full min-w-0 rounded-control text-left text-sm font-medium leading-5 text-foreground transition-colors hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
                   >
                     <span className="block truncate">
                       {task.mitigationAction || "—"}
                     </span>
-                    <span className="mt-0.5 block font-mono text-sm leading-5 text-muted-foreground">
-                      {task.riskCode || "—"}
-                    </span>
                   </button>
                 </TableCell>
                 <TableCell className="align-middle">
-                  <p className="truncate text-sm font-medium text-muted-foreground">
+                  <p className="truncate text-sm font-medium">
                     {task.mitigationOwner || "—"}
                   </p>
                 </TableCell>
                 <TableCell className="align-middle">
-                  <span className="font-mono text-sm text-muted-foreground">
+                  <span>
                     {task.periodLabel || "—"}
                   </span>
                 </TableCell>
                 <TableCell className="align-middle">
-                  <p className="text-muted-foreground">
-                    {formatDeadline(task.dueDate)}
-                  </p>
+                  <span data-date-time="">{formatDeadline(task.dueDate)}</span>
                 </TableCell>
                 <TableCell className="align-middle">
                   <Badge
                     variant={toBadgeVariant(tone)}
                     className={getStatusBadgeClassName(tone)}
                   >
-                    {getMitigationReportLabel(task)}
+                    {getMitigationReportLabel({ ...task, status })}
                   </Badge>
                 </TableCell>
                 {showCreatedAt && <CreatedAtCell record={task} />}
                 {!readOnly && (
-                  <TableCell className="sticky right-0 z-10 text-right align-middle">
-                    {canReport && (
-                      <MitigationTaskActions
-                        task={task}
-                        state={state}
-                        onReport={onReport}
-                      />
-                    )}
+                  <TableCell data-collection-action="" className="text-center">
+                    <MitigationTaskActions
+                      task={task}
+                      state={state}
+                      onReport={state.allowed ? onReport : onOpenDetail}
+                    />
                   </TableCell>
                 )}
               </TableRow>
@@ -153,7 +147,7 @@ function MitigationTaskActions<T extends MitigationTask>({
   onReport,
 }: {
   task: T;
-  state: ReturnType<typeof getMitigationSubmissionActionState>;
+  state: ReturnType<typeof getMitigationTaskReportAction>;
   onReport: (task: T, trigger: HTMLButtonElement) => void;
 }) {
   const trigger = useRef<HTMLButtonElement>(null);
@@ -169,18 +163,12 @@ function MitigationTaskActions<T extends MitigationTask>({
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-52">
         <DropdownMenuItem
-          disabled={!state.allowed}
-          title={state.allowed ? undefined : state.message}
           onClick={() => {
             if (trigger.current) onReport(task, trigger.current);
           }}
         >
-          <Send className="size-3.5" />
-          {state.allowed
-            ? state.isOverdue
-              ? "Lapor terlambat"
-              : "Isi laporan"
-            : "Lapor belum tersedia"}
+          {state.allowed ? <Send className="size-3.5" /> : <FileText className="size-3.5" />}
+          {state.label}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

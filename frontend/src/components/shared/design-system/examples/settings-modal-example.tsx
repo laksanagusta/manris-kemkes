@@ -9,12 +9,14 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { APIKeySettingsExample } from "./api-key-settings-example";
+import { ThemePreference } from "../layout/theme-preference";
 
 export function SettingsModalExample() {
   const [open, setOpen] = useState(false);
-  const [section, setSection] = useState<SettingsSection>("account");
+  const [section, setSection] = useState<SettingsSection>("preferences");
+  const [previewTheme, setPreviewTheme] = useState("system");
   return <>
-    <Button variant="outline" onClick={() => setOpen(true)}>Buka Settings</Button>
+    <Button variant="outline" onClick={() => setOpen(true)}>Pratinjau pengaturan</Button>
     <SettingsDialog open={open} onOpenChange={setOpen} section={section} onSectionChange={setSection}>
       {section === "account" ? (
         <Card>
@@ -43,10 +45,7 @@ export function SettingsModalExample() {
           </Card>
         </section>
       ) : section === "api-key" ? <APIKeySettingsExample /> : (
-        <section className="space-y-3">
-          <h2 className="text-sm text-muted-foreground">Tampilan</h2>
-          <Card><CardContent><Field orientation="responsive"><FieldLabel htmlFor="settings-example-theme">Tema</FieldLabel><Input id="settings-example-theme" defaultValue="Terang" /></Field></CardContent></Card>
-        </section>
+        <ThemePreference value={previewTheme} onChange={setPreviewTheme} />
       )}
     </SettingsDialog>
   </>;

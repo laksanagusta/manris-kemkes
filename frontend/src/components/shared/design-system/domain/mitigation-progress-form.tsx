@@ -2,6 +2,7 @@
 
 import type { RefObject } from "react";
 
+import { Field, FieldContent, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -38,15 +39,19 @@ export function MitigationProgressForm({
   evidenceId = "mitigation-evidence-url",
   notesId = "mitigation-notes",
   evidencePlaceholder = "https://drive.google.com/...",
-  notesPlaceholder = "Jelaskan pencapaian atau kendala yang dihadapi...",
+  notesPlaceholder = "Apa yang sudah dilakukan dan apa kendalanya?",
 }: MitigationProgressFormProps) {
   return (
     <MitigationProgressFormShell>
-      <div className="flex flex-col gap-2">
-        <Label className="text-sm" htmlFor={notesId}>
-          Catatan Pelaksanaan
-          <span className="text-destructive ml-0.5">*</span>
-        </Label>
+      <Field>
+        <FieldContent>
+          <FieldLabel htmlFor={notesId}>
+            Catatan Pelaksanaan <span className="text-destructive">*</span>
+          </FieldLabel>
+          <FieldDescription id={`${notesId}-hint`} className="text-xs leading-5">
+            Contoh: 3 dari 5 lokasi sudah diperiksa. Dua lokasi menunggu jadwal kunjungan.
+          </FieldDescription>
+        </FieldContent>
         <Textarea
           id={notesId}
           ref={notesInputRef}
@@ -58,17 +63,19 @@ export function MitigationProgressForm({
           aria-required="true"
           aria-invalid={Boolean(showValidationErrors && notesError)}
           aria-describedby={
-            showValidationErrors && notesError ? `${notesId}-error` : undefined
+            showValidationErrors && notesError
+              ? `${notesId}-hint ${notesId}-error`
+              : `${notesId}-hint`
           }
         />
         <FieldErrorMessage id={`${notesId}-error`}>
           {showValidationErrors ? notesError : undefined}
         </FieldErrorMessage>
-      </div>
+      </Field>
 
       <div className="flex flex-col gap-2">
         <Label className="text-sm" htmlFor={evidenceId}>
-          Link Bukti
+          Link Bukti <span className="font-normal text-muted-foreground">(opsional)</span>
         </Label>
         <Input
           id={evidenceId}
@@ -78,7 +85,6 @@ export function MitigationProgressForm({
           onChange={(event) => onEvidenceUrlChange(event.target.value)}
           className=""
           placeholder={evidencePlaceholder}
-          aria-label="Link Bukti"
           aria-invalid={Boolean(showValidationErrors && evidenceError)}
           aria-describedby={
             showValidationErrors && evidenceError

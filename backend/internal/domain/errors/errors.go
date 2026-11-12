@@ -137,6 +137,8 @@ var (
 	// ── Monitoring ──
 	ErrRiskMonitoringFilterInvalid    = newValidationError("RISK_MONITORING_FILTER_INVALID", "Pilih periode triwulan dan status pemantauan yang valid.")
 	ErrMonitoringWindowClosed         = newValidationError("MONITORING_WINDOW_CLOSED", "Pemantauan terkunci. Pengisian hanya dibuka pada bulan pertama triwulan berikutnya, menggunakan waktu Jakarta.")
+	ErrMonitoringReviewChanged        = newStatusError("MONITORING_REVIEW_CHANGED", "Draf atau laporan penanganan berubah. Tinjau kembali sebelum finalisasi.")
+	ErrMonitoringReportClosed         = newStatusError("MONITORING_REPORT_CLOSED", "Laporan penanganan sudah dikunci oleh finalisasi pemantauan.")
 	ErrMonitoringNotDraft             = newStatusError("MONITORING_NOT_DRAFT", "hanya pemantauan draft yang dapat diperbarui")
 	ErrMonitoringNotDeletable         = newStatusError("MONITORING_NOT_DELETABLE", "hanya pemantauan draft yang dapat dihapus")
 	ErrMonitoringHasWorkingPaper      = newStatusError("MONITORING_HAS_WORKING_PAPER", "draf pemantauan yang sudah digunakan dalam kertas kerja tidak dapat dihapus")

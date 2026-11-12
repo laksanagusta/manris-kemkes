@@ -8,8 +8,7 @@ import {
   TableCell,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Download, Loader2 } from "@/components/shared/icons";
+import { DocumentDownloadButton } from "@/components/shared/document-download-button";
 import {
   CollapsibleCard,
   CollectionEmptyState,
@@ -128,7 +127,7 @@ export function WorkingPaperProgressCollapsible({
   return (
     <CollapsibleCard.Root defaultOpen={false}>
       <div className="flex min-w-0 items-center">
-        <CollapsibleCard.Trigger className="min-w-0 flex-1 justify-start hover:bg-card">
+        <CollapsibleCard.Trigger className="min-w-0 flex-1 justify-start hover:bg-transparent">
           <CollapsibleCard.Header className="min-w-0 flex-1">
             <CollapsibleCard.Icon />
             <CollapsibleCard.Text>
@@ -231,7 +230,7 @@ function LatestProgressTable({
             return (
               <TableRow
                 key={`${row.orgName}-${row.period}`}
-                className="h-12 transition-colors hover:bg-muted/70"
+                className="transition-colors hover:bg-muted/70"
               >
               <TableCell
                 className="truncate"
@@ -247,7 +246,7 @@ function LatestProgressTable({
                   <Progress
                     value={row.progressPercent}
                     aria-label={`Progress ${row.orgName} ${row.progressPercent}%`}
-                    className="h-3 [&_[data-slot=progress-indicator]]:bg-success"
+                    className="h-3 rounded-xs [&_[data-slot=progress-indicator]]:rounded-[inherit] [&_[data-slot=progress-indicator]]:bg-success"
                   />
                   <span className="w-10 shrink-0 text-right font-mono text-xs tabular-nums text-muted-foreground">
                     {row.progressPercent}%
@@ -258,27 +257,16 @@ function LatestProgressTable({
                 {row.progressCount}/{row.totalCount}
               </TableCell>
                 <TableCell className="text-right">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon-xs"
-                    disabled={!workingPaper || isExporting}
-                    aria-label={
+                  <DocumentDownloadButton
+                    title="Download kertas kerja"
+                    label={
                       workingPaper
                         ? `Download ${workingPaper.title || workingPaper.code}`
                         : `Download kertas kerja ${row.orgName}`
                     }
-                    title="Download kertas kerja"
-                    onClick={() => {
-                      if (workingPaper) onExport(workingPaper);
-                    }}
-                  >
-                    {isExporting ? (
-                      <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-                    ) : (
-                      <Download className="size-3.5" aria-hidden="true" />
-                    )}
-                  </Button>
+                    downloading={isExporting}
+                    onDownload={workingPaper ? () => onExport(workingPaper) : undefined}
+                  />
                 </TableCell>
               </TableRow>
             );

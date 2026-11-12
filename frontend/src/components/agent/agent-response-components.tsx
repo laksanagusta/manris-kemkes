@@ -1,5 +1,7 @@
 "use client";
 
+import { createDisplayDateFormatter } from "@/lib/display-date";
+
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -16,7 +18,7 @@ const statuses: Record<string, string> = { draft: "Draf", final: "Final", archiv
 const number = (value: number | null | undefined) => value == null || !Number.isFinite(value) ? "—" : value.toLocaleString("id-ID");
 const dueDate = (value: string) => {
   const date = /^\d{4}-\d{2}-\d{2}$/.test(value) ? new Date(`${value}T00:00:00+07:00`) : new Date(value);
-  return Number.isFinite(date.getTime()) ? new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeZone: "Asia/Jakarta" }).format(date) : "Tanggal belum tersedia";
+  return Number.isFinite(date.getTime()) ? createDisplayDateFormatter("id-ID", { dateStyle: "medium", timeZone: "Asia/Jakarta" }).format(date) : "Tanggal belum tersedia";
 };
 
 export function AgentResponseActions({ actions, context, onAction, disabled }: ActionProps & { actions?: AgentWidgetAction[]; context?: string }) {
@@ -41,7 +43,7 @@ export function AgentRiskCard({ risk, onAction, disabled }: ActionProps & { risk
   return <div className="agent-risk-card"><RiskHeading risk={risk} />
     {risk.score == null && <p className="agent-response-note">Nilai risiko belum tersedia.</p>}
     <AgentResponseActions actions={risk.actions} context={risk.code} onAction={onAction} disabled={disabled} />
-    <details className="agent-risk-details"><summary>Lihat rincian<span className="sr-only"> {risk.code}</span></summary><dl className="agent-risk-details-content"><DetailList label="Penyebab" values={risk.causes} /><DetailList label="Dampak" values={risk.impacts} /><div><dt>Pengendalian</dt><dd>{risk.control?.trim() || "Belum tersedia."}</dd></div><div><dt>Rencana mitigasi</dt><dd>{risk.mitigations?.length ? <ul>{risk.mitigations.map((mitigation, index) => <li key={index}><p>{mitigation.action}</p><p className="agent-response-note">{mitigation.owner || "PIC belum tersedia"} · {mitigation.dueDate ? dueDate(mitigation.dueDate) : "Tenggat belum tersedia"}</p></li>)}</ul> : "Belum ada rencana mitigasi tersimpan."}</dd></div></dl></details>
+    <details className="agent-risk-details"><summary>Lihat rincian<span className="sr-only"> {risk.code}</span></summary><dl className="agent-risk-details-content"><DetailList label="Penyebab" values={risk.causes} /><DetailList label="Dampak" values={risk.impacts} /><div><dt>Pengendalian</dt><dd>{risk.control?.trim() || "Belum tersedia."}</dd></div><div><dt>Rencana mitigasi</dt><dd>{risk.mitigations?.length ? <ul>{risk.mitigations.map((mitigation, index) => <li key={index}><p>{mitigation.action}</p><p className="agent-response-note">{mitigation.owner || "PIC belum tersedia"} · <span data-date-time="">{mitigation.dueDate ? dueDate(mitigation.dueDate) : "Tenggat belum tersedia"}</span></p></li>)}</ul> : "Belum ada rencana mitigasi tersimpan."}</dd></div></dl></details>
   </div>;
 }
 
@@ -50,7 +52,7 @@ export function AgentPriorities({ priorities, onAction, disabled }: ActionProps 
   return <ol className="agent-priority-list" start={(priorities.page - 1) * priorities.limit + 1} aria-label="Risiko menurut prioritas">{priorities.items.map((item) => <li key={item.risk.id}>
     <RiskHeading risk={item.risk} />
     <p className="agent-response-note">{item.risk.score == null ? "Nilai risiko belum tersedia. " : ""}{item.overdueCount > 0 ? `${number(item.overdueCount)} tugas terlambat · paling lama ${number(item.overdueDays)} hari` : "Tidak ada tugas terlambat."}</p>
-    {item.tasks.length > 0 && <ul className="agent-priority-tasks">{item.tasks.map((task) => <li key={task.id}><p>{safeAgentHref(task.href) ? <Link className="agent-response-link" href={safeAgentHref(task.href)!}>{task.action || "Buka tugas mitigasi"}</Link> : task.action}</p><p className="agent-response-note">{task.owner || "PIC belum tersedia"} · Tenggat {dueDate(task.dueDate)}</p></li>)}</ul>}
+    {item.tasks.length > 0 && <ul className="agent-priority-tasks">{item.tasks.map((task) => <li key={task.id}><p>{safeAgentHref(task.href) ? <Link className="agent-response-link" href={safeAgentHref(task.href)!}>{task.action || "Buka tugas mitigasi"}</Link> : task.action}</p><p className="agent-response-note">{task.owner || "PIC belum tersedia"} · Tenggat <span data-date-time="">{dueDate(task.dueDate)}</span></p></li>)}</ul>}
     {item.overdueCount > item.tasks.length && <p className="agent-response-note">Menampilkan {item.tasks.length} dari {number(item.overdueCount)} tugas terlambat. Lihat mitigasi untuk rincian lainnya.</p>}
     <AgentResponseActions actions={item.risk.actions} context={item.risk.code} onAction={onAction} disabled={disabled} />
   </li>)}</ol>;

@@ -1,7 +1,10 @@
 "use client";
 
+import { formatDisplayDate } from "@/lib/display-date";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { api, ApiError } from "@/lib/api";
+import { updateTaskReport } from "@/lib/api/mitigation-tasks";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -23,14 +26,13 @@ import {
   parseEvidenceUrls,
   validateMitigationReportForm,
 } from "@/lib/validation/reporting";
-import { getMitigationSubmissionActionState } from "@/lib/mitigation-reporting";
+import { getMitigationTaskReportAction } from "@/lib/mitigation-reporting";
 import {
   getLinearStatusBadgeClassName,
   getLinearStatusBadgeTone,
 } from "@/lib/linear-status-badge";
 import {
   AccentButton,
-  ActionButton,
   CollectionEmptyState,
   CollectionTableCard,
   CollectionPagination,
@@ -54,7 +56,7 @@ interface MitigationProgressTabProps {
   submitReport?: (
     task: MitigationTask,
     report: { notes: string; evidenceUrl: string },
-  ) => Promise<void>;
+  ) => Promise<MitigationTask>;
   mitigationFilter?: string;
   onMitigationFilterChange?: (value: string) => void;
 }
@@ -124,6 +126,10 @@ export function MitigationProgressTab({
   const evidenceInputRef = useRef<HTMLInputElement | null>(null);
   const notesInputRef = useRef<HTMLTextAreaElement | null>(null);
   const [showValidationErrors, setShowValidationErrors] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [reportSent, setReportSent] = useState(false);
+  const detailReportAction = detailTask ? getMitigationTaskReportAction(detailTask) : null;
+  const detailStatus = detailReportAction?.isOverdue ? "overdue" : detailTask?.status;
   const appliedDraftTaskIdRef = useRef<string | null>(null);
 
   const formErrors = useMemo(
@@ -173,21 +179,14 @@ export function MitigationProgressTab({
   const openSubmitDialog = useCallback(
     (task: MitigationTask, draft?: MitigationProgressDraft | null) => {
       if (readOnly) return;
-      const submissionWindow = getMitigationSubmissionActionState(
-        task.periodEnd,
-        task.dueDate,
-      );
-      if (!submissionWindow.allowed) {
-        toast.error(
-          submissionWindow.message || "Periode pelaporan belum tersedia.",
-        );
-        return;
-      }
+      if (!getMitigationTaskReportAction(task).allowed) return;
       setSelectedTask(task);
       setDetailTask(task);
       setEvidenceUrl(draft ? "" : task.evidenceUrl || "");
       setNotes(draft ? draft.notes : task.notes || "");
       setShowValidationErrors(false);
+      setSubmitError("");
+      setReportSent(false);
       setDialogView("form");
       setShowMitigationDialog(true);
     },
@@ -213,10 +212,7 @@ export function MitigationProgressTab({
     const matchedTask = tasks.find((task) => task.id === aiDraft.taskId);
     if (
       !matchedTask ||
-      !getMitigationSubmissionActionState(
-        matchedTask.periodEnd,
-        matchedTask.dueDate,
-      ).allowed
+      !getMitigationTaskReportAction(matchedTask).allowed
     )
       return;
 
@@ -237,21 +233,18 @@ export function MitigationProgressTab({
     trigger: HTMLButtonElement,
   ) => {
     detailTriggerRef.current = trigger;
+    setReportSent(false);
     setDetailTask(task);
     setDialogView("detail");
     setShowMitigationDialog(true);
   };
 
   const handleSubmitProgress = async () => {
-    if (!selectedTask || readOnly) return;
-    const submissionWindow = getMitigationSubmissionActionState(
-      selectedTask.periodEnd,
-      selectedTask.dueDate,
-    );
-    if (!submissionWindow.allowed) {
-      toast.error(
-        submissionWindow.message || "Periode pelaporan belum tersedia.",
-      );
+    if (!selectedTask || readOnly || submitting) return;
+    setSubmitError("");
+    const action = getMitigationTaskReportAction(selectedTask);
+    if (!action.allowed) {
+      setSubmitError(action.message || "Pelaporan untuk tugas ini sudah ditutup.");
       return;
     }
     if (hasFormErrors) {
@@ -263,29 +256,22 @@ export function MitigationProgressTab({
           notesInputRef.current?.focus();
         }
       });
-      toast.error("Lengkapi seluruh field wajib sebelum mengirim laporan.");
       return;
     }
     setSubmitting(true);
     try {
-      if (submitReport) {
-        await submitReport(selectedTask, { notes, evidenceUrl });
-      } else {
-        await api.put(
-          `/mitigation-tasks/${selectedTask.id}/report`,
-          {
-            status: "done",
-            evidenceUrl,
-            notes,
-          },
-          token,
-        );
-      }
-      toast.success("Laporan pelaksanaan tersimpan.");
-      setShowMitigationDialog(false);
-      fetchTasks();
-    } catch {
-      toast.error("Gagal mengirim laporan progress");
+      const updated = submitReport
+        ? await submitReport(selectedTask, { notes, evidenceUrl })
+        : await updateTaskReport(token, selectedTask.id, { status: "done", evidenceUrl, notes });
+      setDetailTask(updated);
+      setSelectedTask(null);
+      setReportSent(true);
+      setDialogView("detail");
+      void fetchTasks();
+    } catch (error) {
+      setSubmitError(error instanceof ApiError && error.status < 500
+        ? error.message
+        : "Pengiriman belum terkonfirmasi. Isian tetap tersedia. Coba kirim lagi.");
     } finally {
       setSubmitting(false);
     }
@@ -348,7 +334,7 @@ export function MitigationProgressTab({
     if (!value) return "-";
     const parsed = new Date(value);
     if (Number.isNaN(parsed.getTime())) return value;
-    return parsed.toLocaleDateString("id-ID", {
+    return formatDisplayDate(parsed, {
       day: "numeric",
       month: "short",
       year: "numeric",
@@ -359,7 +345,7 @@ export function MitigationProgressTab({
     if (!value) return "-";
     const parsed = new Date(value);
     if (Number.isNaN(parsed.getTime())) return value;
-    return parsed.toLocaleString("id-ID", {
+    return formatDisplayDate(parsed, {
       day: "numeric",
       month: "short",
       year: "numeric",
@@ -504,6 +490,9 @@ export function MitigationProgressTab({
           setShowMitigationDialog(open);
           if (!open) {
             setShowValidationErrors(false);
+            setSelectedTask(null);
+            setSubmitError("");
+            setReportSent(false);
             setDialogView("detail");
           }
         }}
@@ -514,6 +503,15 @@ export function MitigationProgressTab({
           }
         }}
         view={dialogView}
+        reportTask={detailTask}
+        availabilityMessage={detailReportAction?.allowed ? undefined : detailReportAction?.message}
+        reportSent={reportSent}
+        submitError={submitError}
+        dirty={Boolean(selectedTask && (
+          notes !== (selectedTask.notes || "") ||
+          evidenceUrl !== (selectedTask.evidenceUrl || "")
+        ))}
+        submitting={submitting}
         onViewChange={(view) => {
           if (!readOnly || view === "detail") setDialogView(view);
         }}
@@ -522,26 +520,30 @@ export function MitigationProgressTab({
         detailContent={
           detailTask ? (
             <div className="space-y-6">
+              <div>
+                <p className="text-sm font-medium">{detailTask.mitigationAction || "Tindakan penanganan"}</p>
+                <p className="text-xs text-muted-foreground">{detailTask.riskCode}</p>
+              </div>
               <div className="grid gap-3 md:grid-cols-2">
                 <div className="flex flex-col gap-2">
                   <p className="text-sm text-muted-foreground">Status</p>
                   <Badge
-                    variant={getLinearStatusBadgeTone(detailTask.status)}
-                    className={getLinearStatusBadgeClassName(detailTask.status)}
+                    variant={getLinearStatusBadgeTone(detailStatus ?? detailTask.status)}
+                    className={getLinearStatusBadgeClassName(detailStatus ?? detailTask.status)}
                   >
                     {
                       (
-                        STATUS_CONFIG[detailTask.status] ||
+                        STATUS_CONFIG[detailStatus ?? detailTask.status] ||
                         STATUS_CONFIG.pending
                       ).icon
                     }
-                    {getMitigationReportLabel(detailTask)}
+                    {getMitigationReportLabel({ ...detailTask, status: detailStatus ?? detailTask.status })}
                   </Badge>
                 </div>
                 <div className="flex flex-col gap-2">
                   <p className="text-sm text-muted-foreground">Tenggat</p>
                   <p className="text-sm font-medium">
-                    {formatDate(detailTask.dueDate)}
+                    <span data-date-time="">{formatDate(detailTask.dueDate)}</span>
                   </p>
                 </div>
                 <div className="flex flex-col gap-2">
@@ -553,27 +555,17 @@ export function MitigationProgressTab({
                 <div className="flex flex-col gap-2">
                   <p className="text-sm text-muted-foreground">Laporan Oleh</p>
                   <p className="text-sm font-medium">
-                    {detailTask.reportedByName || "Belum ada laporan"}
+                    {detailTask.reportedByName || detailTask.reportedBy || "Belum ada laporan"}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {formatDateTime(detailTask.reportedAt)}
+                    <span data-date-time="">{formatDateTime(detailTask.reportedAt)}</span>
                   </p>
                 </div>
               </div>
 
               <div className="space-y-5">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-sm text-muted-foreground">Progress</p>
-                    <p className="text-lg font-bold">
-                      {detailTask.status === "done"
-                        ? "Sudah dilaporkan"
-                        : "Belum dilaporkan"}
-                    </p>
-                  </div>
-                </div>
                 <div className="flex flex-col gap-2">
-                  <p className="text-sm text-muted-foreground">Evidence</p>
+                  <p className="text-sm text-muted-foreground">Link Bukti</p>
                   {parseEvidenceUrls(detailTask.evidenceUrl).length > 0 ? (
                     <div className="flex flex-col items-start gap-1">
                       {parseEvidenceUrls(detailTask.evidenceUrl).map((url) => (
@@ -606,35 +598,19 @@ export function MitigationProgressTab({
           ) : null
         }
         detailAction={
-          !readOnly &&
-          detailTask &&
-          (detailTask.status === "pending" ||
-            detailTask.status === "overdue") ? (
-            <ActionButton
-              variant={
-                detailTask.status === "overdue" ? "destructive" : "default"
-              }
-              size="default"
+          !readOnly && detailTask && detailReportAction?.allowed ? (
+            <AccentButton
               icon={<Send className="size-3" />}
-              disabled={
-                !getMitigationSubmissionActionState(
-                  detailTask.periodEnd,
-                  detailTask.dueDate,
-                ).allowed
-              }
-              title={
-                getMitigationSubmissionActionState(
-                  detailTask.periodEnd,
-                  detailTask.dueDate,
-                ).message
-              }
-              onClick={() => handleOpenSubmit(detailTask)}
+              onClick={() => {
+                if (selectedTask?.id === detailTask.id) setDialogView("form");
+                else handleOpenSubmit(detailTask);
+              }}
             >
-              Isi laporan
-            </ActionButton>
+              {detailReportAction.label}
+            </AccentButton>
           ) : null
         }
-        formTitle="Isi laporan"
+        formTitle={detailReportAction?.allowed ? detailReportAction.label : "Isi laporan"}
         onFormCancel={() => setDialogView("detail")}
         evidenceUrl={evidenceUrl}
         onEvidenceUrlChange={setEvidenceUrl}
@@ -659,7 +635,7 @@ export function MitigationProgressTab({
               )
             }
           >
-            Kirim Laporan
+            {submitting ? "Mengirim…" : submitError ? "Coba kirim lagi" : "Kirim laporan"}
           </AccentButton>
         }
       />

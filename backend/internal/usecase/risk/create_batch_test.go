@@ -3,6 +3,7 @@ package risk
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -175,20 +176,33 @@ func TestCreateRiskBatchUseCase_Execute_PartialSuccess(t *testing.T) {
 				TargetImpact:      1,
 				TargetWeight:      1,
 			},
+			{
+				ClientKey:         "row-3",
+				Title:             "Risiko tanpa kategori",
+				Category:          "   ",
+				ROID:              &roID,
+				Probability:       3,
+				Impact:            3,
+				TargetProbability: 1,
+				TargetImpact:      1,
+			},
 		},
 	})
 
 	if err != nil {
 		t.Fatalf("expected no batch error, got %v", err)
 	}
-	if len(result.Items) != 2 {
-		t.Fatalf("expected 2 items, got %d", len(result.Items))
+	if len(result.Items) != 3 {
+		t.Fatalf("expected 3 items, got %d", len(result.Items))
 	}
 	if result.Items[0].Status != "created" {
 		t.Fatalf("expected first item created, got %s", result.Items[0].Status)
 	}
 	if result.Items[1].Status != "failed" {
 		t.Fatalf("expected second item failed, got %s", result.Items[1].Status)
+	}
+	if item := result.Items[2]; item.Status != "failed" || !strings.Contains(item.Error, bulkRiskCategoryRequired) {
+		t.Fatalf("expected third item to fail with a category error, got %+v", item)
 	}
 	if len(riskRepo.created) != 1 {
 		t.Fatalf("expected 1 created risk, got %d", len(riskRepo.created))

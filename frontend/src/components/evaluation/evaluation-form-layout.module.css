@@ -1,0 +1,36 @@
+.item {
+  container-type: inline-size;
+  min-width: 0;
+}
+.itemHeader {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+}
+.details {
+  display: grid;
+  gap: 16px;
+  margin-block-start: 24px;
+}
+@container (min-width: 36rem) {
+  .details { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+}
+
+.itemNumber {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  align-self: start;
+  min-width: 28px;
+  min-height: 28px;
+  padding-inline: 6px;
+  border-radius: 9999px;
+  line-height: 28px;
+}
+.answer {
+  grid-column: 1 / -1;
+  width: 100%;
+  max-width: 12rem;
+  margin-block-start: 4px;
+}

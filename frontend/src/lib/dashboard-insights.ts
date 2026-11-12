@@ -1,3 +1,4 @@
+import { businessNow } from "./business-clock.ts";
 import type { DashboardRiskCategoryItem } from "../types/risk";
 import {
   dashboardCategoryLabels,
@@ -292,7 +293,7 @@ export function buildCurrentRiskHeatmapMatrix(
   return matrix;
 }
 
-function isOverdue(dateText?: string | null, now = new Date()) {
+function isOverdue(dateText?: string | null, now = businessNow()) {
   if (!dateText) return false;
   const date = new Date(`${dateText}T00:00:00`);
   if (Number.isNaN(date.getTime())) return false;

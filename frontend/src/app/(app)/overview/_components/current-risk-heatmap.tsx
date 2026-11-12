@@ -75,7 +75,7 @@ export function CurrentRiskHeatmap({
             />
           ) : (
             <div className="flex flex-1 flex-col justify-center">
-              <div className="mx-auto grid w-full max-w-[22rem] grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2">
+              <div className="mx-auto grid w-full max-w-[17rem] grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2">
                 <span className="rotate-180 text-xs text-muted-foreground [writing-mode:vertical-rl]">
                   Probabilitas
                 </span>

@@ -1,5 +1,7 @@
 "use client";
 
+import { createDisplayDateFormatter } from "@/lib/display-date";
+
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { CheckCircle2, Circle } from "@/components/shared/icons";
@@ -14,7 +16,7 @@ const timelineStatusTone = {
   skipped: "warning",
 } as const;
 
-const dateTimeFormatter = new Intl.DateTimeFormat("id-ID", {
+const dateTimeFormatter = createDisplayDateFormatter("id-ID", {
   year: "numeric",
   month: "long",
   day: "numeric",
@@ -117,7 +119,7 @@ export function WorkingPaperSignatureTimeline({
                   className="mt-2 border-transparent bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300"
                 >
                   <CheckCircle2 className="size-3.5" />
-                  Tercatat pada {formatDateTime(sig.signed_at)}
+                  Tercatat pada <span data-date-time="">{formatDateTime(sig.signed_at)}</span>
                 </Badge>
               ) : null}
             </div>

@@ -1,3 +1,4 @@
+import { createDisplayDateFormatter } from "./display-date.ts";
 import type { AgentConversationDetail, AgentMessage, AgentOperation, AgentRun, AgentRunStatus, AgentWidget } from "../types/agent.ts";
 
 export const AGENT_UPLOAD_LIMIT = 1024 * 1024;
@@ -47,7 +48,7 @@ export function agentValue(value: unknown): string {
 export function agentDate(value: string): string {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) return "Waktu tidak tersedia";
-  return new Intl.DateTimeFormat("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(date);
+  return createDisplayDateFormatter("id-ID", { dateStyle: "medium", timeStyle: "short" }).format(date);
 }
 export function agentRelativeTime(value: string, now = Date.now()): string {
   const timestamp = Date.parse(value);

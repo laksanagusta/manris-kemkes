@@ -7,14 +7,26 @@ import (
 	"time"
 
 	apperrors "github.com/manris/backend/internal/domain/errors"
+	"github.com/manris/backend/internal/timeutil"
 )
 
 var quarterFormatRe = regexp.MustCompile(`^\d{4}-Q[1-4]$`)
 
 func currentAssessmentCycle() string {
-	now := time.Now()
+	return assessmentCycleAt(timeutil.BusinessNow())
+}
+
+func assessmentCycleAt(now time.Time) string {
+	now = now.In(timeutil.JakartaLocation())
 	quarter := int(now.Month()-1)/3 + 1
 	return fmt.Sprintf("%d-Q%d", now.Year(), quarter)
+}
+
+// The database stores effective_from as a date, so preserve the Jakarta day
+// even when finalization occurs before 07:00 WIB.
+func finalizationDateAt(now time.Time) time.Time {
+	local := now.In(timeutil.JakartaLocation())
+	return time.Date(local.Year(), local.Month(), local.Day(), 0, 0, 0, 0, time.UTC)
 }
 
 func IsValidCycleFormat(cycle string) bool {

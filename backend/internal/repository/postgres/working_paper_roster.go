@@ -181,7 +181,7 @@ func rosterPreviewQuery() string {
 				(make_date(substring($2::text, 1, 4)::int,
 				 (substring($2::text, 7, 1)::int - 1) * 3 + 1, 1)::timestamp
 				 + interval '3 months') AT TIME ZONE 'Asia/Jakarta',
-				CURRENT_TIMESTAMP
+				` + businessNowSQL + `
 			) AS cutoff
 		), eligible_versions AS (
 			SELECT DISTINCT ON (r.version_group_id)
@@ -312,8 +312,6 @@ func (r *workingPaperRepository) CreateWithPeriodRoster(ctx context.Context, wp 
 	}
 	wp.SequenceNo = sequenceNo
 	wp.Code = fmt.Sprintf("KK-%s-%d", wp.AssessmentCycle, sequenceNo)
-
-	wp.DocumentHash = wp.ComputeHash()
 
 	if err := tx.QueryRow(ctx, `
 		INSERT INTO working_papers (id, code, sequence_no, title, org_id, status, assessment_cycle, document_hash, current_signatory_sequence, tte_skipped, created_by, created_at, updated_at)

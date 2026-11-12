@@ -18,6 +18,7 @@ export interface RiskMonitoringDetail {
   sourceLevel: string;
   sourceVersionNumber: number;
   observedProbability: number;
+  observedScoreConfirmed?: boolean;
   observedImpact: number;
   observedWeight: number;
   observedNilai: number;

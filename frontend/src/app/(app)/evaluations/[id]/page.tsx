@@ -1,14 +1,15 @@
 "use client";
+
+import { createDisplayDateFormatter } from "@/lib/display-date";
+import { EvaluationItemLayout, EvaluationConclusion } from "@/components/evaluation/evaluation-form-layout";
 import { PropertyList, PropertyLabel } from "@/components/shared/design-system/layout/property-list";
 
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import {
   Download,
   Loader2,
-  Lock,
-  PencilLine,
   Copy,
   MoreHorizontal,
   RefreshCw,
@@ -26,7 +27,6 @@ import {
   updateEvaluation,
 } from "@/lib/api/evaluations";
 import { listAllOrganizations, type OrganizationListItem } from "@/lib/api/organizations";
-import { listUsers, type UserListItem } from "@/lib/api/users";
 import { evaluationStatusLabel, isEvaluationEditable } from "@/lib/evaluations";
 import { Badge } from "@/components/ui/badge";
 import type { BadgeVariant } from "@/components/ui/badge";
@@ -47,21 +47,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { FormPage } from "@/components/shared/form-shell";
 import {
+  FormContainer,
+  FormGroup,
   ActionButton,
   AccentButton,
   CollectionPageHeader,
   IllustratedEmptyState,
 } from "@/components/shared/design-system";
-import { OrderedUserSelectionTable } from "@/components/risk/ordered-user-selection-table";
-import { RemoteUserPicker } from "@/components/risk/remote-user-picker";
-import { cn } from "@/lib/utils";
 import type {
   Evaluation,
   EvaluationItem,
@@ -69,18 +67,13 @@ import type {
   EvaluationStatus,
   UpdateEvaluationRequest,
 } from "@/types/evaluation";
-import {
-  createApprovalLineRow,
-  moveApprovalLineRows,
-  type ApprovalLineRow,
-} from "@/lib/risk-approval-line";
-import type { UserPickerOption } from "@/lib/risk-register-user-picker";
+
 
 function formatDateTime(value?: string | null) {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("id-ID", {
+  return createDisplayDateFormatter("id-ID", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
@@ -114,54 +107,6 @@ function formatMonitoringPeriodLabel(period: string) {
   }
 
   return trimmed;
-}
-
-function toUserPickerOption(user: UserListItem): UserPickerOption {
-  return {
-    id: user.id,
-    name: user.name,
-    role: user.role,
-    subtitle: user.jabatan?.trim() || user.orgName?.trim() || user.role,
-    email: user.email,
-    username: user.username,
-    nip: user.nip ?? undefined,
-    jabatan: user.jabatan ?? undefined,
-    pangkat: user.pangkat ?? undefined,
-    orgName: user.orgName ?? undefined,
-  };
-}
-
-function toStoredUserPickerValue(value: string): UserPickerOption | null {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return null;
-  }
-
-  return {
-    id: trimmed,
-    name: trimmed,
-  };
-}
-
-function parseTeamMemberRows(value: string): ApprovalLineRow[] {
-  const members = value
-    .split(/\r?\n|,/)
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-
-  return members.map((member) =>
-    createApprovalLineRow({
-      id: member,
-      name: member,
-    }),
-  );
-}
-
-function serializeTeamMemberRows(rows: ApprovalLineRow[]) {
-  return rows
-    .map((row) => row.name.trim())
-    .filter(Boolean)
-    .join("\n");
 }
 
 function resolveEselonIOrganization(
@@ -247,27 +192,12 @@ function formatStatus(status: EvaluationStatus) {
 }
 
 const evaluationCardClass =
-  "scroll-mt-28 transition-colors duration-200";
+  "scroll-mt-28 [&_[data-slot=form-header]>div>div]:text-sm";
 
 const statusTones: Record<EvaluationStatus, BadgeVariant> = {
   draft: "secondary",
   final: "default",
 };
-
-function getAnswerLabel(value: EvaluationItem["answer"]) {
-  if (value === "yes") return "Ya";
-  if (value === "no") return "Tidak";
-  return "Belum diisi";
-}
-
-function getAnswerTone(value: EvaluationItem["answer"]):
-  | "secondary"
-  | "default"
-  | "destructive" {
-  if (value === "yes") return "default";
-  if (value === "no") return "destructive";
-  return "secondary";
-}
 
 function updateSectionField(
   sections: EvaluationSection[],
@@ -293,8 +223,6 @@ export default function EvaluationDetailPage() {
   const { token } = useAuth();
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
   const [organizations, setOrganizations] = useState<OrganizationListItem[]>([]);
-  const [teamMemberRows, setTeamMemberRows] = useState<ApprovalLineRow[]>([]);
-  const [unitEselonISelection, setUnitEselonISelection] = useState("");
   const [loading, setLoading] = useState(true);
   const [savingAction, setSavingAction] = useState<
     "save" | "finalize" | "reopen" | "download" | null
@@ -333,14 +261,6 @@ export default function EvaluationDetailPage() {
     () => new Map(organizations.map((org) => [org.id, org])),
     [organizations],
   );
-  const eselonIOrganizations = useMemo(() => {
-    const uprT1Organizations = organizations.filter(
-      (org) => org.uprLevel === "upr_t1",
-    );
-
-    return uprT1Organizations.length > 0 ? uprT1Organizations : organizations;
-  }, [organizations]);
-
   const editable = evaluation ? isEvaluationEditable(evaluation) : false;
   const evaluationSections = evaluation?.sections ?? [];
   const totalItems = evaluationSections.reduce(
@@ -361,35 +281,6 @@ export default function EvaluationDetailPage() {
   const patchEvaluation = useCallback((patch: Partial<Evaluation>) => {
     setEvaluation((current) => (current ? { ...current, ...patch } : current));
   }, []);
-
-  const evaluationRef = useRef<Evaluation | null>(null);
-  evaluationRef.current = evaluation;
-  const loadedEvaluationId = evaluation?.id;
-
-  useEffect(() => {
-    if (!loadedEvaluationId) {
-      return;
-    }
-
-    const currentEvaluation = evaluationRef.current;
-    if (!currentEvaluation) {
-      return;
-    }
-
-    setTeamMemberRows(parseTeamMemberRows(currentEvaluation.teamMembers));
-  }, [loadedEvaluationId]);
-
-  const unitEselonI = evaluation?.unitEselonI ?? "";
-
-  useEffect(() => {
-    if (!unitEselonI.trim()) {
-      setUnitEselonISelection("");
-      return;
-    }
-
-    const current = organizations.find((org) => org.name === unitEselonI);
-    setUnitEselonISelection(current?.id ?? "");
-  }, [organizations, unitEselonI]);
 
   useEffect(() => {
     if (!evaluation || organizations.length === 0) {
@@ -417,7 +308,6 @@ export default function EvaluationDetailPage() {
 
     if (!evaluation.unitEselonI.trim() && eselonIOrganization?.id) {
       nextPatch.unitEselonI = eselonIOrganization.name;
-      setUnitEselonISelection(eselonIOrganization.id);
     }
 
     if (Object.keys(nextPatch).length > 0) {
@@ -435,7 +325,6 @@ export default function EvaluationDetailPage() {
     try {
       const response = await updateEvaluation(token, evaluation.id, toUpdateRequest(evaluation));
       setEvaluation(cloneEvaluation(response));
-      setTeamMemberRows(parseTeamMemberRows(response.teamMembers));
       toast.success("Evaluasi tersimpan.");
     } catch (error) {
       console.error(error);
@@ -456,7 +345,6 @@ export default function EvaluationDetailPage() {
       const saved = await updateEvaluation(token, evaluation.id, toUpdateRequest(evaluation));
       const finalResult = await finalizeEvaluation(token, saved.id);
       setEvaluation(cloneEvaluation(finalResult));
-      setTeamMemberRows(parseTeamMemberRows(finalResult.teamMembers));
       toast.success("Evaluasi berhasil difinalisasi.");
     } catch (error) {
       console.error(error);
@@ -476,7 +364,6 @@ export default function EvaluationDetailPage() {
     try {
       const response = await reopenEvaluation(token, evaluation.id);
       setEvaluation(cloneEvaluation(response));
-      setTeamMemberRows(parseTeamMemberRows(response.teamMembers));
       toast.success("Evaluasi dibuka kembali.");
     } catch (error) {
       console.error(error);
@@ -519,90 +406,6 @@ export default function EvaluationDetailPage() {
     }
   };
 
-  const loadOrganizationUsers = useCallback(
-    async ({
-      q,
-      page,
-      limit,
-    }: {
-      q: string;
-      page: number;
-      limit: number;
-    }) => {
-      if (!token || !evaluation) {
-        return { options: [], total: 0, page, limit };
-      }
-
-      const response = await listUsers(token, {
-        q,
-        page,
-        limit,
-        organizationId: evaluation.organizationId,
-      });
-
-      return {
-        options: response.data.map(toUserPickerOption),
-        total: response.total,
-        page: response.page,
-        limit: response.limit,
-      };
-    },
-    [evaluation, token],
-  );
-
-  const updateTeamMemberRows = useCallback(
-    (updater: (current: ApprovalLineRow[]) => ApprovalLineRow[]) => {
-      setTeamMemberRows((current) => {
-        const nextRows = updater(current);
-        patchEvaluation({ teamMembers: serializeTeamMemberRows(nextRows) });
-        return nextRows;
-      });
-    },
-    [patchEvaluation],
-  );
-
-  const handleTeamMemberSelect = useCallback(
-    (rowId: string, option: UserPickerOption) => {
-      updateTeamMemberRows((current) =>
-        current.map((row) =>
-          row.rowId === rowId
-            ? {
-                ...row,
-                id: option.id,
-                name: option.name,
-                role: option.role,
-                subtitle: option.subtitle,
-                nip: option.nip ?? "",
-                jabatan: option.jabatan ?? "",
-                pangkat: option.pangkat ?? "",
-              }
-            : row,
-        ),
-      );
-    },
-    [updateTeamMemberRows],
-  );
-
-  const handleTeamMemberAdd = useCallback(() => {
-    updateTeamMemberRows((current) => [...current, createApprovalLineRow()]);
-  }, [updateTeamMemberRows]);
-
-  const handleTeamMemberRemove = useCallback(
-    (rowId: string) => {
-      updateTeamMemberRows((current) =>
-        current.filter((row) => row.rowId !== rowId),
-      );
-    },
-    [updateTeamMemberRows],
-  );
-
-  const handleTeamMemberMove = useCallback(
-    (fromIndex: number, toIndex: number) => {
-      updateTeamMemberRows((current) => moveApprovalLineRows(current, fromIndex, toIndex));
-    },
-    [updateTeamMemberRows],
-  );
-
   if (loading) {
     return (
       <div className="font-display flex min-h-[50vh] items-center justify-center rounded-lg bg-state-surface text-sm text-state-foreground">
@@ -633,20 +436,8 @@ export default function EvaluationDetailPage() {
       <CollectionPageHeader
         showTitle
         actionsPlacement="title"
-        eyebrow={
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant={statusTones[evaluation.status]}>
-              {formatStatus(evaluation.status)}
-            </Badge>
-            <Badge variant="secondary"
-              className="max-w-[240px] truncate"
-            >
-              {orgName}
-            </Badge>
-          </div>
-        }
         title={`Evaluasi ${evaluation.period}`}
-        subtitle="Lengkapi identitas, temuan, dan kesimpulan evaluasi pemantauan."
+        subtitle="Evaluasi pemantauan oleh masing-masing organisasi untuk menghasilkan laporan evaluasi."
         actions={
           <>
             <DropdownMenu>
@@ -734,8 +525,7 @@ export default function EvaluationDetailPage() {
             <AlertDialogCancel
               variant="outline"
               size="default"
-              className="border-0 shadow-black"
-              disabled={savingAction === "finalize"}
+                            disabled={savingAction === "finalize"}
             >
               Batal
             </AlertDialogCancel>
@@ -754,460 +544,240 @@ export default function EvaluationDetailPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <div className="grid w-full min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start">
-        <div className="space-y-6">
-          <Card id="identitas-evaluasi" className={evaluationCardClass}>
-            <CardHeader>
-              <CardTitle>Identitas Evaluasi</CardTitle>
-              <CardDescription>Lengkapi metadata laporan, unit kerja, dan susunan tim evaluasi.</CardDescription>
-              <CardAction>
-                {!editable ? (
-                  <Badge variant="outline">
-                    <Lock className="size-3.5" />
-                    Terkunci
-                  </Badge>
-                ) : (
-                  <Badge variant="secondary">
-                    <PencilLine className="size-3.5" />
-                    Draft
-                  </Badge>
-                )}
-              </CardAction>
-            </CardHeader>
-            <CardContent className="grid gap-5 [&_[data-slot=label]]:font-normal">
-              <div className="space-y-2">
-                <Label>No. Laporan</Label>
-                <Input
-                  value={evaluation.reportNumber}
-                  onChange={(event) => patchEvaluation({ reportNumber: event.target.value })}
-                  disabled={!editable}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Tanggal Laporan</Label>
-                <Input
-                  type="date"
-                  value={evaluation.reportDate ?? ""}
-                  onChange={(event) =>
-                    patchEvaluation({
-                      reportDate: event.target.value ? event.target.value : null,
-                    })
-                  }
-                  disabled={!editable}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>No. Surat Tugas</Label>
-                <Input
-                  value={evaluation.assignmentLetterNumber}
-                  onChange={(event) =>
-                    patchEvaluation({ assignmentLetterNumber: event.target.value })
-                  }
-                  disabled={!editable}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Tanggal Surat Tugas</Label>
-                <Input
-                  type="date"
-                  value={evaluation.assignmentLetterDate ?? ""}
-                  onChange={(event) =>
-                    patchEvaluation({
-                      assignmentLetterDate: event.target.value ? event.target.value : null,
-                    })
-                  }
-                  disabled={!editable}
-                />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label>Periode Pemantauan</Label>
-                <Input
-                  value={evaluation.monitoringDateRange || formatMonitoringPeriodLabel(evaluation.period)}
-                  readOnly
-                  disabled
-                />
-                <p className="text-[11px] text-muted-foreground">
-                  Diambil otomatis dari periode evaluasi.
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label>Kode Unit</Label>
-                <Input
-                  value={evaluation.unitCode}
-                  onChange={(event) => patchEvaluation({ unitCode: event.target.value })}
-                  disabled={!editable}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Lokasi Unit</Label>
-                <Input
-                  value={evaluation.unitLocation || organizationById.get(evaluation.organizationId)?.location || ""}
-                  readOnly
-                  disabled
-                />
-                <p className="text-[11px] text-muted-foreground">
-                  Diambil otomatis dari data organisasi.
-                </p>
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <Label>Alamat Unit</Label>
-                <Textarea
-                  value={evaluation.unitAddress || organizationById.get(evaluation.organizationId)?.address || ""}
-                  readOnly
-                  disabled
-                />
-                <p className="text-[11px] text-muted-foreground">
-                  Diambil otomatis dari data organisasi.
-                </p>
-              </div>
-              <div className="space-y-2">
-                <Label>Eselon I</Label>
-                <Select
-                  value={unitEselonISelection || ""}
-                  onValueChange={(value) => {
-                    const selected = eselonIOrganizations.find((org) => org.id === value);
-                    setUnitEselonISelection(value);
-                    patchEvaluation({ unitEselonI: selected?.name ?? value });
-                  }}
-                  disabled={!editable}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih organisasi" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {eselonIOrganizations.map((org) => (
-                      <SelectItem key={org.id} value={org.id}>
-                        {org.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Pimpinan Unit</Label>
-                <RemoteUserPicker
-                  title="Pilih pimpinan unit"
-                  description="Cari user yang bertugas sebagai pimpinan unit."
-                  placeholder="Pilih pimpinan unit"
-                  searchPlaceholder="Cari nama pimpinan"
-                  emptyMessage="User tidak ditemukan."
-                  value={toStoredUserPickerValue(evaluation.unitLeaderName)}
-                  onSelect={(option) => patchEvaluation({ unitLeaderName: option.name })}
-                  loadOptions={loadOrganizationUsers}
-                  disabled={!editable}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Koordinator Tim</Label>
-                <RemoteUserPicker
-                  title="Pilih koordinator tim"
-                  description="Cari user yang bertugas sebagai koordinator tim."
-                  placeholder="Pilih koordinator tim"
-                  searchPlaceholder="Cari nama koordinator"
-                  emptyMessage="User tidak ditemukan."
-                  value={toStoredUserPickerValue(evaluation.teamCoordinator)}
-                  onSelect={(option) => patchEvaluation({ teamCoordinator: option.name })}
-                  loadOptions={loadOrganizationUsers}
-                  disabled={!editable}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Ketua Tim</Label>
-                <RemoteUserPicker
-                  title="Pilih ketua tim"
-                  description="Cari user yang bertugas sebagai ketua tim."
-                  placeholder="Pilih ketua tim"
-                  searchPlaceholder="Cari nama ketua"
-                  emptyMessage="User tidak ditemukan."
-                  value={toStoredUserPickerValue(evaluation.teamLead)}
-                  onSelect={(option) => patchEvaluation({ teamLead: option.name })}
-                  loadOptions={loadOrganizationUsers}
-                  disabled={!editable}
-                />
-              </div>
-              <div className="space-y-2 md:col-span-2">
-                <div className="flex items-center justify-between gap-3">
-                  <Label>Anggota Tim</Label>
-                  <span className="text-[11px] text-muted-foreground">
-                    Daftar user tim, urutan bisa disusun ulang.
-                  </span>
-                </div>
-                <OrderedUserSelectionTable
-                  rows={teamMemberRows}
-                  loadOptions={loadOrganizationUsers}
-                  onSelectRow={handleTeamMemberSelect}
-                  onAddRow={handleTeamMemberAdd}
-                  onRemoveRow={handleTeamMemberRemove}
-                  onMoveRow={handleTeamMemberMove}
-                  pickerTitle="Pilih anggota tim"
-                  pickerDescription="Cari user yang menjadi anggota tim evaluasi."
-                  pickerPlaceholder="Pilih anggota tim"
-                  pickerSearchPlaceholder="Cari nama anggota"
-                  pickerEmptyMessage="User tidak ditemukan."
-                  emptyStateMessage="Belum ada anggota tim. Tambahkan minimal satu user bila perlu."
-                  addRowLabel="Tambah Anggota"
-                  footerNote="Urutan baris akan dipakai sebagai susunan anggota tim."
-                  disabled={!editable}
-                  dndGroup="evaluation-team-members"
-                />
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card id="hasil-evaluasi" className={evaluationCardClass}>
-            <CardHeader>
-              <CardTitle>Hasil Pemantauan dan Evaluasi</CardTitle>
-              <CardDescription>Isi jawaban, uraian kondisi, dan keterangan untuk setiap poin evaluasi.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {evaluationSections.length === 0 ? (
+      <div className="grid w-full min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_320px] xl:items-start">
+        <div className="min-w-0 space-y-6">
+          <FormContainer
+            id="hasil-evaluasi"
+            className={evaluationCardClass}
+            title="Hasil Pemantauan dan Evaluasi"
+            description="Isi jawaban, uraian kondisi, dan keterangan untuk setiap poin evaluasi."
+          >
+            {evaluationSections.length === 0 ? (
+              <FormGroup>
                 <IllustratedEmptyState
                   title="Belum ada bagian evaluasi"
                   description="Bagian evaluasi belum tersedia untuk penilaian ini."
                 />
-              ) : null}
+              </FormGroup>
+            ) : null}
 
-              {evaluationSections.map((section, sectionIndex) => {
-                const sectionItems = section.items ?? [];
-                const answeredSectionItems = sectionItems.filter(
-                  (item) => item.answer === "yes" || item.answer === "no",
-                ).length;
+            {evaluationSections.map((section, sectionIndex) => {
+              const sectionItems = section.items ?? [];
+              const answeredSectionItems = sectionItems.filter(
+                (item) => item.answer === "yes" || item.answer === "no",
+              ).length;
 
-                return (
-                  <section
-                    key={section.id}
-                    className={cn(
-                      "space-y-5",
-                      sectionIndex !== 0 && "border-t border-border/60 pt-6",
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0 space-y-1">
-                        <h3 className="text-base font-medium tracking-tight text-foreground">
-                          {section.title}
-                        </h3>
-                        {section.description ? (
-                          <p className="text-sm leading-relaxed text-secondary-foreground">
-                            {section.description}
-                          </p>
-                        ) : null}
-                      </div>
-                      <Badge variant="secondary"
-                        className="whitespace-nowrap"
+              return (
+                <FormGroup key={section.id} className="space-y-6">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0 space-y-1">
+                      <h3 className="text-base font-semibold text-foreground">
+                        {section.title}
+                      </h3>
+                      {section.description ? (
+                        <p className="text-sm leading-relaxed text-secondary-foreground">
+                          {section.description}
+                        </p>
+                      ) : null}
+                    </div>
+                    <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
+                      {answeredSectionItems} / {sectionItems.length} terisi
+                    </span>
+                  </div>
+
+                  <div className="space-y-8">
+                    {sectionItems.map((item, itemIndex) => (
+                      <EvaluationItemLayout
+                        key={item.id}
+                        itemNo={item.itemNo}
+                        label={item.label}
+                        description={item.description}
+                        promptId={`evaluation-prompt-${item.id}`}
+                        answer={
+                          <>
+                            <Label htmlFor={`evaluation-answer-${item.id}`} className="text-sm font-normal text-foreground">
+                              Jawaban
+                            </Label>
+                            <Select
+                              value={item.answer}
+                              onValueChange={(value) => {
+                                setEvaluation((current) =>
+                                  current
+                                    ? {
+                                        ...current,
+                                        sections: updateSectionField(
+                                          current.sections,
+                                          sectionIndex,
+                                          {
+                                            items: updateItemField(
+                                              current.sections[sectionIndex].items,
+                                              itemIndex,
+                                              {
+                                                answer: value as EvaluationItem["answer"],
+                                              },
+                                            ),
+                                          },
+                                        ),
+                                      }
+                                    : current,
+                                );
+                              }}
+                              disabled={!editable}
+                            >
+                              <SelectTrigger id={`evaluation-answer-${item.id}`} aria-describedby={`evaluation-prompt-${item.id}`} className="w-full">
+                                <SelectValue placeholder="Ya/Tidak" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="unset">Belum diisi</SelectItem>
+                                <SelectItem value="yes">Ya</SelectItem>
+                                <SelectItem value="no">Tidak</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </>
+                        }
                       >
-                        {sectionItems.length} poin
-                      </Badge>
-                    </div>
-
-                    <div className="space-y-5">
-                      {sectionItems.map((item, itemIndex) => (
-                        <div
-                          key={item.id}
-                          className="space-y-4 border-t border-border/60 pt-5 first:border-t-0 first:pt-0"
-                        >
-                          <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_220px] md:items-start">
-                            <div className="min-w-0 space-y-2">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span className="font-mono text-xs tracking-[0.12em] text-muted-foreground">
-                                  {item.itemNo}
-                                </span>
-                                <Badge variant={getAnswerTone(item.answer)}
-                                >
-                                  {getAnswerLabel(item.answer)}
-                                </Badge>
-                              </div>
-                              <p className="text-sm leading-6 text-foreground text-pretty">
-                                {item.label}
-                              </p>
-                              {item.description ? (
-                                <p className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
-                                  {item.description}
-                                </p>
-                              ) : null}
-                            </div>
-                            <div className="w-full space-y-2">
-                              <Label className="text-sm font-normal text-foreground">
-                                Jawaban
-                              </Label>
-                              <Select
-                                value={item.answer}
-                                onValueChange={(value) => {
-                                  setEvaluation((current) =>
-                                    current
-                                      ? {
-                                          ...current,
-                                          sections: updateSectionField(
-                                            current.sections,
-                                            sectionIndex,
-                                            {
-                                              items: updateItemField(
-                                                current.sections[sectionIndex].items,
-                                                itemIndex,
-                                                {
-                                                  answer: value as EvaluationItem["answer"],
-                                                },
-                                              ),
-                                            },
+                        <div className="space-y-2">
+                          <Label htmlFor={`evaluation-condition-${item.id}`} className="text-sm font-normal text-foreground">
+                            Uraian kondisi
+                          </Label>
+                          <Textarea
+                            id={`evaluation-condition-${item.id}`}
+                            value={item.condition}
+                            onChange={(event) => {
+                              setEvaluation((current) =>
+                                current
+                                  ? {
+                                      ...current,
+                                      sections: updateSectionField(
+                                        current.sections,
+                                        sectionIndex,
+                                        {
+                                          items: updateItemField(
+                                            current.sections[sectionIndex].items,
+                                            itemIndex,
+                                            { condition: event.target.value },
                                           ),
-                                        }
-                                      : current,
-                                  );
-                                }}
-                                disabled={!editable}
-                              >
-                                <SelectTrigger className="">
-                                  <SelectValue placeholder="Ya/Tidak" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="unset">Belum diisi</SelectItem>
-                                  <SelectItem value="yes">Ya</SelectItem>
-                                  <SelectItem value="no">Tidak</SelectItem>
-                                </SelectContent>
-                              </Select>
-                            </div>
-                          </div>
-
-                          <div className="grid gap-5 md:grid-cols-2">
-                            <div className="space-y-2">
-                              <Label className="text-sm font-normal text-foreground">
-                                Uraian kondisi
-                              </Label>
-                              <Textarea
-                                value={item.condition}
-                                onChange={(event) => {
-                                  setEvaluation((current) =>
-                                    current
-                                      ? {
-                                          ...current,
-                                          sections: updateSectionField(
-                                            current.sections,
-                                            sectionIndex,
-                                            {
-                                              items: updateItemField(
-                                                current.sections[sectionIndex].items,
-                                                itemIndex,
-                                                { condition: event.target.value },
-                                              ),
-                                            },
-                                          ),
-                                        }
-                                      : current,
-                                  );
-                                }}
-                                disabled={!editable}
-                                className=""
-                                placeholder="Uraikan kondisi aktual yang ditemukan"
-                              />
-                            </div>
-                            <div className="space-y-2">
-                              <Label className="text-sm font-normal text-foreground">
-                                Keterangan
-                              </Label>
-                              <Textarea
-                                value={item.analysis}
-                                onChange={(event) => {
-                                  setEvaluation((current) =>
-                                    current
-                                      ? {
-                                          ...current,
-                                          sections: updateSectionField(
-                                            current.sections,
-                                            sectionIndex,
-                                            {
-                                              items: updateItemField(
-                                                current.sections[sectionIndex].items,
-                                                itemIndex,
-                                                { analysis: event.target.value },
-                                              ),
-                                            },
-                                          ),
-                                        }
-                                      : current,
-                                  );
-                                }}
-                                disabled={!editable}
-                                className=""
-                                placeholder="Tuliskan keterangan singkat yang relevan"
-                              />
-                            </div>
-                          </div>
+                                        },
+                                      ),
+                                    }
+                                  : current,
+                              );
+                            }}
+                            disabled={!editable}
+                            className="min-h-28 resize-y leading-relaxed"
+                            placeholder="Uraikan kondisi aktual yang ditemukan"
+                          />
                         </div>
-                      ))}
+                        <div className="space-y-2">
+                          <Label htmlFor={`evaluation-analysis-${item.id}`} className="text-sm font-normal text-foreground">
+                            Keterangan
+                          </Label>
+                          <Textarea
+                            id={`evaluation-analysis-${item.id}`}
+                            value={item.analysis}
+                            onChange={(event) => {
+                              setEvaluation((current) =>
+                                current
+                                  ? {
+                                      ...current,
+                                      sections: updateSectionField(
+                                        current.sections,
+                                        sectionIndex,
+                                        {
+                                          items: updateItemField(
+                                            current.sections[sectionIndex].items,
+                                            itemIndex,
+                                            { analysis: event.target.value },
+                                          ),
+                                        },
+                                      ),
+                                    }
+                                  : current,
+                              );
+                            }}
+                            disabled={!editable}
+                            className="min-h-28 resize-y leading-relaxed"
+                            placeholder="Tuliskan keterangan singkat yang relevan"
+                          />
+                        </div>
+                      </EvaluationItemLayout>
+                    ))}
+                  </div>
+
+                  <EvaluationConclusion>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <Label htmlFor={`evaluation-conclusion-${section.id}`} className="text-sm font-medium text-foreground">
+                        Kesimpulan bagian
+                      </Label>
                     </div>
+                    <Textarea
+                      id={`evaluation-conclusion-${section.id}`}
+                      value={section.conclusion}
+                      onChange={(event) => {
+                        setEvaluation((current) =>
+                          current
+                            ? {
+                                ...current,
+                                sections: updateSectionField(current.sections, sectionIndex, {
+                                  conclusion: event.target.value,
+                                }),
+                              }
+                            : current,
+                        );
+                      }}
+                      disabled={!editable}
+                      className="min-h-28 resize-y leading-relaxed"
+                      placeholder="Ringkas hasil evaluasi dan hal yang perlu ditindaklanjuti"
+                    />
+                  </EvaluationConclusion>
+                </FormGroup>
+              );
+            })}
+          </FormContainer>
 
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between gap-3">
-                        <Label className="text-sm font-normal text-foreground">
-                          Kesimpulan section
-                        </Label>
-                        <span className="text-xs text-muted-foreground">
-                          {answeredSectionItems}/{sectionItems.length} poin terisi
-                        </span>
-                      </div>
-                      <Textarea
-                        value={section.conclusion}
-                        onChange={(event) => {
-                          setEvaluation((current) =>
-                            current
-                              ? {
-                                  ...current,
-                                  sections: updateSectionField(current.sections, sectionIndex, {
-                                    conclusion: event.target.value,
-                                  }),
-                                }
-                              : current,
-                          );
-                        }}
-                        disabled={!editable}
-                        className=""
-                        placeholder="Simpulkan section ini secara singkat"
-                      />
-                    </div>
-                  </section>
-                );
-              })}
-
-            </CardContent>
-          </Card>
-
-          <Card id="permasalahan-saran" className={evaluationCardClass}>
-            <CardHeader>
-              <CardTitle>Permasalahan dan saran</CardTitle>
-              <CardDescription>Ringkas hambatan utama dan langkah perbaikannya, tanpa mengulang isi tiap poin.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-5 [&_[data-slot=label]]:font-normal">
+          <FormContainer
+            id="permasalahan-saran"
+            className={evaluationCardClass}
+            title="Permasalahan dan saran"
+            description="Ringkas hambatan utama dan langkah perbaikannya, tanpa mengulang isi tiap poin."
+          >
+            <FormGroup className="[&_[data-slot=label]]:font-normal">
               <div className="space-y-2">
-                <Label className="text-sm font-normal text-foreground">
+                <Label htmlFor="evaluation-problems" className="text-sm font-normal text-foreground">
                   Permasalahan
                 </Label>
                 <Textarea
+                  id="evaluation-problems"
                   value={evaluation.problems}
                   onChange={(event) => patchEvaluation({ problems: event.target.value })}
                   disabled={!editable}
-                  className=""
+                  className="min-h-28 resize-y leading-relaxed"
                   placeholder="Tuliskan hambatan utama yang perlu ditindaklanjuti"
                 />
               </div>
+            </FormGroup>
+            <FormGroup className="[&_[data-slot=label]]:font-normal">
               <div className="space-y-2">
-                <Label className="text-sm font-normal text-foreground">
+                <Label htmlFor="evaluation-recommendations" className="text-sm font-normal text-foreground">
                   Saran perbaikan
                 </Label>
                 <Textarea
+                  id="evaluation-recommendations"
                   value={evaluation.recommendations}
                   onChange={(event) =>
                     patchEvaluation({ recommendations: event.target.value })
                   }
                   disabled={!editable}
-                  className=""
+                  className="min-h-28 resize-y leading-relaxed"
                   placeholder="Tuliskan rekomendasi yang paling relevan dan praktis"
                 />
               </div>
-            </CardContent>
-          </Card>
+            </FormGroup>
+          </FormContainer>
         </div>
 
-        <aside className="min-w-0 self-start">
-          <div className="space-y-6 xl:sticky xl:top-20">
+        <aside className="min-w-0 self-start xl:sticky xl:top-6">
+          <div className="space-y-6">
             <Card className={evaluationCardClass}>
               <CardHeader>
                 <CardTitle>Status kerja</CardTitle>
@@ -1235,46 +805,46 @@ export default function EvaluationDetailPage() {
                 </div>
 
                 <PropertyList>
-                  <div className="flex items-start justify-between gap-4 py-2.5">
-                    <PropertyLabel>Organisasi</PropertyLabel>
-                    <dd className="max-w-[190px] truncate text-right text-sm font-medium text-foreground">
+                  <div className="grid grid-cols-[minmax(0,0.44fr)_minmax(0,0.56fr)] items-start gap-4">
+                    <PropertyLabel showIcon={false}>Organisasi</PropertyLabel>
+                    <dd className="min-w-0 break-words text-sm text-foreground">
                       {orgName}
                     </dd>
                   </div>
-                  <div className="flex items-start justify-between gap-4 py-2.5">
-                    <PropertyLabel>Kode</PropertyLabel>
-                    <dd className="font-mono text-xs tabular-nums text-foreground">
+                  <div className="grid grid-cols-[minmax(0,0.44fr)_minmax(0,0.56fr)] items-start gap-4">
+                    <PropertyLabel showIcon={false}>Kode</PropertyLabel>
+                    <dd className="font-mono text-sm tabular-nums text-foreground">
                       {evaluation.code}
                     </dd>
                   </div>
-                  <div className="flex items-start justify-between gap-4 py-2.5">
-                    <PropertyLabel>Periode</PropertyLabel>
-                    <dd className="font-mono text-xs tabular-nums text-foreground">
+                  <div className="grid grid-cols-[minmax(0,0.44fr)_minmax(0,0.56fr)] items-start gap-4">
+                    <PropertyLabel showIcon={false}>Periode</PropertyLabel>
+                    <dd className="font-mono text-sm tabular-nums text-foreground">
                       {evaluation.period}
                     </dd>
                   </div>
-                  <div className="flex items-start justify-between gap-4 py-2.5">
-                    <PropertyLabel>Template</PropertyLabel>
-                    <dd className="max-w-[190px] truncate text-right text-sm font-medium text-foreground">
+                  <div className="grid grid-cols-[minmax(0,0.44fr)_minmax(0,0.56fr)] items-start gap-4">
+                    <PropertyLabel showIcon={false}>Template</PropertyLabel>
+                    <dd className="min-w-0 break-words text-sm text-foreground">
                       {evaluation.templateName || evaluation.templateId}
                     </dd>
                   </div>
-                  <div className="flex items-start justify-between gap-4 py-2.5">
-                    <PropertyLabel>Diperbarui</PropertyLabel>
-                    <dd className="text-right text-sm font-medium text-foreground">
-                      {formatDateTime(evaluation.updatedAt)}
+                  <div className="grid grid-cols-[minmax(0,0.44fr)_minmax(0,0.56fr)] items-start gap-4">
+                    <PropertyLabel showIcon={false}>Diperbarui</PropertyLabel>
+                    <dd className="min-w-0 text-sm text-foreground">
+                      <span data-date-time="">{formatDateTime(evaluation.updatedAt)}</span>
                     </dd>
                   </div>
-                  <div className="flex items-start justify-between gap-4 py-2.5">
-                    <PropertyLabel>Finalisasi</PropertyLabel>
-                    <dd className="text-right text-sm font-medium text-foreground">
-                      {formatDateTime(evaluation.finalizedAt)}
+                  <div className="grid grid-cols-[minmax(0,0.44fr)_minmax(0,0.56fr)] items-start gap-4">
+                    <PropertyLabel showIcon={false}>Finalisasi</PropertyLabel>
+                    <dd className="min-w-0 text-sm text-foreground">
+                      <span data-date-time="">{formatDateTime(evaluation.finalizedAt)}</span>
                     </dd>
                   </div>
                 </PropertyList>
 
                 <div className="rounded-lg bg-muted/50 px-3 py-3 text-sm leading-relaxed text-muted-foreground">
-                  Sebelum finalisasi, pastikan kesimpulan section dan permasalahan
+                  Sebelum finalisasi, pastikan kesimpulan bagian dan permasalahan
                   sudah sesuai dengan isi poin. Setelah final, data terkunci dan
                   PDF diambil dari evaluasi tersimpan.
                 </div>

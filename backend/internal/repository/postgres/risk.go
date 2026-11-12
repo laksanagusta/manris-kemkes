@@ -114,11 +114,11 @@ func insertRiskWithQueryer(ctx context.Context, q riskQueryer, risk *entity.Risk
 		_, err := q.Exec(ctx,
 			`INSERT INTO mitigations (
 				risk_id, action, owner, owner_user_id, due_date, frequency, recurring_interval, report_day, report_date, execution_schedule_text, target_cost, sort_order,
-				mitigation_type, activity_stage, expected_output, quantitative_target, supporting_unit, resources_required, contingency_plan, potential_obstacle, is_breakthrough_activity, is_existing_control
+				mitigation_type
 			)
-			 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)`,
+			 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
 			risk.ID, m.Action, m.Owner, m.OwnerUserID, nullableDateString(m.DueDate), frequency, m.RecurringInterval, m.ReportDay, m.ReportDate, m.ExecutionScheduleText, m.TargetCost, i+1,
-			mitigationType, m.ActivityStage, m.ExpectedOutput, m.QuantitativeTarget, m.SupportingUnit, m.ResourcesRequired, m.ContingencyPlan, m.PotentialObstacle, m.IsBreakthroughActivity, m.IsExistingControl)
+			mitigationType)
 		if err != nil {
 			return fmt.Errorf("create mitigation: %w", err)
 		}
@@ -230,7 +230,7 @@ func (r *riskRepository) GetByID(ctx context.Context, id uuid.UUID, orgIDs []uui
 	// Load mitigations
 	mRows, err := r.pool.Query(ctx,
 		`SELECT id, risk_id, action, owner, owner_user_id, due_date::text, frequency, recurring_interval, report_day, report_date, COALESCE(execution_schedule_text, ''), target_cost, sort_order, created_at,
-		        mitigation_type, activity_stage, expected_output, quantitative_target, supporting_unit, resources_required, contingency_plan, potential_obstacle, is_breakthrough_activity, is_existing_control
+		        mitigation_type
 		 FROM mitigations WHERE risk_id = $1 ORDER BY sort_order`, id)
 	if err != nil {
 		return nil, fmt.Errorf("load mitigations: %w", err)
@@ -240,7 +240,7 @@ func (r *riskRepository) GetByID(ctx context.Context, id uuid.UUID, orgIDs []uui
 	for mRows.Next() {
 		var m entity.Mitigation
 		if err := mRows.Scan(&m.ID, &m.RiskID, &m.Action, &m.Owner, &m.OwnerUserID, &m.DueDate, &m.Frequency, &m.RecurringInterval, &m.ReportDay, &m.ReportDate, &m.ExecutionScheduleText, &m.TargetCost, &m.SortOrder, &m.CreatedAt,
-			&m.MitigationType, &m.ActivityStage, &m.ExpectedOutput, &m.QuantitativeTarget, &m.SupportingUnit, &m.ResourcesRequired, &m.ContingencyPlan, &m.PotentialObstacle, &m.IsBreakthroughActivity, &m.IsExistingControl); err != nil {
+			&m.MitigationType); err != nil {
 			return nil, fmt.Errorf("scan mitigation: %w", err)
 		}
 		risk.Mitigations = append(risk.Mitigations, m)
@@ -313,11 +313,11 @@ func updateRiskWithQueryer(ctx context.Context, q riskQueryer, risk *entity.Risk
 		_, err := q.Exec(ctx,
 			`INSERT INTO mitigations (
 				risk_id, action, owner, owner_user_id, due_date, frequency, recurring_interval, report_day, report_date, execution_schedule_text, target_cost, sort_order,
-				mitigation_type, activity_stage, expected_output, quantitative_target, supporting_unit, resources_required, contingency_plan, potential_obstacle, is_breakthrough_activity, is_existing_control
+				mitigation_type
 			)
-			 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22)`,
+			 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
 			risk.ID, m.Action, m.Owner, m.OwnerUserID, nullableDateString(m.DueDate), frequency, m.RecurringInterval, m.ReportDay, m.ReportDate, m.ExecutionScheduleText, m.TargetCost, i+1,
-			mitigationType, m.ActivityStage, m.ExpectedOutput, m.QuantitativeTarget, m.SupportingUnit, m.ResourcesRequired, m.ContingencyPlan, m.PotentialObstacle, m.IsBreakthroughActivity, m.IsExistingControl)
+			mitigationType)
 		if err != nil {
 			return fmt.Errorf("upsert mitigation: %w", err)
 		}
@@ -562,7 +562,8 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 			                  quarters.q1_nilai as quarter_q1_nilai,
 			                  quarters.q2_nilai as quarter_q2_nilai,
 			                  quarters.q3_nilai as quarter_q3_nilai,
-			                  quarters.q4_nilai as quarter_q4_nilai
+			                  quarters.q4_nilai as quarter_q4_nilai,
+                          recent_monitoring.items
 		           FROM risks r
 		           LEFT JOIN organizations o ON r.organization_id = o.id
 		           LEFT JOIN users u ON r.created_by = u.id
@@ -596,9 +597,9 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 			             WHERE rm.version_group_id = r.version_group_id
 			               AND rm.status IN ('draft', 'final')
 			               AND rm.assessment_cycle = CASE
-			                 WHEN EXTRACT(QUARTER FROM CURRENT_DATE)::int = 1
-			                   THEN (EXTRACT(YEAR FROM CURRENT_DATE)::int - 1)::text || '-Q4'
-			                 ELSE EXTRACT(YEAR FROM CURRENT_DATE)::text || '-Q' || (EXTRACT(QUARTER FROM CURRENT_DATE)::int - 1)::text
+			                 WHEN EXTRACT(QUARTER FROM ` + businessDateSQL + `)::int = 1
+			                   THEN (EXTRACT(YEAR FROM ` + businessDateSQL + `)::int - 1)::text || '-Q4'
+			                 ELSE EXTRACT(YEAR FROM ` + businessDateSQL + `)::text || '-Q' || (EXTRACT(QUARTER FROM ` + businessDateSQL + `)::int - 1)::text
 			               END
 			             ORDER BY rm.updated_at DESC, rm.id DESC
 			             LIMIT 1
@@ -629,7 +630,7 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 		                 EXTRACT(YEAR FROM NOW())::text || '-Q4'
 		               )
 		           ) quarters ON true
-		           WHERE 1=1`
+` + riskRegisterRecentMonitoringJoin + ` WHERE 1=1`
 	args := []interface{}{}
 	argIdx := 1
 
@@ -745,6 +746,7 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 			&risk.BeforeMonitoringNilai, &risk.MonitoringResultNilai,
 			&q1, &q2, &q3, &q4,
 			&q1Nilai, &q2Nilai, &q3Nilai, &q4Nilai,
+			&risk.RecentMonitoring,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan risk register row: %w", err)
 		}
@@ -847,7 +849,7 @@ func (r *riskRepository) ListApprovedRisks(ctx context.Context, orgIDs []uuid.UU
 // ListMitigations returns all mitigations joined with risk details
 func (r *riskRepository) ListMitigations(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.MitigationAssoc, error) {
 	query := `SELECT m.id, m.risk_id, m.action, m.owner, m.owner_user_id, m.due_date::text, m.frequency, m.recurring_interval, m.target_cost, m.sort_order, m.created_at,
-	                 m.mitigation_type, m.activity_stage, m.expected_output, m.quantitative_target, m.supporting_unit, m.resources_required, m.contingency_plan, m.potential_obstacle, m.is_breakthrough_activity, m.is_existing_control,
+	                 m.mitigation_type,
 	                 r.code as risk_code, r.title as risk_title, r.organization_id as risk_org_id, r.probability, r.impact
 	          FROM mitigations m
 	          JOIN risks r ON m.risk_id = r.id
@@ -872,7 +874,7 @@ func (r *riskRepository) ListMitigations(ctx context.Context, orgIDs []uuid.UUID
 		var ma entity.MitigationAssoc
 		if err := rows.Scan(
 			&ma.ID, &ma.RiskID, &ma.Action, &ma.Owner, &ma.OwnerUserID, &ma.DueDate, &ma.Frequency, &ma.RecurringInterval, &ma.TargetCost, &ma.SortOrder, &ma.CreatedAt,
-			&ma.MitigationType, &ma.ActivityStage, &ma.ExpectedOutput, &ma.QuantitativeTarget, &ma.SupportingUnit, &ma.ResourcesRequired, &ma.ContingencyPlan, &ma.PotentialObstacle, &ma.IsBreakthroughActivity, &ma.IsExistingControl,
+			&ma.MitigationType,
 			&ma.RiskCode, &ma.RiskTitle, &ma.RiskOrgID, &ma.Probability, &ma.Impact,
 		); err != nil {
 			return nil, fmt.Errorf("scan mitigation assoc: %w", err)
@@ -895,7 +897,7 @@ func (r *riskRepository) NextRiskCode(ctx context.Context) (string, error) {
 }
 
 func currentQuarterCycle() string {
-	now := time.Now().In(timeutil.JakartaLocation())
+	now := timeutil.BusinessNow().In(timeutil.JakartaLocation())
 	return fmt.Sprintf("%d-Q%d", now.Year(), (int(now.Month())-1)/3+1)
 }
 
@@ -965,13 +967,13 @@ func (r *riskRepository) DashboardSummary(ctx context.Context, cycle string, org
 	}
 	if len(orgIDs) > 0 {
 		err := r.pool.QueryRow(ctx,
-			"SELECT COUNT(*) FROM mitigation_tasks t JOIN risks r ON r.id = t.risk_id AND r.status = 'final' AND r.archived_at IS NULL WHERE t.due_date < CURRENT_DATE AND (t.status IN ('pending','overdue') OR (t.status = 'done' AND (t.reported_at IS NULL OR NULLIF(BTRIM(COALESCE(t.notes, '')), '') IS NULL))) AND r.organization_id = ANY($1)",
+			"SELECT COUNT(*) FROM mitigation_tasks t JOIN risks r ON r.id = t.risk_id AND r.status = 'final' AND r.archived_at IS NULL WHERE t.due_date < "+businessDateSQL+" AND (t.status IN ('pending','overdue') OR (t.status = 'done' AND (t.reported_at IS NULL OR NULLIF(BTRIM(COALESCE(t.notes, '')), '') IS NULL))) AND r.organization_id = ANY($1)",
 			orgIDs).Scan(&s.OverdueMitig)
 		if err != nil {
 			return nil, fmt.Errorf("count overdue: %w", err)
 		}
 	} else {
-		err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM mitigation_tasks t JOIN risks r ON r.id = t.risk_id AND r.status = 'final' AND r.archived_at IS NULL WHERE t.due_date < CURRENT_DATE AND (t.status IN ('pending','overdue') OR (t.status = 'done' AND (t.reported_at IS NULL OR NULLIF(BTRIM(COALESCE(t.notes, '')), '') IS NULL)))").Scan(&s.OverdueMitig)
+		err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM mitigation_tasks t JOIN risks r ON r.id = t.risk_id AND r.status = 'final' AND r.archived_at IS NULL WHERE t.due_date < "+businessDateSQL+" AND (t.status IN ('pending','overdue') OR (t.status = 'done' AND (t.reported_at IS NULL OR NULLIF(BTRIM(COALESCE(t.notes, '')), '') IS NULL)))").Scan(&s.OverdueMitig)
 		if err != nil {
 			return nil, fmt.Errorf("count overdue: %w", err)
 		}
@@ -1444,7 +1446,7 @@ func (r *riskRepository) ListCycleSnapshot(ctx context.Context, cycle string, or
 
 	mitigationRows, err := r.pool.Query(ctx,
 		`SELECT id, risk_id, action, owner, owner_user_id, due_date::text, frequency, recurring_interval, report_day, report_date, COALESCE(execution_schedule_text, ''), target_cost, sort_order, created_at,
-		        mitigation_type, activity_stage, expected_output, quantitative_target, supporting_unit, resources_required, contingency_plan, potential_obstacle, is_breakthrough_activity, is_existing_control
+		        mitigation_type
 		 FROM mitigations
 		 WHERE risk_id = ANY($1)
 		 ORDER BY risk_id, sort_order, created_at`, riskIDs)
@@ -1456,7 +1458,7 @@ func (r *riskRepository) ListCycleSnapshot(ctx context.Context, cycle string, or
 	for mitigationRows.Next() {
 		var mitigation entity.Mitigation
 		if err := mitigationRows.Scan(&mitigation.ID, &mitigation.RiskID, &mitigation.Action, &mitigation.Owner, &mitigation.OwnerUserID, &mitigation.DueDate, &mitigation.Frequency, &mitigation.RecurringInterval, &mitigation.ReportDay, &mitigation.ReportDate, &mitigation.ExecutionScheduleText, &mitigation.TargetCost, &mitigation.SortOrder, &mitigation.CreatedAt,
-			&mitigation.MitigationType, &mitigation.ActivityStage, &mitigation.ExpectedOutput, &mitigation.QuantitativeTarget, &mitigation.SupportingUnit, &mitigation.ResourcesRequired, &mitigation.ContingencyPlan, &mitigation.PotentialObstacle, &mitigation.IsBreakthroughActivity, &mitigation.IsExistingControl); err != nil {
+			&mitigation.MitigationType); err != nil {
 			return nil, fmt.Errorf("scan cycle snapshot mitigation: %w", err)
 		}
 		if risk := riskByID[mitigation.RiskID]; risk != nil {
@@ -1614,8 +1616,8 @@ func (r *riskRepository) ListReviewQueue(ctx context.Context, cycle string, orgI
 			CASE
 				WHEN monitoring.status = 'draft' THEN 'in_draft'
 				WHEN monitoring.status = 'final' THEN 'final'
-				WHEN period.due_date IS NOT NULL AND period.due_date < CURRENT_DATE THEN 'overdue'
-				WHEN period.due_date IS NULL AND base.next_review_date IS NOT NULL AND base.next_review_date::date < CURRENT_DATE THEN 'overdue'
+				WHEN period.due_date IS NOT NULL AND period.due_date < `+businessDateSQL+` THEN 'overdue'
+				WHEN period.due_date IS NULL AND base.next_review_date IS NOT NULL AND base.next_review_date::date < `+businessDateSQL+` THEN 'overdue'
 				WHEN monitoring.id IS NULL THEN 'due'
 				ELSE 'due'
 			END
@@ -1649,8 +1651,8 @@ func (r *riskRepository) ListReviewQueue(ctx context.Context, cycle string, orgI
 		CASE
 			WHEN monitoring.status = 'draft' THEN 'in_draft'
 			WHEN monitoring.status = 'final' THEN 'final'
-			WHEN period.due_date IS NOT NULL AND period.due_date < CURRENT_DATE THEN 'overdue'
-			WHEN period.due_date IS NULL AND base.next_review_date IS NOT NULL AND base.next_review_date::date < CURRENT_DATE THEN 'overdue'
+			WHEN period.due_date IS NOT NULL AND period.due_date < `+businessDateSQL+` THEN 'overdue'
+			WHEN period.due_date IS NULL AND base.next_review_date IS NOT NULL AND base.next_review_date::date < `+businessDateSQL+` THEN 'overdue'
 			WHEN monitoring.id IS NULL THEN 'due'
 			ELSE 'due'
 		END AS review_status,
@@ -2090,8 +2092,8 @@ func (r *riskRepository) GetOverdueMitigationTimeline(ctx context.Context, orgID
 					OR NULLIF(BTRIM(COALESCE(mt.notes, '')), '') IS NULL
 				))
 			)
-				AND mt.due_date < CURRENT_DATE
-				AND CURRENT_DATE - mt.due_date <= 7
+				AND mt.due_date < ` + businessDateSQL + `
+				AND ` + businessDateSQL + ` - mt.due_date <= 7
 		) AS overdue_7_count,
 		COUNT(*) FILTER (
 			WHERE (
@@ -2101,8 +2103,8 @@ func (r *riskRepository) GetOverdueMitigationTimeline(ctx context.Context, orgID
 					OR NULLIF(BTRIM(COALESCE(mt.notes, '')), '') IS NULL
 				))
 			)
-				AND mt.due_date < CURRENT_DATE
-				AND CURRENT_DATE - mt.due_date BETWEEN 8 AND 30
+				AND mt.due_date < ` + businessDateSQL + `
+				AND ` + businessDateSQL + ` - mt.due_date BETWEEN 8 AND 30
 		) AS overdue_30_count,
 		COUNT(*) FILTER (
 			WHERE (
@@ -2112,8 +2114,8 @@ func (r *riskRepository) GetOverdueMitigationTimeline(ctx context.Context, orgID
 					OR NULLIF(BTRIM(COALESCE(mt.notes, '')), '') IS NULL
 				))
 			)
-				AND mt.due_date < CURRENT_DATE
-				AND CURRENT_DATE - mt.due_date > 30
+				AND mt.due_date < ` + businessDateSQL + `
+				AND ` + businessDateSQL + ` - mt.due_date > 30
 		) AS overdue_30_plus_count,
 		COUNT(*) AS total_count
 	FROM mitigation_tasks mt

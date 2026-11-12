@@ -53,6 +53,14 @@ func (t *Toolkit) Execute(ctx context.Context, actor uuid.UUID, name string, raw
 		if err := strictDecode(raw, &input); err != nil {
 			return agent.ToolResult{}, err
 		}
+		for _, op := range input.Operations {
+			if op.Kind == "create_risk" && op.After != nil {
+				// The model may put its recommended risk title only on the operation.
+				if _, hasTitle := op.After["title"]; !hasTitle {
+					op.After["title"] = op.Title
+				}
+			}
+		}
 		operations, err := t.ValidateOperations(ctx, actor, input.Operations)
 		if err != nil {
 			return agent.ToolResult{}, err

@@ -1,16 +1,18 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { useForm, useFieldArray, SubmitHandler } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
-import { ApiError } from "@/lib/api";
+import { api, ApiError } from "@/lib/api";
 import { listUsers, type UserListItem } from "@/lib/api/users";
 import {
   createWorkingPaper,
+  findActiveWorkingPaperForPeriod,
   previewWorkingPaperRoster,
 } from "@/lib/api/working-papers";
 import { getWorkingPaperCreateErrorMessage } from "@/lib/api/working-paper-create-error";
@@ -35,6 +37,8 @@ import {
 import { FormPage, FormSection } from "@/components/shared/form-shell";
 import {
   AccentButton,
+  ActionButton,
+  CollectionErrorState,
   CollectionEmptyState,
   FieldErrorMessage,
   CollectionLoadingState,
@@ -128,6 +132,12 @@ export default function CreateWorkingPaperPage() {
       : requestedCycle;
 
   const [loadingPreview, setLoadingPreview] = useState(true);
+  const [previewFailed, setPreviewFailed] = useState(false);
+  const [needsRosterRefresh, setNeedsRosterRefresh] = useState(false);
+  const [reloadCount, setReloadCount] = useState(0);
+  const [rosterChanges, setRosterChanges] = useState<string[]>([]);
+  const [organizationName, setOrganizationName] = useState<{ id: string; name: string } | null>(null);
+  const previousPreviewRef = useRef<WorkingPaperRosterPreview | null>(null);
   const [preview, setPreview] =
     useState<WorkingPaperRosterPreview | null>(null);
   const [decisions, setDecisions] = useState<RosterDecision[]>([]);
@@ -166,36 +176,54 @@ export default function CreateWorkingPaperPage() {
     ? searchParams.get("org_id") ?? ""
     : (user?.organizationId ?? "");
 
+  const reloadRoster = () => setReloadCount((count) => count + 1);
+  const previewMatchesScope = preview?.organizationId === organizationId && preview.assessmentCycle === assessmentCycle;
+
+  useEffect(() => {
+    if (!token || !organizationId || (organizationId === user?.organizationId && user.orgName)) return;
+    let active = true;
+    void api.get<{ name: string }>(`/organizations/${encodeURIComponent(organizationId)}`, token).then((organization) => {
+      if (active) setOrganizationName({ id: organizationId, name: organization.name });
+    }).catch(() => {});
+    return () => { active = false; };
+  }, [token, organizationId, user?.organizationId, user?.orgName]);
+
   useEffect(() => {
     if (!token || !organizationId) return;
-    let cancelled = false;
-
-    const fetchPreview = async () => {
-      try {
-        setLoadingPreview(true);
-        const result = await previewWorkingPaperRoster(
-          organizationId,
-          assessmentCycle,
-          token,
-        );
-        if (cancelled) return;
-        setPreview(result);
-        setDecisions(buildInitialRosterDecisions(result));
-      } catch (error) {
-        console.error("Failed to load roster preview", error);
-        toast.error("Gagal memuat roster risiko untuk periode ini.");
-      } finally {
-        if (!cancelled) setLoadingPreview(false);
+    let active = true;
+    setLoadingPreview(true);
+    setPreviewFailed(false);
+    void previewWorkingPaperRoster(organizationId, assessmentCycle, token).then((result) => {
+      if (!active) return;
+      const previous = previousPreviewRef.current;
+      const sameScope = previous?.organizationId === result.organizationId && previous.assessmentCycle === result.assessmentCycle;
+      const changes: string[] = [];
+      if (sameScope) {
+        const oldEntries = new Map(previous.entries.map((entry) => [entry.versionGroupId, entry]));
+        for (const entry of result.entries) {
+          const old = oldEntries.get(entry.versionGroupId);
+          if (!old) changes.push(`${entry.code} — risiko baru, disertakan`);
+          else if (old.rosterStatus !== entry.rosterStatus || old.monitoringStatus !== entry.monitoringStatus || old.monitoringId !== entry.monitoringId || old.sourceRiskId !== entry.sourceRiskId || old.resultRiskId !== entry.resultRiskId) {
+            changes.push(`${entry.code} — data diperbarui, ${ROSTER_STATUS_LABELS[entry.rosterStatus].toLowerCase()}`);
+          }
+          oldEntries.delete(entry.versionGroupId);
+        }
+        for (const entry of oldEntries.values()) changes.push(`${entry.code} — sudah keluar dari daftar periode`);
       }
-    };
+      setDecisions((current) => buildInitialRosterDecisions(result, sameScope ? current : []));
+      previousPreviewRef.current = result;
+      setPreview(result);
+      setRosterChanges(changes);
+      setNeedsRosterRefresh(false);
+    }).catch(() => {
+      if (active) setPreviewFailed(true);
+    }).finally(() => {
+      if (active) setLoadingPreview(false);
+    });
+    return () => { active = false; };
+  }, [token, organizationId, assessmentCycle, reloadCount]);
 
-    fetchPreview();
-    return () => {
-      cancelled = true;
-    };
-  }, [token, organizationId, assessmentCycle]);
-
-  const filteredEntries = preview
+  const filteredEntries = previewMatchesScope
     ? preview.entries.filter(
         (e) =>
           e.title
@@ -222,8 +250,9 @@ export default function CreateWorkingPaperPage() {
   };
 
   const handleToggleAll = (checked: boolean) => {
+    const visibleIds = new Set(filteredEntries.map((entry) => entry.versionGroupId));
     setDecisions((prev) =>
-      prev.map((d) => ({ ...d, included: checked })),
+      prev.map((decision) => visibleIds.has(decision.versionGroupId) ? { ...decision, included: checked } : decision),
     );
   };
 
@@ -305,14 +334,16 @@ export default function CreateWorkingPaperPage() {
     pangkat: watchedSignatories[index]?.signer_pangkat ?? "",
   }));
 
-  const handleConfirmOpen = () => {
-    setShowConfirm(true);
-  };
+  const summary = previewMatchesScope ? summarizeRosterDecisions(preview, decisions) : null;
+  const canCreateDraft = Boolean(summary?.includedCount && !loadingPreview && !previewFailed && !needsRosterRefresh);
+  const handleConfirmOpen = handleSubmit(() => {
+    if (canCreateDraft) setShowConfirm(true);
+  });
 
   const onSubmit: SubmitHandler<FormValues> = async (
     data: FormValues,
   ) => {
-    if (!token || !preview) return;
+    if (!token || !preview || !canCreateDraft) return;
     setShowConfirm(false);
     try {
       const payload = {
@@ -334,9 +365,23 @@ export default function CreateWorkingPaperPage() {
       };
 
       const result = await createWorkingPaper(payload, token);
-      toast.success("Kertas kerja berhasil dibuat");
+      toast.success("Draf Kertas Kerja berhasil dibuat.");
       router.push(`/risk/working-papers/${result.id}`);
     } catch (error) {
+      if (error instanceof ApiError && error.type?.endsWith("/working-paper-roster-stale")) {
+        setNeedsRosterRefresh(true);
+        return;
+      }
+      if (error instanceof ApiError && error.type?.endsWith("/working-paper-period-conflict")) {
+        const existing = await findActiveWorkingPaperForPeriod(token, preview.organizationId, preview.assessmentCycle).catch(() => null);
+        if (existing) {
+          toast.info("Kertas Kerja untuk periode ini sudah ada.");
+          router.push(`/risk/working-papers/${existing.id}`);
+          return;
+        }
+        toast.error("Kertas Kerja periode ini sudah ada. Buka daftar Kertas Kerja untuk melihatnya.");
+        return;
+      }
       const isClientError =
         error instanceof ApiError && error.status >= 400 && error.status < 500;
       if (!isClientError) {
@@ -360,9 +405,9 @@ export default function CreateWorkingPaperPage() {
     );
   }
 
-  const summary = preview
-    ? summarizeRosterDecisions(preview, decisions)
-    : null;
+  const unitName = organizationId === user?.organizationId && user.orgName
+    ? user.orgName
+    : organizationName?.id === organizationId ? organizationName.name : "Unit terpilih";
 
   return (
     <FormPage className="space-y-6 pb-0">
@@ -371,14 +416,14 @@ export default function CreateWorkingPaperPage() {
         title="Buat Kertas Kerja Baru"
         eyebrow={
           <Badge variant="outline" className="">
-            Siklus asesmen {assessmentCycle}
+            {unitName} · {assessmentCycle}
           </Badge>
         }
         actions={
           <AccentButton
             type="button"
             onClick={handleConfirmOpen}
-            disabled={isSubmitting || loadingPreview}
+            disabled={isSubmitting || !canCreateDraft}
             icon={
               isSubmitting ? (
                 <Loader2 className="size-3.5 animate-spin" />
@@ -387,14 +432,14 @@ export default function CreateWorkingPaperPage() {
               )
             }
           >
-            {isSubmitting ? "Menyimpan..." : "Buat Kertas Kerja"}
+            {isSubmitting ? "Menyimpan…" : "Buat draf Kertas Kerja"}
           </AccentButton>
         }
       />
 
       <form
         id="working-paper-create-form"
-        onSubmit={handleSubmit(onSubmit)}
+        onSubmit={handleConfirmOpen}
         className="space-y-6"
       >
         <FormSection
@@ -405,14 +450,37 @@ export default function CreateWorkingPaperPage() {
               onChange={(event) => setSearchRisk(event.target.value)}
               placeholder="Cari judul atau kode risiko"
               aria-label="Cari judul atau kode risiko"
-              containerClassName="w-full sm:w-80"
             />
           }
         >
 
+          {needsRosterRefresh && (
+            <div role="status" className="flex flex-wrap items-center gap-3 rounded-lg bg-state-surface p-3 text-sm text-state-foreground">
+              <p>Daftar risiko atau hasil Pemantauan berubah. Muat daftar terbaru sebelum membuat draf.</p>
+              <ActionButton type="button" size="sm" onClick={reloadRoster} disabled={loadingPreview}>Muat daftar terbaru</ActionButton>
+            </div>
+          )}
+          {rosterChanges.length > 0 && (
+            <details className="rounded-lg border border-border p-3 text-sm">
+              <summary className="cursor-pointer font-medium">{rosterChanges.length} perubahan pada daftar risiko</summary>
+              <ul className="mt-2 list-disc space-y-1 ps-5">{rosterChanges.map((change, index) => <li key={index}>{change}</li>)}</ul>
+            </details>
+          )}
+          {summary && summary.eligibleCount > 0 && (
+            <p role="status" className="text-sm text-muted-foreground">
+              {summary.includedCount} risiko disertakan · {summary.finalizedCount} pemantauan final · {summary.notStartedCount + summary.inProgressCount} belum final · {summary.excludedCount} dikecualikan
+              {summary.includedCount === 0 && ". Sertakan minimal satu risiko untuk membuat draf."}
+            </p>
+          )}
           {loadingPreview ? (
-            <CollectionLoadingState message="Memuat roster risiko..." />
-          ) : !preview || preview.entries.length === 0 ? (
+            <CollectionLoadingState message="Memuat daftar risiko…" />
+          ) : previewFailed ? (
+            <CollectionErrorState
+              title="Daftar risiko gagal dimuat"
+              message={previewMatchesScope ? "Pilihan yang sudah dibuat tetap tersedia." : "Coba muat lagi daftar risiko untuk periode ini."}
+              onReload={reloadRoster}
+            />
+          ) : !previewMatchesScope || preview.entries.length === 0 ? (
             <CollectionEmptyState
               title="Belum ada risiko aktif untuk siklus ini"
               description={`Tidak ada risiko final pada siklus ${assessmentCycle} untuk unit kerja ini.`}
@@ -424,7 +492,7 @@ export default function CreateWorkingPaperPage() {
             />
           ) : (
             <CollectionTableCard>
-              <Table className="w-full table-fixed">
+              <Table className="min-w-[880px] table-fixed">
               <CollectionTableHeader
                 density="compact"
                 className="sticky top-0 z-10"
@@ -434,13 +502,15 @@ export default function CreateWorkingPaperPage() {
                     <div className="flex items-center gap-2">
                       <Checkbox
                         checked={
-                          decisions.length > 0 &&
-                          decisions.every((d) => d.included)
+                          filteredEntries.length > 0 &&
+                          filteredEntries.every((entry) => decisionMap.get(entry.versionGroupId)?.included)
+                            ? true
+                            : filteredEntries.some((entry) => decisionMap.get(entry.versionGroupId)?.included) ? "indeterminate" : false
                         }
                         onCheckedChange={(checked) =>
                           handleToggleAll(!!checked)
                         }
-                        aria-label="Pilih semua risiko"
+                        aria-label="Sertakan semua risiko yang ditampilkan"
                       />
                       <span>Kode</span>
                     </div>
@@ -464,7 +534,7 @@ export default function CreateWorkingPaperPage() {
                   return (
                     <TableRow
                       key={entry.versionGroupId}
-                      className="h-14 hover:bg-muted/30"
+                      className="hover:bg-muted/30"
                     >
                       <TableCell className="w-[18%] min-w-0 align-middle">
                         <div className="flex min-w-0 items-center gap-2">
@@ -478,12 +548,7 @@ export default function CreateWorkingPaperPage() {
                             }
                             aria-label={`Sertakan risiko ${entry.code}`}
                           />
-                          <span
-                            className="block min-w-0 truncate font-mono text-xs font-medium text-foreground"
-                            title={entry.code}
-                          >
-                            {entry.code}
-                          </span>
+                          <CollectionCode code={entry.code} href={`/risk/register/${entry.sourceRiskId}`} />
                         </div>
                       </TableCell>
                       <TableCell className="w-[14%] min-w-0 text-center">
@@ -552,7 +617,7 @@ export default function CreateWorkingPaperPage() {
             pickerEmptyMessage="Penandatangan tidak ditemukan."
             emptyStateMessage="Belum ada penandatangan. Tambahkan minimal satu user untuk menyusun urutan tanda tangan."
             addRowLabel="Tambah Penandatangan"
-            footerNote="Urutan baris menentukan sequence penandatangan pada payload dokumen."
+            footerNote="Penandatangan akan menerima giliran sesuai urutan dari atas ke bawah."
             canRemoveRow={() => signatoryFields.length > 1}
             getRowError={(_, index) =>
               errors.signatories?.[index]?.user_id?.message
@@ -569,26 +634,23 @@ export default function CreateWorkingPaperPage() {
         >
           <AlertDialogContent>
             <AlertDialogHeader>
-              <AlertDialogTitle>Konfirmasi Kertas Kerja</AlertDialogTitle>
+              <AlertDialogTitle>Buat draf Kertas Kerja</AlertDialogTitle>
               <AlertDialogDescription>
-                Snapshot risiko akan dibuat untuk siklus{" "}
-                <span className="font-medium text-foreground">
-                  {preview?.monitoringCycle}
-                </span>
-                . Pemantauan selanjutnya dilakukan dari menu Risiko.
+                Daftar risiko yang dipilih akan disimpan untuk {unitName}, periode {preview?.monitoringCycle}.
+                Pemantauan yang belum final dapat dilengkapi sebelum tanda tangan dimulai.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <dl className="grid grid-cols-2 gap-4">
               <div>
                 <dt className="text-xs text-muted-foreground">
-                  Risiko eligible
+                  Risiko tersedia
                 </dt>
                 <dd className="mt-1 font-mono text-base font-semibold tabular-nums text-foreground">
                   {summary.eligibleCount}
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-muted-foreground">Termasuk</dt>
+                <dt className="text-xs text-muted-foreground">Disertakan</dt>
                 <dd className="mt-1 font-mono text-base font-semibold tabular-nums text-foreground">
                   {summary.includedCount}
                 </dd>
@@ -602,7 +664,7 @@ export default function CreateWorkingPaperPage() {
                 </dd>
               </div>
               <div>
-                <dt className="text-xs text-muted-foreground">Sudah final</dt>
+                <dt className="text-xs text-muted-foreground">Pemantauan final</dt>
                 <dd className="mt-1 font-mono text-base font-semibold tabular-nums text-foreground">
                   {summary.finalizedCount}
                 </dd>
@@ -616,8 +678,9 @@ export default function CreateWorkingPaperPage() {
                 variant="default"
                 size="default"
                 onClick={handleSubmit(onSubmit)}
+                disabled={!canCreateDraft || isSubmitting}
               >
-                Buat Kertas Kerja
+                Buat draf Kertas Kerja
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

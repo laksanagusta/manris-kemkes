@@ -49,6 +49,13 @@ test("collection disclosures and monitoring form consume the same collapsible co
   }
 });
 
+test("monitoring uses the shared inset form panel inside the collapsible body", () => {
+  assert.match(componentSource, /appearance === "form" \? FormFrame : Card/);
+  assert.equal(assessmentSource.match(/appearance="form"/g)?.length, 3);
+  assert.equal(assessmentSource.match(/<FormPanel>/g)?.length, 3);
+  assert.match(assessmentSource, /<FormPanel>\s*<FormGroup/);
+});
+
 test("collapsible card chevron uses the outline button perimeter", () => {
   assert.match(
     componentSource,

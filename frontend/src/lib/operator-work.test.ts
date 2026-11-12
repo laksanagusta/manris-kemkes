@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-const { deadlineLabel, sectionHref, isWorkSection, readWorkUIState, continueMonitoringNavigation, getWorkReturnLink } = await import(new URL("./operator-work.ts", import.meta.url).href);
+const { deadlineLabel, sectionHref, isWorkSection, readWorkUIState, workItemHref, getWorkReturnLink } = await import(new URL("./operator-work.ts", import.meta.url).href);
 
 test("deadline labels use calendar dates, including year rollover", () => {
  assert.equal(deadlineLabel("2027-01-01","2026-12-31"),"Tersisa 1 hari");
@@ -23,26 +23,16 @@ test("UI restoration validates only disclosure and scroll; malformed or domain d
 });
 
 
-test("an abandoned monitoring request never redirects the new page or account", async()=>{
- let finish!: (value: {monitoring:{id:string}})=>void;
- const pending = new Promise<{monitoring:{id:string}}>(resolve=>{finish=resolve;});
- let current=true;
- const routes:string[]=[];
- const completion=continueMonitoringNavigation(pending,()=>current,(path:string)=>routes.push(path));
- current=false;
- finish({monitoring:{id:"old-id"}});
- await completion;
- assert.deepEqual(routes,[]);
- await continueMonitoringNavigation(Promise.resolve({monitoring:{id:"current-id"}}),()=>true,(path:string)=>routes.push(path));
- assert.deepEqual(routes,["/risk/monitoring/current-id?returnTo=%2Fwork"]);
+test("task titles open detail routes for each task kind", () => {
+ const item = { targetId: "task/1", riskId: "risk/2" };
+ assert.equal(workItemHref({ ...item, kind: "mitigation_report" }), "/compliance/penanganan?taskId=task%2F1&returnTo=/work");
+ assert.equal(workItemHref({ ...item, kind: "monitoring_start" }), "/risk/register/new?id=risk%2F2&tab=monitoring&returnTo=/work");
+ assert.equal(workItemHref({ ...item, kind: "monitoring_draft" }), "/risk/monitoring/task%2F1?returnTo=/work");
+ assert.equal(workItemHref({ ...item, kind: "risk_draft" }), "/risk/register/new?id=task%2F1&returnTo=/work");
 });
 
-
-test("monitoring started from its native table preserves filters and safe return links",async()=>{
+test("work and monitoring detail preserve safe return links", () => {
  const returnTo="/compliance/monitoring?status=needs_monitoring&q=distribution&cycle=2026-Q3&page=2";
- const routes:string[]=[];
- await continueMonitoringNavigation(Promise.resolve({monitoring:{id:"next"}}),()=>true,(path:string)=>routes.push(path),returnTo);
- assert.equal(new URL(routes[0],"http://local").searchParams.get("returnTo"),returnTo);
  assert.deepEqual(getWorkReturnLink(returnTo),{href:returnTo,label:"Kembali ke pemantauan"});
  assert.deepEqual(getWorkReturnLink("/work"),{href:"/work",label:"Kembali ke pekerjaan"});
  assert.deepEqual(getWorkReturnLink("/risk/register?assessment_cycle=2026-Q3&monitoring_status=not_monitored"),{href:"/risk/register?assessment_cycle=2026-Q3&monitoring_status=not_monitored",label:"Kembali ke risiko"});

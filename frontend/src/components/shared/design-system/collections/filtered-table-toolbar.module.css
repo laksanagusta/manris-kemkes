@@ -1,0 +1,61 @@
+/* Compact controls share the top row of filtered tables. */
+.filters :global([data-slot="collection-search"]) {
+  width: min(100%, 17.5rem);
+}
+
+.filters :global([data-slot="collection-search"]) :global([role="searchbox"]),
+.filters :global([data-slot="table-filter-actions"]) > :global([data-slot="button"]),
+.toolbar:has(> :global([data-slot="collection-toolbar-leading"]) .filters)
+  > :global([data-slot="collection-toolbar-actions"]) > :global([data-slot="button"]) {
+  height: 2rem;
+}
+
+.filters :global([data-slot="collection-search"]) :global([role="searchbox"]):not(:focus-visible, :disabled, [aria-invalid="true"]) {
+  background-color: var(--card);
+  box-shadow: var(--search-outline-shadow);
+}
+
+.filters :global([data-slot="table-filter-actions"]) > :global([data-size="icon"]) {
+  width: 2rem;
+}
+
+.toolbar:has(> :global([data-slot="collection-toolbar-leading"]) .filters) {
+  flex-flow: row wrap;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.toolbar:has(> :global([data-slot="collection-toolbar-leading"]) .filters)
+  > :global([data-slot="collection-toolbar-leading"]) {
+  flex: 1 1 25rem;
+}
+
+.toolbar:has(> :global([data-slot="collection-toolbar-leading"]) .filters)
+  > :global([data-slot="collection-toolbar-actions"]) {
+  width: auto;
+  max-width: 100%;
+  margin-inline-start: auto;
+  flex-flow: row wrap;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.filterChip.appliedChip {
+  background-color: var(--notice-info-surface);
+  border-color: var(--notice-info-border);
+  color: var(--notice-info-foreground);
+}
+
+.filterChip.appliedChip :global([data-slot="button"]),
+.filterChip.appliedChip svg {
+  color: var(--notice-info-foreground);
+}
+
+.filterChip.appliedChip :global([data-filter-divider]) {
+  background-color: var(--notice-info-border);
+}
+
+.filterChip.appliedChip :global([data-slot="button"]):is(:hover, :active, [aria-expanded="true"]):not(:disabled) {
+  background-color: color-mix(in srgb, var(--notice-info-foreground) 8%, var(--notice-info-surface));
+  color: var(--notice-info-foreground);
+}

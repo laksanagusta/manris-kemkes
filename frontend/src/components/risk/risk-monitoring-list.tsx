@@ -1,5 +1,8 @@
 "use client";
 
+import { isMonitoringWindowOpen } from "@/lib/monitoring-window";
+import { formatDisplayDate } from "@/lib/display-date";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { listRiskMonitorings } from "@/lib/api/risk-monitoring";
@@ -47,23 +50,25 @@ export function RiskMonitoringTable({
                       ? "Final"
                       : item.status === "superseded"
                         ? "Digantikan"
-                        : "Draft"}
+                        : item.assessmentCycle && !isMonitoringWindowOpen(item.assessmentCycle)
+                          ? "Draf terkunci"
+                          : "Draf"}
                   </Badge>
                 </TableCell>
                 <TableCell>
                   {item.status === "final" ? item.observedNilai : "—"}
                 </TableCell>
                 <TableCell>
-                  {item.updatedAt || item.startedAt
-                    ? new Date(
+                  <span data-date-time="">{item.updatedAt || item.startedAt
+                    ? formatDisplayDate(new Date(
                         item.updatedAt || item.startedAt,
-                      ).toLocaleDateString("id-ID", {
+                      ), {
                         day: "numeric",
                         month: "short",
                         year: "numeric",
                         timeZone: "Asia/Jakarta",
                       })
-                    : "—"}
+                    : "—"}</span>
                 </TableCell>
               </TableRow>
             ))

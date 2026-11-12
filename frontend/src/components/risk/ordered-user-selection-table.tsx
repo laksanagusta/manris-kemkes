@@ -262,7 +262,7 @@ export function OrderedUserSelectionTable({
             <TableRow>
               <TableCell
                 colSpan={5}
-                className="h-24"
+                className=""
               >
                 <IllustratedEmptyState
                   title={emptyStateMessage}
@@ -295,7 +295,7 @@ export function OrderedUserSelectionTable({
         </TableBody>
       </Table>
 
-      <div className="flex items-center justify-between gap-3 border-t border-border/30 px-4 py-3">
+      <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3">
         <p className="text-xs text-muted-foreground">
           {footerNote ??
             "Urutan baris menentukan sequence peninjauan dan persetujuan."}

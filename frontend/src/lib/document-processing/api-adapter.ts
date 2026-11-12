@@ -249,7 +249,7 @@ function mapResponseToFindings(
         kind: "risk-event" as const,
         eventDraft: item,
         title: item.event.description || "Kandidat kejadian",
-        summary: item.event.actualImpact || "Dampak aktual belum tercantum dalam dokumen.",
+        summary: item.event.description || "Uraian kejadian belum tercantum dalam dokumen.",
         severity: item.event.severity === "extreme" ? "critical" as const : item.event.severity === "high" ? "high" as const : item.event.severity === "medium" ? "medium" as const : "low" as const,
         category: "Kejadian aktual",
         source: sourceFor(document, item.sourceRefs[0]),

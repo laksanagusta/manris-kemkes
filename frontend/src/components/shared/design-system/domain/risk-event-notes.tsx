@@ -1,4 +1,6 @@
 "use client";
+
+import { createDisplayDateFormatter } from "@/lib/display-date";
 import { useEffect, useRef, useState } from "react";
 import type { RiskEventNote } from "@/types/risk-event";
 import { Textarea } from "@/components/ui/textarea";
@@ -63,7 +65,7 @@ export function RiskEventNotes({ notes, canWrite, loading, error, onReload, onSa
   return <details className="group rounded-xl border border-border bg-card p-4">
     <summary className="cursor-pointer text-sm font-medium">Catatan tambahan</summary>
     <div className="mt-4 space-y-4">
-      {loading ? <p role="status" className="text-sm text-muted-foreground">Memuat catatan…</p> : error ? <div role="alert" className="space-y-2 text-sm"><p>{error}</p><ActionButton onClick={onReload}>Coba lagi</ActionButton></div> : notes.length ? <ol className="space-y-4">{notes.map(note => <li key={note.id} className="space-y-1 text-sm"><p className="whitespace-pre-wrap break-words">{note.body}</p><p className="text-xs text-muted-foreground">{note.createdByName || "Pengguna"} · <time dateTime={note.createdAt}>{new Intl.DateTimeFormat("id-ID", {dateStyle:"medium", timeStyle:"short", timeZone:"Asia/Jakarta"}).format(new Date(note.createdAt))}</time></p></li>)}</ol> : <p className="text-sm text-muted-foreground">Belum ada catatan tambahan.</p>}
+      {loading ? <p role="status" className="text-sm text-muted-foreground">Memuat catatan…</p> : error ? <div role="alert" className="space-y-2 text-sm"><p>{error}</p><ActionButton onClick={onReload}>Coba lagi</ActionButton></div> : notes.length ? <ol className="space-y-4">{notes.map(note => <li key={note.id} className="space-y-1 text-sm"><p className="whitespace-pre-wrap break-words">{note.body}</p><p className="text-xs text-muted-foreground">{note.createdByName || "Pengguna"} · <time dateTime={note.createdAt}>{createDisplayDateFormatter("id-ID", {dateStyle:"medium", timeStyle:"short", timeZone:"Asia/Jakarta"}).format(new Date(note.createdAt))}</time></p></li>)}</ol> : <p className="text-sm text-muted-foreground">Belum ada catatan tambahan.</p>}
       {canWrite && !editing ? <ActionButton onClick={() => setEditing(true)}>Tambah catatan</ActionButton> : null}
       {canWrite && editing ? <div className="space-y-3"><Label htmlFor="event-note">Catatan</Label><p id="event-note-help" className="text-xs text-muted-foreground">Jelaskan koreksi atau informasi tambahan. Catatan awal tetap tersimpan.</p><Textarea id="event-note" value={body} maxLength={2000} disabled={saving} aria-describedby="event-note-help" onChange={event => setBody(event.target.value)} />{saveError ? <p role="alert" className="text-sm text-destructive">{saveError}</p> : null}<div className="flex gap-2"><ActionButton loading={saving} disabled={saving || !body.trim()} onClick={() => void save()}>Simpan</ActionButton><ActionButton disabled={saving} onClick={() => {setEditing(false);setBody("");setSaveError("");request.current=null;}}>Batal</ActionButton></div></div> : null}
     </div>

@@ -23,10 +23,10 @@ func NewCommunicationLogRepository(pool *pgxpool.Pool) repository.CommunicationL
 // Create inserts a new communication log
 func (r *communicationLogRepository) Create(ctx context.Context, log *entity.CommunicationLog) error {
 	err := r.pool.QueryRow(ctx,
-		`INSERT INTO communication_logs (risk_id, stakeholder, notes, created_by)
-		 VALUES ($1,$2,$3,$4)
+		`INSERT INTO communication_logs (risk_id, notes, created_by)
+		 VALUES ($1,$2,$3)
 		 RETURNING id, created_at`,
-		log.RiskID, log.Stakeholder, log.Notes, log.CreatedBy,
+		log.RiskID, log.Notes, log.CreatedBy,
 	).Scan(&log.ID, &log.CreatedAt)
 
 	if err != nil {
@@ -39,7 +39,7 @@ func (r *communicationLogRepository) Create(ctx context.Context, log *entity.Com
 // ListByRiskID retrieves all communication logs for a risk
 func (r *communicationLogRepository) ListByRiskID(ctx context.Context, riskID uuid.UUID) ([]*entity.CommunicationLog, error) {
 	rows, err := r.pool.Query(ctx,
-		`SELECT cl.id, cl.risk_id, cl.stakeholder, cl.notes, cl.created_by, cl.created_at,
+		`SELECT cl.id, cl.risk_id, cl.notes, cl.created_by, cl.created_at,
 		        COALESCE(u.name, '') as created_by_name
 		 FROM communication_logs cl
 		 LEFT JOIN users u ON cl.created_by = u.id
@@ -56,7 +56,7 @@ func (r *communicationLogRepository) ListByRiskID(ctx context.Context, riskID uu
 	for rows.Next() {
 		var log entity.CommunicationLog
 		if err := rows.Scan(
-			&log.ID, &log.RiskID, &log.Stakeholder,
+			&log.ID, &log.RiskID,
 			&log.Notes, &log.CreatedBy, &log.CreatedAt, &log.CreatedByName,
 		); err != nil {
 			return nil, fmt.Errorf("scan communication log: %w", err)
@@ -83,13 +83,13 @@ func (r *communicationLogRepository) Delete(ctx context.Context, id uuid.UUID) e
 func (r *communicationLogRepository) FindByID(ctx context.Context, id uuid.UUID) (*entity.CommunicationLog, error) {
 	log := &entity.CommunicationLog{}
 	err := r.pool.QueryRow(ctx,
-		`SELECT cl.id, cl.risk_id, cl.stakeholder, cl.notes, cl.created_by, cl.created_at,
+		`SELECT cl.id, cl.risk_id, cl.notes, cl.created_by, cl.created_at,
 		        COALESCE(u.name, '') as created_by_name
 		 FROM communication_logs cl
 		 LEFT JOIN users u ON cl.created_by = u.id
 		 WHERE cl.id = $1`, id,
 	).Scan(
-		&log.ID, &log.RiskID, &log.Stakeholder,
+		&log.ID, &log.RiskID,
 		&log.Notes, &log.CreatedBy, &log.CreatedAt, &log.CreatedByName,
 	)
 

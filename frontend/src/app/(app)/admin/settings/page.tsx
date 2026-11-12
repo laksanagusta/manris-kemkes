@@ -1,14 +1,14 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Separator } from "@/components/ui/separator";
 import {
   CollectionPageHeader,
+  FormContainer,
+  FormGroup,
   PageStack,
 } from "@/components/shared/design-system";
 import {
@@ -17,7 +17,6 @@ import {
   Target,
   Gauge,
   AlertTriangle,
-  Shield,
   FileText,
 } from "@/components/shared/icons";
 
@@ -60,162 +59,130 @@ export default function CriteriaPage() {
 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Scope */}
-        <Card className="">
-          <CardHeader className="">
-            <CardTitle className="flex items-center gap-2">
-              <FileText className="size-4" />
-              Objek & Ruang Lingkup
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <FormContainer
+          title={<span className="flex items-center gap-2"><FileText className="size-4" />Objek & Ruang Lingkup</span>}
+        >
+          <FormGroup className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-xs">Jenis Objek</Label>
-              <Input defaultValue="Direktorat Jenderal" className="" />
+              <Label htmlFor="criteria-object-kind">Jenis Objek</Label>
+              <Input id="criteria-object-kind" defaultValue="Direktorat Jenderal" className="" />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs">Nama Objek</Label>
-              <Input defaultValue="Ditjen Pencegahan dan Pengendalian Penyakit (P2P)" className="" />
+              <Label htmlFor="criteria-object-name">Nama Objek</Label>
+              <Input id="criteria-object-name" defaultValue="Ditjen Pencegahan dan Pengendalian Penyakit (P2P)" className="" />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs">Pernyataan Ruang Lingkup</Label>
-              <Textarea
+              <Label htmlFor="criteria-scope">Pernyataan Ruang Lingkup</Label>
+              <Textarea id="criteria-scope"
                 defaultValue="Manajemen risiko mencakup seluruh kegiatan pencegahan, pengendalian, dan penanggulangan penyakit yang berada di bawah koordinasi Ditjen P2P Kementerian Kesehatan RI."
                 className="resize-none"
               />
             </div>
-          </CardContent>
-        </Card>
+          </FormGroup>
+        </FormContainer>
 
         {/* Context */}
-        <Card className="">
-          <CardHeader className="">
-            <CardTitle className="flex items-center gap-2">
-              <Settings2 className="size-4" />
-              Konteks Internal & Eksternal
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <FormContainer
+          title={<span className="flex items-center gap-2"><Settings2 className="size-4" />Konteks Internal & Eksternal</span>}
+        >
+          <FormGroup className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-xs">Konteks Internal</Label>
-              <Textarea
+              <Label htmlFor="criteria-internal">Konteks Internal</Label>
+              <Textarea id="criteria-internal"
                 defaultValue="Struktur organisasi, SDM, anggaran, kapasitas laboratorium, sistem informasi kesehatan, infrastruktur logistik vaksin dan obat."
                 className="resize-none"
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs">Konteks Eksternal</Label>
-              <Textarea
+              <Label htmlFor="criteria-external">Konteks Eksternal</Label>
+              <Textarea id="criteria-external"
                 defaultValue="Regulasi WHO, pandemi global, perubahan iklim, resistensi antimikroba, dinamika politik kesehatan, kerjasama lintas sektor."
                 className="resize-none"
               />
             </div>
-          </CardContent>
-        </Card>
+          </FormGroup>
+        </FormContainer>
 
         {/* Appetite & Tolerance */}
-        <Card className="">
-          <CardHeader className="">
-            <CardTitle className="flex items-center gap-2">
-              <Target className="size-4" />
-              Risk Appetite & Tolerance
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <FormContainer
+          title={<span className="flex items-center gap-2"><Target className="size-4" />Risk Appetite & Tolerance</span>}
+        >
+          <FormGroup className="space-y-4">
             <div className="space-y-2">
-              <Label className="text-xs">Risk Appetite</Label>
-              <Input defaultValue="Sedang (skor ≤ 9)" className="" />
-              <p className="text-[10px] text-muted-foreground">
+              <Label htmlFor="criteria-appetite">Risk Appetite</Label>
+              <Input id="criteria-appetite" defaultValue="Sedang (skor ≤ 9)" className="" />
+              <p className="text-xs text-muted-foreground">
                 Batas selera risiko yang bisa diterima organisasi
               </p>
             </div>
             <div className="space-y-2">
-              <Label className="text-xs">Risk Tolerance</Label>
-              <Input defaultValue="Tinggi (skor ≤ 16)" className="" />
-              <p className="text-[10px] text-muted-foreground">
+              <Label htmlFor="criteria-tolerance">Risk Tolerance</Label>
+              <Input id="criteria-tolerance" defaultValue="Tinggi (skor ≤ 16)" className="" />
+              <p className="text-xs text-muted-foreground">
                 Batas toleransi penyimpangan dari appetite
               </p>
             </div>
-          </CardContent>
-        </Card>
+          </FormGroup>
+        </FormContainer>
       </div>
 
       {/* Probability Scale */}
-      <Card className="">
-        <CardHeader className="">
-          <CardTitle className="flex items-center gap-2">
-            <Gauge className="size-4" />
-            Skala Probabilitas (1-5)
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-2">
-            {probabilityScale.map((item, index) => (
-              <div
-                key={item.level}
-                className="flex items-center gap-3 rounded-lg border border-border/50 p-3"
-              >
-                <Badge
-                  variant={scaleVariants[index]}
-                  className="w-7"
-                >
-                  {item.level}
-                </Badge>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold">{item.label}</span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    {item.description}
-                  </p>
-                </div>
-                <Input
-                  defaultValue={item.description}
-                  className="max-w-[300px] hidden lg:block"
-                />
+      <FormContainer
+        title={<span className="flex items-center gap-2"><Gauge className="size-4" />Skala Probabilitas (1-5)</span>}
+      >
+        {probabilityScale.map((item, index) => (
+          <FormGroup key={item.level} className="flex flex-wrap items-center gap-3">
+            <Badge
+              variant={scaleVariants[index]}
+              className="w-7"
+            >
+              {item.level}
+            </Badge>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold">{item.label}</span>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {item.description}
+              </p>
+            </div>
+            <Input
+              defaultValue={item.description}
+              aria-label={item.label}
+              className="w-full lg:max-w-[300px]"
+            />
+          </FormGroup>
+        ))}
+      </FormContainer>
 
       {/* Impact Scale */}
-      <Card className="">
-        <CardHeader className="">
-          <CardTitle className="flex items-center gap-2">
-            <AlertTriangle className="size-4" />
-            Skala Dampak (1-5)
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-2">
-            {impactScale.map((item, index) => (
-              <div
-                key={item.level}
-                className="flex items-center gap-3 rounded-lg border border-border/50 p-3"
-              >
-                <Badge
-                  variant={scaleVariants[index]}
-                  className="w-7"
-                >
-                  {item.level}
-                </Badge>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-semibold">{item.label}</span>
-                  </div>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">
-                    {item.description}
-                  </p>
-                </div>
-                <Input
-                  defaultValue={item.description}
-                  className="max-w-[300px] hidden lg:block"
-                />
+      <FormContainer
+        title={<span className="flex items-center gap-2"><AlertTriangle className="size-4" />Skala Dampak (1-5)</span>}
+      >
+        {impactScale.map((item, index) => (
+          <FormGroup key={item.level} className="flex flex-wrap items-center gap-3">
+            <Badge
+              variant={scaleVariants[index]}
+              className="w-7"
+            >
+              {item.level}
+            </Badge>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-semibold">{item.label}</span>
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                {item.description}
+              </p>
+            </div>
+            <Input
+              defaultValue={item.description}
+              aria-label={item.label}
+              className="w-full lg:max-w-[300px]"
+            />
+          </FormGroup>
+        ))}
+      </FormContainer>
     </PageStack>
   );
 }

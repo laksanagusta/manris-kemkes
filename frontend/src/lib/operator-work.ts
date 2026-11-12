@@ -1,4 +1,5 @@
-import type { OperatorWorkSectionKey } from "../types/operator-work";
+import { businessNow } from "./business-clock.ts";
+import type { OperatorWorkItem, OperatorWorkSectionKey } from "../types/operator-work";
 
 export const workSectionTitles: Record<OperatorWorkSectionKey, string> = {
  reports: "Laporan penanganan perlu diisi",
@@ -13,7 +14,7 @@ export const workSectionPaths: Record<OperatorWorkSectionKey, string> = {
 export function isWorkSection(value: unknown): value is OperatorWorkSectionKey {
  return value === "reports" || value === "monitoring" || value === "drafts";
 }
-export function sectionHref(key: OperatorWorkSectionKey, now=new Date()) {
+export function sectionHref(key: OperatorWorkSectionKey, now=businessNow()) {
  if(key==="monitoring"){
   const parts=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Jakarta",year:"numeric",month:"numeric"}).formatToParts(now);
   let year=Number(parts.find(p=>p.type==="year")?.value);let q=Math.floor((Number(parts.find(p=>p.type==="month")?.value)-1)/3);
@@ -21,6 +22,20 @@ export function sectionHref(key: OperatorWorkSectionKey, now=new Date()) {
   return `/risk/register?assessment_cycle=${year}-Q${q}&monitoring_status=not_monitored`;
  }
  return key==="drafts" ? "/risk/register?status=draft" : "/compliance/penanganan?status=needs_reporting";
+}
+
+export function workItemHref(item: Pick<OperatorWorkItem, "kind" | "targetId" | "riskId">) {
+ const target = encodeURIComponent(item.targetId);
+ switch (item.kind) {
+  case "mitigation_report":
+   return `/compliance/penanganan?taskId=${target}&returnTo=/work`;
+  case "monitoring_draft":
+   return `/risk/monitoring/${target}?returnTo=/work`;
+  case "monitoring_start":
+   return `/risk/register/new?id=${encodeURIComponent(item.riskId)}&tab=monitoring&returnTo=/work`;
+  case "risk_draft":
+   return `/risk/register/new?id=${target}&returnTo=/work`;
+ }
 }
 export function deadlineLabel(dueDate: string, today: string) {
  if (!dueDate || !today) return "";
@@ -45,23 +60,12 @@ export function readWorkUIState(raw: string | null): WorkUIState {
 }
 export function workUIKey(userID: string) { return `manris-work-ui:${userID}`; }
 
-// A completed request may only navigate while its originating session/view is current.
-export async function continueMonitoringNavigation(
- request: Promise<{monitoring:{id:string}}>,
- isCurrent: () => boolean,
- navigate: (path:string) => void,
- returnTo = "/work",
-) {
- const result=await request;
- if(isCurrent())navigate(`/risk/monitoring/${encodeURIComponent(result.monitoring.id)}?returnTo=${encodeURIComponent(getWorkReturnLink(returnTo)?.href || "/work")}`);
-}
-
 export function getWorkReturnLink(raw:string | null): {href:string;label:string} | null {
  if(!raw || !raw.startsWith("/") || raw.startsWith("//"))return null;
  try {
   const url=new URL(raw,"http://manris.local");
   if(url.origin!=="http://manris.local")return null;
-  const label=url.pathname==="/work"?"Kembali ke pekerjaan":url.pathname==="/compliance/monitoring"?"Kembali ke pemantauan":url.pathname==="/risk/register"?"Kembali ke risiko":null;
+  const label=url.pathname==="/work"?"Kembali ke pekerjaan":url.pathname==="/compliance/monitoring"?"Kembali ke pemantauan":url.pathname==="/risk/register"?"Kembali ke risiko":/^\/risk\/working-papers\/[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(url.pathname)?"Kembali ke Kertas Kerja":null;
   return label?{href:url.pathname+url.search,label}:null;
  } catch {return null;}
 }

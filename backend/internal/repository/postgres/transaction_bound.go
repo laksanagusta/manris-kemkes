@@ -57,16 +57,11 @@ func updateMitigationPreservingID(ctx context.Context, q riskQueryer, riskID uui
 	tag, err := q.Exec(ctx, `UPDATE mitigations SET
 		action=$3, owner=$4, owner_user_id=$5, due_date=$6, frequency=$7,
 		recurring_interval=$8, report_day=$9, report_date=$10, execution_schedule_text=$11,
-		target_cost=$12, sort_order=$13, mitigation_type=$14, activity_stage=$15,
-		expected_output=$16, quantitative_target=$17, supporting_unit=$18,
-		resources_required=$19, contingency_plan=$20, potential_obstacle=$21,
-		is_breakthrough_activity=$22, is_existing_control=$23
+		target_cost=$12, sort_order=$13, mitigation_type=$14
 		WHERE id=$1 AND risk_id=$2`, m.ID, riskID, m.Action, m.Owner, m.OwnerUserID,
 		nullableDateString(m.DueDate), normalizeMitigationFrequency(m.Frequency),
 		m.RecurringInterval, m.ReportDay, m.ReportDate, m.ExecutionScheduleText,
-		m.TargetCost, order, entity.NormalizeMitigationType(m.MitigationType), m.ActivityStage,
-		m.ExpectedOutput, m.QuantitativeTarget, m.SupportingUnit, m.ResourcesRequired,
-		m.ContingencyPlan, m.PotentialObstacle, m.IsBreakthroughActivity, m.IsExistingControl)
+		m.TargetCost, order, entity.NormalizeMitigationType(m.MitigationType))
 	if err != nil {
 		return fmt.Errorf("update draft mitigation: %w", err)
 	}

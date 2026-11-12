@@ -276,7 +276,7 @@ func (uc *SubmitProgressUseCase) Execute(ctx context.Context, input SubmitProgre
 		return nil, fmt.Errorf("tanggal jatuh tempo tidak valid: %w", err)
 	}
 
-	now := time.Now().In(timeutil.JakartaLocation())
+	now := timeutil.BusinessNow().In(timeutil.JakartaLocation())
 	task.EvidenceURL = evidenceURLs
 	task.Notes = notes
 	task.ReportedBy = &input.ReportedBy
@@ -348,7 +348,7 @@ func (uc *SubmitMonitoringReportUseCase) Execute(ctx context.Context, input Subm
 		return nil, domainerrors.ErrInvalidNotes
 	}
 
-	now := time.Now().In(timeutil.JakartaLocation())
+	now := timeutil.BusinessNow().In(timeutil.JakartaLocation())
 
 	if input.Status != "" {
 		task.Status = input.Status
@@ -405,9 +405,6 @@ func (uc *GenerateTasksUseCase) Execute(ctx context.Context, now time.Time) (int
 
 	for _, m := range mitigations {
 		if m.RecurringInterval == nil {
-			continue
-		}
-		if m.IsExistingControl {
 			continue
 		}
 

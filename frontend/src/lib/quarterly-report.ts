@@ -1,3 +1,5 @@
+import { businessNow } from "./business-clock.ts";
+import { createDisplayDateFormatter } from "./display-date.ts";
 import type {
   QuarterlyReportOverview,
   QuarterlyReport,
@@ -25,13 +27,6 @@ export const taskStateLabels: Record<TaskState, string> = {
   not_reported: "Tidak dilaporkan",
   skipped: "Dilewati",
 };
-export const conditionLabels = {
-  recovered: "Pulih",
-  controlled: "Terkendali",
-  ongoing: "Masih berlangsung",
-  worsening: "Memburuk",
-  unknown: "Belum diketahui",
-};
 export const severityLabels = {
   low: "Rendah",
   medium: "Sedang",
@@ -39,7 +34,7 @@ export const severityLabels = {
   extreme: "Sangat tinggi",
 };
 
-export function currentReportCycle(date = new Date()) {
+export function currentReportCycle(date = businessNow()) {
   const parts = new Intl.DateTimeFormat("en", {
     timeZone: "Asia/Jakarta",
     year: "numeric",
@@ -50,7 +45,7 @@ export function currentReportCycle(date = new Date()) {
   return `${year}-Q${Math.ceil(month / 3)}`;
 }
 
-export function riskPopulationLabel(cycle: string, date = new Date()) {
+export function riskPopulationLabel(cycle: string, date = businessNow()) {
   return cycle >= currentReportCycle(date)
     ? "Risiko aktif saat ini · Final"
     : "Risiko aktif akhir periode · Final";
@@ -61,8 +56,16 @@ export function shiftReportCycle(cycle: string, delta: number) {
   const index = Number(match[1]) * 4 + Number(match[2]) - 1 + delta;
   return `${Math.floor(index / 4)}-Q${(index % 4) + 1}`;
 }
-export const completedReportCycle = (date = new Date()) =>
+export const completedReportCycle = (date = businessNow()) =>
   shiftReportCycle(currentReportCycle(date), -1);
+
+export function reportQuarterOptions(current = currentReportCycle()) {
+  const count = (Number(current.slice(0, 4)) - 2000) * 4 + Number(current.slice(-1));
+  return Array.from({ length: count }, (_, index) => {
+    const value = shiftReportCycle(current, -index);
+    return { value, label: index ? value : `${value} · Berjalan` };
+  });
+}
 export function percentage(
   numerator: number,
   denominator: number,
@@ -83,7 +86,7 @@ export function formatReportNumber(value: number | null | undefined) {
 }
 export function formatReportDate(value?: string | null) {
   if (!value || !Number.isFinite(Date.parse(value))) return "—";
-  return new Intl.DateTimeFormat("id-ID", {
+  return createDisplayDateFormatter("id-ID", {
     timeZone: "Asia/Jakarta",
     dateStyle: "medium",
     timeStyle: "short",
@@ -410,7 +413,6 @@ export function buildQuarterlyOverview(
       description: event.description,
       occurredAt: event.occurredAt,
       organizationName: event.organizationName ?? "",
-      postResponseCondition: event.postResponseCondition,
       severity: event.severity,
     }));
   return {
@@ -462,7 +464,7 @@ export function buildRiskManagementCondition(report: QuarterlyReport, activeProf
   const main = assessed.filter((row) => row.aboveAppetite);
   const planned = main.filter(({ risk }) =>
     (risk.mitigations ?? (risk.mitigation ? [risk.mitigation] : [])).some(
-      (plan) => !plan.isExistingControl && Boolean(plan.action?.trim()),
+      (plan) => Boolean(plan.action?.trim()),
     ),
   ).length;
   const high = assessed.filter((row) => Math.round(row.profile!) >= 15).length;

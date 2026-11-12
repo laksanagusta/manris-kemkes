@@ -18,7 +18,7 @@ export function FieldsExample() {
     riskNameTouched && !riskName.trim() ? "Nama risiko wajib diisi." : undefined;
 
   return (
-    <div className="grid gap-4 rounded-[12px] bg-card p-4 shadow-black md:grid-cols-3">
+    <div className="grid gap-4 rounded-(--surface-radius) bg-card p-4 shadow-black md:grid-cols-3">
       <div className="space-y-2">
         <Label htmlFor="design-system-field-input">
           Input

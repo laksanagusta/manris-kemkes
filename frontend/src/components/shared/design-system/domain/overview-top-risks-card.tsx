@@ -1,5 +1,6 @@
 "use client";
 
+import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
 import Link from "next/link";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
@@ -37,10 +38,11 @@ export function OverviewTopRisksCard({
       <div className="-mx-(--card-spacing) -mb-(--card-spacing) min-w-0 xl:flex xl:flex-1 xl:flex-col">
         <Table
           aria-label="Contoh risiko yang perlu perhatian"
-          className="min-w-[680px] table-fixed"
+          className="min-w-[812px] table-fixed"
         >
           <colgroup>
-            <col className="w-[40%]" />
+            <col className="w-[16%]" />
+            <col className="w-[24%]" />
             <col className="w-[24%]" />
             <col className="w-[12%]" />
             <col className="w-[12%]" />
@@ -48,6 +50,7 @@ export function OverviewTopRisksCard({
           </colgroup>
           <CollectionTableHeader>
             <CollectionTableHeaderRow className="border-t border-border/60">
+              <CollectionTableHead>Kode risiko</CollectionTableHead>
               <CollectionTableHead className="">Risiko</CollectionTableHead>
               <CollectionTableHead>Kategori</CollectionTableHead>
               <CollectionTableHead>Probabilitas</CollectionTableHead>
@@ -61,24 +64,13 @@ export function OverviewTopRisksCard({
           {visibleRisks.map((risk) => {
             return (
               <TableRow key={risk.id}>
-                <TableCell className="whitespace-normal">
-                  <div className="flex min-w-0 flex-col items-start gap-1">
-                    <Link
-                      href={risk.href}
-                      className="min-w-0 max-w-full truncate rounded-sm text-sm font-medium leading-5 text-foreground transition-colors duration-150 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring motion-reduce:transition-none"
-                      title={risk.title}
-                    >
-                      {risk.title}
-                    </Link>
-                    <span
-                      className="font-mono text-[11px] leading-4 text-muted-foreground"
-                      title={risk.code}
-                    >
-                      {risk.code}
-                    </span>
-                  </div>
+                <TableCell><CollectionCode code={risk.code} href={risk.href} /></TableCell>
+                <TableCell>
+                  <Link href={risk.href} title={risk.title} className="block truncate rounded-sm font-medium hover:text-primary focus-visible:outline-2 focus-visible:outline-ring">
+                    {risk.title}
+                  </Link>
                 </TableCell>
-                <TableCell className="whitespace-normal text-muted-foreground">
+                <TableCell className="text-muted-foreground">
                   <RiskCategoryIndicator category={risk.category} />
                 </TableCell>
                 <TableCell>

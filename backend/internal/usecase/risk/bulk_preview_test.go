@@ -102,11 +102,11 @@ func TestBulkRiskSpreadsheetUseCase_Preview_ResolvesOrganizationByUploaderForNon
 	// New format: 4-row header + column numbers row + data row
 	rows := [][]string{
 		{"IDENTIFIKASI RISIKO", "", "", "", "", "", "ANALISIS RISIKO", "", "", "", "", "", "", "", "EVALUASI RISIKO", "", "RPR", "", "", "TARGET", "", "", "", ""},
-		{"RISIKO", "KODE RISIKO", "SEBAB", "SUMBER RISIKO", "C/UC", "DAMPAK", "URAIAN", "EFEKTIF", "TIDAK EFEKTIF", "P", "D", "BOBOT", "NILAI", "TINGKAT RISIKO", "PRIORITAS RISIKO", "SELERA RISIKO", "PILIHAN PENANGANAN", "URAIAN (RPR)", "JADWAL PELAKSANAAN", "P (target)", "D (target)", "BOBOT (target)", "NILAI (target)", "TINGKAT RISIKO (target)"},
+		{"RISIKO", "KATEGORI RISIKO", "KODE RISIKO", "SEBAB", "SUMBER RISIKO", "C/UC", "DAMPAK", "URAIAN", "EFEKTIF", "TIDAK EFEKTIF", "P", "D", "BOBOT", "NILAI", "TINGKAT RISIKO", "PRIORITAS RISIKO", "SELERA RISIKO", "PILIHAN PENANGANAN", "URAIAN (RPR)", "JADWAL PELAKSANAAN", "P (target)", "D (target)", "BOBOT (target)", "NILAI (target)", "TINGKAT RISIKO (target)"},
 		{"", "", "", "", "", "", "PENGENDALIAN YANG ADA", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""},
 		{"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""},
-		{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24"},
-		{"Risiko A", "", "Sebab A", "Internal", "C", "Dampak A", "Control", "Ya", "", "2", "2", "", "", "", "4", "Dalam batas", "mitigate", "Aksi", "Feb 2026", "1", "1", "", "", "", ""},
+		{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25"},
+		{"Risiko A", "Operasional", "", "Sebab A", "Internal", "C", "Dampak A", "Control", "Ya", "", "2", "2", "", "", "", "4", "Dalam batas", "mitigate", "Aksi", "Feb 2026", "1", "1", "", "", "", ""},
 	}
 
 	result, err := uc.Preview(context.Background(), BulkRiskSpreadsheetInput{Filename: "template.xlsx", Content: makeWorkbook(t, rows), UploaderID: uploaderID, OrganizationID: &orgID})
@@ -149,11 +149,11 @@ func TestBulkRiskSpreadsheetUseCase_Preview_UsesUploaderOrganizationForUnitRole(
 
 	rows := [][]string{
 		{"IDENTIFIKASI RISIKO", "", "", "", "", "", "ANALISIS RISIKO", "", "", "", "", "", "", "", "EVALUASI RISIKO", "", "RPR", "", "", "TARGET", "", "", "", ""},
-		{"RISIKO", "KODE RISIKO", "SEBAB", "SUMBER RISIKO", "C/UC", "DAMPAK", "URAIAN", "EFEKTIF", "TIDAK EFEKTIF", "P", "D", "BOBOT", "NILAI", "TINGKAT RISIKO", "PRIORITAS RISIKO", "SELERA RISIKO", "PILIHAN PENANGANAN", "URAIAN (RPR)", "JADWAL PELAKSANAAN", "P (target)", "D (target)", "BOBOT (target)", "NILAI (target)", "TINGKAT RISIKO (target)"},
+		{"RISIKO", "KATEGORI RISIKO", "KODE RISIKO", "SEBAB", "SUMBER RISIKO", "C/UC", "DAMPAK", "URAIAN", "EFEKTIF", "TIDAK EFEKTIF", "P", "D", "BOBOT", "NILAI", "TINGKAT RISIKO", "PRIORITAS RISIKO", "SELERA RISIKO", "PILIHAN PENANGANAN", "URAIAN (RPR)", "JADWAL PELAKSANAAN", "P (target)", "D (target)", "BOBOT (target)", "NILAI (target)", "TINGKAT RISIKO (target)"},
 		{"", "", "", "", "", "", "PENGENDALIAN YANG ADA", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""},
 		{"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""},
-		{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24"},
-		{"Risiko A", "", "", "", "C", "", "", "", "", "2", "2", "", "", "", "", "", "", "", "", "", "", "", "", ""},
+		{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25"},
+		{"Risiko A", "Operasional", "", "", "", "C", "", "", "", "", "2", "2", "", "", "", "", "", "", "", "", "", "", "", "", ""},
 	}
 
 	result, err := uc.Preview(context.Background(), BulkRiskSpreadsheetInput{Filename: "template.xlsx", Content: makeWorkbook(t, rows), UploaderID: uploaderID, OrganizationID: &orgID})
@@ -169,7 +169,11 @@ func TestBulkRiskSpreadsheetUseCase_Preview_UsesUploaderOrganizationForUnitRole(
 }
 
 func TestBulkRiskSpreadsheetUseCase_TemplateHasSheet2Structure(t *testing.T) {
-	uc := NewBulkRiskSpreadsheetUseCase(&fakePreviewOrgRepo{}, &fakePreviewUserRepo{})
+	orgID, uploaderID := uuid.New(), uuid.New()
+	uc := NewBulkRiskSpreadsheetUseCase(
+		&fakePreviewOrgRepo{orgs: []*entity.Organization{{ID: orgID, Name: "Inspektorat Utama"}}},
+		&fakePreviewUserRepo{user: &entity.User{ID: uploaderID, Role: "superadmin"}},
+	)
 	content, filename, err := uc.Template()
 	if err != nil {
 		t.Fatalf("template err: %v", err)
@@ -181,6 +185,7 @@ func TestBulkRiskSpreadsheetUseCase_TemplateHasSheet2Structure(t *testing.T) {
 	if err != nil {
 		t.Fatalf("open workbook: %v", err)
 	}
+	t.Cleanup(func() { _ = f.Close() })
 
 	templateRows, err := f.GetRows("Template Upload")
 	if err != nil {
@@ -193,8 +198,8 @@ func TestBulkRiskSpreadsheetUseCase_TemplateHasSheet2Structure(t *testing.T) {
 	if !slices.Contains(templateRows[0], "IDENTIFIKASI RISIKO") {
 		t.Fatalf("expected row 1 to contain 'IDENTIFIKASI RISIKO', got %v", templateRows[0])
 	}
-	if !slices.Contains(templateRows[1], "RISIKO") {
-		t.Fatalf("expected row 2 to contain 'RISIKO', got %v", templateRows[1])
+	if len(templateRows[1]) != 25 || !slices.Equal(templateRows[1][:3], []string{"RISIKO", "KATEGORI RISIKO", "KODE RISIKO"}) {
+		t.Fatalf("expected a 25-column header with category next to risk, got %v", templateRows[1])
 	}
 	if !slices.Contains(templateRows[2], "URAIAN") {
 		t.Fatalf("expected row 3 to contain 'URAIAN' (PENGENDALIAN sub-header), got %v", templateRows[2])
@@ -207,9 +212,34 @@ func TestBulkRiskSpreadsheetUseCase_TemplateHasSheet2Structure(t *testing.T) {
 	if len(exampleRows) < 5 {
 		t.Fatalf("expected at least 5 rows (4 header + 1 example) in Contoh Data, got %d", len(exampleRows))
 	}
+	if exampleRows[1][1] != "KATEGORI RISIKO" || exampleRows[4][1] != "Kepatuhan" {
+		t.Fatalf("expected category header and example in column B")
+	}
+
+	if err := f.SetSheetRow("Template Upload", "A5", &exampleRows[4]); err != nil {
+		t.Fatalf("fill template: %v", err)
+	}
+	uploaded, err := f.WriteToBuffer()
+	if err != nil {
+		t.Fatalf("write filled template: %v", err)
+	}
+	result, err := uc.Preview(context.Background(), BulkRiskSpreadsheetInput{
+		Filename: filename, Content: uploaded.Bytes(), UploaderID: uploaderID, OrganizationID: &orgID,
+	})
+	if err != nil {
+		t.Fatalf("preview filled template: %v", err)
+	}
+	if len(result.Items) != 1 || result.Items[0].Payload == nil {
+		t.Fatalf("expected one valid template row, got %+v", result.Items)
+	}
+	payload := result.Items[0].Payload
+	if payload.Category != entity.RiskCategoryKepatuhan || payload.ControlEffectiveness != "efektif" ||
+		payload.Probability != 2 || payload.TargetImpact != 2 || len(payload.Mitigations) != 1 {
+		t.Fatalf("expected category, controls, scores, and mitigation from the template, got %+v", payload)
+	}
 }
 
-func TestBulkRiskSpreadsheetUseCase_PreviewMapsCategory(t *testing.T) {
+func TestBulkRiskSpreadsheetUseCase_PreviewRejectsLegacyTemplateWithoutCategory(t *testing.T) {
 	uploaderID := uuid.New()
 	orgID := uuid.New()
 	uc := NewBulkRiskSpreadsheetUseCase(
@@ -233,14 +263,8 @@ func TestBulkRiskSpreadsheetUseCase_PreviewMapsCategory(t *testing.T) {
 	if len(result.Items) != 1 {
 		t.Fatalf("expected 1 item, got %d", len(result.Items))
 	}
-	if len(result.Items[0].Errors) != 0 {
-		t.Fatalf("expected no errors, got %v", result.Items[0].Errors)
-	}
-	if result.Items[0].Payload == nil {
-		t.Fatal("expected payload to be present")
-	}
-	if result.Items[0].Payload.Category != "operasional" {
-		t.Fatalf("expected default category operasional, got %q", result.Items[0].Payload.Category)
+	if item := result.Items[0]; item.Payload != nil || !slices.Contains(item.Errors, bulkRiskCategoryRequired) {
+		t.Fatalf("expected a category error and no payload, got %+v", item)
 	}
 }
 
@@ -264,11 +288,11 @@ func TestBulkRiskSpreadsheetUseCase_PreviewAcceptsCategoryHeaderAliases(t *testi
 		t.Run(tt.name, func(t *testing.T) {
 			rows := [][]string{
 				{"IDENTIFIKASI RISIKO", "", "", "", "", "", "ANALISIS RISIKO", "", "", "", "", "", "", "", "EVALUASI RISIKO", "", "RPR", "", "", "TARGET", "", "", "", ""},
-				{"RISIKO", "KODE RISIKO", "SEBAB", "SUMBER RISIKO", "C/UC", "DAMPAK", "URAIAN", "EFEKTIF", "TIDAK EFEKTIF", "P", "D", "BOBOT", "NILAI", "TINGKAT RISIKO", "PRIORITAS RISIKO", "SELERA RISIKO", "PILIHAN PENANGANAN", "URAIAN (RPR)", "JADWAL PELAKSANAAN", "P (target)", "D (target)", "BOBOT (target)", "NILAI (target)", "TINGKAT RISIKO (target)"},
+				{"RISIKO", tt.header, "KODE RISIKO", "SEBAB", "SUMBER RISIKO", "C/UC", "DAMPAK", "URAIAN", "EFEKTIF", "TIDAK EFEKTIF", "P", "D", "BOBOT", "NILAI", "TINGKAT RISIKO", "PRIORITAS RISIKO", "SELERA RISIKO", "PILIHAN PENANGANAN", "URAIAN (RPR)", "JADWAL PELAKSANAAN", "P (target)", "D (target)", "BOBOT (target)", "NILAI (target)", "TINGKAT RISIKO (target)"},
 				{"", "", "", "", "", "", "PENGENDALIAN YANG ADA", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""},
 				{"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""},
-				{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24"},
-				{"Risiko A", "", "Sebab A", "Internal", "C", "Dampak A", "Control", "Ya", "", "2", "2", "", "", "ti", "", "", "", "", "", "", "", "", "", ""},
+				{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25"},
+				{"Risiko A", "Operasional", "", "Sebab A", "Internal", "C", "Dampak A", "Control", "Ya", "", "2", "2", "", "", "ti", "", "", "", "", "", "", "", "", "", ""},
 			}
 
 			result, err := uc.Preview(context.Background(), BulkRiskSpreadsheetInput{Filename: "template.xlsx", Content: makeWorkbook(t, rows), UploaderID: uploaderID, OrganizationID: &orgID})
@@ -285,7 +309,7 @@ func TestBulkRiskSpreadsheetUseCase_PreviewAcceptsCategoryHeaderAliases(t *testi
 				t.Fatal("expected payload to be present")
 			}
 			if result.Items[0].Payload.Category != "operasional" {
-				t.Fatalf("expected default category operasional, got %q", result.Items[0].Payload.Category)
+				t.Fatalf("expected category operasional, got %q", result.Items[0].Payload.Category)
 			}
 		})
 	}
@@ -301,11 +325,11 @@ func TestBulkRiskSpreadsheetUseCase_PreviewRejectsInvalidCategory(t *testing.T) 
 
 	rows := [][]string{
 		{"IDENTIFIKASI RISIKO", "", "", "", "", "", "ANALISIS RISIKO", "", "", "", "", "", "", "", "EVALUASI RISIKO", "", "RPR", "", "", "TARGET", "", "", "", ""},
-		{"RISIKO", "KODE RISIKO", "SEBAB", "SUMBER RISIKO", "C/UC", "DAMPAK", "URAIAN", "EFEKTIF", "TIDAK EFEKTIF", "P", "D", "BOBOT", "NILAI", "TINGKAT RISIKO", "PRIORITAS RISIKO", "SELERA RISIKO", "PILIHAN PENANGANAN", "URAIAN (RPR)", "JADWAL PELAKSANAAN", "P (target)", "D (target)", "BOBOT (target)", "NILAI (target)", "TINGKAT RISIKO (target)"},
+		{"RISIKO", "KATEGORI RISIKO", "KODE RISIKO", "SEBAB", "SUMBER RISIKO", "C/UC", "DAMPAK", "URAIAN", "EFEKTIF", "TIDAK EFEKTIF", "P", "D", "BOBOT", "NILAI", "TINGKAT RISIKO", "PRIORITAS RISIKO", "SELERA RISIKO", "PILIHAN PENANGANAN", "URAIAN (RPR)", "JADWAL PELAKSANAAN", "P (target)", "D (target)", "BOBOT (target)", "NILAI (target)", "TINGKAT RISIKO (target)"},
 		{"", "", "", "", "", "", "PENGENDALIAN YANG ADA", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""},
 		{"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""},
-		{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24"},
-		{"Risiko A", "", "", "", "C", "", "", "", "", "2", "2", "", "", "", "", "", "", "", "", "", "", "", "", ""},
+		{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25"},
+		{"Risiko A", "Kategori lain", "", "", "", "C", "", "", "", "", "2", "2", "", "", "", "", "", "", "", "", "", "", "", "", ""},
 	}
 
 	result, err := uc.Preview(context.Background(), BulkRiskSpreadsheetInput{Filename: "template.xlsx", Content: makeWorkbook(t, rows), UploaderID: uploaderID, OrganizationID: &orgID})
@@ -315,18 +339,13 @@ func TestBulkRiskSpreadsheetUseCase_PreviewRejectsInvalidCategory(t *testing.T) 
 	if len(result.Items) != 1 {
 		t.Fatalf("expected 1 item, got %d", len(result.Items))
 	}
-	if result.Items[0].Payload == nil {
-		t.Fatalf("expected payload to be present, got nil with errors: %v", result.Items[0].Errors)
-	}
-	if result.Items[0].Payload == nil && len(result.Items[0].Errors) == 0 {
-		t.Fatal("expected either payload or errors to be present")
-	}
-	if len(result.Items[0].Errors) == 0 {
-		t.Logf("warning: no errors but test expected invalid category error")
+	if item := result.Items[0]; item.Payload != nil || len(item.Errors) != 1 ||
+		!strings.HasPrefix(item.Errors[0], "Kategori Risiko tidak valid.") {
+		t.Fatalf("expected an invalid category error and no payload, got %+v", item)
 	}
 }
 
-func TestBulkRiskSpreadsheetUseCase_Preview_DefaultsCategoryToOperasional(t *testing.T) {
+func TestBulkRiskSpreadsheetUseCase_PreviewRejectsBlankCategory(t *testing.T) {
 	uploaderID := uuid.New()
 	orgID := uuid.New()
 	uc := NewBulkRiskSpreadsheetUseCase(
@@ -335,7 +354,7 @@ func TestBulkRiskSpreadsheetUseCase_Preview_DefaultsCategoryToOperasional(t *tes
 	)
 
 	headers := []string{"RISIKO", "DESKRIPSI", "KATEGORI RISIKO", "C/UC", "P", "D", "P (target)", "D (target)", "BOBOT (target)"}
-	row := []string{"Risiko A", "Deskripsi A", "", "C", "2", "2", "1", "1", "1.0"}
+	row := []string{"Risiko A", "Deskripsi A", "   ", "C", "2", "2", "1", "1", "1.0"}
 
 	result, err := uc.Preview(context.Background(), BulkRiskSpreadsheetInput{Filename: "template.xlsx", Content: makeWorkbook(t, [][]string{headers, row}), UploaderID: uploaderID, OrganizationID: &orgID})
 	if err != nil {
@@ -344,11 +363,8 @@ func TestBulkRiskSpreadsheetUseCase_Preview_DefaultsCategoryToOperasional(t *tes
 	if len(result.Items) != 1 {
 		t.Fatalf("expected 1 item, got %d", len(result.Items))
 	}
-	if result.Items[0].Payload == nil {
-		t.Fatal("expected payload to be present (category defaults to operasional)")
-	}
-	if result.Items[0].Payload.Category != "operasional" {
-		t.Fatalf("expected category to default to operasional, got %q", result.Items[0].Payload.Category)
+	if item := result.Items[0]; item.Payload != nil || !slices.Equal(item.Errors, []string{bulkRiskCategoryRequired}) {
+		t.Fatalf("expected only a category error and no payload, got %+v", item)
 	}
 }
 
@@ -362,11 +378,11 @@ func TestBulkRiskSpreadsheetUseCase_Preview_EfektifFilledSetsControlEffectivenes
 
 	rows := [][]string{
 		{"IDENTIFIKASI RISIKO", "", "", "", "", "", "ANALISIS RISIKO", "", "", "", "", "", "", "", "EVALUASI RISIKO", "", "RPR", "", "", "TARGET", "", "", "", ""},
-		{"RISIKO", "KODE RISIKO", "SEBAB", "SUMBER RISIKO", "C/UC", "DAMPAK", "URAIAN", "EFEKTIF", "TIDAK EFEKTIF", "P", "D", "BOBOT", "NILAI", "TINGKAT RISIKO", "PRIORITAS RISIKO", "SELERA RISIKO", "PILIHAN PENANGANAN", "URAIAN (RPR)", "JADWAL PELAKSANAAN", "P (target)", "D (target)", "BOBOT (target)", "NILAI (target)", "TINGKAT RISIKO (target)"},
+		{"RISIKO", "KATEGORI RISIKO", "KODE RISIKO", "SEBAB", "SUMBER RISIKO", "C/UC", "DAMPAK", "URAIAN", "EFEKTIF", "TIDAK EFEKTIF", "P", "D", "BOBOT", "NILAI", "TINGKAT RISIKO", "PRIORITAS RISIKO", "SELERA RISIKO", "PILIHAN PENANGANAN", "URAIAN (RPR)", "JADWAL PELAKSANAAN", "P (target)", "D (target)", "BOBOT (target)", "NILAI (target)", "TINGKAT RISIKO (target)"},
 		{"", "", "", "", "", "", "PENGENDALIAN YANG ADA", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""},
 		{"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""},
-		{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24"},
-		{"Risiko A", "", "Sebab A", "Internal", "C", "Dampak A", "Control", "Ya", "", "2", "2", "", "", "", "", "Dalam batas", "mitigate", "", "", "", "", "", "", ""},
+		{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25"},
+		{"Risiko A", "Operasional", "", "Sebab A", "Internal", "C", "Dampak A", "Control", "Ya", "", "2", "2", "", "", "", "", "Dalam batas", "mitigate", "", "", "", "", "", "", ""},
 	}
 
 	result, err := uc.Preview(context.Background(), BulkRiskSpreadsheetInput{Filename: "template.xlsx", Content: makeWorkbook(t, rows), UploaderID: uploaderID, OrganizationID: &orgID})
@@ -394,11 +410,11 @@ func TestBulkRiskSpreadsheetUseCase_Preview_TidakEfektifFilledSetsControlEffecti
 
 	rows := [][]string{
 		{"IDENTIFIKASI RISIKO", "", "", "", "", "", "ANALISIS RISIKO", "", "", "", "", "", "", "", "EVALUASI RISIKO", "", "RPR", "", "", "TARGET", "", "", "", ""},
-		{"RISIKO", "KODE RISIKO", "SEBAB", "SUMBER RISIKO", "C/UC", "DAMPAK", "URAIAN", "EFEKTIF", "TIDAK EFEKTIF", "P", "D", "BOBOT", "NILAI", "TINGKAT RISIKO", "PRIORITAS RISIKO", "SELERA RISIKO", "PILIHAN PENANGANAN", "URAIAN (RPR)", "JADWAL PELAKSANAAN", "P (target)", "D (target)", "BOBOT (target)", "NILAI (target)", "TINGKAT RISIKO (target)"},
+		{"RISIKO", "KATEGORI RISIKO", "KODE RISIKO", "SEBAB", "SUMBER RISIKO", "C/UC", "DAMPAK", "URAIAN", "EFEKTIF", "TIDAK EFEKTIF", "P", "D", "BOBOT", "NILAI", "TINGKAT RISIKO", "PRIORITAS RISIKO", "SELERA RISIKO", "PILIHAN PENANGANAN", "URAIAN (RPR)", "JADWAL PELAKSANAAN", "P (target)", "D (target)", "BOBOT (target)", "NILAI (target)", "TINGKAT RISIKO (target)"},
 		{"", "", "", "", "", "", "PENGENDALIAN YANG ADA", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""},
 		{"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""},
-		{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24"},
-		{"Risiko A", "", "Sebab A", "Internal", "C", "Dampak A", "Control", "", "Ya", "2", "2", "", "", "", "", "Dalam batas", "mitigate", "", "", "", "", "", "", ""},
+		{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25"},
+		{"Risiko A", "Operasional", "", "Sebab A", "Internal", "C", "Dampak A", "Control", "", "Ya", "2", "2", "", "", "", "", "Dalam batas", "mitigate", "", "", "", "", "", "", ""},
 	}
 
 	result, err := uc.Preview(context.Background(), BulkRiskSpreadsheetInput{Filename: "template.xlsx", Content: makeWorkbook(t, rows), UploaderID: uploaderID, OrganizationID: &orgID})
@@ -426,11 +442,11 @@ func TestBulkRiskSpreadsheetUseCase_Preview_BothEfektifAndTidakEfektifCausesErro
 
 	rows := [][]string{
 		{"IDENTIFIKASI RISIKO", "", "", "", "", "", "ANALISIS RISIKO", "", "", "", "", "", "", "", "EVALUASI RISIKO", "", "RPR", "", "", "TARGET", "", "", "", ""},
-		{"RISIKO", "KODE RISIKO", "SEBAB", "SUMBER RISIKO", "C/UC", "DAMPAK", "URAIAN", "EFEKTIF", "TIDAK EFEKTIF", "P", "D", "BOBOT", "NILAI", "TINGKAT RISIKO", "PRIORITAS RISIKO", "SELERA RISIKO", "PILIHAN PENANGANAN", "URAIAN (RPR)", "JADWAL PELAKSANAAN", "P (target)", "D (target)", "BOBOT (target)", "NILAI (target)", "TINGKAT RISIKO (target)"},
+		{"RISIKO", "KATEGORI RISIKO", "KODE RISIKO", "SEBAB", "SUMBER RISIKO", "C/UC", "DAMPAK", "URAIAN", "EFEKTIF", "TIDAK EFEKTIF", "P", "D", "BOBOT", "NILAI", "TINGKAT RISIKO", "PRIORITAS RISIKO", "SELERA RISIKO", "PILIHAN PENANGANAN", "URAIAN (RPR)", "JADWAL PELAKSANAAN", "P (target)", "D (target)", "BOBOT (target)", "NILAI (target)", "TINGKAT RISIKO (target)"},
 		{"", "", "", "", "", "", "PENGENDALIAN YANG ADA", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""},
 		{"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""},
-		{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24"},
-		{"Risiko A", "", "Sebab A", "Internal", "C", "Dampak A", "Control", "Ya", "Ya", "2", "2", "", "", "", "", "Dalam batas", "mitigate", "", "", "", "", "", "", ""},
+		{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25"},
+		{"Risiko A", "Operasional", "", "Sebab A", "Internal", "C", "Dampak A", "Control", "Ya", "Ya", "2", "2", "", "", "", "", "Dalam batas", "mitigate", "", "", "", "", "", "", ""},
 	}
 
 	result, err := uc.Preview(context.Background(), BulkRiskSpreadsheetInput{Filename: "template.xlsx", Content: makeWorkbook(t, rows), UploaderID: uploaderID, OrganizationID: &orgID})
@@ -526,11 +542,11 @@ func TestBulkRiskSpreadsheetUseCase_Preview_BothEmptySetsEmptyControlEffectivene
 
 	rows := [][]string{
 		{"IDENTIFIKASI RISIKO", "", "", "", "", "", "ANALISIS RISIKO", "", "", "", "", "", "", "", "EVALUASI RISIKO", "", "RPR", "", "", "TARGET", "", "", "", ""},
-		{"RISIKO", "KODE RISIKO", "SEBAB", "SUMBER RISIKO", "C/UC", "DAMPAK", "URAIAN", "EFEKTIF", "TIDAK EFEKTIF", "P", "D", "BOBOT", "NILAI", "TINGKAT RISIKO", "PRIORITAS RISIKO", "SELERA RISIKO", "PILIHAN PENANGANAN", "URAIAN (RPR)", "JADWAL PELAKSANAAN", "P (target)", "D (target)", "BOBOT (target)", "NILAI (target)", "TINGKAT RISIKO (target)"},
+		{"RISIKO", "KATEGORI RISIKO", "KODE RISIKO", "SEBAB", "SUMBER RISIKO", "C/UC", "DAMPAK", "URAIAN", "EFEKTIF", "TIDAK EFEKTIF", "P", "D", "BOBOT", "NILAI", "TINGKAT RISIKO", "PRIORITAS RISIKO", "SELERA RISIKO", "PILIHAN PENANGANAN", "URAIAN (RPR)", "JADWAL PELAKSANAAN", "P (target)", "D (target)", "BOBOT (target)", "NILAI (target)", "TINGKAT RISIKO (target)"},
 		{"", "", "", "", "", "", "PENGENDALIAN YANG ADA", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""},
 		{"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""},
-		{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24"},
-		{"Risiko A", "", "Sebab A", "Internal", "C", "Dampak A", "Control", "", "", "2", "2", "", "", "", "", "Dalam batas", "mitigate", "", "", "", "", "", "", ""},
+		{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25"},
+		{"Risiko A", "Operasional", "", "Sebab A", "Internal", "C", "Dampak A", "Control", "", "", "2", "2", "", "", "", "", "Dalam batas", "mitigate", "", "", "", "", "", "", ""},
 	}
 
 	result, err := uc.Preview(context.Background(), BulkRiskSpreadsheetInput{Filename: "template.xlsx", Content: makeWorkbook(t, rows), UploaderID: uploaderID, OrganizationID: &orgID})
@@ -561,11 +577,11 @@ func TestBulkRiskSpreadsheetUseCase_Preview_WeightCalculatedFromPAndD(t *testing
 
 	rows := [][]string{
 		{"IDENTIFIKASI RISIKO", "", "", "", "", "", "ANALISIS RISIKO", "", "", "", "", "", "", "", "EVALUASI RISIKO", "", "RPR", "", "", "TARGET", "", "", "", ""},
-		{"RISIKO", "KODE RISIKO", "SEBAB", "SUMBER RISIKO", "C/UC", "DAMPAK", "URAIAN", "EFEKTIF", "TIDAK EFEKTIF", "P", "D", "BOBOT", "NILAI", "TINGKAT RISIKO", "PRIORITAS RISIKO", "SELERA RISIKO", "PILIHAN PENANGANAN", "URAIAN (RPR)", "JADWAL PELAKSANAAN", "P (target)", "D (target)", "BOBOT (target)", "NILAI (target)", "TINGKAT RISIKO (target)"},
+		{"RISIKO", "KATEGORI RISIKO", "KODE RISIKO", "SEBAB", "SUMBER RISIKO", "C/UC", "DAMPAK", "URAIAN", "EFEKTIF", "TIDAK EFEKTIF", "P", "D", "BOBOT", "NILAI", "TINGKAT RISIKO", "PRIORITAS RISIKO", "SELERA RISIKO", "PILIHAN PENANGANAN", "URAIAN (RPR)", "JADWAL PELAKSANAAN", "P (target)", "D (target)", "BOBOT (target)", "NILAI (target)", "TINGKAT RISIKO (target)"},
 		{"", "", "", "", "", "", "PENGENDALIAN YANG ADA", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""},
 		{"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""},
-		{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24"},
-		{"Risiko A", "", "Sebab A", "Internal", "C", "Dampak A", "", "", "", "3", "4", "", "", "", "", "", "", "", "", "", "", "", "", ""},
+		{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25"},
+		{"Risiko A", "Operasional", "", "Sebab A", "Internal", "C", "Dampak A", "", "", "", "3", "4", "", "", "", "", "", "", "", "", "", "", "", "", ""},
 	}
 
 	result, err := uc.Preview(context.Background(), BulkRiskSpreadsheetInput{Filename: "template.xlsx", Content: makeWorkbook(t, rows), UploaderID: uploaderID, OrganizationID: &orgID})
@@ -599,12 +615,12 @@ func TestBulkRiskSpreadsheetUseCase_Preview_4RowHeaderDetection(t *testing.T) {
 
 	rows := [][]string{
 		{"IDENTIFIKASI RISIKO", "", "", "", "", "", "ANALISIS RISIKO", "", "", "", "", "", "", "", "EVALUASI RISIKO", "", "RPR", "", "", "TARGET", "", "", "", ""},
-		{"RISIKO", "KODE RISIKO", "SEBAB", "SUMBER RISIKO", "C/UC", "DAMPAK", "URAIAN", "EFEKTIF", "TIDAK EFEKTIF", "P", "D", "BOBOT", "NILAI", "TINGKAT RISIKO", "PRIORITAS RISIKO", "SELERA RISIKO", "PILIHAN PENANGANAN", "URAIAN (RPR)", "JADWAL PELAKSANAAN", "P (target)", "D (target)", "BOBOT (target)", "NILAI (target)", "TINGKAT RISIKO (target)"},
+		{"RISIKO", "KATEGORI RISIKO", "KODE RISIKO", "SEBAB", "SUMBER RISIKO", "C/UC", "DAMPAK", "URAIAN", "EFEKTIF", "TIDAK EFEKTIF", "P", "D", "BOBOT", "NILAI", "TINGKAT RISIKO", "PRIORITAS RISIKO", "SELERA RISIKO", "PILIHAN PENANGANAN", "URAIAN (RPR)", "JADWAL PELAKSANAAN", "P (target)", "D (target)", "BOBOT (target)", "NILAI (target)", "TINGKAT RISIKO (target)"},
 		{"", "", "", "", "", "", "PENGENDALIAN YANG ADA", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""},
 		{"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""},
-		{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24"},
-		{"Risiko Row5", "", "", "", "C", "", "", "", "", "2", "2", "", "", "", "", "", "", "", "", "", "", "", "", ""},
-		{"Risiko Row6", "", "", "", "C", "", "", "", "", "3", "3", "", "", "", "", "", "", "", "", "", "", "", "", ""},
+		{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25"},
+		{"Risiko Row5", "Operasional", "", "", "", "C", "", "", "", "", "2", "2", "", "", "", "", "", "", "", "", "", "", "", "", ""},
+		{"Risiko Row6", "Operasional", "", "", "", "C", "", "", "", "", "3", "3", "", "", "", "", "", "", "", "", "", "", "", "", ""},
 	}
 
 	result, err := uc.Preview(context.Background(), BulkRiskSpreadsheetInput{Filename: "template.xlsx", Content: makeWorkbook(t, rows), UploaderID: uploaderID, OrganizationID: &orgID})
@@ -632,11 +648,11 @@ func TestBulkRiskSpreadsheetUseCase_Preview_DescriptionEmptyNoError(t *testing.T
 
 	rows := [][]string{
 		{"IDENTIFIKASI RISIKO", "", "", "", "", "", "ANALISIS RISIKO", "", "", "", "", "", "", "", "EVALUASI RISIKO", "", "RPR", "", "", "TARGET", "", "", "", ""},
-		{"RISIKO", "KODE RISIKO", "SEBAB", "SUMBER RISIKO", "C/UC", "DAMPAK", "URAIAN", "EFEKTIF", "TIDAK EFEKTIF", "P", "D", "BOBOT", "NILAI", "TINGKAT RISIKO", "PRIORITAS RISIKO", "SELERA RISIKO", "PILIHAN PENANGANAN", "URAIAN (RPR)", "JADWAL PELAKSANAAN", "P (target)", "D (target)", "BOBOT (target)", "NILAI (target)", "TINGKAT RISIKO (target)"},
+		{"RISIKO", "KATEGORI RISIKO", "KODE RISIKO", "SEBAB", "SUMBER RISIKO", "C/UC", "DAMPAK", "URAIAN", "EFEKTIF", "TIDAK EFEKTIF", "P", "D", "BOBOT", "NILAI", "TINGKAT RISIKO", "PRIORITAS RISIKO", "SELERA RISIKO", "PILIHAN PENANGANAN", "URAIAN (RPR)", "JADWAL PELAKSANAAN", "P (target)", "D (target)", "BOBOT (target)", "NILAI (target)", "TINGKAT RISIKO (target)"},
 		{"", "", "", "", "", "", "PENGENDALIAN YANG ADA", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""},
 		{"", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""},
-		{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24"},
-		{"Risiko A", "", "Sebab A", "Internal", "C", "Dampak A", "Control", "", "", "2", "2", "", "", "", "", "", "", "", "", "", "", "", "", ""},
+		{"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25"},
+		{"Risiko A", "Operasional", "", "Sebab A", "Internal", "C", "Dampak A", "Control", "", "", "2", "2", "", "", "", "", "", "", "", "", "", "", "", "", ""},
 	}
 
 	result, err := uc.Preview(context.Background(), BulkRiskSpreadsheetInput{Filename: "template.xlsx", Content: makeWorkbook(t, rows), UploaderID: uploaderID, OrganizationID: &orgID})

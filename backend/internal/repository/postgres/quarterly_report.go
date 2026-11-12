@@ -276,7 +276,7 @@ func loadQuarterlyRisks(ctx context.Context, q riskQueryer, cycle string, start,
 		        monitoring.observed_nilai,
 		        monitoring.observed_level, monitoring.finalized_at,
 	        GREATEST(r.updated_at, monitoring.updated_at),
-	        (COALESCE(lifecycle.archived_at >= $2 AND lifecycle.archived_at < LEAST($3::timestamptz, CURRENT_TIMESTAMP), FALSE) OR EXISTS (SELECT 1 FROM lifecycle_events e WHERE e.version_group_id = r.version_group_id AND e.action = 'archive' AND e.created_at >= $2 AND e.created_at < LEAST($3::timestamptz, CURRENT_TIMESTAMP)))
+	        (COALESCE(lifecycle.archived_at >= $2 AND lifecycle.archived_at < LEAST($3::timestamptz, ` + businessNowSQL + `), FALSE) OR EXISTS (SELECT 1 FROM lifecycle_events e WHERE e.version_group_id = r.version_group_id AND e.action = 'archive' AND e.created_at >= $2 AND e.created_at < LEAST($3::timestamptz, ` + businessNowSQL + `)))
 	 FROM risk_snapshots r
 	 LEFT JOIN lifecycle ON lifecycle.version_group_id = r.version_group_id
 	 LEFT JOIN organizations o ON r.organization_id = o.id
@@ -354,7 +354,7 @@ func loadQuarterlyRisks(ctx context.Context, q riskQueryer, cycle string, start,
 
 	mitigationRows, err := q.Query(ctx,
 		`SELECT id, risk_id, action, owner, owner_user_id, due_date::text, frequency, recurring_interval, report_day, report_date, COALESCE(execution_schedule_text, ''), target_cost, sort_order, created_at,
-		        mitigation_type, activity_stage, expected_output, quantitative_target, supporting_unit, resources_required, contingency_plan, potential_obstacle, is_breakthrough_activity, is_existing_control
+		        mitigation_type
 		 FROM mitigations
 		 WHERE risk_id = ANY($1)
 		 ORDER BY risk_id, sort_order, created_at`, riskIDs)
@@ -366,7 +366,7 @@ func loadQuarterlyRisks(ctx context.Context, q riskQueryer, cycle string, start,
 	for mitigationRows.Next() {
 		var mitigation entity.Mitigation
 		if err := mitigationRows.Scan(&mitigation.ID, &mitigation.RiskID, &mitigation.Action, &mitigation.Owner, &mitigation.OwnerUserID, &mitigation.DueDate, &mitigation.Frequency, &mitigation.RecurringInterval, &mitigation.ReportDay, &mitigation.ReportDate, &mitigation.ExecutionScheduleText, &mitigation.TargetCost, &mitigation.SortOrder, &mitigation.CreatedAt,
-			&mitigation.MitigationType, &mitigation.ActivityStage, &mitigation.ExpectedOutput, &mitigation.QuantitativeTarget, &mitigation.SupportingUnit, &mitigation.ResourcesRequired, &mitigation.ContingencyPlan, &mitigation.PotentialObstacle, &mitigation.IsBreakthroughActivity, &mitigation.IsExistingControl); err != nil {
+			&mitigation.MitigationType); err != nil {
 			return nil, nil, fmt.Errorf("scan cycle snapshot mitigation: %w", err)
 		}
 		if risk := riskByID[mitigation.RiskID]; risk != nil {

@@ -14,7 +14,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Check, X, Loader2 } from "@/components/shared/icons";
-import { cn } from "@/lib/utils";
 
 interface ApprovalModalProps {
   open: boolean;
@@ -116,7 +115,7 @@ export function ApprovalModal({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className={cn("sm:max-w-md")} showCloseButton={!isSubmitting}>
+      <DialogContent showCloseButton={!isSubmitting}>
         <DialogHeader>
           <div className="flex items-center gap-2">
             <div

@@ -2,10 +2,11 @@
 
 import { MotionNumber } from "@/components/shared/design-system/motion/motion-primitives";
 
-import { useMemo } from "react";
+import { useId, useMemo } from "react";
 import {
-  LineChart as RechartsLineChart,
-  Line,
+  Area,
+  AreaChart,
+  CartesianGrid,
   XAxis,
   YAxis,
 } from "recharts";
@@ -21,10 +22,9 @@ import {
 } from "@/components/ui/chart";
 import { buildRiskCountTrendData } from "@/lib/dashboard-insights";
 import { shiftAssessmentCycle } from "@/lib/risk-cycle-options";
-import type { Risk } from "@/types/risk";
 
 interface RiskCountTrendChartProps {
-  risks: Risk[];
+  risks: Parameters<typeof buildRiskCountTrendData>[0];
   currentCycle: string;
   currentTotal?: number;
   loading?: boolean;
@@ -41,7 +41,7 @@ function getLastNQuarters(currentCycle: string, n: number): string[] {
 const chartConfig = {
   totalRisks: {
     label: "Total Risiko",
-    color: "var(--color-violet-400)",
+    color: "var(--workspace-data)",
   },
 } satisfies ChartConfig;
 
@@ -53,6 +53,7 @@ export function RiskCountTrendChart({
   error,
   onRetry,
 }: RiskCountTrendChartProps) {
+  const gradientId = useId();
   const chartData = useMemo(() => {
     const trend = buildRiskCountTrendData(risks);
     const periods = getLastNQuarters(currentCycle, 4);
@@ -83,34 +84,41 @@ export function RiskCountTrendChart({
         <OverviewPanelState
           state="loading"
           message="Memuat tren jumlah risiko..."
-          className="min-h-80"
+          className="min-h-64"
         />
       ) : error ? (
         <OverviewPanelState
           state="error"
           message="Tren jumlah risiko tidak dapat dimuat."
-          className="min-h-80"
+          className="min-h-64"
           onRetry={onRetry}
         />
       ) : !hasData ? (
         <OverviewPanelState
           state="empty"
           message="Belum ada data jumlah risiko untuk 4 kuartal terakhir."
-          className="min-h-80"
+          className="min-h-64"
         />
       ) : (
         <div>
           <div
             role="img"
             aria-label={`Tren jumlah total risiko dari ${chartData[0]?.period} sampai ${chartData.at(-1)?.period}`}
-            className="h-72 w-full sm:h-80 xl:h-[24rem]"
+            className="h-64 w-full sm:h-[17rem]"
           >
             <ChartContainer config={chartConfig} className="h-full w-full">
-              <RechartsLineChart
+              <AreaChart
                 accessibilityLayer
                 data={chartData}
                 margin={{ top: 8, right: 8, left: 0, bottom: 4 }}
               >
+                <defs>
+                  <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="var(--color-totalRisks)" stopOpacity={0.2} />
+                    <stop offset="100%" stopColor="var(--color-totalRisks)" stopOpacity={0.015} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid vertical={false} stroke="var(--border)" strokeDasharray="2 4" />
                 <XAxis
                   dataKey="period"
                   padding={{ left: 32, right: 32 }}
@@ -147,15 +155,17 @@ export function RiskCountTrendChart({
                     />
                   }
                 />
-                <Line
-                  type="monotone"
+                <Area
+                  type="linear"
                   dataKey="totalRisks"
                   stroke="var(--color-totalRisks)"
-                  strokeWidth={2.5}
+                  strokeWidth={1.75}
+                  fill={`url(#${gradientId})`}
+                  isAnimationActive={false}
                   dot={false}
                   activeDot={false}
                 />
-              </RechartsLineChart>
+              </AreaChart>
             </ChartContainer>
           </div>
           <ul className="sr-only">

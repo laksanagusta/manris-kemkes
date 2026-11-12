@@ -1,0 +1,28 @@
+.completing {
+  animation: report-fade 160ms var(--ease-out) 120ms both;
+}
+
+.strike {
+  animation: report-strike 120ms var(--ease-out) both;
+}
+
+@keyframes report-strike {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0); }
+}
+
+@keyframes report-fade {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .completing {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+
+  .strike {
+    animation: none;
+  }
+}

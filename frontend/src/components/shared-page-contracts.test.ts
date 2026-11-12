@@ -62,6 +62,9 @@ const kpiCard = readSource("../components/shared/kpi-card.tsx");
 const mitigationPanel = readSource(
   "../app/(app)/compliance/_components/mitigation-monitoring-panel.tsx",
 );
+const mitigationReportDetail = readSource(
+  "./shared/design-system/domain/mitigation-report-detail.tsx",
+);
 const mitigationProgressFlowDialog = readSource(
   "../components/shared/design-system/domain/mitigation-progress-flow-dialog.tsx",
 );
@@ -259,17 +262,14 @@ test("mitigation detail-to-report handoff keeps one dialog and animates its layo
   assert.match(mitigationPanel, /MitigationProgressFlowDialog/);
   assert.match(mitigationPanel, /view=\{dialogView\}/);
   assert.match(mitigationPanel, /setDialogView\("form"\)/);
-  assert.equal(
-    mitigationPanel.match(/handleOpenSubmitFromDetail\(detailTask\)/g)?.length,
-    2,
-  );
+  assert.match(mitigationPanel, /openReportForm\(detailTask, selectedTask\?\.id === detailTask\.id\)/);
   assert.doesNotMatch(
     mitigationPanel,
     /setShowDetailDialog\(false\)/,
   );
   assert.match(mitigationPanel, /onFormCancel=\{\(\) => setDialogView\("detail"\)\}/);
   assert.match(mitigationPanel, /detailTitle="Detail Laporan Penanganan"/);
-  assert.match(mitigationPanel, /formTitle="Lapor Progress Penanganan"/);
+  assert.match(mitigationPanel, /formTitle=\{detailReportAction\?\.allowed \? detailReportAction\.label : "Isi laporan"\}/);
   assert.match(
     mitigationPanel,
     /detailDescription="Tinjau status, bukti, dan catatan penanganan\."/,
@@ -279,15 +279,16 @@ test("mitigation detail-to-report handoff keeps one dialog and animates its layo
     mitigationPanel,
     /return \(\s*<div className="space-y-6">\s*<MetricGrid>/,
   );
-  assert.match(mitigationPanel, /className="grid gap-x-6 gap-y-5 md:grid-cols-2"/);
-  assert.match(mitigationPanel, /Tindakan Penanganan/);
-  assert.match(mitigationPanel, /CalendarDays/);
-  assert.match(mitigationPanel, /CalendarClock/);
-  assert.match(mitigationPanel, /Link2/);
-  assert.match(mitigationPanel, /MessageSquare/);
+  assert.match(mitigationPanel, /<MitigationReportDetail task=\{detailTask\}/);
+  assert.match(mitigationReportDetail, /className="grid gap-x-6 gap-y-5 md:grid-cols-2"/);
+  assert.match(mitigationReportDetail, /Tindakan Penanganan/);
+  assert.match(mitigationReportDetail, /CalendarDays/);
+  assert.match(mitigationReportDetail, /CalendarClock/);
+  assert.match(mitigationReportDetail, /Link2/);
+  assert.match(mitigationReportDetail, /MessageSquare/);
   assert.match(mitigationProgressFlowDialog, /data-dynamic-height="true"/);
   assert.match(mitigationProgressFlowDialog, /modal\.style\.height = `\$\{targetHeight\}px`/);
-  assert.match(mitigationProgressFlowDialog, /onViewChange\("detail"\)/);
+  assert.match(mitigationProgressFlowDialog, /onViewChange\?\.\("detail"\)/);
   assert.match(mitigationProgressFlowDialog, /onFormCancel\?: \(\) => void/);
   assert.match(mitigationProgressFlowDialog, /view === "form" && onFormCancel/);
   assert.match(mitigationProgressFlowDialog, /view === "form"[\s\S]*?overflow-y-auto/);
@@ -570,20 +571,8 @@ test("sidebar navigation keeps inactive labels normal and icons static", () => {
   assert.match(sidebarMotionExample, /Search/);
 });
 
-test("sidebar frame uses the same subtle divider as the topbar", () => {
-  assert.match(
-    sidebarPrimitive,
-    /group-data-\[side=left\]:border-r group-data-\[side=left\]:border-border\/60/,
-  );
-  assert.match(
-    sidebarPrimitive,
-    /group-data-\[side=right\]:border-l group-data-\[side=right\]:border-border\/60/,
-  );
-  assert.match(
-    readSource("../components/app-topbar.tsx"),
-    /border-e border-sidebar-border/,
-  );
-  assert.match(appSidebar, /md:border-sidebar-border/);
+test("sidebar frame uses a trailing divider", () => {
+  assert.match(appSidebar, /className="border-r border-border md:top-0 md:h-svh"/);
 });
 
 test("sidebar hierarchy prioritizes operations and consolidates administration", () => {
@@ -592,12 +581,12 @@ test("sidebar hierarchy prioritizes operations and consolidates administration",
     appSidebar,
     /items: \[dashboardNavigation, \.\.\.approvalNavigation\][\s\S]*title: "OPERASIONAL"/,
   );
-  assert.match(appSidebar, /title: "LAPORAN"[\s\S]*label: "Ringkasan Risiko"/);
+  assert.match(appSidebar, /title: "LAPORAN"[\s\S]*label: "Laporan Risiko"/);
   assert.match(appSidebar, /title: "OTOMASI"/);
   assert.match(appNavigation, /title: "TATA KELOLA RISIKO"/);
   assert.match(
     appNavigation,
-    /label: "Risiko"[\s\S]*icon: "Folder01"[\s\S]*label: "Kejadian Risiko"[\s\S]*icon: "Alert02"[\s\S]*label: "Penanganan"[\s\S]*label: "Pemantauan"[\s\S]*label: "Kertas Kerja"[\s\S]*label: "Tanda tangan"[\s\S]*label: "Ringkasan Risiko"/,
+    /label: "Risiko"[\s\S]*icon: "Folder01"[\s\S]*label: "Kejadian Risiko"[\s\S]*icon: "Alert02"[\s\S]*label: "Penanganan"[\s\S]*label: "Pemantauan"[\s\S]*label: "Kertas Kerja"[\s\S]*label: "Tanda tangan"[\s\S]*label: "Laporan Risiko"/,
   );
   assert.match(
     appNavigation,
@@ -894,14 +883,10 @@ test("modal headers keep bottom breathing room", () => {
   assert.doesNotMatch(riskScoreHeatmapPicker, /overflow-y-auto[^\n]*pt-3/);
 });
 
-test("sidebar footer fades into the help and account chrome", () => {
+test("sidebar navigation uses the shared scroll edge above the account controls", () => {
   assert.match(
     appSidebar,
-    /<SidebarFooter className="relative isolate space-y-2 px-3[^"]*">/,
-  );
-  assert.match(
-    appSidebar,
-    /aria-hidden="true"[\s\S]*-top-10 z-10 h-10 bg-gradient-to-b from-transparent via-sidebar\/75 to-sidebar backdrop-blur-md/,
+    /<SidebarContent>\s*<SidebarNavigationScroll>[\s\S]*?<\/SidebarNavigationScroll>\s*<\/SidebarContent>\s*<SidebarFooter/,
   );
   assert.match(appSidebar, /<Popover>/);
   assert.match(appSidebar, /<HelpCircle[\s\S]*aria-hidden="true"/);

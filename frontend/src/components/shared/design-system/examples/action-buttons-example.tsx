@@ -10,7 +10,7 @@ import {
 
 export function ActionButtonsExample() {
   return (
-    <div className="space-y-4 rounded-[12px] bg-card p-6 shadow-black">
+    <div className="space-y-4 rounded-(--surface-radius) bg-card p-6 shadow-black">
       <div className="flex flex-wrap items-center gap-3">
         <AccentButton>Buat item</AccentButton>
         <ActionButton>Lanjutkan</ActionButton>

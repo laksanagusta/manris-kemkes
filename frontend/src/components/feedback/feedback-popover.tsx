@@ -83,6 +83,7 @@ export function FeedbackPopover({
             maxLength={2000}
             onChange={(event) => { setMessage(event.target.value); setError(null); }}
             readOnly={pending}
+            aria-invalid={Boolean(error)}
             aria-describedby={error ? `${id}-error` : undefined}
             className={styles.textarea}
           />

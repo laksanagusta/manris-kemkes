@@ -1,5 +1,7 @@
 "use client";
 
+import { createDisplayDateFormatter } from "@/lib/display-date";
+
 import { useParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -8,7 +10,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
 import { getRiskEvent, linkRiskEvent } from "@/lib/api/risk-events";
 import { getStatusBadgeClassName } from "@/lib/badge-variant";
-import type { RiskEvent, RiskEventCondition, RiskEventSeverity } from "@/types/risk-event";
+import type { RiskEvent, RiskEventSeverity } from "@/types/risk-event";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -16,7 +18,7 @@ import {
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
   AlertDialogTitle, Card, CardContent, CardHeader, CardTitle, CollectionErrorState,
   CollectionLoadingState, CollectionPageHeader, Dialog,
-  DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, PageStack, WarningCard,
+  DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, InsetList, InsetListItem, PageStack, WarningCard,
 } from "@/components/shared/design-system";
 import { Link2, Lock, Search } from "@/components/shared/icons";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
@@ -26,14 +28,13 @@ import { RiskEventSourceCard } from "@/components/shared/risk-event-source-card"
 
 type RiskOption = { id: string; code?: string; title: string; organizationId?: string };
 const severityLabels: Record<RiskEventSeverity, string> = { low: "Rendah", medium: "Sedang", high: "Tinggi", extreme: "Ekstrem" };
-const conditionLabels: Record<RiskEventCondition, string> = { recovered: "Pulih", controlled: "Terkendali", ongoing: "Masih berlangsung", worsening: "Memburuk", unknown: "Belum diketahui" };
 const impactLabels: Record<string, string> = { operational: "Operasional", service: "Layanan", financial: "Keuangan", health_safety: "Kesehatan/keselamatan", reputation: "Reputasi", compliance: "Kepatuhan", other: "Lainnya" };
 
 function formatOccurredAt(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "-";
 
-  return new Intl.DateTimeFormat("id-ID", {
+  return createDisplayDateFormatter("id-ID", {
     dateStyle: "medium",
     timeZone: "Asia/Jakarta",
   }).format(date);
@@ -86,10 +87,27 @@ export default function RiskEventDetailPage() {
       <div className="grid gap-5 lg:grid-cols-2">
         <div className="space-y-5">
           <RiskEventSourceCard name={item.sourceDocumentName} sources={item.sourceRefs} />
-          <Card><CardHeader><CardTitle className="text-[14px]">Informasi utama</CardTitle></CardHeader><CardContent><dl><div className="grid gap-8 py-2 sm:grid-cols-[160px_1fr]"><dt className="text-[14px] text-muted-foreground">Tanggal kejadian</dt><dd className="text-sm text-foreground">{formatOccurredAt(item.occurredAt)}</dd></div><div className="grid gap-8 py-2 sm:grid-cols-[160px_1fr]"><dt className="text-[14px] text-muted-foreground">Tingkat kejadian</dt><dd className="text-sm"><Badge variant={item.severity === "low" || item.severity === "medium" ? "default" : "destructive"} className={getStatusBadgeClassName(item.severity)}>{severityLabels[item.severity]}</Badge></dd></div><div className="grid gap-8 py-2 sm:grid-cols-[160px_1fr]"><dt className="text-[14px] text-muted-foreground">Dicatat oleh</dt><dd className="text-sm text-foreground">{item.createdByName || "-"}</dd></div>{[["Apa yang terjadi", item.description], ["Jenis dampak", item.impactTypes.map((impact) => impact === "other" && item.otherImpactType ? item.otherImpactType : impactLabels[impact] || impact).join(", ")], ["Dampak aktual", item.actualImpact], ["Penanganan langsung", item.immediateResponse], ["Kondisi", conditionLabels[item.postResponseCondition]]].map(([label,value]) => <div key={label} className="grid gap-8 py-2 sm:grid-cols-[160px_1fr]"><dt className="text-[14px] text-muted-foreground">{label}</dt><dd className="text-sm text-foreground">{value}</dd></div>)}</dl></CardContent></Card>
-          {(item.location || item.affectedParties || item.suspectedCause || item.disruptionDuration || item.financialLossKnown !== undefined || item.evidenceUrl) ? <Card><CardHeader><CardTitle className="text-[14px]">Detail tambahan</CardTitle></CardHeader><CardContent><dl>{item.location ? <div className="grid gap-8 py-2 sm:grid-cols-[160px_1fr]"><dt className="text-[14px] text-muted-foreground">Lokasi</dt><dd className="text-sm">{item.location}</dd></div> : null}{item.affectedParties ? <div className="grid gap-8 py-2 sm:grid-cols-[160px_1fr]"><dt className="text-[14px] text-muted-foreground">Pihak terdampak</dt><dd className="text-sm">{item.affectedParties}</dd></div> : null}{item.suspectedCause ? <div className="grid gap-8 py-2 sm:grid-cols-[160px_1fr]"><dt className="text-[14px] text-muted-foreground">Dugaan penyebab</dt><dd className="text-sm">{item.suspectedCause}</dd></div> : null}{item.disruptionDuration ? <div className="grid gap-8 py-2 sm:grid-cols-[160px_1fr]"><dt className="text-[14px] text-muted-foreground">Durasi gangguan</dt><dd className="text-sm">{item.disruptionDuration}</dd></div> : null}{item.financialLossKnown !== undefined ? <div className="grid gap-8 py-2 sm:grid-cols-[160px_1fr]"><dt className="text-[14px] text-muted-foreground">Kerugian keuangan</dt><dd className="text-sm">{item.financialLossKnown && item.financialLoss !== undefined ? new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(item.financialLoss) : "Belum diketahui"}</dd></div> : null}{item.evidenceUrl ? <div className="grid gap-8 py-2 sm:grid-cols-[160px_1fr]"><dt className="text-[14px] text-muted-foreground">Bukti</dt><dd className="text-sm"><a href={item.evidenceUrl} target="_blank" rel="noreferrer" className="underline">Buka tautan</a></dd></div> : null}</dl></CardContent></Card> : null}
+          <Card><CardHeader><CardTitle className="text-[14px]">Informasi utama</CardTitle></CardHeader><CardContent><dl><div className="grid gap-8 py-2 sm:grid-cols-[160px_1fr]"><dt className="text-[14px] text-muted-foreground">Tanggal kejadian</dt><dd className="text-sm text-foreground"><span data-date-time="">{formatOccurredAt(item.occurredAt)}</span></dd></div><div className="grid gap-8 py-2 sm:grid-cols-[160px_1fr]"><dt className="text-[14px] text-muted-foreground">Tingkat kejadian</dt><dd className="text-sm"><Badge variant={item.severity === "low" || item.severity === "medium" ? "default" : "destructive"} className={getStatusBadgeClassName(item.severity)}>{severityLabels[item.severity]}</Badge></dd></div><div className="grid gap-8 py-2 sm:grid-cols-[160px_1fr]"><dt className="text-[14px] text-muted-foreground">Dicatat oleh</dt><dd className="text-sm text-foreground">{item.createdByName || "-"}</dd></div>{[["Apa yang terjadi", item.description], ["Jenis dampak", item.impactTypes.map((impact) => impact === "other" && item.otherImpactType ? item.otherImpactType : impactLabels[impact] || impact).join(", ")]].map(([label,value]) => <div key={label} className="grid gap-8 py-2 sm:grid-cols-[160px_1fr]"><dt className="text-[14px] text-muted-foreground">{label}</dt><dd className="text-sm text-foreground">{value}</dd></div>)}</dl></CardContent></Card>
+          {item.financialLossKnown !== undefined ? <Card><CardHeader><CardTitle className="text-[14px]">Kerugian keuangan</CardTitle></CardHeader><CardContent><dl>{item.financialLossKnown !== undefined ? <div className="grid gap-8 py-2 sm:grid-cols-[160px_1fr]"><dt className="text-[14px] text-muted-foreground">Kerugian keuangan</dt><dd className="text-sm">{item.financialLossKnown && item.financialLoss !== undefined ? new Intl.NumberFormat("id-ID", { style: "currency", currency: "IDR", maximumFractionDigits: 0 }).format(item.financialLoss) : "Belum diketahui"}</dd></div> : null}</dl></CardContent></Card> : null}
         </div>
-        <Card className="self-start"><CardHeader><CardTitle className="text-[14px]">Ringkasan</CardTitle></CardHeader><CardContent className="space-y-5"><div><p className="text-xs font-medium text-muted-foreground">Risiko terkait</p><div className={item.linkedRisks.length ? "mt-2 divide-y divide-border rounded-lg bg-card-subtle-surface px-3" : "mt-2"}>{item.linkedRisks.length ? item.linkedRisks.map((risk) => <div key={risk.id} className="py-2"><p className="font-mono text-xs text-tertiary-foreground">{risk.code}</p><p className="mt-1 text-xs text-secondary-foreground">{risk.title}</p></div>) : <Badge variant="secondary">Belum dipetakan</Badge>}</div></div></CardContent></Card>
+        <Card className="self-start">
+          <CardHeader><CardTitle className="text-[14px]">Ringkasan</CardTitle></CardHeader>
+          <CardContent className="space-y-5">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Risiko terkait</p>
+              {item.linkedRisks.length ? (
+                <InsetList className="mt-2" aria-label="Risiko terkait">
+                  {item.linkedRisks.map((risk) => (
+                    <InsetListItem key={risk.id}>
+                      <p className="font-mono text-xs text-tertiary-foreground">{risk.code}</p>
+                      <p className="mt-1 text-xs text-secondary-foreground">{risk.title}</p>
+                    </InsetListItem>
+                  ))}
+                </InsetList>
+              ) : <div className="mt-2"><Badge variant="secondary">Belum dipetakan</Badge></div>}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>

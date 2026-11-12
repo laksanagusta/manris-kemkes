@@ -7,12 +7,10 @@ import {
   useMemo,
   useState,
 } from "react";
-import Link from "next/link";
 import { toast } from "sonner";
 import {
   Archive,
   MoreHorizontal,
-  Plus,
   RotateCcw,
 } from "@/components/shared/icons";
 
@@ -31,7 +29,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Badge } from "@/components/ui/badge";
+import { RiskCharterCard } from "@/components/shared/design-system/domain/risk-charter-card";
 import {
   CollectionEmptyState,
   CollectionErrorState,
@@ -39,13 +37,13 @@ import {
   CollectionPageHeader,
 } from "@/components/shared/design-system";
 import {
-  AccentButton,
   ActionButton,
   Card,
   CardContent,
   PageStack,
 } from "@/components/shared/design-system";
-import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
+
+import { RiskCharterQuickCreate } from "./_components/risk-charter-quick-create";
 
 const uprLevelLabel: Record<string, string> = {
   eksekutif: "Eksekutif",
@@ -58,16 +56,6 @@ const charterStatusLabel: Record<string, string> = {
   active: "Aktif",
   superseded: "Digantikan",
   archived: "Diarsipkan",
-};
-
-const charterStatusTone: Record<
-  string,
-  "neutral" | "success" | "warning" | "danger"
-> = {
-  draft: "neutral",
-  active: "success",
-  superseded: "neutral",
-  archived: "neutral",
 };
 
 export default function RiskChartersPage() {
@@ -188,12 +176,9 @@ export default function RiskChartersPage() {
   }
 
   const createAction = (
-    <AccentButton asChild>
-      <Link href="/management/charters/new">
-        <Plus className="size-4" />
-        Buat Piagam
-      </Link>
-    </AccentButton>
+    <RiskCharterQuickCreate
+      organization={organizations.find((item) => item.id === user?.organizationId)}
+    />
   );
   const canCreateOwn = user?.organizationId &&
     !items.some((item) => item.organizationId === user.organizationId);
@@ -220,36 +205,20 @@ export default function RiskChartersPage() {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4">
+        <div className="flex flex-wrap items-start gap-4">
           {items.map((item) => {
-            const tone = charterStatusTone[item.status] ?? "neutral";
             const canArchive = item.status === "active" && item.isCurrent;
             const canRestore = item.status === "archived";
 
             return (
-              <Card key={item.id}>
-                <CardContent className="flex flex-wrap items-start justify-between gap-4">
-                  <div className="min-w-0 flex-1 basis-56 space-y-2">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-xs text-muted-foreground">
-                        {uprLevelLabel[item.uprLevel] ?? item.uprLevel} · v{item.versionNumber}
-                      </span>
-                      <Badge variant={toBadgeVariant(tone)} className={getStatusBadgeClassName(tone)}>
-                        {charterStatusLabel[item.status] ?? item.status}
-                      </Badge>
-                    </div>
-                    <h2 className="break-words text-base font-semibold">{item.title}</h2>
-                    <p className="text-sm text-muted-foreground">
-                      {organizationMap.get(item.organizationId) ?? "Organisasi tidak ditemukan"}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <ActionButton variant="outline" asChild>
-                      <Link href={`/management/charters/${item.id}`}>
-                        {item.status === "draft" ? "Lanjutkan draf" : "Buka Piagam"}
-                      </Link>
-                    </ActionButton>
-                    {canArchive || canRestore ? (
+              <RiskCharterCard
+                key={item.id}
+                charter={item}
+                organizationName={organizationMap.get(item.organizationId) ?? "Organisasi tidak ditemukan"}
+                statusLabel={charterStatusLabel[item.status] ?? item.status}
+                levelLabel={uprLevelLabel[item.uprLevel] ?? item.uprLevel}
+                actions={
+                    canArchive || canRestore ? (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <ActionButton
@@ -276,10 +245,9 @@ export default function RiskChartersPage() {
                           )}
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    ) : null}
-                  </div>
-                </CardContent>
-              </Card>
+                    ) : null
+                }
+              />
             );
           })}
         </div>

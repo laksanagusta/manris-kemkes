@@ -39,16 +39,7 @@ type Mitigation struct {
 	SortOrder             int        `json:"sortOrder"`
 	CreatedAt             time.Time  `json:"createdAt"`
 
-	MitigationType         string `json:"mitigationType,omitempty"`
-	ActivityStage          string `json:"activityStage,omitempty"`
-	ExpectedOutput         string `json:"expectedOutput,omitempty"`
-	QuantitativeTarget     string `json:"quantitativeTarget,omitempty"`
-	SupportingUnit         string `json:"supportingUnit,omitempty"`
-	ResourcesRequired      string `json:"resourcesRequired,omitempty"`
-	ContingencyPlan        string `json:"contingencyPlan,omitempty"`
-	PotentialObstacle      string `json:"potentialObstacle,omitempty"`
-	IsBreakthroughActivity bool   `json:"isBreakthroughActivity,omitempty"`
-	IsExistingControl      bool   `json:"isExistingControl,omitempty"`
+	MitigationType string `json:"mitigationType,omitempty"`
 }
 
 // MitigationAssoc represents a mitigation joined with its parent risk info

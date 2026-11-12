@@ -12,6 +12,7 @@ export async function listWorkingPapers(
     status?: string;
     q?: string;
     assessment_cycle?: string;
+    org_id?: string;
     created_at?: string;
     sort_by?: string;
     sort_order?: string;
@@ -27,11 +28,24 @@ export async function listWorkingPapers(
   if (params?.assessment_cycle) {
     searchParams.set("assessment_cycle", params.assessment_cycle);
   }
+  if (params?.org_id) searchParams.set("org_id", params.org_id);
   if (params?.created_at) searchParams.set("created_at", params.created_at);
   if (params?.page) searchParams.set("page", params.page.toString());
   if (params?.limit) searchParams.set("limit", params.limit.toString());
   const qs = searchParams.toString();
   return api.get<WorkingPaperListResponse>(`/working-papers${qs ? `?${qs}` : ""}`, token);
+}
+
+export async function findActiveWorkingPaperForPeriod(token: string, organizationId: string, cycle: string) {
+  const limit = 100;
+  for (let page = 1; ; page++) {
+    const result = await listWorkingPapers(token, { org_id: organizationId, assessment_cycle: cycle, page, limit });
+    const paper = result.data.find((item) =>
+      item.org_id === organizationId && item.assessment_cycle === cycle && item.status !== "cancelled",
+    );
+    if (paper) return paper;
+    if (page * limit >= result.total || !result.data.length) return null;
+  }
 }
 
 export async function listWorkingPaperAssessmentCycles(
@@ -99,8 +113,8 @@ export async function signWorkingPaper(id: string, token: string): Promise<Worki
   return api.post<WorkingPaper>(`/working-papers/${id}/sign`, {}, token);
 }
 
-export async function startSigningWorkingPaper(id: string, token: string): Promise<WorkingPaper> {
-  return api.post<WorkingPaper>(`/working-papers/${id}/start-signing`, {}, token);
+export async function startSigningWorkingPaper(id: string, token: string, reviewHash: string): Promise<WorkingPaper> {
+  return api.post<WorkingPaper>(`/working-papers/${id}/start-signing`, { review_hash: reviewHash }, token);
 }
 
 export async function cancelWorkingPaper(id: string, token: string): Promise<void> {

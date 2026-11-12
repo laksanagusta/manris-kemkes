@@ -1,5 +1,8 @@
 "use client";
 
+import { businessYear } from "@/lib/business-clock";
+import { createDisplayDateFormatter } from "@/lib/display-date";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -116,14 +119,14 @@ const maturityStyles = [
 ];
 
 function currentPeriod() {
-  return new Date().getFullYear().toString();
+  return businessYear().toString();
 }
 
 function formatDateTime(value?: string | null) {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("id-ID", {
+  return createDisplayDateFormatter("id-ID", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
@@ -684,8 +687,8 @@ export default function TMPMRDetailPage() {
               </div>
 
               <div className="space-y-2 border-t border-border/40 pt-4 text-xs text-muted-foreground">
-                <p>Diperbarui: {formatDateTime(assessment?.updatedAt)}</p>
-                <p>Dibuat: {formatDateTime(assessment?.createdAt)}</p>
+                <p>Diperbarui: <span data-date-time="">{formatDateTime(assessment?.updatedAt)}</span></p>
+                <p>Dibuat: <span data-date-time="">{formatDateTime(assessment?.createdAt)}</span></p>
               </div>
             </CardContent>
           </Card>

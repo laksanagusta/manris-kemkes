@@ -13,6 +13,7 @@ import {
   DialogContent,
   DialogDescription,
   DialogHeader,
+  DialogFooter,
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
@@ -192,7 +193,7 @@ export function ReviewSidePanel({
 
   const renderReviewModal = () => (
     <Dialog open={reviewModalOpen} onOpenChange={setReviewModalOpen}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Tinjau pemantauan risiko</DialogTitle>
           <DialogDescription>
@@ -207,41 +208,41 @@ export function ReviewSidePanel({
             disabled={submittingStage === "review"}
             className="resize-none"
           />
-          <div className="flex justify-end gap-2 pt-2">
-            <Button
-              variant="outline"
-              onClick={() => handleAction("reject", "review")}
-              disabled={submittingStage === "review"}
-              className="flex-1"
-            >
-              {submittingStage === "review" ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <X className="size-4" />
-              )}
-              Tolak
-            </Button>
-            <Button
-              onClick={() => handleAction("approve", "review")}
-              disabled={submittingStage === "review"}
-              className="flex-1"
-            >
-              {submittingStage === "review" ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Check className="size-4" />
-              )}
-              Setujui
-            </Button>
-          </div>
         </div>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => handleAction("reject", "review")}
+            disabled={submittingStage === "review"}
+            className="flex-1"
+          >
+            {submittingStage === "review" ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <X className="size-4" />
+            )}
+            Tolak
+          </Button>
+          <Button
+            onClick={() => handleAction("approve", "review")}
+            disabled={submittingStage === "review"}
+            className="flex-1"
+          >
+            {submittingStage === "review" ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Check className="size-4" />
+            )}
+            Setujui
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 
   const renderApprovalModal = () => (
     <Dialog open={approvalModalOpen} onOpenChange={setApprovalModalOpen}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent>
         <DialogHeader>
           <DialogTitle>Beri Persetujuan</DialogTitle>
           <DialogDescription>
@@ -256,34 +257,34 @@ export function ReviewSidePanel({
             disabled={submittingStage === "approval"}
             className="resize-none"
           />
-          <div className="flex gap-2 pt-2">
-            <Button
-              variant="outline"
-              onClick={() => handleAction("reject", "approval")}
-              disabled={submittingStage === "approval"}
-              className="flex-1"
-            >
-              {submittingStage === "approval" ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <X className="size-4" />
-              )}
-              Tolak
-            </Button>
-            <Button
-              onClick={() => handleAction("approve", "approval")}
-              disabled={submittingStage === "approval"}
-              className="flex-1"
-            >
-              {submittingStage === "approval" ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Check className="size-4" />
-              )}
-              Setujui
-            </Button>
-          </div>
         </div>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => handleAction("reject", "approval")}
+            disabled={submittingStage === "approval"}
+            className="flex-1"
+          >
+            {submittingStage === "approval" ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <X className="size-4" />
+            )}
+            Tolak
+          </Button>
+          <Button
+            onClick={() => handleAction("approve", "approval")}
+            disabled={submittingStage === "approval"}
+            className="flex-1"
+          >
+            {submittingStage === "approval" ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <Check className="size-4" />
+            )}
+            Setujui
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

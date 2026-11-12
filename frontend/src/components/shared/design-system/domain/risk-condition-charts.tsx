@@ -6,7 +6,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } f
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Info } from "@/components/shared/icons";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { StandardCard } from "../layout/standard-card";
+import { ReportWidget } from "../reports/report-widget";
 import { OverviewPanelState } from "./overview-panel-state";
 import { buildRiskConditionChartData, formatReportPercent } from "@/lib/quarterly-report";
 import { RISK_CHART_COLORS } from "@/lib/chart-colors";
@@ -21,8 +21,8 @@ const levels = [
   { key: "unknown", label: "Belum dinilai", color: "var(--muted-foreground)" },
 ] as const;
 const compositionConfig = Object.fromEntries(levels.map((level) => [level.key, { label: level.label, color: level.color }])) satisfies ChartConfig;
-const valueConfig = { value: { label: "Jumlah risiko", color: "var(--color-violet-400)" } } satisfies ChartConfig;
-const rateConfig = { value: { label: "Capaian", color: "var(--color-violet-400)" } } satisfies ChartConfig;
+const valueConfig = { value: { label: "Jumlah risiko", color: "var(--info-foreground)" } } satisfies ChartConfig;
+const rateConfig = { value: { label: "Capaian", color: "var(--info-foreground)" } } satisfies ChartConfig;
 const indicatorLabels = ["Area penerimaan", "Rencana mitigasi", "Mitigasi terlapor", "Pemantauan Final", "Target residual"];
 
 const compactIndicatorLabels: Record<string, string> = {
@@ -68,35 +68,35 @@ export function RiskConditionCharts({ report, activeProfiles, previousProfiles }
   const compositionMax = Math.max(1, ...data.composition.map((row) => levels.reduce((sum, level) => sum + row[level.key], 0)));
   const movementMax = Math.max(1, ...movement.map((row) => row.value));
   return (
-    <div className="@container min-w-0">
-    <div className="grid min-w-0 items-stretch gap-4 @min-[54rem]:grid-cols-2 @min-[82rem]:grid-cols-3">
-      <StandardCard title={<ChartTitle title="Komposisi" description={"Jumlah profil Final aktif pada periode terpilih dan pembanding."} />} className="min-w-0">
+    <div className="@container/report min-w-0">
+    <div className="grid min-w-0 gap-4 @min-[48rem]/report:grid-cols-2">
+      <ReportWidget chart title={<ChartTitle title="Komposisi" description={"Jumlah profil Final aktif pada periode terpilih dan pembanding."} />}>
 
       <div className="@container/plot space-y-4">
-        {hasComposition ? <ChartContainer config={compositionConfig} className="h-72 w-full" aria-label="Komposisi tingkat risiko per periode">
+        <div role="list" aria-label="Legenda tingkat risiko" className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
+          {levels.map((level) => <span key={level.key} role="listitem" className="inline-flex items-center gap-1.5 whitespace-nowrap"><span aria-hidden="true" className="size-2 rounded-full" style={{ backgroundColor: level.color }} />{level.label}</span>)}
+        </div>
+        {hasComposition ? <ChartContainer config={compositionConfig} className="h-64 w-full" aria-label="Komposisi tingkat risiko per periode">
           <BarChart data={data.composition} accessibilityLayer margin={{ left: 0, right: 8 }}>
-            <CartesianGrid vertical={false} />
+            <CartesianGrid vertical={false} strokeDasharray="3 3" />
             <XAxis dataKey="period" tickLine={false} axisLine={false} fontSize={12} height={48} interval={0} />
             <YAxis type="number" domain={[0, compositionMax]} allowDecimals={false} tickLine={false} axisLine={false} fontSize={12} width={48} />
             <ChartTooltip isAnimationActive={false} content={<ChartTooltipContent />} />
             {levels.map((level) => <Bar key={level.key} dataKey={level.key} stackId="risks" fill={`var(--color-${level.key})`} barSize={32} isAnimationActive={false} />)}
           </BarChart>
         </ChartContainer> : <OverviewPanelState state="empty" message="Belum ada profil aktif pada kedua periode." />}
-        <div role="list" aria-label="Legenda tingkat risiko" className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
-          {levels.map((level) => <span key={level.key} role="listitem" className="inline-flex items-center gap-1.5 whitespace-nowrap"><span aria-hidden="true" className="size-2 rounded-full" style={{ backgroundColor: level.color }} />{level.label}</span>)}
-        </div>
         <div className="sr-only" aria-label="Data komposisi tingkat risiko">
           <Table><TableHeader><TableRow><TableHead>Periode</TableHead>{levels.map((level) => <TableHead key={level.key}>{level.label}</TableHead>)}</TableRow></TableHeader><TableBody>{data.composition.map((row, index) => <TableRow key={index}><TableCell>{row.period}</TableCell>{levels.map((level) => <TableCell key={level.key} className="tabular-nums">{row[level.key]}</TableCell>)}</TableRow>)}</TableBody></Table>
         </div>
       </div>
 
-      </StandardCard>
-      <StandardCard title={<ChartTitle title="Perubahan" description={`${report.comparisonCycle} → ${report.cycle}. Naik, turun, dan tetap hanya membandingkan risiko yang ada pada kedua periode. Risiko baru ditampilkan terpisah.`} />} className="min-w-0">
+      </ReportWidget>
+      <ReportWidget chart title={<ChartTitle title="Perubahan" description={`${report.comparisonCycle} → ${report.cycle}. Naik, turun, dan tetap hanya membandingkan risiko yang ada pada kedua periode. Risiko baru ditampilkan terpisah.`} />}>
 
       <div className="@container/plot space-y-4">
-        {hasMovement ? <ChartContainer config={valueConfig} className="h-72 w-full" aria-label="Jumlah risiko naik turun tetap dan baru">
-          <BarChart data={movement.map((row, index) => ({ ...row, fill: index === 0 ? RISK_CHART_COLORS.high : index === 1 ? RISK_CHART_COLORS.low : "var(--color-violet-400)" }))} accessibilityLayer margin={{ left: 0, right: 8 }}>
-            <CartesianGrid vertical={false} />
+        {hasMovement ? <ChartContainer config={valueConfig} className="h-64 w-full" aria-label="Jumlah risiko naik turun tetap dan baru">
+          <BarChart data={movement.map((row, index) => ({ ...row, fill: index === 0 ? RISK_CHART_COLORS.high : index === 1 ? RISK_CHART_COLORS.low : "var(--info-foreground)" }))} accessibilityLayer margin={{ left: 0, right: 8 }}>
+            <CartesianGrid vertical={false} strokeDasharray="3 3" />
             <XAxis dataKey="label" tickLine={false} axisLine={false} tick={<CategoryTick />} height={48} interval={0} />
             <YAxis type="number" domain={[0, movementMax]} allowDecimals={false} tickLine={false} axisLine={false} fontSize={12} width={48} />
             <ChartTooltip isAnimationActive={false} content={<ChartTooltipContent />} />
@@ -108,13 +108,13 @@ export function RiskConditionCharts({ report, activeProfiles, previousProfiles }
         </div>
       </div>
 
-      </StandardCard>
-      <StandardCard title={<ChartTitle title="Indikator" description={"Setiap indikator memakai penyebutnya sendiri, bukan skor kesehatan gabungan. Area: area penerimaan; Rencana: cakupan rencana mitigasi; Lapor: mitigasi terlapor; Pantau: pemantauan Final; Target: target residual."} />} className="min-w-0 @min-[54rem]:col-span-2 @min-[82rem]:col-span-1">
+      </ReportWidget>
+      <ReportWidget chart title={<ChartTitle title="Indikator" description={"Setiap indikator memakai penyebutnya sendiri, bukan skor kesehatan gabungan. Area: area penerimaan; Rencana: cakupan rencana mitigasi; Lapor: mitigasi terlapor; Pantau: pemantauan Final; Target: target residual."} />} className="@min-[48rem]/report:col-span-2">
 
       <div className="@container/plot space-y-4">
-        {hasIndicators ? <ChartContainer config={rateConfig} className="h-72 w-full" aria-label="Capaian lima indikator pengelolaan risiko">
+        {hasIndicators ? <ChartContainer config={rateConfig} className="h-64 w-full" aria-label="Capaian lima indikator pengelolaan risiko">
           <BarChart data={data.indicators.map((row, index) => ({ ...row, name: indicatorLabels[index] }))} accessibilityLayer margin={{ left: 0, right: 8 }}>
-            <CartesianGrid vertical={false} />
+            <CartesianGrid vertical={false} strokeDasharray="3 3" />
             <XAxis dataKey="name" tickLine={false} axisLine={false} tick={<CategoryTick />} height={48} interval={0} />
             <YAxis type="number" domain={[0, 100]} ticks={[0, 25, 50, 75, 100]} tickFormatter={(value) => `${value}%`} tickLine={false} axisLine={false} fontSize={12} width={48} />
             <ChartTooltip isAnimationActive={false} content={<ChartTooltipContent formatter={(value) => formatReportPercent(Number(value))} />} />
@@ -126,7 +126,7 @@ export function RiskConditionCharts({ report, activeProfiles, previousProfiles }
         </div>
       </div>
 
-      </StandardCard>
+      </ReportWidget>
     </div>
     </div>
   );

@@ -365,11 +365,11 @@ function PlanningHierarchyRows({
           <Fragment key={node.key}>
             <TableRow
               className={cn(
-                "h-12 border-border/80 transition-colors hover:bg-muted/70",
+                "border-border/80 transition-colors hover:bg-muted/70",
                 depth > 0 && "bg-zinc-50/30",
               )}
             >
-              <TableCell className="align-middle md:pl-6">
+              <TableCell className="max-w-[32rem] align-middle md:pl-6">
                 <div className="flex h-full min-w-0 items-center">
                   <div
                     className="flex min-w-0 items-center gap-2.5"
@@ -406,7 +406,7 @@ function PlanningHierarchyRows({
                     </button>
                     <div className="min-w-0 space-y-0.5 py-0">
                       <div className="flex min-w-0 flex-wrap items-center gap-2">
-                        <span className="min-w-0 text-[13px] font-medium leading-5 text-foreground">
+                        <span className="min-w-0 truncate font-medium" title={node.title}>
                           {node.title}
                         </span>
                       </div>
@@ -443,9 +443,9 @@ function PlanningHierarchyRows({
               ? node.items.map((item) => (
                   <TableRow
                     key={item.id}
-                    className="h-12 hover:bg-muted/70"
+                    className="hover:bg-muted/70"
                   >
-                    <TableCell className="align-middle">
+                    <TableCell className="max-w-[32rem] align-middle">
                       <div className="flex h-full min-w-0 items-center">
                         <div
                           className="flex min-w-0 items-center gap-2.5"
@@ -456,7 +456,7 @@ function PlanningHierarchyRows({
                           </span>
                           <div className="min-w-0 space-y-0.5">
                             <div className="flex min-w-0 flex-wrap items-center gap-2">
-                              <span className="min-w-0 text-[13px] font-medium leading-5 text-foreground">
+                              <span className="min-w-0 truncate font-medium" title={item.processBusiness || item.target}>
                                 {item.processBusiness || item.target || "RO belum diberi judul"}
                               </span>
                             </div>

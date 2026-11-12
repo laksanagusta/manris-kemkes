@@ -1,5 +1,5 @@
-import { RiskCharterQuickCreate } from "../_components/risk-charter-quick-create";
+import { redirect } from "next/navigation";
 
 export default function RiskCharterCreatePage() {
-  return <RiskCharterQuickCreate />;
+  redirect("/management/charters");
 }

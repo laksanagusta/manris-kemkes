@@ -1,4 +1,5 @@
 "use client";
+import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
 import { useCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
 import { newestCreatedFirst } from "@/lib/collection-created-at";
 import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
@@ -70,9 +71,7 @@ const statusTone: Record<string, StatusTone> = {
 };
 
 function formatCascadeTitle(item: RiskCascadeRecord) {
-  const code = item.sourceRiskCode || "Risk";
-  const title = item.sourceRiskTitle || "-";
-  return `${code} · ${title}`;
+  return item.sourceRiskTitle || "—";
 }
 
 export default function RiskCascadingPage() {
@@ -155,7 +154,7 @@ export default function RiskCascadingPage() {
     );
   }, [deferredSearch, items, statusFilter, typeFilter]);
 
-  const collectionSort = useCollectionSorting(filteredItems, {"Risiko": r => formatCascadeTitle(r), "Organisasi": r => r.sourceOrgName, "Jenis": r => cascadeTypeLabels[r.cascadeType], "Status": r => statusLabels[r.status], "Adopsi": r => r.adoptionType}, () => setPage(1));
+  const collectionSort = useCollectionSorting(filteredItems, {"Risiko": r => formatCascadeTitle(r), "Organisasi asal": r => r.sourceOrgName, "Jenis": r => cascadeTypeLabels[r.cascadeType], "Status": r => statusLabels[r.status], "Adopsi": r => r.adoptionType}, () => setPage(1));
   const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
   const paginatedItems = useMemo(
     () => collectionSort.rows.slice((page - 1) * pageSize, page * pageSize),
@@ -270,7 +269,6 @@ export default function RiskCascadingPage() {
           leading={
             <DynamicTableFilters search={
             <CollectionSearchField
-              containerClassName="w-full sm:w-80 sm:flex-none"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
               placeholder="Cari kode risiko, organisasi, status, atau catatan..."
@@ -296,26 +294,30 @@ export default function RiskCascadingPage() {
 
         {error ? <CollectionErrorState message={error} /> : null}
 
-        <CollectionTableCard sorting={collectionSort.controls}>
-          <Table className="min-w-[1280px] table-fixed">
+        <CollectionTableCard stickyActions sorting={collectionSort.controls}>
+          <Table className="min-w-[1884px] table-fixed">
             <colgroup>
-              <col className="w-[22%]" />
-              <col className="w-[18%]" />
-              <col className="w-[11%]" />
-              <col className="w-[12%]" />
-              <col className="w-[11%]" />
-              <col className="w-[20%]" />
-              <col className="w-40" />
-<col className="w-[6%]" />
+              <col style={{ width: 168 }} />
+              <col style={{ width: 168 }} />
+              <col style={{ width: 258 }} />
+              <col style={{ width: 190 }} />
+              <col style={{ width: 208 }} />
+              <col style={{ width: 112 }} />
+              <col style={{ width: 130 }} />
+              <col style={{ width: 128 }} />
+              <col style={{ width: 198 }} />
+              <col style={{ width: 208 }} />
+              <col style={{ width: 116 }} />
             </colgroup>
             <CollectionTableHeader>
               <CollectionTableHeaderRow>
-                  <CollectionTableHead className="">
-                    Risiko
-                  </CollectionTableHead>
+                  <CollectionTableHead>Kode risiko asal</CollectionTableHead>
+                  <CollectionTableHead>Kode risiko target</CollectionTableHead>
+                  <CollectionTableHead>Risiko</CollectionTableHead>
                   <CollectionTableHead >
-                    Organisasi
+                    Organisasi asal
                   </CollectionTableHead>
+                  <CollectionTableHead>Organisasi tujuan</CollectionTableHead>
                   <CollectionTableHead >
                     Jenis
                   </CollectionTableHead>
@@ -329,8 +331,8 @@ export default function RiskCascadingPage() {
                     Catatan
                   </CollectionTableHead>
                   <CreatedAtHead />
-                  <CollectionTableHead className="text-right">
-                    <span className="sr-only">Aksi</span>
+                  <CollectionTableHead data-collection-action="" className="text-right">
+                    <span data-collection-action="" className="sr-only">Aksi</span>
                   </CollectionTableHead>
                 </CollectionTableHeaderRow>
               </CollectionTableHeader>
@@ -338,7 +340,7 @@ export default function RiskCascadingPage() {
                 {paginatedItems.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={8}
+                      colSpan={11}
                       className="text-center"
                     >
                       <CollectionEmptyState
@@ -355,26 +357,11 @@ export default function RiskCascadingPage() {
                       statusLabels[item.status] || item.status;
                     return (
                       <TableRow key={item.id}>
-                        <TableCell className="">
-                          <div className="space-y-1">
-                            <p className="font-medium text-foreground">
-                              {formatCascadeTitle(item)}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {item.targetRiskCode
-                                ? `Target: ${item.targetRiskCode}`
-                                : "Belum ada risiko target"}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="space-y-1 text-sm">
-                            <p>{item.sourceOrgName || "-"}</p>
-                            <p className="text-xs text-muted-foreground">
-                              → {item.targetOrgName || "-"}
-                            </p>
-                          </div>
-                        </TableCell>
+                        <TableCell><CollectionCode code={item.sourceRiskCode} href={item.sourceRiskId ? `/risk/register/${item.sourceRiskId}` : undefined} /></TableCell>
+                        <TableCell><CollectionCode code={item.targetRiskCode} href={item.targetRiskId ? `/risk/register/${item.targetRiskId}` : undefined} /></TableCell>
+                        <TableCell className="font-medium">{formatCascadeTitle(item)}</TableCell>
+                        <TableCell>{item.sourceOrgName || "—"}</TableCell>
+                        <TableCell>{item.targetOrgName || "—"}</TableCell>
                         <TableCell>
                           <Badge variant="outline">
                             {cascadeTypeLabels[item.cascadeType]}
@@ -388,13 +375,9 @@ export default function RiskCascadingPage() {
                         <TableCell className="">
                           {item.adoptionType || "-"}
                         </TableCell>
-                        <TableCell className="max-w-[320px]">
-                          <p className="line-clamp-2 text-sm text-muted-foreground">
-                            {item.decisionNote || item.analysisNote || "-"}
-                          </p>
-                        </TableCell>
+                        <TableCell className="text-muted-foreground">{item.decisionNote || item.analysisNote || "—"}</TableCell>
                         <CreatedAtCell record={item} />
-                        <TableCell className="text-right">
+                        <TableCell data-collection-action="" className="text-right">
                           <div className="flex justify-end">
                             <RiskCascadeRowActions
                               item={item}
@@ -420,19 +403,19 @@ export default function RiskCascadingPage() {
                 )}
               </TableBody>
             </Table>
-            <CollectionPagination
-              itemLabel="eskalasi"
-              page={page}
-              pageSize={pageSize}
-              total={filteredItems.length}
-              disabled={loading}
-              onPageChange={setPage}
-              onPageSizeChange={(nextPageSize) => {
-                setPageSize(nextPageSize);
-                setPage(1);
-              }}
-            />
-          </CollectionTableCard>
+        <CollectionPagination
+          itemLabel="eskalasi"
+          page={page}
+          pageSize={pageSize}
+          total={filteredItems.length}
+          disabled={loading}
+          onPageChange={setPage}
+          onPageSizeChange={(nextPageSize) => {
+            setPageSize(nextPageSize);
+            setPage(1);
+          }}
+        />
+        </CollectionTableCard>
       </div>
 
       <RiskCascadeActionDialog

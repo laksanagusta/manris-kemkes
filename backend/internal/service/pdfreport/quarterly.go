@@ -89,7 +89,7 @@ func (r *quarterlyReportPDFRenderer) RenderQuarterly(ctx context.Context, data *
 		knownLoss = fmt.Sprintf("Rp %.2f", summary.Events.KnownLoss)
 	}
 	quarterlyText(m, fmt.Sprintf("%d kejadian; %d belum terhubung ke register dalam scope. Kerugian diketahui: %s; %d kejadian memiliki kerugian belum diketahui. Atribusi berdasarkan tanggal kejadian, dengan deduplikasi ID kejadian.", summary.Events.Total, summary.Events.Unlinked, knownLoss, summary.Events.UnknownLoss), false)
-	quarterlyText(m, "Keparahan: "+quarterlyCounts(summary.Events.Severity)+". Kondisi pascarespons: "+quarterlyCounts(summary.Events.Condition)+".", false)
+	quarterlyText(m, "Keparahan: "+quarterlyCounts(summary.Events.Severity)+".", false)
 	eventRows := [][]string{}
 	seenEvents := map[uuid.UUID]bool{}
 	for _, e := range data.Events {
@@ -112,13 +112,13 @@ func (r *quarterlyReportPDFRenderer) RenderQuarterly(ctx context.Context, data *
 			}
 			linked = []string{label}
 		}
-		eventDetail := e.Description + " | Dampak: " + e.ActualImpact
+		eventDetail := e.Description
 		for _, note := range e.Notes {
 			eventDetail += "\nCatatan tambahan (" + note.CreatedByName + "): " + note.Body
 		}
-		eventRows = append(eventRows, []string{e.Code + " | " + quarterlyDate(e.OccurredAt), eventDetail, e.Severity + " | " + e.PostResponseCondition, e.OrganizationName, loss, strings.Join(linked, ", ")})
+		eventRows = append(eventRows, []string{e.Code + " | " + quarterlyDate(e.OccurredAt), eventDetail, e.Severity, e.OrganizationName, loss, strings.Join(linked, ", ")})
 	}
-	quarterlyTable(m, []string{"Kejadian / tanggal", "Kejadian dan dampak", "Keparahan / kondisi", "Unit", "Kerugian", "Risiko terkait"}, eventRows, []uint{2, 4, 2, 2, 1, 1})
+	quarterlyTable(m, []string{"Kejadian / tanggal", "Kejadian dan dampak", "Tingkat kejadian", "Unit", "Kerugian", "Risiko terkait"}, eventRows, []uint{2, 4, 2, 2, 1, 1})
 
 	quarterlyText(m, "Perbandingan unit", true)
 	unitRows := [][]string{}

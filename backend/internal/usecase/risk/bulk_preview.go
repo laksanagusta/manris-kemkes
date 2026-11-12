@@ -6,6 +6,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"path/filepath"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -16,52 +17,54 @@ import (
 	"github.com/xuri/excelize/v2"
 )
 
-// bulkRiskTemplateColumns defines column order for Sheet 2-style template (24 columns, 0-indexed)
+const bulkRiskCategoryColumn = "KATEGORI RISIKO"
+const bulkRiskCategoryRequired = "Kolom Kategori Risiko wajib diisi."
+
 var bulkRiskTemplateColumns = []string{
-	"RISIKO",                  // 0: Title
-	"KODE RISIKO",             // 1: SKIP (auto-generated)
-	"SEBAB",                   // 2: Cause (split by ";")
-	"SUMBER RISIKO",           // 3: RiskSource
-	"C/UC",                    // 4: Controllability
-	"DAMPAK",                  // 5: ImpactDesc (split by ";")
-	"URAIAN",                  // 6: ExistingControl (pengendalian)
-	"EFEKTIF",                 // 7: ControlEffectiveness "efektif"
-	"TIDAK EFEKTIF",           // 8: ControlEffectiveness "tidak_efektif"
-	"P",                       // 9: Probability
-	"D",                       // 10: Impact
-	"BOBOT",                   // 11: SKIP (computed)
-	"NILAI",                   // 12: SKIP (computed)
-	"TINGKAT RISIKO",          // 13: SKIP (computed)
-	"PRIORITAS RISIKO",        // 14: SKIP (computed)
-	"SELERA RISIKO",           // 15: RiskAppetite
-	"PILIHAN PENANGANAN",      // 16: TreatmentOption
-	"URAIAN (RPR)",            // 17: Mitigation.Action
-	"JADWAL PELAKSANAAN",      // 18: Mitigation.Schedule
-	"P (target)",              // 19: TargetProbability
-	"D (target)",              // 20: TargetImpact
-	"BOBOT (target)",          // 21: SKIP (computed)
-	"NILAI (target)",          // 22: SKIP (computed)
-	"TINGKAT RISIKO (target)", // 23: SKIP (computed)
+	"RISIKO",
+	bulkRiskCategoryColumn,
+	"KODE RISIKO",
+	"SEBAB",
+	"SUMBER RISIKO",
+	"C/UC",
+	"DAMPAK",
+	"URAIAN",
+	"EFEKTIF",
+	"TIDAK EFEKTIF",
+	"P",
+	"D",
+	"BOBOT",
+	"NILAI",
+	"TINGKAT RISIKO",
+	"PRIORITAS RISIKO",
+	"SELERA RISIKO",
+	"PILIHAN PENANGANAN",
+	"URAIAN (RPR)",
+	"JADWAL PELAKSANAAN",
+	"P (target)",
+	"D (target)",
+	"BOBOT (target)",
+	"NILAI (target)",
+	"TINGKAT RISIKO (target)",
 }
 
-// skipCols are computed/auto-generated columns that should not be parsed as input
-var skipCols = map[int]bool{
-	1:  true, // KODE RISIKO
-	11: true, // BOBOT (computed)
-	12: true, // NILAI (computed)
-	13: true, // TINGKAT RISIKO (computed)
-	14: true, // PRIORITAS RISIKO (computed)
-	21: true, // BOBOT (target, computed)
-	22: true, // NILAI (target, computed)
-	23: true, // TINGKAT RISIKO (target, computed)
+var bulkRiskComputedColumns = map[string]bool{
+	"KODE RISIKO":             true,
+	"BOBOT":                   true,
+	"NILAI":                   true,
+	"TINGKAT RISIKO":          true,
+	"PRIORITAS RISIKO":        true,
+	"BOBOT (target)":          true,
+	"NILAI (target)":          true,
+	"TINGKAT RISIKO (target)": true,
 }
 
 var bulkRiskColumnAliases = map[string]string{
 	"risiko":                  "RISIKO",
 	"koderisiko":              "KODE RISIKO",
 	"deskripsi":               "DESKRIPSI",
-	"kategori":                "KATEGORI RISIKO",
-	"kategoririsiko":          "KATEGORI RISIKO",
+	"kategori":                bulkRiskCategoryColumn,
+	"kategoririsiko":          bulkRiskCategoryColumn,
 	"sebab":                   "SEBAB",
 	"sumberrisiko":            "SUMBER RISIKO",
 	"cuc":                     "C/UC",
@@ -158,29 +161,30 @@ func (uc *BulkRiskSpreadsheetUseCase) Template() ([]byte, string, error) {
 	}
 	example := []string{
 		"Usulan layanan tidak sesuai kewenangan", // A: Risiko
-		"RPL.01",                                 // B: Kode Risiko
-		"Telaah tidak memadai",                   // C: Sebab
-		"Internal",                               // D: Sumber Risiko
-		"C",                                      // E: C/UC
-		"Pelanggaran aturan",                     // F: Dampak
-		"Telaah UPT",                             // G: Pengendalian Uraian
-		"Ya",                                     // H: Efektif
-		"",                                       // I: Tidak Efektif
-		"2",                                      // J: P
-		"2",                                      // K: D
-		"1.8",                                    // L: Bobot
-		"4",                                      // M: Nilai
-		"Sedang",                                 // N: Tingkat Risiko
-		"4",                                      // O: Prioritas Risiko
-		"Dalam batas selera risiko",              // P: Selera Risiko
-		"Menerima risiko",                        // Q: Pilihan Penanganan
-		"Checklist kewenangan & review SKI pra-penugasan", // R: Uraian (RPR)
-		"Feb 2026", // S: Jadwal Pelaksanaan
-		"2",        // T: P (target)
-		"2",        // U: D (target)
-		"1.8",      // V: Bobot (target)
-		"4",        // W: Nilai (target)
-		"Sedang",   // X: Tingkat Risiko (target)
+		"Kepatuhan",                              // B: Kategori
+		"RPL.01",                                 // C: Kode Risiko
+		"Telaah tidak memadai",                   // D: Sebab
+		"Internal",                               // E: Sumber Risiko
+		"C",                                      // F: C/UC
+		"Pelanggaran aturan",                     // G: Dampak
+		"Telaah UPT",                             // H: Pengendalian Uraian
+		"Ya",                                     // I: Efektif
+		"",                                       // J: Tidak Efektif
+		"2",                                      // K: P
+		"2",                                      // L: D
+		"1.8",                                    // M: Bobot
+		"4",                                      // N: Nilai
+		"Sedang",                                 // O: Tingkat Risiko
+		"4",                                      // P: Prioritas Risiko
+		"Dalam batas selera risiko",              // Q: Selera Risiko
+		"Menerima risiko",                        // R: Pilihan Penanganan
+		"Checklist kewenangan & review SKI pra-penugasan", // S: Uraian (RPR)
+		"Feb 2026", // T: Jadwal Pelaksanaan
+		"2",        // U: P (target)
+		"2",        // V: D (target)
+		"1.8",      // W: Bobot (target)
+		"4",        // X: Nilai (target)
+		"Sedang",   // Y: Tingkat Risiko (target)
 	}
 	if err := f.SetSheetRow("Contoh Data", "A5", &example); err != nil {
 		return nil, "", err
@@ -214,11 +218,11 @@ func writeSheet2StyleHeaders(f *excelize.File, sheet string) error {
 		startCol int
 		endCol   int
 	}{
-		{"IDENTIFIKASI RISIKO", 1, 6},
-		{"ANALISIS RISIKO", 7, 14},
-		{"EVALUASI RISIKO", 15, 17},
-		{"RENCANA PENANGANAN RISIKO (RPR)", 18, 19},
-		{"TARGET PENURUNAN TINGKAT RISIKO", 20, 24},
+		{"IDENTIFIKASI RISIKO", 1, 7},
+		{"ANALISIS RISIKO", 8, 15},
+		{"EVALUASI RISIKO", 16, 18},
+		{"RENCANA PENANGANAN RISIKO (RPR)", 19, 20},
+		{"TARGET PENURUNAN TINGKAT RISIKO", 21, 25},
 	}
 	for _, gh := range groupHeaders {
 		startCell, _ := excelize.CoordinatesToCellName(gh.startCol, 1)
@@ -232,67 +236,34 @@ func writeSheet2StyleHeaders(f *excelize.File, sheet string) error {
 	}
 
 	// --- Row 2: Sub-headers ---
-	subHeaders := map[int]string{
-		1:  "RISIKO",
-		2:  "KODE RISIKO",
-		3:  "SEBAB",
-		4:  "SUMBER RISIKO",
-		5:  "C/UC",
-		6:  "DAMPAK",
-		10: "P",
-		11: "D",
-		12: "BOBOT",
-		13: "NILAI",
-		14: "TINGKAT RISIKO",
-		15: "PRIORITAS RISIKO",
-		16: "SELERA RISIKO",
-		17: "PILIHAN PENANGANAN",
-		18: "URAIAN (RPR)",
-		19: "JADWAL PELAKSANAAN",
-		20: "P",
-		21: "D",
-		22: "BOBOT",
-		23: "NILAI",
-		24: "TINGKAT RISIKO",
-	}
-
-	if err := f.MergeCell(sheet, "G2", "I2"); err != nil {
+	if err := f.MergeCell(sheet, "H2", "J2"); err != nil {
 		return err
 	}
-	if err := f.SetCellValue(sheet, "G2", "PENGENDALIAN YANG ADA"); err != nil {
+	if err := f.SetCellValue(sheet, "H2", "PENGENDALIAN YANG ADA"); err != nil {
 		return err
 	}
 
-	for col, val := range subHeaders {
-		cell, _ := excelize.CoordinatesToCellName(col, 2)
-		if err := f.SetCellValue(sheet, cell, val); err != nil {
-			return err
+	for index, header := range bulkRiskTemplateColumns {
+		col := index + 1
+		if col >= 8 && col <= 10 {
+			cell, _ := excelize.CoordinatesToCellName(col, 3)
+			if err := f.SetCellValue(sheet, cell, header); err != nil {
+				return err
+			}
+			continue
 		}
-	}
 
-	// --- Row 3: Sub-sub headers under PENGENDALIAN ---
-	subSubHeaders := map[int]string{
-		7: "URAIAN",
-		8: "EFEKTIF",
-		9: "TIDAK EFEKTIF",
-	}
-	for col, val := range subSubHeaders {
-		cell, _ := excelize.CoordinatesToCellName(col, 3)
-		if err := f.SetCellValue(sheet, cell, val); err != nil {
-			return err
-		}
-	}
-
-	verticalMergeCols := []int{1, 2, 3, 4, 5, 6, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24}
-	for _, col := range verticalMergeCols {
 		startCell, _ := excelize.CoordinatesToCellName(col, 2)
 		endCell, _ := excelize.CoordinatesToCellName(col, 3)
 		if err := f.MergeCell(sheet, startCell, endCell); err != nil {
 			return err
 		}
+		if err := f.SetCellValue(sheet, startCell, strings.TrimSuffix(header, " (target)")); err != nil {
+			return err
+		}
 	}
 
-	for col := 1; col <= 24; col++ {
+	for col := 1; col <= len(bulkRiskTemplateColumns); col++ {
 		cell, _ := excelize.CoordinatesToCellName(col, 4)
 		if err := f.SetCellValue(sheet, cell, col); err != nil {
 			return err
@@ -301,19 +272,18 @@ func writeSheet2StyleHeaders(f *excelize.File, sheet string) error {
 
 	for row := 1; row <= 4; row++ {
 		startCell, _ := excelize.CoordinatesToCellName(1, row)
-		endCell, _ := excelize.CoordinatesToCellName(24, row)
+		endCell, _ := excelize.CoordinatesToCellName(len(bulkRiskTemplateColumns), row)
 		if err := f.SetCellStyle(sheet, startCell, endCell, headerStyle); err != nil {
 			return err
 		}
 	}
 
-	colWidths := map[string]float64{
-		"A": 40, "B": 14, "C": 32, "D": 16, "E": 8, "F": 32,
-		"G": 35, "H": 14, "I": 14, "J": 6, "K": 6, "L": 10,
-		"M": 10, "N": 18, "O": 14, "P": 22, "Q": 20, "R": 35,
-		"S": 18, "T": 6, "U": 6, "V": 10, "W": 10, "X": 18,
+	colWidths := []float64{
+		40, 20, 14, 32, 16, 8, 32, 35, 14, 14, 6, 6, 10,
+		10, 18, 14, 22, 20, 35, 18, 6, 6, 10, 10, 18,
 	}
-	for col, width := range colWidths {
+	for index, width := range colWidths {
+		col, _ := excelize.ColumnNumberToName(index + 1)
 		if err := f.SetColWidth(sheet, col, col, width); err != nil {
 			return err
 		}
@@ -421,17 +391,22 @@ func isColumnNumbersRow(row []string) bool {
 }
 
 func rowsToBulkRiskRecordsPositionBased(rows [][]string, headerIndex int) []map[string]string {
+	columns := bulkRiskTemplateColumns
+	hasCategory := slices.ContainsFunc(rows[:headerIndex], func(row []string) bool {
+		return len(row) > 1 && bulkRiskColumnAliases[normalizeBulkRiskHeader(row[1])] == bulkRiskCategoryColumn
+	})
+	if !hasCategory {
+		columns = slices.Concat(columns[:1], columns[2:])
+	}
+
 	var records []map[string]string
 	for _, row := range rows[headerIndex+1:] {
 		if isBulkRiskEmptyRow(row) {
 			continue
 		}
 		record := map[string]string{}
-		for colIdx, colName := range bulkRiskTemplateColumns {
-			if skipCols[colIdx] {
-				continue
-			}
-			if colIdx == 7 || colIdx == 8 {
+		for colIdx, colName := range columns {
+			if bulkRiskComputedColumns[colName] {
 				continue
 			}
 			if colIdx < len(row) {
@@ -439,21 +414,6 @@ func rowsToBulkRiskRecordsPositionBased(rows [][]string, headerIndex int) []map[
 			} else {
 				record[colName] = ""
 			}
-		}
-
-		efektif := ""
-		if 7 < len(row) {
-			efektif = strings.TrimSpace(row[7])
-		}
-		tidakEfektif := ""
-		if 8 < len(row) {
-			tidakEfektif = strings.TrimSpace(row[8])
-		}
-		if efektif != "" {
-			record["EFEKTIF"] = efektif
-		}
-		if tidakEfektif != "" {
-			record["TIDAK EFEKTIF"] = tidakEfektif
 		}
 		records = append(records, record)
 	}
@@ -516,17 +476,12 @@ func mapBulkRiskRecord(record map[string]string, rowNumber int, orgs []*entity.O
 
 	title := getVal("RISIKO")
 	description := getVal("DESKRIPSI")
-	categoryRaw := getVal("KATEGORI RISIKO")
-	category := normalizeBulkRiskCategory(categoryRaw)
-	if category == "" {
-		category = "operasional"
-	}
 
 	item := CreateRiskBatchItemInput{
 		ClientKey:            fmt.Sprintf("row-%d", rowNumber),
 		Title:                title,
 		Description:          description,
-		Category:             category,
+		Category:             normalizeBulkRiskCategory(getVal(bulkRiskCategoryColumn)),
 		Cause:                splitBulkRiskMultiValue(getVal("SEBAB")),
 		RiskSource:           normalizeRiskSource(getVal("SUMBER RISIKO")),
 		Controllability:      normalizeControllability(getVal("C/UC")),
@@ -591,10 +546,10 @@ func mapBulkRiskRecord(record map[string]string, rowNumber int, orgs []*entity.O
 	if item.Title == "" {
 		errors = append(errors, "Kolom Risiko wajib diisi.")
 	}
-	if categoryRaw == "" {
-		// Category empty - default to "operasional", no error
+	if item.Category == "" {
+		errors = append(errors, bulkRiskCategoryRequired)
 	} else if !entity.IsValidRiskCategory(item.Category) {
-		errors = append(errors, "Kategori Risiko tidak valid. Gunakan: strategis, operasional, kepatuhan, finansial, reputasi, teknologi_informasi.")
+		errors = append(errors, "Kategori Risiko tidak valid. Gunakan Kebijakan, Operasional, Kepatuhan, Fraud - Korupsi, Reputasi, atau Legal.")
 	}
 	if rawRiskSource := getVal("SUMBER RISIKO"); rawRiskSource != "" && item.RiskSource != "internal" && item.RiskSource != "eksternal" {
 		errors = append(errors, "Kolom Sumber Risiko harus berisi Internal atau external.")
@@ -675,7 +630,7 @@ func normalizeBulkRiskCategory(value string) string {
 		return entity.RiskCategoryReputasi
 	case "legal":
 		return entity.RiskCategoryLegal
-	case "fraud korupsi", "fraud", "korupsi":
+	case "fraud - korupsi", "fraud korupsi", "fraud", "korupsi":
 		return entity.RiskCategoryFraud
 	default:
 		return strings.ReplaceAll(normalized, " ", "_")

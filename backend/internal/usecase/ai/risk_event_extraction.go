@@ -40,11 +40,6 @@ func normalizeRiskEventExtraction(result *entity.RiskEventExtractionResult, text
 		default:
 			item.Event.Severity = ""
 		}
-		switch item.Event.PostResponseCondition {
-		case "recovered", "controlled", "ongoing", "worsening", "unknown":
-		default:
-			item.Event.PostResponseCondition = ""
-		}
 		types := make([]string, 0)
 		for _, t := range item.Event.ImpactTypes {
 			switch t {
@@ -76,15 +71,6 @@ func normalizeRiskEventExtraction(result *entity.RiskEventExtractionResult, text
 		}
 		if item.Event.Severity == "" {
 			item.MissingFields = append(item.MissingFields, "Tingkat kejadian")
-		}
-		if item.Event.ActualImpact == "" {
-			item.MissingFields = append(item.MissingFields, "Dampak aktual")
-		}
-		if item.Event.ImmediateResponse == "" {
-			item.MissingFields = append(item.MissingFields, "Penanganan langsung")
-		}
-		if item.Event.PostResponseCondition == "" {
-			item.MissingFields = append(item.MissingFields, "Kondisi setelah penanganan")
 		}
 		payload, _ := json.Marshal(item.Event)
 		key := fmt.Sprintf("%x", sha256.Sum256(append([]byte(source+"\n"), payload...)))

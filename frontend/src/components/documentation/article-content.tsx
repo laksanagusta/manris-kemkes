@@ -29,7 +29,7 @@ export function ArticleContent({ article }: { article: DocumentationArticle }) {
     <article aria-labelledby="article-title" className="min-w-0 text-base leading-[1.6] text-pretty">
       <header className="mb-12 space-y-4">
         <p className="text-xs font-medium tracking-wide text-tertiary-foreground">{article.category}</p>
-        <h1 id="article-title" className="max-w-[24ch] text-[32px] leading-[1.1] font-semibold tracking-[-0.035em]">{article.title}</h1>
+        <h1 id="article-title" className="max-w-[24ch] text-[32px] leading-[1.1] font-semibold tracking-normal">{article.title}</h1>
         <p className="max-w-[68ch] text-base leading-[1.6] text-muted-foreground">{article.description}</p>
       </header>
       <aside aria-label="Akses dokumentasi ini" className="mb-10 flex gap-3 border-l-2 border-border pl-4 text-sm leading-[1.5]">
@@ -100,9 +100,9 @@ export function ArticleContent({ article }: { article: DocumentationArticle }) {
               </ol>
             )}
             {section.fields && (
-              <Table>
+              <Table framed>
                 <TableHeader><TableRow><TableHead>Kolom / istilah</TableHead><TableHead>Keterangan</TableHead></TableRow></TableHeader>
-                <TableBody>{section.fields.map((field) => <TableRow key={field.name}><TableCell className="w-1/3 align-top whitespace-normal"><span className="font-medium">{field.name}</span></TableCell><TableCell className="align-top whitespace-normal"><span className="text-muted-foreground">{field.description}</span></TableCell></TableRow>)}</TableBody>
+                <TableBody>{section.fields.map((field) => <TableRow key={field.name}><TableCell className="w-1/3 max-w-56 font-medium">{field.name}</TableCell><TableCell className="max-w-lg text-muted-foreground">{field.description}</TableCell></TableRow>)}</TableBody>
               </Table>
             )}
             {section.note && (

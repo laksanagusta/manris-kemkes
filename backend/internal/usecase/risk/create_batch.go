@@ -160,9 +160,6 @@ func normalizeBatchItem(item CreateRiskBatchItemInput) CreateRiskBatchItemInput 
 	item.Title = strings.TrimSpace(item.Title)
 	item.Description = strings.TrimSpace(item.Description)
 	item.Category = strings.TrimSpace(item.Category)
-	if item.Category == "" {
-		item.Category = "operasional"
-	}
 	item.RiskSource = normalizeRiskSource(item.RiskSource)
 	item.ExistingControl = strings.TrimSpace(item.ExistingControl)
 	item.RiskAppetite = strings.TrimSpace(item.RiskAppetite)
@@ -186,10 +183,11 @@ func validateBatchItem(item CreateRiskBatchItemInput) error {
 	if item.Title == "" {
 		return apperrors.Wrap(apperrors.ErrInvalidTitle, "title is required")
 	}
-	if item.Category != "" {
-		if !entity.IsValidRiskCategory(item.Category) {
-			return apperrors.Wrap(apperrors.ErrInvalidRiskCategory, "invalid risk category")
-		}
+	if item.Category == "" {
+		return apperrors.Wrap(apperrors.ErrInvalidRiskCategory, bulkRiskCategoryRequired)
+	}
+	if !entity.IsValidRiskCategory(item.Category) {
+		return apperrors.Wrap(apperrors.ErrInvalidRiskCategory, "invalid risk category")
 	}
 	if item.RiskSource != "" && item.RiskSource != "internal" && item.RiskSource != "eksternal" {
 		return apperrors.Wrap(apperrors.ErrInvalidInput, "risk source must be Internal or external")

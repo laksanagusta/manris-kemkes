@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus } from "@/components/shared/icons";
 import { AgentDownloadMenu } from "./agent-message-downloads";
 import { AgentStart, AgentSuggestions } from "./agent-start";
-import { AgentConversationHeader, AgentConversationLayout } from "./agent-conversation-layout";
-import { agentDate, agentRelativeTime } from "@/lib/agent-helpers";
+import { AgentConversationHeader, AgentConversationLayout, AgentScrollViewport } from "./agent-conversation-layout";
+import { agentDate, agentRelativeTime, isAgentNearBottom } from "@/lib/agent-helpers";
 import { AgentComposer } from "./agent-composer";
 import { AgentActivity } from "./agent-activity";
 import { AgentWidget } from "./agent-widget";
@@ -27,9 +27,20 @@ export function AgentSystemExample() {
   const [proposal, setProposal] = useState(initialProposal);
   const [notice, setNotice] = useState("");
   const isStart = view !== "results";
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [atLatest, setAtLatest] = useState(false);
+  const jumpToLatest = () => {
+    const viewport = scrollRef.current;
+    if (viewport) viewport.scrollTop = viewport.scrollHeight;
+  };
   const composer = <AgentComposer mode={isStart ? "start" : "reply"} content={content} onContentChange={setContent} skills={[{ id: "risks", name: "Risiko", description: "Profil dan analisis risiko" }, { id: "mitigations", name: "Mitigasi", description: "Rencana dan progres tindak lanjut" }, { id: "incidents", name: "Kejadian", description: "Catatan kejadian risiko" }, { id: "reports", name: "Laporan", description: "Ringkasan bersumber" }]} selectedSkills={skills} onSkillsChange={setSkills} files={[]} onFiles={() => setNotice("Contoh katalog tidak mengunggah berkas.")} onRemoveFile={() => {}} onSend={() => setNotice("Pesan contoh tidak dikirim ke server.")} />;
   return <div className="space-y-3"><div className="flex flex-wrap gap-2"><Button variant={view === "new" ? "secondary" : "outline"} onClick={() => setView("new")}>Percakapan baru</Button><Button variant={view === "history" ? "secondary" : "outline"} onClick={() => setView("history")}>Riwayat terisi</Button><Button variant={view === "results" ? "secondary" : "outline"} onClick={() => setView("results")}>Hasil dan tinjauan</Button><Button variant="ghost" onClick={() => { setProposal(initialProposal); setNotice(""); }}>Reset contoh</Button></div><p className="text-xs text-muted-foreground" role="status">Data ilustratif. {notice}</p><p className="text-xs text-muted-foreground">Riwayat produksi menyebut status pekerjaan. Hasil tersimpan dapat diunduh sebagai Excel/PDF melalui pemeriksaan akses, dan peringatan dokumen yang terpotong tetap tampil bersama lampiran. Percakapan mengikuti hasil baru saat pembaca berada di bagian akhir.</p>
-    <div className="agent-panel agent-catalog">{!isStart && <AgentConversationHeader title="Tinjauan profil risiko" actions={<Button variant="ghost" size="icon-sm" aria-label="Percakapan baru" title="Percakapan baru" onClick={() => setView("new")}><Plus aria-hidden="true" /></Button>}><span className="truncate text-sm">Tinjauan profil risiko</span></AgentConversationHeader>}<div className={`agent-scroll ${isStart ? "agent-scroll-new" : ""}`}>
+    <div className="agent-panel agent-catalog">{!isStart && <AgentConversationHeader title="Tinjauan profil risiko" actions={<Button variant="ghost" size="icon-sm" aria-label="Percakapan baru" title="Percakapan baru" onClick={() => setView("new")}><Plus aria-hidden="true" /></Button>}><span className="truncate text-sm">Tinjauan profil risiko</span></AgentConversationHeader>}<AgentScrollViewport
+      start={isStart}
+      ref={scrollRef}
+      onScroll={isStart ? undefined : (event) => setAtLatest(isAgentNearBottom(event.currentTarget))}
+      onJumpToLatest={atLatest ? undefined : jumpToLatest}
+    >
     {isStart ? <AgentStart composer={composer}>{view === "history" ? ["Ringkasan profil risiko unit", "Tinjauan mitigasi distribusi dan rencana tindak lanjut kuartal IV", "Perbandingan risiko antarkuartal"].map((title, index) => <button type="button" key={title} className="agent-history-row" onClick={() => setNotice(`Riwayat ilustratif: ${title}`)}><span className="agent-history-title"><span className="truncate">{title}</span><Badge variant="secondary">{index === 1 ? "Menunggu tinjauan" : "Selesai"}</Badge></span><time dateTime={historyExampleDates[index]} title={agentDate(historyExampleDates[index])} aria-label={agentDate(historyExampleDates[index])}>{agentRelativeTime(historyExampleDates[index], historyExampleNow)}</time></button>) : <AgentSuggestions onSelect={setContent} />}</AgentStart> : <AgentConversationLayout startedAt={snapshotAt}><div className="agent-turn"><article className="agent-message agent-message-user"><div className="agent-message-text">Ringkas profil risiko pada contoh ini.</div></article><div className="agent-run-result"><AgentActivity run={{ id: "illustrative-run", conversationId: "illustrative", status: "waiting_for_confirmation", events: [{ id: "event-1", label: "Membaca profil risiko yang diizinkan", status: "completed", createdAt: snapshotAt }, { id: "event-2", label: "Menyusun ringkasan dan usulan", status: "completed", createdAt: snapshotAt }] }} /><article className="agent-message agent-message-assistant"><div className="agent-message-text">Contoh ringkasan menggunakan snapshot yang sama dengan tabel. Tinjau usulan sebelum menerapkan perubahan.</div>
     <AgentWidget widget={{ id: "metrics", type: "metrics", title: "Ringkasan ilustratif", snapshotAt, scopeLabel: "Unit contoh · Triwulan IV 2026", metrics: [{ label: "Profil ditinjau", value: 3 }, { label: "Perlu tindak lanjut", value: 1 }], sourceIds: ["Data ilustratif katalog"] }} onRefresh={() => setNotice("Perbarui pada produksi menambahkan permintaan baru.")} />
     <AgentWidget widget={{ id: "table", type: "table", title: "Profil risiko ilustratif", description: "Tautan kode contoh membuka Register Risiko.", snapshotAt, scopeLabel: "Unit contoh", columns: [{ key: "code", label: "Kode" }, { key: "title", label: "Risiko" }, { key: "status", label: "Status" }], rows: [{ code: "R-001", title: "Keterlambatan distribusi", status: "Draf", href: "/risk/register" }, { code: "R-002", title: "Kelengkapan pencatatan", status: "Draf", href: "/risk/register" }] }} />
@@ -47,6 +58,6 @@ export function AgentSystemExample() {
 
 Contoh paragraf ini menunjukkan batas lebar bacaan: teks tetap nyaman diikuti pada layar lebar, sementara tabel dan komponen hasil di atas menggunakan seluruh kolom yang tersedia.</div></article></div></div>
     </AgentConversationLayout>}
-    </div>{!isStart && <div className="agent-bottom"><div className="agent-column">{composer}</div></div>}</div>
+    </AgentScrollViewport>{!isStart && <div className="agent-bottom"><div className="agent-column">{composer}</div></div>}</div>
   </div>;
 }

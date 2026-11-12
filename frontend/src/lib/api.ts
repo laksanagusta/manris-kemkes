@@ -7,7 +7,7 @@ interface FetchOptions extends RequestInit {
 
 export class ApiError extends Error {
   status: number;
-  constructor(message: string, status: number) {
+  constructor(message: string, status: number, readonly type?: string, readonly details?: unknown) {
     super(message);
     this.status = status;
   }
@@ -44,7 +44,7 @@ async function request<T>(path: string, options: FetchOptions = {}): Promise<T> 
     }
 
     const body = await res.json().catch(() => ({ error: res.statusText }));
-    throw new ApiError(body.detail || body.error || "Request failed", res.status);
+    throw new ApiError(body.detail || body.error || "Request failed", res.status, body.type, body.details);
   }
 
   if (res.status === 204) return {} as T;

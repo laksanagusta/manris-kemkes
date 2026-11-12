@@ -34,6 +34,9 @@ type WorkingPaper struct {
 	Status                   string                 `json:"status"` // draft, signing, completed, cancelled
 	AssessmentCycle          string                 `json:"assessment_cycle"`
 	Risks                    []WorkingPaperRiskLink `json:"risks"`
+	SigningSnapshot          json.RawMessage        `json:"-"`
+	ReviewHash               string                 `json:"review_hash,omitempty"`
+	ContentLocked            bool                   `json:"content_locked,omitempty"`
 	DocumentHash             string                 `json:"document_hash"`
 	CurrentSignatorySequence int                    `json:"current_signatory_sequence"` // 0-based: next signatory index
 	CreatedBy                uuid.UUID              `json:"created_by"`

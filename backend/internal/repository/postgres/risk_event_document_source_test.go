@@ -32,7 +32,7 @@ func TestRiskEventDocumentSourceRoundTripAndDuplicateProtection(t *testing.T) {
 	if _, err = pool.Exec(ctx, `CREATE TABLE organizations (id uuid PRIMARY KEY, name text); CREATE TABLE users (id uuid PRIMARY KEY, name text); CREATE TABLE risks (id uuid PRIMARY KEY, code text, title text);`); err != nil {
 		t.Fatal(err)
 	}
-	for _, path := range []string{"000066_risk_event_ledger.up.sql", "000070_risk_event_document_source.up.sql"} {
+	for _, path := range []string{"000066_risk_event_ledger.up.sql", "000070_risk_event_document_source.up.sql", "000080_remove_optional_risk_event_fields.up.sql"} {
 		migration, err := os.ReadFile("../../../db/migrations/" + path)
 		if err != nil {
 			t.Fatal(err)
@@ -49,7 +49,7 @@ func TestRiskEventDocumentSourceRoundTripAndDuplicateProtection(t *testing.T) {
 		t.Fatal(err)
 	}
 	repo := postgres.NewRiskEventRepository(pool)
-	event := &entity.RiskEvent{Description: "Layanan berhenti", OccurredAt: time.Now(), Severity: "high", ImpactTypes: []string{"service"}, PostResponseCondition: "unknown", OrganizationID: orgID, CreatedBy: actorID, SourceDocumentName: "laporan.pdf", SourceRefs: []entity.DocumentSourceRef{{Quote: "Layanan berhenti", Location: "Halaman 2"}}, ExtractionKey: strings.Repeat("a", 64)}
+	event := &entity.RiskEvent{Description: "Layanan berhenti", OccurredAt: time.Now(), Severity: "high", ImpactTypes: []string{"service"}, OrganizationID: orgID, CreatedBy: actorID, SourceDocumentName: "laporan.pdf", SourceRefs: []entity.DocumentSourceRef{{Quote: "Layanan berhenti", Location: "Halaman 2"}}, ExtractionKey: strings.Repeat("a", 64)}
 	if err = repo.Create(ctx, event, nil); err != nil {
 		t.Fatal(err)
 	}

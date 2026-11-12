@@ -1,92 +1,46 @@
-"use client";
-
-import { ManriskMark } from "@/components/manrisk-mark";
 import { Card, CardContent } from "@/components/ui/card";
+import { formatDisplayDate } from "@/lib/display-date";
+
+const palette = [
+  { token: "workspace", label: "Kanvas", className: "bg-workspace text-foreground" },
+  { token: "card", label: "Permukaan", className: "bg-card text-card-foreground" },
+  { token: "secondary", label: "Sekunder", className: "bg-secondary text-secondary-foreground" },
+  { token: "primary", label: "Aksi utama", className: "bg-primary text-primary-foreground" },
+  { token: "workspace-data", label: "Data", className: "bg-workspace-data", decorative: true },
+];
 
 export function TypographyExample() {
   return (
-      <Card className="overflow-hidden">
-      <CardContent className="space-y-5">
-        <div className="space-y-1.5">
-          <p className="font-mono text-[11px] text-muted-foreground">
-            --font-sans: Geist
-          </p>
-          <p className="font-mono text-[11px] text-muted-foreground">
-            --font-logo: Geist
-          </p>
-          <p className="font-mono text-[11px] text-muted-foreground">
-            --font-mono: system monospace
-          </p>
-        </div>
-        <div className="space-y-3">
+    <Card>
+      <CardContent className="grid gap-6 md:grid-cols-2">
+        <div className="space-y-4">
+          <p className="text-page-title tracking-normal">Judul halaman</p>
+          <p className="text-section-title tracking-[-0.015em]">Judul bagian</p>
+          <p className="text-sm leading-snug text-muted-foreground">Teks pendukung dan label kontrol memakai Inter 14 px.</p>
           <div>
-            <div className="flex items-center gap-3">
-              <ManriskMark />
-              <p className="font-logo text-[20px] leading-5 font-semibold lowercase tracking-[-0.4px] text-foreground">
-                Manrisk
-              </p>
-            </div>
-            <p className="font-mono text-[11px] text-muted-foreground">
-              Brand mark + wordmark · layered slanted panels · Geist 20px semibold · lowercase · -0.4px tracking
-            </p>
+            <p className="text-table-label text-table-header-foreground">Label kolom</p>
+            <p className="mt-1 text-sm font-medium tabular-nums">1.234,56</p>
           </div>
           <div>
-            <p className="page-title">
-              Display / H1
-            </p>
-            <p className="font-mono text-[11px] text-muted-foreground">
-              page-title · 24px · semibold
-            </p>
-          </div>
-          <div>
-            <p className="text-xl font-semibold tracking-tight text-foreground">
-              Section Title
-            </p>
-            <p className="font-mono text-[11px] text-muted-foreground">
-              text-xl font-semibold tracking-tight
-            </p>
-          </div>
-          <div>
-            <p className="text-sm font-medium tracking-tight text-foreground">
-              Form section title
-            </p>
-            <p className="font-mono text-[11px] text-muted-foreground">
-              text-sm font-medium tracking-tight · 14px
-            </p>
-            <p className="text-xs leading-relaxed text-muted-foreground">
-              Form section subtitle
-            </p>
-            <p className="font-mono text-[11px] text-muted-foreground">
-              text-xs leading-relaxed · 12px
-            </p>
-          </div>
-          <div>
-            <p className="text-sm font-normal text-foreground">Form field label</p>
-            <p className="font-mono text-[11px] text-muted-foreground">
-              text-sm font-normal · input labels
-            </p>
-          </div>
-          <div>
-            <p className="text-xs text-tertiary-foreground">Helper / Caption</p>
-            <p className="font-mono text-[11px] text-tertiary-foreground">
-              text-xs text-tertiary-foreground
-            </p>
-          </div>
-          <div>
-            <p className="text-[11px] font-medium text-foreground">Badge / Micro</p>
-            <p className="font-mono text-[11px] text-muted-foreground">
-              text-[11px] font-medium
-            </p>
-          </div>
-          <div>
-            <p className="font-sans tabular-nums text-sm text-foreground">
-              Geist tabular value: 12345.67
-            </p>
-            <p className="font-mono text-[11px] text-muted-foreground">
-              font-sans · Geist · tabular-nums
-            </p>
+            <p className="text-table-label text-table-header-foreground">Tanggal dan waktu</p>
+            <time className="mt-1 block text-sm tabular-nums" style={{ fontFamily: "var(--font-inter), sans-serif" }} dateTime="2026-01-07T08:05:03+07:00">
+              {formatDisplayDate(new Date("2026-01-07T08:05:03+07:00"), {
+                year: "numeric", month: "short", day: "2-digit",
+                hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "Asia/Jakarta",
+              })}
+            </time>
           </div>
         </div>
+        <ul className="grid grid-cols-2 content-start gap-3 sm:grid-cols-3">
+          {palette.map(({ token, label, className, decorative }) => (
+            <li key={token} className="min-w-0 space-y-1">
+              <div aria-hidden={decorative || undefined} className={`flex min-h-12 items-center rounded-md border border-border px-2 text-xs ${className}`}>
+                {decorative ? null : label}
+              </div>
+              <span className="block wrap-anywhere text-xs text-muted-foreground">{token}</span>
+            </li>
+          ))}
+        </ul>
       </CardContent>
     </Card>
   );

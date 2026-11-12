@@ -40,18 +40,12 @@ func mitigationFields() map[string]any {
 		"action": str(), "owner": str(), "ownerUserId": str(), "dueDate": str(), "frequency": enum("rutin", "insidental"),
 		"recurringInterval": str(), "reportDay": num(0, 6), "reportDate": num(1, 31), "executionScheduleText": str(),
 		"targetCost": map[string]any{"type": "number", "minimum": 0}, "mitigationType": enum("reduce_probability", "reduce_impact", "reduce_both"),
-		"activityStage": str(), "expectedOutput": str(), "quantitativeTarget": str(), "supportingUnit": str(),
-		"resourcesRequired": str(), "contingencyPlan": str(), "potentialObstacle": str(),
-		"isBreakthroughActivity": map[string]any{"type": "boolean"}, "isExistingControl": map[string]any{"type": "boolean"},
 	}
 }
 func eventFields() map[string]any {
 	return map[string]any{
-		"description": str(), "occurredAt": str(), "impactTypes": list(str()), "otherImpactType": str(), "actualImpact": str(),
-		"severity": enum("low", "medium", "high", "extreme"), "immediateResponse": str(),
-		"postResponseCondition": enum("recovered", "controlled", "ongoing", "worsening", "unknown"),
-		"location":              str(), "affectedParties": str(), "suspectedCause": str(), "disruptionDuration": str(),
-		"extraordinaryReason": str(), "ongoingAction": str(), "evidenceUrl": str(),
+		"description": str(), "occurredAt": str(), "impactTypes": list(str()), "otherImpactType": str(),
+		"severity":      enum("low", "medium", "high", "extreme"),
 		"financialLoss": map[string]any{"type": "number", "minimum": 0}, "financialLossKnown": map[string]any{"type": "boolean"},
 		"riskIds": list(str()), "sourceDocumentName": str(), "sourceRefs": list(object(map[string]any{"quote": str(), "location": str()}, "quote")), "extractionKey": str(),
 	}
@@ -130,6 +124,11 @@ func (t *Toolkit) Definitions(skills []string) []agent.ToolDefinition {
 		required := []string{}
 		switch kind {
 		case "create_risk":
+			fields["title"] = map[string]any{
+				"type": "string",
+				"description": "Judul risiko yang dirumuskan AI berdasarkan mandat, layanan, atau proses organisasi. " +
+					"Gunakan judul risiko yang sama pada label operasi.",
+			}
 			fields["mitigations"] = list(object(mitigationFields(), "action", "owner"))
 			required = []string{"title", "category", "probability", "impact"}
 		case "add_mitigation":

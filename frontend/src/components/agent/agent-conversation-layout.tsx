@@ -1,5 +1,7 @@
-import type { ReactNode } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import { agentDate } from "@/lib/agent-helpers";
+import { ArrowDown } from "@/components/shared/icons";
+import { Button } from "@/components/ui/button";
 
 export function AgentConversationHeader({ title, children, actions }: { title: string; children: ReactNode; actions: ReactNode }) {
   return (
@@ -8,6 +10,27 @@ export function AgentConversationHeader({ title, children, actions }: { title: s
       <div className="agent-header-title">{children}</div>
       <div className="agent-header-actions">{actions}</div>
     </header>
+  );
+}
+
+type AgentScrollViewportProps = Omit<ComponentProps<"div">, "className"> & {
+  start: boolean;
+  onJumpToLatest?: () => void;
+};
+
+export function AgentScrollViewport({ start, onJumpToLatest, ...props }: AgentScrollViewportProps) {
+  return (
+    <div className={start ? "contents" : "agent-scroll-frame scroll-edge-blur"}>
+      <div {...props} className={start ? "agent-scroll agent-scroll-new" : "agent-scroll"} />
+      {!start && onJumpToLatest && (
+        <div className="agent-column agent-scroll-actions">
+          <Button type="button" variant="link" size="sm" onClick={onJumpToLatest}>
+            <ArrowDown aria-hidden="true" />
+            Ke pesan terbaru
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }
 

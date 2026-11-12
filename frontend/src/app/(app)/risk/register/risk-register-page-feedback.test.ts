@@ -262,18 +262,15 @@ test("risk form uses concise finalization copy and medium-weight field labels", 
   assert.match(riskFormPage, /\[&_\[data-slot=label\]\]:font-medium/);
 });
 
-test("risk form section headings use stock Card title and description slots", () => {
-  const sectionHeadingClass =
-    /<CardTitle className="transition-colors">/g;
-  const sectionSubtitleClass =
-    /<CardDescription>/g;
+test("risk form section headings use the shared form container", () => {
+  const sections = riskFormPage.match(/<FormContainer\s+[\s\S]*?className="scroll-mt-28"/g) ?? [];
 
-  assert.equal(riskFormPage.match(sectionHeadingClass)?.length, 6);
-  assert.equal(riskFormPage.match(sectionSubtitleClass)?.length, 6);
-  assert.match(
-    riskFormPage,
-    /<CardTitle className="transition-colors">Identifikasi Risiko<\/CardTitle>/,
-  );
+  assert.equal(sections.length, 6);
+  for (const section of sections) {
+    assert.match(section, /title="/);
+    assert.match(section, /description=/);
+  }
+  assert.match(sections[0], /title="Identifikasi Risiko"/);
 });
 
 test("risk evaluation metadata keeps values concise, normal, and muted", () => {
@@ -337,8 +334,9 @@ test("application main content can shrink beside the sidebar", () => {
 });
 
 test("register tools sit above the single risk collection", () => {
-  assert.match(page, /<CollectionToolbar/);
-  assert.match(page, /<CollectionTableCard>/);
+  assert.match(page, /<CollectionToolbar\b[\s\S]*<CollectionTableCard\b/);
+  assert.equal(page.match(/<CollectionTableCard\b/g)?.length, 1);
+  assert.doesNotMatch(page, /RiskRegisterCards|registerView|Tampilan register risiko/);
   assert.doesNotMatch(page, /<Tabs|TabsContent|TabsTrigger/);
   assert.doesNotMatch(page, /Muat ulang daftar risiko|handleRefreshRegister/);
 });

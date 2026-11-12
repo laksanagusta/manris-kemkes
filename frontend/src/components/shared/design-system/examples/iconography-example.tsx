@@ -6,11 +6,21 @@ import {
   CheckCircle2,
   Info,
   Search,
+  Brochure,
+  Note,
+  DashboardCircle,
+  PieChart09,
+  MessageSquareWarning,
 } from "@/components/shared/icons";
 
 const iconExamples = [
   { label: "Agent (SVG khusus)", icon: AgentIcon },
   { label: "Lampiran (SVG khusus)", icon: AttachmentIcon },
+  { label: "Risiko", icon: Brochure },
+  { label: "Kertas Kerja", icon: Note },
+  { label: "Dashboard", icon: DashboardCircle },
+  { label: "Laporan", icon: PieChart09 },
+  { label: "Kejadian Risiko", icon: MessageSquareWarning },
   { label: "Navigation", icon: Activity },
   { label: "Warning", icon: AlertTriangle },
   { label: "Success", icon: CheckCircle2 },
@@ -20,7 +30,7 @@ const iconExamples = [
 
 export function IconographyExample() {
   return (
-    <div className="space-y-4 rounded-[12px] bg-card p-6 shadow-black">
+    <div className="space-y-4 rounded-(--surface-radius) bg-card p-6 shadow-black">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {iconExamples.map(({ label, icon: Icon }) => (
           <div

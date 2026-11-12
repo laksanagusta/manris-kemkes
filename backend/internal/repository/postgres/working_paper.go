@@ -187,16 +187,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		       COALESCE((SELECT array_agg(m.due_date::text ORDER BY m.sort_order) FROM mitigations m WHERE m.risk_id = risk.id AND m.due_date IS NOT NULL), ARRAY[]::text[]),
 		       COALESCE((SELECT array_agg(concat_ws(' · ',
 		       	'Aksi: ' || m.action,
-		       	CASE WHEN btrim(COALESCE(m.mitigation_type, '')) <> '' THEN 'Jenis: ' || m.mitigation_type END,
-		       	CASE WHEN btrim(COALESCE(m.activity_stage, '')) <> '' THEN 'Tahap: ' || m.activity_stage END,
-		       	CASE WHEN btrim(COALESCE(m.expected_output, '')) <> '' THEN 'Output: ' || m.expected_output END,
-		       	CASE WHEN btrim(COALESCE(m.quantitative_target, '')) <> '' THEN 'Target: ' || m.quantitative_target END,
-		       	CASE WHEN btrim(COALESCE(m.supporting_unit, '')) <> '' THEN 'Unit: ' || m.supporting_unit END,
-		       	CASE WHEN btrim(COALESCE(m.resources_required, '')) <> '' THEN 'Sumber daya: ' || m.resources_required END,
-		       	CASE WHEN btrim(COALESCE(m.contingency_plan, '')) <> '' THEN 'Kontinjensi: ' || m.contingency_plan END,
-		       	CASE WHEN btrim(COALESCE(m.potential_obstacle, '')) <> '' THEN 'Hambatan: ' || m.potential_obstacle END,
-		       	CASE WHEN m.is_breakthrough_activity THEN 'Breakthrough: Ya' END,
-		       	CASE WHEN m.is_existing_control THEN 'Kontrol eksisting: Ya' END
+		        CASE WHEN btrim(COALESCE(m.mitigation_type, '')) <> '' THEN 'Jenis: ' || m.mitigation_type END
 		       ) ORDER BY m.sort_order) FROM mitigations m WHERE m.risk_id = risk.id), ARRAY[]::text[]),
 		       risk.target_probability,
 		       risk.target_impact,
@@ -231,16 +222,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		       COALESCE((SELECT array_agg(pm.due_date::text ORDER BY pm.sort_order) FROM mitigations pm WHERE pm.risk_id = prev_risk.id AND pm.due_date IS NOT NULL), ARRAY[]::text[]),
 		       COALESCE((SELECT array_agg(concat_ws(' · ',
 		       	'Aksi: ' || pm.action,
-		       	CASE WHEN btrim(COALESCE(pm.mitigation_type, '')) <> '' THEN 'Jenis: ' || pm.mitigation_type END,
-		       	CASE WHEN btrim(COALESCE(pm.activity_stage, '')) <> '' THEN 'Tahap: ' || pm.activity_stage END,
-		       	CASE WHEN btrim(COALESCE(pm.expected_output, '')) <> '' THEN 'Output: ' || pm.expected_output END,
-		       	CASE WHEN btrim(COALESCE(pm.quantitative_target, '')) <> '' THEN 'Target: ' || pm.quantitative_target END,
-		       	CASE WHEN btrim(COALESCE(pm.supporting_unit, '')) <> '' THEN 'Unit: ' || pm.supporting_unit END,
-		       	CASE WHEN btrim(COALESCE(pm.resources_required, '')) <> '' THEN 'Sumber daya: ' || pm.resources_required END,
-		       	CASE WHEN btrim(COALESCE(pm.contingency_plan, '')) <> '' THEN 'Kontinjensi: ' || pm.contingency_plan END,
-		       	CASE WHEN btrim(COALESCE(pm.potential_obstacle, '')) <> '' THEN 'Hambatan: ' || pm.potential_obstacle END,
-		       	CASE WHEN pm.is_breakthrough_activity THEN 'Breakthrough: Ya' END,
-		       	CASE WHEN pm.is_existing_control THEN 'Kontrol eksisting: Ya' END
+		        CASE WHEN btrim(COALESCE(pm.mitigation_type, '')) <> '' THEN 'Jenis: ' || pm.mitigation_type END
 		       ) ORDER BY pm.sort_order) FROM mitigations pm WHERE pm.risk_id = prev_risk.id), ARRAY[]::text[]),
 		       -- Monitoring data
 		       monitoring.id,
@@ -544,7 +526,7 @@ func (r *workingPaperRepository) getSignatoriesByWorkingPaperID(ctx context.Cont
 
 func (r *workingPaperRepository) loadWorkingPaper(ctx context.Context, q workingPaperReader, id uuid.UUID, forUpdate bool) (*entity.WorkingPaper, error) {
 	query := `SELECT id, sequence_no, code, title, org_id, status, assessment_cycle, document_hash, current_signatory_sequence, created_by,
-	        created_at, updated_at, completed_at, cancelled_at, tte_skipped
+	        created_at, updated_at, completed_at, cancelled_at, tte_skipped, signing_snapshot
 	 FROM working_papers
 	 WHERE id = $1`
 	if forUpdate {
@@ -555,36 +537,52 @@ func (r *workingPaperRepository) loadWorkingPaper(ctx context.Context, q working
 	err := q.QueryRow(ctx, query, id).Scan(
 		&wp.ID, &wp.SequenceNo, &wp.Code, &wp.Title, &wp.OrgID, &wp.Status, &wp.AssessmentCycle,
 		&wp.DocumentHash, &wp.CurrentSignatorySequence, &wp.CreatedBy,
-		&wp.CreatedAt, &wp.UpdatedAt, &wp.CompletedAt, &wp.CancelledAt, &wp.TTESkipped,
+		&wp.CreatedAt, &wp.UpdatedAt, &wp.CompletedAt, &wp.CancelledAt, &wp.TTESkipped, &wp.SigningSnapshot,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("get working paper by id: %w", err)
 	}
 
-	risks, err := r.getWorkingPaperRisks(ctx, q, wp.ID)
-	if err != nil {
-		return nil, fmt.Errorf("get working paper risks: %w", err)
+	if err := r.loadWorkingPaperContent(ctx, q, wp); err != nil {
+		return nil, err
 	}
-	wp.Risks = risks
+	if !forUpdate && wp.Status == entity.WorkingPaperStatusDraft {
+		wp.ReviewHash, err = wp.SigningReviewHash()
+		if err != nil {
+			return nil, err
+		}
+	}
+	return wp, nil
+}
 
+func (r *workingPaperRepository) loadWorkingPaperContent(ctx context.Context, q workingPaperReader, wp *entity.WorkingPaper) error {
+	if len(wp.SigningSnapshot) == 0 {
+		risks, err := r.getWorkingPaperRisks(ctx, q, wp.ID)
+		if err != nil {
+			return fmt.Errorf("get working paper risks: %w", err)
+		}
+		wp.Risks = risks
+	}
 	sigs, err := r.getSignatoriesByWorkingPaperID(ctx, q, wp.ID)
 	if err != nil {
-		return nil, fmt.Errorf("get working paper signatories: %w", err)
+		return fmt.Errorf("get working paper signatories: %w", err)
 	}
 	for _, sig := range sigs {
 		wp.Signatories = append(wp.Signatories, *sig)
 	}
-
-	return wp, nil
+	return wp.RestoreSigningContent()
 }
 
 func (r *workingPaperRepository) updateWorkingPaper(ctx context.Context, execer workingPaperExecer, wp *entity.WorkingPaper) error {
 	_, err := execer.Exec(ctx,
 		`UPDATE working_papers
 		 SET status = $2, current_signatory_sequence = $3, completed_at = $4,
-		     cancelled_at = $5, tte_skipped = $6, updated_at = NOW()
+		     cancelled_at = $5, tte_skipped = $6, updated_at = NOW(),
+		     document_hash = CASE WHEN signing_snapshot IS NULL THEN COALESCE(NULLIF($7, ''), document_hash) ELSE document_hash END,
+		     signing_snapshot = COALESCE(signing_snapshot, $8::json)
 		 WHERE id = $1`,
 		wp.ID, wp.Status, wp.CurrentSignatorySequence, wp.CompletedAt, wp.CancelledAt, wp.TTESkipped,
+		wp.DocumentHash, wp.SigningSnapshot,
 	)
 	if err != nil {
 		return fmt.Errorf("update working paper: %w", err)
@@ -732,7 +730,7 @@ func (r *workingPaperRepository) ListSorted(ctx context.Context, orgIDs []uuid.U
 	countQuery := `SELECT COUNT(*) FROM working_papers WHERE 1=1`
 	dataQuery := `SELECT id, sequence_no, code, title, org_id, status, assessment_cycle,
 	                     document_hash, current_signatory_sequence, created_by,
-	                     created_at, updated_at, completed_at, cancelled_at, tte_skipped
+	                     created_at, updated_at, completed_at, cancelled_at, tte_skipped, signing_snapshot
 	              FROM working_papers WHERE 1=1`
 
 	args := []interface{}{}
@@ -801,23 +799,13 @@ func (r *workingPaperRepository) ListSorted(ctx context.Context, orgIDs []uuid.U
 		if err := rows.Scan(
 			&wp.ID, &wp.SequenceNo, &wp.Code, &wp.Title, &wp.OrgID, &wp.Status, &wp.AssessmentCycle,
 			&wp.DocumentHash, &wp.CurrentSignatorySequence, &wp.CreatedBy,
-			&wp.CreatedAt, &wp.UpdatedAt, &wp.CompletedAt, &wp.CancelledAt, &wp.TTESkipped,
+			&wp.CreatedAt, &wp.UpdatedAt, &wp.CompletedAt, &wp.CancelledAt, &wp.TTESkipped, &wp.SigningSnapshot,
 		); err != nil {
 			return nil, 0, fmt.Errorf("list working papers scan: %w", err)
 		}
 
-		risks, err := r.getWorkingPaperRisks(ctx, r.pool, wp.ID)
-		if err != nil {
-			return nil, 0, fmt.Errorf("list working papers get risks: %w", err)
-		}
-		wp.Risks = risks
-
-		sigs, err := r.getSignatoriesByWorkingPaperID(ctx, r.pool, wp.ID)
-		if err != nil {
-			return nil, 0, fmt.Errorf("list working papers get signatories: %w", err)
-		}
-		for _, sig := range sigs {
-			wp.Signatories = append(wp.Signatories, *sig)
+		if err := r.loadWorkingPaperContent(ctx, r.pool, wp); err != nil {
+			return nil, 0, fmt.Errorf("list working papers load content: %w", err)
 		}
 
 		papers = append(papers, wp)
@@ -890,7 +878,7 @@ func (r *workingPaperRepository) UpdateSignatory(ctx context.Context, sig *entit
 func (r *workingPaperRepository) GetPendingSigningByUserID(ctx context.Context, userID uuid.UUID, orgIDs []uuid.UUID) ([]*entity.WorkingPaper, error) {
 	query := `SELECT wp.id, wp.sequence_no, wp.code, wp.title, wp.org_id, wp.status, wp.assessment_cycle,
 		        wp.document_hash, wp.current_signatory_sequence, wp.created_by,
-		        wp.created_at, wp.updated_at, wp.completed_at, wp.cancelled_at, wp.tte_skipped
+		        wp.created_at, wp.updated_at, wp.completed_at, wp.cancelled_at, wp.tte_skipped, wp.signing_snapshot
 		 FROM working_papers wp
 		 INNER JOIN working_paper_signatories wps ON wps.working_paper_id = wp.id
 		 WHERE wp.status = 'signing'
@@ -922,23 +910,13 @@ func (r *workingPaperRepository) GetPendingSigningByUserID(ctx context.Context, 
 		if err := rows.Scan(
 			&wp.ID, &wp.SequenceNo, &wp.Code, &wp.Title, &wp.OrgID, &wp.Status, &wp.AssessmentCycle,
 			&wp.DocumentHash, &wp.CurrentSignatorySequence, &wp.CreatedBy,
-			&wp.CreatedAt, &wp.UpdatedAt, &wp.CompletedAt, &wp.CancelledAt, &wp.TTESkipped,
+			&wp.CreatedAt, &wp.UpdatedAt, &wp.CompletedAt, &wp.CancelledAt, &wp.TTESkipped, &wp.SigningSnapshot,
 		); err != nil {
 			return nil, fmt.Errorf("scan pending signing working paper: %w", err)
 		}
 
-		risks, err := r.getWorkingPaperRisks(ctx, r.pool, wp.ID)
-		if err != nil {
-			return nil, fmt.Errorf("pending signing get risks: %w", err)
-		}
-		wp.Risks = risks
-
-		sigs, err := r.getSignatoriesByWorkingPaperID(ctx, r.pool, wp.ID)
-		if err != nil {
-			return nil, fmt.Errorf("pending signing get signatories: %w", err)
-		}
-		for _, sig := range sigs {
-			wp.Signatories = append(wp.Signatories, *sig)
+		if err := r.loadWorkingPaperContent(ctx, r.pool, wp); err != nil {
+			return nil, fmt.Errorf("pending signing load content: %w", err)
 		}
 
 		papers = append(papers, wp)

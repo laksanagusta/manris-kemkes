@@ -1,4 +1,9 @@
 "use client";
+
+import { businessNow } from "@/lib/business-clock";
+import { RiskVersionHistoryList } from "@/components/shared/design-system/domain/risk-version-history-list";
+
+import { createDisplayDateFormatter, formatDisplayDate } from "@/lib/display-date";
 import { PropertyList, PropertyLabel } from "@/components/shared/design-system/layout/property-list";
 
 import { DetailSidePanel } from "@/components/shared/design-system/layout/detail-side-panel";
@@ -36,7 +41,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { AiAssistIconButton } from "@/components/shared/ai-assist-icon-button";
@@ -69,12 +74,14 @@ import {
   Loader2,
   Plus,
   RefreshCcw,
+  ArrowLeft,
   Save,
   Send,
   Trash2,
 } from "@/components/shared/icons";
 
 import {
+  getRiskLevelLabel,
   getRiskLevelFromNilai,
   riskCategoryLabels,
   getBobot,
@@ -89,17 +96,19 @@ import {
   type ApprovalLineRow,
   type DraftApprovalLineMember,
 } from "@/lib/risk-approval-line";
+import { FieldContent, FieldDescription } from "@/components/ui/field";
 import { EditableList } from "@/components/shared/editable-list";
-import { EditableItemsTable } from "@/components/shared/editable-items-table";
+import { EditableInsetItems } from "@/components/shared/editable-inset-items";
 import { FormPage } from "@/components/shared/form-shell";
 import {
+  FormContainer,
+  FormGroup,
   ActionButton,
   ActionIconButton,
   AccentButton,
   CollectionDialogCancel,
   CollectionPageHeader,
   FieldErrorMessage,
-  IllustratedEmptyState,
   Input,
   MonitoringCycleSelect,
   PopoverSelectField,
@@ -156,6 +165,8 @@ import {
   isMonitoringCycleApplicable,
 } from "@/lib/risk-cycle-options";
 import { getMonitoringCycleBadgeStatus } from "@/lib/risk-register-monitoring";
+import { RiskCreationContext, RiskFormReadiness, RiskFinalizationReview } from "@/components/shared/design-system/domain/risk-creation-guidance";
+import { hasRiskScore, riskFinalizationCycle, riskPeriodLabel } from "@/lib/risk-creation";
 import { buildRiskRegisterPayload } from "@/lib/risk-register-payload";
 
 const RiskLogTimeline = dynamic(
@@ -193,8 +204,6 @@ const CATEGORY_ORDER: string[] = [
   "material",
   "lingkungan",
 ];
-const RISK_FORM_CARD_CLASS =
-  "scroll-mt-28 transition-colors";
 type CategoryKey = "manusia" | "metode" | "mesin" | "material" | "lingkungan";
 
 type SectionId =
@@ -330,7 +339,7 @@ type RiskStatusTone =
 function getRiskStatusLabel(status?: string | null) {
   switch ((status ?? "").trim().toLowerCase()) {
     case "draft":
-      return "Draft";
+      return "Draf";
     case "assessment_draft":
       return "Draft pemantauan";
     case "assessment_in_review":
@@ -390,7 +399,7 @@ type SectionStatus = {
   step: string;
   title: string;
   description: string;
-  done: boolean;
+  checks: boolean[];
   hint: string;
 };
 
@@ -411,77 +420,11 @@ const riskEventSeverityTones: Record<
   high: "danger",
   extreme: "danger",
 };
-const riskEventDateFormatter = new Intl.DateTimeFormat("id-ID", {
+const riskEventDateFormatter = createDisplayDateFormatter("id-ID", {
   day: "numeric",
   month: "short",
   year: "numeric",
 });
-
-function RiskVersionHistoryList({
-  versions,
-  onVersionSelect,
-}: {
-  versions: RiskVersionTimelineItem[];
-  onVersionSelect: (versionId: string) => void;
-}) {
-  return (
-    <div className="relative pl-6">
-      <div className="space-y-3">
-        {versions.map((version, index) => (
-          <Link
-            key={version.id}
-            href={`/risk/register/new?id=${version.id}`}
-            onClick={() => onVersionSelect(version.id)}
-            className="group relative block rounded-lg outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-          >
-            {index < versions.length - 1 && (
-              <span
-                aria-hidden="true"
-                className="absolute -bottom-[22px] -left-[16px] top-[10px] z-0 w-px bg-border/70"
-              />
-            )}
-            <span
-              aria-hidden="true"
-              className={cn(
-                "absolute -left-[22px] top-1 z-10 size-3 rounded-full border-2",
-                version.isCurrent
-                  ? "border-emerald-600 bg-emerald-600"
-                  : "border-muted-foreground bg-muted-foreground",
-              )}
-            />
-            <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm font-semibold text-foreground">
-                  {version.versionNumber
-                    ? `v${version.versionNumber}`
-                    : "Versi"}
-                </span>
-              </div>
-              <p className="mt-0 text-sm text-muted-foreground">
-                {new Date(version.createdAt).toLocaleDateString("id-ID", {
-                  day: "numeric",
-                  month: "short",
-                  year: "numeric",
-                })}
-                {version.assessmentCycle
-                  ? ` · ${version.assessmentCycle}`
-                  : ""}
-              </p>
-              <p className="mt-0 line-clamp-2 text-sm font-medium text-foreground/80">
-                {version.title || "Tanpa judul"}
-              </p>
-              {version.changeReason && (
-                <p className="mt-0 line-clamp-2 text-sm text-muted-foreground">
-                  {version.changeReason}
-                </p>
-              )}
-            </div>
-          </Link>
-        ))}
-      </div>
-    </div>
-  );
-}
 
 // Match the loading-label transition in globals.css. Network work runs concurrently.
 function waitForAiButtonTransition() {
@@ -507,6 +450,13 @@ function FormErrorMessage({
       {message}
     </FieldErrorMessage>
   );
+}
+
+function getScoreError(probabilityError?: string, impactError?: string) {
+  if (probabilityError && impactError) {
+    return "Pilih probabilitas dan dampak pada heatmap.";
+  }
+  return probabilityError ?? impactError;
 }
 
 function AiFieldButton({
@@ -535,15 +485,7 @@ const mitigationSchema = z.object({
   mitigationType: z
     .enum(["reduce_probability", "reduce_impact", "reduce_both"])
     .default("reduce_probability"),
-  activityStage: z.string().optional(),
-  expectedOutput: z.string().optional(),
-  quantitativeTarget: z.string().optional(),
-  supportingUnit: z.string().optional(),
-  resourcesRequired: z.string().optional(),
-	contingencyPlan: z.string().optional(),
-	potentialObstacle: z.string().optional(),
-	isBreakthroughActivity: z.boolean().default(false),
-  isExistingControl: z.boolean().default(false),
+
 });
 
 const formSchema = z
@@ -579,8 +521,8 @@ const formSchema = z
 
     existingControl: z.string().optional(),
     controlEffectiveness: z.string().optional(),
-    probability: z.number().min(1).max(5).default(3),
-    impact: z.number().min(1).max(5).default(3),
+    probability: z.number().min(1, "Tetapkan probabilitas risiko").max(5),
+    impact: z.number().min(1, "Tetapkan dampak risiko").max(5),
     weight: z.number().min(0.1).default(1.0),
     nilai: z.number().min(0).default(0),
 
@@ -595,8 +537,8 @@ const formSchema = z
 
     mitigations: z.array(mitigationSchema).default([]),
 
-    targetProbability: z.number().min(1).max(5).default(1),
-    targetImpact: z.number().min(1).max(5).default(1),
+    targetProbability: z.number().min(1, "Tetapkan target probabilitas").max(5),
+    targetImpact: z.number().min(1, "Tetapkan target dampak").max(5),
     targetWeight: z.number().min(0.1).default(1.0),
     targetNilai: z.number().min(0).default(0),
     roId: z.string().optional(),
@@ -624,18 +566,9 @@ const formSchema = z
       const hasContent =
         [
           mitigation.owner,
-          mitigation.activityStage,
-          mitigation.expectedOutput,
-          mitigation.quantitativeTarget,
-          mitigation.supportingUnit,
-			mitigation.resourcesRequired,
-			mitigation.contingencyPlan,
-			mitigation.potentialObstacle,
 			mitigation.treatmentOwnerId,
           mitigation.externalPicId,
-        ].some((value) => Boolean(String(value ?? "").trim())) ||
-        mitigation.isBreakthroughActivity ||
-        mitigation.isExistingControl;
+        ].some((value) => Boolean(String(value ?? "").trim()));
 
       if (hasContent && !mitigation.action.trim()) {
         ctx.addIssue({
@@ -676,8 +609,8 @@ function normalizeFormValues(values: FormInput): FormValues {
     impacts: values.impacts ?? [],
     existingControl: values.existingControl ?? "",
     controlEffectiveness: values.controlEffectiveness ?? "",
-    probability: values.probability ?? 3,
-    impact: values.impact ?? 3,
+    probability: values.probability ?? 0,
+    impact: values.impact ?? 0,
     weight: values.weight ?? 1,
     nilai: values.nilai ?? 0,
     riskPriority: values.riskPriority ?? 0,
@@ -689,18 +622,9 @@ function normalizeFormValues(values: FormInput): FormValues {
       action: mitigation.action ?? "",
       owner: mitigation.owner ?? "",
       mitigationType: mitigation.mitigationType ?? "reduce_probability",
-      activityStage: mitigation.activityStage ?? "",
-      expectedOutput: mitigation.expectedOutput ?? "",
-      quantitativeTarget: mitigation.quantitativeTarget ?? "",
-      supportingUnit: mitigation.supportingUnit ?? "",
-		resourcesRequired: mitigation.resourcesRequired ?? "",
-		contingencyPlan: mitigation.contingencyPlan ?? "",
-		potentialObstacle: mitigation.potentialObstacle ?? "",
-		isBreakthroughActivity: mitigation.isBreakthroughActivity ?? false,
-      isExistingControl: mitigation.isExistingControl ?? false,
     })),
-    targetProbability: values.targetProbability ?? 1,
-    targetImpact: values.targetImpact ?? 1,
+    targetProbability: values.targetProbability ?? 0,
+    targetImpact: values.targetImpact ?? 0,
     targetWeight: values.targetWeight ?? 1,
     targetNilai: values.targetNilai ?? 0,
     roId: values.roId ?? "",
@@ -793,7 +717,7 @@ export default function RiskInputPage() {
   );
 
   const [riskId, setRiskId] = useState<string | null>(null);
-  const [activeDetailTab, setActiveDetailTab] = useState("overview");
+  const [activeDetailTab, setActiveDetailTab] = useState(() => searchParams.get("tab") === "monitoring" ? "monitoring" : "overview");
   const [detailMitigationFilter,setDetailMitigationFilter] = useState("all");
   const treatmentPanelRef = useRef<HTMLDivElement>(null);
   const [loadingVersionId, setLoadingVersionId] = useState<string | null>(null);
@@ -807,6 +731,11 @@ export default function RiskInputPage() {
   const [documentFindingId, setDocumentFindingId] = useState<string | null>(null);
   const documentFindingHandledRef = useRef(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const [leaveHref, setLeaveHref] = useState<string | null>(null);
+  const leaveAfterSaveRef = useRef(false);
+  const allowNavigationRef = useRef(false);
   const [organizations, setOrganizations] = useState<
     { id: string; name: string; uprLevel?: string }[]
   >([]);
@@ -877,16 +806,16 @@ export default function RiskInputPage() {
       controllability: "C",
       existingControl: "",
       controlEffectiveness: "",
-      probability: 3,
-      impact: 3,
+      probability: 0,
+      impact: 0,
       weight: 1.0,
       riskPriority: 0,
       riskAppetite: "dalam_batas",
       treatmentOption: undefined,
       nextReviewDate: "",
       mitigations: [],
-      targetProbability: 1,
-      targetImpact: 1,
+      targetProbability: 0,
+      targetImpact: 0,
       targetWeight: 1.0,
     },
   });
@@ -894,7 +823,7 @@ export default function RiskInputPage() {
   const {
     watch,
     control,
-    formState: { errors },
+    formState: { errors, isDirty },
     setValue,
     setError,
     handleSubmit,
@@ -907,22 +836,25 @@ export default function RiskInputPage() {
   const category = watch("category");
   const causes = watch("causes") ?? [];
   const impacts = watch("impacts") ?? [];
-  const probability = watch("probability") ?? 3;
-  const impact = watch("impact") ?? 3;
+  const probability = watch("probability") ?? 0;
+  const impact = watch("impact") ?? 0;
   const mitigations = watch("mitigations") ?? [];
   const mitigationActionErrors = useMemo(
     () => getMitigationActionErrors(errors.mitigations),
     [errors.mitigations],
   );
-  const targetProbability = watch("targetProbability") ?? 1;
-  const targetImpact = watch("targetImpact") ?? 1;
+  const targetProbability = watch("targetProbability") ?? 0;
+  const targetImpact = watch("targetImpact") ?? 0;
   const existingControl = watch("existingControl") ?? "";
   const controlEffectiveness = watch("controlEffectiveness") ?? "";
   const treatmentOption = watch("treatmentOption") ?? "";
   const nextReviewDate = watch("nextReviewDate") ?? "";
   const riskCode = watch("riskCode") ?? "";
-  const [monitoringNow,setMonitoringNow]=useState(()=>new Date());
-  useEffect(()=>{const refresh=()=>setMonitoringNow(new Date());const timer=setInterval(refresh,60000);window.addEventListener("focus",refresh);return()=>{clearInterval(timer);window.removeEventListener("focus",refresh);};},[]);
+  const hasUnsavedWork = isDirty || (!riskId && Boolean(title.trim() || description.trim() || causes.length || impacts.length));
+  const [monitoringNow,setMonitoringNow]=useState(()=>businessNow());
+  const isInitialProfile = !riskVersionGroupId || (riskVersionNumber ?? 1) <= 1;
+  const finalizationCycle = riskFinalizationCycle(assessmentCycleDisplay, isInitialProfile, monitoringNow);
+  useEffect(()=>{const refresh=()=>setMonitoringNow(businessNow());const timer=setInterval(refresh,60000);window.addEventListener("focus",refresh);return()=>{clearInterval(timer);window.removeEventListener("focus",refresh);};},[]);
   const monitoringCycleOptions = useMemo(
     () =>
       getSelectableMonitoringCyclesForDate(monitoringNow).map((cycle) => ({
@@ -959,6 +891,7 @@ export default function RiskInputPage() {
 
   // Auto-set selera risiko & pilihan penanganan berdasarkan KMK
   useEffect(() => {
+    if (!hasRiskScore(probability, impact)) return;
     setValue("riskAppetite", advisoryAppetite);
     // Auto-set pilihan penanganan: Dalam batas → terima, Di atas batas → mitigasi
     if (advisoryAppetite === "dalam_batas") {
@@ -966,7 +899,7 @@ export default function RiskInputPage() {
     } else if (advisoryAppetite === "di_atas_batas") {
       setValue("treatmentOption", "mitigate");
     }
-  }, [advisoryAppetite, setValue]);
+  }, [advisoryAppetite, probability, impact, setValue]);
 
   const handleReviewerSelect = useCallback((option: UserPickerOption) => {
     setReviewerId(option.id);
@@ -1243,8 +1176,8 @@ export default function RiskInputPage() {
           controllability: risk.controllability === "UC" ? "UC" : "C",
           existingControl: risk.existingControl || "",
           controlEffectiveness: risk.controlEffectiveness || "",
-          probability: risk.probability || 3,
-          impact: risk.impact || 3,
+          probability: risk.probability ?? 0,
+          impact: risk.impact ?? 0,
           weight: risk.weight || 1.0,
           riskPriority: risk.riskPriority || 0,
           riskAppetite: (risk.riskAppetite === "di_atas_batas"
@@ -1260,20 +1193,10 @@ export default function RiskInputPage() {
                   mitigation.ownerUserId || mitigation.treatmentOwnerId,
                 mitigationType:
                   mitigation.mitigationType || "reduce_probability",
-                activityStage: mitigation.activityStage || "",
-                expectedOutput: mitigation.expectedOutput || "",
-                quantitativeTarget: mitigation.quantitativeTarget || "",
-                supportingUnit: mitigation.supportingUnit || "",
-				resourcesRequired: mitigation.resourcesRequired || "",
-				contingencyPlan: mitigation.contingencyPlan || "",
-				potentialObstacle: mitigation.potentialObstacle || "",
-				isBreakthroughActivity:
-                  mitigation.isBreakthroughActivity || false,
-                isExistingControl: mitigation.isExistingControl || false,
               }))
             : [],
-          targetProbability: risk.targetProbability || 1,
-          targetImpact: risk.targetImpact || 1,
+          targetProbability: risk.targetProbability ?? 0,
+          targetImpact: risk.targetImpact ?? 0,
           targetWeight: risk.targetWeight || 1.0,
         });
 
@@ -1521,8 +1444,8 @@ export default function RiskInputPage() {
               controllability: "C",
               existingControl: "",
               controlEffectiveness: "",
-              probability: documentPrefill.probability || 3,
-              impact: documentPrefill.impact || 3,
+              probability: documentPrefill.probability ?? 0,
+              impact: documentPrefill.impact ?? 0,
               weight: 1.0,
               riskPriority: 0,
               riskAppetite: "dalam_batas",
@@ -1536,16 +1459,12 @@ export default function RiskInputPage() {
                       action: documentPrefill.mitigation,
                       owner: "",
                       mitigationType: "reduce_probability",
-                      isBreakthroughActivity: false,
-                      isExistingControl: false,
+
                     },
                   ]
                 : [],
-              targetProbability: Math.max(
-                1,
-                (documentPrefill.probability || 3) - 1,
-              ),
-              targetImpact: Math.max(1, (documentPrefill.impact || 3) - 1),
+              targetProbability: 0,
+              targetImpact: 0,
               targetWeight: 1.0,
             });
             setAssessmentCycleDisplay(currentAssessmentCycle());
@@ -1620,8 +1539,8 @@ export default function RiskInputPage() {
           controllability: "C",
           existingControl: "",
           controlEffectiveness: "",
-          probability: meetingPrefill.probability || 3,
-          impact: meetingPrefill.impact || 3,
+          probability: meetingPrefill.probability ?? 0,
+          impact: meetingPrefill.impact ?? 0,
           weight: 1.0,
           riskPriority: 0,
           riskAppetite: "dalam_batas",
@@ -1635,13 +1554,12 @@ export default function RiskInputPage() {
                   action: meetingPrefill.mitigation,
                   owner: "",
                   mitigationType: "reduce_probability",
-                  isBreakthroughActivity: false,
-                  isExistingControl: false,
+
                 },
               ]
             : [],
-          targetProbability: Math.max(1, (meetingPrefill.probability || 3) - 1),
-          targetImpact: Math.max(1, (meetingPrefill.impact || 3) - 1),
+          targetProbability: 0,
+          targetImpact: 0,
           targetWeight: 1.0,
         });
         setAssessmentCycleDisplay(currentAssessmentCycle());
@@ -1743,12 +1661,13 @@ export default function RiskInputPage() {
       title: "Identifikasi Risiko",
       description:
         "Tentukan konteks risiko, penyebab utama, dan dampak yang paling relevan.",
-      done:
-        title.trim().length > 0 &&
-        description.trim().length > 0 &&
-        !!category &&
-        causes.length > 0 &&
-        impacts.length > 0,
+      checks: [
+        title.trim().length >= 3,
+        description.trim().length >= 10,
+        isRiskCategory(category),
+        causes.length > 0 && causes.every(cause => Boolean(cause.text.trim())),
+        impacts.length > 0 && impacts.every(item => Boolean(item.text.trim())),
+      ],
       hint: "Lengkapi judul, deskripsi, sebab, dan dampak.",
     },
     {
@@ -1757,19 +1676,20 @@ export default function RiskInputPage() {
       title: "Analisis Risiko",
       description:
         "Nilai pengendalian yang sudah ada lalu tetapkan skor probabilitas dan dampak.",
-      done:
-        (existingControl || "").trim().length > 0 &&
-        !!controlEffectiveness &&
-        nilai > 0,
-      hint: "Isi pengendalian yang ada dan nilai efektivitasnya.",
+      checks: [
+        existingControl.trim().length > 0,
+        Boolean(controlEffectiveness),
+        hasRiskScore(probability, impact),
+      ],
+      hint: "Isi pengendalian, efektivitas, dan skor risiko saat ini.",
     },
     {
       id: "evaluasi",
       step: "3",
       title: "Evaluasi Risiko",
       description:
-        "Tetapkan prioritas dan pilihan penanganan sebelum diajukan untuk persetujuan.",
-      done: !!treatmentOption,
+        "Tinjau prioritas dan pilih cara menangani risiko sebelum finalisasi.",
+      checks: [Boolean(treatmentOption)],
       hint: "Pilih strategi penanganan risiko.",
     },
     {
@@ -1778,9 +1698,9 @@ export default function RiskInputPage() {
       title: "Rencana Penanganan",
       description:
         mitigationPlanRequired
-          ? "Risiko utama dengan pilihan Mitigasi wajib memiliki minimal satu rencana mitigasi baru sebelum diajukan atau difinalisasi. Draft tetap dapat disimpan."
-          : "Tentukan aksi mitigasi yang nyata, siapa PIC-nya, dan kapan eksekusinya. Opsional.",
-      done: !mitigationRequirementError,
+          ? "Risiko ini termasuk risiko utama dan Anda memilih Mitigasi. Tambahkan minimal satu rencana penanganan baru sebelum finalisasi. Draf tetap dapat disimpan."
+          : "Tentukan tindakan baru, misalnya membuat notifikasi stok minimum, beserta PIC dan tenggatnya. Opsional sesuai pilihan penanganan.",
+      checks: mitigationPlanRequired ? [!mitigationRequirementError] : [],
       hint: mitigationRequirementError ?? "Tambahkan aksi mitigasi jika diperlukan.",
     },
     {
@@ -1788,18 +1708,72 @@ export default function RiskInputPage() {
       step: "5",
       title: "Target Penurunan",
       description:
-        "Tetapkan target risiko residual agar reviewer melihat tujuan akhirnya dengan jelas.",
-      done: targetNilai > 0,
+        "Tetapkan kondisi risiko yang ingin dicapai setelah penanganan dilaksanakan.",
+      checks: [hasRiskScore(targetProbability, targetImpact)],
       hint: "Tetapkan target probabilitas dan dampak residual.",
     },
   ];
 
-  const missingSections = sectionStatuses.filter((section) => !section.done);
+  const readinessValidation = formSchema.safeParse(form.getValues());
+  const readinessSections = sectionStatuses.map(section => {
+    const inputsComplete = section.checks.every(Boolean);
+    const hasValidationError = !readinessValidation.success && readinessValidation.error.issues.some(
+      issue => getSectionIdFromField(String(issue.path[0])) === section.id,
+    );
+
+    const done = inputsComplete && !hasValidationError;
+    const checks = inputsComplete && hasValidationError ? [...section.checks, false] : section.checks;
+
+    return {
+      ...section,
+      done,
+      progress: done ? 100 : Math.round((checks.filter(Boolean).length / checks.length) * 100),
+    };
+  });
+  const missingSections = readinessSections.filter(section => !section.done);
   const lockedControlClass =
     "disabled:pointer-events-none disabled:cursor-not-allowed disabled:!bg-disabled-input-surface disabled:!text-disabled-foreground disabled:!opacity-100";
   const isRiskLocked =
     riskStatus === "final" ||
     !!riskArchivedAt;
+  useEffect(() => {
+    if (isRiskLocked || !hasUnsavedWork) return;
+    allowNavigationRef.current = false;
+    const currentHref = window.location.href;
+    const currentHistoryState = window.history.state;
+    const unload = (event: BeforeUnloadEvent) => {
+      if (allowNavigationRef.current) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    const leave = (event: MouseEvent) => {
+      if (allowNavigationRef.current || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+      const link = (event.target as Element).closest?.("a[href]");
+      if (!(link instanceof HTMLAnchorElement) || link.target === "_blank" || link.hasAttribute("download")) return;
+      const destination = new URL(link.href, window.location.href);
+      if (destination.pathname === window.location.pathname && destination.search === window.location.search) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (!isSubmitting) setLeaveHref(destination.href);
+    };
+    const traverse = (event: PopStateEvent) => {
+      if (allowNavigationRef.current || window.location.href === currentHref) return;
+      const destination = window.location.href;
+      // Restore this form before Next handles traversal, then use the same
+      // save/discard decision as a normal link. Preserve Next's history state.
+      event.stopImmediatePropagation();
+      window.history.pushState(currentHistoryState, "", currentHref);
+      if (!isSubmitting) setLeaveHref(destination);
+    };
+    window.addEventListener("beforeunload", unload);
+    window.addEventListener("popstate", traverse, true);
+    document.addEventListener("click", leave, true);
+    return () => {
+      window.removeEventListener("beforeunload", unload);
+      window.removeEventListener("popstate", traverse, true);
+      document.removeEventListener("click", leave, true);
+    };
+  }, [hasUnsavedWork, isRiskLocked, isSubmitting, riskId]);
   const canCreateRiskEvent = Boolean(riskId) && riskStatus === "final";
   const canManageMonitoring =
     Boolean(riskId) &&
@@ -1824,16 +1798,11 @@ export default function RiskInputPage() {
     setTimeout(() => {
       const element = document.getElementById(sectionId);
       if (element) {
-        const offset = 120;
-        const bodyRect = document.body.getBoundingClientRect().top;
-        const elementRect = element.getBoundingClientRect().top;
-        const elementPosition = elementRect - bodyRect;
-        const offsetPosition = elementPosition - offset;
         const prefersReducedMotion = window.matchMedia(
           "(prefers-reduced-motion: reduce)",
         ).matches;
-        window.scrollTo({
-          top: offsetPosition,
+        element.scrollIntoView({
+          block: "start",
           behavior: prefersReducedMotion ? "auto" : "smooth",
         });
       }
@@ -1887,7 +1856,7 @@ export default function RiskInputPage() {
     }
   };
 
-  const getSectionIdFromField = (fieldName?: string): SectionId | undefined => {
+  function getSectionIdFromField(fieldName?: string): SectionId | undefined {
     if (!fieldName) return undefined;
     if (
       [
@@ -1932,7 +1901,7 @@ export default function RiskInputPage() {
       return "penanganan";
     }
     return undefined;
-  };
+  }
 
   const finalizeRequiredFieldMessages: Record<
     SectionId,
@@ -1946,6 +1915,8 @@ export default function RiskInputPage() {
       { field: "impacts", message: "Minimal isi 1 dampak" },
     ],
     analisis: [
+      { field: "probability", message: "Tetapkan probabilitas risiko sebelum finalisasi" },
+      { field: "impact", message: "Tetapkan dampak risiko sebelum finalisasi" },
       {
         field: "existingControl",
         message: "Pengendalian yang ada wajib diisi sebelum finalisasi",
@@ -1981,6 +1952,8 @@ export default function RiskInputPage() {
     "causes",
     "impacts",
     "mitigations",
+    "probability",
+    "impact",
   ];
 
   const applyFinalizeValidationErrors = (values: FormInput) => {
@@ -2128,7 +2101,7 @@ export default function RiskInputPage() {
 
   const buildPayload = (data: FormValues, status: string) =>
     buildRiskRegisterPayload(data, status, {
-      assessmentCycle: assessmentCycleDisplay,
+      assessmentCycle: status === "final" ? riskFinalizationCycle(assessmentCycleDisplay, isInitialProfile, businessNow()) : assessmentCycleDisplay,
       userRole: user?.role,
       userOrganizationId: user?.organizationId ?? null,
       reviewerId,
@@ -2144,12 +2117,21 @@ export default function RiskInputPage() {
       return;
     }
     setIsSubmitting(true);
+    setSaveState("saving");
+    const submittedValues = form.getValues();
     try {
       const isDraft = submitTarget.current === "draft";
       const submissionStatus =
         isDraft || riskApprovalCapabilityBehavior.submitsForApproval
           ? "draft"
           : "final";
+      if (!isDraft && isInitialProfile && currentAssessmentCycle() !== currentAssessmentCycle(monitoringNow)) {
+        setMonitoringNow(businessNow());
+        setShowSubmitReviewConfirm(true);
+        setSaveState("idle");
+        toast.info("Triwulan telah berganti. Tinjau kembali periode finalisasi.");
+        return;
+      }
       const payload = buildPayload(data, submissionStatus);
 
       let currentRiskId = riskId;
@@ -2174,7 +2156,19 @@ export default function RiskInputPage() {
       }
 
       if (isDraft) {
-        toast.success("Draft berhasil disimpan!");
+        // Advance the saved baseline without discarding edits typed while saving.
+        const savedValues = { ...submittedValues, riskCode: form.getValues("riskCode") };
+        const editedWhileSaving = JSON.stringify(form.getValues()) !== JSON.stringify(savedValues);
+        reset(savedValues, { keepValues: true });
+        setValue("title", form.getValues("title"), { shouldDirty: true });
+        setSavedAt(new Date());
+        setSaveState("saved");
+        toast.success("Draf berhasil disimpan.");
+        if (leaveAfterSaveRef.current && leaveHref && !editedWhileSaving) {
+          allowNavigationRef.current = true;
+          router.push(leaveHref);
+          return;
+        }
         if (!riskId && currentRiskId) {
           const nextParams = new URLSearchParams({ id: currentRiskId });
           if (returnTo !== "/risk/register") nextParams.set("returnTo", returnTo);
@@ -2183,7 +2177,6 @@ export default function RiskInputPage() {
             "",
             `/risk/register/new?${nextParams.toString()}`,
           );
-          await loadRiskData(currentRiskId);
           return;
         }
       } else {
@@ -2209,6 +2202,7 @@ export default function RiskInputPage() {
         }
 
         if (!riskApprovalCapabilityBehavior.submitsForApproval) {
+          allowNavigationRef.current = true;
           await loadRiskData(currentRiskId);
           toast.success("Risiko berhasil disimpan dan difinalisasi!");
           router.push(`/risk/register/new?id=${currentRiskId}&saved=final&returnTo=${encodeURIComponent(returnTo)}`);
@@ -2244,8 +2238,10 @@ export default function RiskInputPage() {
         err instanceof ApiError
           ? err.message
           : "Gagal menyimpan risiko. Periksa koneksi dan coba lagi.";
+      setSaveState("error");
       toast.error(errorMessage);
     } finally {
+      leaveAfterSaveRef.current = false;
       setIsSubmitting(false);
     }
   };
@@ -2275,6 +2271,7 @@ export default function RiskInputPage() {
         "Lengkapi judul, deskripsi, dan kategori sebelum menyimpan draft.",
       );
       draftValidationAttemptedRef.current = true;
+      setLeaveHref(null);
       scrollToSection("identifikasi");
       return;
     }
@@ -2632,53 +2629,64 @@ export default function RiskInputPage() {
     if (riskId) void loadLinkedRiskEvents(riskId);
   }, [loadLinkedRiskEvents, riskId]);
 
+  const isSavedRiskView = Boolean(riskId || selectedRiskId);
+  const hasContextReturnLink = returnTo !== "/risk/register";
+  const showSaveActions = riskStatus === "draft" || !riskId;
+  const monitoringHeaderAction = canContinueMonitoring && ongoingMonitoring && !canStartMonitoring ? (
+      <ActionButton asChild variant="outline" className="px-4">
+        <Link
+          href={`/risk/monitoring/${ongoingMonitoring.id}`}
+          title={monitoringWindowMessage(ongoingMonitoring.assessmentCycle)}
+        >
+          {isMonitoringWindowOpen(ongoingMonitoring.assessmentCycle,monitoringNow)?"Lanjutkan Pemantauan":"Lihat Pemantauan"}
+        </Link>
+      </ActionButton>
+    ) : canStartMonitoring ? (
+      <ActionButton
+        variant="outline"
+        icon={<RefreshCcw className="size-3.5" strokeWidth={2} />}
+        onClick={handleOpenMonitoringDialog}
+        disabled={isSubmitting || isStartingMonitoring}
+      >
+        Mulai Pemantauan
+      </ActionButton>
+    ) : canManageMonitoring && monitoringLookupStatus === "loading" ? (
+      <ActionButton variant="secondary" loading disabled>
+        Memeriksa pemantauan…
+      </ActionButton>
+    ) : null;
+  const hasHeaderActions = showSaveActions || Boolean(monitoringHeaderAction) || (!isSavedRiskView && hasContextReturnLink);
+  let saveMessage = riskId
+    ? "Draf tersimpan. Anda dapat melanjutkan pengisian."
+    : "";
+  if (savedAt) saveMessage = `Tersimpan pukul ${formatDisplayDate(savedAt, { hour: "2-digit", minute: "2-digit", timeZone: "Asia/Jakarta" })} WIB`;
+  if (hasUnsavedWork) saveMessage = "";
+  if (saveState === "error") saveMessage = "Gagal menyimpan. Isian tetap tersedia, pilih Simpan draf untuk mencoba lagi.";
+  if (saveState === "saving") saveMessage = "Menyimpan…";
+
   return (
     <TooltipProvider>
       <FormPage className="risk-form-filter-controls space-y-6">
         <CollectionPageHeader
-          title={
-            riskId || selectedRiskId
-              ? riskCode || "Detail Risiko"
-              : "Tambah Risiko"
-          }
-          subtitle={
-            riskId || selectedRiskId
-              ? "Tinjau informasi, penilaian, dan penanganan risiko."
-              : "Identifikasi konteks, penyebab, dampak, dan penanganan risiko."
-          }
-          showTitle
+          eyebrow={isSavedRiskView && hasContextReturnLink ? (
+            <Link href={returnTo} className="inline-flex min-h-8 items-center gap-2 rounded-sm text-sm text-muted-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+              <ArrowLeft aria-hidden="true" className="size-4" />
+              {returnTo === "/work" ? "Kembali ke pekerjaan" : "Kembali ke hasil ekstraksi"}
+            </Link>
+          ) : undefined}
+          title="Tambah Risiko"
+          showTitle={!isSavedRiskView}
+          titleClassName="md:sr-only"
           actionsPlacement="title"
-          actions={
+          actions={hasHeaderActions ? (
             <>
-              {returnTo !== "/risk/register" ? (
+              {!isSavedRiskView && hasContextReturnLink ? (
                 <ActionButton asChild variant="outline">
                   <Link href={returnTo}>{returnTo === "/work" ? "Kembali ke pekerjaan" : "Kembali ke hasil ekstraksi"}</Link>
                 </ActionButton>
               ) : null}
-              {canContinueMonitoring && ongoingMonitoring && !canStartMonitoring ? (
-                <ActionButton asChild variant="outline" className="px-4">
-                  <Link
-                    href={`/risk/monitoring/${ongoingMonitoring.id}`}
-                    title={monitoringWindowMessage(ongoingMonitoring.assessmentCycle)}
-                  >
-                    {isMonitoringWindowOpen(ongoingMonitoring.assessmentCycle,monitoringNow)?"Lanjutkan Pemantauan":"Lihat Pemantauan"}
-                  </Link>
-                </ActionButton>
-              ) : canStartMonitoring ? (
-                <ActionButton
-                  variant="outline"
-                  icon={<RefreshCcw className="size-3.5" strokeWidth={2} />}
-                  onClick={handleOpenMonitoringDialog}
-                  disabled={isSubmitting || isStartingMonitoring}
-                >
-                  Mulai Pemantauan
-                </ActionButton>
-              ) : canManageMonitoring && monitoringLookupStatus === "loading" ? (
-                <ActionButton variant="secondary" loading disabled>
-                  Memeriksa pemantauan…
-                </ActionButton>
-              ) : null}
-              {riskStatus === "draft" || !riskId ? (
+              {monitoringHeaderAction}
+              {showSaveActions ? (
                 <>
                   <ActionButton
                     variant="outline"
@@ -2687,7 +2695,7 @@ export default function RiskInputPage() {
                     onClick={() => handleSaveDraftHeaderRef.current()}
                     disabled={isSubmitting}
                   >
-                    Simpan draft
+                    Simpan draf
                   </ActionButton>
                   <AccentButton
                     icon={
@@ -2709,10 +2717,17 @@ export default function RiskInputPage() {
                 </>
               ) : null}
             </>
-          }
+          ) : undefined}
         />
 
-        {searchParams.get("saved") === "final" && riskStatus === "final" && riskId && token ? <RiskFinalizationNotice riskId={riskId} token={token} /> : null}
+        {!isRiskLocked ? (
+          <RiskCreationContext
+            cycle={finalizationCycle}
+            originalCycle={assessmentCycleDisplay}
+            saveMessage={saveMessage}
+          />
+        ) : null}
+        {searchParams.get("saved") === "final" && riskStatus === "final" && riskId && token ? <RiskFinalizationNotice riskId={riskId} token={token} cycle={assessmentCycleDisplay} /> : null}
 
         {loadingVersionId && (
           <div
@@ -2735,7 +2750,7 @@ export default function RiskInputPage() {
             <CardContent className="space-y-1">
               <p className="font-semibold">
                 Risiko ini diarsipkan pada{" "}
-                {new Date(riskArchivedAt).toLocaleDateString("id-ID")}.
+                <span data-date-time="">{formatDisplayDate(new Date(riskArchivedAt), { year: "numeric", month: "2-digit", day: "2-digit" })}</span>.
               </p>
               <p>
                 Alasan: {riskArchivedReason || "Tidak ada alasan tercatat."}
@@ -2749,28 +2764,42 @@ export default function RiskInputPage() {
           value={activeDetailTab}
           onValueChange={setActiveDetailTab}
           overview={
-        <div className="grid w-full min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_420px] xl:items-start">
-          <div className="min-w-0">
+        <div className={cn(
+          "grid w-full min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_420px] xl:items-start",
+          !isRiskLocked && "xl:grid-rows-[auto_1fr]",
+        )}>
+          {!isRiskLocked ? (
+            <div className="min-w-0 xl:col-start-2 xl:row-start-1">
+              <RiskFormReadiness
+                sections={readinessSections}
+                onNavigate={scrollToSection}
+              />
+            </div>
+          ) : null}
+          <div className={cn("min-w-0 xl:col-start-1 xl:row-start-1", !isRiskLocked && "xl:row-span-2")}>
             <form
               onSubmit={(e) => e.preventDefault()}
               className="min-w-0 w-full [&_[data-slot=label]]:font-medium"
             >
               <div className="space-y-6">
-                <Card
+                <FormContainer
                   id="identifikasi"
-                  className={RISK_FORM_CARD_CLASS}
+                  title="Identifikasi Risiko"
+                  description={sectionStatuses[0].description}
+                  className="scroll-mt-28"
                 >
-                  <CardHeader>
-                    <CardTitle className="transition-colors">Identifikasi Risiko</CardTitle>
-                    <CardDescription>{sectionStatuses[0].description}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-5">
-                    <div>
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <Label className="text-sm font-medium text-foreground">
-                          Risiko
-                          <span className="text-destructive ml-0.5">*</span>
-                        </Label>
+                  <FormGroup className="space-y-5">
+                    <div className="flex flex-col gap-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <FieldContent className="min-w-0">
+                          <Label htmlFor="risk-title" className="text-sm leading-5 font-medium text-foreground">
+                            Risiko
+                            <span className="text-destructive ml-0.5">*</span>
+                          </Label>
+                          <FieldDescription id="risk-title-help" className="text-xs leading-5">
+                            Tulis singkat kejadian yang mungkin terjadi, misalnya “Distribusi obat terlambat”.
+                          </FieldDescription>
+                        </FieldContent>
                         {!aiFeaturesDisabled && !isRiskLocked ? (
                           <AiFieldButton
                             loading={generatingRisk}
@@ -2780,12 +2809,14 @@ export default function RiskInputPage() {
                           />
                         ) : null}
                       </div>
-                      <div className="mt-1.5">
+                      <div>
                         <Controller
                           name="title"
                           control={control}
                           render={({ field }) => (
                             <Input
+                              id="risk-title"
+                              aria-describedby="risk-title-help"
                               {...field}
                               aria-invalid={Boolean(errors.title)}
                               disabled={isRiskLocked}
@@ -2798,19 +2829,25 @@ export default function RiskInputPage() {
                         />
                         <FormErrorMessage error={errors.title?.message} />
                       </div>
-
                     </div>
 
                     <div className="flex flex-col gap-2">
-                      <Label className="text-sm font-medium text-foreground">
-                        Deskripsi Kejadian Risiko
-                        <span className="text-destructive ml-0.5">*</span>
-                      </Label>
+                      <FieldContent>
+                        <Label htmlFor="risk-description" className="text-sm leading-5 font-medium text-foreground">
+                          Deskripsi Kejadian Risiko
+                          <span className="text-destructive ml-0.5">*</span>
+                        </Label>
+                        <FieldDescription id="risk-description-help" className="text-xs leading-5">
+                          Jelaskan proses yang terdampak dan kapan atau dalam kondisi apa kejadian bisa terjadi.
+                        </FieldDescription>
+                      </FieldContent>
                       <Controller
                         name="description"
                         control={control}
                         render={({ field }) => (
                           <Textarea
+                            id="risk-description"
+                            aria-describedby="risk-description-help"
                             {...field}
                             aria-invalid={Boolean(errors.description)}
                             disabled={isRiskLocked}
@@ -2852,36 +2889,41 @@ export default function RiskInputPage() {
                       />
                       <FormErrorMessage error={errors.category?.message} />
                     </div>
-
-                    <div className="flex flex-col gap-2">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <Label className="text-sm font-medium text-foreground">
-                          Sebab
-                          <span className="text-destructive ml-0.5">*</span>
-                        </Label>
-                        {!aiFeaturesDisabled && !isRiskLocked ? (
-                          <AiFieldButton
-                            loading={generatingCause}
-                            disabled={!canUseAiAssist || isRiskLocked}
-                            onClick={handleGenerateCause}
-                            label="Susun sebab dengan AI"
-                          />
-                        ) : null}
-                      </div>
+                  </FormGroup>
+                  <FormGroup className="space-y-5">
+                    <div className="space-y-2">
                       <Controller
                         name="causes"
                         control={control}
                         render={({ field }) => (
-                          <EditableItemsTable
+                          <EditableInsetItems
+                            itemLabel="Sebab"
+                            aria-describedby="risk-causes-help"
                             items={field.value}
                             invalid={Boolean(errors.causes)}
                             itemErrors={field.value.map((_, index) => errors.causes?.[index]?.text?.message)}
-                            emptyStatePresentation="plain"
                             onChange={field.onChange}
-                            addItemLabel="Tambah sebab"
                             emptyMessage="Belum ada sebab"
                             disabled={isRiskLocked}
-                            hideAddButton={isRiskLocked}
+                            header={
+                              <FieldContent>
+                                <Label className="text-sm leading-5 font-medium text-foreground">
+                                  Sebab
+                                  <span className="text-destructive ml-0.5">*</span>
+                                </Label>
+                                <FieldDescription id="risk-causes-help" className="text-xs leading-5">
+                                  Tambahkan satu penyebab per entri. Fokus pada hal yang dapat memicu kejadian.
+                                </FieldDescription>
+                              </FieldContent>
+                            }
+                            beforeAdd={!aiFeaturesDisabled ? (
+                              <AiFieldButton
+                                loading={generatingCause}
+                                disabled={!canUseAiAssist}
+                                onClick={handleGenerateCause}
+                                label="Susun sebab dengan AI"
+                              />
+                            ) : null}
                           />
                         )}
                       />
@@ -2913,15 +2955,22 @@ export default function RiskInputPage() {
                         />
                       </div>
                       <div className="flex flex-col gap-2">
-                        <Label className="text-sm font-medium text-foreground">
-                          Tingkat Kendali
-                          <span className="text-destructive ml-0.5">*</span>
-                        </Label>
+                        <FieldContent>
+                          <Label htmlFor="risk-controllability" className="text-sm leading-5 font-medium text-foreground">
+                            Tingkat Kendali
+                            <span className="text-destructive ml-0.5">*</span>
+                          </Label>
+                          <FieldDescription id="risk-controllability-help" className="text-xs leading-5">
+                            Pilih Controllable jika unit dapat memengaruhi penyebab risiko. Pilih Uncontrollable jika penyebab berada di luar kendali unit.
+                          </FieldDescription>
+                        </FieldContent>
                         <Controller
                           name="controllability"
                           control={control}
                           render={({ field }) => (
                             <PopoverSelectField
+                              id="risk-controllability"
+                              aria-describedby="risk-controllability-help"
                               value={field.value}
                               onValueChange={field.onChange}
                               options={[
@@ -2937,61 +2986,71 @@ export default function RiskInputPage() {
                       </div>
                     </div>
 
-                    <div className="flex flex-col gap-2">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <Label className="text-sm font-medium text-foreground">
-                          Dampak
-                          <span className="text-destructive ml-0.5">*</span>
-                        </Label>
-                        {!aiFeaturesDisabled && !isRiskLocked ? (
-                          <AiFieldButton
-                            loading={generatingImpact}
-                            disabled={!canUseAiAssist || isRiskLocked}
-                            onClick={handleGenerateImpact}
-                            label="Susun dampak dengan AI"
-                          />
-                        ) : null}
-                      </div>
+                    <div className="space-y-2">
                       <Controller
                         name="impacts"
                         control={control}
                         render={({ field }) => (
-                          <EditableItemsTable
+                          <EditableInsetItems
+                            itemLabel="Dampak"
+                            aria-describedby="risk-impacts-help"
                             items={field.value}
                             invalid={Boolean(errors.impacts)}
                             itemErrors={field.value.map((_, index) => errors.impacts?.[index]?.text?.message)}
-                            emptyStatePresentation="plain"
                             onChange={field.onChange}
-                            addItemLabel="Tambah dampak"
+                            emptyMessage="Belum ada dampak"
                             disabled={isRiskLocked}
-                            hideAddButton={isRiskLocked}
+                            header={
+                              <FieldContent>
+                                <Label className="text-sm leading-5 font-medium text-foreground">
+                                  Dampak
+                                  <span className="text-destructive ml-0.5">*</span>
+                                </Label>
+                                <FieldDescription id="risk-impacts-help" className="text-xs leading-5">
+                                  Tambahkan satu akibat per entri. Sebutkan apa yang terganggu jika kejadian terjadi.
+                                </FieldDescription>
+                              </FieldContent>
+                            }
+                            beforeAdd={!aiFeaturesDisabled ? (
+                              <AiFieldButton
+                                loading={generatingImpact}
+                                disabled={!canUseAiAssist}
+                                onClick={handleGenerateImpact}
+                                label="Susun dampak dengan AI"
+                              />
+                            ) : null}
                           />
                         )}
                       />
                       <FormErrorMessage error={errors.impacts?.message} />
                     </div>
-                  </CardContent>
-                </Card>
+                  </FormGroup>
+                </FormContainer>
 
-                <Card
+                <FormContainer
                   id="analisis"
-                  className={RISK_FORM_CARD_CLASS}
+                  title="Analisis Risiko"
+                  description={sectionStatuses[1].description}
+                  className="scroll-mt-28"
                 >
-                  <CardHeader>
-                    <CardTitle className="transition-colors">Analisis Risiko</CardTitle>
-                    <CardDescription>{sectionStatuses[1].description}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-5">
+                  <FormGroup className="space-y-5">
                     <div className="flex flex-col gap-2">
-                      <Label className="text-sm font-medium text-foreground">
-                        Pengendalian yang Ada
-                        <span className="text-destructive ml-0.5">*</span>
-                      </Label>
+                      <FieldContent>
+                        <Label htmlFor="risk-existing-control" className="text-sm leading-5 font-medium text-foreground">
+                          Pengendalian yang Ada
+                          <span className="text-destructive ml-0.5">*</span>
+                        </Label>
+                        <FieldDescription id="risk-existing-control-help" className="text-xs leading-5">
+                          Catat langkah yang sudah berjalan, misalnya pemeriksaan stok setiap minggu. Rencana tindakan baru diisi pada Rencana Penanganan.
+                        </FieldDescription>
+                      </FieldContent>
                       <Controller
                         name="existingControl"
                         control={control}
                         render={({ field }) => (
                           <EditableList
+                            id="risk-existing-control"
+                            aria-describedby="risk-existing-control-help"
                             invalid={Boolean(errors.existingControl)}
                             value={field.value || ""}
                             onChange={field.onChange}
@@ -3005,15 +3064,22 @@ export default function RiskInputPage() {
                     </div>
                     <div className="grid gap-5 md:grid-cols-2">
                       <div className="flex flex-col gap-2 md:col-span-2">
-                        <Label className="text-sm font-medium text-foreground">
-                          Efektivitas Pengendalian
-                          <span className="text-destructive ml-0.5">*</span>
-                        </Label>
+                        <FieldContent>
+                          <Label htmlFor="risk-control-effectiveness" className="text-sm leading-5 font-medium text-foreground">
+                            Efektivitas Pengendalian
+                            <span className="text-destructive ml-0.5">*</span>
+                          </Label>
+                          <FieldDescription id="risk-control-effectiveness-help" className="text-xs leading-5">
+                            Gunakan bukti pelaksanaan untuk menilai apakah pengendalian yang ada membantu menekan risiko.
+                          </FieldDescription>
+                        </FieldContent>
                         <Controller
                           name="controlEffectiveness"
                           control={control}
                           render={({ field }) => (
                             <PopoverSelectField
+                              id="risk-control-effectiveness"
+                              aria-describedby="risk-control-effectiveness-help"
                               value={field.value}
                               onValueChange={field.onChange}
                               options={[
@@ -3040,13 +3106,20 @@ export default function RiskInputPage() {
                         />
                       </div>
                     </div>
-
-                    <div className="flex flex-col gap-3">
-                      <Label className="text-sm font-medium text-foreground">
-                        Skor Risiko
-                      </Label>
+                  </FormGroup>
+                  <FormGroup className="space-y-5">
+                    <div className="flex flex-col gap-2">
+                      <FieldContent>
+                        <Label className="text-sm leading-5 font-medium text-foreground">
+                          Skor Risiko
+                        </Label>
+                        <FieldDescription id="risk-score-help" className="text-xs leading-5">
+                          Nilai kondisi risiko dengan mempertimbangkan pengendalian yang sudah berjalan.
+                        </FieldDescription>
+                      </FieldContent>
                       <RiskScorePickerTrigger
-                        title="Skor Risiko"
+                        title="Skor risiko saat ini"
+                        aria-describedby="risk-score-help"
                         presentation="card"
                         invalid={Boolean(errors.probability || errors.impact)}
                         probability={probability}
@@ -3054,51 +3127,56 @@ export default function RiskInputPage() {
                         onClick={() => setScorePickerMode("inherent")}
                         disabled={isRiskLocked}
                       />
-                      {!riskId ? (
-                        <p className="text-xs text-tertiary-foreground">
-                          Nilai awal terisi otomatis. Sesuaikan probabilitas dan dampak dengan hasil asesmen sebelum finalisasi.
-                        </p>
-                      ) : null}
+                      <FormErrorMessage
+                        error={getScoreError(errors.probability?.message, errors.impact?.message)}
+                      />
                     </div>
-                  </CardContent>
-                </Card>
+                  </FormGroup>
+                </FormContainer>
 
-                <Card
+                <FormContainer
                   id="evaluasi"
-                  className={RISK_FORM_CARD_CLASS}
+                  title="Evaluasi Risiko"
+                  description={sectionStatuses[2].description}
+                  className="scroll-mt-28"
                 >
-                  <CardHeader>
-                    <CardTitle className="transition-colors">Evaluasi Risiko</CardTitle>
-                    <CardDescription>{sectionStatuses[2].description}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-5">
+                  <FormGroup className="space-y-5">
                     <div className="grid gap-5 text-sm font-normal text-muted-foreground md:grid-cols-2">
                       <div className="flex flex-col gap-2">
                         <Label className="text-sm font-medium text-foreground">
                           Prioritas Risiko
                         </Label>
-                        <Input aria-label="Prioritas Risiko" value={riskPriority} readOnly />
+                        <Input aria-label="Prioritas Risiko" value={hasRiskScore(probability, impact) ? riskPriority : "Belum dinilai"} readOnly />
                       </div>
                       <div className="flex flex-col gap-2">
                         <Label className="text-sm font-medium text-foreground">
                           Selera Risiko
                         </Label>
                         <Input aria-label="Selera Risiko" readOnly
-                          value={advisoryAppetite === "di_atas_batas"
+                          value={!hasRiskScore(probability, impact) ? "Belum dinilai" : advisoryAppetite === "di_atas_batas"
                               ? "Di atas batas selera risiko"
                               : "Dalam batas selera risiko"} />
                       </div>
                     </div>
+                  </FormGroup>
+                  <FormGroup className="space-y-5">
                     <div className="flex flex-col gap-2">
-                      <Label className="text-sm font-medium text-foreground">
-                        Pilihan Penanganan
-                        <span className="text-destructive ml-0.5">*</span>
-                      </Label>
+                      <FieldContent>
+                        <Label htmlFor="risk-treatment-option" className="text-sm leading-5 font-medium text-foreground">
+                          Pilihan Penanganan
+                          <span className="text-destructive ml-0.5">*</span>
+                        </Label>
+                        <FieldDescription id="risk-treatment-option-help" className="text-xs leading-5">
+                          Pilih cara unit merespons risiko. Untuk Mitigasi, uraikan tindakan yang direncanakan di Rencana Penanganan.
+                        </FieldDescription>
+                      </FieldContent>
                       <Controller
                         name="treatmentOption"
                         control={control}
                         render={({ field }) => (
                           <PopoverSelectField
+                            id="risk-treatment-option"
+                            aria-describedby="risk-treatment-option-help"
                             value={field.value}
                             onValueChange={field.onChange}
                             options={treatmentOptionOptions}
@@ -3116,62 +3194,56 @@ export default function RiskInputPage() {
                         error={errors.treatmentOption?.message}
                       />
                     </div>
-                  </CardContent>
-                </Card>
+                  </FormGroup>
+                </FormContainer>
 
-                <Card
+                <FormContainer
                   id="penanganan"
-                  className={RISK_FORM_CARD_CLASS}
+                  title="Rencana Penanganan"
+                  description={sectionStatuses[3].description}
+                  className="scroll-mt-28"
                 >
-                  <CardHeader>
-                    <CardTitle className="transition-colors">Rencana Penanganan</CardTitle>
-                    <CardDescription>{sectionStatuses[3].description}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-5">
+                  <FormGroup className="space-y-5">
                     <div className="space-y-3">
-                      <div className="flex flex-wrap items-center justify-start gap-2">
-                        {!aiFeaturesDisabled && !isRiskLocked ? (
-                          <MitigationPicker iconOnly
-                            title={title}
-                            description={description}
-                            cause={(causes || [])
-                              .map((cause) => cause.text)
-                              .join("\n")}
-                            impactDescription={(impacts || [])
-                              .map((impactItem) => impactItem.text)
-                              .join("\n")}
-                            onSelect={(action) => {
-                              const current = form.getValues("mitigations") || [];
-                              setValue(
-                                "mitigations",
-                                [
-                                  ...current,
-                                  {
-                                    action,
-                                    owner: "",
-                                    mitigationType: "reduce_probability",
-                                    isBreakthroughActivity: false,
-                                    isExistingControl: false,
-                                  },
-                                ],
-                                { shouldValidate: true },
-                              );
-                            }}
-                            existingActions={(mitigations || [])
-                              .map((mitigation) => mitigation.action)
-                              .filter((action): action is string =>
-                                Boolean(action),
-                              )}
-                            disabled={isRiskLocked}
-                          />
-                        ) : null}
-                      </div>
                       <Controller
                         name="mitigations"
                         control={control}
                         render={({ field }) => (
                           <MitigationPlanList
-                            presentation="table"
+                            beforeAdd={!aiFeaturesDisabled ? (
+                              <MitigationPicker iconOnly
+                                title={title}
+                                description={description}
+                                cause={(causes || [])
+                                  .map((cause) => cause.text)
+                                  .join("\n")}
+                                impactDescription={(impacts || [])
+                                  .map((impactItem) => impactItem.text)
+                                  .join("\n")}
+                                onSelect={(action) => {
+                                  const current = form.getValues("mitigations") || [];
+                                  setValue(
+                                    "mitigations",
+                                    [
+                                      ...current,
+                                      {
+                                        action,
+                                        owner: user?.name ?? "",
+                                        treatmentOwnerId: user?.id,
+                                        mitigationType: "reduce_probability",
+                                      },
+                                    ],
+                                    { shouldValidate: true },
+                                  );
+                                }}
+                                existingActions={(mitigations || [])
+                                  .map((mitigation) => mitigation.action)
+                                  .filter((action): action is string =>
+                                    Boolean(action),
+                                  )}
+                                disabled={isRiskLocked}
+                              />
+                            ) : null}
                             items={(field.value ?? []).map(
                               (mitigation): MitigationItem => ({
                                 id: mitigation.id,
@@ -3182,20 +3254,6 @@ export default function RiskInputPage() {
                                 mitigationType:
                                   mitigation.mitigationType ??
                                   "reduce_probability",
-                                activityStage: mitigation.activityStage ?? "",
-                                expectedOutput: mitigation.expectedOutput ?? "",
-                                quantitativeTarget:
-                                  mitigation.quantitativeTarget ?? "",
-                                supportingUnit: mitigation.supportingUnit ?? "",
-				resourcesRequired:
-					mitigation.resourcesRequired ?? "",
-				contingencyPlan: mitigation.contingencyPlan ?? "",
-				potentialObstacle:
-					mitigation.potentialObstacle ?? "",
-				isBreakthroughActivity:
-                                  mitigation.isBreakthroughActivity ?? false,
-                                isExistingControl:
-                                  mitigation.isExistingControl ?? false,
                               }),
                             )}
                             onChange={field.onChange}
@@ -3210,7 +3268,8 @@ export default function RiskInputPage() {
                       />
                       <FormErrorMessage error={errors.mitigations?.message} />
                     </div>
-
+                  </FormGroup>
+                  <FormGroup className="space-y-5">
                     <div className="flex flex-col gap-2 pt-1">
                       <Label className="text-sm font-medium text-foreground">
                         Jadwal Pelaksanaan
@@ -3228,27 +3287,29 @@ export default function RiskInputPage() {
                         className={cn("", lockedControlClass)}
                       />
                     </div>
-                  </CardContent>
-                </Card>
+                  </FormGroup>
+                </FormContainer>
 
-                <Card
+                <FormContainer
                   id="target"
-                  className={RISK_FORM_CARD_CLASS}
+                  title="Target Penurunan"
+                  description={sectionStatuses[4].description}
+                  className="scroll-mt-28"
                 >
-                  <CardHeader>
-                    <CardTitle className="transition-colors">Target Penurunan</CardTitle>
-                    <CardDescription>{sectionStatuses[4].description}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-5">
-                    <div className="flex flex-col gap-3">
-                      <div className="flex items-center">
-                        <Label className="flex h-6 items-center text-sm font-medium">
+                  <FormGroup className="space-y-5">
+                    <div className="flex flex-col gap-2">
+                      <FieldContent>
+                        <Label className="text-sm leading-5 font-medium">
                           Pilih skor target
                           <span className="text-destructive ml-0.5">*</span>
                         </Label>
-                      </div>
+                        <FieldDescription id="risk-target-help" className="text-xs leading-5">
+                          Pilih kondisi risiko yang ingin dicapai setelah rencana penanganan dilaksanakan. Tetapkan probabilitas dan dampak yang realistis.
+                        </FieldDescription>
+                      </FieldContent>
                       <RiskScorePickerTrigger
                         title="Target penurunan"
+                        aria-describedby="risk-target-help"
                         presentation="card"
                         invalid={Boolean(errors.targetProbability || errors.targetImpact)}
                         probability={targetProbability}
@@ -3256,32 +3317,21 @@ export default function RiskInputPage() {
                         onClick={() => setScorePickerMode("target")}
                         disabled={isRiskLocked}
                       />
-                      {!riskId ? (
-                        <p className="text-xs text-tertiary-foreground">
-                          Target awal terisi otomatis. Sesuaikan dengan hasil mitigasi yang realistis.
-                        </p>
-                      ) : null}
-                      <div className="grid gap-1 md:grid-cols-2">
-                        <FormErrorMessage
-                          error={errors.targetProbability?.message}
-                        />
-                        <FormErrorMessage error={errors.targetImpact?.message} />
-                      </div>
+                      <FormErrorMessage
+                        error={getScoreError(errors.targetProbability?.message, errors.targetImpact?.message)}
+                      />
                     </div>
-
-                  </CardContent>
-                </Card>
+                  </FormGroup>
+                </FormContainer>
 
                 {riskApprovalCapabilityBehavior.showsApprovalLineEditor && (
-                  <Card
+                  <FormContainer
                     id="approval-line"
-                    className={RISK_FORM_CARD_CLASS}
+                    title="Alur Persetujuan"
+                    description="Susun reviewer dan rantai persetujuan pimpinan"
+                    className="scroll-mt-28"
                   >
-                    <CardHeader>
-                      <CardTitle className="transition-colors">Alur Persetujuan</CardTitle>
-                      <CardDescription>Susun reviewer dan rantai persetujuan pimpinan</CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-5">
+                    <FormGroup className="space-y-5">
                       <div className="space-y-3">
                         <div className="flex flex-col gap-2">
                           <Label className="text-sm font-medium text-foreground">
@@ -3306,7 +3356,8 @@ export default function RiskInputPage() {
                           searchPlaceholder=""
                         />
                       </div>
-
+                    </FormGroup>
+                    <FormGroup className="space-y-5">
                       <div className="space-y-4">
                         <div className="flex flex-col gap-2">
                           <Label className="text-sm font-medium text-foreground">
@@ -3338,15 +3389,15 @@ export default function RiskInputPage() {
                           dndGroup="risk-register-approval-line"
                         />
                       </div>
-                    </CardContent>
-                  </Card>
+                    </FormGroup>
+                  </FormContainer>
                 )}
               </div>
             </form>
           </div>
 
-          <aside className="min-w-0 self-start">
-            <div className="space-y-6 xl:sticky xl:top-20">
+          <aside className={cn("min-w-0 self-start xl:col-start-2", isRiskLocked ? "xl:row-start-1" : "xl:row-start-2")}>
+            <div className="space-y-6 xl:sticky xl:top-6">
               <DetailSidePanel>
                     <section aria-labelledby="risk-side-properties">
                       <h2
@@ -3356,16 +3407,6 @@ export default function RiskInputPage() {
                         Properti
                       </h2>
                       <PropertyList compact className="[&_dt]:text-tertiary-foreground">
-                        <div className="flex items-center justify-between gap-4">
-                          <PropertyLabel showIcon={false}>Status</PropertyLabel>
-                          <dd className="shrink-0 text-right">
-                            <Badge variant={toBadgeVariant(getRiskStatusTone(riskStatus))}
-                              className={getStatusBadgeClassName(getRiskStatusTone(riskStatus))}
-                            >
-                              {getRiskStatusLabel(riskStatus)}
-                            </Badge>
-                          </dd>
-                        </div>
                         <div className="flex items-center justify-between gap-4">
                           <PropertyLabel showIcon={false}>Kode risiko</PropertyLabel>
                           <dd className="max-w-[60%] truncate text-right font-sans text-foreground">
@@ -3379,9 +3420,19 @@ export default function RiskInputPage() {
                           </dd>
                         </div>
                         <div className="flex items-center justify-between gap-4">
-                          <PropertyLabel showIcon={false}>Periode</PropertyLabel>
+                            <PropertyLabel showIcon={false}>Periode profil</PropertyLabel>
                           <dd className="shrink-0 text-right font-sans text-foreground">
-                            {assessmentCycleDisplay || "-"}
+                            {riskPeriodLabel(isRiskLocked ? assessmentCycleDisplay : finalizationCycle)}
+                          </dd>
+                        </div>
+                        <div className="flex items-center justify-between gap-4">
+                          <PropertyLabel showIcon={false}>Status</PropertyLabel>
+                          <dd className="shrink-0 text-right">
+                            <Badge variant={toBadgeVariant(getRiskStatusTone(riskStatus))}
+                              className={getStatusBadgeClassName(getRiskStatusTone(riskStatus))}
+                            >
+                              {getRiskStatusLabel(riskStatus)}
+                            </Badge>
                           </dd>
                         </div>
                       </PropertyList>
@@ -3406,11 +3457,7 @@ export default function RiskInputPage() {
                             riskId={riskId}
                             token={token || ""}
                           />
-                        ) : (
-                          <div className="py-2 text-sm text-muted-foreground">
-                            Simpan draft untuk melihat progres penanganan.
-                          </div>
-                        )}
+                        ) : null}
                       </div>
                     </section>
 
@@ -3445,11 +3492,7 @@ export default function RiskInputPage() {
                         </div>
                       </div>
                       <div className="mt-3">
-                        {!riskId ? (
-                          <div className="py-2 text-sm text-muted-foreground">
-                            Finalisasi risiko sebelum mencatat dan menautkan kejadian.
-                          </div>
-                        ) : loadingRiskEvents ? (
+                        {!riskId ? null : loadingRiskEvents ? (
                           <div
                             className="flex items-center gap-2 rounded-lg bg-state-surface px-3 py-2 text-sm text-state-foreground"
                             role="status"
@@ -3482,43 +3525,25 @@ export default function RiskInputPage() {
                                   href={`/risk-events/${event.id}`}
                                   className="group -mx-2 block rounded-md px-2 py-2 outline-none transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring/40"
                                 >
-                                  <div className="flex items-center justify-between gap-2">
-                                    <span className="truncate font-mono text-sm text-muted-foreground">
-                                      {event.code}
-                                    </span>
+                                  <p className="truncate text-sm font-medium leading-5 text-foreground" title={event.description}>
+                                    {event.description}
+                                  </p>
+                                  <div className="mt-1 flex min-w-0 items-center gap-2 text-sm leading-5 text-muted-foreground">
+                                    <span className="min-w-0 truncate font-mono">{event.code}</span>
                                     <Badge variant={toBadgeVariant(riskEventSeverityTones[event.severity])}
                                       className={getStatusBadgeClassName(riskEventSeverityTones[event.severity])}
                                     >
                                       {riskEventSeverityLabels[event.severity]}
                                     </Badge>
+                                    <time dateTime={event.occurredAt} className="ml-auto shrink-0">
+                                      {riskEventDateFormatter.format(new Date(event.occurredAt))}
+                                    </time>
                                   </div>
-                                  <p className="mt-1 line-clamp-2 text-sm font-medium leading-5 text-foreground">
-                                    {event.description}
-                                  </p>
-                                  <time
-                                    dateTime={event.occurredAt}
-                                    className="mt-1 block text-sm text-muted-foreground"
-                                  >
-                                    {riskEventDateFormatter.format(
-                                      new Date(event.occurredAt),
-                                    )}
-                                  </time>
                                 </Link>
                               </li>
                             ))}
                           </ul>
-                        ) : riskStatus === "final" ? (
-                          <IllustratedEmptyState
-                            title="Belum ada kejadian terkait."
-                            titleClassName="text-sm text-secondary-foreground"
-                            size="compact"
-                            className="py-2"
-                          />
-                        ) : (
-                          <div className="py-2 text-sm text-muted-foreground">
-                            Finalisasi risiko sebelum mencatat dan menautkan kejadian.
-                          </div>
-                        )}
+                        ) : null}
                       </div>
                       {riskEvents.length > SIDE_PANEL_EVENT_PREVIEW_LIMIT ? (
                         <Button
@@ -3533,8 +3558,6 @@ export default function RiskInputPage() {
                         </Button>
                       ) : null}
                     </section>
-
-
 
                     <section
                       aria-labelledby="risk-side-version-history"
@@ -3560,18 +3583,7 @@ export default function RiskInputPage() {
                             versions={visibleRiskVersions}
                             onVersionSelect={handleVersionSelect}
                           />
-                        ) : riskId ? (
-                          <IllustratedEmptyState
-                            title="Belum ada riwayat versi."
-                            titleClassName="text-sm"
-                            size="compact"
-                            className="py-2"
-                          />
-                        ) : (
-                          <p className="py-2 text-sm text-muted-foreground">
-                            Simpan draft untuk membentuk riwayat versi.
-                          </p>
-                        )}
+                        ) : null}
                       </div>
                       {riskVersions.length > SIDE_PANEL_PREVIEW_LIMIT && (
                         <Button
@@ -3604,11 +3616,7 @@ export default function RiskInputPage() {
                           >
                             Catatan
                           </h2>
-                          <div className="mt-3">
-                            <div className="py-2 text-sm text-muted-foreground">
-                              Simpan draft untuk menambahkan catatan komunikasi.
-                            </div>
-                          </div>
+
                         </>
                       )}
                     </section>
@@ -3624,7 +3632,6 @@ export default function RiskInputPage() {
                 token={token || undefined}
                 onActionComplete={() => riskId && reloadRiskData(riskId)}
               />
-
 
             </div>
           </aside>
@@ -3777,7 +3784,7 @@ export default function RiskInputPage() {
         </Dialog>
 
         <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
-          <DialogContent className="max-w-md">
+          <DialogContent>
             <DialogHeader>
               <DialogTitle>Hapus Draft Risiko?</DialogTitle>
               <DialogDescription>
@@ -3879,7 +3886,7 @@ export default function RiskInputPage() {
           open={showRestoreDialog}
           onOpenChange={setShowRestoreDialog}
         >
-          <AlertDialogContent className="max-w-md">
+          <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Pulihkan Risiko?</AlertDialogTitle>
               <AlertDialogDescription>
@@ -3910,7 +3917,7 @@ export default function RiskInputPage() {
           open={showSubmitReviewConfirm}
           onOpenChange={setShowSubmitReviewConfirm}
         >
-          <AlertDialogContent className="max-w-lg">
+          <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>
                 {riskApprovalCapabilityBehavior.usesDirectApprovalCopy
@@ -3919,16 +3926,24 @@ export default function RiskInputPage() {
               </AlertDialogTitle>
               <AlertDialogDescription>
                 {riskApprovalCapabilityBehavior.usesDirectApprovalCopy
-                  ? "Risiko yang sudah difinalisasi tidak dapat diubah kembali sampai periode monitoring selanjutnya."
+                  ? "Tinjau periode, penilaian, dan rencana penanganan. Setelah finalisasi, profil ini dikunci."
                   : "Risiko akan disimpan lalu dikirim ke reviewer melalui alur persetujuan yang dipilih. Tinjau seluruh bagian sebelum melanjutkan."}
               </AlertDialogDescription>
             </AlertDialogHeader>
+            <RiskFinalizationReview
+              cycle={finalizationCycle}
+              originalCycle={assessmentCycleDisplay}
+              score={nilai}
+              level={getRiskLevelLabel(level)}
+              target={targetNilai}
+              mitigationCount={mitigations.filter(item => item.action?.trim()).length}
+            />
             <AlertDialogFooter>
               <CollectionDialogCancel
                 onClick={() => setShowSubmitReviewConfirm(false)}
                 disabled={isSubmitting}
               >
-                Batal
+                Kembali periksa
               </CollectionDialogCancel>
               <AlertDialogAction
                 variant="default"
@@ -3940,6 +3955,28 @@ export default function RiskInputPage() {
                   ? "Finalisasi"
                   : "Ajukan untuk review"}
               </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog open={Boolean(leaveHref)} onOpenChange={open => { if (!open && !isSubmitting) setLeaveHref(null); }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Simpan perubahan sebelum keluar?</AlertDialogTitle>
+              <AlertDialogDescription>Formulir memiliki perubahan yang belum tersimpan. Draf memerlukan judul, deskripsi, dan kategori.</AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-wrap">
+              <ActionButton disabled={isSubmitting} onClick={() => setLeaveHref(null)}>Tetap mengisi</ActionButton>
+              <ActionButton disabled={isSubmitting} onClick={() => {
+                if (!leaveHref) return;
+                allowNavigationRef.current = true;
+                router.push(leaveHref);
+              }}>Keluar tanpa menyimpan</ActionButton>
+              <AccentButton disabled={isSubmitting} onClick={async () => {
+                leaveAfterSaveRef.current = true;
+                await handleSaveDraft();
+                leaveAfterSaveRef.current = false;
+              }}>Simpan dan keluar</AccentButton>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>

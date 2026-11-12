@@ -16,7 +16,7 @@ import { AlertCircle, ChevronDown, FileText, Lock, Plus } from "@/components/sha
 import { AgentComposer, type AgentDraftFile } from "./agent-composer";
 import { AgentActivity } from "./agent-activity";
 import { AgentStart, AgentSuggestions } from "./agent-start";
-import { AgentConversationHeader, AgentConversationLayout } from "./agent-conversation-layout";
+import { AgentConversationHeader, AgentConversationLayout, AgentScrollViewport } from "./agent-conversation-layout";
 import { AgentWidget } from "./agent-widget";
 import { AgentProposal } from "./agent-proposal";
 import { agentError, useAgentData } from "./use-agent-data";
@@ -157,7 +157,7 @@ function AgentSession({ conversationId, token }: { conversationId?: string; toke
       <DropdownMenu><DropdownMenuTrigger asChild><Button variant="ghost" disabled={disabled} className="min-w-0 max-w-full"><span className="truncate">{detail?.conversation.title || "Percakapan baru"}</span><ChevronDown aria-hidden="true" /></Button></DropdownMenuTrigger><DropdownMenuContent align="start" className="w-80 max-w-[calc(100vw-2rem)]"><DropdownMenuLabel>Riwayat pribadi</DropdownMenuLabel>{history.slice(0, 20).map((conversation) => <DropdownMenuItem key={conversation.id} asChild><Link href={`/agent/${encodeURIComponent(conversation.id)}`}><span className="min-w-0 flex-1 truncate">{conversation.title || "Percakapan tanpa judul"}</span><AgentHistoryStatus status={conversation.status} /></Link></DropdownMenuItem>)}{!history.length && <p className="px-2 py-2 text-xs text-muted-foreground">Belum ada percakapan.</p>}</DropdownMenuContent></DropdownMenu>
     </AgentConversationHeader>}
     {disabled ? <div className="agent-session-state"><p className="text-base">Manris Agent sedang dinonaktifkan</p><p className="text-sm text-muted-foreground">Fitur AI belum tersedia pada lingkungan ini.</p></div> : <>
-      <div ref={scrollRef} onScroll={onScroll} className={`agent-scroll ${newState ? "agent-scroll-new" : ""}`}>
+      <AgentScrollViewport start={newState} ref={scrollRef} onScroll={onScroll} onJumpToLatest={paused && hasMessages ? resumeFollowing : undefined}>
         {loading && conversationId ? <div className="agent-column space-y-6 py-10" role="status" aria-label="Memuat percakapan"><Skeleton className="ml-auto h-16 w-2/3" /><Skeleton className="h-4 w-1/3" /><Skeleton className="h-36 w-full" /></div> : null}
         {error && <div className="agent-column agent-error" role="alert"><AlertCircle className="size-4 shrink-0" aria-hidden="true" /><p>{error}</p><Button variant="outline" size="sm" onClick={reload}>Coba lagi</Button></div>}
         {newState && <AgentStart composer={composer}>
@@ -171,8 +171,7 @@ function AgentSession({ conversationId, token }: { conversationId?: string; toke
           </div> : turn.messages.filter((message) => message.role !== "user").map(renderMessage)}
         </div>)}
         </AgentConversationLayout>}
-      </div>
-      {paused && hasMessages && <div className="agent-column flex justify-end py-2"><Button type="button" variant="outline" size="sm" onClick={resumeFollowing}>Ke pesan terbaru</Button></div>}
+      </AgentScrollViewport>
       {actionError && <div className="agent-column agent-action-error" role="alert">{actionError}</div>}
       {!newState && <div className="agent-bottom"><div className="agent-column">{composer}</div></div>}
     </>}

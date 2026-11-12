@@ -242,7 +242,7 @@ func (r *fakeCreateMonitoringRepo) UpdateDraft(context.Context, *entity.RiskMoni
 	return nil
 }
 
-func (r *fakeCreateMonitoringRepo) Finalize(context.Context, uuid.UUID, *entity.Risk, uuid.UUID) (*entity.RiskMonitoring, error) {
+func (r *fakeCreateMonitoringRepo) Finalize(context.Context, uuid.UUID, *entity.Risk, uuid.UUID, repo.MonitoringFinalizeReview) (*entity.RiskMonitoring, error) {
 	return nil, nil
 }
 

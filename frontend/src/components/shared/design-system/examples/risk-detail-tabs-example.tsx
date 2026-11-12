@@ -21,14 +21,6 @@ const plans: RiskMitigation[] = [
     owner: "Tim logistik",
     mitigationType: "reduce_probability",
     executionScheduleText: "Setiap triwulan",
-    activityStage: "Validasi data kebutuhan",
-    expectedOutput: "Daftar kebutuhan tervalidasi",
-    quantitativeTarget: "Seluruh unit",
-    supportingUnit: "Tim perencanaan",
-    resourcesRequired: "Data stok",
-    contingencyPlan: "Verifikasi langsung ke unit",
-    potentialObstacle: "Keterlambatan data",
-    isBreakthroughActivity: false,
   },
 ];
 const tasks: MitigationTask[] = [
@@ -92,17 +84,17 @@ export function RiskDetailTabsExample() {
       task: MitigationTask,
       report: { notes: string; evidenceUrl: string },
     ) => {
+      const updated: MitigationTask = {
+        ...task,
+        ...report,
+        status: "done",
+        reportedAt: new Date().toISOString(),
+        reportedByName: "Operator contoh",
+      };
       taskRef.current = taskRef.current.map((item) =>
-        item.id === task.id
-          ? {
-              ...item,
-              ...report,
-              status: "done",
-              reportedAt: new Date().toISOString(),
-              reportedByName: "Operator contoh",
-            }
-          : item,
+        item.id === task.id ? updated : item,
       );
+      return updated;
     },
     [],
   );
@@ -111,8 +103,9 @@ export function RiskDetailTabsExample() {
     <div className="space-y-4">
       <p className="text-xs text-muted-foreground">
         Data ilustrasi. Ketik pada Ringkasan lalu berpindah tab untuk mencoba
-        preservasi isian. Pengiriman laporan contoh hanya memperbarui data
-        ilustrasi di halaman ini.
+        perpindahan tab. Di Penanganan, buka tugas yang bisa dilaporkan untuk
+        mencoba kembali ke detail tanpa kehilangan isian, konfirmasi saat
+        menutup dialog, dan melihat laporan yang terkirim.
       </p>
       <RiskDetailTabs
         enabled

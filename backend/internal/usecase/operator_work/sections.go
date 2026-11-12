@@ -60,7 +60,7 @@ func (s *Service) eligibleItems(ctx context.Context, orgID, actorID uuid.UUID, n
 	return BuildItems(candidates, actorID, now), nil
 }
 func (s *Service) Sections(ctx context.Context, orgID, actorID uuid.UUID) (*entity.OperatorWorkSummary, error) {
-	now := time.Now().In(timeutil.JakartaLocation())
+	now := timeutil.BusinessNow().In(timeutil.JakartaLocation())
 	items, err := s.eligibleItems(ctx, orgID, actorID, now)
 	if err != nil {
 		return nil, err
@@ -71,7 +71,7 @@ func (s *Service) ListSection(ctx context.Context, orgID, actorID uuid.UUID, key
 	if !ValidSection(key) || page < 1 || page > 100000 || limit < 1 || limit > 50 {
 		return nil, fmt.Errorf("invalid work section or pagination")
 	}
-	now := time.Now().In(timeutil.JakartaLocation())
+	now := timeutil.BusinessNow().In(timeutil.JakartaLocation())
 	items, err := s.eligibleItems(ctx, orgID, actorID, now)
 	if err != nil {
 		return nil, err

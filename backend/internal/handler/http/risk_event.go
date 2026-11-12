@@ -17,28 +17,18 @@ func NewRiskEventHandler(service *riskeventuc.Service) *RiskEventHandler {
 }
 
 type riskEventRequest struct {
-	SourceDocumentName    string                     `json:"sourceDocumentName"`
-	SourceRefs            []entity.DocumentSourceRef `json:"sourceRefs"`
-	ExtractionKey         string                     `json:"extractionKey"`
-	Description           string                     `json:"description"`
-	ActualImpact          string                     `json:"actualImpact"`
-	Severity              string                     `json:"severity"`
-	ImmediateResponse     string                     `json:"immediateResponse"`
-	PostResponseCondition string                     `json:"postResponseCondition"`
-	Location              string                     `json:"location"`
-	AffectedParties       string                     `json:"affectedParties"`
-	SuspectedCause        string                     `json:"suspectedCause"`
-	DisruptionDuration    string                     `json:"disruptionDuration"`
-	ExtraordinaryReason   string                     `json:"extraordinaryReason"`
-	OngoingAction         string                     `json:"ongoingAction"`
-	EvidenceURL           string                     `json:"evidenceUrl"`
-	OrganizationID        string                     `json:"organizationId"`
-	OccurredAt            string                     `json:"occurredAt"`
-	ImpactTypes           []string                   `json:"impactTypes"`
-	OtherImpactType       string                     `json:"otherImpactType"`
-	RiskIDs               []string                   `json:"riskIds"`
-	FinancialLoss         *float64                   `json:"financialLoss"`
-	FinancialLossKnown    *bool                      `json:"financialLossKnown"`
+	SourceDocumentName string                     `json:"sourceDocumentName"`
+	SourceRefs         []entity.DocumentSourceRef `json:"sourceRefs"`
+	ExtractionKey      string                     `json:"extractionKey"`
+	Description        string                     `json:"description"`
+	Severity           string                     `json:"severity"`
+	OrganizationID     string                     `json:"organizationId"`
+	OccurredAt         string                     `json:"occurredAt"`
+	ImpactTypes        []string                   `json:"impactTypes"`
+	OtherImpactType    string                     `json:"otherImpactType"`
+	RiskIDs            []string                   `json:"riskIds"`
+	FinancialLoss      *float64                   `json:"financialLoss"`
+	FinancialLossKnown *bool                      `json:"financialLossKnown"`
 }
 
 func riskEventScope(c *fiber.Ctx) (*uuid.UUID, []uuid.UUID, error) {
@@ -103,10 +93,7 @@ func (h *RiskEventHandler) Create(c *fiber.Ctx) error {
 	}
 	result, err := h.service.Create(c.Context(), riskeventuc.CreateInput{
 		SourceDocumentName: req.SourceDocumentName, SourceRefs: req.SourceRefs, ExtractionKey: req.ExtractionKey,
-		Description: req.Description, ActualImpact: req.ActualImpact, Severity: req.Severity, ImmediateResponse: req.ImmediateResponse,
-		PostResponseCondition: req.PostResponseCondition, Location: req.Location, AffectedParties: req.AffectedParties,
-		SuspectedCause: req.SuspectedCause, DisruptionDuration: req.DisruptionDuration, ExtraordinaryReason: req.ExtraordinaryReason,
-		OngoingAction: req.OngoingAction, EvidenceURL: req.EvidenceURL, OccurredAt: occurredAt, ImpactTypes: req.ImpactTypes,
+		Description: req.Description, Severity: req.Severity, OccurredAt: occurredAt, ImpactTypes: req.ImpactTypes,
 		FinancialLoss: req.FinancialLoss, FinancialLossKnown: req.FinancialLossKnown, OtherImpactType: req.OtherImpactType, OrganizationID: orgID, ActorID: actorID,
 		RiskIDs: riskIDs, OrgIDs: orgIDs,
 	})

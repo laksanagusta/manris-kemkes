@@ -30,14 +30,6 @@ export type MonitoringOverviewRow = {
   finalizedAt: string | null;
 };
 
-export type MonitoringOrganizationSummary = {
-  id: string;
-  name: string;
-  total: number;
-  inProgress: number;
-  finalized: number;
-};
-
 export type MonitoringQueryState = {
   search: string;
   status: MonitoringStatusFilter;
@@ -170,32 +162,6 @@ export function getOrganizationScopeIds(
   }
 
   return scope;
-}
-
-export function buildMonitoringOrganizationSummaries(
-  rows: MonitoringOverviewRow[],
-  organizations: OrganizationListItem[],
-  selectedOrganizationId: string,
-): MonitoringOrganizationSummary[] {
-  const scopeIds = getOrganizationScopeIds(organizations, selectedOrganizationId);
-  return organizations
-    .filter((organization) => scopeIds.has(organization.id))
-    .map((organization) => {
-      const summaryRows = rows.filter(
-        (row) => row.organizationId === organization.id,
-      );
-
-      return {
-        id: organization.id,
-        name: organization.name,
-        total: summaryRows.length,
-        inProgress: summaryRows.filter((row) => row.status === "in_progress").length,
-        finalized: summaryRows.filter((row) => row.status === "finalized").length,
-      };
-    })
-    .sort((left, right) => {
-      return left.name.localeCompare(right.name, "id");
-    });
 }
 
 export function filterMonitoringRows(

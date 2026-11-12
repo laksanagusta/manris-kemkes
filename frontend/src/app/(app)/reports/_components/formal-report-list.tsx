@@ -1,5 +1,7 @@
 "use client";
 
+import { createDisplayDateFormatter } from "@/lib/display-date";
+
 import { useState } from "react";
 import { Download, FileText, Loader2 } from "@/components/shared/icons";
 import { toast } from "sonner";
@@ -39,7 +41,7 @@ function formatDateTime(value?: string | null) {
   if (!value) return "-";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("id-ID", {
+  return createDisplayDateFormatter("id-ID", {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
@@ -175,7 +177,7 @@ export function FormalReportList({
                       </Badge>
                     </TableCell>
                     <TableCell className="whitespace-nowrap">
-                      {formatDateTime(report.generatedAt ?? report.updatedAt)}
+                      <span data-date-time="">{formatDateTime(report.generatedAt ?? report.updatedAt)}</span>
                     </TableCell>
                     <TableCell className="text-right">
                       <Button

@@ -21,15 +21,16 @@ test("quick create uses version identity and opens the new or existing charter d
   assert.match(source, /response\.existing/);
   assert.match(source, /Membuka draf Piagam yang sudah ada/);
   assert.doesNotMatch(source, /Lanjutkan draf|setExisting/);
-  assert.match(source, /openCharter\(response\.data\.id\)/);
-  assert.match(source, /router\.replace\(/);
+  assert.match(source, /router\.push\(`\/management\/charters\/\$\{response\.data\.id\}\`\)/);
   assert.doesNotMatch(source, /onAnimationEnd/);
 });
 
-test("quick create is a dedicated page with a single form submit path", () => {
-  assert.match(source, /<FormPage>/);
-  assert.match(source, /onSubmit=/);
+test("quick create opens a shared dialog with a single form submit path", () => {
+  assert.match(source, /<DialogTrigger asChild>/);
+  assert.match(source, /<DialogContent/);
+  assert.match(source, /<DialogDescription>/);
+  assert.match(source, /<form[^>]+onSubmit=\{handleCreate\}/);
   assert.match(source, /type="submit"/);
-  assert.match(source, /href="\/management\/charters"/);
-  assert.doesNotMatch(source, /<Dialog/);
+  assert.match(source, /<DialogClose asChild>/);
+  assert.doesNotMatch(source, /<FormPage|listAllOrganizations/);
 });

@@ -10,7 +10,6 @@ import (
 type CommunicationLog struct {
 	ID            uuid.UUID
 	RiskID        uuid.UUID
-	Stakeholder   string
 	Notes         string
 	CreatedBy     uuid.UUID
 	CreatedByName string

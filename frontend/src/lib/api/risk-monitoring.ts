@@ -87,11 +87,12 @@ export async function deleteMonitoringDraft(
 
 export async function finalizeMonitoring(
   token: string,
-  id: string
+  id: string,
+  review: { expectedUpdatedAt?: string; reportRevision: string },
 ): Promise<RiskMonitoringDetail> {
   const result = await api.post<MonitoringMutationResponse>(
     `/risk-monitorings/${id}/finalize`,
-    {},
+    review,
     token
   );
   return result.monitoring;

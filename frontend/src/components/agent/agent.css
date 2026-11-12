@@ -1,20 +1,42 @@
-.agent-panel { display:flex; flex-direction:column; min-width:0; min-height:calc(100svh - 7.5rem); background:transparent; color:var(--foreground); }
-/* Reclaim the shared shell bottom spacing inside active chats, keeping the composer 24px above the viewport edge. */
-.agent-panel-active { height:calc(100dvh - 4.5rem); min-height:0; margin-bottom:-3rem; }
+.agent-panel { display:flex; flex:1; flex-direction:column; min-width:0; min-height:0; background:transparent; color:var(--foreground); }
+/* Fit the message scroller around the shell chrome and any notices above it. */
+[data-app-shell-body]:has(.agent-panel-active) { padding-block-end:0; }
 .agent-header { display:flex; align-items:center; justify-content:space-between; gap:16px; flex-shrink:0; width:100%; max-width:998px; min-height:40px; margin-inline:auto; padding:4px 24px; }
 .agent-header-title { display:flex; align-items:center; flex:1; min-width:0; }
 .agent-header-actions { display:flex; align-items:center; flex-shrink:0; gap:12px; }
 .agent-scroll { flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-gutter:stable; }
 .agent-scroll-new { display:flex; flex-direction:column; overflow:visible; }
+.agent-scroll-frame {
+  position:relative;
+  display:flex;
+  flex:1;
+  min-height:0;
+  min-width:0;
+  flex-direction:column;
+}
+.agent-scroll-frame > .agent-scroll { scroll-padding-block-end:var(--scroll-edge-blur-height); }
+.agent-scroll-frame .agent-messages { padding-block-end:calc(var(--scroll-edge-blur-height) + 4px); }
+.agent-scroll-frame:not(:has(.agent-messages))::before,
+.agent-scroll-frame:not(:has(.agent-messages))::after { display:none; }
+.agent-scroll-actions {
+  position:absolute;
+  inset:auto 0 4px;
+  z-index:2;
+  display:flex;
+  justify-content:flex-end;
+  pointer-events:none;
+}
+.agent-scroll-actions > button { pointer-events:auto; }
 .agent-column { width:100%; max-width:998px; margin-inline:auto; padding-inline:24px; min-width:0; }
-.agent-new-content { --agent-start-offset:clamp(3rem, calc(40svh - 10rem), 14rem); container:agent-start / inline-size; display:flex; flex-direction:column; gap:2.5rem; padding-block:var(--agent-start-offset) 3rem; }
-.agent-new-content.agent-column { max-width:54rem; }
-.agent-new-workspace { display:flex; flex-direction:column; gap:1.5rem; min-width:0; }
-.agent-new-intro h1 { font-size:1.5rem; line-height:1.4; font-weight:500; letter-spacing:-.035em; text-wrap:balance; }
+.agent-new-content { --agent-start-offset:clamp(2rem, calc(32svh - 9rem), 10rem); container:agent-start / inline-size; display:flex; flex-direction:column; gap:1.75rem; padding-block:var(--agent-start-offset) 2rem; }
+.agent-new-content.agent-column { max-width:48rem; }
+.agent-new-workspace { display:flex; flex-direction:column; gap:1.25rem; min-width:0; }
+.agent-new-intro h1 { font-size:1.375rem; line-height:1.4; font-weight:500; letter-spacing:normal; text-wrap:balance; }
 .agent-new-intro p { max-width:65ch; font-size:14px; line-height:1.6; color:var(--muted-foreground); margin-top:8px; }
 .agent-composer-wrap { width:100%; min-width:0; }
-[data-agent-composer] { background:var(--card); border-color:var(--border); border-radius:14px; box-shadow:var(--tw-inset-shadow,0 0 #0000),var(--tw-inset-ring-shadow,0 0 #0000),var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 #0000),var(--surface-shadow-low); }
+[data-agent-composer] { background:var(--card); border-color:var(--border); border-radius:var(--surface-radius); box-shadow:var(--tw-inset-shadow,0 0 #0000),var(--tw-inset-ring-shadow,0 0 #0000),var(--tw-ring-offset-shadow,0 0 #0000),var(--tw-ring-shadow,0 0 #0000),var(--surface-lift-low); }
 [data-agent-composer] > [data-slot="input-group-control"] { min-height:92px; max-height:220px; overflow-y:auto; padding:16px 18px 8px; font-size:14px; line-height:1.6; }
+.agent-new-content [data-agent-composer][data-mode="start"] > [data-slot="input-group-control"] { min-height:76px; padding-block-start:12px; }
 [data-agent-composer][data-mode="reply"] > [data-slot="input-group-control"] { min-height:64px; max-height:180px; }
 [data-agent-composer] > [data-align="block-end"] { padding:8px 10px 10px; }
 .agent-composer-note { min-height:20px; margin-top:8px; font-size:12px; line-height:1.5; text-align:center; color:var(--tertiary-foreground); }
@@ -35,7 +57,7 @@
 .agent-suggestions button { width:100%; min-height:44px; text-align:left; padding-block:8px; border-radius:3px; cursor:pointer; }
 .agent-suggestions button:hover { text-decoration:underline; text-underline-offset:4px; }
 .agent-suggestions button:focus-visible,.agent-source-link:focus-visible { outline:2px solid var(--ring); outline-offset:4px; }
-.agent-bottom { flex-shrink:0; padding-block:12px max(24px,env(safe-area-inset-bottom)); background:var(--sidebar); }
+.agent-bottom { flex-shrink:0; padding-block:12px max(24px,env(safe-area-inset-bottom)); background:var(--workspace); }
 .agent-messages { padding-block:24px; display:flex; flex-direction:column; gap:24px; }
 .agent-timeline { display:flex; min-width:0; flex-direction:column; gap:48px; }
 .agent-turn { display:flex; min-width:0; flex-direction:column; gap:24px; }
@@ -45,7 +67,7 @@
 .agent-conversation-time { display:block; align-self:center; text-align:center; color:var(--tertiary-foreground); font-size:12px; }
 .agent-message-user { max-width:min(85%,65ch); align-self:flex-end; font-size:14px; }
 .agent-message-text { font-size:14px; line-height:1.8; white-space:pre-wrap; overflow-wrap:anywhere; }
-.agent-message-user .agent-message-text { padding:12px 16px; background:var(--card); border:1px solid var(--border); border-radius:16px 16px 4px 16px; color:var(--foreground); }
+.agent-message-user .agent-message-text { padding:12px 16px; color:var(--foreground); }
 .agent-message-assistant { display:flex; flex-direction:column; gap:20px; }
 .agent-message-assistant > .agent-message-text { max-width:75ch; margin:0; }
 .agent-message-assistant > :is(.agent-widget,.agent-message-files,.agent-attachment-warnings,.agent-message-downloads) { margin-top:0; }
@@ -66,10 +88,10 @@
 .agent-widget-heading { display:flex; justify-content:space-between; gap:12px; align-items:flex-start; margin-bottom:12px; }
 .agent-widget h3,.agent-proposal h3 { font-size:14px; line-height:1.5; font-weight:500; }
 .agent-widget-heading p,.agent-proposal-heading p { font-size:12px; line-height:1.6; color:var(--muted-foreground); margin-top:4px; }
-.agent-table { max-width:100%; overflow-x:auto; border:1px solid var(--border); border-radius:12px; }
+.agent-table { max-width:100%; overflow:hidden; background:var(--card); border-radius:var(--surface-radius); box-shadow:var(--table-frame-shadow); }
 .agent-table table { min-width:420px; }
 .agent-widget-empty { padding:16px; font-size:13px; color:var(--muted-foreground); }
-.agent-risk-card,.agent-priority-list { border:1px solid var(--border); border-radius:12px; min-width:0; overflow-wrap:anywhere; }
+.agent-risk-card,.agent-priority-list { min-width:0; overflow-wrap:anywhere; }
 .agent-risk-card { padding:18px; }
 .agent-risk-heading { display:flex; flex-wrap:wrap; align-items:flex-start; justify-content:space-between; gap:12px 20px; }
 .agent-risk-heading > div:first-child { flex:1 1 220px; }
@@ -96,7 +118,7 @@
 .agent-priority-tasks .agent-response-note { margin-top:3px; }
 .agent-response-warnings { margin-top:12px; font-size:12px; line-height:1.6; color:var(--muted-foreground); }
 .agent-report-source { display:inline-block; margin-top:14px; font-size:12px; }
-.agent-widget-fallback { padding:16px; border:1px solid var(--border); border-radius:12px; font-size:13px; line-height:1.6; overflow-wrap:anywhere; }
+.agent-widget-fallback { padding:16px; font-size:13px; line-height:1.6; overflow-wrap:anywhere; }
 .agent-source-link { text-decoration:underline; text-decoration-color:var(--border); text-underline-offset:3px; }
 .agent-source-link:hover { text-decoration-color:currentColor; }
 .agent-table .agent-source-link { text-decoration:none; }
@@ -109,13 +131,12 @@
 .agent-bar-row { display:grid; grid-template-columns:minmax(80px,1fr) minmax(60px,3fr) auto; gap:16px; align-items:center; font-size:13px; }
 .agent-bar-track { height:14px; border-radius:3px; background:var(--card-subtle-surface); overflow:hidden; }
 .agent-bar-track > div { height:100%; background:var(--chart-1); border-radius:3px; }
-.agent-document { display:flex; gap:12px; padding:16px; border:1px solid var(--border); border-radius:12px; font-size:13px; overflow-wrap:anywhere; }
+.agent-document { display:flex; gap:12px; padding:16px; font-size:13px; overflow-wrap:anywhere; }
 .agent-document p { white-space:pre-wrap; }
 .agent-clarification { display:flex; flex-direction:column; gap:12px; font-size:13px; color:var(--muted-foreground); }
-.agent-proposal { margin-top:24px; border:1px solid var(--border); border-radius:12px; overflow:hidden; }
-/* Reporting-card elevation: one edge per surface, never one shadow per row. */
+.agent-proposal { margin-top:24px; overflow:hidden; }
+/* The shared shadow already draws the outer edge of each surface. */
 .agent-message-user .agent-message-text,
-.agent-table,
 .agent-risk-card,
 .agent-priority-list,
 .agent-metrics,
@@ -124,11 +145,11 @@
 .agent-clarification,
 .agent-widget-fallback,
 .agent-proposal {
-  border:1px solid var(--border);
   background:var(--card);
+  border-radius:var(--surface-radius);
   box-shadow:var(--surface-shadow-low);
 }
-.agent-metrics,.agent-bars,.agent-clarification { padding:16px; border-radius:12px; }
+.agent-metrics,.agent-bars,.agent-clarification { padding:16px; }
 .agent-attachment { box-shadow:var(--surface-shadow-low); }
 .agent-proposal-heading { display:flex; flex-wrap:wrap; gap:12px; align-items:flex-start; justify-content:space-between; padding:16px 18px; }
 .agent-operation { padding:18px; border-top:1px solid var(--border); }
@@ -145,7 +166,7 @@
 .agent-action-error { flex-shrink:0; padding-block:10px; font-size:13px; color:var(--destructive); }
 .agent-session-state { display:flex; flex:1; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:24px; text-align:center; }
 .agent-catalog { height:680px; min-height:0; }
-.agent-catalog .agent-new-content { --agent-start-offset:4rem; }
+.agent-catalog .agent-new-content { --agent-start-offset:3rem; }
 .agent-catalog .agent-scroll-new { overflow-y:auto; overflow-x:hidden; }
 @container agent-start (max-width:42rem) {
   .agent-suggestions > ul { grid-template-columns:minmax(0,1fr); gap:4px; }
@@ -155,15 +176,13 @@
   .agent-history-row time { white-space:normal; text-align:left; }
 }
 @media(min-width:768px) {
-  .agent-panel { min-height:calc(100svh - 4.5rem); }
-  .agent-panel-active { height:calc(100dvh - 1rem); min-height:0; margin-bottom:-3.5rem; }
   .agent-catalog { min-height:0; }
 }
 @media(max-width:640px) {
   .agent-column { padding-inline:16px; }
   .agent-header { padding-inline:16px; gap:12px; }
   .agent-header-actions { gap:8px; }
-  .agent-new-content { --agent-start-offset:3rem; gap:2rem; }
+  .agent-new-content { --agent-start-offset:2rem; gap:1.5rem; }
   .agent-timeline { gap:40px; }
   .agent-message-user { max-width:min(94%,65ch); }
   .agent-operation-details { padding-left:0; }
@@ -176,6 +195,7 @@
   [data-agent-composer][data-mode="reply"] > [data-slot="input-group-control"] { max-height:120px; }
 }
 @media(pointer:coarse) {
+  .agent-scroll-actions > button { min-height:44px; }
   .agent-history-row { min-height:44px; padding-block:10px; }
   .agent-operation-details > summary,
   .agent-operation-details details > summary,

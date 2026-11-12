@@ -1,6 +1,6 @@
 type MitigationPlan = {
   action?: string;
-  isExistingControl?: boolean;
+
 };
 
 export function getMitigationActionErrors(errors: unknown): Array<string | undefined> {
@@ -25,7 +25,7 @@ export function getRiskMitigationRequirementError(
   if (
     requiresRiskMitigationPlan(score, treatmentOption) &&
     !mitigations.some(
-      (plan) => !plan.isExistingControl && Boolean(plan.action?.trim()),
+      (plan) => Boolean(plan.action?.trim()),
     )
   ) {
     return "Risiko utama dengan pilihan Mitigasi memerlukan minimal satu rencana mitigasi baru.";

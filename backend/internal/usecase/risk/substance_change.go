@@ -97,22 +97,13 @@ func mitigationsEqual(a, b []entity.Mitigation) bool {
 		out := make([]normalizedMitigation, 0, len(items))
 		for _, item := range items {
 			out = append(out, normalizedMitigation{
-				Action:                 trim(item.Action),
-				Owner:                  trim(item.Owner),
-				DueDate:                normalizeStringPtr(item.DueDate),
-				Frequency:              trim(item.Frequency),
-				RecurringInterval:      normalizeStringPtr(item.RecurringInterval),
-				ExecutionScheduleText:  trim(item.ExecutionScheduleText),
-				MitigationType:         trim(item.MitigationType),
-				ActivityStage:          trim(item.ActivityStage),
-				ExpectedOutput:         trim(item.ExpectedOutput),
-				QuantitativeTarget:     trim(item.QuantitativeTarget),
-				SupportingUnit:         trim(item.SupportingUnit),
-				ResourcesRequired:      trim(item.ResourcesRequired),
-				ContingencyPlan:        trim(item.ContingencyPlan),
-				PotentialObstacle:      trim(item.PotentialObstacle),
-				IsBreakthroughActivity: item.IsBreakthroughActivity,
-				IsExistingControl:      item.IsExistingControl,
+				Action:                trim(item.Action),
+				Owner:                 trim(item.Owner),
+				DueDate:               normalizeStringPtr(item.DueDate),
+				Frequency:             trim(item.Frequency),
+				RecurringInterval:     normalizeStringPtr(item.RecurringInterval),
+				ExecutionScheduleText: trim(item.ExecutionScheduleText),
+				MitigationType:        trim(item.MitigationType),
 			})
 		}
 		return out
@@ -122,22 +113,13 @@ func mitigationsEqual(a, b []entity.Mitigation) bool {
 }
 
 type normalizedMitigation struct {
-	Action                 string
-	Owner                  string
-	DueDate                string
-	Frequency              string
-	RecurringInterval      string
-	ExecutionScheduleText  string
-	MitigationType         string
-	ActivityStage          string
-	ExpectedOutput         string
-	QuantitativeTarget     string
-	SupportingUnit         string
-	ResourcesRequired      string
-	ContingencyPlan        string
-	PotentialObstacle      string
-	IsBreakthroughActivity bool
-	IsExistingControl      bool
+	Action                string
+	Owner                 string
+	DueDate               string
+	Frequency             string
+	RecurringInterval     string
+	ExecutionScheduleText string
+	MitigationType        string
 }
 
 func normalizeStringPtr(value *string) string {

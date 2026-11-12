@@ -38,12 +38,11 @@ test("reserves the scrollbar gutter for fixed shell chrome when overlays open", 
   );
 });
 
-test("keeps fixed shell chrome inside the pre-lock viewport", () => {
+test("keeps the floating monitoring controls inside the pre-lock viewport", () => {
   assert.match(
     styles,
-    /body\[data-scroll-locked\][\s\S]*data-slot="app-topbar"[\s\S]*width:\s*calc\(100%\s*-\s*var\(--removed-body-scroll-bar-size,\s*0px\)\)\s*!important;/,
+    /body\[data-scroll-locked\] \[data-component="monitoring-baseline-floating"\][\s\S]*width:\s*calc\(100%\s*-\s*var\(--removed-body-scroll-bar-size,\s*0px\)\)\s*!important;/,
   );
-  assert.match(styles, /data-component="monitoring-baseline-floating"/);
 });
 
 test("shell consumes semantic surfaces without local color overrides", () => {

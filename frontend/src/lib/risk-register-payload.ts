@@ -7,15 +7,7 @@ export type RiskRegisterPayloadMitigation = {
   treatmentOwnerId?: string;
   dueDate?: string;
   mitigationType?: string;
-  activityStage?: string;
-  expectedOutput?: string;
-  quantitativeTarget?: string;
-  supportingUnit?: string;
-	resourcesRequired?: string;
-	contingencyPlan?: string;
-	potentialObstacle?: string;
-	isBreakthroughActivity?: boolean;
-  isExistingControl?: boolean;
+
 };
 
 export type RiskRegisterPayloadData = {
@@ -129,15 +121,6 @@ export function buildRiskRegisterPayload(
           : null,
       targetCost: 0,
       mitigationType: mitigation.mitigationType,
-      activityStage: mitigation.activityStage || "",
-      expectedOutput: mitigation.expectedOutput || "",
-      quantitativeTarget: mitigation.quantitativeTarget || "",
-      supportingUnit: mitigation.supportingUnit || "",
-		resourcesRequired: mitigation.resourcesRequired || "",
-		contingencyPlan: mitigation.contingencyPlan || "",
-		potentialObstacle: mitigation.potentialObstacle || "",
-		isBreakthroughActivity: mitigation.isBreakthroughActivity ?? false,
-      isExistingControl: mitigation.isExistingControl ?? false,
     })),
     roId: data.roId || undefined,
   };

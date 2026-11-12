@@ -28,7 +28,7 @@ type QuarterlyReportUseCase struct {
 }
 
 func NewQuarterlyReportUseCase(repo repository.QuarterlyReportRepository) *QuarterlyReportUseCase {
-	return &QuarterlyReportUseCase{repo: repo, now: time.Now}
+	return &QuarterlyReportUseCase{repo: repo, now: timeutil.BusinessNow}
 }
 
 func (uc *QuarterlyReportUseCase) Execute(ctx context.Context, input QuarterlyReportInput) (*entity.QuarterlyReportData, error) {

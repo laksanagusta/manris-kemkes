@@ -1,0 +1,40 @@
+.tableCard :global(:is(th, td)[data-collection-action]) {
+  --action-surface: var(--card);
+  position: sticky;
+  inset-inline-end: 0;
+  z-index: 1;
+  padding-inline-start: 0;
+  text-align: end;
+  background-color: var(--action-surface);
+}
+
+.tableCard :global([data-slot="table-head"][data-collection-action]) {
+  --action-surface: var(--table-header);
+}
+
+.tableCard :global(td[data-collection-action] > .flex) {
+  justify-content: flex-end;
+}
+
+.tableCard :global([data-slot="table-row"]:is(:hover, :focus-within) > [data-slot="table-cell"][data-collection-action]) {
+  --action-surface: var(--table-hover);
+}
+
+.tableCard :global([data-slot="table-row"][data-state="selected"] > [data-slot="table-cell"][data-collection-action]) {
+  --action-surface: var(--table-selected);
+}
+
+.tableCard :global([data-action-overlap] :is(th, td)[data-collection-action])::before {
+  --fade-direction: to right;
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 100%;
+  width: 16px;
+  pointer-events: none;
+  background: linear-gradient(var(--fade-direction), transparent, var(--action-surface));
+}
+
+.tableCard :global([data-action-overlap] :is(th, td)[data-collection-action]:dir(rtl))::before {
+  --fade-direction: to left;
+}

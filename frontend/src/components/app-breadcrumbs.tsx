@@ -41,14 +41,14 @@ function nestedStringValue(
 
 function getDynamicBreadcrumbResource(
   pathname: string,
-  searchParams: URLSearchParams,
+  selectedRiskId: string | null,
 ): DynamicBreadcrumbResource | null {
   const route = pathname.replace(/\/+$/, "") || "/";
   const riskId = route === "/risk/register/new"
-    ? searchParams.get("id")
+    ? selectedRiskId
     : /^\/risk\/register\/([^/]+)$/.exec(route)?.[1];
 
-  if (riskId && riskId !== "new") {
+  if (riskId && route !== "/risk/register/bulk" && route !== "/risk/register/import-sop") {
     return {
       endpoint: `/risks/${encodeURIComponent(riskId)}`,
       resolve: (value) => stringValue(asRecord(value)?.code),
@@ -126,11 +126,11 @@ export function AppBreadcrumbs() {
     endpoint: string;
     label?: string;
   } | null>(null);
-  const search = searchParams.toString();
+  const selectedRiskId = pathname === "/risk/register/new" ? searchParams.get("id") : null;
 
   const dynamicResource = useMemo(
-    () => getDynamicBreadcrumbResource(pathname, new URLSearchParams(search)),
-    [pathname, search],
+    () => getDynamicBreadcrumbResource(pathname, selectedRiskId),
+    [pathname, selectedRiskId],
   );
 
   useEffect(() => {
@@ -164,7 +164,7 @@ export function AppBreadcrumbs() {
 
   const items = getBreadcrumbItems(
     pathname,
-    new URLSearchParams(search),
+    searchParams,
     dynamicLabel,
   );
 

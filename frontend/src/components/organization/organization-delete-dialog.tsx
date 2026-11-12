@@ -61,7 +61,7 @@ export function OrganizationDeleteDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-md" showCloseButton={!isDeleting}>
+      <DialogContent showCloseButton={!isDeleting}>
         <DialogHeader>
           <div className="flex items-center gap-2">
             <div className="flex size-8 items-center justify-center rounded-lg bg-red-500/15 text-red-600">

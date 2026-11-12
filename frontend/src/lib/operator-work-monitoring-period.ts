@@ -1,10 +1,11 @@
+import { createDisplayDateFormatter } from "./display-date.ts";
 import {
   getMonitoringWindow,
   isMonitoringWindowOpen,
 } from "./monitoring-window";
 
 const quarterNames = ["I", "II", "III", "IV"];
-const dateFormat = new Intl.DateTimeFormat("id-ID", {
+const dateFormat = createDisplayDateFormatter("id-ID", {
   day: "numeric",
   month: "long",
   year: "numeric",

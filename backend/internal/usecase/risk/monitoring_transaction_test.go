@@ -9,6 +9,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	domainerrors "github.com/manris/backend/internal/domain/errors"
+	domainrepo "github.com/manris/backend/internal/domain/repository"
 )
 
 type fakeMonitoringTransactionRepo struct {
@@ -90,7 +91,7 @@ func (f *fakeMonitoringTransactionRepo) UpdateTaskMonitoringIDs(context.Context,
 	return nil
 }
 
-func (f *fakeMonitoringTransactionRepo) Finalize(_ context.Context, monitoringID uuid.UUID, resultRisk *entity.Risk, finalizedBy uuid.UUID) (*entity.RiskMonitoring, error) {
+func (f *fakeMonitoringTransactionRepo) Finalize(_ context.Context, monitoringID uuid.UUID, resultRisk *entity.Risk, finalizedBy uuid.UUID, _ domainrepo.MonitoringFinalizeReview) (*entity.RiskMonitoring, error) {
 	m, ok := f.byID[monitoringID]
 	if !ok {
 		return nil, domainerrors.ErrRiskNotFound
@@ -320,9 +321,11 @@ func TestUpdateMonitoringUseCase_DetectsProfileRevision(t *testing.T) {
 	uc := NewUpdateMonitoringUseCase(riskRepo, monitoringRepo)
 
 	uc.now = func() time.Time { return time.Date(2026, 7, 15, 0, 0, 0, 0, time.UTC) }
+	confirmed := true
 	out, err := uc.Execute(context.Background(), UpdateMonitoringInput{
 		MonitoringID:                monitoringID,
 		OrgIDs:                      []uuid.UUID{orgID},
+		ObservedScoreConfirmed:      &confirmed,
 		ObservedProbability:         3,
 		ObservedImpact:              4,
 		Conclusion:                  "Perlu revisi",
@@ -353,6 +356,27 @@ func TestUpdateMonitoringUseCase_DetectsProfileRevision(t *testing.T) {
 	expectedWeight := entity.GetBobot(3, 4)
 	if out.Monitoring.ObservedWeight != expectedWeight {
 		t.Fatalf("expected observed weight %f, got %f", expectedWeight, out.Monitoring.ObservedWeight)
+	}
+	if !out.Monitoring.ObservedScoreConfirmed || !out.Monitoring.DraftPayloadSnapshot().ObservedScoreConfirmed {
+		t.Fatal("expected score confirmation in both response and persisted draft payload")
+	}
+
+	out, err = uc.Execute(context.Background(), UpdateMonitoringInput{
+		MonitoringID: monitoringID,
+		OrgIDs:       []uuid.UUID{orgID},
+		Conclusion:   "Simpulan diperbarui",
+	})
+	if err != nil || !out.Monitoring.ObservedScoreConfirmed {
+		t.Fatalf("editing the conclusion must preserve score confirmation: %v", err)
+	}
+
+	out, err = uc.Execute(context.Background(), UpdateMonitoringInput{
+		MonitoringID:        monitoringID,
+		OrgIDs:              []uuid.UUID{orgID},
+		ObservedProbability: 2,
+	})
+	if err != nil || out.Monitoring.ObservedScoreConfirmed {
+		t.Fatalf("a score changed by an integration must be reviewed again: %v", err)
 	}
 }
 

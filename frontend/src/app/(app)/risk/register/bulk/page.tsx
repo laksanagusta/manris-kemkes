@@ -3,11 +3,14 @@
 import { useMemo, useState, type ChangeEvent } from "react";
 import { toast } from "sonner";
 import { Download, Loader2, Upload } from "@/components/shared/icons";
+import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
 
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
 import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
-import { FormHeader, FormPage } from "@/components/shared/form-shell";
+import { riskCategoryLabels } from "@/lib/risk";
+import type { RiskCategory } from "@/types/risk";
+import { FormHeader, FormPage, FormSection } from "@/components/shared/form-shell";
 import { Badge } from "@/components/ui/badge";
 import {
   Card,
@@ -37,6 +40,7 @@ type RiskBatchPayload = {
   clientKey: string;
   title: string;
   description: string;
+  category: RiskCategory;
   organizationId?: string;
   roId?: string;
   cause: string[];
@@ -263,45 +267,40 @@ export default function BulkRiskRegisterPage() {
       />
 
       <div className="space-y-6">
-        <Card className="">
-          <CardHeader>
-            <CardTitle className="">Sumber Data</CardTitle>
-            <CardDescription>
-              Unggah template untuk memulai parsing dan validasi risiko.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <label
-              className={`flex cursor-pointer flex-col items-center justify-center ${bulkImportSurfaceClassName} transition-[background-color,border-color] duration-150 hover:border-primary/40 hover:bg-muted/[0.28]`}
-            >
-              <div className="space-y-1">
-                <p className="text-sm font-medium text-foreground">
-                  {isParsing ? "Memproses file Excel..." : "Upload file Excel template"}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  Frontend hanya mengirim file. Semua parsing dan validasi
-                  dilakukan di backend.
-                </p>
-              </div>
-              <input
-                type="file"
-                accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
-                className="hidden"
-                onChange={handleUpload}
-                disabled={isParsing}
-              />
-            </label>
+        <FormSection
+          title="Sumber Data"
+          description="Unggah template untuk memulai parsing dan validasi risiko."
+        >
+          <label
+            className={`flex cursor-pointer flex-col items-center justify-center ${bulkImportSurfaceClassName} transition-[background-color,border-color] duration-150 hover:border-primary/40 hover:bg-muted/[0.28]`}
+          >
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-foreground">
+                {isParsing ? "Memproses file Excel..." : "Upload file Excel template"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Frontend hanya mengirim file. Semua parsing dan validasi
+                dilakukan di backend.
+              </p>
+            </div>
+            <input
+              type="file"
+              accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel,text/csv"
+              className="hidden"
+              onChange={handleUpload}
+              disabled={isParsing}
+            />
+          </label>
 
-            {sourceName ? (
-              <div className="rounded-lg border border-border/60 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
-                Sumber aktif:{" "}
-                <span className="font-medium text-foreground">
-                  {sourceName}
-                </span>
-              </div>
-            ) : null}
-          </CardContent>
-        </Card>
+          {sourceName ? (
+            <div className="rounded-lg border border-border/60 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+              Sumber aktif:{" "}
+              <span className="font-medium text-foreground">
+                {sourceName}
+              </span>
+            </div>
+          ) : null}
+        </FormSection>
 
         <Card className="">
           <CardHeader>
@@ -318,7 +317,7 @@ export default function BulkRiskRegisterPage() {
                 description="Upload template untuk mulai review."
               />
             ) : (
-              <div className="overflow-hidden rounded-lg border border-border/60">
+              <div className="overflow-hidden rounded-(--surface-radius) shadow-(--surface-shadow-low)">
                 <Table>
                   <CollectionTableHeader density="compact">
                     <TableRow>
@@ -327,6 +326,9 @@ export default function BulkRiskRegisterPage() {
                       </CollectionTableHead>
                       <CollectionTableHead density="compact" className="">
                         Risiko
+                      </CollectionTableHead>
+                      <CollectionTableHead density="compact">
+                        Kategori
                       </CollectionTableHead>
                       <CollectionTableHead density="compact">
                         Status
@@ -342,19 +344,20 @@ export default function BulkRiskRegisterPage() {
                       return (
                         <TableRow key={preview.clientKey}>
                           <TableCell>{preview.rowNumber}</TableCell>
-                          <TableCell className="max-w-[320px] whitespace-normal">
-                            <p className="font-medium text-foreground">
-                              {preview.raw["RISIKO"] ||
-                                preview.raw["Risiko"] ||
-                                "-"}
-                            </p>
+                          <TableCell className="max-w-[320px]">
+                            {preview.raw["RISIKO"] || preview.raw["Risiko"] || "-"}
+                          </TableCell>
+                          <TableCell>
+                            {preview.payload
+                              ? riskCategoryLabels[preview.payload.category]
+                              : preview.raw["KATEGORI RISIKO"] || "—"}
                           </TableCell>
                           <TableCell>
                             <Badge variant={toBadgeVariant(status.tone)} className={getStatusBadgeClassName(status.tone)}>
                               {status.label}
                             </Badge>
                           </TableCell>
-                          <TableCell className="max-w-[520px] whitespace-normal">
+                          <TableCell className="max-w-[520px]">
                             {preview.errors.length > 0
                               ? preview.errors.join(" ")
                               : preview.warnings.length > 0
@@ -393,19 +396,20 @@ export default function BulkRiskRegisterPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="overflow-hidden rounded-lg border border-border/60">
+            <div className="overflow-hidden rounded-(--surface-radius) shadow-(--surface-shadow-low)">
               <Table>
                 <CollectionTableHeader density="compact">
                   <TableRow>
+                    <CollectionTableHead density="compact" className="w-40">Kode</CollectionTableHead>
                     <CollectionTableHead density="compact">Client Key</CollectionTableHead>
                     <CollectionTableHead density="compact">Status</CollectionTableHead>
-                    <CollectionTableHead density="compact">Code</CollectionTableHead>
                     <CollectionTableHead density="compact">Pesan</CollectionTableHead>
                   </TableRow>
                 </CollectionTableHeader>
                 <TableBody>
                   {resultItems.map((item) => (
                     <TableRow key={item.clientKey}>
+                      <TableCell><CollectionCode code={item.code} href={item.id ? `/risk/register/${item.id}` : undefined} /></TableCell>
                       <TableCell>{item.clientKey}</TableCell>
                       <TableCell>
                         <Badge variant={item.status === "created" ? "default" : "destructive"}
@@ -414,8 +418,7 @@ export default function BulkRiskRegisterPage() {
                           {item.status}
                         </Badge>
                       </TableCell>
-                      <TableCell>{item.code || "-"}</TableCell>
-                      <TableCell className="max-w-[480px] whitespace-normal">
+                      <TableCell className="max-w-[480px]">
                         {item.error || item.message}
                       </TableCell>
                     </TableRow>

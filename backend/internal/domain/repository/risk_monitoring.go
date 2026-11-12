@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
@@ -17,11 +18,16 @@ type RiskMonitoringRepository interface {
 	Create(ctx context.Context, monitoring *entity.RiskMonitoring) error
 	UpdateDraft(ctx context.Context, monitoring *entity.RiskMonitoring) error
 	DeleteDraft(ctx context.Context, id uuid.UUID, orgIDs []uuid.UUID) error
-	Finalize(ctx context.Context, monitoringID uuid.UUID, resultRisk *entity.Risk, finalizedBy uuid.UUID) (*entity.RiskMonitoring, error)
+	Finalize(ctx context.Context, monitoringID uuid.UUID, resultRisk *entity.Risk, finalizedBy uuid.UUID, review MonitoringFinalizeReview) (*entity.RiskMonitoring, error)
 
 	// UpdateTaskMonitoringIDs links pending mitigation_tasks for a given risk+cycle
 	// to a monitoring, by setting their monitoring_id
 	UpdateTaskMonitoringIDs(ctx context.Context, monitoringID uuid.UUID, riskID uuid.UUID, cycle string) error
+}
+
+type MonitoringFinalizeReview struct {
+	DraftUpdatedAt time.Time
+	ReportRevision *string
 }
 
 type RiskMonitoringListFilter struct {

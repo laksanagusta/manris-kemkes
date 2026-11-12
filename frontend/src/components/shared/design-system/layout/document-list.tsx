@@ -6,6 +6,7 @@ import { CardContent } from "@/components/ui/card";
 import { ListGroup } from "@/components/shared/list-group";
 import { IllustratedEmptyState } from "../feedback/illustrated-empty-state";
 import { cn } from "@/lib/utils";
+import { InsetList, InsetListItem } from "./inset-list";
 
 export type DocumentListItem = {
   id: string;
@@ -21,6 +22,7 @@ export type DocumentListSectionProps = {
   addLabel?: string;
   emptyMessage?: ReactNode;
   className?: string;
+  density?: "default" | "compact";
 };
 
 /**
@@ -35,8 +37,10 @@ export function DocumentListSection({
   addLabel = `Tambah ${title.toLowerCase()}`,
   emptyMessage = "Belum ada data.",
   className,
+  density = "default",
 }: DocumentListSectionProps) {
   const labelId = useId();
+  const compact = density === "compact";
 
   return (
     <div className={cn("space-y-3", className)}>
@@ -61,44 +65,55 @@ export function DocumentListSection({
           </Button>
         ) : null}
       </div>
-      <ListGroup role="region" aria-labelledby={labelId}>
-        <CardContent>
-        {items.length > 0 ? (
-          <div
-            className="space-y-1"
-            role="list"
-            aria-label={`${title} items`}
-          >
-            {items.map((item) => (
+      {compact && items.length > 0 ? (
+        <InsetList aria-labelledby={labelId}>
+          {items.map((item) => (
+            <InsetListItem key={item.id} action={item.action}>
+              <p className="truncate text-sm leading-5 text-foreground">{item.title}</p>
+              {item.meta ? <p className="truncate text-xs leading-4 text-muted-foreground">{item.meta}</p> : null}
+            </InsetListItem>
+          ))}
+        </InsetList>
+      ) : (
+        <ListGroup role="region" aria-labelledby={labelId}>
+          <CardContent>
+            {items.length > 0 ? (
               <div
-                key={item.id}
-                role="listitem"
-                className="flex min-h-[55px] items-center justify-between gap-4 rounded-lg px-0 py-1.5"
+                className="space-y-1"
+                role="list"
+                aria-label={`${title} items`}
               >
-                <div className="min-w-0 space-y-0.5">
-                  <p className="truncate text-sm leading-5 text-foreground">
-                    {item.title}
-                  </p>
-                  {item.meta ? (
-                    <p className="truncate text-sm leading-5 text-muted-foreground">
-                      {item.meta}
-                    </p>
-                  ) : null}
-                </div>
-                {item.action ? <div className="shrink-0">{item.action}</div> : null}
+                {items.map((item) => (
+                  <div
+                    key={item.id}
+                    role="listitem"
+                    className="flex min-h-[55px] items-center justify-between gap-4 rounded-lg px-0 py-1.5"
+                  >
+                    <div className="min-w-0 space-y-0.5">
+                      <p className="truncate text-sm leading-5 text-foreground">
+                        {item.title}
+                      </p>
+                      {item.meta ? (
+                        <p className="truncate text-sm leading-5 text-muted-foreground">
+                          {item.meta}
+                        </p>
+                      ) : null}
+                    </div>
+                    {item.action ? <div className="shrink-0">{item.action}</div> : null}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        ) : (
-          <IllustratedEmptyState
-            title="Belum ada data"
-            description={emptyMessage}
-            size="compact"
-            className="py-3"
-          />
-        )}
-        </CardContent>
-      </ListGroup>
+            ) : (
+              <IllustratedEmptyState
+                title="Belum ada data"
+                description={emptyMessage}
+                size="compact"
+                className="py-3"
+              />
+            )}
+          </CardContent>
+        </ListGroup>
+      )}
     </div>
   );
 }

@@ -80,7 +80,7 @@ const DrawerContent = React.forwardRef<
         data-slot="drawer-content"
         data-dynamic-height={dynamicHeight ? "true" : undefined}
         className={cn(
-          "group/drawer-content fixed bottom-2 right-2 top-2 z-[70] flex w-[310px] max-w-[calc(100vw-1rem)] outline-none motion-reduce:animate-none motion-reduce:transition-none data-[vaul-drawer-direction=bottom]:inset-x-0 data-[vaul-drawer-direction=bottom]:bottom-0 data-[vaul-drawer-direction=bottom]:right-auto data-[vaul-drawer-direction=bottom]:top-auto data-[vaul-drawer-direction=bottom]:max-h-[calc(100dvh-1rem)] data-[vaul-drawer-direction=bottom]:rounded-t-[12px] data-[vaul-drawer-direction=bottom]:border-t data-[vaul-drawer-direction=left]:left-2 data-[vaul-drawer-direction=left]:right-auto data-[vaul-drawer-direction=left]:w-[310px] data-[vaul-drawer-direction=left]:max-w-[calc(100vw-1rem)]",
+          "group/drawer-content fixed bottom-2 right-2 top-2 z-[70] flex w-[310px] max-w-[calc(100vw-1rem)] outline-none motion-reduce:animate-none motion-reduce:transition-none data-[vaul-drawer-direction=bottom]:inset-x-0 data-[vaul-drawer-direction=bottom]:bottom-0 data-[vaul-drawer-direction=bottom]:right-auto data-[vaul-drawer-direction=bottom]:top-auto data-[vaul-drawer-direction=bottom]:max-h-[calc(100dvh-1rem)] data-[vaul-drawer-direction=bottom]:rounded-t-(--surface-radius) data-[vaul-drawer-direction=bottom]:border-t data-[vaul-drawer-direction=left]:left-2 data-[vaul-drawer-direction=left]:right-auto data-[vaul-drawer-direction=left]:w-[310px] data-[vaul-drawer-direction=left]:max-w-[calc(100vw-1rem)]",
           className
         )}
         style={{

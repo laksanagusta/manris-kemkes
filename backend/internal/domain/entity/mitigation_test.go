@@ -8,18 +8,9 @@ import (
 
 func TestMitigationValidateAllowsKMKFields(t *testing.T) {
 	m := Mitigation{
-		Action:                 "Kurangi frekuensi review",
-		Owner:                  "PIC",
-		MitigationType:         MitigationTypeReduceBoth,
-		ActivityStage:          "Pelaksanaan",
-		ExpectedOutput:         "Risiko turun",
-		QuantitativeTarget:     "Probability turun ke 2",
-		SupportingUnit:         "Unit A",
-		ResourcesRequired:      "2 SDM",
-		ContingencyPlan:        "Rapat mingguan",
-		PotentialObstacle:      "Penolakan internal",
-		IsBreakthroughActivity: true,
-		IsExistingControl:      false,
+		Action:         "Kurangi frekuensi review",
+		Owner:          "PIC",
+		MitigationType: MitigationTypeReduceBoth,
 	}
 
 	if err := m.Validate(); err != nil {

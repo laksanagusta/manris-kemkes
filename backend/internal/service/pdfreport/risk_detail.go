@@ -179,8 +179,8 @@ func addRiskDetailKeyValueTable(pdf *gofpdf.Fpdf, fields []riskDetailField) {
 }
 
 func addRiskDetailMitigationTable(pdf *gofpdf.Fpdf, mitigations []entity.Mitigation) {
-	headers := []string{"No", "Aksi", "PIC", "Jadwal", "Deadline", "Catatan"}
-	widths := []float64{10, 50, 28, 30, 22, 30}
+	headers := []string{"No", "Aksi", "PIC", "Jadwal", "Deadline"}
+	widths := []float64{10, 70, 34, 32, 24}
 
 	pdf.SetFont("Arial", "", riskDetailMitigationFontSize)
 	drawRiskDetailTableHeader(pdf, headers, widths)
@@ -191,7 +191,6 @@ func addRiskDetailMitigationTable(pdf *gofpdf.Fpdf, mitigations []entity.Mitigat
 			safePDFText(mitigation.Owner),
 			riskDetailFirstNonEmpty(strings.TrimSpace(mitigation.ExecutionScheduleText), strings.TrimSpace(mitigation.Frequency), strings.TrimSpace(mitigation.MitigationType)),
 			riskDetailFirstNonEmpty(formatRiskDetailStringDate(mitigation.DueDate), "-"),
-			riskDetailFirstNonEmpty(strings.TrimSpace(mitigation.PotentialObstacle), "-"),
 		}
 		height := riskDetailTableRowHeight(pdf, row, widths, false)
 		if pdf.GetY()+height > riskDetailBottomY {
@@ -199,7 +198,7 @@ func addRiskDetailMitigationTable(pdf *gofpdf.Fpdf, mitigations []entity.Mitigat
 			pdf.SetFont("Arial", "", riskDetailMitigationFontSize)
 			drawRiskDetailTableHeader(pdf, headers, widths)
 		}
-		drawRiskDetailTableRowCells(pdf, row, widths, []int{1, 2, 3, 4, 5}, false)
+		drawRiskDetailTableRowCells(pdf, row, widths, []int{1, 2, 3, 4}, false)
 	}
 	pdf.Ln(1)
 }

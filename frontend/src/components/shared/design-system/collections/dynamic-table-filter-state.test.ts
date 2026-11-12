@@ -30,3 +30,12 @@ test("dates reject overflow days and accept real leap days", () => {
   for (const value of ["2026-02-29", "2026-04-31", "2026-13-01", "2026-2-1", ""]) assert.equal(canApplyFilter(date, value), false, value);
   for (const value of ["2028-02-29", "2026-11-01"]) assert.equal(canApplyFilter(date, value), true, value);
 });
+
+test("multiple unit selections can only apply distinct available options", () => {
+  const units = field({ type: "multi-select", options: [{ value: "a", label: "Unit A" }, { value: "b", label: "Unit B" }] });
+  assert.equal(filterDefault(units), "");
+  assert.equal(canApplyFilter(units, "a,b"), true);
+  assert.equal(canApplyFilter(units, "a,a"), false);
+  assert.equal(canApplyFilter(units, "a,outside"), false);
+  assert.equal(canApplyFilter(units, ""), false);
+});

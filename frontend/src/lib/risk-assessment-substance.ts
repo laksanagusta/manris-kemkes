@@ -133,15 +133,7 @@ function normalizeMitigation(value: Partial<RiskMitigation> | undefined): RiskMi
     executionScheduleText: normalizeText(value?.executionScheduleText),
     targetCost: value?.targetCost,
     mitigationType: value?.mitigationType,
-    activityStage: normalizeText(value?.activityStage),
-    expectedOutput: normalizeText(value?.expectedOutput),
-    quantitativeTarget: normalizeText(value?.quantitativeTarget),
-    supportingUnit: normalizeText(value?.supportingUnit),
-	resourcesRequired: normalizeText(value?.resourcesRequired),
-	contingencyPlan: normalizeText(value?.contingencyPlan),
-	potentialObstacle: normalizeText(value?.potentialObstacle),
-	isBreakthroughActivity: Boolean(value?.isBreakthroughActivity),
-    isExistingControl: Boolean(value?.isExistingControl),
+
   };
 }
 
@@ -168,15 +160,7 @@ function serializeMitigation(value: RiskMitigation): string {
     executionScheduleText: normalizeText(value.executionScheduleText),
     targetCost: value.targetCost ?? null,
     mitigationType: value.mitigationType ?? "",
-    activityStage: normalizeText(value.activityStage),
-    expectedOutput: normalizeText(value.expectedOutput),
-    quantitativeTarget: normalizeText(value.quantitativeTarget),
-    supportingUnit: normalizeText(value.supportingUnit),
-	resourcesRequired: normalizeText(value.resourcesRequired),
-	contingencyPlan: normalizeText(value.contingencyPlan),
-	potentialObstacle: normalizeText(value.potentialObstacle),
-	isBreakthroughActivity: Boolean(value.isBreakthroughActivity),
-    isExistingControl: Boolean(value.isExistingControl),
+
   });
 }
 
