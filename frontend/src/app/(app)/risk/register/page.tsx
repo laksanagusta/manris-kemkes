@@ -42,10 +42,8 @@ import {
   ActionButton,
   ActionIconButton,
   CollectionColumnPicker,
-  RiskRegisterCards,
   RiskTableIdentity,
   RiskTableScore,
-  type RiskRegisterCardItem,
   CollectionPageHeader,
   CollectionSearchField,
   CollectionToolbar,
@@ -56,7 +54,6 @@ import {
   useCollectionColumns,
 } from "@/components/shared/design-system";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -101,8 +98,6 @@ import {
 import {
   riskCategoryLabels,
   getRiskLevelFromNilai,
-  getRiskLevelDisplayLabel,
-  levelToColor,
 } from "@/lib/risk";
 import {
   type RiskMonitoringStatusFilter,
@@ -134,8 +129,6 @@ import {
   Archive,
   RefreshCcw,
   RotateCcw,
-  LayoutGridIcon,
-  AlignLeft,
 } from "@/components/shared/icons";
 
 
@@ -408,7 +401,6 @@ export default function RiskRegisterPage() {
   const tableMinWidth = visibleColumns.reduce((width, column) => width + column.width, riskActionsWidth);
   const [isPending, startTransition] = useTransition();
   const isApplyingSearchParamsRef = useRef(false);
-  const [registerView, setRegisterView] = useState<"table" | "cards">("table");
   const [risks, setRisks] = useState<RiskListItem[]>([]);
   const [drafts, setDrafts] = useState<RiskListItem[]>([]);
   const [actionRisk, setActionRisk] = useState<RiskListItem | null>(null);
@@ -1055,28 +1047,8 @@ export default function RiskRegisterPage() {
       />
     );
   };
-  const cardGroups = new Map<string, RiskRegisterCardItem[]>();
-  if (registerView === "cards") {
-    for (const risk of risks) {
-      const category = risk.category?.trim().toLowerCase() ?? "";
-      const group = cardGroups.get(category) ?? [];
-      const { statusText, riskScore, riskLevel, tone } = getRegisterRiskDisplay(risk);
-      group.push({
-        id: risk.id,
-        title: risk.title || "Risiko tanpa judul",
-        href: `/risk/register/${risk.id}`,
-        code: risk.code || "—",
-        score: formatMonitoringNilai(riskScore),
-        level: riskLevel ? <Badge variant="outline" className={levelToColor(riskLevel)}>{getRiskLevelDisplayLabel(riskLevel)}</Badge> : "—",
-        status: <Badge variant={toBadgeVariant(tone)} className={getStatusBadgeClassName(tone)}>{statusText}</Badge>,
-        actions: renderRiskActions(risk),
-      });
-      cardGroups.set(category, group);
-    }
-  }
   const pagination = (
     <CollectionPagination
-      standalone={registerView === "cards"}
       itemLabel="risiko"
       page={page}
       pageSize={limit}
@@ -1097,7 +1069,7 @@ export default function RiskRegisterPage() {
           wrapActions
           leading={
             <RiskRegisterFilterToolbar
-              columns={registerView === "table" ? <CollectionColumnPicker {...columnPicker} /> : undefined}
+              columns={<CollectionColumnPicker {...columnPicker} />}
               search={search}
               onSearchChange={handleRegisterSearchChange}
               searchPlaceholder="Cari risiko..."
@@ -1125,14 +1097,6 @@ export default function RiskRegisterPage() {
           }
           actions={
             <>
-              <div className="workspace-segmented self-start" role="group" aria-label="Tampilan register risiko">
-                <Button variant="ghost" size="icon-sm" data-workspace-segment="" aria-label="Tabel" title="Tabel" aria-pressed={registerView === "table"} onClick={() => setRegisterView("table")}>
-                  <AlignLeft aria-hidden="true" />
-                </Button>
-                <Button variant="ghost" size="icon-sm" data-workspace-segment="" aria-label="Kartu" title="Kartu" aria-pressed={registerView === "cards"} onClick={() => setRegisterView("cards")}>
-                  <LayoutGridIcon aria-hidden="true" />
-                </Button>
-              </div>
               <RiskExportButton
                 loading={exporting}
                 disabled={loading || !!error || registerTotal === 0 || isPending || search !== deferredSearch || assessmentCycleFilter !== deferredAssessmentCycleFilter}
@@ -1165,13 +1129,6 @@ export default function RiskRegisterPage() {
             </>
           }
         />
-        {registerView === "cards" && risks.length > 0 ? (
-          <>
-            <RiskRegisterCards groups={Array.from(cardGroups, ([category, items]) => ({ category, items }))} />
-            {pagination}
-          </>
-        ) : (
-        <>
         <CollectionTableCard sorting={tableSorting} stickyActions>
             <Table className="table-fixed" style={{ minWidth: tableMinWidth }}>
               <colgroup>
@@ -1279,8 +1236,6 @@ export default function RiskRegisterPage() {
                 </Table>
           {pagination}
         </CollectionTableCard>
-        </>
-        )}
       </div>
 
       <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>

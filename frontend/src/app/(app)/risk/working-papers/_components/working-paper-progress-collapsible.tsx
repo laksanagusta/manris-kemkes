@@ -8,8 +8,7 @@ import {
   TableCell,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Download, Loader2 } from "@/components/shared/icons";
+import { DocumentDownloadButton } from "@/components/shared/document-download-button";
 import {
   CollapsibleCard,
   CollectionEmptyState,
@@ -258,27 +257,16 @@ function LatestProgressTable({
                 {row.progressCount}/{row.totalCount}
               </TableCell>
                 <TableCell className="text-right">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="icon-xs"
-                    disabled={!workingPaper || isExporting}
-                    aria-label={
+                  <DocumentDownloadButton
+                    title="Download kertas kerja"
+                    label={
                       workingPaper
                         ? `Download ${workingPaper.title || workingPaper.code}`
                         : `Download kertas kerja ${row.orgName}`
                     }
-                    title="Download kertas kerja"
-                    onClick={() => {
-                      if (workingPaper) onExport(workingPaper);
-                    }}
-                  >
-                    {isExporting ? (
-                      <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-                    ) : (
-                      <Download className="size-3.5" aria-hidden="true" />
-                    )}
-                  </Button>
+                    downloading={isExporting}
+                    onDownload={workingPaper ? () => onExport(workingPaper) : undefined}
+                  />
                 </TableCell>
               </TableRow>
             );

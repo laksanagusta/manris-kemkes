@@ -45,7 +45,6 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { adminMenuGroup, mainMenuItems } from "@/lib/app-navigation";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Sidebar,
   SidebarContent,
@@ -53,7 +52,7 @@ import {
   SidebarMenuButton,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { SidebarBrandHeader, SidebarNavigationGroup } from "@/components/shared/sidebar-navigation-layout";
+import { SidebarBrandHeader, SidebarNavigationGroup, SidebarNavigationScroll } from "@/components/shared/sidebar-navigation-layout";
 import { SidebarNavItem } from "@/components/shared/sidebar-nav-item";
 import { useEffect, useMemo, useState } from "react";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
@@ -104,17 +103,12 @@ const reportsNavigation: NavGroup = {
   title: "LAPORAN",
   items: [
     {
-      label: "Ringkasan Risiko",
+      label: "Laporan Risiko",
       href: "/reports",
       icon: PieChart09,
     },
     {
-      label: "Kondisi Pengelolaan Risiko",
-      href: "/reports/risk-condition",
-      icon: PieChart09,
-    },
-    {
-      label: "Progres per Unit",
+      label: "Control Tower",
       href: "/reports/unit-progress",
       icon: ClipboardList,
     },
@@ -378,31 +372,25 @@ export function AppSidebar({ inboxBadge = 0 }: { inboxBadge?: number }) {
       />
 
       <SidebarContent>
-        <ScrollArea className="min-h-0 flex-1">
-          <div className="flex flex-col gap-5 pb-3 group-data-[collapsible=icon]:gap-2">
-            {visibleNavigation.map((group) => (
-              <SidebarNavigationGroup key={group.title ?? group.items?.[0]?.href} title={group.title}>
-                {group.items?.map((item) => (
-                  <NavLink
-                    key={item.href}
-                    item={item}
-                    currentHash={currentHash}
-                    badgeOverride={
-                      item.href === "/inbox" ? inboxBadge : undefined
-                    }
-                  />
-                ))}
-              </SidebarNavigationGroup>
-            ))}
-          </div>
-        </ScrollArea>
+        <SidebarNavigationScroll>
+          {visibleNavigation.map((group) => (
+            <SidebarNavigationGroup key={group.title ?? group.items?.[0]?.href} title={group.title}>
+              {group.items?.map((item) => (
+                <NavLink
+                  key={item.href}
+                  item={item}
+                  currentHash={currentHash}
+                  badgeOverride={
+                    item.href === "/inbox" ? inboxBadge : undefined
+                  }
+                />
+              ))}
+            </SidebarNavigationGroup>
+          ))}
+        </SidebarNavigationScroll>
       </SidebarContent>
 
-      <SidebarFooter className="relative isolate gap-2 px-2.5 py-3 group-data-[collapsible=icon]:px-2">
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute inset-x-0 -top-10 z-10 h-10 bg-gradient-to-b from-transparent via-sidebar/75 to-sidebar backdrop-blur-md"
-        />
+      <SidebarFooter className="relative isolate gap-2 px-2.5 pt-0 pb-3 group-data-[collapsible=icon]:px-2">
         {user && (
           <SidebarFeedback />
         )}

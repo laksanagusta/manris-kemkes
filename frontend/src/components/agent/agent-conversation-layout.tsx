@@ -20,7 +20,7 @@ type AgentScrollViewportProps = Omit<ComponentProps<"div">, "className"> & {
 
 export function AgentScrollViewport({ start, onJumpToLatest, ...props }: AgentScrollViewportProps) {
   return (
-    <div className={start ? "contents" : "agent-scroll-frame"}>
+    <div className={start ? "contents" : "agent-scroll-frame scroll-edge-blur"}>
       <div {...props} className={start ? "agent-scroll agent-scroll-new" : "agent-scroll"} />
       {!start && onJumpToLatest && (
         <div className="agent-column agent-scroll-actions">

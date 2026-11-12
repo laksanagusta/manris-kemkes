@@ -8,6 +8,8 @@ import { CollectionCode } from "@/components/shared/design-system/collections/co
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
 import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
+import { riskCategoryLabels } from "@/lib/risk";
+import type { RiskCategory } from "@/types/risk";
 import { FormHeader, FormPage, FormSection } from "@/components/shared/form-shell";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -38,6 +40,7 @@ type RiskBatchPayload = {
   clientKey: string;
   title: string;
   description: string;
+  category: RiskCategory;
   organizationId?: string;
   roId?: string;
   cause: string[];
@@ -325,6 +328,9 @@ export default function BulkRiskRegisterPage() {
                         Risiko
                       </CollectionTableHead>
                       <CollectionTableHead density="compact">
+                        Kategori
+                      </CollectionTableHead>
+                      <CollectionTableHead density="compact">
                         Status
                       </CollectionTableHead>
                       <CollectionTableHead density="compact">
@@ -340,6 +346,11 @@ export default function BulkRiskRegisterPage() {
                           <TableCell>{preview.rowNumber}</TableCell>
                           <TableCell className="max-w-[320px]">
                             {preview.raw["RISIKO"] || preview.raw["Risiko"] || "-"}
+                          </TableCell>
+                          <TableCell>
+                            {preview.payload
+                              ? riskCategoryLabels[preview.payload.category]
+                              : preview.raw["KATEGORI RISIKO"] || "—"}
                           </TableCell>
                           <TableCell>
                             <Badge variant={toBadgeVariant(status.tone)} className={getStatusBadgeClassName(status.tone)}>

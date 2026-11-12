@@ -36,5 +36,9 @@ const exampleReport: UnitProgressReport = {
 };
 
 export function UnitProgressExample() {
-  return <UnitProgressTables report={exampleReport} example />;
+  return <UnitProgressTables report={exampleReport} example scopeFields={[{
+    id: "period", label: "Periode", required: true, value: exampleReport.cycle,
+    options: [{ value: exampleReport.cycle, label: exampleReport.cycle }],
+    onChange: () => {},
+  }]} />;
 }

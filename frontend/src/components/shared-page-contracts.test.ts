@@ -581,12 +581,12 @@ test("sidebar hierarchy prioritizes operations and consolidates administration",
     appSidebar,
     /items: \[dashboardNavigation, \.\.\.approvalNavigation\][\s\S]*title: "OPERASIONAL"/,
   );
-  assert.match(appSidebar, /title: "LAPORAN"[\s\S]*label: "Ringkasan Risiko"/);
+  assert.match(appSidebar, /title: "LAPORAN"[\s\S]*label: "Laporan Risiko"/);
   assert.match(appSidebar, /title: "OTOMASI"/);
   assert.match(appNavigation, /title: "TATA KELOLA RISIKO"/);
   assert.match(
     appNavigation,
-    /label: "Risiko"[\s\S]*icon: "Folder01"[\s\S]*label: "Kejadian Risiko"[\s\S]*icon: "Alert02"[\s\S]*label: "Penanganan"[\s\S]*label: "Pemantauan"[\s\S]*label: "Kertas Kerja"[\s\S]*label: "Tanda tangan"[\s\S]*label: "Ringkasan Risiko"/,
+    /label: "Risiko"[\s\S]*icon: "Folder01"[\s\S]*label: "Kejadian Risiko"[\s\S]*icon: "Alert02"[\s\S]*label: "Penanganan"[\s\S]*label: "Pemantauan"[\s\S]*label: "Kertas Kerja"[\s\S]*label: "Tanda tangan"[\s\S]*label: "Laporan Risiko"/,
   );
   assert.match(
     appNavigation,
@@ -883,14 +883,10 @@ test("modal headers keep bottom breathing room", () => {
   assert.doesNotMatch(riskScoreHeatmapPicker, /overflow-y-auto[^\n]*pt-3/);
 });
 
-test("sidebar footer fades into the help and account chrome", () => {
+test("sidebar navigation uses the shared scroll edge above the account controls", () => {
   assert.match(
     appSidebar,
-    /<SidebarFooter className="relative isolate space-y-2 px-3[^"]*">/,
-  );
-  assert.match(
-    appSidebar,
-    /aria-hidden="true"[\s\S]*-top-10 z-10 h-10 bg-gradient-to-b from-transparent via-sidebar\/75 to-sidebar backdrop-blur-md/,
+    /<SidebarContent>\s*<SidebarNavigationScroll>[\s\S]*?<\/SidebarNavigationScroll>\s*<\/SidebarContent>\s*<SidebarFooter/,
   );
   assert.match(appSidebar, /<Popover>/);
   assert.match(appSidebar, /<HelpCircle[\s\S]*aria-hidden="true"/);

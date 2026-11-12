@@ -73,7 +73,7 @@ export const mainMenuItems: MainMenuGroup[] = [
         matchHrefs: ["/evaluations"],
       },
       { label: "Tanda tangan", href: "/inbox", icon: "FileSignature" },
-      { label: "Ringkasan Risiko", href: "/reports", icon: "PieChart09" },
+      { label: "Laporan Risiko", href: "/reports", icon: "PieChart09" },
     ],
   },
 ];
@@ -225,10 +225,9 @@ export function getBreadcrumbItems(
     return detailBreadcrumb(evaluationParent, dynamicLabel ?? "Detail Evaluasi");
   }
 
-  const reportParent = parentBreadcrumb("Ringkasan Risiko", "/reports");
+  const reportParent = parentBreadcrumb("Laporan Risiko", "/reports");
   if (route === "/reports") return [reportParent];
-  if (route === "/reports/risk-condition") return detailBreadcrumb(parentBreadcrumb("Laporan", "/reports"), "Kondisi Pengelolaan Risiko");
-  if (route === "/reports/unit-progress") return detailBreadcrumb(parentBreadcrumb("Laporan", "/reports"), "Progres per Unit");
+  if (route === "/reports/unit-progress") return detailBreadcrumb(parentBreadcrumb("Laporan", "/reports"), "Control Tower");
   if (route === "/reports/formal") return detailBreadcrumb(reportParent, "Laporan Formal");
   if (route === "/reports/cycle-detail") {
     return detailBreadcrumb(reportParent, "Detail Siklus Risiko");
@@ -444,15 +443,11 @@ export const appPageMeta: Record<string, AppPageMeta> = {
     subtitle: "Pelajari tahapan dan prinsip pengelolaan risiko di Manrisk.",
   },
   "/reports": {
-    title: "Ringkasan Risiko",
+    title: "Laporan Risiko",
     subtitle: "Tinjau distribusi risiko, peringkat unit, dan pelaporan mitigasi.",
   },
-  "/reports/risk-condition": {
-    title: "Kondisi Pengelolaan Risiko",
-    subtitle: "Tinjau pengelolaan risiko dan perubahan profil antarperiode.",
-  },
   "/reports/unit-progress": {
-    title: "Progres per Unit",
+    title: "Control Tower",
     subtitle: "Tinjau progres dan tindak lanjut pengelolaan risiko per unit.",
   },
   "/reports/formal": {

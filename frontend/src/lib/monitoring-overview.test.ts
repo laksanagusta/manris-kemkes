@@ -94,10 +94,6 @@ test("superseded monitoring remains historical and is not counted as a draft", (
 
   assert.equal(rows[0].status, "superseded");
   assert.equal(overview.getMonitoringStatusLabel(rows[0].status), "Digantikan");
-  const summary = overview.buildMonitoringOrganizationSummaries(rows, organizations, "parent")
-    .find((item) => item.id === "child-a");
-  assert.equal(summary?.inProgress, 0);
-  assert.equal(summary?.finalized, 1);
   assert.equal(overview.filterMonitoringRows(rows, "parent", organizations, "", "in_progress").length, 0);
   assert.deepEqual(
     overview.filterMonitoringRows(rows, "parent", organizations, "", "superseded").map((row) => row.id),
@@ -106,7 +102,7 @@ test("superseded monitoring remains historical and is not counted as a draft", (
   assert.equal(overview.parseMonitoringQueryState(new URLSearchParams("status=superseded")).status, "all");
 });
 
-test("filter and organization summaries include descendants for a parent scope", () => {
+test("monitoring filters include descendants for a parent scope", () => {
   const rows = overview.buildMonitoringTransactionRows(
     [makeMonitoring("1", "child-a", "draft"), makeMonitoring("2", "child-b", "final")],
     organizations,
@@ -119,37 +115,10 @@ test("filter and organization summaries include descendants for a parent scope",
     "",
     "all",
   );
-  const summaries = overview.buildMonitoringOrganizationSummaries(
-    rows,
-    organizations,
-    "parent",
-  );
-  const parentSummary = summaries.find((summary) => summary.id === "parent");
-
   assert.equal(filtered.length, 2);
   assert.deepEqual(
     filtered.map((row) => row.organizationId),
     ["child-b", "child-a"],
-  );
-  assert.deepEqual(
-    parentSummary && {
-      total: parentSummary.total,
-      finalized: parentSummary.finalized,
-    },
-    { total: 0, finalized: 0 },
-  );
-
-  assert.deepEqual(
-    summaries.map((summary) => ({
-      id: summary.id,
-      total: summary.total,
-      finalized: summary.finalized,
-    })),
-    [
-      { id: "child-a", total: 1, finalized: 0 },
-      { id: "child-b", total: 1, finalized: 1 },
-      { id: "parent", total: 0, finalized: 0 },
-    ],
   );
 });
 

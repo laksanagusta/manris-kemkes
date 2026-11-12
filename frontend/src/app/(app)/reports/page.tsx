@@ -25,6 +25,7 @@ import {
 import {
   completedReportCycle,
   currentReportCycle,
+  shiftReportCycle,
 } from "@/lib/quarterly-report";
 import type {
   QuarterlyReport,
@@ -33,12 +34,13 @@ import type { QuarterlyReportExcelFormat } from "@/lib/quarterly-report-export";
 import { reportErrorMessage } from "@/lib/report-feedback";
 import { parseReportPreferences } from "@/lib/report-preferences";
 import { resolveReportUrlFilters } from "@/lib/report-url-filters";
-import { MonitoringOrganizationRecap } from "@/components/report/monitoring-organization-recap";
 import { ReportFilterPanel } from "@/components/report/report-filter-panel";
 import { QuarterlyReportDashboard, RiskSummarySkeleton } from "@/components/report/quarterly-report-dashboard";
 import { PageStack, ReportEmptyState } from "@/components/shared/design-system";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/shared/animated-tabs";
+import { RiskConditionCharts } from "@/components/shared/design-system/domain/risk-condition-charts";
 
 const EMPTY_SCOPE: ReportsFilterScope = {
   organizationId: "",
@@ -68,8 +70,13 @@ export default function ReportsPage() {
 
 function ReportsContent() {
   const { token, user } = useAuth();
-  const reportSearch = useSearchParams().toString();
+  const search = useSearchParams();
+  const tab = search.get("tab") === "perbandingan" ? "perbandingan" : "ringkasan";
+  const reportParams = new URLSearchParams(search.toString());
+  reportParams.delete("tab");
+  const reportSearch = reportParams.toString();
   const [cycle, setCycle] = useState(completedReportCycle);
+  const [comparisonOverride, setComparisonOverride] = useState<string>();
   const [organizations, setOrganizations] = useState<OrganizationListItem[]>(
     [],
   );
@@ -150,14 +157,17 @@ function ReportsContent() {
     try { localStorage.setItem(preferencesKey, JSON.stringify({ cycle, scope })); } catch { /* Reporting still works when storage is unavailable. */ }
   }, [metadataReady, user, restoredFor, restoreKey, preferencesKey, cycle, scope, urlOverrides, linkError]);
 
+  const comparisonCycle = comparisonOverride ?? shiftReportCycle(cycle, -1);
+  const selectedComparison = tab === "perbandingan" ? comparisonOverride : undefined;
   const query = useMemo(() => {
     const params = new URLSearchParams({
       cycle,
     });
     if (scope.organizationIds.length)
       params.set("org_id", scope.organizationIds.join(","));
+    if (selectedComparison) params.set("compare_cycle", selectedComparison);
     return params.toString();
-  }, [cycle, scope.organizationIds]);
+  }, [cycle, scope.organizationIds, selectedComparison]);
   const report = restoredFor === restoreKey && !linkError && loadedQuery === query ? reportData : null;
   useEffect(() => {
     if (!token || !metadataReady || restoredFor !== restoreKey || needsSelection || linkError) {
@@ -211,60 +221,76 @@ function ReportsContent() {
 
   return (
     <PageStack>
-      <ReportFilterPanel
-        cycle={cycle}
-        onCycleChange={(value) => { setCycle(value); setLinkError(null); setUrlOverrides(false); }}
-        scope={scope}
-        onScopeChange={(value) => { setScope(value); setLinkError(null); setUrlOverrides(false); }}
-        organizations={organizations}
-        groups={groups}
-        scopeSummary={
-          !metadataReady
-            ? metadataError ? "Pilihan unit belum tersedia" : "Memuat pilihan unit..."
-            : scope.organizationIds.length
-              ? `${scope.organizationIds.length} unit dipilih`
-              : scope.organizationGroupId
-                ? "Pilih minimal satu unit dari grup ini."
-                : needsExplicitReportOrgSelection(user)
-                  ? "Pilih unit untuk menampilkan laporan."
-                  : "Semua unit yang dapat diakses"
-        }
-        scopeReady={metadataReady}
-        loading={loading}
-        exporting={exporting}
-        canExport={Boolean(report) && !needsSelection && !linkError}
-        onExportExcel={() => void exportExcel()}
-        onExportDataExcel={() => void exportExcel("data")}
-        onReload={() => setRetry((value) => value + 1)}
-        onReset={() => {
-          setLinkError(null);
-          setUrlOverrides(false);
-          setCycle(completedReportCycle());
-          setScope(resolveDefaultReportsFilterScope(user, organizations));
-        }}
-      />
-      {metadataError ? (
-        <ReportFeedback title="Unit dan grup gagal dimuat" message={metadataError} onRetry={() => setMetadataRetry(value => value + 1)} />
-      ) : linkError ? (
-        <ReportFeedback title="Filter tautan tidak dapat digunakan" message={linkError} actionLabel="Gunakan filter di atas" onRetry={() => { setLinkError(null); setUrlOverrides(false); }} />
-      ) : needsSelection && metadataReady ? (
-        <ReportEmptyState
-          title="Pilih unit laporan"
-          description="Pilih satu atau beberapa unit di filter untuk menampilkan laporan."
+      <Tabs value={tab} onValueChange={(value) => {
+        const url = new URL(window.location.href);
+        if (value === "perbandingan") url.searchParams.set("tab", value);
+        else url.searchParams.delete("tab");
+        window.history.replaceState(null, "", url);
+      }} className="gap-4">
+        <TabsList aria-label="Tampilan laporan risiko">
+          <TabsTrigger value="ringkasan">Ringkasan</TabsTrigger>
+          <TabsTrigger value="perbandingan">Perbandingan</TabsTrigger>
+        </TabsList>
+        <ReportFilterPanel
+          cycle={cycle}
+          onCycleChange={(value) => { setCycle(value); setLinkError(null); setUrlOverrides(false); }}
+          comparison={tab === "perbandingan" ? { cycle: comparisonCycle, onChange: setComparisonOverride } : undefined}
+          scope={scope}
+          defaultScope={resolveDefaultReportsFilterScope(user, organizations)}
+          requireUnit={Boolean(user && !user.isGlobal)}
+          onScopeChange={(value) => { setScope(value); setLinkError(null); setUrlOverrides(false); }}
+          organizations={organizations}
+          groups={groups}
+          scopeSummary={
+            !metadataReady
+              ? metadataError ? "Pilihan unit belum tersedia" : "Memuat pilihan unit..."
+              : scope.organizationIds.length
+                ? `${scope.organizationIds.length} unit dipilih`
+                : scope.organizationGroupId
+                  ? "Pilih minimal satu unit dari grup ini."
+                  : needsExplicitReportOrgSelection(user)
+                    ? "Pilih unit untuk menampilkan laporan."
+                    : "Semua unit yang dapat diakses"
+          }
+          scopeReady={metadataReady}
+          loading={loading}
+          exporting={exporting}
+          canExport={Boolean(report) && !needsSelection && !linkError}
+          onExportExcel={() => void exportExcel()}
+          onExportDataExcel={() => void exportExcel("data")}
+          onReload={() => setRetry((value) => value + 1)}
+          onReset={() => {
+            setLinkError(null);
+            setUrlOverrides(false);
+            setCycle(completedReportCycle());
+            setComparisonOverride(undefined);
+            setScope(resolveDefaultReportsFilterScope(user, organizations));
+          }}
         />
-      ) : reportError ? (
-        <ReportFeedback title="Laporan gagal dimuat" message={reportError} onRetry={() => setRetry(value => value + 1)} />
-      ) : loading || !metadataReady ? (
-        <RiskSummarySkeleton />
-      ) : report ? (
-        <div className="space-y-6">
-        <QuarterlyReportDashboard
-          key={`${report.cycle}:${report.snapshotHash}`}
-          report={report}
-        />
-        <MonitoringOrganizationRecap key={`${report.cycle}:${report.snapshotHash}:${report.organizations.map(org=>org.id).join(",")}`} token={token} cycle={report.cycle} organizations={organizations.filter(org=>report.organizations.some(selected=>selected.id===org.id))} />
-        </div>
-      ) : null}
+        <TabsContent value={tab} className="min-w-0">
+          {metadataError ? (
+            <ReportFeedback title="Unit dan grup gagal dimuat" message={metadataError} onRetry={() => setMetadataRetry(value => value + 1)} />
+          ) : linkError ? (
+            <ReportFeedback title="Filter tautan tidak dapat digunakan" message={linkError} actionLabel="Gunakan filter di atas" onRetry={() => { setLinkError(null); setUrlOverrides(false); }} />
+          ) : needsSelection && metadataReady ? (
+            <ReportEmptyState
+              title="Pilih unit laporan"
+              description="Pilih satu atau beberapa unit di filter untuk menampilkan laporan."
+            />
+          ) : reportError ? (
+            <ReportFeedback title={tab === "perbandingan" ? "Perbandingan gagal dimuat" : "Laporan gagal dimuat"} message={reportError} onRetry={() => setRetry(value => value + 1)} />
+          ) : loading || !metadataReady ? (
+            <RiskSummarySkeleton comparison={tab === "perbandingan"} />
+          ) : report && tab === "perbandingan" ? (
+            <RiskConditionCharts report={report} activeProfiles={report.risks} previousProfiles={report.previousRisks} />
+          ) : report ? (
+            <QuarterlyReportDashboard
+              key={`${report.cycle}:${report.snapshotHash}`}
+              report={report}
+            />
+          ) : null}
+        </TabsContent>
+      </Tabs>
     </PageStack>
   );
 }

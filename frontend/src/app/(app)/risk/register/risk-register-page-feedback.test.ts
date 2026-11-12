@@ -334,8 +334,9 @@ test("application main content can shrink beside the sidebar", () => {
 });
 
 test("register tools sit above the single risk collection", () => {
-  assert.match(page, /<CollectionToolbar/);
-  assert.match(page, /<CollectionTableCard>/);
+  assert.match(page, /<CollectionToolbar\b[\s\S]*<CollectionTableCard\b/);
+  assert.equal(page.match(/<CollectionTableCard\b/g)?.length, 1);
+  assert.doesNotMatch(page, /RiskRegisterCards|registerView|Tampilan register risiko/);
   assert.doesNotMatch(page, /<Tabs|TabsContent|TabsTrigger/);
   assert.doesNotMatch(page, /Muat ulang daftar risiko|handleRefreshRegister/);
 });

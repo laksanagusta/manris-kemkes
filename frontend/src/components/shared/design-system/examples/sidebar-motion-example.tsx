@@ -9,7 +9,7 @@ import {
   Search,
 } from "@/components/shared/icons";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { SidebarBrandHeader, SidebarNavigationGroup } from "@/components/shared/sidebar-navigation-layout";
+import { SidebarBrandHeader, SidebarNavigationGroup, SidebarNavigationScroll } from "@/components/shared/sidebar-navigation-layout";
 import { SidebarNavItem } from "@/components/shared/sidebar-nav-item";
 
 const items = [
@@ -27,11 +27,11 @@ export function SidebarMotionExample() {
     <div className="space-y-4 rounded-(--surface-radius) bg-card p-6 shadow-black">
       <SidebarProvider open={!collapsed} className="min-h-0 w-full">
         <div
-          className="group flex w-[260px] max-w-full flex-col overflow-hidden rounded-(--surface-radius) border border-border bg-sidebar data-[collapsible=icon]:w-12"
+          className="group flex h-64 w-[260px] max-w-full flex-col overflow-hidden rounded-(--surface-radius) border border-border bg-sidebar data-[collapsible=icon]:w-12"
           data-collapsible={collapsed ? "icon" : undefined}
         >
           <SidebarBrandHeader collapsed={collapsed} onToggle={() => setCollapsed((value) => !value)} />
-          <div className="flex flex-col gap-5 pb-3 group-data-[collapsible=icon]:gap-2">
+          <SidebarNavigationScroll>
             <SidebarNavigationGroup>
               {items.slice(0, 1).map((item) => (
                 <SidebarNavItem
@@ -62,7 +62,7 @@ export function SidebarMotionExample() {
                 />
               ))}
             </SidebarNavigationGroup>
-          </div>
+          </SidebarNavigationScroll>
         </div>
       </SidebarProvider>
       <p className="text-xs text-muted-foreground">

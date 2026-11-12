@@ -1,11 +1,12 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 
 import { ManriskMark } from "@/components/manrisk-mark";
 import { PanelLeftIcon } from "@/components/shared/icons";
 import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   SidebarGroup,
   SidebarGroupLabel,
@@ -13,6 +14,41 @@ import {
   SidebarMenu,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
+
+export function SidebarNavigationScroll({ children, className }: { children: ReactNode; className?: string }) {
+  const root = useRef<HTMLDivElement>(null);
+  const items = useRef<HTMLDivElement>(null);
+  const [hasMoreBelow, setHasMoreBelow] = useState(false);
+
+  useEffect(() => {
+    const viewport = root.current?.querySelector<HTMLElement>('[data-slot="scroll-area-viewport"]');
+    const content = items.current;
+    if (!viewport || !content) return;
+
+    const update = () => {
+      setHasMoreBelow(viewport.scrollHeight - viewport.clientHeight - viewport.scrollTop > 1);
+    };
+
+    const observer = new ResizeObserver(update);
+    observer.observe(viewport);
+    observer.observe(content);
+    viewport.addEventListener("scroll", update, { passive: true });
+    update();
+    return () => {
+      observer.disconnect();
+      viewport.removeEventListener("scroll", update);
+    };
+  }, []);
+
+  return (
+    <ScrollArea ref={root} data-scroll-edge-visible={hasMoreBelow ? "" : undefined}
+      className={cn("sidebar-navigation-scroll scroll-edge-blur min-h-0 flex-1", className)}>
+      <div ref={items} className="relative z-0 flex flex-col gap-5 pb-3 group-data-[collapsible=icon]:gap-2">
+        {children}
+      </div>
+    </ScrollArea>
+  );
+}
 
 export function SidebarBrandHeader({
   collapsed,

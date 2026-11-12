@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/shared/animated-tabs";
+import { RiskConditionCharts } from "../domain/risk-condition-charts";
+import { shiftReportCycle } from "@/lib/quarterly-report";
 import { toast } from "sonner";
 import type { QuarterlyReportExcelFormat } from "@/lib/quarterly-report-export";
 import { ReportFilterPanel } from "@/components/report/report-filter-panel";
 import type { ReportsFilterScope } from "@/lib/reports-filter-sheet";
 import type { OrganizationGroupListItem } from "@/lib/api/organization-groups";
-import { MonitoringOrganizationSummaryCollapsible } from "@/components/report/monitoring-organization-recap";
 import { QuarterlyReportDashboard } from "@/components/report/quarterly-report-dashboard";
 import type {
   QuarterlyReport,
@@ -129,11 +131,14 @@ const exampleScope: ReportsFilterScope = {
 };
 
 export function QuarterlyReportExample() {
+  const [tab, setTab] = useState("ringkasan");
+  const [comparisonOverride, setComparisonOverride] = useState<string>();
   const [cycle, setCycle] = useState(report.cycle);
   const [scope, setScope] = useState(exampleScope);
   const [exporting, setExporting] = useState(false);
   const selected = (organizationId: string) => !scope.organizationIds.length || scope.organizationIds.includes(organizationId);
-  const scopedReport = { ...report, cycle,
+  const comparisonCycle = comparisonOverride ?? shiftReportCycle(cycle, -1);
+  const scopedReport = { ...report, cycle, comparisonCycle,
     organizations: report.organizations.filter(unit => selected(unit.id)),
     risks: risks.filter(risk => selected(risk.organizationId)),
     previousRisks: report.previousRisks.filter(risk => selected(risk.organizationId)),
@@ -157,30 +162,43 @@ export function QuarterlyReportExample() {
       <p className="text-xs text-muted-foreground">
         Contoh memakai komponen produksi dengan data ilustrasi. Filter mengubah periode dan cakupan contoh.
       </p>
-      <ReportFilterPanel
-        cycle={cycle}
-        onCycleChange={setCycle}
-        scope={scope}
-        onScopeChange={setScope}
-        organizations={exampleOrganizations}
-        groups={exampleGroups}
-        scopeSummary={scope.organizationIds.length
-          ? `${scope.organizationIds.length} unit dipilih`
-          : scope.organizationGroupId ? "Pilih minimal satu unit dari grup ini." : "Semua unit contoh"}
-        scopeReady
-        loading={false}
-        exporting={exporting}
-        canExport={!scope.organizationGroupId || scope.organizationIds.length > 0}
-        onExportExcel={() => void exportExcel()}
-        onExportDataExcel={() => void exportExcel("data")}
-        onReload={() => toast.info("Contoh memakai data ilustrasi tetap.")}
-        onReset={() => {
-          setCycle(report.cycle);
-          setScope(exampleScope);
-        }}
-      />
-      <QuarterlyReportDashboard illustrative report={scopedReport} />
-      <MonitoringOrganizationSummaryCollapsible cycle={cycle} loading={false} summaries={scopedReport.organizations.map(org=>({id:org.id,name:org.name,total:0,inProgress:0,finalized:0}))} />
+      <Tabs value={tab} onValueChange={setTab} className="gap-4">
+        <TabsList aria-label="Contoh tampilan laporan risiko">
+          <TabsTrigger value="ringkasan">Ringkasan</TabsTrigger>
+          <TabsTrigger value="perbandingan">Perbandingan</TabsTrigger>
+        </TabsList>
+        <ReportFilterPanel
+          cycle={cycle}
+          onCycleChange={setCycle}
+          comparison={tab === "perbandingan" ? { cycle: comparisonCycle, onChange: setComparisonOverride } : undefined}
+          scope={scope}
+          defaultScope={exampleScope}
+          onScopeChange={setScope}
+          organizations={exampleOrganizations}
+          groups={exampleGroups}
+          scopeSummary={scope.organizationIds.length
+            ? `${scope.organizationIds.length} unit dipilih`
+            : scope.organizationGroupId ? "Pilih minimal satu unit dari grup ini." : "Semua unit contoh"}
+          scopeReady
+          loading={false}
+          exporting={exporting}
+          canExport={!scope.organizationGroupId || scope.organizationIds.length > 0}
+          onExportExcel={() => void exportExcel()}
+          onExportDataExcel={() => void exportExcel("data")}
+          onReload={() => toast.info("Contoh memakai data ilustrasi tetap.")}
+          onReset={() => {
+            setCycle(report.cycle);
+            setComparisonOverride(undefined);
+            setScope(exampleScope);
+          }}
+        />
+        <TabsContent value="ringkasan">
+          <QuarterlyReportDashboard illustrative report={scopedReport} />
+        </TabsContent>
+        <TabsContent value="perbandingan">
+          <RiskConditionCharts report={scopedReport} activeProfiles={scopedReport.risks} previousProfiles={scopedReport.previousRisks} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

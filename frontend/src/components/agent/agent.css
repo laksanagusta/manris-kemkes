@@ -7,7 +7,6 @@
 .agent-scroll { flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-gutter:stable; }
 .agent-scroll-new { display:flex; flex-direction:column; overflow:visible; }
 .agent-scroll-frame {
-  --agent-scroll-blur-height:56px;
   position:relative;
   display:flex;
   flex:1;
@@ -15,25 +14,10 @@
   min-width:0;
   flex-direction:column;
 }
-.agent-scroll-frame > .agent-scroll { scroll-padding-block-end:var(--agent-scroll-blur-height); }
-.agent-scroll-frame .agent-messages { padding-block-end:calc(var(--agent-scroll-blur-height) + 4px); }
-.agent-scroll-frame:has(.agent-messages)::before,
-.agent-scroll-frame:has(.agent-messages)::after {
-  content:"";
-  position:absolute;
-  inset:auto 0 0;
-  z-index:1;
-  height:var(--agent-scroll-blur-height);
-  pointer-events:none;
-}
-.agent-scroll-frame:has(.agent-messages)::before {
-  -webkit-backdrop-filter:blur(7px);
-  backdrop-filter:blur(7px);
-  mask-image:linear-gradient(to bottom,transparent,black 75%);
-}
-.agent-scroll-frame:has(.agent-messages)::after {
-  background:linear-gradient(to bottom,transparent,color-mix(in srgb,var(--workspace) 92%,transparent) 68%,var(--workspace) 95%);
-}
+.agent-scroll-frame > .agent-scroll { scroll-padding-block-end:var(--scroll-edge-blur-height); }
+.agent-scroll-frame .agent-messages { padding-block-end:calc(var(--scroll-edge-blur-height) + 4px); }
+.agent-scroll-frame:not(:has(.agent-messages))::before,
+.agent-scroll-frame:not(:has(.agent-messages))::after { display:none; }
 .agent-scroll-actions {
   position:absolute;
   inset:auto 0 4px;

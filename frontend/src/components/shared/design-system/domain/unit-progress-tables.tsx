@@ -4,21 +4,21 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/shared/animated-tabs";
+import { DocumentDownloadButton } from "@/components/shared/document-download-button";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 import { createDisplayDateFormatter } from "@/lib/display-date";
 import { groupUnitProgress, type UnitProgressGroup } from "@/lib/unit-progress";
-import type { UnitProgressReport, UnitProgressWorkingPaper } from "@/types/unit-progress";
+import type { UnitProgressItem, UnitProgressReport, UnitProgressWorkingPaper } from "@/types/unit-progress";
 import { CollectionLoadingState } from "../collections/collection-loading-state";
 import { CollectionPagination } from "../collections/collection-pagination";
 import { CollectionSearchField } from "../collections/collection-search-field";
 import { CollectionTableCard } from "../collections/collection-table-card";
 import { CollectionTableHead } from "../collections/collection-table-head";
 import { CollectionTableHeader } from "../collections/collection-table-header";
-import { CollectionToolbar } from "../collections/collection-toolbar";
+import { DynamicTableFilters, type TableFilterField } from "../collections/dynamic-table-filters";
 import { ReportEmptyState } from "../reports/report-empty-state";
 
 const tabs = {
@@ -34,8 +34,10 @@ type Tab = keyof typeof tabs;
 type DetailTab = Exclude<Tab, "summary">;
 type OpenDetail = (tab: DetailTab, unitId: string) => void;
 type Source = (href: string, label: string) => ReactNode;
+export type UnitProgressDocumentTab = "papers" | "evaluations";
+type DocumentAction = (tab: UnitProgressDocumentTab, unit: UnitProgressGroup, item?: UnitProgressItem) => ReactNode;
 type Row = { id: string; status?: string; cells: ReactNode[] };
-type TableData = { columns: string[]; rows: Row[] };
+type TableData = { columns: string[]; rows: Row[]; numericColumns?: readonly string[] };
 
 const statuses: Record<string, string> = {
   missing: "Belum ada dokumen",
@@ -53,6 +55,8 @@ const statuses: Record<string, string> = {
   not_reported: "Tidak dilaporkan",
   skipped: "Dilewati",
 };
+
+const actionColumn = "Aksi";
 
 const dateFormatter = createDisplayDateFormatter("id-ID", { day: "numeric", month: "short", year: "numeric" });
 function displayDate(value?: string) {
@@ -138,38 +142,38 @@ function summaryTable(units: UnitProgressGroup[], open: OpenDetail): TableData {
   };
 }
 
-function detailTable(tab: DetailTab, units: UnitProgressGroup[], selected: boolean, open: OpenDetail, source: Source): TableData {
+function detailTable(tab: DetailTab, units: UnitProgressGroup[], selected: boolean, open: OpenDetail, source: Source, documentAction: DocumentAction): TableData {
   switch (tab) {
     case "papers":
       return {
-        columns: ["Unit", "Kertas Kerja", "Status", "Tanda tangan", "Giliran berikutnya", "Diperbarui"],
+        columns: ["Unit", "Kertas Kerja", "Status", "Tanda tangan", "Giliran berikutnya", "Diperbarui", actionColumn],
         rows: units.flatMap((unit): Row[] => unit.papers.length ? unit.papers.map((item) => ({
           id: item.id, status: item.status, cells: [
             unit.name, source(`/risk/working-papers/${item.id}`, item.code || item.title),
             <PaperStatus key="status" paper={item} />,
             item.signers && !item.tteSkipped ? `${item.signed} dari ${item.signers}` : "—",
-            item.nextSigner || "—", displayDate(item.updatedAt),
+            item.nextSigner || "—", displayDate(item.updatedAt), documentAction(tab, unit, item),
           ],
-        })) : [{ id: unit.id, status: "missing", cells: [unit.name, "—", <Status key="status" value="missing" />, "—", "—", "—"] }]),
+        })) : [{ id: unit.id, status: "missing", cells: [unit.name, "—", <Status key="status" value="missing" />, "—", "—", "—", documentAction(tab, unit)] }]),
       };
     case "risks":
       return {
-        columns: ["Unit", "Risiko", "Kode", "Status", "Diperbarui"],
-        rows: units.flatMap((unit) => unit.risks.map((item) => ({
-          id: item.id, status: item.status,
-          cells: [unit.name, source(`/risk/register/${item.id}`, item.title), item.code || "—",
-            <Status key="status" value={item.status} label={item.status === "draft" ? "Draf risiko baru" : undefined} />, displayDate(item.updatedAt)],
-        }))),
+        columns: ["Unit", "Draf risiko baru", "Risiko final", "Total risiko"],
+        numericColumns: ["Draf risiko baru", "Risiko final", "Total risiko"],
+        rows: units.map((unit) => ({
+          id: unit.id,
+          cells: [unit.name, unit.riskDrafts, unit.monitoring.total, unit.riskDrafts + unit.monitoring.total],
+        })),
       };
     case "evaluations":
       return {
-        columns: ["Unit", "Evaluasi", "Template", "Status", "Diperbarui"],
+        columns: ["Unit", "Evaluasi", "Template", "Status", "Diperbarui", actionColumn],
         rows: units.flatMap((unit): Row[] => unit.evaluations.length ? unit.evaluations.map((item) => ({
           id: item.id, status: item.status, cells: [
             unit.name, source(`/evaluations/${item.id}`, item.code || item.title || "Lihat evaluasi"), item.title || "—",
-            <Status key="status" value={item.status} />, displayDate(item.updatedAt),
+            <Status key="status" value={item.status} />, displayDate(item.updatedAt), documentAction(tab, unit, item),
           ],
-        })) : [{ id: unit.id, status: "missing", cells: [unit.name, "—", "—", <Status key="status" value="missing" />, "—"] }]),
+        })) : [{ id: unit.id, status: "missing", cells: [unit.name, "—", "—", <Status key="status" value="missing" />, "—", documentAction(tab, unit)] }]),
       };
     case "mitigations":
       return {
@@ -213,7 +217,7 @@ function detailTable(tab: DetailTab, units: UnitProgressGroup[], selected: boole
   }
 }
 
-function ProgressTable({ label, columns, rows, empty }: TableData & { label: string; empty: string }) {
+function ProgressTable({ label, columns, rows, numericColumns = [], empty }: TableData & { label: string; empty: string }) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
   const activePage = Math.min(page, Math.max(1, Math.ceil(rows.length / pageSize)));
@@ -222,15 +226,19 @@ function ProgressTable({ label, columns, rows, empty }: TableData & { label: str
     <CollectionTableCard>
       <Table aria-label={label}>
         <CollectionTableHeader>
-          <TableRow>{columns.map((column) => <CollectionTableHead key={column} scope="col">{column}</CollectionTableHead>)}</TableRow>
+          <TableRow>{columns.map((column) => (
+            <CollectionTableHead key={column} scope="col" className={column === actionColumn || numericColumns.includes(column) ? "text-end" : undefined}>
+              {column === actionColumn ? <span className="sr-only">{column}</span> : column}
+            </CollectionTableHead>
+          ))}</TableRow>
         </CollectionTableHeader>
         <TableBody>
           {visible.map((row) => (
             <TableRow key={row.id}>
               {row.cells.map((cell, index) => index === 0 ? (
-                <th key={columns[index]} scope="row" data-slot="table-cell" className="min-w-32 text-left align-middle font-medium">{cell}</th>
+                <th key={columns[index]} scope="row" data-slot="table-cell" className="min-w-32 text-start align-middle font-medium">{cell}</th>
               ) : (
-                <TableCell key={columns[index]} className="whitespace-normal">{cell}</TableCell>
+                <TableCell key={columns[index]} className={columns[index] === actionColumn ? "text-end" : numericColumns.includes(columns[index]) ? "text-end tabular-nums" : "whitespace-normal"}>{cell}</TableCell>
               ))}
             </TableRow>
           ))}
@@ -247,10 +255,15 @@ function ProgressTable({ label, columns, rows, empty }: TableData & { label: str
   );
 }
 
-export function UnitProgressTables({ report, loading = false, example = false }: {
+export function UnitProgressTables({ report, loading = false, example = false, scopeFields = [], reloadAction, feedback, onDownloadDocument, isDownloadingDocument }: {
   report?: UnitProgressReport;
   loading?: boolean;
   example?: boolean;
+  scopeFields?: TableFilterField[];
+  reloadAction?: ReactNode;
+  feedback?: ReactNode;
+  onDownloadDocument?: (tab: UnitProgressDocumentTab, id: string) => void;
+  isDownloadingDocument?: (tab: UnitProgressDocumentTab, id: string) => boolean;
 }) {
   const [tab, setTab] = useState<Tab>("summary");
   const [unitId, setUnitId] = useState("");
@@ -277,72 +290,90 @@ export function UnitProgressTables({ report, loading = false, example = false }:
       {label}
     </Link>
   );
-  const data = tab === "summary" ? summaryTable(units, open) : detailTable(tab, units, Boolean(selectedUnit), open, source);
-  const availableStatuses = Array.from(new Set(data.rows.flatMap((row) => row.status ? [row.status] : [])));
-  const statusFilter = availableStatuses.includes(status) ? status : "all";
+  const documentAction: DocumentAction = (documentTab, unit, item) => {
+    const isEvaluation = documentTab === "evaluations";
+    const label = isEvaluation
+      ? `Unduh PDF evaluasi ${item?.code || item?.title || unit.name}`
+      : `Download ${item?.title || item?.code || `kertas kerja ${unit.name}`}`;
+
+    return (
+      <DocumentDownloadButton
+        label={label}
+        title={isEvaluation ? "Unduh PDF evaluasi" : "Download kertas kerja"}
+        downloading={item ? isDownloadingDocument?.(documentTab, item.id) : false}
+        onDownload={item && onDownloadDocument ? () => onDownloadDocument(documentTab, item.id) : undefined}
+      />
+    );
+  };
+  const data = tab === "summary" ? summaryTable(units, open) : detailTable(tab, units, Boolean(selectedUnit), open, source, documentAction);
+  const statusFilter = status;
+  const availableStatuses = Array.from(new Set([
+    ...data.rows.flatMap((row) => row.status ? [row.status] : []),
+    ...(statusFilter === "all" ? [] : [statusFilter]),
+  ]));
   const rows = statusFilter === "all" ? data.rows : data.rows.filter((row) => row.status === statusFilter);
   const title = `${tabs[tab]}${selectedUnit ? ` · ${selectedUnit.name}` : ""}`;
+
+  const fields: TableFilterField[] = [
+    ...scopeFields,
+    {
+      id: "attention", label: "Tindak lanjut", value: attentionOnly ? "required" : "all",
+      onChange: (value) => setAttentionOnly(value === "required"),
+      options: [{ value: "all", label: "Semua unit" }, { value: "required", label: "Perlu tindak lanjut" }],
+    },
+    ...(availableStatuses.length ? [{
+      id: "status", label: "Status", value: statusFilter, onChange: setStatus,
+      options: availableStatuses.map((value) => ({ value, label: statuses[value] ?? value })),
+    }] : []),
+  ];
 
   useEffect(() => {
     if (focusRequest) heading.current?.focus();
   }, [focusRequest]);
 
   return (
-    <Tabs value={tab} onValueChange={(value) => { setTab(value as Tab); setStatus("all"); }}>
-      <TabsList aria-label="Tabel progres per unit" className="h-auto max-w-full flex-wrap justify-start">
+    <Tabs value={tab} onValueChange={(value) => { setTab(value as Tab); setStatus("all"); }} className="min-w-0 gap-4">
+      <TabsList aria-label="Tabel progres per unit" className="h-auto max-w-full flex-wrap justify-start gap-y-1">
         {Object.entries(tabs).map(([value, label]) => <TabsTrigger key={value} value={value}>{label}</TabsTrigger>)}
       </TabsList>
-      <TabsContent value={tab} className="min-w-0 space-y-3">
-        <h2 ref={heading} tabIndex={-1} className="text-base font-medium outline-none">{title}</h2>
-        {selectedUnit && tab === "monitoring" && (
-          <p className="text-sm text-muted-foreground">
-            {selectedUnit.monitoring.total
-              ? `${selectedUnit.monitoring.final} dari ${selectedUnit.monitoring.total} final · ${selectedUnit.monitoring.drafts} draf · ${selectedUnit.monitoring.notStarted} belum dimulai`
-              : "Tidak ada kewajiban pemantauan untuk periode ini."}
-          </p>
-        )}
-        <CollectionToolbar
-          wrapActions
-          leading={
-            <CollectionSearchField value={search} onChange={(event) => setSearch(event.target.value)}
-              aria-label="Cari unit" placeholder="Cari unit…" />
-          }
-          actions={
-            <div className="flex flex-wrap items-center gap-2">
-              {selectedUnit && (
-                <Button variant="outline" size="sm" onClick={() => { requestFocus((value) => value + 1); setUnitId(""); setStatus("all"); }}>
-                  Semua unit dalam filter
-                </Button>
-              )}
-              <Button variant={attentionOnly ? "secondary" : "outline"} size="sm"
-                aria-pressed={attentionOnly} onClick={() => setAttentionOnly((value) => !value)}>
-                Perlu tindak lanjut
-              </Button>
-              {availableStatuses.length > 0 && (
-                <Select value={statusFilter} onValueChange={setStatus}>
-                  <SelectTrigger className="h-8! min-w-36" aria-label={`Status ${tabs[tab]}`}><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua status</SelectItem>
-                    {availableStatuses.map((value) => <SelectItem key={value} value={value}>{statuses[value] ?? value}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+      <TabsContent value={tab} className="flex min-w-0 flex-col gap-4">
+        <h2 ref={heading} tabIndex={-1} className="sr-only">{title}</h2>
+        <DynamicTableFilters
+          fields={fields}
+          columns={reloadAction}
+          search={<CollectionSearchField value={search} onChange={(event) => setSearch(event.target.value)}
+            aria-label="Cari unit" placeholder="Cari unit…" />}
+        />
+        {selectedUnit && (
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div className="min-w-0 space-y-1">
+              <p className="wrap-anywhere text-sm font-medium">{selectedUnit.name}</p>
+              {tab === "monitoring" && (
+                <p className="text-sm text-muted-foreground">
+                  {selectedUnit.monitoring.total
+                    ? `${selectedUnit.monitoring.final} dari ${selectedUnit.monitoring.total} final · ${selectedUnit.monitoring.drafts} draf · ${selectedUnit.monitoring.notStarted} belum dimulai`
+                    : "Tidak ada kewajiban pemantauan untuk periode ini."}
+                </p>
               )}
             </div>
-          }
-        />
+            <Button variant="outline" size="sm" onClick={() => { requestFocus((value) => value + 1); setUnitId(""); setStatus("all"); }}>
+              Semua unit dalam filter
+            </Button>
+          </div>
+        )}
         {report && !report.monitoringAvailable && tab === "monitoring" && (
           <p className="text-sm text-muted-foreground">Jendela pemantauan untuk periode ini belum dibuka.</p>
         )}
         <p className="sr-only" role="status">{loading ? "" : `${rows.length} hasil`}</p>
-        {loading ? <CollectionLoadingState message="Memuat progres unit…" /> : (
+        {feedback ?? (loading ? <CollectionLoadingState message="Memuat progres unit…" /> : (
           <ProgressTable
             key={`${report?.cycle}:${allUnits.map(({ id }) => id).join(",")}:${tab}:${unitId}:${search}:${attentionOnly}:${statusFilter}`}
-            label={title} columns={data.columns} rows={rows}
+            label={title} columns={data.columns} rows={rows} numericColumns={data.numericColumns}
             empty={search || attentionOnly || statusFilter !== "all"
               ? "Ubah filter untuk melihat hasil lainnya."
               : "Tidak ada data untuk unit dan periode yang dipilih."}
           />
-        )}
+        ))}
       </TabsContent>
     </Tabs>
   );

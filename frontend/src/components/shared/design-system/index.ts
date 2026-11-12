@@ -97,7 +97,6 @@ export { PageStack } from "./layout/page-stack";
 export { CollectionPageHeader } from "./layout/collection-page-header";
 export { WorkspaceMetrics } from "./layout/workspace-metrics";
 export { ThemePreference } from "./layout/theme-preference";
-export { RiskRegisterCards, type RiskRegisterCardItem } from "./domain/risk-register-cards";
 export { RiskTableIdentity } from "./domain/risk-table-identity";
 export { StandardCard, type StandardCardProps } from "./layout/standard-card";
 export {
@@ -248,7 +247,6 @@ export { PlanningManagementPage } from "@/components/shared/planning-management-
 
 export { SettingsDialog, type SettingsSection } from "./layout/settings-dialog";
 
-export { RiskManagementCondition } from "./domain/risk-management-condition";
 export { RiskConditionCharts } from "./domain/risk-condition-charts";
 
 export { RiskTableScore } from "./domain/risk-table-score";

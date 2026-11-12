@@ -58,6 +58,14 @@ export function shiftReportCycle(cycle: string, delta: number) {
 }
 export const completedReportCycle = (date = businessNow()) =>
   shiftReportCycle(currentReportCycle(date), -1);
+
+export function reportQuarterOptions(current = currentReportCycle()) {
+  const count = (Number(current.slice(0, 4)) - 2000) * 4 + Number(current.slice(-1));
+  return Array.from({ length: count }, (_, index) => {
+    const value = shiftReportCycle(current, -index);
+    return { value, label: index ? value : `${value} · Berjalan` };
+  });
+}
 export function percentage(
   numerator: number,
   denominator: number,
