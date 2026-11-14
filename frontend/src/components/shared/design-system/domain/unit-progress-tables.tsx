@@ -23,7 +23,7 @@ import { ReportEmptyState } from "../reports/report-empty-state";
 
 const tabs = {
   summary: "Rekap",
-  papers: "Kertas Kerja",
+  papers: "KK Pemantauan dan Reviu",
   risks: "Finalisasi Risiko",
   monitoring: "Pemantauan",
   evaluations: "Evaluasi",
@@ -104,7 +104,7 @@ function MitigationProgress({ unit }: { unit: UnitProgressGroup }) {
 
 function summaryTable(units: UnitProgressGroup[], open: OpenDetail): TableData {
   return {
-    columns: ["Unit", "Kertas Kerja", "Finalisasi Risiko", "Pemantauan", "Evaluasi", "Pelaporan Mitigasi", "Perlu tindak lanjut"],
+    columns: ["Unit", "KK Pemantauan dan Reviu", "Finalisasi Risiko", "Pemantauan", "Evaluasi", "Pelaporan Mitigasi", "Perlu tindak lanjut"],
     rows: units.map((unit) => {
       const paper = unit.papers[0];
       const evalDrafts = unit.evaluations.filter((item) => item.status === "draft").length;
@@ -146,7 +146,7 @@ function detailTable(tab: DetailTab, units: UnitProgressGroup[], selected: boole
   switch (tab) {
     case "papers":
       return {
-        columns: ["Unit", "Kertas Kerja", "Status", "Tanda tangan", "Giliran berikutnya", "Diperbarui", actionColumn],
+        columns: ["Unit", "KK Pemantauan dan Reviu", "Status", "Tanda tangan", "Giliran berikutnya", "Diperbarui", actionColumn],
         rows: units.flatMap((unit): Row[] => unit.papers.length ? unit.papers.map((item) => ({
           id: item.id, status: item.status, cells: [
             unit.name, source(`/risk/working-papers/${item.id}`, item.code || item.title),
@@ -294,12 +294,12 @@ export function UnitProgressTables({ report, loading = false, example = false, s
     const isEvaluation = documentTab === "evaluations";
     const label = isEvaluation
       ? `Unduh PDF evaluasi ${item?.code || item?.title || unit.name}`
-      : `Download ${item?.title || item?.code || `kertas kerja ${unit.name}`}`;
+      : `Download ${item?.title || item?.code || `KK Pemantauan dan Reviu ${unit.name}`}`;
 
     return (
       <DocumentDownloadButton
         label={label}
-        title={isEvaluation ? "Unduh PDF evaluasi" : "Download kertas kerja"}
+        title={isEvaluation ? "Unduh PDF evaluasi" : "Download KK Pemantauan dan Reviu"}
         downloading={item ? isDownloadingDocument?.(documentTab, item.id) : false}
         onDownload={item && onDownloadDocument ? () => onDownloadDocument(documentTab, item.id) : undefined}
       />

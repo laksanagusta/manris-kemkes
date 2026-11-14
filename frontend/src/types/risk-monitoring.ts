@@ -3,11 +3,15 @@ import type { Risk, RiskMitigation } from "./risk";
 export type RiskMonitoringStatus = "draft" | "final" | "superseded";
 
 export interface RiskMonitoringDetail {
+  profileVersionId?: string;
+  monitoringPeriodId?: string;
   id: string;
   sourceRiskId: string;
   versionGroupId: string;
   resultRiskId?: string | null;
   assessmentCycle: string;
+  observedAt?: string;
+  observedAtInferred?: boolean;
   status: RiskMonitoringStatus;
   supersededByMonitoringId?: string | null;
   mode: string;

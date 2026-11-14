@@ -47,9 +47,6 @@ func (uc *DeleteMonitoringUseCase) Execute(ctx context.Context, id uuid.UUID, or
 		return nil, errors.ErrMonitoringNotDeletable
 	}
 
-	if !entity.MonitoringWindowOpen(monitoring.AssessmentCycle, uc.now()) {
-		return nil, errors.ErrMonitoringWindowClosed
-	}
 	if err := uc.monitoringRepo.DeleteDraft(ctx, id, orgIDs); err != nil {
 		return nil, err
 	}

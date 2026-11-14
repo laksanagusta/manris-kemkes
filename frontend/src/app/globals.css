@@ -750,6 +750,18 @@ input:is([type="date"], [type="time"], [type="datetime-local"]) {
   box-shadow: var(--surface-shadow-floating);
 }
 
+[data-sonner-toast][data-styled="true"][data-type="success"] [data-icon] {
+  display: flex;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0;
+  margin-right: 0;
+  padding: 0;
+}
+
 /* Card titles and subtitles form one group without an extra vertical gap. */
 [data-slot="card-header"]:has(> [data-slot="card-description"]),
 [data-slot="card-header"] :has(> [data-slot="card-title"] + [data-slot="card-description"]) {
@@ -1700,7 +1712,7 @@ body[data-scroll-locked] [data-component="monitoring-baseline-floating"] {
 [data-slot="slider-thumb"] { transition: box-shadow 150ms var(--ease-out), border-color 150ms var(--ease-out); }
 [data-slot="button"][role="combobox"] > svg:last-child { transition: transform var(--icon-swap-dur) var(--icon-swap-ease); }
 [data-slot="button"][role="combobox"][data-state="open"] > svg:last-child { transform: rotate(180deg); }
-.app-motion-check { --check-y-amount: 6px; --check-blur-from: 2px; --check-rotate-from: 12deg; }
+.app-motion-check { --check-y-amount: 0px; --check-blur-from: 2px; --check-rotate-from: 12deg; }
 /* Motion is disabled at the root, including bespoke feature animations and portals. */
 @media (prefers-reduced-motion: reduce) {
   html *, html *::before, html *::after {

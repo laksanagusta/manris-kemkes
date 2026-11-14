@@ -17,6 +17,7 @@ function buildEvaluationQuery(params?: ListEvaluationsParams) {
   if (params?.organizationGroupId) {
     searchParams.set("organization_group_id", params.organizationGroupId);
   }
+  if (params?.createdDate) searchParams.set("created_date", params.createdDate);
   if (params?.period) searchParams.set("period", params.period);
   if (params?.status) searchParams.set("status", params.status);
   if (params?.query) searchParams.set("query", params.query);

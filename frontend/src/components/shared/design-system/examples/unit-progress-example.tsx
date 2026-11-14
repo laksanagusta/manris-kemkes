@@ -21,7 +21,7 @@ const exampleReport: UnitProgressReport = {
     { ...common, id: "risk-4", code: "R-004", title: "Keterlambatan verifikasi", status: "draft", profileChanged: false },
   ],
   workingPapers: [
-    { ...common, id: "paper-1", code: "KK-2026-Q3-1", title: "Kertas Kerja Triwulan III", status: "signing",
+    { ...common, id: "paper-1", code: "KK-2026-Q3-1", title: "KK Pemantauan dan Reviu Triwulan III", status: "signing",
       signed: 2, signers: 3, nextSigner: "Kepala Unit", tteSkipped: false },
   ],
   evaluations: [

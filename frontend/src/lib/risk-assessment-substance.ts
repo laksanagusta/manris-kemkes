@@ -200,7 +200,7 @@ function normalizeSubstanceValues(
     controlEffectiveness: normalizeText(value?.controlEffectiveness),
     treatmentOption: normalizeTreatmentOption(value?.treatmentOption),
     mitigations:
-      mitigations.length > 0
+      Array.isArray(value?.mitigations)
         ? mitigations
         : singleMitigation
           ? [normalizeMitigation(singleMitigation)]

@@ -3,6 +3,7 @@ package entity
 import (
 	"math"
 	"reflect"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -21,10 +22,14 @@ const (
 )
 
 type RiskMonitoring struct {
+	ProfileVersionID            *uuid.UUID                  `json:"profileVersionId,omitempty"`
+	MonitoringPeriodID          *uuid.UUID                  `json:"monitoringPeriodId,omitempty"`
 	ID                          uuid.UUID                   `json:"id"`
 	VersionGroupID              uuid.UUID                   `json:"versionGroupId"`
 	SourceRiskID                uuid.UUID                   `json:"sourceRiskId"`
 	ResultRiskID                *uuid.UUID                  `json:"resultRiskId,omitempty"`
+	ObservedAtInferred          bool                        `json:"observedAtInferred"`
+	ObservedAt                  string                      `json:"observedAt"`
 	AssessmentCycle             string                      `json:"assessmentCycle"`
 	Status                      string                      `json:"status"`
 	SupersededByMonitoringID    *uuid.UUID                  `json:"supersededByMonitoringId,omitempty"`
@@ -146,7 +151,7 @@ func NewRiskMonitoringDraftPayloadFromRisk(source *Risk) *RiskMonitoringDraftPay
 		ExistingControl:      source.ExistingControl,
 		ControlEffectiveness: source.ControlEffectiveness,
 		TreatmentOption:      source.TreatmentOption,
-		Mitigations:          append([]Mitigation(nil), source.Mitigations...),
+		Mitigations:          slices.Clone(source.Mitigations),
 	}
 }
 
@@ -162,7 +167,7 @@ func NewRiskMonitoringDraftPayloadFromValues(values RiskMonitoringDraftValues) *
 		ExistingControl:      values.ExistingControl,
 		ControlEffectiveness: values.ControlEffectiveness,
 		TreatmentOption:      values.TreatmentOption,
-		Mitigations:          append([]Mitigation(nil), values.Mitigations...),
+		Mitigations:          slices.Clone(values.Mitigations),
 	}
 }
 
@@ -206,7 +211,7 @@ func (m *RiskMonitoring) DraftPayloadSnapshot() *RiskMonitoringDraftPayload {
 		ExistingControl:        m.DraftExistingControl,
 		ControlEffectiveness:   m.DraftControlEffectiveness,
 		TreatmentOption:        m.DraftTreatmentOption,
-		Mitigations:            append([]Mitigation(nil), m.DraftMitigations...),
+		Mitigations:            slices.Clone(m.DraftMitigations),
 	}
 }
 
@@ -225,7 +230,7 @@ func (m *RiskMonitoring) syncDraftFieldsFromPayload() {
 	m.DraftExistingControl = m.DraftPayload.ExistingControl
 	m.DraftControlEffectiveness = m.DraftPayload.ControlEffectiveness
 	m.DraftTreatmentOption = m.DraftPayload.TreatmentOption
-	m.DraftMitigations = append([]Mitigation(nil), m.DraftPayload.Mitigations...)
+	m.DraftMitigations = slices.Clone(m.DraftPayload.Mitigations)
 }
 
 func (p *RiskMonitoringDraftPayload) Clone() *RiskMonitoringDraftPayload {
@@ -235,7 +240,7 @@ func (p *RiskMonitoringDraftPayload) Clone() *RiskMonitoringDraftPayload {
 	clone := *p
 	clone.Cause = append([]string(nil), p.Cause...)
 	clone.ImpactDesc = append([]string(nil), p.ImpactDesc...)
-	clone.Mitigations = append([]Mitigation(nil), p.Mitigations...)
+	clone.Mitigations = slices.Clone(p.Mitigations)
 	return &clone
 }
 

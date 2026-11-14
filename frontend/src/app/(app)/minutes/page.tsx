@@ -1,5 +1,6 @@
 "use client";
 
+import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
 import { formatDisplayDate } from "@/lib/display-date";
 import { useCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
@@ -430,10 +431,11 @@ function MinutesPageContent() {
         <DialogContent showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>Hapus Notulen?</DialogTitle>
-            <DialogDescription>
-              Notulen ini akan dihapus permanen beserta relasinya dengan risiko terkait.
-            </DialogDescription>
+            <DialogDescription>Periksa notulen yang akan dihapus.</DialogDescription>
           </DialogHeader>
+          <ConfirmationConsequences>
+            Notulen ini akan dihapus permanen beserta relasinya dengan risiko terkait.
+          </ConfirmationConsequences>
           <div className="space-y-0.5 py-1 text-sm">
             <p className="font-medium">{minuteToDelete?.title || "Tanpa judul"}</p>
             <p className="font-mono text-xs text-muted-foreground">

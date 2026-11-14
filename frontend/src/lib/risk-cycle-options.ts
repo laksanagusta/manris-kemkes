@@ -34,7 +34,7 @@ export function currentMonitoringCycle(referenceDate = businessNow()) {
 
 export function isCurrentMonitoringCycleAvailable(referenceDate = businessNow()) {
   void referenceDate;
-  return false; // Current-quarter monitoring is never open.
+  return true; // Reporting quarters do not restrict dated observation entry.
 }
 
 export function shiftAssessmentCycle(cycle: string, delta: number) {
@@ -53,7 +53,7 @@ export function getDefaultMonitoringCycle(
   riskEffectiveCycle?: string | null,
 ) {
   void previousCycleStatus;void riskEffectiveCycle;
-  return shiftMonitoringCycle(currentCycle,-1);
+  return currentCycle;
 }
 
 export function isMonitoringCycleAfterPreviousEligible(
@@ -157,14 +157,7 @@ export function getSelectableMonitoringCycles(
 export function getSelectableMonitoringCyclesForDate(
   referenceDate = businessNow(),
 ): AssessmentCycleOption[] {
-  const currentCycle = currentMonitoringCycle(referenceDate);
-  const month=Number(new Intl.DateTimeFormat("en-US",{month:"numeric",timeZone:"Asia/Jakarta"}).format(referenceDate));
-  if((month-1)%3!==0)return [];
-  const cycles = [shiftMonitoringCycle(currentCycle, -1)];
-
-  if (isCurrentMonitoringCycleAvailable(referenceDate)) {
-    cycles.push(currentCycle);
-  }
-
-  return cycles.map((value) => ({ value, label: value }));
+  return getAssessmentCycleFilterOptions(referenceDate)
+    .filter((option) => option.value !== "all")
+    .sort((a, b) => b.value.localeCompare(a.value));
 }

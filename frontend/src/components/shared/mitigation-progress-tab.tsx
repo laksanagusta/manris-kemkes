@@ -127,7 +127,6 @@ export function MitigationProgressTab({
   const notesInputRef = useRef<HTMLTextAreaElement | null>(null);
   const [showValidationErrors, setShowValidationErrors] = useState(false);
   const [submitError, setSubmitError] = useState("");
-  const [reportSent, setReportSent] = useState(false);
   const detailReportAction = detailTask ? getMitigationTaskReportAction(detailTask) : null;
   const detailStatus = detailReportAction?.isOverdue ? "overdue" : detailTask?.status;
   const appliedDraftTaskIdRef = useRef<string | null>(null);
@@ -186,7 +185,6 @@ export function MitigationProgressTab({
       setNotes(draft ? draft.notes : task.notes || "");
       setShowValidationErrors(false);
       setSubmitError("");
-      setReportSent(false);
       setDialogView("form");
       setShowMitigationDialog(true);
     },
@@ -233,7 +231,6 @@ export function MitigationProgressTab({
     trigger: HTMLButtonElement,
   ) => {
     detailTriggerRef.current = trigger;
-    setReportSent(false);
     setDetailTask(task);
     setDialogView("detail");
     setShowMitigationDialog(true);
@@ -265,8 +262,10 @@ export function MitigationProgressTab({
         : await updateTaskReport(token, selectedTask.id, { status: "done", evidenceUrl, notes });
       setDetailTask(updated);
       setSelectedTask(null);
-      setReportSent(true);
+      setShowValidationErrors(false);
       setDialogView("detail");
+      setShowMitigationDialog(false);
+      toast.success("Laporan mitigasi berhasil dikirim.");
       void fetchTasks();
     } catch (error) {
       setSubmitError(error instanceof ApiError && error.status < 500
@@ -427,62 +426,50 @@ export function MitigationProgressTab({
 
   return (
     <>
-      <div className={showTaskList && tasks.length > 0 ? "grid min-w-0 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_280px]" : undefined}>
-        {showTaskList ? (
-          summary && <aside aria-label="Ringkasan pelaporan penanganan" className="order-2 min-w-0 self-start">
-            <div className="rounded-2xl bg-muted/30 px-4 py-3">
-              {summary}
-            </div>
-          </aside>
-        ) : summary}
-
-        {showTaskList && (
-          <div className="order-1 min-w-0 space-y-4">
-            <CollectionTableCard>
-              {tasks.length === 0 ? (
-                <CollectionEmptyState
-                  title="Belum ada task penanganan"
-                  description="Task akan muncul otomatis saat risiko difinalisasi dan setiap mitigasi hanya memiliki satu laporan."
-                />
-              ) : tableTasks.length === 0 ? (
-                <CollectionEmptyState
-                  title="Tidak ada task yang sesuai"
-                  description="Coba ubah kata kunci atau filter pencarian."
-                />
-              ) : (
-                <MitigationTaskTable
-                  tasks={visibleTasks}
-                  readOnly={readOnly}
-                  onOpenDetail={handleOpenDetail}
-                  onReport={(task, trigger) => {
-                    detailTriggerRef.current = trigger;
-                    handleOpenSubmit(task);
-                  }}
-                />
-              )}
-              {tableTasks.length > 0 ? (
-                <CollectionPagination
-                  itemLabel="mitigasi"
-                  page={taskPage}
-                  pageSize={pagination.pageSize}
-                  total={tableTasks.length}
-                  onPageChange={(page) =>
-                    setPagination((current) => ({
-                      ...current,
-                      query: paginationQuery,
-                      page,
-                    }))
-                  }
-                  onPageSizeChange={(pageSize) =>
-                    setPagination({ query: paginationQuery, page: 1, pageSize })
-                  }
-                />
-              ) : null}
-            </CollectionTableCard>
-          </div>
-        )}
-
-      </div>
+      {!showTaskList && summary}
+      {showTaskList && (
+        <CollectionTableCard>
+          {tasks.length === 0 ? (
+            <CollectionEmptyState
+              title="Belum ada task penanganan"
+              description="Task akan muncul otomatis saat risiko difinalisasi dan setiap mitigasi hanya memiliki satu laporan."
+            />
+          ) : tableTasks.length === 0 ? (
+            <CollectionEmptyState
+              title="Tidak ada task yang sesuai"
+              description="Coba ubah kata kunci atau filter pencarian."
+            />
+          ) : (
+            <MitigationTaskTable
+              tasks={visibleTasks}
+              readOnly={readOnly}
+              onOpenDetail={handleOpenDetail}
+              onReport={(task, trigger) => {
+                detailTriggerRef.current = trigger;
+                handleOpenSubmit(task);
+              }}
+            />
+          )}
+          {tableTasks.length > 0 ? (
+            <CollectionPagination
+              itemLabel="mitigasi"
+              page={taskPage}
+              pageSize={pagination.pageSize}
+              total={tableTasks.length}
+              onPageChange={(page) =>
+                setPagination((current) => ({
+                  ...current,
+                  query: paginationQuery,
+                  page,
+                }))
+              }
+              onPageSizeChange={(pageSize) =>
+                setPagination({ query: paginationQuery, page: 1, pageSize })
+              }
+            />
+          ) : null}
+        </CollectionTableCard>
+      )}
 
       <MitigationProgressFlowDialog
         open={showMitigationDialog && (!readOnly || dialogView === "detail")}
@@ -492,7 +479,6 @@ export function MitigationProgressTab({
             setShowValidationErrors(false);
             setSelectedTask(null);
             setSubmitError("");
-            setReportSent(false);
             setDialogView("detail");
           }
         }}
@@ -505,7 +491,6 @@ export function MitigationProgressTab({
         view={dialogView}
         reportTask={detailTask}
         availabilityMessage={detailReportAction?.allowed ? undefined : detailReportAction?.message}
-        reportSent={reportSent}
         submitError={submitError}
         dirty={Boolean(selectedTask && (
           notes !== (selectedTask.notes || "") ||

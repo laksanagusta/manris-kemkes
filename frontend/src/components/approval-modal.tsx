@@ -1,5 +1,6 @@
 "use client";
 
+import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import { useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
@@ -47,7 +48,7 @@ export function ApprovalModal({
     requestType === "assessment"
       ? "Pemantauan"
       : requestType === "working_paper"
-        ? "Kertas Kerja"
+        ? "KK Pemantauan dan Reviu"
         : "Risiko";
 
   const title = isApprove
@@ -142,6 +143,12 @@ export function ApprovalModal({
             )}
           </DialogDescription>
         </DialogHeader>
+
+        <ConfirmationConsequences>
+          {isApprove
+            ? "Persetujuan dan pesan Anda akan dicatat. Proses dilanjutkan sesuai urutan persetujuan; setelah seluruh persetujuan selesai, data menjadi final."
+            : "Penolakan dan pesan Anda akan dicatat. Pengajuan dikembalikan untuk diperbaiki sebelum diajukan kembali."}
+        </ConfirmationConsequences>
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">

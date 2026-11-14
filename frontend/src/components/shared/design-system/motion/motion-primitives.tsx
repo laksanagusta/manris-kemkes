@@ -46,5 +46,14 @@ export function MotionSuccessCheck() {
     void wrapper.offsetWidth;
     wrapper.dataset.state = "in";
   }, []);
-  return <span ref={ref} className="t-success-check app-motion-check" data-state="out" aria-hidden="true"><Check className="size-4" /></span>;
+  return (
+    <span
+      ref={ref}
+      className="t-success-check app-motion-check flex size-5 shrink-0 items-center justify-center rounded-full bg-success text-white"
+      data-state="out"
+      aria-hidden="true"
+    >
+      <Check className="size-3" strokeWidth={3} />
+    </span>
+  );
 }

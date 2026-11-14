@@ -21,7 +21,7 @@ LEFT JOIN LATERAL (
     WHERE rm.version_group_id = r.version_group_id
       AND rm.assessment_cycle = periods.cycle
       AND rm.status IN ('draft', 'final')
-    ORDER BY rm.updated_at DESC, rm.id DESC
+    ORDER BY (rm.status = 'final') DESC, rm.observed_at DESC, rm.finalized_at DESC NULLS LAST, rm.updated_at DESC, rm.id DESC
     LIMIT 1
   ) latest ON true
 ) recent_monitoring ON true

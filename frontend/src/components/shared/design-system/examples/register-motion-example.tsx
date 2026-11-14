@@ -1,5 +1,6 @@
 "use client";
 
+import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -20,7 +21,10 @@ export function RegisterMotionExample() {
         <Dialog>
           <DialogTrigger asChild><Button variant="outline">Buka dialog</Button></DialogTrigger>
           <DialogContent className="register-motion-dialog">
-            <DialogHeader><DialogTitle>Konfirmasi Pemantauan</DialogTitle><DialogDescription>Contoh motion dialog Register Risiko dengan perilaku fokus dan Escape bawaan.</DialogDescription></DialogHeader>
+            <DialogHeader><DialogTitle>Konfirmasi Pemantauan</DialogTitle><DialogDescription>Periksa risiko sebelum memulai pemantauan.</DialogDescription></DialogHeader>
+          <ConfirmationConsequences>
+            Draf pemantauan akan dibuat dari risiko yang dipilih. Rencana mitigasi sebelumnya disalin untuk ditinjau sebelum finalisasi.
+          </ConfirmationConsequences>
             <p className="text-sm">Dialog masuk dengan skala lembut dan keluar lebih cepat.</p>
             <DialogFooter showCloseButton />
           </DialogContent>

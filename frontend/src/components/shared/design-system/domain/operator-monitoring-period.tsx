@@ -15,17 +15,10 @@ export function OperatorMonitoringPeriod({ today }: { today: string }) {
           <AlertTitle className="text-muted-foreground">Periode pemantauan</AlertTitle>
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
             <strong className="font-medium text-foreground">{period.label}</strong>
-            <Badge variant="secondary">{period.isOpen ? "Pengisian dibuka" : "Pengisian ditutup"}</Badge>
+            <Badge variant="secondary">Pencatatan kapan saja</Badge>
           </div>
-          <div className="text-muted-foreground">Periode <span data-date-time="">{period.windowLabel}</span> (WIB)</div>
+          <div className="text-muted-foreground">Kelompok laporan <span data-date-time="">{period.windowLabel}</span> (WIB). Tanggal pengamatan menentukan periode laporan.</div>
         </div>
-        {period.next ? (
-          <div className="min-w-0 flex-[1_1_16rem] space-y-1">
-            <AlertTitle className="text-muted-foreground">Periode berikutnya</AlertTitle>
-            <div className="font-medium text-foreground">{period.next.label}</div>
-            <div className="text-muted-foreground">Periode <span data-date-time="">{period.next.windowLabel}</span> (WIB)</div>
-          </div>
-        ) : null}
       </AlertDescription>
     </Alert>
   );

@@ -60,8 +60,8 @@ async function request<T>(path: string, options: FetchOptions = {}): Promise<T> 
 }
 
 export const api = {
-  get: <T>(path: string, token?: string) =>
-    request<T>(path, { method: "GET", token }),
+  get: <T>(path: string, token?: string, options?: Pick<RequestInit, "signal">) =>
+    request<T>(path, { method: "GET", token, ...options }),
 
   post: <T>(path: string, body: unknown, token?: string) =>
     request<T>(path, {

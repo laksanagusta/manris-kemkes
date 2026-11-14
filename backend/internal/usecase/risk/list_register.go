@@ -22,6 +22,7 @@ type ListRiskRegisterInput struct {
 	OrgIDs           []uuid.UUID
 	Status           string
 	Lifecycle        string
+	Profile          string
 	Category         string
 	MonitoringStatus string
 	AssessmentCycle  string
@@ -48,6 +49,9 @@ func (uc *ListRiskRegisterUseCase) Execute(ctx context.Context, input ListRiskRe
 		input.SortOrder = "desc"
 	}
 	input.Status = canonicalRiskStatus(input.Status)
+	if input.Profile == "" {
+		input.Profile = "active"
+	}
 	if input.MonitoringStatus != "" && input.MonitoringStatus != "all" {
 		if (input.MonitoringStatus != "monitored" && input.MonitoringStatus != "not_monitored") || !IsValidQuarterFormat(input.AssessmentCycle) {
 			return nil, domainerrors.ErrRiskMonitoringFilterInvalid
@@ -71,6 +75,7 @@ func (uc *ListRiskRegisterUseCase) Execute(ctx context.Context, input ListRiskRe
 		OrgIDs:           input.OrgIDs,
 		Status:           input.Status,
 		Lifecycle:        input.Lifecycle,
+		Profile:          input.Profile,
 		Category:         input.Category,
 		AssessmentCycle:  input.AssessmentCycle,
 		MonitoringStatus: input.MonitoringStatus,

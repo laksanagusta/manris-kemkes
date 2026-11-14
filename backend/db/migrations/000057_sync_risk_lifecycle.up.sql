@@ -163,6 +163,7 @@ ALTER TABLE working_paper_risk_exclusions
         CHECK (assessment_cycle ~ '^[0-9]{4}-Q[1-4]$');
 
 DROP INDEX IF EXISTS idx_risk_monitorings_active_draft;
+DROP INDEX IF EXISTS idx_risk_monitorings_source_cycle;
 DROP INDEX IF EXISTS idx_risk_monitorings_finalized_source_cycle;
 DROP INDEX IF EXISTS idx_risk_monitorings_final_source_cycle;
 DROP INDEX IF EXISTS uq_risk_monitorings_group_cycle_active;

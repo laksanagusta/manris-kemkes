@@ -105,7 +105,7 @@ const requestTypeConfig: Record<
   },
   working_paper: {
     icon: FileSignature,
-    label: "Kertas Kerja",
+    label: "KK Pemantauan dan Reviu",
     href: (id) => `/risk/working-papers/${id}`,
   },
 };

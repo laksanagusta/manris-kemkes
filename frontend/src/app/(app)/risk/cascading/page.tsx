@@ -1,4 +1,5 @@
 "use client";
+import { ActionConfirmationDialog } from "@/components/shared/design-system/actions/action-confirmation-dialog";
 import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
 import { useCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
 import { newestCreatedFirst } from "@/lib/collection-created-at";
@@ -85,6 +86,7 @@ export default function RiskCascadingPage() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [deletingItem, setDeletingItem] = useState<RiskCascadeRecord | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [createCascadeType, setCreateCascadeType] =
     useState<RiskCascadeType>("bottom_up_escalation");
@@ -222,13 +224,6 @@ export default function RiskCascadingPage() {
 
   const handleDelete = async (item: RiskCascadeRecord) => {
     if (!token) return;
-    if (
-      !window.confirm(
-        "Hapus draft eskalasi ini? Aksi ini tidak bisa dibatalkan.",
-      )
-    ) {
-      return;
-    }
     try {
       await deleteRiskCascade(token, item.id);
       toast.success("Draft eskalasi dihapus.");
@@ -237,6 +232,7 @@ export default function RiskCascadingPage() {
       const message =
         err instanceof Error ? err.message : "Gagal menghapus eskalasi.";
       toast.error(message);
+      return false;
     }
   };
 
@@ -387,7 +383,7 @@ export default function RiskCascadingPage() {
                                   : undefined
                               }
                               onDelete={
-                                canDelete ? () => handleDelete(item) : undefined
+                                canDelete ? () => setDeletingItem(item) : undefined
                               }
                             />
                             {!canReview && !canDelete && (
@@ -435,6 +431,14 @@ export default function RiskCascadingPage() {
         cascade={decisionItem}
         onSaved={loadData}
       />
+      <ActionConfirmationDialog
+        open={Boolean(deletingItem)} onOpenChange={(open) => { if (!open) setDeletingItem(null); }}
+        title="Hapus draf eskalasi?" description={deletingItem ? formatCascadeTitle(deletingItem) : "Periksa draf eskalasi yang akan dihapus."}
+        confirmLabel="Hapus draf eskalasi" variant="destructive"
+        onConfirm={() => deletingItem ? handleDelete(deletingItem) : false}
+      >
+        Draf eskalasi beserta isinya akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.
+      </ActionConfirmationDialog>
     </PageStack>
   );
 }

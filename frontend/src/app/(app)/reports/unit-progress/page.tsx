@@ -148,10 +148,10 @@ function UnitProgressContent({ token, user }: {
           import("@/lib/working-paper-export"),
         ]);
         await exportWorkingPaper(paper);
-        toast.success("Kertas kerja berhasil diunduh.");
+        toast.success("KK Pemantauan dan Reviu berhasil diunduh.");
       }
     } catch (error) {
-      toast.error(reportErrorMessage(error, tab === "evaluations" ? "Gagal mengunduh PDF evaluasi." : "Gagal mengunduh kertas kerja."));
+      toast.error(reportErrorMessage(error, tab === "evaluations" ? "Gagal mengunduh PDF evaluasi." : "Gagal mengunduh KK Pemantauan dan Reviu."));
     } finally {
       setDownloadingDocuments((documents) => {
         const next = new Set(documents);

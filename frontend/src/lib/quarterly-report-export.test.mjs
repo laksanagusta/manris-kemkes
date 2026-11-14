@@ -13,7 +13,7 @@ async function compileModule(name) {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2020 },
   }).outputText;
   for (const match of [...compiled.matchAll(/(["'])(\.\/[^"']+)\1/g)]) {
-    compiled = compiled.replaceAll(match[0], JSON.stringify(await compileModule(`${match[2]}.ts`)));
+    compiled = compiled.replaceAll(match[0], JSON.stringify(await compileModule(/\.[jt]s$/.test(match[2]) ? match[2].replace(/\.js$/, ".ts") : `${match[2]}.ts`)));
   }
   compiled = compiled.replaceAll('"exceljs"', JSON.stringify(pathToFileURL(require.resolve("exceljs")).href));
   const url = `data:text/javascript;base64,${Buffer.from(compiled).toString("base64")}`;
@@ -91,11 +91,11 @@ test("Risiko matches the working-paper 25-column assessment table and preserves 
 });
 
 
-test("data export matches the supplied flat 27-column layout while assessment remains the default", async () => {
+test("data export matches the supplied flat layout with observation dates while assessment remains the default", async () => {
   const report = { cycle: "2026-Q3", comparisonCycle: "2026-Q2", generatedAt: "2026-11-01", warnings: [],
     organizations: [{ id: "u1", name: "Unit A" }], previousRisks: [], tasks: [], events: [],
     risks: [{ id: "r1", versionGroupId: "family1", title: "=1+1", code: "R-001", orgName: "Unit A", organizationId: "u1", assessmentCycle: "2026-Q3",
-      nilai: 18.56, monitoringObservedNilai: 19, monitoringStatus: "final", monitoringAssessmentCycle: "2026-Q3", targetNilai: 3.51, targetProbability: 3, targetImpact: 1, targetWeight: 1.17, probability: 4, impact: 4, weight: 1.16 }],
+      nilai: 18.56, monitoringObservedNilai: 19, monitoringObservedAt: "2026-09-25", monitoringObservedAtInferred: true, monitoringStatus: "final", monitoringAssessmentCycle: "2026-Q3", targetNilai: 3.51, targetProbability: 3, targetImpact: 1, targetWeight: 1.17, probability: 4, impact: 4, weight: 1.16 }],
   };
   const output = await createQuarterlyReportWorkbook(report, "data");
   const normal = await createQuarterlyReportWorkbook(report);
@@ -104,8 +104,10 @@ test("data export matches the supplied flat 27-column layout while assessment re
   await restored.xlsx.load(await output.xlsx.writeBuffer());
   assert.deepEqual(restored.worksheets.map(sheet => sheet.name), ["Ringkasan", "Perbandingan unit", "Risiko", "Tugas mitigasi", "Kejadian"]);
   const sheet = restored.getWorksheet("Risiko");
-  assert.deepEqual(sheet.getRow(1).values.slice(1), ["Risiko", "Kode", "Unit", "Periode profil", "Nilai profil", "Profil pembanding", "Perubahan", "Di atas selera", "Pemantauan final", "Nilai observasi", "Nilai target", "Pencapaian target", "Perhatian", "Diarsipkan dalam periode", "Deskripsi", "Kategori", "Sebab", "Dampak", "P", "D", "Bobot", "Target P", "Target D", "Target bobot", "Jadwal pelaksanaan", "ID", "Kelompok versi"]);
-  assert.equal(sheet.columnCount, 27);
+  assert.deepEqual(sheet.getRow(1).values.slice(1), ["Risiko", "Kode", "Unit", "Periode profil", "Nilai profil", "Profil pembanding", "Perubahan", "Di atas selera", "Pemantauan final", "Nilai observasi", "Nilai target", "Pencapaian target", "Perhatian", "Diarsipkan dalam periode", "Deskripsi", "Kategori", "Sebab", "Dampak", "P", "D", "Bobot", "Target P", "Target D", "Target bobot", "Jadwal pelaksanaan", "ID", "Kelompok versi", "Tanggal pemantauan", "Tanggal perkiraan data lama"]);
+  assert.equal(sheet.columnCount, 29);
+  assert.equal(sheet.getCell("AB2").value, "2026-09-25");
+  assert.equal(sheet.getCell("AC2").value, true);
   assert.equal(sheet.getCell("A2").value, "=1+1");
   assert.equal(sheet.getCell("C2").value, "Unit A");
   assert.equal(sheet.getCell("E2").value, 18.56);

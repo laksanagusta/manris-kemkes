@@ -12,6 +12,7 @@ type RiskRegisterFilter struct {
 	OrgIDs           []uuid.UUID
 	Status           string
 	Lifecycle        string
+	Profile          string
 	Category         string
 	MonitoringStatus string
 	AssessmentCycle  string

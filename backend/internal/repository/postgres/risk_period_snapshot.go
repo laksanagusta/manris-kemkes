@@ -33,7 +33,6 @@ const riskPeriodSnapshotCTE = quarterlyLifecycleCTE + `, period_cutoff AS (
     WHERE r.status = 'final'
       AND r.superseded_by_risk_id IS NULL
       AND ` + riskEffectiveAtSQL + ` < p.cutoff
-      AND (r.finalized_at IS NULL OR r.finalized_at < p.cutoff)
 ), selected_profiles AS (
     SELECT DISTINCT ON (version_group_id) *
     FROM effective_profiles

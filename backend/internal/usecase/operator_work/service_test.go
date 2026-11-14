@@ -24,7 +24,7 @@ func TestBuildItems(t *testing.T) {
 		{"current monitoring previous final", Candidate{Item: entity.OperatorWorkItem{Kind: "monitoring_start", Period: "2026-Q4"}, EffectiveCycle: "2026-Q2", PreviousStatus: "final"}, 0},
 		{"current monitoring previous missing", Candidate{Item: entity.OperatorWorkItem{Kind: "monitoring_start", Period: "2026-Q4"}, EffectiveCycle: "2026-Q2"}, 0},
 		{"new current risk", Candidate{Item: entity.OperatorWorkItem{Kind: "monitoring_start", Period: "2026-Q4"}, EffectiveCycle: "2026-Q4"}, 0},
-		{"previous missed draft does not block open quarter", Candidate{Item: entity.OperatorWorkItem{Kind: "monitoring_start", Period: "2026-Q3"}, EffectiveCycle: "2026-Q2", PreviousStatus: "draft"}, 1},
+		{"missing quarter does not create an obligation", Candidate{Item: entity.OperatorWorkItem{Kind: "monitoring_start", Period: "2026-Q3"}, EffectiveCycle: "2026-Q2", PreviousStatus: "draft"}, 0},
 		{"unit monitoring draft", Candidate{Item: entity.OperatorWorkItem{Kind: "monitoring_draft", Period: "2026-Q3"}, OwnerID: &other}, 1},
 		{"before effective", Candidate{Item: entity.OperatorWorkItem{Kind: "monitoring_start", Period: "2026-Q3"}, EffectiveCycle: "2026-Q4"}, 0},
 	}
@@ -51,12 +51,12 @@ func TestBuildItemsDeduplicatesAndOrders(t *testing.T) {
 	}
 }
 
-func TestPreviousQuarterWindowUsesFirstMonthJakarta(t *testing.T) {
+func TestMissingQuarterNeverCreatesMonitoringWork(t *testing.T) {
 	c := Candidate{Item: entity.OperatorWorkItem{Key: "q3", Kind: "monitoring_start", Period: "2026-Q3"}, EffectiveCycle: "2026-Q3"}
 	for _, tt := range []struct {
 		at   string
 		want int
-	}{{"2026-09-30T16:59:59Z", 0}, {"2026-09-30T17:00:00Z", 1}, {"2026-10-31T17:00:00Z", 0}} {
+	}{{"2026-09-30T16:59:59Z", 0}, {"2026-09-30T17:00:00Z", 0}, {"2026-10-31T17:00:00Z", 0}} {
 		t.Run(tt.at, func(t *testing.T) {
 			at, err := time.Parse(time.RFC3339, tt.at)
 			if err != nil {

@@ -1,5 +1,7 @@
 "use client";
 
+import { ActionConfirmationDialog } from "@/components/shared/design-system/actions/action-confirmation-dialog";
+import { useRouter } from "next/navigation";
 import { createDisplayDateFormatter } from "@/lib/display-date";
 import { useEffect, useRef, useState } from "react";
 import type { RiskEventNote } from "@/types/risk-event";
@@ -12,6 +14,8 @@ export function RiskEventNotes({ notes, canWrite, loading, error, onReload, onSa
   onSave: (body: string, requestId: string) => Promise<void>;
   draftKey?: string;
 }) {
+  const router = useRouter();
+  const [leaveHref, setLeaveHref] = useState<string | null>(null);
   const [editing, setEditing] = useState(false);
   const [body, setBody] = useState("");
   const [saving, setSaving] = useState(false);
@@ -47,7 +51,9 @@ export function RiskEventNotes({ notes, canWrite, loading, error, onReload, onSa
       if (!anchor || anchor.target === "_blank") return;
       const target = new URL(anchor.href, window.location.href);
       if (target.origin !== window.location.origin || target.pathname + target.search === location.pathname + location.search) return;
-      if (!window.confirm("Catatan belum disimpan. Tetap tinggalkan halaman?")) {event.preventDefault();event.stopPropagation();}
+      event.preventDefault();
+      event.stopPropagation();
+      setLeaveHref(target.pathname + target.search + target.hash);
     }
     window.addEventListener("beforeunload", unload);
     document.addEventListener("click", leave, true);
@@ -69,5 +75,12 @@ export function RiskEventNotes({ notes, canWrite, loading, error, onReload, onSa
       {canWrite && !editing ? <ActionButton onClick={() => setEditing(true)}>Tambah catatan</ActionButton> : null}
       {canWrite && editing ? <div className="space-y-3"><Label htmlFor="event-note">Catatan</Label><p id="event-note-help" className="text-xs text-muted-foreground">Jelaskan koreksi atau informasi tambahan. Catatan awal tetap tersimpan.</p><Textarea id="event-note" value={body} maxLength={2000} disabled={saving} aria-describedby="event-note-help" onChange={event => setBody(event.target.value)} />{saveError ? <p role="alert" className="text-sm text-destructive">{saveError}</p> : null}<div className="flex gap-2"><ActionButton loading={saving} disabled={saving || !body.trim()} onClick={() => void save()}>Simpan</ActionButton><ActionButton disabled={saving} onClick={() => {setEditing(false);setBody("");setSaveError("");request.current=null;}}>Batal</ActionButton></div></div> : null}
     </div>
+    <ActionConfirmationDialog
+      open={Boolean(leaveHref)} onOpenChange={(open) => { if (!open) setLeaveHref(null); }}
+      title="Tinggalkan catatan yang belum disimpan?" description="Catatan ini belum ditambahkan ke riwayat kejadian."
+      confirmLabel="Tinggalkan halaman" onConfirm={() => { if (leaveHref) router.push(leaveHref); }}
+    >
+      Catatan belum dikirim dan tidak akan muncul dalam riwayat kejadian. Kembali ke formulir dan pilih Simpan untuk menambahkannya ke riwayat.
+    </ActionConfirmationDialog>
   </details>;
 }

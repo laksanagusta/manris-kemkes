@@ -4,9 +4,35 @@ import { useCallback, useEffect, useState } from "react";
 
 import { ActionButton, IllustratedEmptyState } from "@/components/shared/design-system";
 import { MonitoringTreatmentReports } from "@/components/shared/design-system/domain/monitoring-treatment-reports";
+import { MonitoringEvidence, type MonitoringEvidenceResult } from "@/components/shared/design-system/domain/monitoring-evidence";
+import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 import { getMitigationTask, listMonitoringTasks } from "@/lib/api/mitigation-tasks";
 import type { MitigationTask } from "@/types/risk";
+
+export function FinalMonitoringEvidence({ monitoringId }: { monitoringId: string }) {
+  const { token } = useAuth();
+  const [result, setResult] = useState<MonitoringEvidenceResult | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    if (!token) return;
+    let active = true;
+    api.get<MonitoringEvidenceResult>(`/risk-monitorings/${encodeURIComponent(monitoringId)}/evidence`, token)
+      .then((data) => { if (active) setResult(data); })
+      .catch(() => { if (active) setError("Bukti saat finalisasi belum dapat dimuat."); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [monitoringId, token, attempt]);
+
+  return <MonitoringEvidence result={result} loading={loading} error={error} onRefresh={() => {
+    setLoading(true);
+    setError("");
+    setAttempt((value) => value + 1);
+  }} />;
+}
 
 export function MitigationStatusTable({ monitoringId }: { monitoringId: string }) {
   const { token } = useAuth();

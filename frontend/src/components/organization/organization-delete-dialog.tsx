@@ -1,5 +1,6 @@
 "use client";
 
+import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import { useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
@@ -69,15 +70,16 @@ export function OrganizationDeleteDialog({
             </div>
             <DialogTitle className="text-lg">Hapus organisasi</DialogTitle>
           </div>
-          <DialogDescription>
-            Tindakan ini akan menghapus organisasi terpilih secara permanen.
-            {organization?.name && (
-              <span className="block mt-1 font-medium text-foreground">
-                &ldquo;{organization.name}&rdquo;
-              </span>
-            )}
-          </DialogDescription>
+          <DialogDescription>Periksa organisasi yang akan dihapus.</DialogDescription>
         </DialogHeader>
+        <ConfirmationConsequences>
+          Organisasi terpilih akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.
+          {organization?.name && (
+            <span className="block mt-1 font-medium text-foreground">
+              &ldquo;{organization.name}&rdquo;
+            </span>
+          )}
+        </ConfirmationConsequences>
 
         <DialogFooter>
           <Button

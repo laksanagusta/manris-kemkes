@@ -265,6 +265,7 @@ func TestStartMonitoringUseCase_RejectsCycleBeforeRiskEffectiveCycle(t *testing.
 		VersionGroupID:  uuid.New(),
 		IsCurrent:       true,
 		AssessmentCycle: "2026-Q2",
+		CreatedAt:       time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC),
 		OrganizationID:  &orgID,
 		Probability:     3,
 		Impact:          3,
@@ -282,13 +283,14 @@ func TestStartMonitoringUseCase_RejectsCycleBeforeRiskEffectiveCycle(t *testing.
 	_, err := uc.Execute(context.Background(), StartMonitoringInput{
 		SourceRiskID: sourceID,
 		Cycle:        "2026-Q1",
+		ObservedAt:   "2026-02-05",
 		OrgIDs:       []uuid.UUID{orgID},
 		StartedBy:    uuid.New(),
 	})
 	if !errors.Is(err, domainerrors.ErrInvalidInput) {
 		t.Fatalf("expected effective-cycle guard, got %v", err)
 	}
-	if got, want := err.Error(), "Periode pemantauan tidak boleh lebih awal dari periode efektif risiko. Pilih periode yang sama atau lebih baru."; got != want {
+	if got, want := err.Error(), "Tanggal pemantauan tidak boleh mendahului tanggal mulai berlaku risiko."; got != want {
 		t.Fatalf("expected actionable effective-cycle message %q, got %q", want, got)
 	}
 }
@@ -509,8 +511,8 @@ func TestFinalizeMonitoringUseCase_BuildsRiskVersion(t *testing.T) {
 	if resultRisk.ReviewStartedAt == nil {
 		t.Fatalf("expected review started at to be set")
 	}
-	if resultRisk.AssessmentCycle != "2026-Q3" {
-		t.Fatalf("expected result risk assessment cycle 2026-Q3, got %q", resultRisk.AssessmentCycle)
+	if resultRisk.AssessmentCycle != "2026-Q2" {
+		t.Fatalf("expected result risk assessment cycle 2026-Q2, got %q", resultRisk.AssessmentCycle)
 	}
 }
 
@@ -561,15 +563,15 @@ func TestFinalizeMonitoringUseCase_BuildsRiskVersionForScoreOnlyMonitoring(t *te
 	if result.VersionNumber != 5 || result.Probability != 2 || result.Impact != 3 {
 		t.Fatalf("expected next version with observed score, got version=%d score=%d/%d", result.VersionNumber, result.Probability, result.Impact)
 	}
-	if result.AssessmentCycle != "2026-Q4" {
-		t.Fatalf("expected Q3 observation to produce Q4 profile, got %q", result.AssessmentCycle)
+	if result.AssessmentCycle != "2026-Q3" {
+		t.Fatalf("expected Q3 observation to retain Q3 group, got %q", result.AssessmentCycle)
 	}
 	if len(result.Mitigations) != 1 || result.Mitigations[0].Action != "Perbaiki prosedur" {
 		t.Fatalf("expected mitigation retained in next profile, got %#v", result.Mitigations)
 	}
 }
 
-func TestMonitoringResultsBecomeFollowingQuarterProfiles(t *testing.T) {
+func TestMonitoringResultsRetainObservationQuarter(t *testing.T) {
 	source := &entity.Risk{
 		ID:              uuid.New(),
 		VersionGroupID:  uuid.New(),
@@ -591,8 +593,8 @@ func TestMonitoringResultsBecomeFollowingQuarterProfiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if q2Profile.AssessmentCycle != "2026-Q2" || q2Profile.GetEffectiveScore() != 24 {
-		t.Fatalf("Q1 monitoring should produce Q2 profile score 24, got %s/%d", q2Profile.AssessmentCycle, q2Profile.GetEffectiveScore())
+	if q2Profile.AssessmentCycle != "2026-Q1" || q2Profile.GetEffectiveScore() != 24 {
+		t.Fatalf("Q1 monitoring should retain Q1 group and score 24, got %s/%d", q2Profile.AssessmentCycle, q2Profile.GetEffectiveScore())
 	}
 
 	q2Profile.ID = uuid.New()
@@ -603,7 +605,7 @@ func TestMonitoringResultsBecomeFollowingQuarterProfiles(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if q3Profile.AssessmentCycle != "2026-Q3" || q3Profile.GetEffectiveScore() != 23 {
-		t.Fatalf("Q2 monitoring should produce Q3 profile score 23, got %s/%d", q3Profile.AssessmentCycle, q3Profile.GetEffectiveScore())
+	if q3Profile.AssessmentCycle != "2026-Q2" || q3Profile.GetEffectiveScore() != 23 {
+		t.Fatalf("Q2 monitoring should retain Q2 group and score 23, got %s/%d", q3Profile.AssessmentCycle, q3Profile.GetEffectiveScore())
 	}
 }

@@ -127,12 +127,22 @@ func previousApprovedWorkingPaperJoinExpr() string {
 	) prev_risk ON TRUE`
 }
 
+const workingPaperObservationScopeSQL = `rm.superseded_by_monitoring_id IS NULL AND (
+ (wp.profile_version_id IS NULL AND rm.assessment_cycle = wp.assessment_cycle)
+ OR (wp.profile_version_id IS NOT NULL AND rm.observed_at<=wp.observation_cutoff
+ AND (wp.monitoring_period_id IS NULL OR (rm.monitoring_period_id=wp.monitoring_period_id AND rm.monitoring_profile_id=wp.monitoring_profile_id)) AND EXISTS (
+   SELECT 1 FROM annual_risk_profile_members member
+   WHERE member.profile_version_id=wp.profile_version_id AND member.version_group_id=rm.version_group_id
+     AND rm.observed_at>=member.effective_from
+ )))`
+
 func workingPaperMonitoringExpr() string {
 	return `LEFT JOIN LATERAL (
 		SELECT
 			rm.id,
 			rm.status,
 			rm.assessment_cycle,
+			rm.observed_at, rm.observed_at_inferred,
 			rm.source_probability,
 			rm.source_impact,
 			rm.source_weight,
@@ -151,9 +161,9 @@ func workingPaperMonitoringExpr() string {
 		FROM risk_monitorings rm
 		JOIN risks monitoring_source ON monitoring_source.id = rm.source_risk_id
 		WHERE monitoring_source.version_group_id = risk.version_group_id
-		  AND rm.assessment_cycle = wp.assessment_cycle
+		  AND ` + workingPaperObservationScopeSQL + `
 		  AND rm.status IN ('draft', 'final')
-		ORDER BY CASE rm.status WHEN 'final' THEN 0 ELSE 1 END, rm.updated_at DESC, rm.id DESC
+		ORDER BY CASE rm.status WHEN 'final' THEN 0 ELSE 1 END, rm.observed_at DESC, rm.finalized_at DESC NULLS LAST, rm.updated_at DESC, rm.id DESC
 		LIMIT 1
 	) monitoring ON TRUE`
 }
@@ -228,6 +238,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		       monitoring.id,
 		       COALESCE(monitoring.status, ''),
 		       COALESCE(monitoring.assessment_cycle, ''),
+		       COALESCE(monitoring.observed_at::text, ''), COALESCE(monitoring.observed_at_inferred, false),
 		       COALESCE(monitoring.source_probability, 0),
 		       COALESCE(monitoring.source_impact, 0),
 		       COALESCE(monitoring.source_weight, 0),
@@ -275,7 +286,8 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		var prevCause, prevImpactDesc []string
 		var prevRiskSource, prevControllability string
 		var monitoringID *uuid.UUID
-		var monitoringStatus, monitoringCycle string
+		var monitoringStatus, monitoringCycle, monitoringObservedAt string
+		var monitoringObservedAtInferred bool
 		var monitoringSourceProbability, monitoringSourceImpact int
 		var monitoringSourceWeight, monitoringSourceNilai float64
 		var monitoringSourceLevel string
@@ -362,6 +374,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 			&monitoringID,
 			&monitoringStatus,
 			&monitoringCycle,
+			&monitoringObservedAt, &monitoringObservedAtInferred,
 			&monitoringSourceProbability,
 			&monitoringSourceImpact,
 			&monitoringSourceWeight,
@@ -431,9 +444,10 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 			}
 
 			link.Risk.Monitoring = &entity.WorkingPaperRiskMonitoring{
-				ID:                          *monitoringID,
-				Status:                      monitoringStatus,
-				AssessmentCycle:             monitoringCycle,
+				ID:              *monitoringID,
+				Status:          monitoringStatus,
+				AssessmentCycle: monitoringCycle,
+				ObservedAt:      monitoringObservedAt, ObservedAtInferred: monitoringObservedAtInferred,
 				SourceProbability:           monitoringSourceProbability,
 				SourceImpact:                monitoringSourceImpact,
 				SourceWeight:                monitoringSourceWeight,
@@ -525,8 +539,8 @@ func (r *workingPaperRepository) getSignatoriesByWorkingPaperID(ctx context.Cont
 }
 
 func (r *workingPaperRepository) loadWorkingPaper(ctx context.Context, q workingPaperReader, id uuid.UUID, forUpdate bool) (*entity.WorkingPaper, error) {
-	query := `SELECT id, sequence_no, code, title, org_id, status, assessment_cycle, document_hash, current_signatory_sequence, created_by,
-	        created_at, updated_at, completed_at, cancelled_at, tte_skipped, signing_snapshot
+	query := `SELECT id, sequence_no, code, title, org_id, status, assessment_cycle, COALESCE(document_hash,''), current_signatory_sequence, created_by,
+	        created_at, updated_at, completed_at, cancelled_at, tte_skipped, signing_snapshot, profile_version_id, COALESCE(observation_cutoff::text,''),monitoring_period_id
 	 FROM working_papers
 	 WHERE id = $1`
 	if forUpdate {
@@ -537,7 +551,7 @@ func (r *workingPaperRepository) loadWorkingPaper(ctx context.Context, q working
 	err := q.QueryRow(ctx, query, id).Scan(
 		&wp.ID, &wp.SequenceNo, &wp.Code, &wp.Title, &wp.OrgID, &wp.Status, &wp.AssessmentCycle,
 		&wp.DocumentHash, &wp.CurrentSignatorySequence, &wp.CreatedBy,
-		&wp.CreatedAt, &wp.UpdatedAt, &wp.CompletedAt, &wp.CancelledAt, &wp.TTESkipped, &wp.SigningSnapshot,
+		&wp.CreatedAt, &wp.UpdatedAt, &wp.CompletedAt, &wp.CancelledAt, &wp.TTESkipped, &wp.SigningSnapshot, &wp.ProfileVersionID, &wp.ObservationCutoff, &wp.MonitoringPeriodID,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("get working paper by id: %w", err)
@@ -723,14 +737,15 @@ func (r *workingPaperRepository) GetByID(ctx context.Context, id uuid.UUID) (*en
 
 // List retrieves working papers with optional filters and pagination
 func (r *workingPaperRepository) List(ctx context.Context, orgIDs []uuid.UUID, status, query, assessmentCycle, createdAt string, page, limit int) ([]*entity.WorkingPaper, int, error) {
-	return r.ListSorted(ctx, orgIDs, status, query, assessmentCycle, createdAt, page, limit, "", "")
+	return r.ListSorted(ctx, orgIDs, status, query, assessmentCycle, createdAt, "", page, limit, "", "")
 }
 
-func (r *workingPaperRepository) ListSorted(ctx context.Context, orgIDs []uuid.UUID, status, query, assessmentCycle, createdAt string, page, limit int, sortBy, sortOrder string) ([]*entity.WorkingPaper, int, error) {
+func (r *workingPaperRepository) ListSorted(ctx context.Context, orgIDs []uuid.UUID, status, query, assessmentCycle, createdAt, observationCutoff string, page, limit int, sortBy, sortOrder string) ([]*entity.WorkingPaper, int, error) {
 	countQuery := `SELECT COUNT(*) FROM working_papers WHERE 1=1`
 	dataQuery := `SELECT id, sequence_no, code, title, org_id, status, assessment_cycle,
 	                     document_hash, current_signatory_sequence, created_by,
-	                     created_at, updated_at, completed_at, cancelled_at, tte_skipped, signing_snapshot
+	                     created_at, updated_at, completed_at, cancelled_at, tte_skipped, signing_snapshot,
+	                     profile_version_id, COALESCE(observation_cutoff::text,''),monitoring_period_id
 	              FROM working_papers WHERE 1=1`
 
 	args := []interface{}{}
@@ -776,13 +791,21 @@ func (r *workingPaperRepository) ListSorted(ctx context.Context, orgIDs []uuid.U
 		argIdx++
 	}
 
+	if observationCutoff != "" {
+		filter := fmt.Sprintf(" AND observation_cutoff = $%d::date", argIdx)
+		countQuery += filter
+		dataQuery += filter
+		args = append(args, observationCutoff)
+		argIdx++
+	}
+
 	var total int
 	if err := r.pool.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("list working papers count: %w", err)
 	}
 
 	offset := (page - 1) * limit
-	dataQuery += " ORDER BY " + collectionOrderBy(sortBy, sortOrder, "created_at", "id", map[string]string{"created_at": "created_at", "title": "title", "assessment_cycle": "assessment_cycle", "status": "status", "risk_count": "(SELECT COUNT(*) FROM working_paper_risks wpr WHERE wpr.working_paper_id=working_papers.id)"})
+	dataQuery += " ORDER BY " + collectionOrderBy(sortBy, sortOrder, "created_at", "id", map[string]string{"created_at": "created_at", "title": "title", "assessment_cycle": "assessment_cycle", "observation_cutoff": "observation_cutoff", "status": "status", "risk_count": "(SELECT COUNT(*) FROM working_paper_risks wpr WHERE wpr.working_paper_id=working_papers.id)"})
 	dataQuery += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
 	args = append(args, limit, offset)
 
@@ -799,13 +822,9 @@ func (r *workingPaperRepository) ListSorted(ctx context.Context, orgIDs []uuid.U
 		if err := rows.Scan(
 			&wp.ID, &wp.SequenceNo, &wp.Code, &wp.Title, &wp.OrgID, &wp.Status, &wp.AssessmentCycle,
 			&wp.DocumentHash, &wp.CurrentSignatorySequence, &wp.CreatedBy,
-			&wp.CreatedAt, &wp.UpdatedAt, &wp.CompletedAt, &wp.CancelledAt, &wp.TTESkipped, &wp.SigningSnapshot,
+			&wp.CreatedAt, &wp.UpdatedAt, &wp.CompletedAt, &wp.CancelledAt, &wp.TTESkipped, &wp.SigningSnapshot, &wp.ProfileVersionID, &wp.ObservationCutoff, &wp.MonitoringPeriodID,
 		); err != nil {
 			return nil, 0, fmt.Errorf("list working papers scan: %w", err)
-		}
-
-		if err := r.loadWorkingPaperContent(ctx, r.pool, wp); err != nil {
-			return nil, 0, fmt.Errorf("list working papers load content: %w", err)
 		}
 
 		papers = append(papers, wp)
@@ -813,6 +832,13 @@ func (r *workingPaperRepository) ListSorted(ctx context.Context, orgIDs []uuid.U
 
 	if err := rows.Err(); err != nil {
 		return nil, 0, fmt.Errorf("list working papers rows: %w", err)
+	}
+
+	rows.Close()
+	for _, wp := range papers {
+		if err := r.loadWorkingPaperContent(ctx, r.pool, wp); err != nil {
+			return nil, 0, fmt.Errorf("list working papers load content: %w", err)
+		}
 	}
 
 	return papers, total, nil

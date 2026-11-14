@@ -11,7 +11,7 @@ export const documentationExampleArticle: DocumentationArticle = {
       { title: "Penanganan", detail: "Susun dan laporkan mitigasi." },
       { title: "Pemantauan", detail: "Nilai kondisi setiap periode." },
     ] },
-    { id: "contoh-detail", title: "Tinjau detail dokumen", image: { src: "/documentation/screens/working-paper-detail.png", alt: "Detail Kertas Kerja dengan perubahan skor risiko, ringkasan, progres pemantauan dan histori tanda tangan", caption: "Screenshot yang diberikan pengguna merupakan snapshot. Nama, skor, periode, dan histori tanda tangan mengikuti dokumen serta akses akun.", width: 3420, height: 1904 } },
+    { id: "contoh-detail", title: "Tinjau detail dokumen", image: { src: "/documentation/screens/working-paper-detail.png", alt: "Detail KK Pemantauan dan Reviu dengan perubahan skor risiko, ringkasan, progres pemantauan dan histori tanda tangan", caption: "Screenshot yang diberikan pengguna merupakan snapshot. Nama, skor, periode, dan histori tanda tangan mengikuti dokumen serta akses akun.", width: 3420, height: 1904 } },
     { id: "contoh-video", title: "Video panduan", video: { youtubeId: "IXlINKzRdQk", title: "Video panduan penggunaan Manrisk", caption: "Video YouTube yang disediakan untuk panduan Manrisk." } },
     { id: "contoh-langkah", title: "Ikuti langkah penggunaan", steps: [
       { title: "Pilih panduan dari sidebar", detail: "Menu mengikuti tampilan navigasi aplikasi. Setiap topik memiliki alamat artikelnya sendiri. Panduan API key tersedia sebagai menu tersendiri dalam kelompok Integrasi." },

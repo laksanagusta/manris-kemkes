@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
+import { HeaderActionsProvider } from "@/lib/header-actions-context";
 
 function AppRouteFallback() {
   return (
@@ -45,5 +46,9 @@ export default function DashboardLayout({
     return <AppRouteFallback />;
   }
 
-  return <AppShell>{children}</AppShell>;
+  return (
+    <HeaderActionsProvider>
+      <AppShell>{children}</AppShell>
+    </HeaderActionsProvider>
+  );
 }

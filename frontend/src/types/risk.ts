@@ -332,6 +332,8 @@ export interface Risk {
   monitoringObservedWeight?: number | null;
   monitoringObservedNilai?: number | null;
   monitoringObservedLevel?: string | null;
+  monitoringObservedAt?: string | null;
+  monitoringObservedAtInferred?: boolean | null;
   objectiveId?: string;
   roId?: string;
 

@@ -296,6 +296,8 @@ export async function createQuarterlyReportWorkbook(report: QuarterlyReport, for
         "Jadwal pelaksanaan",
         "ID",
         "Kelompok versi",
+        "Tanggal pemantauan",
+        "Tanggal perkiraan data lama",
       ],
       analysis.rows.map((row) => [
         row.risk.title,
@@ -329,6 +331,8 @@ export async function createQuarterlyReportWorkbook(report: QuarterlyReport, for
         row.risk.nextReviewDate || "",
         row.risk.id,
         row.risk.versionGroupId || row.risk.id,
+        row.final ? row.risk.monitoringObservedAt ?? "" : "",
+        row.final ? Boolean(row.risk.monitoringObservedAtInferred) : false,
       ]),
     );
   } else {

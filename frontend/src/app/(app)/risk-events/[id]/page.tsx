@@ -1,5 +1,6 @@
 "use client";
 
+import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import { createDisplayDateFormatter } from "@/lib/display-date";
 
 import { useParams } from "next/navigation";
@@ -172,7 +173,10 @@ export default function RiskEventDetailPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Tautkan secara permanen?</AlertDialogTitle><AlertDialogDescription>Hubungan risiko yang disimpan tidak dapat dihapus. Pastikan pilihan sudah tepat.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel disabled={saving}>Kembali</AlertDialogCancel><AlertDialogAction disabled={saving} onClick={(event) => { event.preventDefault(); void saveLinks(); }}>{saving ? "Menyimpan…" : "Tautkan risiko"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}><AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Tautkan secara permanen?</AlertDialogTitle><AlertDialogDescription>Periksa pilihan risiko sebelum menyimpan hubungan.</AlertDialogDescription></AlertDialogHeader>
+          <ConfirmationConsequences>
+            Hubungan risiko yang disimpan tidak dapat dihapus. Pastikan pilihan sudah tepat.
+          </ConfirmationConsequences><AlertDialogFooter><AlertDialogCancel disabled={saving}>Kembali</AlertDialogCancel><AlertDialogAction disabled={saving} onClick={(event) => { event.preventDefault(); void saveLinks(); }}>{saving ? "Menyimpan…" : "Tautkan risiko"}</AlertDialogAction></AlertDialogFooter></AlertDialogContent></AlertDialog>
     </PageStack>
   );
 }

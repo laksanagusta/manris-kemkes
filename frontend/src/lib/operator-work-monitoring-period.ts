@@ -1,8 +1,5 @@
 import { createDisplayDateFormatter } from "./display-date.ts";
-import {
-  getMonitoringWindow,
-  isMonitoringWindowOpen,
-} from "./monitoring-window";
+
 
 const quarterNames = ["I", "II", "III", "IV"];
 const dateFormat = createDisplayDateFormatter("id-ID", {
@@ -14,8 +11,7 @@ const dateFormat = createDisplayDateFormatter("id-ID", {
 
 function periodDetails(year: number, quarter: number) {
   const cycle = `${year}-Q${quarter}`;
-  const window = getMonitoringWindow(cycle);
-  if (!window) return null;
+  const window = { start: new Date(`${year}-${String((quarter - 1) * 3 + 1).padStart(2, "0")}-01T00:00:00+07:00`), end: new Date(Date.UTC(year, quarter * 3, 1) - 7 * 3600000) };
   return {
     cycle,
     label: `Triwulan ${quarterNames[quarter - 1]} ${year}`,
@@ -37,15 +33,6 @@ export function getWorkMonitoringPeriod(today: string) {
     return null;
   const year = Number(today.slice(0, 4));
   const quarter = Math.floor((Number(today.slice(5, 7)) - 1) / 3) + 1;
-  const period = periodDetails(
-    quarter === 1 ? year - 1 : year,
-    quarter === 1 ? 4 : quarter - 1,
-  );
-  if (!period) return null;
-  const isOpen = isMonitoringWindowOpen(period.cycle, now);
-  return {
-    ...period,
-    isOpen,
-    next: isOpen ? null : periodDetails(year, quarter),
-  };
+  const period = periodDetails(year, quarter);
+  return { ...period, isOpen: true, next: null };
 }

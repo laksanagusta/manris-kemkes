@@ -12,6 +12,7 @@ import (
 	"github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
 	"github.com/manris/backend/internal/domain/service"
+	"github.com/manris/backend/internal/timeutil"
 )
 
 type riskSummarySource interface {
@@ -106,7 +107,7 @@ func (uc *ExportPDFUseCase) Execute(ctx context.Context, input ExportPDFInput) (
 	}
 
 	return &ExportPDFOutput{
-		Filename: fmt.Sprintf("evaluasi-mr-%s.pdf", sanitizeFilename(evaluation.Period)),
+		Filename: fmt.Sprintf("evaluasi-mr-%s.pdf", sanitizeFilename(evaluation.Code)),
 		Bytes:    pdfBytes,
 	}, nil
 }
@@ -122,7 +123,7 @@ func buildMonitoringEvaluationData(evaluation *entity.Evaluation, org *entity.Or
 		ReportDate:             formatTimePtr(evaluation.ReportDate),
 		AssignmentLetterNumber: evaluation.AssignmentLetterNumber,
 		AssignmentLetterDate:   formatTimePtr(evaluation.AssignmentLetterDate),
-		MonitoringDateRange:    evaluation.MonitoringDateRange,
+		MonitoringDateRange:    evaluationMonitoringDates(evaluation),
 		UnitCode:               evaluation.UnitCode,
 		UnitLocation:           evaluation.UnitLocation,
 		UnitAddress:            evaluation.UnitAddress,
@@ -133,7 +134,13 @@ func buildMonitoringEvaluationData(evaluation *entity.Evaluation, org *entity.Or
 	if org != nil {
 		data.OrganizationName = org.Name
 	}
-	data.Year, data.SemesterLabel = monitoringYearAndSemester(evaluation.Period)
+	if !evaluation.CreatedAt.IsZero() {
+		createdAt := evaluation.CreatedAt.In(timeutil.JakartaLocation())
+		data.Year = createdAt.Format("2006")
+		if data.ReportDate == "" {
+			data.ReportDate = formatTimePtr(&createdAt)
+		}
+	}
 
 	if section := sectionByKey(evaluation, "document_completeness"); section != nil {
 		data.DocumentChecklist = checklistRowsFromSection(*section)
@@ -277,34 +284,12 @@ func formatTimePtr(value *time.Time) string {
 	return value.Format("02-01-2006")
 }
 
-func monitoringYearAndSemester(period string) (string, string) {
-	trimmed := strings.TrimSpace(period)
-	if trimmed == "" {
-		return "", ""
+func evaluationMonitoringDates(evaluation *entity.Evaluation) string {
+	dates := strings.TrimSpace(evaluation.MonitoringDateRange)
+	if dates == formatMonitoringDateRange(evaluation.Period) {
+		return ""
 	}
-
-	parts := strings.FieldsFunc(trimmed, func(r rune) bool {
-		return r == '-' || r == '/' || r == ' ' || r == '_'
-	})
-	year := parts[0]
-	semester := ""
-	if len(parts) > 1 {
-		switch strings.ToUpper(parts[1]) {
-		case "Q1":
-			semester = "KUARTAL I"
-		case "Q2":
-			semester = "SEMESTER I"
-		case "Q3":
-			semester = "KUARTAL III"
-		case "Q4":
-			semester = "SEMESTER II"
-		case "H1", "1", "I":
-			semester = "SEMESTER I"
-		case "H2", "2", "II":
-			semester = "SEMESTER II"
-		}
-	}
-	return year, semester
+	return dates
 }
 
 func sanitizeFilename(value string) string {

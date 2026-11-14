@@ -1,4 +1,8 @@
 "use client";
+import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
+import { MonitoringDateField } from "@/components/shared/design-system/domain/monitoring-date-field";
+import { todayMonitoringDate, isValidMonitoringDate } from "@/lib/monitoring-date";
+import { ProfilePeriodPicker, type ProfilePeriodSelection } from "@/components/upr/profile-period-picker";
 
 import { businessNow } from "@/lib/business-clock";
 import { RiskVersionHistoryList } from "@/components/shared/design-system/domain/risk-version-history-list";
@@ -33,7 +37,6 @@ import { listRiskEvents } from "@/lib/api/risk-events";
 import { listUsers, type UserListItem } from "@/lib/api/users";
 import { listAllOrganizations } from "@/lib/api/organizations";
 import { filterToAccessibleOrgs } from "@/lib/organization";
-import { isMonitoringWindowOpen, monitoringWindowMessage } from "@/lib/monitoring-window";
 import { useAuth } from "@/contexts/auth-context";
 import { canWriteInOrg, isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { useForm, Controller, type FieldErrors } from "react-hook-form";
@@ -110,7 +113,6 @@ import {
   CollectionPageHeader,
   FieldErrorMessage,
   Input,
-  MonitoringCycleSelect,
   PopoverSelectField,
   RiskScoreHeatmapModal,
   RiskScorePickerTrigger,
@@ -158,13 +160,7 @@ import {
 } from "@/components/shared/ai-suggestion-modal";
 import {
   currentAssessmentCycle,
-  currentMonitoringCycle,
-  getDefaultMonitoringCycle,
-  getSelectableMonitoringCycles,
-  getSelectableMonitoringCyclesForDate,
-  isMonitoringCycleApplicable,
 } from "@/lib/risk-cycle-options";
-import { getMonitoringCycleBadgeStatus } from "@/lib/risk-register-monitoring";
 import { RiskCreationContext, RiskFormReadiness, RiskFinalizationReview } from "@/components/shared/design-system/domain/risk-creation-guidance";
 import { hasRiskScore, riskFinalizationCycle, riskPeriodLabel } from "@/lib/risk-creation";
 import { buildRiskRegisterPayload } from "@/lib/risk-register-payload";
@@ -223,6 +219,7 @@ type RiskApiMitigation = MitigationItem & {
 };
 
 type RiskApiResponse = {
+  changeReason?: string;
   id: string;
   versionGroupId?: string;
   versionNumber?: number;
@@ -704,6 +701,12 @@ export default function RiskInputPage() {
     requestedReturnTo?.startsWith("/") && !requestedReturnTo.startsWith("//")
       ? requestedReturnTo
       : "/risk/register";
+  const annualProfileReturn = /^\/risk\/annual-profiles(?:\/\d{4})?$/.test(returnTo.split("?")[0]);
+  const returnLabel = annualProfileReturn
+    ? "Kembali ke Profil Risiko Tahunan"
+    : returnTo === "/work" ? "Kembali ke pekerjaan" : "Kembali ke hasil ekstraksi";
+  const [annualChangeReason, setAnnualChangeReason] = useState("");
+  const savedAnnualChangeReason = useRef("");
   const documentPrefillToken = searchParams.get(
     DOCUMENT_INTELLIGENCE_PREFILL_PARAM,
   );
@@ -717,7 +720,10 @@ export default function RiskInputPage() {
   );
 
   const [riskId, setRiskId] = useState<string | null>(null);
-  const [activeDetailTab, setActiveDetailTab] = useState(() => searchParams.get("tab") === "monitoring" ? "monitoring" : "overview");
+  const [activeDetailTab, setActiveDetailTab] = useState(() => {
+    const tab = searchParams.get("tab");
+    return tab === "monitoring" || tab === "treatment" ? tab : "overview";
+  });
   const [detailMitigationFilter,setDetailMitigationFilter] = useState("all");
   const treatmentPanelRef = useRef<HTMLDivElement>(null);
   const [loadingVersionId, setLoadingVersionId] = useState<string | null>(null);
@@ -756,12 +762,12 @@ export default function RiskInputPage() {
   const [riskVersionGroupId, setRiskVersionGroupId] = useState<string | undefined>();
   const [showMonitoringDialog, setShowMonitoringDialog] = useState(false);
   const [riskEventDrawerOpen, setRiskEventDrawerOpen] = useState(false);
-  const [selectedMonitoringCycle, setSelectedMonitoringCycle] = useState(
-    () => getDefaultMonitoringCycle(),
-  );
-  const [monitoringCycleStatuses, setMonitoringCycleStatuses] = useState<
-    Record<string, string>
-  >({});
+  const [monitoringObservedAt, setMonitoringObservedAt] = useState(() => todayMonitoringDate());
+  const [monitoringSelection, setMonitoringSelection] = useState<ProfilePeriodSelection | null>(null);
+  const handleMonitoringSelectionChange = useCallback((selection: ProfilePeriodSelection | null) => {
+    setMonitoringSelection(selection);
+    if (selection?.observedAt) setMonitoringObservedAt(selection.observedAt);
+  }, []);
   const [isStartingMonitoring, setIsStartingMonitoring] = useState(false);
   const [ongoingMonitoring, setOngoingMonitoring] = useState<{
     id: string;
@@ -850,26 +856,11 @@ export default function RiskInputPage() {
   const treatmentOption = watch("treatmentOption") ?? "";
   const nextReviewDate = watch("nextReviewDate") ?? "";
   const riskCode = watch("riskCode") ?? "";
-  const hasUnsavedWork = isDirty || (!riskId && Boolean(title.trim() || description.trim() || causes.length || impacts.length));
+  const hasUnsavedWork = (annualProfileReturn && annualChangeReason !== savedAnnualChangeReason.current) || isDirty || (!riskId && Boolean(title.trim() || description.trim() || causes.length || impacts.length));
   const [monitoringNow,setMonitoringNow]=useState(()=>businessNow());
   const isInitialProfile = !riskVersionGroupId || (riskVersionNumber ?? 1) <= 1;
   const finalizationCycle = riskFinalizationCycle(assessmentCycleDisplay, isInitialProfile, monitoringNow);
   useEffect(()=>{const refresh=()=>setMonitoringNow(businessNow());const timer=setInterval(refresh,60000);window.addEventListener("focus",refresh);return()=>{clearInterval(timer);window.removeEventListener("focus",refresh);};},[]);
-  const monitoringCycleOptions = useMemo(
-    () =>
-      getSelectableMonitoringCyclesForDate(monitoringNow).map((cycle) => ({
-        ...cycle,
-        status: getMonitoringCycleBadgeStatus(
-          monitoringCycleStatuses[cycle.value],
-          cycle.value === currentMonitoringCycle(),
-          isMonitoringCycleApplicable(cycle.value, assessmentCycleDisplay),
-        ),
-      })),
-    [monitoringCycleStatuses,monitoringNow,assessmentCycleDisplay],
-  );
-  const selectedMonitoringCycleOption = monitoringCycleOptions.find(
-    (cycle) => cycle.value === selectedMonitoringCycle,
-  );
   const selectedApprovalLine = approvalLine.filter((member) => member.id);
   const isApprovalLineReady =
     selectedApprovalLine.length > 0 &&
@@ -1067,7 +1058,6 @@ export default function RiskInputPage() {
 
       try {
         setOngoingMonitoring(null);
-        setMonitoringCycleStatuses({});
         setMonitoringLookupStatus("loading");
         const risk = await api.get<RiskApiResponse>(
           `/risks/${id}`,
@@ -1079,6 +1069,8 @@ export default function RiskInputPage() {
         setRiskStatus(risk.status || "draft");
         setRiskIsCurrent(risk.isCurrent ?? false);
         setRiskVersionNumber(risk.versionNumber ?? null);
+        setAnnualChangeReason(risk.changeReason ?? "");
+        savedAnnualChangeReason.current = risk.changeReason ?? "";
         setRiskVersionGroupId(risk.versionGroupId);
         setRiskArchivedAt(risk.archivedAt || null);
         setRiskArchivedReason(risk.archivedReason || "");
@@ -1091,6 +1083,7 @@ export default function RiskInputPage() {
           void listRiskMonitorings(token ?? "", {
             q: risk.code || undefined,
             lifecycle: "all",
+            status: "draft",
             limit: 100,
           })
             .then((monitoringResult) => {
@@ -1105,12 +1098,6 @@ export default function RiskInputPage() {
                       monitoring.sourceRisk?.versionGroupId ===
                         risk.versionGroupId)),
               );
-              const statusesByCycle: Record<string, string> = {};
-              for (const monitoring of matchingMonitorings) {
-                statusesByCycle[monitoring.assessmentCycle] = monitoring.status;
-              }
-              setMonitoringCycleStatuses(statusesByCycle);
-
               const existingMonitoring = matchingMonitorings.find(
                 (monitoring) => monitoring.status === "draft",
               );
@@ -1133,8 +1120,7 @@ export default function RiskInputPage() {
                 monitoringError,
               );
               setOngoingMonitoring(null);
-              setMonitoringCycleStatuses({});
-              setMonitoringLookupStatus("error");
+                    setMonitoringLookupStatus("error");
             });
         } else {
           setMonitoringLookupStatus("ready");
@@ -1785,12 +1771,7 @@ export default function RiskInputPage() {
     canManageMonitoring &&
     monitoringLookupStatus === "ready" &&
     Boolean(ongoingMonitoring);
-  const canStartMonitoring =
-    canManageMonitoring &&
-    monitoringLookupStatus === "ready" &&
-    isMonitoringWindowOpen(getDefaultMonitoringCycle(),monitoringNow) &&
-    isMonitoringCycleApplicable(getDefaultMonitoringCycle(),assessmentCycleDisplay) &&
-    (!ongoingMonitoring || ongoingMonitoring.assessmentCycle!==getDefaultMonitoringCycle());
+  const canStartMonitoring = canManageMonitoring && monitoringLookupStatus === "ready" && !ongoingMonitoring;
 
   const scrollToSection = (sectionId: SectionId) => {
     setActiveDetailTab("overview");
@@ -2099,15 +2080,17 @@ export default function RiskInputPage() {
     currentOrganizationId,
   ]);
 
-  const buildPayload = (data: FormValues, status: string) =>
-    buildRiskRegisterPayload(data, status, {
+  const buildPayload = (data: FormValues, status: string) => ({
+    ...buildRiskRegisterPayload(data, status, {
       assessmentCycle: status === "final" ? riskFinalizationCycle(assessmentCycleDisplay, isInitialProfile, businessNow()) : assessmentCycleDisplay,
       userRole: user?.role,
       userOrganizationId: user?.organizationId ?? null,
       reviewerId,
       reviewerOption,
       selectedApprovalLine,
-    });
+    }),
+    ...(annualProfileReturn ? { changeReason: annualChangeReason.trim() } : {}),
+  });
 
   const onSubmit = async (data: FormValues) => {
     if (isRiskLocked) {
@@ -2163,6 +2146,7 @@ export default function RiskInputPage() {
         setValue("title", form.getValues("title"), { shouldDirty: true });
         setSavedAt(new Date());
         setSaveState("saved");
+        if (annualProfileReturn) savedAnnualChangeReason.current = annualChangeReason.trim();
         toast.success("Draf berhasil disimpan.");
         if (leaveAfterSaveRef.current && leaveHref && !editedWhileSaving) {
           allowNavigationRef.current = true;
@@ -2560,20 +2544,13 @@ export default function RiskInputPage() {
       return;
     }
 
-    const currentCycle = currentMonitoringCycle();
-    const previousCycle = getSelectableMonitoringCycles(currentCycle)[0]?.value;
-    setSelectedMonitoringCycle(
-      getDefaultMonitoringCycle(
-        currentCycle,
-        previousCycle ? monitoringCycleStatuses[previousCycle] : null,
-        assessmentCycleDisplay,
-      ),
-    );
+    setMonitoringObservedAt(todayMonitoringDate());
+    setMonitoringSelection(null);
     setShowMonitoringDialog(true);
   };
 
   const handleStartMonitoring = async () => {
-    if (!token || !riskId) {
+    if (!token || !riskId || !monitoringSelection) {
       toast.error("Sesi login tidak ditemukan.");
       return;
     }
@@ -2583,12 +2560,16 @@ export default function RiskInputPage() {
       const result = await startMonitoring(
         token,
         riskId,
-        selectedMonitoringCycle,
+        monitoringObservedAt,
+        monitoringSelection.monitoringPeriodId ? {
+          profileVersionId: monitoringSelection.profileVersionId,
+          monitoringPeriodId: monitoringSelection.monitoringPeriodId,
+        } : undefined,
       );
       toast.success(
         result.existingDraft
-          ? `Melanjutkan transaksi pemantauan ${selectedMonitoringCycle}.`
-          : `Transaksi pemantauan ${selectedMonitoringCycle} berhasil dibuat.`,
+          ? `Melanjutkan transaksi pemantauan ${result.monitoring.assessmentCycle}.`
+          : `Transaksi pemantauan ${result.monitoring.assessmentCycle} berhasil dibuat.`,
       );
       router.push(
         result.redirectUrl || `/risk/monitoring/${result.monitoring.id}`,
@@ -2636,9 +2617,9 @@ export default function RiskInputPage() {
       <ActionButton asChild variant="outline" className="px-4">
         <Link
           href={`/risk/monitoring/${ongoingMonitoring.id}`}
-          title={monitoringWindowMessage(ongoingMonitoring.assessmentCycle)}
+          title="Lanjutkan draf pemantauan"
         >
-          {isMonitoringWindowOpen(ongoingMonitoring.assessmentCycle,monitoringNow)?"Lanjutkan Pemantauan":"Lihat Pemantauan"}
+          Lanjutkan Pemantauan
         </Link>
       </ActionButton>
     ) : canStartMonitoring ? (
@@ -2671,7 +2652,7 @@ export default function RiskInputPage() {
           eyebrow={isSavedRiskView && hasContextReturnLink ? (
             <Link href={returnTo} className="inline-flex min-h-8 items-center gap-2 rounded-sm text-sm text-muted-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
               <ArrowLeft aria-hidden="true" className="size-4" />
-              {returnTo === "/work" ? "Kembali ke pekerjaan" : "Kembali ke hasil ekstraksi"}
+              {returnLabel}
             </Link>
           ) : undefined}
           title="Tambah Risiko"
@@ -2682,7 +2663,7 @@ export default function RiskInputPage() {
             <>
               {!isSavedRiskView && hasContextReturnLink ? (
                 <ActionButton asChild variant="outline">
-                  <Link href={returnTo}>{returnTo === "/work" ? "Kembali ke pekerjaan" : "Kembali ke hasil ekstraksi"}</Link>
+                  <Link href={returnTo}>{returnLabel}</Link>
                 </ActionButton>
               ) : null}
               {monitoringHeaderAction}
@@ -2720,6 +2701,18 @@ export default function RiskInputPage() {
           ) : undefined}
         />
 
+        {annualProfileReturn && !isRiskLocked && (riskVersionNumber ?? 0) > 1 && (
+          <div className="max-w-xl space-y-2">
+            <label htmlFor="annual-risk-change-reason" className="text-sm font-medium">Alasan perubahan asesmen</label>
+            <Textarea
+              id="annual-risk-change-reason"
+              value={annualChangeReason}
+              maxLength={2000}
+              onChange={(event) => setAnnualChangeReason(event.target.value)}
+              className="min-h-20 w-full rounded-md border bg-background px-3 py-2 text-sm"
+            />
+          </div>
+        )}
         {!isRiskLocked ? (
           <RiskCreationContext
             cycle={finalizationCycle}
@@ -3704,11 +3697,11 @@ export default function RiskInputPage() {
             <div className="flex min-h-0 flex-col gap-5">
               <DialogHeader>
                 <DialogTitle>Konfirmasi Pemantauan</DialogTitle>
-                <DialogDescription>
-                  Pilih periode untuk memulai pemantauan risiko ini. Kuartal
-                  berjalan tersedia mulai bulan ketiga.
-                </DialogDescription>
+                <DialogDescription>Periksa risiko sebelum memulai pemantauan.</DialogDescription>
               </DialogHeader>
+              <ConfirmationConsequences>
+                Draf pemantauan akan dibuat untuk tanggal pengamatan yang Anda isi. Rencana mitigasi sebelumnya akan disalin agar dapat ditinjau sebelum finalisasi.
+              </ConfirmationConsequences>
               <div className="space-y-5">
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="space-y-1">
@@ -3736,19 +3729,10 @@ export default function RiskInputPage() {
                     {title || "Tanpa judul"}
                   </p>
                 </div>
-                <div className="flex flex-col gap-2">
-                  <Label className="text-sm font-medium" htmlFor="new-monitoring-cycle">
-                    Periode Pemantauan
-                  </Label>
-                  <MonitoringCycleSelect
-                    id="new-monitoring-cycle"
-                    value={selectedMonitoringCycle}
-                    onValueChange={setSelectedMonitoringCycle}
-                    options={monitoringCycleOptions}
-                    disabled={isStartingMonitoring}
-                  />
-                </div>
-                <p className="text-sm text-muted-foreground">{monitoringWindowMessage(selectedMonitoringCycle)}</p>
+                {showMonitoringDialog && token && currentOrganizationId && (
+                  <ProfilePeriodPicker token={token} organizationId={currentOrganizationId} process="monitoring" riskGroupId={riskVersionGroupId} onChange={handleMonitoringSelectionChange} />
+                )}
+                <MonitoringDateField id="new-monitoring-date" value={monitoringObservedAt} onChange={setMonitoringObservedAt} disabled={isStartingMonitoring} />
               </div>
               <DialogFooter>
                 <CollectionDialogCancel
@@ -3767,16 +3751,9 @@ export default function RiskInputPage() {
                     )
                   }
                   onClick={handleStartMonitoring}
-                  disabled={
-                    isStartingMonitoring ||
-                    selectedMonitoringCycleOption?.status === "completed" ||
-                    !selectedMonitoringCycleOption ||
-                    !isMonitoringWindowOpen(selectedMonitoringCycle,monitoringNow)
-                  }
+                  disabled={isStartingMonitoring || !monitoringSelection || !isValidMonitoringDate(monitoringObservedAt)}
                 >
-                  {selectedMonitoringCycleOption?.status === "in-progress"
-                    ? "Lanjutkan Pemantauan"
-                    : `Mulai Pemantauan ${selectedMonitoringCycle}`}
+                  Mulai Pemantauan
                 </AccentButton>
               </DialogFooter>
             </div>
@@ -3787,10 +3764,11 @@ export default function RiskInputPage() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Hapus Draft Risiko?</DialogTitle>
-              <DialogDescription>
-                Draft yang dihapus tidak bisa dikembalikan.
-              </DialogDescription>
+              <DialogDescription>Periksa draf risiko yang akan dihapus.</DialogDescription>
             </DialogHeader>
+            <ConfirmationConsequences>
+              Draf risiko beserta isinya akan dihapus permanen dan tidak dapat dipulihkan.
+            </ConfirmationConsequences>
             <div className="px-1">
               <p className="text-sm font-medium">{title || "Tanpa judul"}</p>
               <p className="text-xs text-muted-foreground mt-0.5">
@@ -3824,10 +3802,11 @@ export default function RiskInputPage() {
             <div className="flex min-h-0 flex-col gap-5">
               <DialogHeader>
                 <DialogTitle>Arsipkan Risiko?</DialogTitle>
-                <DialogDescription>
-                  Risiko akan dipindahkan dari daftar aktif. Isi alasan pengarsipan untuk melanjutkan.
-                </DialogDescription>
+                <DialogDescription>Periksa risiko dan isi alasan pengarsipan.</DialogDescription>
               </DialogHeader>
+              <ConfirmationConsequences>
+                Risiko akan dipindahkan ke arsip dan tidak lagi tampil di daftar aktif. Data tetap tersimpan dan dapat dipulihkan melalui tindakan Pulihkan.
+              </ConfirmationConsequences>
               <div className="space-y-5">
                 <div className="space-y-1">
                   <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
@@ -3889,11 +3868,12 @@ export default function RiskInputPage() {
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Pulihkan Risiko?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Risiko akan kembali tampil di daftar aktif dengan status
-                terakhir.
-              </AlertDialogDescription>
+              <AlertDialogDescription>Periksa risiko yang akan dipulihkan.</AlertDialogDescription>
             </AlertDialogHeader>
+            <ConfirmationConsequences>
+              Risiko akan kembali tampil di daftar aktif dengan status
+                  terakhir.
+            </ConfirmationConsequences>
             <AlertDialogFooter>
               <CollectionDialogCancel
                 onClick={() => setShowRestoreDialog(false)}
@@ -3924,12 +3904,13 @@ export default function RiskInputPage() {
                   ? "Finalisasi Risiko?"
                   : "Ajukan Risiko untuk Review?"}
               </AlertDialogTitle>
-              <AlertDialogDescription>
-                {riskApprovalCapabilityBehavior.usesDirectApprovalCopy
-                  ? "Tinjau periode, penilaian, dan rencana penanganan. Setelah finalisasi, profil ini dikunci."
-                  : "Risiko akan disimpan lalu dikirim ke reviewer melalui alur persetujuan yang dipilih. Tinjau seluruh bagian sebelum melanjutkan."}
-              </AlertDialogDescription>
+              <AlertDialogDescription>Tinjau seluruh bagian sebelum melanjutkan.</AlertDialogDescription>
             </AlertDialogHeader>
+            <ConfirmationConsequences>
+              {riskApprovalCapabilityBehavior.usesDirectApprovalCopy
+                    ? "Risiko akan menjadi profil resmi untuk periode yang ditinjau dan dikunci setelah finalisasi."
+                    : "Risiko akan disimpan lalu dikirim ke reviewer melalui alur persetujuan yang dipilih. Tinjau seluruh bagian sebelum melanjutkan."}
+            </ConfirmationConsequences>
             <RiskFinalizationReview
               cycle={finalizationCycle}
               originalCycle={assessmentCycleDisplay}
@@ -3963,8 +3944,11 @@ export default function RiskInputPage() {
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Simpan perubahan sebelum keluar?</AlertDialogTitle>
-              <AlertDialogDescription>Formulir memiliki perubahan yang belum tersimpan. Draf memerlukan judul, deskripsi, dan kategori.</AlertDialogDescription>
+              <AlertDialogDescription>Formulir memiliki perubahan yang belum tersimpan.</AlertDialogDescription>
             </AlertDialogHeader>
+            <ConfirmationConsequences>
+              Simpan draf dan keluar untuk melanjutkan nanti, atau keluar tanpa menyimpan untuk membuang perubahan terakhir. Draf memerlukan judul, deskripsi, dan kategori.
+            </ConfirmationConsequences>
             <AlertDialogFooter className="flex-wrap">
               <ActionButton disabled={isSubmitting} onClick={() => setLeaveHref(null)}>Tetap mengisi</ActionButton>
               <ActionButton disabled={isSubmitting} onClick={() => {

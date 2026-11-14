@@ -48,7 +48,7 @@ function getMonitoringBlockers(workingPaper: WorkingPaper): WorkingPaperRiskLink
   return risks.filter((link) => {
     const monitoring = link.risk.monitoring;
     return monitoring?.status !== "final" ||
-      (link.source_mode === "roster" && monitoring.assessmentCycle !== workingPaper.assessment_cycle);
+      (!workingPaper.profile_version_id && link.source_mode === "roster" && monitoring.assessmentCycle !== workingPaper.assessment_cycle);
   });
 }
 
@@ -65,7 +65,7 @@ function buildCurrentAction(
   if (workingPaper.status === "cancelled") {
     return {
       tone: "danger" as const,
-      title: "Kertas kerja dibatalkan",
+      title: "KK Pemantauan dan Reviu dibatalkan",
       description: "Proses dihentikan. Dokumen ini tidak dapat dilanjutkan.",
     };
   }
@@ -133,7 +133,7 @@ function buildCurrentAction(
     return {
       tone: "neutral",
       title: "Menunggu pembuat draf",
-      description: "Pembuat draf dapat memulai proses TTE setelah meninjau Kertas Kerja.",
+      description: "Pembuat draf dapat memulai proses TTE setelah meninjau KK Pemantauan dan Reviu.",
     };
   }
 
@@ -165,7 +165,7 @@ function buildTimelineItem(
       state: "skipped",
       isActionOwner: false,
       label: "TTE dilewati",
-      description: "Penandatangan ini tidak melakukan tanda tangan elektronik. Kertas kerja selesai tanpa TTE.",
+      description: "Penandatangan ini tidak melakukan tanda tangan elektronik. KK Pemantauan dan Reviu selesai tanpa TTE.",
     };
   }
 

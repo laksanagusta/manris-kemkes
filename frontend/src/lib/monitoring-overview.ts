@@ -17,6 +17,7 @@ export type MonitoringOverviewRow = {
   organizationId: string;
   organizationName: string;
   assessmentCycle: string;
+  observedAt?: string;
   sourceRiskId: string;
   monitoringId: string | null;
   status: MonitoringRosterStatus;
@@ -115,6 +116,7 @@ export function buildMonitoringTransactionRows(
       organizationId,
       organizationName,
       assessmentCycle: monitoring.assessmentCycle || "-",
+      observedAt: monitoring.observedAt,
       sourceRiskId: monitoring.sourceRiskId,
       monitoringId: monitoring.id,
       status:

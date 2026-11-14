@@ -28,11 +28,12 @@ interface MonitoringMutationResponse {
 export async function startMonitoring(
   token: string,
   riskId: string,
-  cycle: string,
+  observedAt: string,
+  periodContext?: {profileVersionId:string;monitoringPeriodId:string},
 ): Promise<StartMonitoringResponse> {
   return api.post<StartMonitoringResponse>(
     `/risks/${riskId}/monitorings`,
-    { cycle },
+    { observedAt, ...periodContext },
     token,
   );
 }

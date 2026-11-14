@@ -20,6 +20,8 @@ export type WorkingPaperMonitoringRow = {
   code: string;
   title: string;
   versionNumber?: number;
+  observedAt?: string;
+  observedAtInferred?: boolean;
   sourceScore: number;
   observedScore: number | null;
   observedLevelLabel: string;
@@ -135,6 +137,8 @@ export function buildWorkingPaperMonitoringRow(
     sourceScore: rowSourceScore,
     observedScore: rowObservedScore,
     observedLevelLabel: observedLevelLabel(monitoring.observedLevel),
+    observedAt: monitoring.observedAt,
+    observedAtInferred: monitoring.observedAtInferred,
     status: monitoring.status,
     statusLabel: monitoring.status === "draft" ? "Sedang Berjalan" : "Selesai",
     actionItems: buildActionItems(risk),

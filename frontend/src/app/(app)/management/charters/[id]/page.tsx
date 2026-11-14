@@ -1,5 +1,6 @@
 "use client";
 
+import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import {
   useCallback,
   useEffect,
@@ -1174,11 +1175,12 @@ export default function RiskCharterDetailPage() {
         <AlertDialogContent className="max-w-2xl no-scrollbar">
           <AlertDialogHeader>
             <AlertDialogTitle>Finalisasi Piagam?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Setelah difinalisasi, Piagam menjadi aktif dan terkunci. Perubahan
-              berikutnya harus dibuat melalui revisi.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Periksa kelengkapan dan isi Piagam sebelum finalisasi.</AlertDialogDescription>
           </AlertDialogHeader>
+          <ConfirmationConsequences>
+            Setelah difinalisasi, Piagam menjadi aktif dan terkunci. Perubahan
+              berikutnya harus dibuat melalui revisi.
+          </ConfirmationConsequences>
           {finalizationIssues.length > 0 ? (
             <div className="rounded-lg bg-warning/10 p-4 text-sm text-foreground">
               <p className="font-medium text-secondary-foreground">Lengkapi bagian berikut terlebih dahulu:</p>
@@ -1219,11 +1221,12 @@ export default function RiskCharterDetailPage() {
           <div className="flex min-h-0 flex-col gap-5">
             <DialogHeader>
               <DialogTitle className="text-base">Buat revisi Piagam</DialogTitle>
-              <DialogDescription>
-                Sistem akan membuat draf versi baru. Versi aktif tetap berlaku
-                sampai revisi difinalisasi.
-              </DialogDescription>
+              <DialogDescription>Jelaskan alasan perubahan pada Piagam.</DialogDescription>
             </DialogHeader>
+            <ConfirmationConsequences>
+              Sistem akan membuat draf versi baru. Versi aktif tetap berlaku
+                  sampai revisi difinalisasi.
+            </ConfirmationConsequences>
             <div className="space-y-1">
               <Label htmlFor="revision-reason">Alasan revisi</Label>
               <Textarea
@@ -1290,11 +1293,12 @@ export default function RiskCharterDetailPage() {
         <AlertDialogContent className="max-w-2xl no-scrollbar">
           <AlertDialogHeader>
             <AlertDialogTitle>Arsipkan Piagam?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Piagam tidak lagi menjadi versi aktif, tetapi tetap tersimpan dan
-              dapat dipulihkan selama belum ada Piagam pengganti.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Periksa Piagam yang akan diarsipkan.</AlertDialogDescription>
           </AlertDialogHeader>
+          <ConfirmationConsequences>
+            Piagam tidak lagi menjadi versi aktif, tetapi tetap tersimpan dan
+              dapat dipulihkan selama belum ada Piagam pengganti.
+          </ConfirmationConsequences>
           <AlertDialogFooter className="gap-2 sm:justify-end">
             <AlertDialogCancel
               variant="outline"
@@ -1323,11 +1327,12 @@ export default function RiskCharterDetailPage() {
         <AlertDialogContent className="max-w-2xl no-scrollbar">
           <AlertDialogHeader>
             <AlertDialogTitle>Pulihkan Piagam?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Piagam akan kembali menjadi versi aktif jika belum ada Piagam
-              current untuk organisasi dan level UPR yang sama.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Periksa Piagam yang akan diaktifkan kembali.</AlertDialogDescription>
           </AlertDialogHeader>
+          <ConfirmationConsequences>
+            Piagam akan kembali menjadi versi aktif jika belum ada Piagam
+              aktif untuk organisasi dan level UPR yang sama.
+          </ConfirmationConsequences>
           <AlertDialogFooter className="gap-2 sm:justify-end">
             <AlertDialogCancel
               variant="outline"
@@ -1356,11 +1361,12 @@ export default function RiskCharterDetailPage() {
         <AlertDialogContent className="max-w-2xl no-scrollbar">
           <AlertDialogHeader>
             <AlertDialogTitle>Hapus draf secara permanen?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Tindakan ini tidak dapat dibatalkan. Seluruh isi draf Piagam akan
-              dihapus permanen.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Periksa draf Piagam yang akan dihapus.</AlertDialogDescription>
           </AlertDialogHeader>
+          <ConfirmationConsequences>
+            Tindakan ini tidak dapat dibatalkan. Seluruh isi draf Piagam akan
+              dihapus permanen.
+          </ConfirmationConsequences>
           <AlertDialogFooter className="gap-2 sm:justify-end">
             <AlertDialogCancel
               variant="outline"
@@ -1398,10 +1404,11 @@ export default function RiskCharterDetailPage() {
         <AlertDialogContent className="max-w-2xl no-scrollbar">
           <AlertDialogHeader>
             <AlertDialogTitle>Tinggalkan perubahan?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Perubahan yang belum disimpan akan hilang.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Ada perubahan yang belum disimpan.</AlertDialogDescription>
           </AlertDialogHeader>
+          <ConfirmationConsequences>
+            Perubahan yang belum disimpan akan hilang.
+          </ConfirmationConsequences>
           <AlertDialogFooter className="gap-2 sm:justify-end">
             <AlertDialogCancel
               variant="outline"

@@ -17,6 +17,7 @@ test("parseRiskRegisterQueryState falls back to register defaults", () => {
   assert.deepEqual(result, {
     search: "",
     lifecycleFilter: "active",
+    profileFilter: "active",
     statusFilter: "all",
     monitoringStatusFilter:"all",
     categoryFilter: "all",
@@ -33,6 +34,7 @@ test("buildRiskRegisterQueryString keeps deep-linkable non-default filters only"
   const result = buildRiskRegisterQueryString({
     search: "  risiko strategis  ",
     lifecycleFilter: "archived",
+    profileFilter: "active",
     statusFilter: "final",
     categoryFilter: "operasional",
     assessmentCycleFilter: "2026-H1",
@@ -64,6 +66,7 @@ test("shouldReplaceRiskRegisterUrl skips writes while state is catching up to ex
     nextState: {
       search: "",
       lifecycleFilter: "active",
+      profileFilter: "active",
       statusFilter: "all",
       categoryFilter: "all",
       assessmentCycleFilter: "",

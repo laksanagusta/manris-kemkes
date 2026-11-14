@@ -4,6 +4,7 @@ export type RiskRegisterStatusFilter =
   | "draft"
   | "final";
 export type RiskRegisterLifecycleFilter = "active" | "archived" | "all";
+export type RiskRegisterProfileFilter = "active" | "history" | "all";
 export type RiskRegisterCategoryFilter =
   | "all"
   | "kebijakan"
@@ -17,6 +18,7 @@ export type RiskRegisterSortOrder = "asc" | "desc";
 export type RiskRegisterQueryState = {
   search: string;
   lifecycleFilter: RiskRegisterLifecycleFilter;
+  profileFilter: RiskRegisterProfileFilter;
   statusFilter: RiskRegisterStatusFilter;
   monitoringStatusFilter?: RiskMonitoringStatusFilter;
   categoryFilter: RiskRegisterCategoryFilter;
@@ -35,6 +37,13 @@ function getRiskRegisterLifecycleFilter(
     return value;
   }
 
+  return "active";
+}
+
+function getRiskRegisterProfileFilter(
+  value: string | null,
+): RiskRegisterProfileFilter {
+  if (value === "history" || value === "all") return value;
   return "active";
 }
 
@@ -86,6 +95,7 @@ export function parseRiskRegisterQueryState(
     lifecycleFilter: getRiskRegisterLifecycleFilter(
       searchParams.get("lifecycle"),
     ),
+    profileFilter: getRiskRegisterProfileFilter(searchParams.get("profile")),
     monitoringStatusFilter: ["monitored","not_monitored"].includes(searchParams.get("monitoring_status") || "") ? searchParams.get("monitoring_status") as RiskMonitoringStatusFilter : "all",
     statusFilter: getRiskRegisterStatusFilter(searchParams.get("status")),
     categoryFilter: getRiskRegisterCategoryFilter(searchParams.get("category")),
@@ -114,6 +124,10 @@ export function buildRiskRegisterQueryString(
 
   if (state.lifecycleFilter !== "active") {
     nextParams.set("lifecycle", state.lifecycleFilter);
+  }
+
+  if (state.profileFilter !== "active") {
+    nextParams.set("profile", state.profileFilter);
   }
 
   if (state.statusFilter !== "all") {

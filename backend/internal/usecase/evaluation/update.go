@@ -73,14 +73,16 @@ func (uc *UpdateUseCase) Execute(ctx context.Context, input UpdateInput) (*entit
 		return nil, errors.Wrap(errors.ErrInvalidInput, err.Error())
 	}
 
-	exists, err := uc.repo.ExistsByOrgPeriodTemplate(ctx, updated.OrganizationID, updated.Period, updated.TemplateID, &updated.ID)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to validate evaluation uniqueness")
-	}
-	if exists {
-		return nil, errors.ErrEvaluationExists
-	}
+	if updated.MonitoringPeriodID == nil {
+		exists, err := uc.repo.ExistsByOrgPeriodTemplate(ctx, updated.OrganizationID, updated.Period, updated.TemplateID, &updated.ID)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed to validate evaluation uniqueness")
+		}
+		if exists {
+			return nil, errors.ErrEvaluationExists
+		}
 
+	}
 	if len(input.Sections) > 0 {
 		sections, err := sectionsFromInputs(input.Sections)
 		if err != nil {

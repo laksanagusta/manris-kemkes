@@ -80,7 +80,7 @@ func loadUnitProgressRisks(ctx context.Context, q riskQueryer, period repository
 		WHERE r.status = 'final' AND m.version_group_id = r.version_group_id
 		  AND m.assessment_cycle = $1 AND m.status IN ('draft', 'final')
 		  AND m.superseded_by_monitoring_id IS NULL
-		ORDER BY (m.status = 'final') DESC, m.finalized_at DESC NULLS LAST, m.updated_at DESC, m.id DESC
+		ORDER BY (m.status = 'final') DESC, m.observed_at DESC, m.finalized_at DESC NULLS LAST, m.id DESC
 		LIMIT 1
 	) monitoring ON TRUE
 	WHERE r.organization_id IS NOT NULL

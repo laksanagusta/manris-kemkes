@@ -1,144 +1,11 @@
 "use client";
 
+import { ProfilePeriodPicker, type ProfilePeriodSelection } from "@/components/upr/profile-period-picker";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, ChevronDown, Plus } from "@/components/shared/icons";
-
-import {
-  AccentButton,
-  CollectionDialogCancel,
-} from "@/components/shared/design-system";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Label } from "@/components/ui/label";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
-
-export type WorkingPaperPeriodOption = {
-  value: string;
-  label: string;
-  isCurrent?: boolean;
-};
-
-function WorkingPaperPeriodPicker({
-  value,
-  onValueChange,
-  options,
-}: {
-  value: string;
-  onValueChange: (value: string) => void;
-  options: WorkingPaperPeriodOption[];
-}) {
-  const [open, setOpen] = useState(false);
-  const selected = options.find((option) => option.value === value);
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          id="working-paper-period"
-          type="button"
-          variant="outline"
-          role="combobox"
-          aria-expanded={open}
-          aria-controls="working-paper-period-options"
-          aria-required="true"
-          className="group/risk-select w-full justify-between transition-[background-color,box-shadow] active:translate-y-0 active:scale-100 aria-expanded:bg-card aria-expanded:text-foreground focus-visible:ring-2 focus-visible:ring-ring/30"
-        >
-          <span
-            className={cn(
-              "min-w-0 flex-1 truncate text-left",
-              !selected && "text-muted-foreground",
-            )}
-          >
-            {selected?.label ?? "Pilih kuartal"}
-          </span>
-          {selected?.isCurrent ? (
-            <Badge
-              variant="secondary"
-              className="shrink-0 border-info-foreground/20 bg-info-foreground/5 text-info-foreground"
-            >
-              Kuartal berjalan
-            </Badge>
-          ) : null}
-          <ChevronDown className="pointer-events-none size-4 shrink-0 opacity-60 transition-transform duration-150 ease-(--ease-out) group-data-[state=open]/risk-select:rotate-180 motion-reduce:transition-none" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent
-        id="working-paper-period-options"
-        align="start"
-        className="w-[var(--radix-popover-trigger-width)]"
-      >
-        <div
-          role="listbox"
-          aria-label="Pilihan periode kuartal"
-          className="max-h-60 overflow-y-auto p-1"
-        >
-          {options.map((option) => {
-            const isSelected = option.value === value;
-
-            return (
-              <button
-                key={option.value}
-                type="button"
-                role="option"
-                aria-selected={isSelected}
-                className={cn(
-                  "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground",
-                  isSelected && "bg-accent text-accent-foreground",
-                )}
-                onClick={() => {
-                  onValueChange(option.value);
-                  setOpen(false);
-                }}
-              >
-                <Check
-                  className={cn(
-                    "size-4 shrink-0",
-                    isSelected ? "opacity-100" : "opacity-0",
-                  )}
-                />
-                <span className="flex min-w-0 flex-1 items-center justify-between gap-2">
-                  <span className="truncate">{option.label}</span>
-                  {option.isCurrent ? (
-                    <Badge
-                      variant="secondary"
-                      className="shrink-0 border-info-foreground/20 bg-info-foreground/5 text-info-foreground"
-                    >
-                      Kuartal berjalan
-                    </Badge>
-                  ) : null}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-}
+import { Plus } from "@/components/shared/icons";
+import { AccentButton, CollectionDialogCancel } from "@/components/shared/design-system";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 export function WorkingPaperCreateButton({
   onClick,
@@ -151,109 +18,39 @@ export function WorkingPaperCreateButton({
       onClick={onClick}
       icon={<Plus className="size-3.5" strokeWidth={2.5} />}
     >
-      Buat Kertas Kerja
+      Buat KK Pemantauan dan Reviu
     </AccentButton>
   );
 }
 
 export function WorkingPaperCreateDialog({
-  open,
-  onOpenChange,
-  selectedPeriod,
-  onSelectedPeriodChange,
-  periodOptions,
+  open, onOpenChange, token, organizationId, observedAt,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  selectedPeriod: string;
-  onSelectedPeriodChange: (value: string) => void;
-  periodOptions: WorkingPaperPeriodOption[];
+  token?: string | null;
+  organizationId?: string | null;
+  observedAt?: string;
 }) {
   const router = useRouter();
-  const [confirmCurrentPeriodOpen, setConfirmCurrentPeriodOpen] =
-    useState(false);
-  const selectedOption = periodOptions.find(
-    (option) => option.value === selectedPeriod,
-  );
-
-  const continueToCreate = () => {
-    onOpenChange(false);
-    router.push(`/risk/working-papers/new?cycle=${selectedPeriod}`);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl no-scrollbar" showCloseButton={false}>
-        <form
-          className="flex min-h-0 flex-col gap-5"
-          onSubmit={(event) => {
-            event.preventDefault();
-            if (!selectedPeriod) return;
-
-            if (selectedOption?.isCurrent) {
-              setConfirmCurrentPeriodOpen(true);
-              return;
-            }
-
-            continueToCreate();
-          }}
-        >
-          <DialogHeader>
-            <DialogTitle className="text-base">Pilih Periode</DialogTitle>
-            <DialogDescription className="max-w-[38ch]">
-              Tentukan kuartal untuk kertas kerja. Kuartal berjalan tersedia
-              mulai bulan ketiga.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="working-paper-period" className="text-sm">
-              Periode Kuartal
-              <span className="ml-0.5 text-destructive" aria-hidden="true">
-                *
-              </span>
-            </Label>
-            <WorkingPaperPeriodPicker
-              value={selectedPeriod}
-              onValueChange={onSelectedPeriodChange}
-              options={periodOptions}
-            />
-          </div>
-
-          <DialogFooter className="sm:flex-row">
-            <CollectionDialogCancel
-              type="button"
-              onClick={() => onOpenChange(false)}
-            >
-              Batal
-            </CollectionDialogCancel>
-            <AccentButton type="submit" disabled={!selectedPeriod}>
-              Lanjutkan
-            </AccentButton>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-      <AlertDialog
-        open={confirmCurrentPeriodOpen}
-        onOpenChange={setConfirmCurrentPeriodOpen}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Periode masih berjalan</AlertDialogTitle>
-            <AlertDialogDescription>
-              Kertas Kerja akan dibuat untuk {selectedPeriod}, yang masih
-              berlangsung. Data risiko periode ini dapat berubah sampai kuartal
-              berakhir. Lanjutkan?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Batal</AlertDialogCancel>
-            <AlertDialogAction onClick={continueToCreate}>
-              Lanjutkan
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </Dialog>
-  );
+  const [selection,setSelection] = useState<ProfilePeriodSelection | null>(null);
+  return <Dialog open={open} onOpenChange={value=>{setSelection(null);onOpenChange(value);}}>
+    <DialogContent showCloseButton={false}>
+      <DialogHeader><DialogTitle>Pilih Profil Risiko Tahunan</DialogTitle><DialogDescription>Seluruh risiko dalam versi profil final yang dipilih otomatis masuk ke KK. Pilih periode sesuai rules profil.</DialogDescription></DialogHeader>
+      {open && token && organizationId ? <ProfilePeriodPicker token={token} organizationId={organizationId} process="workingPaper" onChange={setSelection} /> : <p className="text-sm text-muted-foreground">Akun perlu terhubung ke unit kerja.</p>}
+      <DialogFooter>
+        <CollectionDialogCancel type="button" onClick={()=>{setSelection(null);onOpenChange(false);}}>Batal</CollectionDialogCancel>
+        <AccentButton type="button" disabled={!selection} onClick={()=>{
+          if(!selection || !organizationId) return;
+          if(selection.existingRecordId){
+            const id=selection.existingRecordId;setSelection(null);onOpenChange(false);router.push(`/risk/working-papers/${id}`);return;
+          }
+          const query=new URLSearchParams({profile_version_id:selection.profileVersionId,org_id:organizationId});
+          if(selection.monitoringPeriodId) query.set('monitoring_period_id',selection.monitoringPeriodId);
+          if(selection.observedAt || observedAt) query.set('observation_cutoff',selection.observedAt || observedAt!);
+          setSelection(null);onOpenChange(false);router.push(`/risk/working-papers/new?${query}`);
+        }}>Lanjutkan</AccentButton>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>;
 }

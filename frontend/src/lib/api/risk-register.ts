@@ -4,6 +4,7 @@ import type { RiskCategory, RiskStatus } from "@/types/risk";
 export type RiskRegisterStatusFilter = "all" | RiskStatus;
 export type RiskRegisterLifecycleFilter = "active" | "archived" | "all";
 export type RiskRegisterCategoryFilter = "all" | Exclude<RiskCategory, "">;
+export type RiskRegisterProfileFilter = "active" | "history" | "all";
 
 export interface RiskRegisterListItem {
   id: string;
@@ -72,6 +73,7 @@ export interface PaginatedRiskRegisterResponse {
 interface ListRiskRegisterParams {
   q?: string;
   lifecycle?: RiskRegisterLifecycleFilter;
+  profile?: RiskRegisterProfileFilter;
   status?: RiskStatus;
   category?: Exclude<RiskCategory, "">;
   assessment_cycle?: string;
@@ -92,6 +94,9 @@ export async function listRiskRegister(
   if (params?.q) searchParams.set("q", params.q);
   if (params?.lifecycle && params.lifecycle !== "active") {
     searchParams.set("lifecycle", params.lifecycle);
+  }
+  if (params?.profile && params.profile !== "active") {
+    searchParams.set("profile", params.profile);
   }
   if (params?.status) searchParams.set("status", params.status);
   if (params?.category) searchParams.set("category", params.category);

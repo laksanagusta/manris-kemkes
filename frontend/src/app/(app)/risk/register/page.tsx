@@ -1,5 +1,8 @@
 "use client";
+import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import { businessNow } from "@/lib/business-clock";
+import { MonitoringDateField } from "@/components/shared/design-system/domain/monitoring-date-field";
+import { todayMonitoringDate, isValidMonitoringDate } from "@/lib/monitoring-date";
 import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
 import type { CollectionSortControls } from "@/components/shared/design-system/collections/collection-sorting";
 import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
@@ -27,16 +30,17 @@ import {
   restoreRisk,
   type RiskRegisterCategoryFilter,
   type RiskRegisterLifecycleFilter,
+  type RiskRegisterProfileFilter,
   type RiskRegisterListItem,
   type RiskRegisterStatusFilter,
 } from "@/lib/api/risk-register";
 import { startMonitoring } from "@/lib/api/risk-monitoring";
+import { ProfilePeriodPicker, type ProfilePeriodSelection } from "@/components/upr/profile-period-picker";
 import { useAuth } from "@/contexts/auth-context";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { getStatusBadgeClassName, toBadgeVariant, type StatusTone } from "@/lib/badge-variant";
-import { isMonitoringWindowOpen, monitoringWindowMessage } from "@/lib/monitoring-window";
 import {
   AccentButton,
   ActionButton,
@@ -63,13 +67,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  currentMonitoringCycle,
   getAssessmentCycleFilterOptions,
   getDefaultMonitoringCycle,
-  getSelectableMonitoringCyclesForDate,
-  isCurrentMonitoringCycleAvailable,
-  isMonitoringCycleApplicable,
-  shiftMonitoringCycle,
 } from "@/lib/risk-cycle-options";
 import {
   DropdownMenu,
@@ -108,7 +107,6 @@ import {
 } from "@/lib/risk-register-query";
 import {
   formatMonitoringNilai,
-  getMonitoringCycleBadgeStatus,
 } from "@/lib/risk-register-monitoring";
 import {
   CollectionPagination,
@@ -119,7 +117,6 @@ import {
   CollectionTableHead,
   CollectionTableHeader,
   CollectionTableHeaderRow,
-  MonitoringCycleSelect,
   RiskCategoryIndicator,
 } from "@/components/shared/design-system";
 import {
@@ -165,29 +162,6 @@ function getRiskRegisterPeriodOptions(selectedCycle: string) {
 
 type RiskListItem = RiskRegisterListItem;
 
-function getRiskMonitoringStatusForCycle(
-  risk: RiskListItem | null,
-  cycle: string,
-  currentCycle: string,
-) {
-  if (!risk) return null;
-
-  const [cycleYear, cycleQuarter] = cycle.split("-Q");
-  const [currentYear] = currentCycle.split("-Q");
-  if (cycle === shiftMonitoringCycle(currentCycle, -1) && cycleYear !== currentYear) {
-    return risk.previousQuarterMonitoringStatus ?? null;
-  }
-  if (cycleYear !== currentYear) return null;
-
-  const sameYearStatuses = {
-    "1": risk.semesterMonitoring?.q1,
-    "2": risk.semesterMonitoring?.q2,
-    "3": risk.semesterMonitoring?.q3,
-    "4": risk.semesterMonitoring?.q4,
-  };
-  return sameYearStatuses[cycleQuarter as keyof typeof sameYearStatuses] ?? null;
-}
-
 type RiskRegisterFilterToolbarProps = {
   columns: ReactNode;
   search: string;
@@ -205,6 +179,8 @@ type RiskRegisterFilterToolbarProps = {
   assessmentCycleOptions: { value: string; label: string }[];
   lifecycleFilter: RiskRegisterLifecycleFilter;
   onLifecycleFilterChange: (value: RiskRegisterLifecycleFilter) => void;
+  profileFilter: RiskRegisterProfileFilter;
+  onProfileFilterChange: (value: RiskRegisterProfileFilter) => void;
   createdAtFilter: string;
   onCreatedAtFilterChange: (value: string) => void;
 };
@@ -226,6 +202,8 @@ function RiskRegisterFilterToolbar({
   assessmentCycleOptions,
   lifecycleFilter,
   onLifecycleFilterChange,
+  profileFilter,
+  onProfileFilterChange,
   createdAtFilter,
   onCreatedAtFilterChange,
 }: RiskRegisterFilterToolbarProps) {
@@ -251,6 +229,19 @@ function RiskRegisterFilterToolbar({
             { value: "all", label: "Semua Status" },
             { value: "draft", label: "Draf Risiko" },
             { value: "final", label: "Final" },
+          ],
+        },
+        {
+          id: "profile",
+          label: "Profil",
+          value: profileFilter,
+          defaultValue: "active",
+          onChange: (value) =>
+            onProfileFilterChange(value as RiskRegisterProfileFilter),
+          options: [
+            { value: "active", label: "Profil aktif" },
+            { value: "history", label: "Riwayat profil" },
+            { value: "all", label: "Semua profil" },
           ],
         },
         {
@@ -426,6 +417,13 @@ export default function RiskRegisterPage() {
           new URLSearchParams(searchParams.toString()),
         ).lifecycleFilter,
     );
+  const [profileFilter, setProfileFilter] =
+    useState<RiskRegisterProfileFilter>(
+      () =>
+        parseRiskRegisterQueryState(
+          new URLSearchParams(searchParams.toString()),
+        ).profileFilter,
+    );
   const [categoryFilter, setCategoryFilter] =
     useState<RiskRegisterCategoryFilter>(
       () =>
@@ -464,33 +462,12 @@ export default function RiskRegisterPage() {
   const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
   const [selectedRiskForReassessment, setSelectedRiskForReassessment] =
     useState<RiskListItem | null>(null);
-  const [selectedAssessmentCycle, setSelectedAssessmentCycle] = useState(
-    () => getDefaultMonitoringCycle(),
-  );
-  const [monitoringNow,setMonitoringNow]=useState(()=>businessNow());
-  useEffect(()=>{const refresh=()=>setMonitoringNow(businessNow());const timer=setInterval(refresh,60000);window.addEventListener("focus",refresh);return()=>{clearInterval(timer);window.removeEventListener("focus",refresh);};},[]);
-  const selectableMonitoringCycles = useMemo(()=>getSelectableMonitoringCyclesForDate(monitoringNow),[monitoringNow]);
-  const monitoringCycleOptions = useMemo(() => {
-    const currentCycle = currentMonitoringCycle();
-    return selectableMonitoringCycles.map((cycle) => ({
-      ...cycle,
-      status: getMonitoringCycleBadgeStatus(
-        getRiskMonitoringStatusForCycle(
-          selectedRiskForReassessment,
-          cycle.value,
-          currentCycle,
-        ),
-        cycle.value === currentCycle,
-        isMonitoringCycleApplicable(
-          cycle.value,
-          selectedRiskForReassessment?.assessmentCycle,
-        ),
-      ),
-    }));
-  }, [selectableMonitoringCycles, selectedRiskForReassessment]);
-  const selectedMonitoringCycleOption = monitoringCycleOptions.find(
-    (cycle) => cycle.value === selectedAssessmentCycle,
-  );
+  const [observedAt, setObservedAt] = useState(() => todayMonitoringDate());
+  const [monitoringSelection, setMonitoringSelection] = useState<ProfilePeriodSelection | null>(null);
+  const handleMonitoringSelectionChange = useCallback((selection: ProfilePeriodSelection | null) => {
+    setMonitoringSelection(selection);
+    if (selection?.observedAt) setObservedAt(selection.observedAt);
+  }, []);
   const [riskToArchive, setRiskToArchive] = useState<RiskListItem | null>(null);
   const [archiveReason, setArchiveReason] = useState("");
 
@@ -507,6 +484,11 @@ export default function RiskRegisterPage() {
 
   const handleRegisterStatusChange = (value: RiskRegisterStatusFilter) => {
     setStatusFilter(value);
+    setPage(1);
+  };
+
+  const handleRegisterProfileChange = (value: RiskRegisterProfileFilter) => {
+    setProfileFilter(value);
     setPage(1);
   };
 
@@ -562,6 +544,7 @@ export default function RiskRegisterPage() {
       listRiskRegister(activeToken, {
         q: normalizedSearch || undefined,
         lifecycle: lifecycleFilter,
+        profile: profileFilter,
         status: registerStatus,
         category: categoryFilter === "all" ? undefined : categoryFilter,
         assessment_cycle: normalizedAssessmentCycle || undefined,
@@ -582,7 +565,20 @@ export default function RiskRegisterPage() {
     setPage(allRisksResponse.page ?? page);
     setLimit(allRisksResponse.limit ?? limit);
 
-  },[search,assessmentCycleFilter,createdAtFilter,statusFilter,lifecycleFilter,categoryFilter,monitoringStatusFilter,sortBy,sortOrder,page,limit]);
+  }, [
+    search,
+    assessmentCycleFilter,
+    createdAtFilter,
+    statusFilter,
+    lifecycleFilter,
+    profileFilter,
+    categoryFilter,
+    monitoringStatusFilter,
+    sortBy,
+    sortOrder,
+    page,
+    limit,
+  ]);
 
   const handleExport = async () => {
     if (!token || exportInProgressRef.current) return;
@@ -592,6 +588,7 @@ export default function RiskRegisterPage() {
     const filters = {
       q: search.trim() || undefined,
       lifecycle: lifecycleFilter,
+      profile: profileFilter,
       status: statusFilter === "all" ? undefined : statusFilter,
       category: categoryFilter === "all" ? undefined : categoryFilter,
       assessment_cycle: assessmentCycleFilter.trim() || undefined,
@@ -646,6 +643,9 @@ export default function RiskRegisterPage() {
         ? current
         : nextState.lifecycleFilter,
     );
+    setProfileFilter((current) =>
+      current === nextState.profileFilter ? current : nextState.profileFilter,
+    );
     setCategoryFilter((current) =>
       current === nextState.categoryFilter ? current : nextState.categoryFilter,
     );
@@ -677,6 +677,7 @@ export default function RiskRegisterPage() {
     const nextState = {
       search,
       lifecycleFilter,
+      profileFilter,
       monitoringStatusFilter,
       statusFilter,
       categoryFilter,
@@ -715,6 +716,7 @@ export default function RiskRegisterPage() {
     createdAtFilter,
     limit,
     lifecycleFilter,
+    profileFilter,
     page,
     pathname,
     router,
@@ -877,40 +879,13 @@ export default function RiskRegisterPage() {
 
   const handleOpenConfirmDialog = (risk: RiskListItem) => {
     setSelectedRiskForReassessment(risk);
-    const currentCycle = currentMonitoringCycle();
-    const previousCycle = shiftMonitoringCycle(currentCycle, -1);
-    const previousStatus = getRiskMonitoringStatusForCycle(
-      risk,
-      previousCycle,
-      currentCycle,
-    );
-    const currentStatus = getRiskMonitoringStatusForCycle(
-      risk,
-      currentCycle,
-      currentCycle,
-    );
-    const ongoingCycle =
-      currentStatus === "draft"
-        ? currentCycle
-        : previousStatus === "draft"
-          ? previousCycle
-          : null;
-    setSelectedAssessmentCycle(
-      ongoingCycle &&
-        (ongoingCycle !== currentCycle ||
-          isCurrentMonitoringCycleAvailable())
-        ? ongoingCycle
-        : getDefaultMonitoringCycle(
-            currentCycle,
-            previousStatus,
-            risk.assessmentCycle,
-          ),
-    );
+    setMonitoringSelection(null);
+    setObservedAt(todayMonitoringDate());
     setConfirmDialogOpen(true);
   };
 
   const handleCreateReassessment = async () => {
-    if (!token || !selectedRiskForReassessment) {
+    if (!token || !selectedRiskForReassessment || !monitoringSelection) {
       toast.error("Sesi login tidak ditemukan.");
       return;
     }
@@ -923,7 +898,11 @@ export default function RiskRegisterPage() {
         const result = await startMonitoring(
           token,
           currentRisk.id,
-          selectedAssessmentCycle,
+          observedAt,
+          monitoringSelection.monitoringPeriodId ? {
+            profileVersionId: monitoringSelection.profileVersionId,
+            monitoringPeriodId: monitoringSelection.monitoringPeriodId,
+          } : undefined,
         );
         await refreshRegisterData(token);
 
@@ -934,11 +913,11 @@ export default function RiskRegisterPage() {
         return result;
       })(),
       {
-        loading: `Memulai transaksi pemantauan ${selectedAssessmentCycle}...`,
+        loading: `Memulai transaksi pemantauan ${observedAt}...`,
         success: (result) =>
           result.existingDraft
-            ? `Melanjutkan transaksi pemantauan ${selectedAssessmentCycle} yang sudah ada.`
-            : `Transaksi pemantauan ${selectedAssessmentCycle} berhasil dibuat.`,
+            ? `Melanjutkan transaksi pemantauan ${observedAt} yang sudah ada.`
+            : `Transaksi pemantauan ${observedAt} berhasil dibuat.`,
         error: (err) =>
           err instanceof Error
             ? err.message
@@ -992,6 +971,7 @@ export default function RiskRegisterPage() {
     monitoringStatusFilter !== "all" ||
     statusFilter !== "all" ||
     lifecycleFilter !== "active" ||
+    profileFilter !== "active" ||
     categoryFilter !== "all" ||
     Boolean(assessmentCycleFilter.trim()) ||
     Boolean(createdAtFilter.trim());
@@ -1008,8 +988,6 @@ export default function RiskRegisterPage() {
       !isReadOnly;
     const canRestore = !!risk.archivedAt && !isReadOnly;
     const canReassess =
-      selectableMonitoringCycles.length>0 &&
-      isMonitoringCycleApplicable(getDefaultMonitoringCycle(),risk.assessmentCycle) &&
       risk.status === "final" &&
       risk.isCurrent &&
       !risk.archivedAt &&
@@ -1086,6 +1064,8 @@ export default function RiskRegisterPage() {
                 setLifecycleFilter(value);
                 setPage(1);
               }}
+              profileFilter={profileFilter}
+              onProfileFilterChange={handleRegisterProfileChange}
               createdAtFilter={createdAtFilter}
               onCreatedAtFilterChange={(value) => {
                 setCreatedAtFilter(value);
@@ -1242,11 +1222,11 @@ export default function RiskRegisterPage() {
         <AlertDialogContent className="register-motion-dialog max-w-lg no-scrollbar">
           <AlertDialogHeader>
             <AlertDialogTitle>Konfirmasi Pemantauan</AlertDialogTitle>
-            <AlertDialogDescription>
-              Periksa detail risiko dan pilih periode pemantauan. Kuartal
-              berjalan tersedia mulai bulan ketiga.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Periksa risiko sebelum memulai pemantauan.</AlertDialogDescription>
           </AlertDialogHeader>
+          <ConfirmationConsequences>
+            Draf pemantauan akan dibuat untuk tanggal pengamatan yang Anda isi. Rencana mitigasi sebelumnya akan disalin agar dapat ditinjau sebelum finalisasi.
+          </ConfirmationConsequences>
           <div className="space-y-5">
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1">
@@ -1279,19 +1259,10 @@ export default function RiskRegisterPage() {
                 {selectedRiskForReassessment?.title || "-"}
               </p>
             </div>
-            <div className="flex flex-col gap-2">
-              <Label className="text-sm" htmlFor="monitoring-cycle">
-                Periode Pemantauan
-              </Label>
-              <MonitoringCycleSelect
-                contentClassName="register-motion-menu"
-                id="monitoring-cycle"
-                value={selectedAssessmentCycle}
-                onValueChange={setSelectedAssessmentCycle}
-                options={monitoringCycleOptions}
-              />
-            </div>
-            <p className="text-sm text-muted-foreground">{monitoringWindowMessage(selectedAssessmentCycle)}</p>
+            {confirmDialogOpen && token && selectedRiskForReassessment?.organizationId && (
+              <ProfilePeriodPicker token={token} organizationId={selectedRiskForReassessment.organizationId} process="monitoring" riskGroupId={selectedRiskForReassessment.versionGroupId} onChange={handleMonitoringSelectionChange} />
+            )}
+            <MonitoringDateField id="monitoring-date" value={observedAt} onChange={setObservedAt} />
           </div>
           <AlertDialogFooter>
             <AlertDialogCancel
@@ -1304,15 +1275,9 @@ export default function RiskRegisterPage() {
               variant="default"
               size="default"
               onClick={handleCreateReassessment}
-              disabled={
-                selectedMonitoringCycleOption?.status === "completed" ||
-                !selectedMonitoringCycleOption ||
-                !isMonitoringWindowOpen(selectedAssessmentCycle,monitoringNow)
-              }
+              disabled={!monitoringSelection || !isValidMonitoringDate(observedAt)}
             >
-              {selectedMonitoringCycleOption?.status === "in-progress"
-                ? "Lanjutkan Pemantauan"
-                : `Mulai Pemantauan ${selectedAssessmentCycle}`}
+              Mulai / lanjutkan pemantauan
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1330,10 +1295,11 @@ export default function RiskRegisterPage() {
           <div className="flex min-h-0 flex-col gap-5">
             <DialogHeader>
               <DialogTitle>Arsipkan Risiko?</DialogTitle>
-              <DialogDescription>
-                Risiko akan dipindahkan dari daftar aktif. Isi alasan pengarsipan untuk melanjutkan.
-              </DialogDescription>
+              <DialogDescription>Periksa risiko dan isi alasan pengarsipan.</DialogDescription>
             </DialogHeader>
+            <ConfirmationConsequences>
+              Risiko akan dipindahkan ke arsip dan tidak lagi tampil di daftar aktif. Data tetap tersimpan dan dapat dipulihkan melalui tindakan Pulihkan.
+            </ConfirmationConsequences>
             <div className="space-y-5">
               <div className="space-y-1">
                 <p className="text-xs font-medium uppercase tracking-[0.06em] text-muted-foreground">
@@ -1403,10 +1369,11 @@ export default function RiskRegisterPage() {
         <DialogContent className="register-motion-dialog">
           <DialogHeader>
             <DialogTitle>Hapus Draft Risiko?</DialogTitle>
-            <DialogDescription>
-              Draft yang dihapus tidak bisa dikembalikan.
-            </DialogDescription>
+            <DialogDescription>Periksa draf risiko yang akan dihapus.</DialogDescription>
           </DialogHeader>
+          <ConfirmationConsequences>
+            Draf risiko beserta isinya akan dihapus permanen dan tidak dapat dipulihkan.
+          </ConfirmationConsequences>
           <div className="space-y-0.5 py-1 text-sm">
             <p className="font-medium">
               {(riskToDeleteDraft ?? actionRisk)?.title || "Tanpa judul"}
@@ -1437,11 +1404,12 @@ export default function RiskRegisterPage() {
         <AlertDialogContent className="register-motion-dialog">
           <AlertDialogHeader>
             <AlertDialogTitle>Pulihkan Risiko?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Risiko akan kembali muncul di daftar aktif dengan status
-              terakhirnya.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Periksa risiko yang akan dipulihkan.</AlertDialogDescription>
           </AlertDialogHeader>
+          <ConfirmationConsequences>
+            Risiko akan kembali muncul di daftar aktif dengan status
+              terakhirnya.
+          </ConfirmationConsequences>
           <div className="rounded-lg ring-1 ring-inset ring-border bg-muted px-3 py-2 text-sm">
             <p className="font-medium">
               {(riskToRestore ?? actionRisk)?.title || "Tanpa judul"}

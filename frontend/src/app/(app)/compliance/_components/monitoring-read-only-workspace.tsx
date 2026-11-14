@@ -1,6 +1,5 @@
 "use client";
 
-import { isMonitoringWindowOpen } from "@/lib/monitoring-window";
 
 import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
 import { createDisplayDateFormatter } from "@/lib/display-date";
@@ -28,7 +27,7 @@ import {
 } from "@/lib/monitoring-overview";
 import {
   currentMonitoringCycle,
-  getSelectableMonitoringCycles,
+  getAssessmentCycleFilterOptions,
 } from "@/lib/risk-cycle-options";
 import {
   CollectionEmptyState,
@@ -143,13 +142,9 @@ export function MonitoringReadOnlyWorkspace() {
   const searchParams = useSearchParams();
   const { token, user } = useAuth();
   const requestSequence=useRef(0);
-  const currentCycle = useMemo(() => currentMonitoringCycle(), []);
   const cycleOptions = useMemo(
-    () => [
-      { value: "all", label: "Semua" },
-      ...getSelectableMonitoringCycles(currentCycle),
-    ],
-    [currentCycle],
+    () => getAssessmentCycleFilterOptions(undefined, searchParams.get("cycle") === "all" ? "" : searchParams.get("cycle") || ""),
+    [searchParams],
   );
   const initialQuery = useMemo(
     () => parseMonitoringQueryState(new URLSearchParams(searchParams.toString())),
@@ -417,6 +412,7 @@ export function MonitoringReadOnlyWorkspace() {
                 <colgroup>
                   <col style={{ width: 132 }} />
                   <col style={{ width: 340 }} />
+                  <col style={{ width: 154 }} />
                   <col style={{ width: 118 }} />
                   <col style={{ width: 110 }} />
                   <col style={{ width: 154 }} />
@@ -428,6 +424,7 @@ export function MonitoringReadOnlyWorkspace() {
                   <CollectionTableHeaderRow>
                     <CollectionTableHead>Kode risiko</CollectionTableHead>
                     <CollectionTableHead className="">Risiko</CollectionTableHead>
+                    <CollectionTableHead>Tanggal pemantauan</CollectionTableHead>
                     <CollectionTableHead >Periode</CollectionTableHead>
                     <CollectionTableHead >Status</CollectionTableHead>
                     <CollectionTableHead >Perubahan Skor</CollectionTableHead>
@@ -439,7 +436,7 @@ export function MonitoringReadOnlyWorkspace() {
                 <TableBody>
                   {pageRows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="">
+                      <TableCell colSpan={9} className="">
                         <CollectionEmptyState
                           title="Belum ada transaksi pemantauan"
                           description="Belum ada transaksi pemantauan untuk siklus atau filter yang dipilih."
@@ -450,10 +447,7 @@ export function MonitoringReadOnlyWorkspace() {
                     pageRows.map((row) => {
                       const actionHref = getActionHref(row);
 
-                      const statusLabel = row.status === "in_progress" && row.assessmentCycle &&
-                        !isMonitoringWindowOpen(row.assessmentCycle)
-                        ? "Draf terkunci"
-                        : getMonitoringStatusLabel(row.status);
+                      const statusLabel = getMonitoringStatusLabel(row.status);
                       return (
                         <TableRow
                           key={row.id}
@@ -470,6 +464,7 @@ export function MonitoringReadOnlyWorkspace() {
                           <TableCell className="min-w-0 max-w-0 overflow-hidden">
                             <RiskTableIdentity title={row.title} href={actionHref} />
                           </TableCell>
+                          <TableCell><span data-date-time="">{formatMonitoringDate(row.observedAt ? `${row.observedAt}T00:00:00+07:00` : null)}</span></TableCell>
                           <TableCell className="max-w-0 truncate">
                             {row.assessmentCycle || "-"}
                           </TableCell>

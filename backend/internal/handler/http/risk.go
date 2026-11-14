@@ -166,6 +166,7 @@ func (h *RiskHandler) ListRiskRegister(c *fiber.Ctx) error {
 		OrgIDs:           orgIDs,
 		Status:           strings.TrimSpace(c.Query("status", "all")),
 		Lifecycle:        strings.TrimSpace(c.Query("lifecycle", "active")),
+		Profile:          strings.TrimSpace(c.Query("profile", "active")),
 		AssessmentCycle:  strings.TrimSpace(c.Query("assessment_cycle", "")),
 		MonitoringStatus: strings.TrimSpace(c.Query("monitoring_status", "")),
 		CreatedAt:        strings.TrimSpace(c.Query("created_at", "")),
@@ -188,6 +189,9 @@ func (h *RiskHandler) ListRiskRegister(c *fiber.Ctx) error {
 	}
 	if input.Lifecycle != "active" && input.Lifecycle != "archived" && input.Lifecycle != "all" {
 		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "lifecycle tidak valid")
+	}
+	if input.Profile != "active" && input.Profile != "history" && input.Profile != "all" {
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "profile tidak valid")
 	}
 	if category := strings.TrimSpace(c.Query("category")); category != "" {
 		if !entity.IsValidRiskCategory(category) {
@@ -548,10 +552,14 @@ type createRiskReassessmentRequest struct {
 }
 
 type startMonitoringRequest struct {
-	Cycle string `json:"cycle"`
+	ProfileVersionID   *uuid.UUID `json:"profileVersionId"`
+	MonitoringPeriodID *uuid.UUID `json:"monitoringPeriodId"`
+	ObservedAt         string     `json:"observedAt"`
+	Cycle              string     `json:"cycle"`
 }
 
 type updateMonitoringRequest struct {
+	ObservedAt                  string                           `json:"observedAt"`
 	ExpectedUpdatedAt           *time.Time                       `json:"expectedUpdatedAt"`
 	ObservedScoreConfirmed      *bool                            `json:"observedScoreConfirmed"`
 	ObservedProbability         int                              `json:"observedProbability"`
@@ -755,10 +763,12 @@ func (h *RiskHandler) StartMonitoring(c *fiber.Ctx) error {
 
 	userID, _ := c.Locals("userId").(uuid.UUID)
 	result, err := h.startMonitoringUC.Execute(c.Context(), riskuc.StartMonitoringInput{
-		SourceRiskID: id,
-		Cycle:        req.Cycle,
-		OrgIDs:       orgIDs,
-		StartedBy:    userID,
+		SourceRiskID:     id,
+		Cycle:            req.Cycle,
+		ObservedAt:       req.ObservedAt,
+		ProfileVersionID: req.ProfileVersionID, MonitoringPeriodID: req.MonitoringPeriodID,
+		OrgIDs:    orgIDs,
+		StartedBy: userID,
 	})
 	if err != nil {
 		return handleError(c, err)
@@ -823,6 +833,7 @@ func (h *RiskHandler) UpdateMonitoring(c *fiber.Ctx) error {
 	result, err := h.updateMonitoringUC.Execute(c.Context(), riskuc.UpdateMonitoringInput{
 		ExpectedUpdatedAt:           req.ExpectedUpdatedAt,
 		MonitoringID:                id,
+		ObservedAt:                  req.ObservedAt,
 		OrgIDs:                      orgIDs,
 		ObservedScoreConfirmed:      req.ObservedScoreConfirmed,
 		ObservedProbability:         req.Values.Probability,

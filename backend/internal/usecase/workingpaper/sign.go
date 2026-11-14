@@ -28,7 +28,7 @@ func workingPaperSigningBlockers(wp *entity.WorkingPaper) []entity.WorkingPaperS
 
 	for _, link := range wp.Risks {
 		monitoring := link.Risk.Monitoring
-		wrongPeriod := link.SourceMode == "roster" && monitoring != nil && monitoring.AssessmentCycle != wp.AssessmentCycle
+		wrongPeriod := wp.ProfileVersionID == nil && link.SourceMode == "roster" && monitoring != nil && monitoring.AssessmentCycle != wp.AssessmentCycle
 		if monitoring == nil || monitoring.Status != entity.RiskMonitoringStatusFinalized || wrongPeriod {
 			status := "missing"
 			if wrongPeriod {

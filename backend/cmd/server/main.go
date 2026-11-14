@@ -234,6 +234,7 @@ func main() {
 
 	protected := api.Group("", middleware.IdentityRequired(container.IdentityService, identitydomain.ManrisApplication), middleware.RequireFullSession())
 	protected.Post("/feedback", httpHandler.NewFeedbackHandler(container.FeedbackService).Create)
+	httpHandler.RegisterUPRWorkflowRoutes(protected, postgresrepo.NewUPRWorkflow(container.Pool))
 	httpHandler.NewAgentHandler(container.AgentService).RegisterRoutes(protected)
 	protected.Get("/organization-api-key", organizationAPIKeyHandler.Get)
 	protected.Post("/organization-api-key/generate", organizationAPIKeyHandler.Generate)

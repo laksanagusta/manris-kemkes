@@ -1,5 +1,6 @@
 "use client";
 
+import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import { useLayoutEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
 
 import {
@@ -45,7 +46,6 @@ type MitigationProgressFlowDialogProps = {
   formDescription?: ReactNode;
   reportTask?: Pick<MitigationTask, "mitigationAction" | "riskCode" | "periodLabel" | "dueDate"> | null;
   availabilityMessage?: string;
-  reportSent?: boolean;
   submitError?: string;
   dirty?: boolean;
   submitting?: boolean;
@@ -86,7 +86,6 @@ export function MitigationProgressFlowDialog(props: MitigationProgressFlowDialog
     footerActions,
     reportTask,
     availabilityMessage,
-    reportSent,
     submitError,
     dirty,
     submitting,
@@ -203,8 +202,6 @@ export function MitigationProgressFlowDialog(props: MitigationProgressFlowDialog
   }, [bodyContentElement, modalElement, open, view]);
 
   const dueDate = reportTask ? new Date(reportTask.dueDate) : null;
-  const heading = reportSent ? "Laporan penanganan terkirim" : detailTitle;
-
   const close = () => {
     setConfirmDiscard(false);
     onViewChange?.("detail");
@@ -240,14 +237,10 @@ export function MitigationProgressFlowDialog(props: MitigationProgressFlowDialog
       >
         <DialogHeader className={cn("w-full shrink-0 gap-0.5 p-4 text-left", view === "form" && "pr-16")}>
           <DialogTitle ref={titleRef} tabIndex={-1} className="text-base outline-none">
-            {view === "detail" ? heading : formTitle}
+            {view === "detail" ? detailTitle : formTitle}
           </DialogTitle>
           <DialogDescription>
-            {view === "form"
-              ? formDescription
-              : reportSent
-                ? `Laporan ini menjadi bahan pemantauan periode ${reportTask?.periodLabel || "ini"}.`
-                : detailDescription}
+            {view === "form" ? formDescription : detailDescription}
           </DialogDescription>
         </DialogHeader>
         <Separator />
@@ -320,8 +313,11 @@ export function MitigationProgressFlowDialog(props: MitigationProgressFlowDialog
           }}>
             <AlertDialogHeader>
               <AlertDialogTitle>Buang isian laporan?</AlertDialogTitle>
-              <AlertDialogDescription>Catatan dan link bukti yang belum dikirim akan hilang.</AlertDialogDescription>
+              <AlertDialogDescription>Periksa isian yang belum dikirim.</AlertDialogDescription>
             </AlertDialogHeader>
+            <ConfirmationConsequences>
+              Catatan dan link bukti yang belum dikirim akan hilang.
+            </ConfirmationConsequences>
             <AlertDialogFooter>
               <AlertDialogCancel>Lanjut mengisi</AlertDialogCancel>
               <AlertDialogAction variant="destructive" onClick={close}>Buang isian</AlertDialogAction>

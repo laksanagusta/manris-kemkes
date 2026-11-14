@@ -25,11 +25,11 @@ func TestReportingDueFilterReadIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer pool.Close()
-	query := `WITH clock AS (SELECT (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jakarta')::date today)
+	query := `WITH clock AS (SELECT (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jakarta')::date today), risks AS (SELECT 'family'::text version_group_id,'final'::text status,true is_current,$6::timestamptz archived_at)
  SELECT ` + reportingDuePredicate() + `
  FROM clock CROSS JOIN LATERAL
  (SELECT $1::text status, today + $2::int due_date, today + $3::int period_end) t
- CROSS JOIN (SELECT $4::text status, $5::boolean is_current, $6::timestamptz archived_at, NULL::text archived_reason) r`
+ CROSS JOIN (SELECT $4::text status, $5::boolean is_current, $6::timestamptz archived_at, NULL::text archived_reason,'family'::text version_group_id) r`
 	for _, tt := range []struct {
 		name, status            string
 		due, end                int
@@ -45,7 +45,7 @@ func TestReportingDueFilterReadIntegration(t *testing.T) {
 		{"reported", "done", 0, -1, "final", true, false, false},
 		{"not reported closed", "not_reported", -4, -5, "final", true, false, false},
 		{"draft risk", "pending", 0, -1, "draft", true, false, false},
-		{"old version", "pending", 0, -1, "final", false, false, false},
+		{"old version", "pending", 0, -1, "final", false, false, true},
 		{"archived", "pending", 0, -1, "final", true, true, false},
 	} {
 		t.Run(tt.name, func(t *testing.T) {

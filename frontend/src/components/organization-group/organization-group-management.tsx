@@ -1,5 +1,6 @@
 "use client";
 
+import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import { createDisplayDateFormatter } from "@/lib/display-date";
 import { sortDate } from "@/lib/collection-sort";
 import { useCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
@@ -878,10 +879,11 @@ export function OrganizationGroupManagement({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Hapus Grup Organisasi</DialogTitle>
-            <DialogDescription>
-              Grup {groupToDelete?.name ? `"${groupToDelete.name}"` : "ini"} akan dihapus dan tidak bisa dipilih lagi sebagai filter laporan.
-            </DialogDescription>
+            <DialogDescription>Periksa grup organisasi yang akan dihapus.</DialogDescription>
           </DialogHeader>
+          <ConfirmationConsequences>
+            Grup {groupToDelete?.name ? `"${groupToDelete.name}"` : "ini"} akan dihapus permanen dan tidak bisa dipilih lagi sebagai filter laporan. Organisasi anggotanya tetap tersimpan. Tindakan ini tidak dapat dibatalkan.
+          </ConfirmationConsequences>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setDeleteOpen(false)} disabled={saving}>
               Batal

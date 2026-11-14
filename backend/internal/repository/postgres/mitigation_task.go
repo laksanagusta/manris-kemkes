@@ -81,7 +81,7 @@ func (r *mitigationTaskRepository) Update(ctx context.Context, task *entity.Miti
 	if task.MonitoringID != nil {
 		var status string
 		err = tx.QueryRow(ctx, "SELECT status FROM risk_monitorings WHERE id = $1 FOR UPDATE", *task.MonitoringID).Scan(&status)
-		if errors.Is(err, pgx.ErrNoRows) || (err == nil && status != entity.RiskMonitoringStatusDraft) {
+		if errors.Is(err, pgx.ErrNoRows) {
 			return domainerrors.ErrMonitoringReportClosed
 		}
 		if err != nil {
@@ -202,7 +202,8 @@ func (r *mitigationTaskRepository) GetRecurringMitigations(ctx context.Context) 
 		   AND m.recurring_interval IS NOT NULL
 		   AND r.status = 'final'
 		   AND r.is_current = TRUE
-		   AND r.is_cycle_current = TRUE`)
+		   AND r.is_cycle_current = TRUE
+ AND NOT EXISTS(SELECT 1 FROM mitigation_tasks generated WHERE generated.mitigation_id=m.id AND generated.generated_by_monitoring_id IS NOT NULL)`)
 	if err != nil {
 		return nil, fmt.Errorf("get recurring mitigations: %w", err)
 	}

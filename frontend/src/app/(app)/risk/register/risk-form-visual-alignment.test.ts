@@ -169,7 +169,7 @@ test("registration uses the correct finalized-risk monitoring shortcut state", (
   assert.doesNotMatch(registrationSource, /ArrowRight/);
   assert.match(registrationSource, /Mulai Pemantauan/);
   assert.match(registrationSource, /startMonitoring\(/);
-  assert.match(registrationSource, /getSelectableMonitoringCycles/);
+  assert.match(registrationSource, /<MonitoringDateField/);
   assert.match(
     registrationSource,
     /result\.redirectUrl \|\| `\/risk\/monitoring\/\$\{result\.monitoring\.id\}`/,

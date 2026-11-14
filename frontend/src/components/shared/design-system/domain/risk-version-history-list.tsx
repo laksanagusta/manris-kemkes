@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { cn } from "@/lib/utils";
 import type { MouseEvent } from "react";
 import { formatDisplayDate } from "@/lib/display-date";
 import type { RiskVersionTimelineItem } from "@/types/risk";
@@ -13,18 +12,21 @@ export function RiskVersionHistoryList({ versions, onVersionSelect }: {
   onVersionSelect?: (versionId: string, event: MouseEvent<HTMLAnchorElement>) => void;
 }) {
   return (
-    <ol aria-label="Riwayat versi risiko" className={cn(
-      "relative min-w-0 space-y-4",
-      versions.length > 1 && "before:pointer-events-none before:absolute before:inset-y-0 before:start-2 before:border-s before:border-dashed before:border-border",
-    )}>
-      {versions.map((version) => {
+    <ol aria-label="Riwayat versi risiko" className="min-w-0">
+      {versions.map((version, index) => {
         const date = new Date(version.createdAt);
         const validDate = Number.isFinite(date.getTime());
         const label = version.versionNumber ? `Versi ${version.versionNumber}` : "Versi";
         const title = version.title && version.title !== "-" ? `${label} · ${version.title}` : label;
         const context = [version.assessmentCycle, version.changeReason].filter(Boolean).join(" · ");
         return (
-          <li key={version.id} data-version-history-item className="relative ps-6">
+          <li key={version.id} data-version-history-item className="relative pb-4 ps-6 last:pb-0">
+            {index < versions.length - 1 && (
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute -bottom-1 start-[7.5px] top-4 w-px bg-muted-foreground/25"
+              />
+            )}
             <span aria-hidden="true" className="absolute start-1 top-1.5 size-2 rounded-full bg-muted-foreground/40" />
             <Link
               href={`/risk/register/new?id=${version.id}`}

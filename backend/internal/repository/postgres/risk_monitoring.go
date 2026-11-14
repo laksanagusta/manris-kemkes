@@ -5,6 +5,8 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -31,7 +33,32 @@ type riskMonitoringQueryer interface {
 }
 
 func (r *riskMonitoringRepository) Create(ctx context.Context, monitoring *entity.RiskMonitoring) error {
-	return insertRiskMonitoring(ctx, r.pool, monitoring)
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	if monitoring.Status == entity.RiskMonitoringStatusDraft && monitoring.ProfileVersionID == nil {
+		// Serialize starts per family while allowing pre-existing drafts from
+		// separate quarters to survive the upgrade.
+		if _, err := tx.Exec(ctx, "SELECT pg_advisory_xact_lock(hashtextextended($1::text, 85))", monitoring.VersionGroupID.String()); err != nil {
+			return fmt.Errorf("lock monitoring draft creation: %w", err)
+		}
+		var exists bool
+		if err := tx.QueryRow(ctx, "SELECT EXISTS (SELECT 1 FROM risk_monitorings WHERE version_group_id=$1 AND status='draft')", monitoring.VersionGroupID).Scan(&exists); err != nil {
+			return fmt.Errorf("check open monitoring draft: %w", err)
+		}
+		if exists {
+			return domainerrors.ErrMonitoringNotDraft
+		}
+	}
+	if err := insertRiskMonitoring(ctx, tx, monitoring); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(ctx, `UPDATE mitigation_tasks SET monitoring_id=$1,updated_at=clock_timestamp() WHERE risk_id=$2 AND monitoring_id IS NULL`, monitoring.ID, monitoring.SourceRiskID); err != nil {
+		return fmt.Errorf("link observation input tasks: %w", err)
+	}
+	return tx.Commit(ctx)
 }
 
 func insertRiskMonitoring(
@@ -39,6 +66,9 @@ func insertRiskMonitoring(
 	q riskMonitoringQueryer,
 	monitoring *entity.RiskMonitoring,
 ) error {
+	if monitoring.ObservedAt == "" {
+		monitoring.ObservedAt = monitoring.StartedAt.In(timeutil.JakartaLocation()).Format("2006-01-02")
+	}
 	if err := monitoring.Validate(); err != nil {
 		return err
 	}
@@ -56,9 +86,9 @@ func insertRiskMonitoring(
 			conclusion,
 			mitigation_progress_summary, mitigation_completion_percent,
 			draft_payload,
-			profile_change_summary, change_reason, started_by, started_at
+			profile_change_summary, change_reason, started_by, started_at, observed_at, observed_at_inferred,profile_version_id,monitoring_period_id
 		)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29)
 		RETURNING id, started_at, created_at, updated_at`,
 		monitoring.SourceRiskID,
 		monitoring.VersionGroupID,
@@ -85,6 +115,8 @@ func insertRiskMonitoring(
 		monitoring.ChangeReason,
 		monitoring.StartedBy,
 		monitoring.StartedAt,
+		monitoring.ObservedAt,
+		monitoring.ObservedAtInferred, monitoring.ProfileVersionID, monitoring.MonitoringPeriodID,
 	).Scan(&monitoring.ID, &monitoring.StartedAt, &monitoring.CreatedAt, &monitoring.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("create risk monitoring: %w", err)
@@ -139,7 +171,7 @@ func (r *riskMonitoringRepository) GetByVersionGroupAndCycle(ctx context.Context
 		JOIN risks rv ON rv.id = rm.source_risk_id
 		WHERE rv.version_group_id = $1 AND rm.assessment_cycle = $2
 		  AND rm.status IN ('draft', 'final')
-		ORDER BY rm.created_at DESC
+		ORDER BY (rm.status='draft') DESC, rm.observed_at DESC, rm.finalized_at DESC NULLS LAST, rm.id DESC
 		LIMIT 1
 	`, versionGroupID, cycle))
 	if err != nil {
@@ -155,7 +187,7 @@ func (r *riskMonitoringRepository) ListByVersionGroup(ctx context.Context, versi
 	rows, err := r.pool.Query(ctx, baseRiskMonitoringSelect()+`
 		JOIN risks rv ON rv.id = rm.source_risk_id
 		WHERE rv.version_group_id = $1
-		ORDER BY rm.assessment_cycle, rm.started_at, rm.id
+		ORDER BY rm.observed_at DESC, rm.finalized_at DESC NULLS LAST, rm.id DESC
 	`, versionGroupID)
 	if err != nil {
 		return nil, fmt.Errorf("list monitorings by version group: %w", err)
@@ -330,6 +362,9 @@ func (r *riskMonitoringRepository) UpdateDraft(ctx context.Context, monitoring *
 			draft_payload = $11,
 			profile_change_summary = $12,
 			change_reason = $13,
+			observed_at = $15::date,
+			assessment_cycle = $16,
+			observed_at_inferred = $17,
 		    updated_at = clock_timestamp()
 		WHERE id = $1 AND status = 'draft' AND updated_at = $14
 		RETURNING updated_at
@@ -348,6 +383,9 @@ func (r *riskMonitoringRepository) UpdateDraft(ctx context.Context, monitoring *
 		profileChanges,
 		monitoring.ChangeReason,
 		monitoring.UpdatedAt,
+		monitoring.ObservedAt,
+		monitoring.AssessmentCycle,
+		monitoring.ObservedAtInferred,
 	).Scan(&monitoring.UpdatedAt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return domainerrors.ErrMonitoringReviewChanged
@@ -423,6 +461,9 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 	if err != nil {
 		return nil, err
 	}
+	if monitoring.Status == entity.RiskMonitoringStatusFinal {
+		return monitoring, nil
+	}
 	if monitoring.Status != entity.RiskMonitoringStatusDraft {
 		return nil, domainerrors.ErrMonitoringNotFinalizable
 	}
@@ -443,29 +484,44 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 		}
 	}
 
-	var sourceID uuid.UUID
-	err = tx.QueryRow(ctx, "SELECT id FROM risks WHERE id = $1 AND is_current AND status = 'final' FOR UPDATE", monitoring.SourceRiskID).Scan(&sourceID)
+	var activeID uuid.UUID
+	var activeEffective time.Time
+	err = tx.QueryRow(ctx, `SELECT id,COALESCE(effective_from,finalized_at::date,created_at::date) FROM risks WHERE version_group_id=$1 AND is_current AND status='final' AND archived_at IS NULL FOR UPDATE`, monitoring.VersionGroupID).Scan(&activeID, &activeEffective)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, domainerrors.ErrSourceRiskNoLongerActive
 	}
 	if err != nil {
-		return nil, fmt.Errorf("lock source risk for finalization: %w", err)
+		return nil, fmt.Errorf("lock active risk for finalization: %w", err)
 	}
 	now := timeutil.BusinessNow().UTC()
-	if review.ReportRevision != nil && !entity.MonitoringWindowOpen(monitoring.AssessmentCycle, now) {
-		return nil, domainerrors.ErrMonitoringWindowClosed
+	observed, err := time.ParseInLocation("2006-01-02", monitoring.ObservedAt, timeutil.JakartaLocation())
+	if err != nil || monitoring.ObservedAt > now.In(timeutil.JakartaLocation()).Format("2006-01-02") {
+		return nil, domainerrors.ErrInvalidInput
 	}
-
-	source, err := getRiskByIDWithQueryer(ctx, tx, sourceID)
+	source, err := getRiskByIDWithQueryer(ctx, tx, monitoring.SourceRiskID)
 	if err != nil {
 		return nil, err
 	}
-	if !source.IsApprovedCurrent() {
+	var expectedSourceID uuid.UUID
+	if err := tx.QueryRow(ctx, `SELECT id FROM risks WHERE version_group_id=$1 AND status='final' AND archived_at IS NULL AND superseded_by_risk_id IS NULL
+	 AND COALESCE(effective_from,(finalized_at AT TIME ZONE 'Asia/Jakarta')::date,(created_at AT TIME ZONE 'Asia/Jakarta')::date)<=$2::date
+	 ORDER BY COALESCE(effective_from,(finalized_at AT TIME ZONE 'Asia/Jakarta')::date,(created_at AT TIME ZONE 'Asia/Jakarta')::date) DESC,finalized_at DESC NULLS LAST,version_number DESC,id DESC LIMIT 1`, monitoring.VersionGroupID, monitoring.ObservedAt).Scan(&expectedSourceID); err != nil {
+		return nil, domainerrors.ErrMonitoringBeforeRiskEffective
+	}
+	if expectedSourceID != source.ID {
 		return nil, domainerrors.ErrSourceRiskNoLongerActive
+	}
+	activate := monitoring.ObservedAt >= activeEffective.Format("2006-01-02")
+	if resultRisk != nil {
+		resultRisk.EffectiveFrom = &observed
+		if err := tx.QueryRow(ctx, `SELECT COALESCE(MAX(version_number),0)+1 FROM risks WHERE version_group_id=$1`, monitoring.VersionGroupID).Scan(&resultRisk.VersionNumber); err != nil {
+			return nil, err
+		}
 	}
 
 	if resultRisk != nil {
-		_, err = tx.Exec(ctx, `
+		if activate {
+			_, err = tx.Exec(ctx, `
 			UPDATE risks
 			SET is_current = FALSE,
 			    is_cycle_current = FALSE,
@@ -473,8 +529,9 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 			WHERE version_group_id = $1
 			  AND is_current = TRUE
 		`, source.VersionGroupID)
-		if err != nil {
-			return nil, fmt.Errorf("deactivate current risk versions: %w", err)
+			if err != nil {
+				return nil, fmt.Errorf("deactivate current risk versions: %w", err)
+			}
 		}
 
 		resultRisk.VersionGroupID = source.VersionGroupID
@@ -483,16 +540,15 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 		if resultRisk.CreatedBy == nil && finalizedBy != uuid.Nil {
 			resultRisk.CreatedBy = &finalizedBy
 		}
-		resultRisk.IsCurrent = true
-		resultRisk.IsCycleCurrent = true
+		resultRisk.IsCurrent = activate
+		resultRisk.IsCycleCurrent = activate
 		resultRisk.Status = entity.RiskStatusFinal
 		resultRisk.ReviewType = "periodic"
 		startedAt := monitoring.StartedAt.UTC().Round(time.Second)
 		resultRisk.ReviewStartedAt = &startedAt
-		if monitoring.FinalizedAt != nil {
-			resultRisk.ReviewSubmittedAt = monitoring.FinalizedAt
-			resultRisk.ReviewApprovedAt = monitoring.FinalizedAt
-		}
+		resultRisk.FinalizedAt = &now
+		resultRisk.ReviewSubmittedAt = &now
+		resultRisk.ReviewApprovedAt = &now
 		if err := insertRiskWithQueryer(ctx, tx, resultRisk); err != nil {
 			return nil, err
 		}
@@ -504,10 +560,10 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 			UPDATE risks
 			SET finalized_by = $2,
 			    finalized_at = $3::timestamptz,
-			    effective_from = make_date(LEFT(assessment_cycle, 4)::int, (RIGHT(assessment_cycle, 1)::int - 1) * 3 + 1, 1),
+			    effective_from = $4::date,
 			    updated_at = now()
 			WHERE id = $1
-		`, resultRisk.ID, actor, now); err != nil {
+		`, resultRisk.ID, actor, now, monitoring.ObservedAt); err != nil {
 			return nil, fmt.Errorf("record monitoring result risk finalization: %w", err)
 		}
 	}
@@ -538,31 +594,34 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 	`, source.VersionGroupID, monitoring.AssessmentCycle, monitoringID, now); err != nil {
 		return nil, fmt.Errorf("mark monitoring period completed: %w", err)
 	}
-	// Finalization closes every mitigation task that did not contain a valid
-	// report. This runs in the same transaction as the monitoring commit so a
-	// task cannot remain actionable after its monitoring period is final.
-	if _, err := tx.Exec(ctx, `
-		UPDATE mitigation_tasks
-		SET status = 'not_reported',
-			reported_by = NULL,
-			reported_at = NULL,
-			updated_at = now()
-		WHERE monitoring_id = $1
-		  AND (
-			status IS DISTINCT FROM 'done'
-			OR reported_at IS NULL
-			OR NULLIF(BTRIM(COALESCE(notes, '')), '') IS NULL
-		  )
-	`, monitoringID); err != nil {
-		return nil, fmt.Errorf("close unreported mitigation tasks: %w", err)
-	}
 
 	evidence, err := readMonitoringEvidence(ctx, tx, source.ID, monitoringID, monitoring.AssessmentCycle, now)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := tx.Exec(ctx, `UPDATE risk_monitorings SET evidence_snapshot=$2 WHERE id=$1`, monitoringID, evidence); err != nil {
+	completion := 0
+	if len(evidence.Reports) > 0 {
+		done := 0
+		for _, report := range evidence.Reports {
+			if report.Status == "done" && report.ReportedAt != nil && strings.TrimSpace(report.Notes) != "" {
+				done++
+			}
+		}
+		completion = int(math.Round(float64(done) * 100 / float64(len(evidence.Reports))))
+	}
+	if _, err := tx.Exec(ctx, `UPDATE risk_monitorings SET evidence_snapshot=$2,mitigation_completion_percent=$3 WHERE id=$1`, monitoringID, evidence, completion); err != nil {
 		return nil, fmt.Errorf("save monitoring evidence: %w", err)
+	}
+	if resultRisk != nil {
+		if _, err := tx.Exec(ctx, `INSERT INTO mitigation_tasks
+		 (mitigation_id,risk_id,period_label,period_start,period_end,due_date,status,generated_by,generated_by_monitoring_id)
+		 SELECT m.id,m.risk_id,$2,$3::date,
+		 (date_trunc('quarter',$3::date)+interval '3 months - 1 day')::date,
+		 GREATEST(m.due_date,(date_trunc('quarter',$3::date)+interval '3 months - 1 day')::date),
+		 'pending','manual',$4 FROM mitigations m WHERE m.risk_id=$1
+		 ON CONFLICT (mitigation_id,period_start,period_end) DO NOTHING`, resultRisk.ID, monitoring.AssessmentCycle, monitoring.ObservedAt, monitoring.ID); err != nil {
+			return nil, fmt.Errorf("create follow-up mitigation tasks: %w", err)
+		}
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return nil, fmt.Errorf("commit monitoring finalization: %w", err)
@@ -580,13 +639,13 @@ func baseRiskMonitoringSelect() string {
 			rm.conclusion,
 			rm.mitigation_progress_summary,
 			CASE
-				WHEN mitigation_progress.total_tasks > 0
+				WHEN rm.status='draft' AND mitigation_progress.total_tasks > 0
 					THEN ROUND(mitigation_progress.done_tasks * 100.0 / mitigation_progress.total_tasks)::int
 				ELSE rm.mitigation_completion_percent
 			END AS mitigation_completion_percent,
 			rm.draft_payload, rm.profile_change_summary, rm.change_reason,
 			rm.started_by, rm.started_at, rm.finalized_by, rm.finalized_at,
-			rm.created_at, rm.updated_at,
+			rm.created_at, rm.updated_at, rm.observed_at::text, rm.observed_at_inferred,rm.profile_version_id,rm.monitoring_period_id,
 			src.id, src.code, src.title, src.description, src.category, src.status, src.version_group_id, src.previous_risk_id,
 			src.is_current, src.is_cycle_current, src.version_number, src.archived_at, src.archived_reason, src.organization_id,
 			src.created_by, src.objective_id, src.ro_id, src.likelihood_assessment_id, src.impact_criteria_id, COALESCE(src.impact_justification, ''),
@@ -654,7 +713,7 @@ func scanRiskMonitoring(row pgx.Row) (*entity.RiskMonitoring, error) {
 		&monitoring.MitigationProgressSummary, &monitoring.MitigationCompletionPercent,
 		&draftPayloadRaw, &profileChangesRaw, &monitoring.ChangeReason,
 		&monitoring.StartedBy, &monitoring.StartedAt, &monitoring.FinalizedBy, &monitoring.FinalizedAt,
-		&monitoring.CreatedAt, &monitoring.UpdatedAt,
+		&monitoring.CreatedAt, &monitoring.UpdatedAt, &monitoring.ObservedAt, &monitoring.ObservedAtInferred, &monitoring.ProfileVersionID, &monitoring.MonitoringPeriodID,
 		&sourceRisk.ID, &sourceRisk.Code, &sourceRisk.Title, &sourceRisk.Description, &sourceRisk.Category, &sourceRisk.Status, &sourceRisk.VersionGroupID, &sourceRisk.PreviousRiskID,
 		&sourceRisk.IsCurrent, &sourceRisk.IsCycleCurrent, &sourceRisk.VersionNumber, &sourceRisk.ArchivedAt, &sourceRisk.ArchivedReason, &sourceRisk.OrganizationID,
 		&sourceCreatedBy, &sourceRisk.ObjectiveID, &sourceROID, &sourceRisk.LikelihoodAssessmentID, &sourceRisk.ImpactCriteriaID, &sourceRisk.ImpactJustification,
@@ -792,7 +851,7 @@ func (r *riskMonitoringRepository) UpdateTaskMonitoringIDs(ctx context.Context, 
 		 )
 		 UPDATE mitigation_tasks
 		 SET monitoring_id = $1, updated_at = NOW()
-		 WHERE risk_id = $2 AND period_label = $3 AND monitoring_id IS NULL AND EXISTS (SELECT 1 FROM draft)`,
+		 WHERE risk_id = $2 AND monitoring_id IS NULL AND $3::text IS NOT NULL AND EXISTS (SELECT 1 FROM draft)`,
 		monitoringID, riskID, cycle,
 	)
 	return err

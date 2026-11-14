@@ -139,8 +139,6 @@ export function MitigationMonitoringPanel() {
   );
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
-  const [reportSent, setReportSent] = useState(false);
-  const [openedFromWork, setOpenedFromWork] = useState(false);
   const detailTriggerRef = useRef<HTMLButtonElement | null>(null);
   const detailReportAction = detailTask ? getMitigationTaskReportAction(detailTask) : null;
   const detailStatus = detailReportAction?.isOverdue ? "overdue" : detailTask?.status;
@@ -333,18 +331,18 @@ export function MitigationMonitoringPanel() {
       }
       setDialogView("form");
     }
-    setReportSent(false);
     setShowMitigationDialog(true);
   }, []);
 
-  const openTaskDetail = useCallback((task: MitigationTaskRow, trigger: HTMLButtonElement | null, fromWork = false) => {
-    detailTriggerRef.current = trigger;
-    setOpenedFromWork(fromWork);
-    setReportSent(false);
-    setDetailTask(task);
-    setDialogView("detail");
-    setShowMitigationDialog(true);
-  }, []);
+  const openTaskDetail = useCallback(
+    (task: MitigationTaskRow, trigger: HTMLButtonElement | null) => {
+      detailTriggerRef.current = trigger;
+      setDetailTask(task);
+      setDialogView("detail");
+      setShowMitigationDialog(true);
+    },
+    [],
+  );
 
   useEffect(() => {
     const taskId = searchParams.get("taskId");
@@ -355,10 +353,9 @@ export function MitigationMonitoringPanel() {
       const row: MitigationTaskRow = { ...task, riskCode: task.riskCode || "—", title: task.riskTitle || "—", unit: task.mitigationOwner || "—", daysOverdue: 0, tier: "upcoming", mitigationAction: task.mitigationAction || "—" };
       if (searchParams.get("returnTo") === "/work") {
         setSelectedTask(null);
-        openTaskDetail(row, null, true);
+        openTaskDetail(row, null);
       } else {
         detailTriggerRef.current = null;
-        setOpenedFromWork(false);
         openReportForm(row);
       }
       const next = new URLSearchParams(searchParams.toString());
@@ -398,8 +395,10 @@ export function MitigationMonitoringPanel() {
       });
       setDetailTask({ ...selectedTask, ...updated });
       setSelectedTask(null);
-      setReportSent(true);
+      setShowValidationErrors(false);
       setDialogView("detail");
+      setShowMitigationDialog(false);
+      toast.success("Laporan mitigasi berhasil dikirim.");
       void fetchMitigations();
     } catch (error) {
       setSubmitError(error instanceof ApiError && error.status < 500
@@ -549,7 +548,6 @@ export function MitigationMonitoringPanel() {
               onOpenDetail={openTaskDetail}
               onReport={(task, trigger) => {
                 detailTriggerRef.current = trigger;
-                setOpenedFromWork(false);
                 openReportForm(task);
               }}
             />
@@ -579,7 +577,6 @@ export function MitigationMonitoringPanel() {
             setShowValidationErrors(false);
             setSelectedTask(null);
             setSubmitError("");
-            setReportSent(false);
             setDialogView("detail");
           }
         }}
@@ -592,7 +589,6 @@ export function MitigationMonitoringPanel() {
         view={dialogView}
         reportTask={detailTask}
         availabilityMessage={detailReportAction?.allowed ? undefined : detailReportAction?.message}
-        reportSent={reportSent}
         submitError={submitError}
         dirty={Boolean(selectedTask && (
           notes !== (selectedTask.notes || "") ||
@@ -604,11 +600,7 @@ export function MitigationMonitoringPanel() {
         detailDescription="Tinjau status, bukti, dan catatan penanganan."
         detailContent={detailTask && <MitigationReportDetail task={detailTask} status={detailStatus} />}
         detailAction={
-          reportSent && openedFromWork ? (
-            <ActionButton asChild>
-              <Link href="/work">Kembali ke To-Do</Link>
-            </ActionButton>
-          ) : detailTask && detailReportAction?.allowed ? (
+          detailTask && detailReportAction?.allowed ? (
             <AccentButton
               onClick={() => openReportForm(detailTask, selectedTask?.id === detailTask.id)}
               icon={<Send className="size-3" />}

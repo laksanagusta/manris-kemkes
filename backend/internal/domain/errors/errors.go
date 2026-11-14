@@ -146,7 +146,7 @@ var (
 	ErrMonitoringAlreadyFinalized     = newStatusError("MONITORING_ALREADY_FINALIZED", "pemantauan untuk siklus ini sudah difinalisasi")
 	ErrPreviousMonitoringNotCompleted = newStatusError("PREVIOUS_MONITORING_NOT_COMPLETED", "pemantauan periode sebelumnya harus difinalisasi terlebih dahulu")
 	ErrMonitoringConclusionRequired   = newValidationError("MONITORING_CONCLUSION_REQUIRED", "simpulan pemantauan wajib diisi")
-	ErrMonitoringBeforeRiskEffective  = newValidationError("MONITORING_BEFORE_RISK_EFFECTIVE", "Periode pemantauan tidak boleh lebih awal dari periode efektif risiko. Pilih periode yang sama atau lebih baru.")
+	ErrMonitoringBeforeRiskEffective  = newValidationError("MONITORING_BEFORE_RISK_EFFECTIVE", "Tanggal pemantauan tidak boleh mendahului tanggal mulai berlaku risiko.")
 
 	// ── Working Paper ──
 	ErrWorkingPaperLocked = newValidationError("WORKING_PAPER_LOCKED", "versi risiko dikunci oleh kertas kerja yang sedang ditandatangani atau sudah selesai")

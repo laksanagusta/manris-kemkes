@@ -24,6 +24,7 @@ type ListInput struct {
 	OrganizationID  *uuid.UUID
 	OrganizationIDs []uuid.UUID
 	Period          string
+	CreatedDate     string
 	Status          string
 	Query           string
 	Page            int
@@ -68,6 +69,7 @@ func (uc *ListUseCase) Execute(ctx context.Context, input ListInput) (*ListOutpu
 		SortBy: input.SortBy, SortOrder: input.SortOrder,
 		OrganizationIDs: orgIDs,
 		Period:          strings.TrimSpace(input.Period),
+		CreatedDate:     input.CreatedDate,
 		Status:          strings.TrimSpace(input.Status),
 		Query:           strings.TrimSpace(input.Query),
 		Page:            page,

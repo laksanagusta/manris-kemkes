@@ -139,6 +139,8 @@ type Risk struct {
 	MonitoringObservedImpact      *int                      `json:"monitoringObservedImpact,omitempty"`
 	MonitoringObservedWeight      *float64                  `json:"monitoringObservedWeight,omitempty"`
 	MonitoringObservedNilai       *float64                  `json:"monitoringObservedNilai,omitempty"`
+	MonitoringObservedAtInferred  *bool                     `json:"monitoringObservedAtInferred,omitempty"`
+	MonitoringObservedAt          *string                   `json:"monitoringObservedAt,omitempty"`
 	MonitoringObservedLevel       *string                   `json:"monitoringObservedLevel,omitempty"`
 	SemesterMonitoring            *SemesterMonitoringStatus `json:"semesterMonitoring,omitempty"`
 

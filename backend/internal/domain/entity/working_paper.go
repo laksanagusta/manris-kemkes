@@ -26,6 +26,9 @@ const (
 )
 
 type WorkingPaper struct {
+	MonitoringPeriodID       *uuid.UUID             `json:"monitoring_period_id,omitempty"`
+	ProfileVersionID         *uuid.UUID             `json:"profile_version_id,omitempty"`
+	ObservationCutoff        string                 `json:"observation_cutoff,omitempty"`
 	ID                       uuid.UUID              `json:"id"`
 	SequenceNo               int                    `json:"sequence_no"`
 	Code                     string                 `json:"code"`
@@ -78,6 +81,7 @@ type WorkingPaperRosterEntry struct {
 	ResultVersionNumber *int       `json:"resultVersionNumber,omitempty"`
 	MonitoringID        *uuid.UUID `json:"monitoringId,omitempty"`
 	MonitoringCycle     string     `json:"monitoringCycle"`
+	ObservedAt          string     `json:"observedAt,omitempty"`
 	MonitoringStatus    string     `json:"monitoringStatus"`
 	RosterStatus        string     `json:"rosterStatus"`
 }
@@ -90,12 +94,16 @@ type WorkingPaperRosterSummary struct {
 }
 
 type WorkingPaperRosterPreview struct {
-	OrganizationID  uuid.UUID                 `json:"organizationId"`
-	AssessmentCycle string                    `json:"assessmentCycle"`
-	MonitoringCycle string                    `json:"monitoringCycle"`
-	Revision        string                    `json:"revision"`
-	Entries         []WorkingPaperRosterEntry `json:"entries"`
-	Summary         WorkingPaperRosterSummary `json:"summary"`
+	MonitoringPeriodID *uuid.UUID                `json:"monitoringPeriodId,omitempty"`
+	ProfileVersionID   *uuid.UUID                `json:"profileVersionId,omitempty"`
+	ObservationCutoff  string                    `json:"observationCutoff,omitempty"`
+	ProfileLabel       string                    `json:"profileLabel,omitempty"`
+	OrganizationID     uuid.UUID                 `json:"organizationId"`
+	AssessmentCycle    string                    `json:"assessmentCycle"`
+	MonitoringCycle    string                    `json:"monitoringCycle"`
+	Revision           string                    `json:"revision"`
+	Entries            []WorkingPaperRosterEntry `json:"entries"`
+	Summary            WorkingPaperRosterSummary `json:"summary"`
 }
 
 type WorkingPaperRosterDecision struct {
@@ -115,6 +123,8 @@ type WorkingPaperRiskExclusion struct {
 }
 
 type WorkingPaperRiskMonitoring struct {
+	ObservedAtInferred          bool       `json:"observedAtInferred,omitempty"`
+	ObservedAt                  string     `json:"observedAt"`
 	ID                          uuid.UUID  `json:"id"`
 	Status                      string     `json:"status"`
 	AssessmentCycle             string     `json:"assessmentCycle"`

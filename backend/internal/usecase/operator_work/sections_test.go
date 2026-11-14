@@ -68,15 +68,15 @@ func TestBuildItemsStableTieOrder(t *testing.T) {
 	}
 }
 
-func TestMonitoringDraftOnlyActionableInsideItsWindow(t *testing.T) {
+func TestMonitoringDraftRemainsActionableWithoutQuarterDeadline(t *testing.T) {
 	actor := uuid.New()
 	candidate := Candidate{Item: entity.OperatorWorkItem{Key: "monitor", Kind: "monitoring_draft", Period: "2026-Q3"}, OwnerID: &actor}
 	open := BuildItems([]Candidate{candidate}, actor, time.Date(2026, 10, 15, 0, 0, 0, 0, time.UTC))
-	if len(open) != 1 || open[0].DueDate != "2026-10-31" {
+	if len(open) != 1 || open[0].DueDate != "" {
 		t.Fatalf("incorrect window deadline: %#v", open)
 	}
 	closed := BuildItems([]Candidate{candidate}, actor, time.Date(2026, 11, 1, 0, 0, 0, 0, time.UTC))
-	if len(closed) != 0 {
-		t.Fatal("expired draft remained actionable")
+	if len(closed) != 1 || closed[0].DueDate != "" {
+		t.Fatal("dated draft should remain actionable outside its original quarter")
 	}
 }

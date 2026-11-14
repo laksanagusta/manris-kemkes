@@ -38,6 +38,9 @@ func sendProblemDetailsWithDetails(c *fiber.Ctx, status int, title, errorType, d
 
 // handleError is a unified error handler that converts domain errors to HTTP RFC 7807 Problem Details
 func handleError(c *fiber.Ctx, err error) error {
+	if handled, result := monitoringRuleDatabaseProblem(c, err); handled {
+		return result
+	}
 	if stderrors.Is(err, errors.ErrMonitoringReviewChanged) {
 		return sendProblemDetails(c, fiber.StatusConflict, "Tinjauan perlu diperbarui", "https://api.manris.com/errors/monitoring-review-changed", err.Error())
 	}

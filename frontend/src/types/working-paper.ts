@@ -6,6 +6,8 @@ export interface WorkingPaperRiskMonitoring {
   id: string;
   status: "draft" | "final";
   assessmentCycle: string;
+  observedAt?: string;
+  observedAtInferred?: boolean;
   sourceProbability: number;
   sourceImpact: number;
   sourceWeight: number;
@@ -145,6 +147,9 @@ export interface WorkingPaperSignatory {
 }
 
 export interface WorkingPaper {
+  monitoring_period_id?: string;
+  profile_version_id?: string;
+  observation_cutoff?: string;
   id: string;
   sequence_no: number;
   code: string;
@@ -198,11 +203,15 @@ export interface WorkingPaperRosterEntry {
   resultVersionNumber?: number;
   monitoringId?: string;
   monitoringCycle: string;
+  observedAt?: string;
   monitoringStatus: string;
   rosterStatus: WorkingPaperRosterStatus;
 }
 
 export interface WorkingPaperRosterPreview {
+  profileVersionId?: string;
+  observationCutoff?: string;
+  profileLabel?: string;
   organizationId: string;
   assessmentCycle: string;
   monitoringCycle: string;
@@ -222,10 +231,13 @@ export interface WorkingPaperRosterDecisionInput {
 }
 
 export interface CreateWorkingPaperRequest {
+  monitoring_period_id?: string;
+  profile_version_id?: string;
+  observation_cutoff?: string;
   organization_id: string;
-  assessment_cycle: string;
+  assessment_cycle?: string;
   roster_revision: string;
-  roster_decisions: WorkingPaperRosterDecisionInput[];
+  roster_decisions?: WorkingPaperRosterDecisionInput[];
   signatories: CreateSignatoryInput[];
 }
 

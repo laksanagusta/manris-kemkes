@@ -51,8 +51,12 @@ func (r *pdfReportRenderer) addMonitoringCover(m core.Maroto, data *entity.Monit
 	m.AddRows(row.New(22))
 	addMonitoringCenteredText(m, "PADA", 14, true)
 	addMonitoringCenteredText(m, "SATUAN KERJA "+strings.ToUpper(defaultIfEmpty(data.OrganizationName, "")), 14, true)
-	addMonitoringCenteredText(m, defaultIfEmpty(data.SemesterLabel, ""), 14, true)
-	addMonitoringCenteredText(m, "TAHUN "+defaultIfEmpty(data.Year, ""), 14, true)
+	if data.SemesterLabel != "" {
+		addMonitoringCenteredText(m, data.SemesterLabel, 14, true)
+	}
+	if data.Year != "" {
+		addMonitoringCenteredText(m, "TAHUN "+data.Year, 14, true)
+	}
 
 	m.AddRows(row.New(52))
 	addMonitoringPair(m, "Nomor", defaultIfEmpty(data.ReportNumber, ""))
@@ -100,7 +104,11 @@ func (r *pdfReportRenderer) addMonitoringIntro(m core.Maroto, data *entity.Monit
 	})
 	addMonitoringParagraph(m, "")
 	addMonitoringParagraph(m, "5. Waktu Pemantauan dan Evaluasi")
-	addMonitoringParagraph(m, "Pemantauan dan Evaluasi dilaksanakan "+defaultIfEmpty(data.MonitoringDateRange, "")+".")
+	if data.MonitoringDateRange != "" {
+		addMonitoringParagraph(m, "Pemantauan dan Evaluasi dilaksanakan "+data.MonitoringDateRange+".")
+	} else {
+		addMonitoringParagraph(m, "Tanggal pelaksanaan belum dicatat.")
+	}
 	addMonitoringParagraph(m, "")
 	addMonitoringParagraph(m, "6. Susunan Tim Pemantauan dan Evaluasi")
 	addMonitoringParagraph(m, "Koordinator :")

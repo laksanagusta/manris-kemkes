@@ -1,5 +1,9 @@
 "use client";
 
+import { BoundProfilePeriodNotice } from "@/components/upr/bound-profile-period-notice";
+
+import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
+import { useSetHeaderActions } from "@/lib/header-actions-context";
 import { businessNow } from "@/lib/business-clock";
 import { createDisplayDateFormatter } from "@/lib/display-date";
 import { PropertyList, PropertyLabel } from "@/components/shared/design-system/layout/property-list";
@@ -21,12 +25,15 @@ import {
   deleteWorkingPaper,
 } from "@/lib/api/working-papers";
 import { startMonitoring } from "@/lib/api/risk-monitoring";
-import { isMonitoringWindowOpen } from "@/lib/monitoring-window";
+import { ProfilePeriodPicker, type ProfilePeriodSelection } from "@/components/upr/profile-period-picker";
+import { MonitoringDateField } from "@/components/shared/design-system/domain/monitoring-date-field";
+import { defaultMonitoringDate, isValidMonitoringDate, monitoringCycleForDate } from "@/lib/monitoring-date";
 import { buildWorkingPaperDetailViewModel } from "@/lib/working-paper-detail-view-model";
 import { WorkingPaperMonitoringTable } from "./working-paper-monitoring-table";
 import { WorkingPaperStatusActions } from "./working-paper-status-actions";
 import { WorkingPaperSignatureTimeline } from "./working-paper-signature-timeline";
 import { Card, CardContent } from "@/components/ui/card";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { ChartContainer } from "@/components/ui/chart";
 import { PolarAngleAxis, RadialBar, RadialBarChart } from "recharts";
@@ -57,7 +64,7 @@ import {
 } from "@/components/shared/design-system";
 
 import { cn } from "@/lib/utils";
-import { Pen } from "@/components/shared/icons";
+import { CheckCircle2, Pen } from "@/components/shared/icons";
 import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 
 
@@ -133,7 +140,7 @@ function formatSigningError(err: unknown): string {
   if (err instanceof Error) {
     return err.message;
   }
-  return "Gagal memproses kertas kerja.";
+  return "Gagal memproses KK Pemantauan dan Reviu.";
 }
 
 export default function WorkingPaperDetailPage(props: {
@@ -148,6 +155,13 @@ export default function WorkingPaperDetailPage(props: {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [monitoringStartRiskId, setMonitoringStartRiskId] = useState<string | null>(null);
+  const [monitoringObservedAt, setMonitoringObservedAt] = useState(() => defaultMonitoringDate());
+  const [monitoringSelection, setMonitoringSelection] = useState<ProfilePeriodSelection | null>(null);
+  const handleMonitoringSelectionChange = useCallback((selection: ProfilePeriodSelection | null) => {
+    setMonitoringSelection(selection);
+    if (selection?.observedAt) setMonitoringObservedAt(selection.observedAt);
+  }, []);
   const [startingMonitoringId, setStartingMonitoringId] = useState<string | null>(null);
   const [isSubmittingSignature, setIsSubmittingSignature] = useState(false);
   const [signDialogOpen, setSignDialogOpen] = useState(false);
@@ -164,13 +178,25 @@ export default function WorkingPaperDetailPage(props: {
           throw new Error("Fitur ekspor Excel belum tersedia.");
         });
       await exportWorkingPaper(data);
-      toast.success("Kertas kerja berhasil diekspor.");
+      toast.success("KK Pemantauan dan Reviu berhasil diekspor.");
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Gagal mengekspor kertas kerja.",
+        err instanceof Error ? err.message : "Gagal mengekspor KK Pemantauan dan Reviu.",
       );
     }
   }, [data]);
+
+  const setHeaderActions = useSetHeaderActions();
+  const showDownloadInTopbar = !loading && !error && data?.id === id && data.status === "completed";
+
+  useEffect(() => {
+    if (!showDownloadInTopbar) return;
+
+    setHeaderActions(
+      <AccentButton onClick={handleExport}>Unduh KK Pemantauan dan Reviu</AccentButton>,
+    );
+    return () => setHeaderActions(null);
+  }, [handleExport, setHeaderActions, showDownloadInTopbar]);
 
   const loadData = useCallback(async () => {
     try {
@@ -182,7 +208,7 @@ export default function WorkingPaperDetailPage(props: {
       setError(
         err instanceof Error
           ? err.message
-          : "Gagal memuat detail kertas kerja.",
+          : "Gagal memuat detail KK Pemantauan dan Reviu.",
       );
     } finally {
       setLoading(false);
@@ -199,7 +225,7 @@ export default function WorkingPaperDetailPage(props: {
     setIsSubmittingSignature(true);
     try {
       setData(await signWorkingPaper(id, token));
-      toast.success("Kertas Kerja berhasil ditandatangani.");
+      toast.success("KK Pemantauan dan Reviu berhasil ditandatangani.");
       setSignDialogOpen(false);
     } catch (err) {
       toast.error(formatSigningError(err));
@@ -226,10 +252,16 @@ export default function WorkingPaperDetailPage(props: {
 
   const handleStartMonitoring = async (riskId: string) => {
     const cycle = data?.assessment_cycle;
-    if (!token || !cycle || startingMonitoringId) return;
+    if (!token || !cycle || !monitoringSelection || startingMonitoringId) return;
     setStartingMonitoringId(riskId);
     try {
-      const result = await startMonitoring(token, riskId, cycle);
+      const result = await startMonitoring(token, riskId, monitoringObservedAt,
+        monitoringSelection.monitoringPeriodId ? {
+          profileVersionId: monitoringSelection.profileVersionId,
+          monitoringPeriodId: monitoringSelection.monitoringPeriodId,
+        } : undefined,
+      );
+      setMonitoringStartRiskId(null);
       const returnTo = encodeURIComponent(`/risk/working-papers/${id}`);
       router.push(`/risk/monitoring/${encodeURIComponent(result.monitoring.id)}?returnTo=${returnTo}`);
     } catch (err) {
@@ -242,7 +274,7 @@ export default function WorkingPaperDetailPage(props: {
     if (!token || !data) return;
     try {
       await skipTTEWorkingPaper(id, token);
-      toast.success("Tanda tangan elektronik dilewati dan kertas kerja diselesaikan.");
+      toast.success("Tanda tangan elektronik dilewati dan KK Pemantauan dan Reviu diselesaikan.");
       setSkipDialogOpen(false);
       loadData();
     } catch (err) {
@@ -254,12 +286,12 @@ export default function WorkingPaperDetailPage(props: {
     if (!token || !data) return;
     try {
       await cancelWorkingPaper(id, token);
-      toast.success("Kertas kerja berhasil dibatalkan.");
+      toast.success("KK Pemantauan dan Reviu berhasil dibatalkan.");
       setCancelDialogOpen(false);
       loadData();
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Gagal membatalkan kertas kerja.",
+        err instanceof Error ? err.message : "Gagal membatalkan KK Pemantauan dan Reviu.",
       );
     }
   };
@@ -268,12 +300,12 @@ export default function WorkingPaperDetailPage(props: {
     if (!token || !data) return;
     try {
       await deleteWorkingPaper(id, token);
-      toast.success("Kertas kerja berhasil dihapus.");
+      toast.success("KK Pemantauan dan Reviu berhasil dihapus.");
       setDeleteDialogOpen(false);
       router.push("/risk/working-papers");
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Gagal menghapus kertas kerja.",
+        err instanceof Error ? err.message : "Gagal menghapus KK Pemantauan dan Reviu.",
       );
     }
   };
@@ -282,9 +314,9 @@ export default function WorkingPaperDetailPage(props: {
     return (
       <FormPage className="space-y-6 pb-0">
         <FormHeader
-          title="Memuat detail kertas kerja"
+          title="Memuat detail KK Pemantauan dan Reviu"
         />
-        <CollectionLoadingState message="Memuat detail kertas kerja..." />
+        <CollectionLoadingState message="Memuat detail KK Pemantauan dan Reviu..." />
       </FormPage>
     );
   }
@@ -293,10 +325,10 @@ export default function WorkingPaperDetailPage(props: {
     return (
       <FormPage className="space-y-6 pb-0">
         <FormHeader
-          title="Detail kertas kerja belum tersedia"
+          title="Detail KK Pemantauan dan Reviu belum tersedia"
         />
         <CollectionErrorState
-          title="Gagal memuat kertas kerja"
+          title="Gagal memuat KK Pemantauan dan Reviu"
           message={error}
           onReload={() => loadData()}
         />
@@ -308,11 +340,11 @@ export default function WorkingPaperDetailPage(props: {
     return (
       <FormPage className="space-y-6 pb-0">
         <FormHeader
-          title="Kertas kerja tidak ditemukan"
+          title="KK Pemantauan dan Reviu tidak ditemukan"
         />
         <CollectionEmptyState
           title="Dokumen tidak ditemukan"
-          description="Kertas kerja mungkin sudah dihapus atau Anda tidak memiliki akses."
+          description="KK Pemantauan dan Reviu mungkin sudah dihapus atau Anda tidak memiliki akses."
         />
       </FormPage>
     );
@@ -342,8 +374,8 @@ export default function WorkingPaperDetailPage(props: {
       value: statusLabel[status],
     },
     {
-      label: "Periode pemantauan",
-      value: data.assessment_cycle || "Belum ditetapkan",
+      label: "Tanggal batas pengamatan",
+      value: data.observation_cutoff ? formatDate(data.observation_cutoff) : "Belum tercatat",
     },
     {
       label: "Dibuat pada",
@@ -365,20 +397,18 @@ export default function WorkingPaperDetailPage(props: {
     },
   ];
 
-  const monitoringWindowOpen = isMonitoringWindowOpen(data.assessment_cycle || "", businessNow());
+
   const monitoringBlockers = status === "draft" || status === "signing" ? viewModel.monitoringBlockers : [];
   const currentAction = viewModel.currentAction;
 
   const renderMonitoringBlocker = (link: WorkingPaperRiskLink) => {
     const monitoring = link.risk.monitoring;
-    const matchingMonitoring = monitoring?.assessmentCycle === data.assessment_cycle ? monitoring : undefined;
+    const matchingMonitoring = data.profile_version_id || monitoring?.assessmentCycle === data.assessment_cycle ? monitoring : undefined;
     const riskId = link.source_risk_id && link.source_risk_id !== "00000000-0000-0000-0000-000000000000" ? link.source_risk_id : link.risk_id;
     const monitoringHref = matchingMonitoring?.id
       ? `/risk/monitoring/${encodeURIComponent(matchingMonitoring.id)}?returnTo=${encodeURIComponent(`/risk/working-papers/${id}`)}`
       : null;
-    const label = matchingMonitoring?.status === "draft"
-      ? monitoringWindowOpen ? "Draf pemantauan" : "Draf terkunci"
-      : monitoringWindowOpen ? "Belum dimulai" : "Periode ditutup";
+    const label = matchingMonitoring?.status === "draft" ? "Draf pemantauan" : "Belum dimulai";
     return (
       <li key={link.id} className="flex flex-wrap items-center justify-between gap-2 border-t border-border py-2">
         <div className="min-w-0">
@@ -387,16 +417,17 @@ export default function WorkingPaperDetailPage(props: {
         </div>
         {monitoringHref ? (
           <ActionButton asChild size="sm" variant="outline">
-            <Link href={monitoringHref}>{monitoringWindowOpen ? "Buka draf Pemantauan" : "Lihat draf terkunci"}</Link>
-          </ActionButton>
-        ) : monitoringWindowOpen ? (
-          <ActionButton type="button" size="sm" variant="outline" onClick={() => void handleStartMonitoring(riskId)} disabled={Boolean(startingMonitoringId)}>
-            {startingMonitoringId === riskId ? "Membuka…" : "Mulai Pemantauan"}
+            <Link href={monitoringHref}>Buka draf Pemantauan</Link>
           </ActionButton>
         ) : (
-          <ActionButton asChild size="sm" variant="outline">
-            <Link href={`/risk/register/${encodeURIComponent(riskId)}?tab=monitoring`}>Lihat riwayat Pemantauan</Link>
-          </ActionButton>
+          <ActionButton type="button" size="sm" variant="outline" onClick={() => {
+            setMonitoringObservedAt(data.observation_cutoff || defaultMonitoringDate(data.assessment_cycle));
+            setMonitoringSelection(data.profile_version_id && data.monitoring_period_id ? {
+              profileVersionId: data.profile_version_id,
+              monitoringPeriodId: data.monitoring_period_id,
+            } : null);
+            setMonitoringStartRiskId(riskId);
+          }} disabled={Boolean(startingMonitoringId)}>Mulai Pemantauan</ActionButton>
         )}
       </li>
     );
@@ -422,9 +453,6 @@ export default function WorkingPaperDetailPage(props: {
           Tinjau dan mulai TTE
         </AccentButton>
       )}
-      {status === "completed" && (
-        <AccentButton onClick={handleExport}>Unduh Kertas Kerja</AccentButton>
-      )}
       {viewModel.canSign && (
         <AccentButton
           onClick={() => setSignDialogOpen(true)}
@@ -440,11 +468,25 @@ export default function WorkingPaperDetailPage(props: {
     <FormPage className="space-y-6 pb-0">
       <CollectionPageHeader
         actionsPlacement="top"
-        title={data.code || "Detail Kertas Kerja"}
-        actions={headerActions}
+        title={data.code || "Detail KK Pemantauan dan Reviu"}
+        actions={status === "completed" ? undefined : headerActions}
       />
 
-      {currentAction && (
+      <BoundProfilePeriodNotice token={token} profileId={data.profile_version_id} periodId={data.monitoring_period_id} />
+      {currentAction?.tone === "success" && (
+        <Alert variant="success" role="status">
+          <CheckCircle2 aria-hidden="true" />
+          <AlertTitle>{currentAction.title}</AlertTitle>
+          <AlertDescription>
+            {currentAction.description}
+            {data.content_locked && (
+              <p className="mt-1">Isi dikunci saat TTE dimulai dan digunakan untuk tanda tangan serta unduhan.</p>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {currentAction && currentAction.tone !== "success" && (
         <Card>
           <CardContent className="space-y-2">
             <div role="status">
@@ -577,8 +619,8 @@ export default function WorkingPaperDetailPage(props: {
                       </div>
                     ) : (
                       <CollectionEmptyState
-                        title="Belum ada risiko di dalam kertas kerja."
-                        description="Risiko yang ditambahkan ke kertas kerja akan muncul di sini."
+                        title="Belum ada risiko di dalam KK Pemantauan dan Reviu."
+                        description="Risiko yang ditambahkan ke KK Pemantauan dan Reviu akan muncul di sini."
                         className="py-3"
                       />
                     )}
@@ -613,15 +655,16 @@ export default function WorkingPaperDetailPage(props: {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Tinjau Kertas Kerja sebelum TTE
+              Tinjau KK Pemantauan dan Reviu sebelum TTE
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              Setelah TTE dimulai, hasil Pemantauan dan isi Kertas Kerja dikunci untuk semua penandatangan.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Periksa periode, risiko, dan urutan penandatangan.</AlertDialogDescription>
           </AlertDialogHeader>
+          <ConfirmationConsequences>
+            Setelah TTE dimulai, hasil Pemantauan dan isi KK Pemantauan dan Reviu dikunci untuk semua penandatangan.
+          </ConfirmationConsequences>
           <div className="space-y-3 text-sm">
             <dl className="grid grid-cols-2 gap-3">
-              <div><dt className="text-muted-foreground">Periode</dt><dd className="font-medium">{data.assessment_cycle}</dd></div>
+              <div><dt className="text-muted-foreground">{data.observation_cutoff ? "Tanggal batas pengamatan" : "Periode"}</dt><dd className="font-medium">{data.observation_cutoff ? formatDate(data.observation_cutoff) : data.assessment_cycle}</dd></div>
               <div><dt className="text-muted-foreground">Risiko disertakan</dt><dd className="font-medium">{totalRiskCount}</dd></div>
             </dl>
             <div>
@@ -647,17 +690,40 @@ export default function WorkingPaperDetailPage(props: {
         </AlertDialogContent>
       </AlertDialog>
 
+      <AlertDialog open={Boolean(monitoringStartRiskId)} onOpenChange={(open) => { if (!open && !startingMonitoringId) setMonitoringStartRiskId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Mulai pemantauan</AlertDialogTitle>
+            <AlertDialogDescription>{data.observation_cutoff ? `Isi tanggal pengamatan paling lambat ${data.observation_cutoff}.` : `Isi tanggal pengamatan dalam periode ${data.assessment_cycle}.`}</AlertDialogDescription>
+          </AlertDialogHeader>
+          {monitoringStartRiskId && token && !(data.profile_version_id && data.monitoring_period_id) && (
+            <ProfilePeriodPicker token={token} organizationId={data.org_id} process="monitoring"
+              initialProfileId={data.profile_version_id}
+              riskGroupId={data.risks.find(link => link.source_risk_id === monitoringStartRiskId || link.risk_id === monitoringStartRiskId)?.version_group_id}
+              onChange={handleMonitoringSelectionChange} />
+          )}
+          <MonitoringDateField id="working-paper-observation-date" value={monitoringObservedAt} onChange={setMonitoringObservedAt} disabled={Boolean(startingMonitoringId)} />
+          <AlertDialogFooter>
+            <CollectionDialogCancel disabled={Boolean(startingMonitoringId)} onClick={() => setMonitoringStartRiskId(null)}>Batal</CollectionDialogCancel>
+            <AlertDialogAction disabled={Boolean(startingMonitoringId) || !monitoringSelection || !isValidMonitoringDate(monitoringObservedAt) || (data.observation_cutoff ? monitoringObservedAt > data.observation_cutoff : monitoringCycleForDate(monitoringObservedAt) !== data.assessment_cycle)} onClick={(event) => {
+              event.preventDefault();
+              if (monitoringStartRiskId) void handleStartMonitoring(monitoringStartRiskId);
+            }}>{startingMonitoringId ? "Membuka…" : "Mulai pemantauan"}</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AlertDialog open={signDialogOpen} onOpenChange={(open) => { if (!isSubmittingSignature) setSignDialogOpen(open); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Tanda tangani kertas kerja
+              Tanda tangani KK Pemantauan dan Reviu
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              Apakah Anda yakin ingin menandatangani dokumen ini? Tindakan ini
-              akan menyimpan data Anda sebagai penandatangan sah.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Periksa dokumen sebelum mencatat tanda tangan.</AlertDialogDescription>
           </AlertDialogHeader>
+          <ConfirmationConsequences>
+            Identitas Anda akan dicatat sebagai penandatangan sah dokumen ini. Progres tanda tangan akan dilanjutkan sesuai urutan penandatangan.
+          </ConfirmationConsequences>
           <AlertDialogFooter>
             <CollectionDialogCancel disabled={isSubmittingSignature} onClick={() => setSignDialogOpen(false)}>
               Batal
@@ -676,13 +742,13 @@ export default function WorkingPaperDetailPage(props: {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Batalkan kertas kerja
+              Batalkan KK Pemantauan dan Reviu
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              Apakah Anda yakin ingin membatalkan kertas kerja ini? Dokumen
-              yang dibatalkan tidak dapat ditandatangani lagi.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Periksa dokumen yang akan dibatalkan.</AlertDialogDescription>
           </AlertDialogHeader>
+          <ConfirmationConsequences>
+            KK Pemantauan dan Reviu akan berstatus dibatalkan dan tidak dapat ditandatangani lagi.
+          </ConfirmationConsequences>
           <AlertDialogFooter>
             <CollectionDialogCancel onClick={() => setCancelDialogOpen(false)}>
               Batal
@@ -704,12 +770,13 @@ export default function WorkingPaperDetailPage(props: {
             <AlertDialogTitle>
               Lewati tanda tangan elektronik
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              Tindakan ini akan menyelesaikan kertas kerja tanpa tanda tangan
+            <AlertDialogDescription>Periksa dokumen sebelum menyelesaikannya tanpa TTE.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <ConfirmationConsequences>
+            Tindakan ini akan menyelesaikan KK Pemantauan dan Reviu tanpa tanda tangan
               elektronik dan langsung mengunci versi risiko terkait. Pastikan
               semua risiko di dalam dokumen sudah selesai diproses.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
+          </ConfirmationConsequences>
           <AlertDialogFooter>
             <CollectionDialogCancel onClick={() => setSkipDialogOpen(false)}>
               Batal
@@ -725,13 +792,13 @@ export default function WorkingPaperDetailPage(props: {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>
-              Hapus kertas kerja
+              Hapus KK Pemantauan dan Reviu
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              Apakah Anda yakin ingin menghapus kertas kerja ini? Tindakan ini
-              tidak dapat dibatalkan.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Periksa dokumen yang akan dihapus.</AlertDialogDescription>
           </AlertDialogHeader>
+          <ConfirmationConsequences>
+            KK Pemantauan dan Reviu beserta isi dokumennya akan dihapus permanen. Tindakan ini tidak dapat dibatalkan.
+          </ConfirmationConsequences>
           <AlertDialogFooter>
             <CollectionDialogCancel onClick={() => setDeleteDialogOpen(false)}>
               Batal

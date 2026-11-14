@@ -349,9 +349,6 @@ func updateRiskWithQueryer(ctx context.Context, q riskQueryer, risk *entity.Risk
 				return err
 			}
 		}
-		if err := ensureMonitoringPeriodsForRisk(ctx, q, risk.VersionGroupID, effectiveFrom, risk.AssessmentCycle); err != nil {
-			return err
-		}
 	}
 	return nil
 }
@@ -571,9 +568,9 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 			   LEFT JOIN LATERAL (
 			     SELECT rm.source_nilai, rm.observed_nilai
 			     FROM risk_monitorings rm
-			     WHERE (rm.source_risk_id = r.id OR rm.result_risk_id = r.id)
+			     WHERE rm.version_group_id = r.version_group_id
 			       AND rm.status = 'final'
-			     ORDER BY rm.finalized_at DESC NULLS LAST, rm.updated_at DESC, rm.id DESC
+			     ORDER BY rm.observed_at DESC, rm.finalized_at DESC NULLS LAST, rm.id DESC
 		             LIMIT 1
 		           ) monitoring_score ON true
 		           LEFT JOIN risks draft ON 
@@ -584,11 +581,11 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 		           LEFT JOIN LATERAL (
 		             SELECT rm.status
 		             FROM risk_monitorings rm
-		             WHERE (rm.source_risk_id = r.id OR rm.result_risk_id = r.id)
+		             WHERE rm.version_group_id = r.version_group_id
 		               AND rm.status IN ('draft', 'final')
 		               AND COALESCE(r.assessment_cycle, '') <> ''
 		               AND rm.assessment_cycle = r.assessment_cycle
-		             ORDER BY rm.updated_at DESC, rm.id DESC
+		             ORDER BY (rm.status = 'final') DESC, rm.observed_at DESC, rm.finalized_at DESC NULLS LAST, rm.updated_at DESC, rm.id DESC
 		             LIMIT 1
 			           ) monitoring ON true
 			           LEFT JOIN LATERAL (
@@ -601,13 +598,13 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 			                   THEN (EXTRACT(YEAR FROM ` + businessDateSQL + `)::int - 1)::text || '-Q4'
 			                 ELSE EXTRACT(YEAR FROM ` + businessDateSQL + `)::text || '-Q' || (EXTRACT(QUARTER FROM ` + businessDateSQL + `)::int - 1)::text
 			               END
-			             ORDER BY rm.updated_at DESC, rm.id DESC
+			             ORDER BY (rm.status = 'final') DESC, rm.observed_at DESC, rm.finalized_at DESC NULLS LAST, rm.updated_at DESC, rm.id DESC
 			             LIMIT 1
 			           ) previous_quarter_monitoring ON true
 			           LEFT JOIN LATERAL (
-		             SELECT MAX(rm.finalized_at) AS last_monitored_at
+		             SELECT MAX(rm.observed_at::timestamp AT TIME ZONE 'Asia/Jakarta') AS last_monitored_at
 		             FROM risk_monitorings rm
-		             WHERE (rm.source_risk_id = r.id OR rm.result_risk_id = r.id)
+		             WHERE rm.version_group_id = r.version_group_id
 		               AND rm.finalized_at IS NOT NULL
 		           ) monitoring_last ON true
 		           LEFT JOIN LATERAL (
@@ -620,10 +617,13 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 		               MAX(CASE WHEN rm.assessment_cycle = EXTRACT(YEAR FROM NOW())::text || '-Q2' AND rm.status = 'final' THEN rm.observed_nilai END) AS q2_nilai,
 		               MAX(CASE WHEN rm.assessment_cycle = EXTRACT(YEAR FROM NOW())::text || '-Q3' AND rm.status = 'final' THEN rm.observed_nilai END) AS q3_nilai,
 		               MAX(CASE WHEN rm.assessment_cycle = EXTRACT(YEAR FROM NOW())::text || '-Q4' AND rm.status = 'final' THEN rm.observed_nilai END) AS q4_nilai
-			             FROM risk_monitorings rm
-			             WHERE rm.version_group_id = r.version_group_id
-		               AND rm.status IN ('draft', 'final')
-		               AND rm.assessment_cycle IN (
+                         FROM (
+                           SELECT DISTINCT ON (assessment_cycle) assessment_cycle,status,observed_nilai
+                           FROM risk_monitorings
+                           WHERE version_group_id = r.version_group_id AND status IN ('draft','final')
+                           ORDER BY assessment_cycle,(status='final') DESC,observed_at DESC,finalized_at DESC NULLS LAST,updated_at DESC,id DESC
+                         ) rm
+                         WHERE rm.assessment_cycle IN (
 		                 EXTRACT(YEAR FROM NOW())::text || '-Q1',
 		                 EXTRACT(YEAR FROM NOW())::text || '-Q2',
 		                 EXTRACT(YEAR FROM NOW())::text || '-Q3',
@@ -637,12 +637,23 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 	if filter.View == "monitoring-transactions" {
 		countQuery += " AND r.version_number > 1 AND r.superseded_by_risk_id IS NULL"
 		dataQuery += " AND r.version_number > 1 AND r.superseded_by_risk_id IS NULL"
-	} else if filter.Status == entity.RiskStatusDraft {
-		countQuery += " AND r.status = 'draft'"
-		dataQuery += " AND r.status = 'draft'"
 	} else {
-		countQuery += " AND r.is_current = TRUE"
-		dataQuery += " AND r.is_current = TRUE"
+		switch filter.Profile {
+		case "history":
+			countQuery += " AND r.is_current = FALSE AND r.status <> 'draft'"
+			dataQuery += " AND r.is_current = FALSE AND r.status <> 'draft'"
+		case "all":
+			// Include active and superseded versions.
+		default: // active is the register default.
+			if filter.Status != entity.RiskStatusDraft {
+				countQuery += " AND r.is_current = TRUE"
+				dataQuery += " AND r.is_current = TRUE"
+			}
+		}
+		if filter.Status == entity.RiskStatusDraft {
+			countQuery += " AND r.status = 'draft'"
+			dataQuery += " AND r.status = 'draft'"
+		}
 	}
 
 	switch filter.Lifecycle {
@@ -1359,7 +1370,7 @@ func (r *riskRepository) ListVersions(ctx context.Context, versionGroupID uuid.U
 // attaches that cycle's finalized monitoring observation when one exists.
 //
 // The profile snapshot and monitoring observation are intentionally resolved
-// independently: an observation in Q1 informs the profile effective in Q2.
+// independently: dated observations select the latest final result in the requested period.
 func (r *riskRepository) ListCycleSnapshot(ctx context.Context, cycle string, orgIDs []uuid.UUID) ([]*entity.Risk, error) {
 	query := riskPeriodSnapshotCTE + `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.objective_id, r.ro_id, r.likelihood_assessment_id, r.impact_criteria_id, COALESCE(r.impact_justification, '') as impact_justification,
 		        r.cause, r.risk_source, r.controllability, r.impact_description,
@@ -1377,7 +1388,7 @@ func (r *riskRepository) ListCycleSnapshot(ctx context.Context, cycle string, or
 		        monitoring.observed_impact,
 		        monitoring.observed_weight,
 		        monitoring.observed_nilai,
-		        monitoring.observed_level
+		        monitoring.observed_level, monitoring.observed_at::text, monitoring.observed_at_inferred
 	 FROM risk_snapshots r
 	 LEFT JOIN organizations o ON r.organization_id = o.id
 	 LEFT JOIN users u ON r.created_by = u.id
@@ -1388,12 +1399,12 @@ func (r *riskRepository) ListCycleSnapshot(ctx context.Context, cycle string, or
 		        rm.observed_impact,
 		        rm.observed_weight,
 		        rm.observed_nilai,
-		        rm.observed_level
+		        rm.observed_level, rm.observed_at, rm.observed_at_inferred
 		 FROM risk_monitorings rm
 		 WHERE rm.version_group_id = r.version_group_id
 		   AND rm.assessment_cycle = $1
 		   AND rm.status = 'final'
-		 ORDER BY rm.finalized_at DESC NULLS LAST, rm.updated_at DESC, rm.id DESC
+		 ORDER BY rm.observed_at DESC, rm.finalized_at DESC NULLS LAST, rm.id DESC
 		 LIMIT 1
 	 ) monitoring ON TRUE
 	 WHERE TRUE`
@@ -1428,7 +1439,7 @@ func (r *riskRepository) ListCycleSnapshot(ctx context.Context, cycle string, or
 			&risk.MonitoringAssessmentCycle, &risk.MonitoringMode,
 			&risk.MonitoringObservedProbability, &risk.MonitoringObservedImpact,
 			&risk.MonitoringObservedWeight, &risk.MonitoringObservedNilai,
-			&risk.MonitoringObservedLevel,
+			&risk.MonitoringObservedLevel, &risk.MonitoringObservedAt, &risk.MonitoringObservedAtInferred,
 		); err != nil {
 			return nil, fmt.Errorf("scan cycle snapshot risk: %w", err)
 		}
@@ -1597,7 +1608,7 @@ func (r *riskRepository) ListReviewQueue(ctx context.Context, cycle string, orgI
 		  AND rm.assessment_cycle = $1
 		  AND rm.status IN ('draft', 'final')
 		ORDER BY CASE WHEN rm.status = 'final' THEN 0 ELSE 1 END,
-		         rm.finalized_at DESC NULLS LAST, rm.updated_at DESC, rm.id DESC
+		         rm.observed_at DESC, rm.finalized_at DESC NULLS LAST, rm.id DESC
 		LIMIT 1
 	) monitoring ON TRUE
 	WHERE TRUE`
@@ -1961,7 +1972,7 @@ func heatmapVelocityQuery() string {
 		JOIN risks source ON source.id = rm.source_risk_id
 		WHERE rm.assessment_cycle = $2
 		  AND rm.status = 'final'
-		ORDER BY rm.version_group_id, rm.finalized_at DESC NULLS LAST, rm.updated_at DESC, rm.id DESC
+		ORDER BY rm.version_group_id, rm.observed_at DESC, rm.finalized_at DESC NULLS LAST, rm.id DESC
 	), previous_monitorings AS (
 		SELECT DISTINCT ON (rm.version_group_id)
 			rm.id,
@@ -1971,7 +1982,7 @@ func heatmapVelocityQuery() string {
 		JOIN risks source ON source.id = rm.source_risk_id
 		WHERE rm.assessment_cycle = $1
 		  AND rm.status = 'final'
-		ORDER BY rm.version_group_id, rm.finalized_at DESC NULLS LAST, rm.updated_at DESC, rm.id DESC
+		ORDER BY rm.version_group_id, rm.observed_at DESC, rm.finalized_at DESC NULLS LAST, rm.id DESC
 	), cycle_compare AS (
 		SELECT
 			curr.probability AS probability,
@@ -2012,7 +2023,7 @@ func heatmapVelocityQueryScoped() string {
 		WHERE rm.assessment_cycle = $2
 		  AND rm.status = 'final'
 		  AND source.organization_id = ANY($3)
-		ORDER BY rm.version_group_id, rm.finalized_at DESC NULLS LAST, rm.updated_at DESC, rm.id DESC
+		ORDER BY rm.version_group_id, rm.observed_at DESC, rm.finalized_at DESC NULLS LAST, rm.id DESC
 	), previous_monitorings AS (
 		SELECT DISTINCT ON (rm.version_group_id)
 			rm.id,
@@ -2022,7 +2033,7 @@ func heatmapVelocityQueryScoped() string {
 		JOIN risks source ON source.id = rm.source_risk_id
 		WHERE rm.assessment_cycle = $1
 		  AND rm.status = 'final'
-		ORDER BY rm.version_group_id, rm.finalized_at DESC NULLS LAST, rm.updated_at DESC, rm.id DESC
+		ORDER BY rm.version_group_id, rm.observed_at DESC, rm.finalized_at DESC NULLS LAST, rm.id DESC
 	), cycle_compare AS (
 		SELECT
 			curr.probability AS probability,

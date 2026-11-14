@@ -30,6 +30,13 @@ const actionIconButton = readFileSync(
   ),
   "utf8",
 );
+const versionHistory = readFileSync(
+  new URL(
+    "../../../../components/shared/design-system/domain/risk-version-history-list.tsx",
+    import.meta.url,
+  ),
+  "utf8",
+);
 const globals = readFileSync(
   new URL("../../../globals.css", import.meta.url),
   "utf8",
@@ -133,34 +140,21 @@ test("risk cause and impact suggestions share the structured-list modal", () => 
 
 test("risk version history uses compact solid timeline markers", () => {
   assert.match(
-    riskFormPage,
-    /RiskVersionHistoryList[\s\S]*?absolute -left-\[22px\] top-1 z-10 size-3 rounded-full border-2/,
-  );
-  assert.match(riskFormPage, /border-muted-foreground bg-muted-foreground/);
-  assert.doesNotMatch(
-    riskFormPage,
-    /absolute -left-6 top-0\.5 z-10 size-4 rounded-full border-2 bg-card/,
+    versionHistory,
+    /start-1 top-1\.5 size-2 rounded-full bg-muted-foreground\/40/,
   );
 });
 
 test("risk version history avoids a redundant current-version badge", () => {
-  const versionHistory = riskFormPage.slice(
-    riskFormPage.indexOf("function RiskVersionHistoryList"),
-    riskFormPage.indexOf("export default function RiskInputPage"),
-  );
-
   assert.doesNotMatch(versionHistory, /Terkini/);
   assert.doesNotMatch(versionHistory, /<Badge/);
+  assert.match(versionHistory, /aria-current=\{version\.isCurrent/);
 });
 
-test("risk version history connectors meet the center of each marker", () => {
-  assert.doesNotMatch(
-    riskFormPage,
-    /absolute bottom-2 left-2 top-2 w-px bg-border\/70/,
-  );
+test("risk version history connects adjacent markers without extending past the list", () => {
   assert.match(
-    riskFormPage,
-    /index < versions\.length - 1[\s\S]*?absolute -bottom-\[30px\] -left-\[16px\] top-\[10px\]/,
+    versionHistory,
+    /index < versions\.length - 1[\s\S]*?absolute -bottom-1 start-\[7\.5px\] top-4 w-px/,
   );
 });
 

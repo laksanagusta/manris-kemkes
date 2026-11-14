@@ -29,11 +29,14 @@ func NewWorkingPaperHandler(uc *workingpaper.UseCase, wpRepo repository.WorkingP
 
 // createWorkingPaperRequest is the JSON body for POST /working-papers.
 type createWorkingPaperRequest struct {
-	OrganizationID  uuid.UUID                    `json:"organization_id"`
-	AssessmentCycle string                       `json:"assessment_cycle"`
-	RosterRevision  string                       `json:"roster_revision"`
-	RosterDecisions []workingPaperRosterDecision `json:"roster_decisions"`
-	Signatories     []createSignatoryRequest     `json:"signatories"`
+	MonitoringPeriodID *uuid.UUID                   `json:"monitoring_period_id"`
+	ProfileVersionID   *uuid.UUID                   `json:"profile_version_id"`
+	ObservationCutoff  string                       `json:"observation_cutoff"`
+	OrganizationID     uuid.UUID                    `json:"organization_id"`
+	AssessmentCycle    string                       `json:"assessment_cycle"`
+	RosterRevision     string                       `json:"roster_revision"`
+	RosterDecisions    []workingPaperRosterDecision `json:"roster_decisions"`
+	Signatories        []createSignatoryRequest     `json:"signatories"`
 }
 
 type workingPaperRosterDecision struct {
@@ -98,14 +101,17 @@ func (h *WorkingPaperHandler) Create(c *fiber.Ctx) error {
 	}
 
 	input := workingpaper.CreateWorkingPaperInput{
-		AssessmentCycle:  req.AssessmentCycle,
-		OrganizationID:   req.OrganizationID,
-		RosterRevision:   req.RosterRevision,
-		AccessibleOrgIDs: append([]uuid.UUID(nil), accessibleOrgIDs...),
-		IsGlobal:         scope.IsGlobal,
-		CreatedByUserID:  userID,
-		Decisions:        decisions,
-		Signatories:      signatories,
+		AssessmentCycle:    req.AssessmentCycle,
+		ProfileVersionID:   req.ProfileVersionID,
+		MonitoringPeriodID: req.MonitoringPeriodID,
+		ObservationCutoff:  req.ObservationCutoff,
+		OrganizationID:     req.OrganizationID,
+		RosterRevision:     req.RosterRevision,
+		AccessibleOrgIDs:   append([]uuid.UUID(nil), accessibleOrgIDs...),
+		IsGlobal:           scope.IsGlobal,
+		CreatedByUserID:    userID,
+		Decisions:          decisions,
+		Signatories:        signatories,
 	}
 
 	wp, err := h.uc.Create(c.Context(), input)
@@ -133,7 +139,24 @@ func (h *WorkingPaperHandler) PreviewRoster(c *fiber.Ctx) error {
 		accessibleOrgIDs = scope.AccessibleOrgIDs
 	}
 
-	preview, err := h.uc.PreviewRoster(c.Context(), orgID, cycle, accessibleOrgIDs, scope.IsGlobal)
+	var preview *entity.WorkingPaperRosterPreview
+	if value := c.Query("profile_version_id"); value != "" {
+		profileID, parseErr := uuid.Parse(value)
+		if parseErr != nil {
+			return sendProblemDetails(c, 400, "Profil tidak valid", "https://api.manris.com/errors/bad-request", "Pilih versi profil final.")
+		}
+		if value := c.Query("monitoring_period_id"); value != "" {
+			periodID, parseErr := uuid.Parse(value)
+			if parseErr != nil {
+				return handleWPError(c, domainerrors.ErrInvalidInput)
+			}
+			preview, err = h.uc.PreviewConfiguredProfileRoster(c.Context(), orgID, profileID, periodID, c.Query("observation_cutoff"), accessibleOrgIDs, scope.IsGlobal)
+		} else {
+			preview, err = h.uc.PreviewProfileRoster(c.Context(), orgID, profileID, c.Query("observation_cutoff"), accessibleOrgIDs, scope.IsGlobal)
+		}
+	} else {
+		preview, err = h.uc.PreviewRoster(c.Context(), orgID, cycle, accessibleOrgIDs, scope.IsGlobal)
+	}
 	if err != nil {
 		return handleWPError(c, err)
 	}
@@ -170,6 +193,12 @@ func (h *WorkingPaperHandler) List(c *fiber.Ctx) error {
 			return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "tanggal created_at tidak valid")
 		}
 	}
+	observationCutoff := strings.TrimSpace(c.Query("observation_cutoff"))
+	if observationCutoff != "" {
+		if _, err := time.Parse(time.DateOnly, observationCutoff); err != nil {
+			return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "Tanggal batas pengamatan tidak valid.")
+		}
+	}
 	limit, _ := strconv.Atoi(c.Query("limit", "20"))
 	if page <= 0 {
 		page = 1
@@ -181,7 +210,7 @@ func (h *WorkingPaperHandler) List(c *fiber.Ctx) error {
 		limit = 100
 	}
 
-	wps, total, err := h.uc.List(c.Context(), orgIDs, status, query, assessmentCycle, createdAt, page, limit, c.Query("sort_by"), c.Query("sort_order"))
+	wps, total, err := h.uc.List(c.Context(), orgIDs, status, query, assessmentCycle, createdAt, observationCutoff, page, limit, c.Query("sort_by"), c.Query("sort_order"))
 	if err != nil {
 		return handleWPError(c, err)
 	}
