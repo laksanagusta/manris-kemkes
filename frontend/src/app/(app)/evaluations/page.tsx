@@ -1,5 +1,6 @@
 "use client";
 
+import { TableLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { ProfilePeriodPicker, type ProfilePeriodSelection } from "@/components/upr/profile-period-picker";
 import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
 import { createDisplayDateFormatter } from "@/lib/display-date";
@@ -485,7 +486,7 @@ export default function EvaluationsPage() {
                     colSpan={7}
                     className="text-left"
                   >
-                    Memuat evaluasi...
+                    <TableLoadingSkeleton message="Memuat evaluasi…" />
                   </TableCell>
                 </TableRow>
               ) : visibleEvaluations.length === 0 ? (

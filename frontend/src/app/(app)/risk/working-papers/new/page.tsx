@@ -36,7 +36,7 @@ import {
   CollectionErrorState,
   CollectionEmptyState,
   FieldErrorMessage,
-  CollectionLoadingState,
+  TableLoadingSkeleton,
   CollectionPageHeader,
   CollectionSearchField,
   CollectionTableCard,
@@ -447,7 +447,7 @@ export default function CreateWorkingPaperPage() {
             </p>
           )}
           {loadingPreview ? (
-            <CollectionLoadingState message="Memuat daftar risiko…" />
+            <TableLoadingSkeleton message="Memuat daftar risiko…" />
           ) : previewError ? (
             <CollectionErrorState
               title="Daftar risiko gagal dimuat"

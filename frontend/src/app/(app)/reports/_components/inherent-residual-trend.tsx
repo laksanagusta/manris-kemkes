@@ -1,5 +1,6 @@
 "use client";
 
+import { ChartLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import {
   Line,
   LineChart,
@@ -55,9 +56,7 @@ export function SemesterTargetTrend({
         className="h-full"
         contentClassName="flex min-h-0 flex-1 flex-col"
       >
-        <div className="flex h-full flex-1 items-center justify-center rounded-lg bg-state-surface text-sm text-state-foreground">
-          Memuat...
-        </div>
+        <ChartLoadingSkeleton message="Memuat grafik risiko…" className="h-48" />
       </StandardCard>
     );
   }

@@ -5,11 +5,11 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Skeleton } from "@/components/ui/skeleton";
 import { ArrowExpand } from "@/components/shared/icons";
 import { ReportEmptyState } from "@/components/shared/design-system";
 import { ReportWidget } from "@/components/shared/design-system/reports/report-widget";
 import { RiskTargetGapCard } from "./risk-target-gap-card";
+import { metricLabels, metricsLayout, unitRankingTitle, widgetsLayout } from "./risk-summary-skeleton";
 import { buildRiskSummaryWidgets } from "@/lib/risk-summary-widgets";
 import {
   currentReportCycle,
@@ -18,12 +18,8 @@ import {
 } from "@/lib/quarterly-report";
 import type { QuarterlyReport } from "@/types/quarterly-report";
 
-const metricLabels = ["Total risiko", "Risiko tinggi & sangat tinggi", "Total unit"];
-const metricsLayout = "grid grid-cols-2 gap-4 @min-[36rem]/report:grid-cols-3";
-const widgetsLayout = "grid min-w-0 gap-4 @min-[48rem]/report:grid-cols-2";
 const meterRow = "grid min-w-0 grid-cols-[minmax(0,1fr)_minmax(3rem,30%)_minmax(2ch,auto)] items-center gap-3 text-sm";
 const countClass = "text-right tabular-nums";
-const unitRankingTitle = "Risiko tinggi dan sangat tinggi per unit";
 
 function ProgressMeter({ value, total, label, color = "var(--info-foreground)" }: {
   value: number;
@@ -63,34 +59,6 @@ function UnitRankingList({ units, highest }: {
         </li>
       ))}
     </ol>
-  );
-}
-
-export function RiskSummarySkeleton({ comparison = false }: { comparison?: boolean }) {
-  const titles = comparison
-    ? ["Komposisi", "Perubahan", "Indikator"]
-    : ["Distribusi tingkat risiko", "Kesenjangan terhadap target", unitRankingTitle, "Pelaporan mitigasi"];
-  return (
-    <div className="@container/report space-y-4" aria-label={comparison ? "Memuat perbandingan risiko" : "Memuat ringkasan risiko"} aria-busy="true">
-      {!comparison && (
-        <div className={metricsLayout}>
-          {metricLabels.map(label => (
-            <Card key={label} className="min-h-28 gap-2 p-4">
-              <p className="text-xs text-muted-foreground">{label}</p>
-              <Skeleton className="h-8 w-20" />
-            </Card>
-          ))}
-        </div>
-      )}
-      <div className={widgetsLayout}>
-        {titles.map((title, index) => (
-          <ReportWidget key={title} title={title} chart={comparison || index === 1}
-            className={comparison && index === 2 ? "@min-[48rem]/report:col-span-2" : undefined}>
-            <Skeleton className={comparison || index < 2 ? "h-64 w-full" : "h-28 w-full"} />
-          </ReportWidget>
-        ))}
-      </div>
-    </div>
   );
 }
 

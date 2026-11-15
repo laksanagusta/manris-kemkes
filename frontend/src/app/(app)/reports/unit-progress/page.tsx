@@ -7,7 +7,7 @@ import { RefreshCw } from "@/components/shared/icons";
 import { Button } from "@/components/ui/button";
 import { UnitProgressTables, type UnitProgressDocumentTab } from "@/components/shared/design-system/domain/unit-progress-tables";
 import {
-  CollectionErrorState, CollectionLoadingState, PageStack, ReportEmptyState, type TableFilterField,
+  CollectionErrorState, TableLoadingSkeleton, PageStack, ReportEmptyState, type TableFilterField,
 } from "@/components/shared/design-system";
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
@@ -30,7 +30,7 @@ export default function UnitProgressPage() {
     <PageStack>
       {token && user ? (
         <UnitProgressContent key={`${user.id}:${user.organizationId ?? "global"}:${user.accessibleOrgIds.join(",")}`} token={token} user={user} />
-      ) : <CollectionLoadingState message="Memuat akses laporan…" />}
+      ) : <TableLoadingSkeleton message="Memuat akses laporan…" />}
     </PageStack>
   );
 }
@@ -210,7 +210,7 @@ function UnitProgressContent({ token, user }: {
     return metadataError
       ? <CollectionErrorState title="Pilihan filter gagal dimuat" message={metadataError}
           onReload={() => { setMetadataError(""); setMetadataRetry((value) => value + 1); }} />
-      : <CollectionLoadingState message="Memuat pilihan unit dan grup…" />;
+      : <TableLoadingSkeleton message="Memuat pilihan unit dan grup…" />;
   }
 
   return (

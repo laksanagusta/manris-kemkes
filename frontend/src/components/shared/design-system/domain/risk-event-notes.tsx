@@ -1,5 +1,6 @@
 "use client";
 
+import { TextLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { FieldHeading } from "@/components/ui/field";
 import { ActionConfirmationDialog } from "@/components/shared/design-system/actions/action-confirmation-dialog";
 import { useRouter } from "next/navigation";
@@ -72,7 +73,7 @@ export function RiskEventNotes({ notes, canWrite, loading, error, onReload, onSa
   return <details className="group rounded-xl border border-border bg-card p-4">
     <summary className="cursor-pointer text-sm font-medium">Catatan tambahan</summary>
     <div className="mt-4 space-y-4">
-      {loading ? <p role="status" className="text-sm text-muted-foreground">Memuat catatan…</p> : error ? <div role="alert" className="space-y-2 text-sm"><p>{error}</p><ActionButton onClick={onReload}>Coba lagi</ActionButton></div> : notes.length ? <ol className="space-y-4">{notes.map(note => <li key={note.id} className="space-y-1 text-sm"><p className="whitespace-pre-wrap break-words">{note.body}</p><p className="text-xs text-muted-foreground">{note.createdByName || "Pengguna"} · <time dateTime={note.createdAt}>{createDisplayDateFormatter("id-ID", {dateStyle:"medium", timeStyle:"short", timeZone:"Asia/Jakarta"}).format(new Date(note.createdAt))}</time></p></li>)}</ol> : <p className="text-sm text-muted-foreground">Belum ada catatan tambahan.</p>}
+      {loading ? <TextLoadingSkeleton rows={2} message="Memuat catatan…" /> : error ? <div role="alert" className="space-y-2 text-sm"><p>{error}</p><ActionButton onClick={onReload}>Coba lagi</ActionButton></div> : notes.length ? <ol className="space-y-4">{notes.map(note => <li key={note.id} className="space-y-1 text-sm"><p className="whitespace-pre-wrap break-words">{note.body}</p><p className="text-xs text-muted-foreground">{note.createdByName || "Pengguna"} · <time dateTime={note.createdAt}>{createDisplayDateFormatter("id-ID", {dateStyle:"medium", timeStyle:"short", timeZone:"Asia/Jakarta"}).format(new Date(note.createdAt))}</time></p></li>)}</ol> : <p className="text-sm text-muted-foreground">Belum ada catatan tambahan.</p>}
       {canWrite && !editing ? <ActionButton onClick={() => setEditing(true)}>Tambah catatan</ActionButton> : null}
       {canWrite && editing ? <div className="space-y-2"><FieldHeading>
         <Label htmlFor="event-note">Catatan</Label>

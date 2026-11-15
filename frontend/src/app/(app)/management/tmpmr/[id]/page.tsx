@@ -1,5 +1,6 @@
 "use client";
 
+import { FormLoadingSkeleton, PageLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { businessYear } from "@/lib/business-clock";
 import { createDisplayDateFormatter } from "@/lib/display-date";
 
@@ -417,16 +418,7 @@ export default function TMPMRDetailPage() {
   );
 
   if (loading) {
-    return (
-      <FormPage>
-        <Card>
-          <CardContent className="flex min-h-[360px] items-center justify-center gap-3">
-            <Loader2 className="size-5 animate-spin" />
-            Memuat detail TMPMR...
-          </CardContent>
-        </Card>
-      </FormPage>
-    );
+    return <PageLoadingSkeleton><FormLoadingSkeleton message="Memuat detail TMPMR…" /></PageLoadingSkeleton>;
   }
 
   return (

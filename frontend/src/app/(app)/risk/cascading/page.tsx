@@ -1,4 +1,5 @@
 "use client";
+import { PageLoadingSkeleton, TableLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { useOrganizationFilter } from "@/hooks/use-organization-filter";
 import { ActionConfirmationDialog } from "@/components/shared/design-system/actions/action-confirmation-dialog";
 import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
@@ -208,11 +209,7 @@ export default function RiskCascadingPage() {
   };
 
   if (loading && items.length === 0) {
-    return (
-      <div className="rounded-lg bg-state-surface px-4 py-8 text-center text-sm text-state-foreground">
-        Memuat eskalasi risiko...
-      </div>
-    );
+    return <PageLoadingSkeleton><TableLoadingSkeleton message="Memuat eskalasi risiko…" /></PageLoadingSkeleton>;
   }
 
   return (

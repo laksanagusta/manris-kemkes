@@ -1,5 +1,6 @@
 "use client";
 
+import { FormLoadingSkeleton, PageLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { EvaluationAnswerField } from "@/components/evaluation/evaluation-answer-field";
 import { FieldErrorMessage } from "@/components/shared/design-system/fields/field-error-message";
 import { BoundProfilePeriodNotice } from "@/components/upr/bound-profile-period-notice";
@@ -476,12 +477,7 @@ export default function EvaluationDetailPage() {
   }, [headerActions, setHeaderActions, showHeaderActions]);
 
   if (loading) {
-    return (
-      <div className="font-display flex min-h-[50vh] items-center justify-center rounded-lg bg-state-surface text-sm text-state-foreground">
-        <Loader2 className="mr-2 size-4 animate-spin" />
-        Memuat evaluasi...
-      </div>
-    );
+    return <PageLoadingSkeleton><FormLoadingSkeleton message="Memuat evaluasi…" /></PageLoadingSkeleton>;
   }
 
   if (!evaluation) {

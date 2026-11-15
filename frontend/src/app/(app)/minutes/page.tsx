@@ -29,7 +29,7 @@ import {
   CollectionErrorState,
   CollectionSearchField,
   DynamicTableFilters,
-  CollectionLoadingState,
+  TableLoadingSkeleton,
   CollectionPagination,
   CollectionTableCard,
   CollectionTableHead,
@@ -327,7 +327,7 @@ function MinutesPageContent() {
 
       <CollectionTableCard stickyActions sorting={controls}>
         {loading ? (
-          <CollectionLoadingState message="Memuat daftar notulen..." />
+          <TableLoadingSkeleton message="Memuat daftar notulen..." />
         ) : loadError ? (
           <CollectionErrorState
             message="Daftar notulen belum berhasil dimuat."

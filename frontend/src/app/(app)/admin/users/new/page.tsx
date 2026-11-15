@@ -1,5 +1,6 @@
 "use client";
 
+import { FormLoadingSkeleton, PageLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { FieldHeading } from "@/components/ui/field";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -144,14 +145,7 @@ export default function NewUserPage() {
   };
 
   if (authLoading) {
-    return (
-      <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center gap-3">
-        <Loader2 className="size-5 animate-spin text-muted-foreground" />
-        <span className="text-sm text-muted-foreground">
-          Menyiapkan formulir pengguna...
-        </span>
-      </div>
-    );
+    return <PageLoadingSkeleton><FormLoadingSkeleton message="Menyiapkan formulir pengguna…" /></PageLoadingSkeleton>;
   }
 
   if (!isSuperadmin) {

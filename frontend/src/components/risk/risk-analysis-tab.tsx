@@ -1,5 +1,6 @@
 "use client";
 
+import { TableLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { formatDisplayDate } from "@/lib/display-date";
 
 import { useMemo } from "react";
@@ -12,7 +13,6 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Spinner } from "@/components/ui/spinner";
 import { IllustratedEmptyState } from "@/components/shared/design-system/feedback/illustrated-empty-state";
 import {
   ChartContainer,
@@ -172,11 +172,8 @@ export function RiskAnalysisTab({
   if (loading) {
     return (
       <Card>
-        <CardContent className="flex items-center justify-center gap-2">
-          <Spinner />
-          <span>
-            Memuat analisis risiko...
-          </span>
+        <CardContent>
+          <TableLoadingSkeleton message="Memuat analisis risiko…" />
         </CardContent>
       </Card>
     );

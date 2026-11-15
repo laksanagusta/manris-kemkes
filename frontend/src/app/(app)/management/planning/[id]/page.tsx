@@ -1,5 +1,6 @@
 "use client";
 
+import { DetailLoadingSkeleton, PageLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { toast } from "sonner";
@@ -101,13 +102,7 @@ export default function PlanningDetailPage() {
   }
 
   if (loading) {
-    return (
-      <Card>
-        <CardContent className="">
-          Memuat detail struktur...
-        </CardContent>
-      </Card>
-    );
+    return <PageLoadingSkeleton><DetailLoadingSkeleton message="Memuat detail struktur…" /></PageLoadingSkeleton>;
   }
 
   if (!item) {

@@ -114,7 +114,7 @@ import {
   CollectionPagination,
   CollectionErrorState,
   CollectionDialogCancel,
-  CollectionLoadingState,
+  TableLoadingSkeleton,
   CollectionTableCard,
   CollectionTableHead,
   CollectionTableHeader,
@@ -398,7 +398,6 @@ export default function RiskRegisterPage() {
   const [isPending, startTransition] = useTransition();
   const isApplyingSearchParamsRef = useRef(false);
   const [risks, setRisks] = useState<RiskListItem[]>([]);
-  const [drafts, setDrafts] = useState<RiskListItem[]>([]);
   const [actionRisk, setActionRisk] = useState<RiskListItem | null>(null);
   const [archiveReasonInvalid, setArchiveReasonInvalid] = useState(false);
   const archiveReasonRef = useRef<HTMLInputElement>(null);
@@ -546,27 +545,23 @@ export default function RiskRegisterPage() {
         ? undefined
         : statusFilter;
 
-    const [allRisksResponse, draftRisks] = await Promise.all([
-      listRiskRegister(activeToken, {
-        org_id: organizationFilter.organizationId === "all" ? undefined : organizationFilter.organizationId,
-        q: normalizedSearch || undefined,
-        lifecycle: lifecycleFilter,
-        profile: profileFilter,
-        status: registerStatus,
-        category: categoryFilter === "all" ? undefined : categoryFilter,
-        assessment_cycle: normalizedAssessmentCycle || undefined,
- monitoring_status: monitoringStatusFilter==="all"?undefined:monitoringStatusFilter,
-        created_at: normalizedCreatedAt || undefined,
-        sort_by: sortBy,
-        sort_order: sortOrder,
-        page,
-        limit,
-      }),
-      api.get<RiskListItem[]>("/risks?status=draft", activeToken),
-    ]);
+    const allRisksResponse = await listRiskRegister(activeToken, {
+      org_id: organizationFilter.organizationId === "all" ? undefined : organizationFilter.organizationId,
+      q: normalizedSearch || undefined,
+      lifecycle: lifecycleFilter,
+      profile: profileFilter,
+      status: registerStatus,
+      category: categoryFilter === "all" ? undefined : categoryFilter,
+      assessment_cycle: normalizedAssessmentCycle || undefined,
+      monitoring_status: monitoringStatusFilter === "all" ? undefined : monitoringStatusFilter,
+      created_at: normalizedCreatedAt || undefined,
+      sort_by: sortBy,
+      sort_order: sortOrder,
+      page,
+      limit,
+    });
 
     if(request!==registerRequest.current)return;
-    setDrafts(draftRisks);
     setRisks(allRisksResponse.data ?? []);
     setRegisterTotal(allRisksResponse.total ?? 0);
     setPage(allRisksResponse.page ?? page);
@@ -951,30 +946,6 @@ export default function RiskRegisterPage() {
     });
   }, []);
 
-  if (
-    loading &&
-    risks.length === 0 &&
-    drafts.length === 0
-  ) {
-    return (
-      <PageStack data-register-motion data-busy={loading || isPending}>
-        <div data-register-state><CollectionLoadingState message="Memuat daftar risiko..." /></div>
-      </PageStack>
-    );
-  }
-
-  if (error) {
-    return (
-      <PageStack data-register-motion data-busy={loading || isPending}>
-        <div data-register-state><CollectionErrorState
-          title="Gagal Memuat Data"
-          message={error}
-          onReload={() => window.location.reload()}
-        /></div>
-      </PageStack>
-    );
-  }
-
   const hasAppliedFilters =
     Boolean(search.trim()) ||
     monitoringStatusFilter !== "all" ||
@@ -1145,25 +1116,30 @@ export default function RiskRegisterPage() {
                 </CollectionTableHeaderRow>
               </CollectionTableHeader>
               <TableBody>
-                {risks.length === 0 ? (
+                {error || risks.length === 0 ? (
                   <TableRow>
-                  <TableCell
-                      colSpan={visibleColumns.length + 1}
-                      className="text-left text-muted-foreground"
-                    >
-                      <div data-register-state className="flex min-h-24 flex-col items-center justify-center gap-1 py-6 text-center">
-                        <EmptyStateIllustration className="mb-1 max-w-64" />
-                        <p className="font-normal text-foreground">
-                          {hasAppliedFilters
-                            ? "Tidak ada risiko yang sesuai"
-                            : "Belum ada risiko"}
-                        </p>
-                        <p className="max-w-lg text-xs text-muted-foreground">
-                          {hasAppliedFilters
-                            ? "Coba ubah kata kunci atau sesuaikan filter untuk menampilkan risiko lain."
-                            : "Tambahkan risiko baru untuk memulai daftar risiko."}
-                        </p>
-                      </div>
+                    <TableCell colSpan={visibleColumns.length + 1} className="text-left text-muted-foreground">
+                      {error ? (
+                        <div data-register-state>
+                          <CollectionErrorState title="Gagal Memuat Data" message={error} onReload={() => window.location.reload()} />
+                        </div>
+                      ) : loading ? (
+                        <div data-register-state>
+                          <TableLoadingSkeleton message="Memuat daftar risiko…" />
+                        </div>
+                      ) : (
+                        <div data-register-state className="flex min-h-24 flex-col items-center justify-center gap-1 py-6 text-center">
+                          <EmptyStateIllustration className="mb-1 max-w-64" />
+                          <p className="font-normal text-foreground">
+                            {hasAppliedFilters ? "Tidak ada risiko yang sesuai" : "Belum ada risiko"}
+                          </p>
+                          <p className="max-w-lg text-xs text-muted-foreground">
+                            {hasAppliedFilters
+                              ? "Coba ubah kata kunci atau sesuaikan filter untuk menampilkan risiko lain."
+                              : "Tambahkan risiko baru untuk memulai daftar risiko."}
+                          </p>
+                        </div>
+                      )}
                     </TableCell>
                   </TableRow>
                 ) : (

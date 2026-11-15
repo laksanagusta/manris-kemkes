@@ -1,5 +1,6 @@
 "use client";
 
+import { FormLoadingSkeleton, PageLoadingSkeleton, TextLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { useSetHeaderActions } from "@/lib/header-actions-context";
 import type { ReactNode } from "react";
 
@@ -188,11 +189,8 @@ const RiskLogTimeline = dynamic(
     ssr: false,
     loading: () => (
       <Card>
-        <CardContent className="flex items-center justify-center">
-          <Loader2 className="size-6 animate-spin text-muted-foreground" />
-          <span className="ml-2 text-sm text-muted-foreground">
-            Memuat catatan...
-          </span>
+        <CardContent>
+          <TextLoadingSkeleton rows={2} message="Memuat catatan…" />
         </CardContent>
       </Card>
     ),
@@ -745,6 +743,7 @@ export default function RiskInputPage() {
     [user?.capabilities],
   );
 
+  const [initialRequestedRiskId] = useState(selectedRiskId);
   const [riskId, setRiskId] = useState<string | null>(null);
   const [activeDetailTab, setActiveDetailTab] = useState(() => {
     const tab = searchParams.get("tab");
@@ -752,7 +751,7 @@ export default function RiskInputPage() {
   });
   const [detailMitigationFilter,setDetailMitigationFilter] = useState("all");
   const treatmentPanelRef = useRef<HTMLDivElement>(null);
-  const [loadingVersionId, setLoadingVersionId] = useState<string | null>(null);
+  const [loadingVersionId, setLoadingVersionId] = useState<string | null>(initialRequestedRiskId);
   const [riskVersionNumber, setRiskVersionNumber] = useState<number | null>(
     null,
   );
@@ -2599,6 +2598,10 @@ export default function RiskInputPage() {
     if (riskId) void loadLinkedRiskEvents(riskId);
   }, [loadLinkedRiskEvents, riskId]);
 
+  if (!riskId && initialRequestedRiskId && selectedRiskId === initialRequestedRiskId && loadingVersionId === initialRequestedRiskId) {
+    return <PageLoadingSkeleton><FormLoadingSkeleton message="Memuat detail risiko…" /></PageLoadingSkeleton>;
+  }
+
   const isSavedRiskView = Boolean(riskId || selectedRiskId);
   const hasContextReturnLink = returnTo !== "/risk/register";
   const showSaveActions = canManageRisk && (riskStatus === "draft" || !riskId);
@@ -2692,19 +2695,11 @@ export default function RiskInputPage() {
         ) : null}
 
         {loadingVersionId && (
-          <div
-            className="flex items-center gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-150"
-            role="status"
-            aria-live="polite"
-          >
-            <Loader2 className="size-3.5 animate-spin" aria-hidden="true" />
-            <span>
-              Memuat {loadingVersion?.versionNumber
-                ? `versi v${loadingVersion.versionNumber}`
-                : "versi risiko"}
-              ...
-            </span>
-          </div>
+          <TextLoadingSkeleton
+            rows={1}
+            message={loadingVersion?.versionNumber ? `Memuat versi v${loadingVersion.versionNumber}…` : "Memuat versi risiko…"}
+            className="max-w-xs"
+          />
         )}
 
         {riskArchivedAt && (
@@ -3489,17 +3484,7 @@ export default function RiskInputPage() {
                       </div>
                       <div className="mt-3">
                         {!riskId ? null : loadingRiskEvents ? (
-                          <div
-                            className="flex items-center gap-2 rounded-lg bg-state-surface px-3 py-2 text-sm text-state-foreground"
-                            role="status"
-                            aria-live="polite"
-                          >
-                            <Loader2
-                              className="size-3.5 animate-spin"
-                              aria-hidden="true"
-                            />
-                            Memuat kejadian...
-                          </div>
+                          <TextLoadingSkeleton rows={2} message="Memuat kejadian…" />
                         ) : riskEventsError ? (
                           <div className="rounded-lg bg-state-surface px-3 py-3 text-sm text-state-foreground">
                             <p>{riskEventsError}</p>
@@ -3570,10 +3555,7 @@ export default function RiskInputPage() {
 
                       <div className="mt-4">
                         {loadingVersions ? (
-                          <div className="flex items-center gap-2 rounded-lg bg-state-surface px-3 py-2 text-sm text-state-foreground">
-                            <Loader2 className="size-3.5 animate-spin" />
-                            Memuat riwayat versi...
-                          </div>
+                          <TextLoadingSkeleton rows={2} message="Memuat riwayat versi…" />
                         ) : riskVersions.length > 0 ? (
                           <RiskVersionHistoryList
                             versions={visibleRiskVersions}

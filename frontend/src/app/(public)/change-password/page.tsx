@@ -1,5 +1,6 @@
 "use client";
 
+import { AuthLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ManriskMark } from "@/components/manrisk-mark";
@@ -81,11 +82,7 @@ export default function ChangePasswordPage() {
   };
 
   if (loading || !isAuthenticated) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <Spinner />
-      </div>
-    );
+    return <AuthLoadingSkeleton />;
   }
 
   return (

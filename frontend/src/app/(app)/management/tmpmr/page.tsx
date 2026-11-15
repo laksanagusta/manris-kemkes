@@ -1,4 +1,5 @@
 "use client";
+import { TableLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { useOrganizationFilter } from "@/hooks/use-organization-filter";
 
 import { createDisplayDateFormatter } from "@/lib/display-date";
@@ -13,7 +14,6 @@ import { toast } from "sonner";
 import {
   ArrowUpRight,
   ClipboardList,
-  Loader2,
   Plus,
   RefreshCw,
 } from "@/components/shared/icons";
@@ -233,10 +233,7 @@ export default function TMPMRListPage() {
         <CardContent className="space-y-5">
 
           {loading ? (
-            <div className="flex min-h-56 items-center justify-center gap-3 rounded-lg bg-state-surface text-sm text-state-foreground">
-              <Loader2 className="size-5 animate-spin" />
-              Memuat daftar TMPMR...
-            </div>
+            <TableLoadingSkeleton message="Memuat daftar TMPMR…" />
           ) : error ? (
             <div className="rounded-lg bg-state-surface px-4 py-8 text-center text-sm text-state-foreground">
               {error}

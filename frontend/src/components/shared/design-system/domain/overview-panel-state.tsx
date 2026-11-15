@@ -1,7 +1,7 @@
+import { ChartLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { AlertCircle } from "@/components/shared/icons";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Spinner } from "@/components/ui/spinner";
 import { IllustratedEmptyState } from "../feedback/illustrated-empty-state";
 
 import { cn } from "@/lib/utils";
@@ -20,12 +20,7 @@ export function OverviewPanelState({
   onRetry,
 }: OverviewPanelStateProps) {
   if (state === "loading") {
-    return (
-      <div data-motion-feedback-state role="status" aria-live="polite" className={cn("flex min-h-48 items-center justify-center gap-2", className)}>
-        <Spinner />
-        <span className="motion-safe:animate-pulse">{message}</span>
-      </div>
-    );
+    return <ChartLoadingSkeleton message={message} className={cn("min-h-48", className)} />;
   }
 
   if (state === "error") {

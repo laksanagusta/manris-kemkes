@@ -1,4 +1,6 @@
 "use client";
+import { StandardCard } from "@/components/shared/design-system/layout/standard-card";
+import { ChartLoadingSkeleton, DetailLoadingSkeleton, FormLoadingSkeleton, PageLoadingSkeleton, TableLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { MitigationProgressIndicator } from "@/components/shared/design-system/domain/mitigation-progress-indicator";
 
 import { MonitoringEvidence } from "@/components/shared/design-system/domain/monitoring-evidence";
@@ -36,7 +38,6 @@ import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -624,7 +625,7 @@ export default function DesignSystemPage() {
 
       <section className="flex flex-col gap-4">
         <h2 className="text-lg font-medium">Data dan progres</h2>
-        <p className="text-sm text-muted-foreground">Semua badge mengikuti referensi Active: bentuk pill penuh, latar warna lembut, tanpa border terlihat, teks 12px semibold (600) dengan line-height 16px, tinggi minimal 22px, dan padding 2px vertikal/8px horizontal termasuk di tabel. Hijau memakai #e5f4ed / #127d4d, merah #fdeaea / #ba304a, biru #e8f1fd / #2863ae, dan netral #efeff1 / #62626c (latar / teks). Warna kuning, amber, oranye, ungu, pink, dan cyan mengikuti perlakuan yang sama. Tema gelap mempertahankan warna semantik dengan kontras terbaca; fokus keyboard dan indikator invalid tetap tersedia. Status Draf memakai variant secondary abu-abu; pending/progress dan tingkat kejadian Sedang memakai biru, final/success/done hijau, dan cancel merah. Widget Dashboard utama memakai judul 14px tanpa subtitle; KPI mempertahankan angka 24px dan keterangan 12px agar angka tetap menjadi fokus utama. Empty state data memakai ilustrasi transparan di atas judul normal-weight dan deskripsi 12px muted; ukuran standar maksimal 256px dan konteks picker maksimal 112px. Jika tabel tetap menampilkan header dalam keadaan kosong, letakkan ilustrasi dalam satu baris `TableBody` dengan `TableCell` yang membentang ke semua kolom; pusatkan konten dengan tinggi minimum 96px dan padding vertikal 24px seperti Register Risiko dan Inbox. Editor Sebab dan Dampak memakai InsetList dan InsetListItem dari Risiko terkait pada detail Kejadian. Tombol tambah berada di kanan tombol saran AI. Daftar menampilkan teks. Tambah dan edit membuka drawer kanan selebar 799px dengan satu isian dan aksi Simpan. Contoh memakai komponen produksi yang sama. Saat risiko terkunci, tombol tambah sebab, dampak, dan rencana penanganan serta seluruh tombol AI untuk risiko, sebab, dampak, dan penanganan disembunyikan; item yang sudah ada tetap terlihat dalam keadaan baca-saja. Kolom Progres Penanganan pada tabel Pemantauan memakai ring 18×18px dengan label persentase 14px di sampingnya; arc selalu violet-400, termasuk saat progress 100%, dengan track muted. Tabel progress terbaru KK Pemantauan dan Reviu memakai indikator hijau dengan tinggi 12px (`h-3`) di atas track muted. Error dan loading memakai alert serta spinner.</p>
+        <p className="text-sm text-muted-foreground">Semua badge mengikuti referensi Active: bentuk pill penuh, latar warna lembut, tanpa border terlihat, teks 12px semibold (600) dengan line-height 16px, tinggi minimal 22px, dan padding 2px vertikal/8px horizontal termasuk di tabel. Hijau memakai #e5f4ed / #127d4d, merah #fdeaea / #ba304a, biru #e8f1fd / #2863ae, dan netral #efeff1 / #62626c (latar / teks). Warna kuning, amber, oranye, ungu, pink, dan cyan mengikuti perlakuan yang sama. Tema gelap mempertahankan warna semantik dengan kontras terbaca; fokus keyboard dan indikator invalid tetap tersedia. Status Draf memakai variant secondary abu-abu; pending/progress dan tingkat kejadian Sedang memakai biru, final/success/done hijau, dan cancel merah. Widget Dashboard utama memakai judul 14px tanpa subtitle; KPI mempertahankan angka 24px dan keterangan 12px agar angka tetap menjadi fokus utama. Empty state data memakai ilustrasi transparan di atas judul normal-weight dan deskripsi 12px muted; ukuran standar maksimal 256px dan konteks picker maksimal 112px. Jika tabel tetap menampilkan header dalam keadaan kosong, letakkan ilustrasi dalam satu baris `TableBody` dengan `TableCell` yang membentang ke semua kolom; pusatkan konten dengan tinggi minimum 96px dan padding vertikal 24px seperti Register Risiko dan Inbox. Editor Sebab dan Dampak memakai InsetList dan InsetListItem dari Risiko terkait pada detail Kejadian. Tombol tambah berada di kanan tombol saran AI. Daftar menampilkan teks. Tambah dan edit membuka drawer kanan selebar 799px dengan satu isian dan aksi Simpan. Contoh memakai komponen produksi yang sama. Saat risiko terkunci, tombol tambah sebab, dampak, dan rencana penanganan serta seluruh tombol AI untuk risiko, sebab, dampak, dan penanganan disembunyikan; item yang sudah ada tetap terlihat dalam keadaan baca-saja. Kolom Progres Penanganan pada tabel Pemantauan memakai ring 18×18px dengan label persentase 14px di sampingnya; arc selalu violet-400, termasuk saat progress 100%, dengan track muted. Tabel progress terbaru KK Pemantauan dan Reviu memakai indikator hijau dengan tinggi 12px (`h-3`) di atas track muted. Gunakan alert untuk error, skeleton untuk data yang sedang dimuat, dan spinner untuk aksi yang sedang diproses.</p>
         <p className="text-sm text-muted-foreground">Judul empty state ringkas di panel risiko dan linimasa aktivitas memakai `text-secondary-foreground` agar tetap berada di bawah judul bagian.</p>
         <div className="grid max-w-2xl gap-3 sm:grid-cols-2">
           <DashboardKpiCard title="Risiko Prioritas" value="13" detail="risiko tinggi & ekstrem" trend="up" />
@@ -675,7 +676,6 @@ export default function DesignSystemPage() {
                   aria-label="Progres KK Pemantauan dan Reviu 65 persen"
                 />
               </div>
-              <Skeleton className="h-8 w-full" />
               <CollectionEmptyState
                 align="center"
                 title="Belum ada risiko"
@@ -685,6 +685,27 @@ export default function DesignSystemPage() {
           </Card>
         </div>
         <p className="text-sm text-muted-foreground">Tabel monitoring pada detail KK Pemantauan dan Reviu memakai inset sel standar tanpa inset tambahan di kolom Risiko, agar judul risiko sejajar dengan data pada kolom lain. Form draf menampilkan unit, periode, serta jumlah risiko disertakan, dikecualikan, pemantauan final, dan belum final. Memuat ulang daftar menjaga pilihan yang masih berlaku dan urutan penandatangan. Detail menampilkan tindakan yang diperlukan di dekat header, termasuk tautan Pemantauan per risiko, penandatangan yang sedang mendapat giliran, serta tombol Unduh KK Pemantauan dan Reviu di kanan topbar setelah dokumen selesai. Dialog sebelum TTE menampilkan periode, jumlah risiko, dan urutan penandatangan. Jika isi berubah, pengguna meninjau ulang. Setelah TTE dimulai, detail dan unduhan memakai isi yang dikunci saat konfirmasi.</p>
+      </section>
+
+      <section id="loading-skeletons" className="flex flex-col gap-4">
+        <h2 className="text-lg font-medium">Skeleton pemuatan</h2>
+        <p className="text-sm text-muted-foreground">
+          Skeleton mengikuti susunan konten yang dimuat. Pembaca layar menerima satu status per area, dan animasi berhenti saat pengaturan kurangi gerakan aktif.
+        </p>
+        <div className="grid min-w-0 gap-4 lg:grid-cols-2">
+          <StandardCard title="Daftar">
+            <TableLoadingSkeleton message="Memuat daftar contoh…" rows={3} />
+          </StandardCard>
+          <StandardCard title="Grafik">
+            <ChartLoadingSkeleton message="Memuat grafik contoh…" />
+          </StandardCard>
+          <StandardCard title="Formulir">
+            <PageLoadingSkeleton><FormLoadingSkeleton message="Memuat formulir contoh…" /></PageLoadingSkeleton>
+          </StandardCard>
+          <StandardCard title="Detail">
+            <PageLoadingSkeleton><DetailLoadingSkeleton message="Memuat detail contoh…" /></PageLoadingSkeleton>
+          </StandardCard>
+        </div>
       </section>
 
       <section id="workspace-risk-register" className="flex flex-col gap-4">

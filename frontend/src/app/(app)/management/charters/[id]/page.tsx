@@ -1,5 +1,6 @@
 "use client";
 
+import { FormLoadingSkeleton, PageLoadingSkeleton, TableLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { FieldHeading } from "@/components/ui/field";
 import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import {
@@ -39,7 +40,6 @@ import {
   AlertDialogTitle,
   CollectionDialogCancel,
   CollectionErrorState,
-  CollectionLoadingState,
   Dialog,
   DialogContent,
   DialogDescription,
@@ -408,11 +408,7 @@ export default function RiskCharterDetailPage() {
   );
 
   if (loading) {
-    return (
-      <FormPage className="mx-auto max-w-6xl">
-        <CollectionLoadingState message="Memuat detail Piagam..." />
-      </FormPage>
-    );
+    return <PageLoadingSkeleton><FormLoadingSkeleton message="Memuat detail Piagam…" /></PageLoadingSkeleton>;
   }
 
   if (loadError || !charter) {
@@ -1134,7 +1130,7 @@ export default function RiskCharterDetailPage() {
           </SheetHeader>
           <div className="min-h-0 flex-1 overflow-y-auto">
             {historyLoading ? (
-              <CollectionLoadingState message="Memuat riwayat versi..." />
+              <TableLoadingSkeleton message="Memuat riwayat versi..." />
             ) : versions.length === 0 ? (
               <IllustratedEmptyState
                 title="Belum ada riwayat versi."

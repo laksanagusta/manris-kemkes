@@ -1,5 +1,6 @@
 "use client";
 
+import { DetailLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -221,9 +222,7 @@ export default function LaporanDetailPage() {
           )}
         </>
       ) : (
-        <p role="status" className="text-sm text-muted-foreground">
-          Memuat laporan…
-        </p>
+        <DetailLoadingSkeleton message="Memuat laporan…" />
       )}
       <Dialog
         open={Boolean(dialog)}

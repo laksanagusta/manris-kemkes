@@ -12,7 +12,7 @@ import { DocumentDownloadButton } from "@/components/shared/document-download-bu
 import {
   CollapsibleCard,
   CollectionEmptyState,
-  CollectionLoadingState,
+  TableLoadingSkeleton,
   CollectionTableSurface,
   CollectionTableHead,
   CollectionTableHeader,
@@ -161,7 +161,7 @@ export function WorkingPaperProgressCollapsible({
       <CollapsibleCard.Content>
         <CollapsibleCard.Body className="px-0">
           {loading ? (
-            <CollectionLoadingState message="Memuat progress KK Pemantauan dan Reviu..." />
+            <TableLoadingSkeleton message="Memuat progress KK Pemantauan dan Reviu..." />
           ) : progressData.length === 0 ? (
             <CollectionEmptyState
               title="Belum ada progress risiko"

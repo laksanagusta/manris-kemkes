@@ -1,5 +1,6 @@
 "use client";
 
+import { ChartLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { useMemo } from "react";
 import { ArrowUpRight, TrendingUp, TrendingDown, Minus } from "@/components/shared/icons";
 
@@ -71,8 +72,8 @@ export function RiskHeatmap({
         )}
         data-testid="heatmap-grid"
       >
-        <CardContent className={cn("flex items-center justify-center rounded-lg bg-state-surface text-sm text-state-foreground", compact ? "h-44" : "h-64")}>
-          Memuat heatmap...
+        <CardContent>
+          <ChartLoadingSkeleton message="Memuat peta risiko…" className={compact ? "h-44" : "h-64"} />
         </CardContent>
       </Card>
     );

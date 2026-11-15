@@ -1,4 +1,5 @@
 "use client";
+import { PageLoadingSkeleton, TableLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { useOrganizationFilter } from "@/hooks/use-organization-filter";
 
 import { createDisplayDateFormatter } from "@/lib/display-date";
@@ -327,14 +328,7 @@ export default function UsersManagementPage() {
   }, [organizationFilter.organizationId, authLoading, isSuperadmin, token, deferredSearch, statusFilter, roleFilter, page, limit, collectionSort.sortBy, collectionSort.sortOrder]);
 
   if (authLoading || (isSuperadmin && pageState === "loading")) {
-    return (
-      <div className="flex min-h-[calc(100vh-10rem)] items-center justify-center gap-3">
-        <Loader2 className="size-5 animate-spin text-muted-foreground" />
-        <span className="text-sm text-muted-foreground">
-          Memuat data pengguna...
-        </span>
-      </div>
-    );
+    return <PageLoadingSkeleton><TableLoadingSkeleton message="Memuat data pengguna…" /></PageLoadingSkeleton>;
   }
 
   if (!isSuperadmin || pageState === "forbidden") {

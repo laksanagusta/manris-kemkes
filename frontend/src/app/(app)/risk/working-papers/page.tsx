@@ -35,7 +35,7 @@ import { Badge } from "@/components/ui/badge";
 import {
   CollectionEmptyState,
   CollectionErrorState,
-  CollectionLoadingState,
+  TableLoadingSkeleton,
   CollectionPagination,
   CollectionPageHeader,
   DynamicTableFilters,
@@ -484,7 +484,7 @@ export default function WorkingPapersPage() {
         <CollectionTableCard sorting={collectionSort.controls}>
 
           {showInitialLoading ? (
-            <CollectionLoadingState message="Memuat daftar KK Pemantauan dan Reviu..." />
+            <TableLoadingSkeleton message="Memuat daftar KK Pemantauan dan Reviu..." />
           ) : papers.length === 0 ? (
             <CollectionEmptyState
               title="Belum ada KK Pemantauan dan Reviu yang sesuai filter"

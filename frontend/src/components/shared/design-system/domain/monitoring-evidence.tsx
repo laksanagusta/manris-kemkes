@@ -1,5 +1,6 @@
 "use client";
 
+import { TextLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import Link from "next/link";
 import { createDisplayDateFormatter } from "@/lib/display-date";
 import { getMitigationReportLabel } from "@/lib/mitigation-report-status";
@@ -45,7 +46,7 @@ export function MonitoringEvidence({ result, loading, error, onRefresh }: {
   onRefresh?: () => void;
 }) {
   if (loading) {
-    return <p role="status" className="text-sm text-muted-foreground">Memuat laporan penanganan…</p>;
+    return <TextLoadingSkeleton rows={2} message="Memuat laporan penanganan…" />;
   }
   if (error) {
     return <div role="alert" className="space-y-2 text-sm">

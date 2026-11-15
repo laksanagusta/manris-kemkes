@@ -1,5 +1,6 @@
 "use client";
 
+import { TableLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import type { MonitoringRule } from "@/lib/api/monitoring-rules";
 import type { ProfilePeriodWorkspace } from "@/lib/api/profile-periods";
 import { periodColumns } from "@/lib/profile-period-progress";
@@ -126,9 +127,7 @@ export function AnnualProfileCollection({
       )}
       {Object.values(periodProgress).some(value => "error" in value) && <WorkflowError message="Sebagian progres periode gagal dimuat. Muat ulang untuk melihat status terbaru." retry={retry} />}
       {loading ? (
-        <p role="status" className="text-sm text-muted-foreground">
-          Memuat daftar profil…
-        </p>
+        <TableLoadingSkeleton message="Memuat daftar profil…" />
       ) : !organization ? (
         <Alert>
           <AlertDescription>
