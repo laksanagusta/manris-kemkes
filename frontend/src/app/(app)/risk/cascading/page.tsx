@@ -1,14 +1,14 @@
 "use client";
+import { useOrganizationFilter } from "@/hooks/use-organization-filter";
 import { ActionConfirmationDialog } from "@/components/shared/design-system/actions/action-confirmation-dialog";
 import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
-import { useCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
-import { newestCreatedFirst } from "@/lib/collection-created-at";
+import { useRemoteCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
 import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
 
 
 import { DynamicTableFilters } from "@/components/shared/design-system/collections/dynamic-table-filters";
 
-import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Plus } from "@/components/shared/icons";
 import { toast } from "sonner";
@@ -19,7 +19,7 @@ import {
   listRiskCascades,
   type ListRiskCascadesParams,
 } from "@/lib/api/risk-cascades";
-import type { RiskCascadeRecord, RiskCascadeType } from "@/types/risk-cascade";
+import type { RiskCascadeRecord, RiskCascadeType, RiskCascadeSummary } from "@/types/risk-cascade";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -79,6 +79,9 @@ export default function RiskCascadingPage() {
   const { token, user } = useAuth();
   const searchParams = useSearchParams();
   const [items, setItems] = useState<RiskCascadeRecord[]>([]);
+  const [total, setTotal] = useState(0);
+  const [summary, setSummary] = useState<RiskCascadeSummary>({ total: 0, pending: 0, approved: 0, bottomUp: 0 });
+  const requestVersion = useRef(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -107,69 +110,51 @@ export default function RiskCascadingPage() {
     }
   }, [initialMode, searchParams]);
 
+  const organizationFilter = useOrganizationFilter(() => setPage(1));
+  const collectionSort = useRemoteCollectionSorting({
+    "Risiko": "risk", "Organisasi asal": "source_organization", "Jenis": "cascade_type",
+    "Status": "status", "Adopsi": "adoption_type",
+  }, () => setPage(1));
+
   const loadData = useCallback(async () => {
     if (!token) return;
+    const request = ++requestVersion.current;
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
       const params: ListRiskCascadesParams = {
-        page: 1,
-        limit: 100,
+        page, limit: pageSize,
+        q: deferredSearch.trim() || undefined,
+        status: statusFilter === "all" ? undefined : statusFilter,
+        cascade_type: typeFilter === "all" ? undefined : typeFilter,
+        organizationId: organizationFilter.organizationId === "all" ? undefined : organizationFilter.organizationId,
+        sort_by: collectionSort.sortBy,
+        sort_order: collectionSort.sortOrder,
       };
       const response = await listRiskCascades(token, params);
-      const allItems = [...(response.data ?? [])];
-      for (let nextPage = 2; allItems.length < response.total; nextPage += 1) {
-        const next = await listRiskCascades(token, { ...params, page: nextPage });
-        if (!next.data?.length) break;
-        allItems.push(...next.data);
+      if (request !== requestVersion.current) return;
+      const lastPage = Math.max(1, Math.ceil(response.total / pageSize));
+      if (page > lastPage) {
+        setPage(lastPage);
+        return;
       }
-      setItems([...allItems].sort(newestCreatedFirst));
+      setItems(response.data ?? []);
+      setTotal(response.total);
+      setSummary(response.summary);
     } catch (err) {
-      const message =
-        err instanceof Error ? err.message : "Gagal memuat eskalasi.";
+      if (request !== requestVersion.current) return;
+      const message = err instanceof Error ? err.message : "Gagal memuat eskalasi.";
       setError(message);
       toast.error(message);
     } finally {
-      setLoading(false);
+      if (request === requestVersion.current) setLoading(false);
     }
-  }, [token]);
+  }, [token, page, pageSize, deferredSearch, statusFilter, typeFilter, organizationFilter.organizationId, collectionSort.sortBy, collectionSort.sortOrder]);
 
   useEffect(() => {
-    loadData();
+    void loadData();
+    return () => { requestVersion.current += 1; };
   }, [loadData]);
-
-  const filteredItems = useMemo(() => {
-    const query = deferredSearch.trim().toLowerCase();
-    return items.filter((item) => (statusFilter === "all" || item.status === statusFilter) && (typeFilter === "all" || item.cascadeType === typeFilter)).filter((item) => !query ||
-      [
-        item.sourceRiskCode,
-        item.sourceRiskTitle,
-        item.sourceOrgName,
-        item.targetOrgName,
-        item.analysisNote,
-        item.decisionNote,
-        item.cascadeType,
-        item.status,
-      ]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(query)),
-    );
-  }, [deferredSearch, items, statusFilter, typeFilter]);
-
-  const collectionSort = useCollectionSorting(filteredItems, {"Risiko": r => formatCascadeTitle(r), "Organisasi asal": r => r.sourceOrgName, "Jenis": r => cascadeTypeLabels[r.cascadeType], "Status": r => statusLabels[r.status], "Adopsi": r => r.adoptionType}, () => setPage(1));
-  const totalPages = Math.max(1, Math.ceil(filteredItems.length / pageSize));
-  const paginatedItems = useMemo(
-    () => collectionSort.rows.slice((page - 1) * pageSize, page * pageSize),
-    [collectionSort.rows, page, pageSize],
-  );
-
-  useEffect(() => {
-    setPage(1);
-  }, [search, statusFilter, typeFilter]);
-
-  useEffect(() => {
-    setPage((current) => Math.min(current, totalPages));
-  }, [totalPages]);
 
   const canReviewCascade = (item: RiskCascadeRecord) => {
     if (!["proposed", "analyzed"].includes(item.status)) {
@@ -185,20 +170,6 @@ export default function RiskCascadingPage() {
         user?.organizationId === item.targetOrgId,
     );
   };
-
-  const summary = useMemo(() => {
-    const total = items.length;
-    const pending = items.filter((item) =>
-      ["proposed", "analyzed"].includes(item.status),
-    ).length;
-    const approved = items.filter((item) =>
-      ["accepted", "implemented"].includes(item.status),
-    ).length;
-    const bottomUp = items.filter(
-      (item) => item.cascadeType === "bottom_up_escalation",
-    ).length;
-    return { total, pending, approved, bottomUp };
-  }, [items]);
 
   const kpiCards = useMemo(
     () => [
@@ -266,13 +237,14 @@ export default function RiskCascadingPage() {
             <DynamicTableFilters search={
             <CollectionSearchField
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => { setSearch(event.target.value); setPage(1); }}
               placeholder="Cari kode risiko, organisasi, status, atau catatan..."
               aria-label="Cari eskalasi"
             />
             } fields={[
-              { id: "status", label: "Status", value: statusFilter, onChange: setStatusFilter, options: [{ value: "all", label: "Semua status" }, ...Object.entries(statusLabels).map(([value, label]) => ({ value, label }))] },
-              { id: "type", label: "Jenis", value: typeFilter, onChange: setTypeFilter, options: [{ value: "all", label: "Semua jenis" }, ...Object.entries(cascadeTypeLabels).map(([value, label]) => ({ value, label: value === "mandatory_top_down" ? "Top-down wajib" : value === "recommended_top_down" ? "Top-down rekomendasi" : label }))] },
+                organizationFilter.field,
+              { id: "status", label: "Status", value: statusFilter, onChange: (value) => { setStatusFilter(value); setPage(1); }, options: [{ value: "all", label: "Semua status" }, ...Object.entries(statusLabels).map(([value, label]) => ({ value, label }))] },
+              { id: "type", label: "Jenis", value: typeFilter, onChange: (value) => { setTypeFilter(value); setPage(1); }, options: [{ value: "all", label: "Semua jenis" }, ...Object.entries(cascadeTypeLabels).map(([value, label]) => ({ value, label: value === "mandatory_top_down" ? "Top-down wajib" : value === "recommended_top_down" ? "Top-down rekomendasi" : label }))] },
             ]} />
           }
           actions={
@@ -333,7 +305,7 @@ export default function RiskCascadingPage() {
                 </CollectionTableHeaderRow>
               </CollectionTableHeader>
               <TableBody>
-                {paginatedItems.length === 0 ? (
+                {items.length === 0 ? (
                   <TableRow>
                     <TableCell
                       colSpan={11}
@@ -346,7 +318,7 @@ export default function RiskCascadingPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  paginatedItems.map((item) => {
+                  items.map((item) => {
                     const canReview = canReviewCascade(item);
                     const canDelete = item.status === "proposed";
                     const statusLabel =
@@ -403,7 +375,7 @@ export default function RiskCascadingPage() {
           itemLabel="eskalasi"
           page={page}
           pageSize={pageSize}
-          total={filteredItems.length}
+          total={total}
           disabled={loading}
           onPageChange={setPage}
           onPageSizeChange={(nextPageSize) => {

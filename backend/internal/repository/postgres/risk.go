@@ -114,11 +114,11 @@ func insertRiskWithQueryer(ctx context.Context, q riskQueryer, risk *entity.Risk
 		_, err := q.Exec(ctx,
 			`INSERT INTO mitigations (
 				risk_id, action, owner, owner_user_id, due_date, frequency, recurring_interval, report_day, report_date, execution_schedule_text, target_cost, sort_order,
-				mitigation_type
+				mitigation_type,plan_identity_id
 			)
-			 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)`,
+			 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,COALESCE((SELECT m.plan_identity_id FROM mitigations m JOIN risks source ON source.id=m.risk_id WHERE m.id=$14 AND source.version_group_id=$15),gen_random_uuid()))`,
 			risk.ID, m.Action, m.Owner, m.OwnerUserID, nullableDateString(m.DueDate), frequency, m.RecurringInterval, m.ReportDay, m.ReportDate, m.ExecutionScheduleText, m.TargetCost, i+1,
-			mitigationType)
+			mitigationType, m.ID, risk.VersionGroupID)
 		if err != nil {
 			return fmt.Errorf("create mitigation: %w", err)
 		}
@@ -246,6 +246,14 @@ func (r *riskRepository) GetByID(ctx context.Context, id uuid.UUID, orgIDs []uui
 		risk.Mitigations = append(risk.Mitigations, m)
 	}
 
+	drafts, err := readRiskOpenDrafts(ctx, r.pool, risk.VersionGroupID)
+	if err != nil {
+		return nil, err
+	}
+	risk.OpenDrafts = drafts
+	if err := attachCurrentAssessments(ctx, r.pool, []*entity.Risk{risk}); err != nil {
+		return nil, err
+	}
 	return risk, nil
 }
 
@@ -267,7 +275,16 @@ func (r *riskRepository) Update(ctx context.Context, risk *entity.Risk) error {
 }
 
 func updateRiskWithQueryer(ctx context.Context, q riskQueryer, risk *entity.Risk, preserveIDs ...bool) error {
-	preserve := len(preserveIDs) > 0 && preserveIDs[0]
+	if risk.ReviewType == "revision" {
+		finalized, err := lockProfileRevision(ctx, q, risk)
+		if err != nil {
+			return err
+		}
+		if finalized {
+			return nil
+		}
+	}
+	preserve := (len(preserveIDs) > 0 && preserveIDs[0]) || risk.ReviewType == "revision"
 	risk.CalculateAll()
 	risk.CalculateTargetBobot()
 	risk.CalculateTargetNilai()
@@ -295,6 +312,19 @@ func updateRiskWithQueryer(ctx context.Context, q riskQueryer, risk *entity.Risk
 		return fmt.Errorf("update risk: %w", err)
 	}
 
+	// Revision drafts retain stable plan identities across edits and remove only
+	// plans explicitly omitted by the shared profile form.
+	if risk.ReviewType == "revision" {
+		ids := make([]uuid.UUID, 0, len(risk.Mitigations))
+		for _, m := range risk.Mitigations {
+			if m.ID != uuid.Nil {
+				ids = append(ids, m.ID)
+			}
+		}
+		if _, err := q.Exec(ctx, "DELETE FROM mitigations WHERE risk_id=$1 AND NOT (id=ANY($2::uuid[]))", risk.ID, ids); err != nil {
+			return err
+		}
+	}
 	// Replace mitigations
 	if !preserve {
 		if _, err := q.Exec(ctx, "DELETE FROM mitigations WHERE risk_id = $1", risk.ID); err != nil {
@@ -345,6 +375,9 @@ func updateRiskWithQueryer(ctx context.Context, q riskQueryer, risk *entity.Risk
 		}
 
 		if risk.PreviousRiskID != nil {
+			if err := recordProfileRevisionScore(ctx, q, risk); err != nil {
+				return err
+			}
 			if err := activateApprovedVersionWithQueryer(ctx, q, risk.ID); err != nil {
 				return err
 			}
@@ -526,6 +559,9 @@ func (r *riskRepository) List(ctx context.Context, orgIDs []uuid.UUID, status st
 		risk.ROID = nullableUUIDPtr(roID)
 		risks = append(risks, &risk)
 	}
+	if err := attachCurrentAssessments(ctx, r.pool, risks); err != nil {
+		return nil, err
+	}
 	return risks, nil
 }
 
@@ -689,7 +725,7 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 	}
 
 	if filter.AssessmentCycle != "" {
-		finalExists := fmt.Sprintf("EXISTS (SELECT 1 FROM risk_monitorings filter_rm WHERE filter_rm.version_group_id=r.version_group_id AND filter_rm.assessment_cycle=$%d AND filter_rm.status='final')", argIdx)
+		finalExists := fmt.Sprintf("EXISTS (SELECT 1 FROM risk_monitorings filter_rm WHERE filter_rm.version_group_id=r.version_group_id AND filter_rm.assessment_cycle=$%d AND filter_rm.status='final' AND filter_rm.transaction_kind='monitoring')", argIdx)
 		eligible := fmt.Sprintf(`(COALESCE(NULLIF(r.assessment_cycle,''),to_char(COALESCE(r.effective_from,r.finalized_at,r.created_at) AT TIME ZONE 'Asia/Jakarta','YYYY-"Q"Q')) <= $%d OR %s)`, argIdx, finalExists)
 		clause := fmt.Sprintf(" AND ((r.status='draft' AND COALESCE(r.assessment_cycle,'')=$%d) OR (r.status<>'draft' AND %s))", argIdx, eligible)
 		if filter.MonitoringStatus == "monitored" {
@@ -727,7 +763,10 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 	offset := (filter.Page - 1) * filter.Limit
 	dataQuery += " ORDER BY " + collectionOrderBy(filter.SortBy, filter.SortOrder, "r.created_at", "r.id", map[string]string{
 		"created_at": "r.created_at", "title": "r.title", "code": "r.code", "category": "r.category", "status": "r.status", "assessment_cycle": "r.assessment_cycle",
-		"nilai": "COALESCE(r.nilai, 0)",
+		"nilai": `COALESCE((SELECT rm.observed_nilai FROM risk_monitorings rm
+ WHERE rm.source_risk_id=r.id AND rm.transaction_kind='monitoring' AND rm.status='final'
+ AND rm.superseded_by_monitoring_id IS NULL AND rm.observed_at<=` + businessDateSQL + `
+ ORDER BY rm.observed_at DESC,rm.finalized_at DESC NULLS LAST,rm.id DESC LIMIT 1),r.nilai,0)`,
 	}) + fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
 
 	args = append(args, filter.Limit, offset)
@@ -773,6 +812,9 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 		return nil, 0, fmt.Errorf("list risk register rows: %w", err)
 	}
 
+	if err := attachCurrentAssessments(ctx, r.pool, risks); err != nil {
+		return nil, 0, err
+	}
 	return risks, total, nil
 }
 
@@ -854,6 +896,9 @@ func (r *riskRepository) ListApprovedRisks(ctx context.Context, orgIDs []uuid.UU
 		}
 		risks = append(risks, &risk)
 	}
+	if err := attachCurrentAssessments(ctx, r.pool, risks); err != nil {
+		return nil, err
+	}
 	return risks, nil
 }
 
@@ -914,11 +959,11 @@ func currentQuarterCycle() string {
 
 const dashboardRiskSnapshotCTE = riskPeriodSnapshotCTE + `, dashboard_risks AS (
 	SELECT snapshot.*,
-	       snapshot.probability AS effective_probability,
-	       snapshot.impact AS effective_impact,
-	       snapshot.weight AS effective_weight,
-	       snapshot.nilai AS effective_nilai,
-	       ROUND(COALESCE(snapshot.nilai, 0))::int AS effective_inherent_score
+	       snapshot.current_probability AS effective_probability,
+	       snapshot.current_impact AS effective_impact,
+	       snapshot.current_weight AS effective_weight,
+	       snapshot.current_nilai AS effective_nilai,
+	       ROUND(COALESCE(snapshot.current_nilai, 0))::int AS effective_inherent_score
 	FROM risk_snapshots snapshot
 ) `
 
@@ -1490,6 +1535,23 @@ func (r *riskRepository) ActivateApprovedVersion(ctx context.Context, approvedRi
 		return fmt.Errorf("begin activate approved version: %w", err)
 	}
 	defer tx.Rollback(ctx)
+	risk, err := (&riskRepository{pool: tx}).GetByID(ctx, approvedRiskID, nil)
+	if err != nil {
+		return err
+	}
+	if risk.ReviewType == "revision" {
+		now := timeutil.BusinessNow().In(timeutil.JakartaLocation())
+		date := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
+		risk.Status = entity.RiskStatusFinal
+		risk.FinalizeRequested = true
+		risk.FinalizedAt = &now
+		risk.EffectiveFrom = &date
+		risk.AssessmentCycle = fmt.Sprintf("%d-Q%d", date.Year(), (int(date.Month())-1)/3+1)
+		if err := updateRiskWithQueryer(ctx, tx, risk, true); err != nil {
+			return err
+		}
+		return tx.Commit(ctx)
+	}
 	if err := activateApprovedVersionWithQueryer(ctx, tx, approvedRiskID); err != nil {
 		return err
 	}
@@ -1503,9 +1565,10 @@ func activateApprovedVersionWithQueryer(ctx context.Context, q riskQueryer, appr
 	var versionGroupID uuid.UUID
 	var assessmentCycle string
 	var nextReviewDate *string
+	var reviewType string
 	if err := q.QueryRow(ctx,
-		`SELECT version_group_id, COALESCE(assessment_cycle, ''), next_review_date::text FROM risks WHERE id = $1`, approvedRiskID,
-	).Scan(&versionGroupID, &assessmentCycle, &nextReviewDate); err != nil {
+		`SELECT version_group_id, COALESCE(assessment_cycle, ''), next_review_date::text, COALESCE(review_type,'') FROM risks WHERE id = $1`, approvedRiskID,
+	).Scan(&versionGroupID, &assessmentCycle, &nextReviewDate, &reviewType); err != nil {
 		return fmt.Errorf("load approved risk for activation: %w", err)
 	}
 
@@ -1535,7 +1598,7 @@ func activateApprovedVersionWithQueryer(ctx context.Context, q riskQueryer, appr
 	}
 
 	var newNextReviewDate *string
-	if nextReviewDate != nil {
+	if nextReviewDate != nil && reviewType != "revision" {
 		trimmed := strings.TrimSpace(*nextReviewDate)
 		parsed, err := time.Parse("2006-01-02", trimmed)
 		if err != nil {

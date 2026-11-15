@@ -62,7 +62,7 @@ func RegisterUPRWorkflowRoutes(router fiber.Router, workflow *postgres.UPRWorkfl
 				return invalidUPRID
 			}
 		}
-		data, err := workflow.AnnualProfile(c.Context(), a.org, year, id)
+		data, err := workflow.AnnualProfileForScope(c.Context(), middleware.GetAccessScope(c), a.org, year, id)
 		return uprData(c, data, err)
 	}))
 	router.Get("/annual-profiles/:year/candidates", uprRoute(func(c *fiber.Ctx, a uprActor) error {
@@ -103,6 +103,23 @@ func RegisterUPRWorkflowRoutes(router fiber.Router, workflow *postgres.UPRWorkfl
 		return uprData(c, fiber.Map{}, workflow.DeleteAnnualDraft(c.Context(), a.org, id))
 	}))
 	router.Get("/upr-reports", uprRoute(func(c *fiber.Ctx, a uprActor) error {
+		if c.Query("view") == "collection" {
+			var organizationID *uuid.UUID
+			if raw := c.Query("organization_id"); raw != "" {
+				id, err := uuid.Parse(raw)
+				if err != nil {
+					return invalidUPRID
+				}
+				organizationID = &id
+			}
+			data, err := workflow.ReportCollection(c.Context(), a.org, postgres.UPRReportCollectionFilter{
+				Query: c.Query("q"), OrganizationID: organizationID,
+				Period: c.Query("period"), Status: c.Query("status"),
+				SortBy: c.Query("sort_by"), SortOrder: c.Query("sort_order"),
+				Page: c.QueryInt("page", 1), Limit: c.QueryInt("limit", 20),
+			})
+			return uprData(c, data, err)
+		}
 		data, err := workflow.ReportWorkspace(c.Context(), a.org, c.Query("include_sources") != "false")
 		return uprData(c, data, err)
 	}))
@@ -140,26 +157,39 @@ func RegisterUPRWorkflowRoutes(router fiber.Router, workflow *postgres.UPRWorkfl
 	}))
 	router.Get("/upr-report-drafts/documents", uprRoute(func(c *fiber.Ctx, a uprActor) error {
 		year, yearErr := strconv.Atoi(c.Query("year"))
+		semester, semesterErr := strconv.Atoi(c.Query("semester"))
 		page, pageErr := strconv.Atoi(c.Query("page", "1"))
-		if yearErr != nil || pageErr != nil {
+		if yearErr != nil || semesterErr != nil || pageErr != nil {
 			return postgres.UPRWorkflowError("Pencarian dokumen tidak valid.")
 		}
-		result, err := workflow.SearchReportDocuments(c.Context(), a.org, c.Query("kind"), year, c.Query("q"), page)
+		scope := postgres.UPRSemesterInput{Year: year, Semester: semester}
+		result, err := workflow.SearchReportDocuments(c.Context(), a.org, c.Query("kind"), scope, c.Query("q"), page)
 		return uprData(c, result, err)
 	}))
 	router.Post("/upr-report-drafts/documents/selected", uprRoute(func(c *fiber.Ctx, a uprActor) error {
 		var body struct {
-			Year int         `json:"year"`
-			IDs  []uuid.UUID `json:"ids"`
+			OrganizationID *uuid.UUID  `json:"organizationId"`
+			Year           int         `json:"year"`
+			Semester       int         `json:"semester"`
+			IDs            []uuid.UUID `json:"ids"`
 		}
 		if err := c.BodyParser(&body); err != nil {
 			return invalidUPRBody
 		}
-		items, err := workflow.SelectedReportDocuments(c.Context(), a.org, body.Year, body.IDs)
+		org := a.org
+		if body.OrganizationID != nil {
+			scope := middleware.GetAccessScope(c)
+			if *body.OrganizationID == uuid.Nil || !scope.CanRead(*body.OrganizationID) {
+				return c.SendStatus(fiber.StatusForbidden)
+			}
+			org = *body.OrganizationID
+		}
+		scope := postgres.UPRSemesterInput{Year: body.Year, Semester: body.Semester}
+		items, err := workflow.SelectedReportDocuments(c.Context(), org, scope, body.IDs)
 		return uprData(c, items, err)
 	}))
 	router.Get("/upr-report-drafts/:id", uprVersionRoute(func(c *fiber.Ctx, a uprActor, id uuid.UUID) error {
-		draft, err := workflow.GetReportDraft(c.Context(), a.org, id)
+		draft, err := workflow.GetReportDraftForScope(c.Context(), middleware.GetAccessScope(c), id)
 		return uprData(c, draft, err)
 	}))
 	router.Put("/upr-report-drafts/:id", uprVersionRoute(func(c *fiber.Ctx, a uprActor, id uuid.UUID) error {
@@ -185,7 +215,7 @@ func RegisterUPRWorkflowRoutes(router fiber.Router, workflow *postgres.UPRWorkfl
 		return uprData(c, fiber.Map{"id": sentID}, err)
 	}))
 	router.Get("/upr-reports/:id", uprVersionRoute(func(c *fiber.Ctx, a uprActor, id uuid.UUID) error {
-		data, err := workflow.ReportDetail(c.Context(), a.org, id)
+		data, err := workflow.ReportDetailForScope(c.Context(), middleware.GetAccessScope(c), a.org, id)
 		return uprData(c, data, err)
 	}))
 	router.Post("/upr-reports/:id/send", uprVersionRoute(func(c *fiber.Ctx, a uprActor, id uuid.UUID) error {
@@ -231,7 +261,18 @@ func uprRoute(action func(*fiber.Ctx, uprActor) error) fiber.Handler {
 		if scope == nil || scope.OrganizationID == nil || *scope.OrganizationID == uuid.Nil || scope.UserID == uuid.Nil {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Akun harus terhubung ke organisasi."})
 		}
-		err := action(c, uprActor{org: *scope.OrganizationID, user: scope.UserID})
+		org := *scope.OrganizationID
+		if c.Method() == fiber.MethodGet && c.Query("org_id") != "" {
+			requested, err := uuid.Parse(c.Query("org_id"))
+			if err != nil || requested == uuid.Nil {
+				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": invalidUPRID.Error()})
+			}
+			if !scope.CanRead(requested) {
+				return c.SendStatus(fiber.StatusForbidden)
+			}
+			org = requested
+		}
+		err := action(c, uprActor{org: org, user: scope.UserID})
 		if err == nil {
 			return nil
 		}

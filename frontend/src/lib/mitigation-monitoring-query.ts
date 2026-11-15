@@ -9,6 +9,7 @@ export interface MitigationMonitoringQueryState {
 export type MitigationMonitoringStatusFilter =
   | "all"
   | "needs_reporting"
+  | "reported"
   | "pending"
   | "done"
   | "overdue"
@@ -18,6 +19,7 @@ export type MitigationMonitoringStatusFilter =
 const MITIGATION_STATUSES: readonly MitigationMonitoringStatusFilter[] = [
   "all",
   "needs_reporting",
+  "reported",
   "pending",
   "done",
   "overdue",
@@ -89,7 +91,8 @@ export const mitigationMonitoringStatusOptions: Array<{value:MitigationMonitorin
  {value:"needs_reporting",label:"Perlu diisi, ≤7 hari & terlambat"},
  {value:"pending",label:"Pending"},
  {value:"overdue",label:"Overdue"},
- {value:"done",label:"Sudah dilaporkan"},
+ {value:"reported",label:"Sudah dilaporkan"},
+ {value:"done",label:"Selesai"},
  {value:"skipped",label:"Dilewati"},
  {value:"not_reported",label:"Tidak dilaporkan"},
 ];

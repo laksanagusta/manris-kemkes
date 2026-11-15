@@ -3,20 +3,19 @@
 import { getProfilePeriodProgress, type ProfilePeriodWorkspace, type ProfilePeriodProgress } from "@/lib/api/profile-periods";
 import { startMonitoring } from "@/lib/api/risk-monitoring";
 import type { AnnualMember } from "@/lib/api/upr-workflow";
-import { periodObservationDate } from "@/lib/profile-period-progress";
 import { todayMonitoringDate } from "@/lib/monitoring-date";
-import { MonitoringDateField } from "@/components/shared/design-system/domain/monitoring-date-field";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { PageStack } from "@/components/shared/design-system";
+import { ActionConfirmationDialog } from "@/components/shared/design-system/actions/action-confirmation-dialog";
 import { ArrowLeft } from "@/components/shared/icons";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { AnnualProfileContent } from "@/components/upr/annual-profile-content";
 import { WorkflowError, workflowError } from "@/components/upr/workflow-ui";
+import { canWriteInOrg } from "@/lib/auth-helpers";
 import { useAuth } from "@/contexts/auth-context";
 import {
   uprApi,
@@ -42,9 +41,6 @@ function AnnualProfileWorkspace() {
   const [periodData,setPeriodData] = useState<{id:string;workspace?:ProfilePeriodWorkspace;error?:string}>({id:""});
   const [monitoringTarget,setMonitoringTarget] = useState<{member:AnnualMember;period:ProfilePeriodProgress} | null>(null);
   const [monitoringDate,setMonitoringDate] = useState("");
-  const [monitoringError,setMonitoringError] = useState("");
-  const [starting,setStarting] = useState(false);
-  const startingLock=useRef(false);
   const [data, setData] = useState<AnnualProfile | null>(null);
   const [candidates, setCandidates] = useState<AnnualCandidate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -57,6 +53,7 @@ function AnnualProfileWorkspace() {
   const mutationLock = useRef(false);
   const organizationId = user?.organizationId;
   const context = `${organizationId}:${year}:${version}`;
+  const readOnly = !!data && (!data.organizationId || !canWriteInOrg(user, data.organizationId));
   const fetching = loading || loadedContext !== context;
   const busy = fetching || pending || Boolean(refreshError);
   const returnTo = annualProfileHref(year, data?.selected?.id);
@@ -137,7 +134,7 @@ function AnnualProfileWorkspace() {
   async function mutate<T>(
     action: (authToken: string, profileId: string) => Promise<T>,
   ): Promise<T> {
-    if (!token || mutationLock.current || fetching || refreshError)
+    if (readOnly || !token || mutationLock.current || fetching || refreshError)
       throw new Error(
         "Muat ulang profil atau tunggu hingga proses sebelumnya selesai.",
       );
@@ -204,12 +201,12 @@ function AnnualProfileWorkspace() {
           <AnnualProfileContent
             key={`${organizationId}:${year}:${data.selected?.id ?? "empty"}`}
             year={year}
+            readOnly={readOnly}
             profile={data}
             periodWorkspace={periodWorkspace}
             onStartPeriodMonitoring={(member,period)=>{
               if(!periodWorkspace?.rule) return;
-              setMonitoringError("");
-              setMonitoringDate(periodObservationDate(periodWorkspace.rule,period,todayMonitoringDate()));
+              setMonitoringDate(todayMonitoringDate());
               setMonitoringTarget({member,period});
             }}
             candidates={candidates}
@@ -309,26 +306,36 @@ function AnnualProfileWorkspace() {
           />
         )
       )}
-      <Dialog open={Boolean(monitoringTarget)} onOpenChange={open=>{if(!open && !startingLock.current) setMonitoringTarget(null);}}>
-        <DialogContent showCloseButton={!starting}>
-          <DialogHeader><DialogTitle>Mulai pemantauan</DialogTitle><DialogDescription>{monitoringTarget?.member.code} · {monitoringTarget?.period.label}. Tanggal pengamatan mengikuti periode yang dipantau.</DialogDescription></DialogHeader>
-          <MonitoringDateField id="profile-period-observed-at" value={monitoringDate} onChange={setMonitoringDate} disabled={starting} />
-          {monitoringError && <WorkflowError message={monitoringError} />}
-          <DialogFooter>
-            <Button variant="outline" disabled={starting} onClick={()=>setMonitoringTarget(null)}>Batal</Button>
-            <Button disabled={starting || !monitoringDate} aria-busy={starting} onClick={async()=>{
-              if(!token || !selectedProfileId || !monitoringTarget?.member.riskId || startingLock.current) return;
-              startingLock.current=true;setStarting(true);setMonitoringError("");
-              try {
-                const result=await startMonitoring(token,monitoringTarget.member.riskId,monitoringDate,{profileVersionId:selectedProfileId,monitoringPeriodId:monitoringTarget.period.id});
-                router.push(result.redirectUrl || `/risk/monitoring/${result.monitoring.id}`);
-                setMonitoringTarget(null);
-              } catch(error) {setMonitoringError(workflowError(error));}
-              finally {startingLock.current=false;setStarting(false);}
-            }}>Mulai pemantauan</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <ActionConfirmationDialog
+        open={Boolean(monitoringTarget)}
+        onOpenChange={(open) => {
+          if (!open) setMonitoringTarget(null);
+        }}
+        title="Mulai pemantauan"
+        description={`${monitoringTarget?.member.code ?? "Risiko"} · ${monitoringTarget?.period.label ?? "Periode"}.`}
+        confirmLabel="Mulai pemantauan"
+        onConfirm={async () => {
+          if (!token || !selectedProfileId || !monitoringTarget?.member.riskId || !monitoringDate) {
+            throw new Error("Data pemantauan belum tersedia.");
+          }
+          try {
+            const result = await startMonitoring(
+              token,
+              monitoringTarget.member.riskId,
+              monitoringDate,
+              {
+                profileVersionId: selectedProfileId,
+                monitoringPeriodId: monitoringTarget.period.id,
+              },
+            );
+            router.push(result.redirectUrl || `/risk/monitoring/${result.monitoring.id}`);
+          } catch (error) {
+            throw new Error(workflowError(error));
+          }
+        }}
+      >
+        <span>Draf pemantauan akan dibuat, lalu formulir pemantauan akan dibuka.</span>
+      </ActionConfirmationDialog>
     </PageStack>
   );
 }

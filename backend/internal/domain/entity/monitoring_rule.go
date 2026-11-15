@@ -15,6 +15,7 @@ type MonitoringRule struct {
 	Year      int                    `json:"year"`
 	Frequency string                 `json:"frequency"`
 	Active    bool                   `json:"active"`
+	InUse     bool                   `json:"inUse"`
 	Periods   []MonitoringRulePeriod `json:"periods"`
 }
 

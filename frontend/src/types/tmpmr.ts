@@ -23,6 +23,7 @@ export type TMPMRItem = {
 export type TMPMRAssessment = {
   id: string;
   organizationId: string;
+  organizationName?: string;
   period: string;
   assessorId?: string | null;
   reviewerId?: string | null;
@@ -35,7 +36,16 @@ export type TMPMRAssessment = {
   updatedAt: string;
 };
 
+export type TMPMRSummary = {
+  total: number;
+  draft: number;
+  submitted: number;
+  approved: number;
+  periods: string[];
+};
+
 export type PaginatedTMPMRResponse = {
+  summary: TMPMRSummary;
   data: TMPMRAssessment[];
   total: number;
   page: number;
@@ -43,6 +53,9 @@ export type PaginatedTMPMRResponse = {
 };
 
 export type ListTMPMRParams = {
+  q?: string;
+  sort_by?: string;
+  sort_order?: string;
   organizationId?: string;
   period?: string;
   status?: TMPMRStatus;

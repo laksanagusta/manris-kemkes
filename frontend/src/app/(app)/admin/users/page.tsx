@@ -1,4 +1,5 @@
 "use client";
+import { useOrganizationFilter } from "@/hooks/use-organization-filter";
 
 import { createDisplayDateFormatter } from "@/lib/display-date";
 import { CollectionTableHead as TableHead } from "@/components/shared/design-system/collections/collection-table-head";
@@ -204,6 +205,7 @@ export default function UsersManagementPage() {
     type: "approve" | "reject";
   } | null>(null);
 
+  const organizationFilter = useOrganizationFilter(() => setPage(1));
   const deferredSearch = useDeferredValue(search);
 
   const collectionSort = useRemoteCollectionSorting({"User": "name", "Role": "role", "Organisasi": "organization", "Terakhir login": "last_login", "Status": "status"}, () => setPage(1));
@@ -292,6 +294,7 @@ export default function UsersManagementPage() {
     let cancelled = false;
 
     listUsers(token, {
+      organizationId: organizationFilter.organizationId === "all" ? undefined : organizationFilter.organizationId,
  sort_by:collectionSort.sortBy, sort_order:collectionSort.sortOrder,
       q: deferredSearch.trim() || undefined,
       status: statusFilter === "all" ? undefined : statusFilter,
@@ -321,7 +324,7 @@ export default function UsersManagementPage() {
     return () => {
       cancelled = true;
     };
-  }, [authLoading, isSuperadmin, token, deferredSearch, statusFilter, roleFilter, page, limit, collectionSort.sortBy, collectionSort.sortOrder]);
+  }, [organizationFilter.organizationId, authLoading, isSuperadmin, token, deferredSearch, statusFilter, roleFilter, page, limit, collectionSort.sortBy, collectionSort.sortOrder]);
 
   if (authLoading || (isSuperadmin && pageState === "loading")) {
     return (
@@ -438,6 +441,7 @@ export default function UsersManagementPage() {
               />
             }
             fields={[
+              organizationFilter.field,
               {
                 id: "status",
                 label: "Status",

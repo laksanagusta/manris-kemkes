@@ -1,8 +1,8 @@
 "use client";
+import { useOrganizationFilter } from "@/hooks/use-organization-filter";
 
-import { newestCreatedFirst } from "@/lib/collection-created-at";
 
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
@@ -28,6 +28,7 @@ import {
   User,
 } from "@/components/shared/icons";
 import {
+  CollectionPagination,
   CollectionPageHeader,
   CollectionToolbar,
   CollectionEmptyState,
@@ -35,6 +36,17 @@ import {
   DynamicTableFilters,
   PageStack,
 } from "@/components/shared/design-system";
+
+type ControlListItem = {
+  id: string;
+  name: string;
+  description: string;
+  frequency: string;
+  owner: string;
+  effectiveness: string;
+  organizationId?: string | null;
+  tests?: ControlTestRecord[];
+};
 
 type ControlTestRecord = {
   id?: string;
@@ -150,37 +162,45 @@ function ControlTestingRecords({ tests, readOnly }: {
 
 export default function ControlsPage() {
   const { token, user } = useAuth();
-  const [controls, setControls] = useState<any[]>([]);
+  const [controls, setControls] = useState<ControlListItem[]>([]);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
 
-  const filteredControls = useMemo(() => {
-    const q = deferredSearch.trim().toLowerCase();
-    if (!q) return controls;
-    return controls.filter(
-      (c) =>
-        c.name?.toLowerCase().includes(q) ||
-        c.description?.toLowerCase().includes(q) ||
-        c.owner?.toLowerCase().includes(q),
-    );
-  }, [controls, deferredSearch]);
+
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [total, setTotal] = useState(0);
+  const [error, setError] = useState("");
+  const [retry, setRetry] = useState(0);
+  const organizationFilter = useOrganizationFilter(() => setPage(1));
 
   useEffect(() => {
     if (!token) return;
+    const controller = new AbortController();
+    setLoading(true);
+    setError("");
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (deferredSearch.trim()) params.set("q", deferredSearch.trim());
+    if (organizationFilter.organizationId !== "all") params.set("organization_id", organizationFilter.organizationId);
 
-    api.get<any[]>("/controls", token)
-      .then(data => {
-        const sorted = [...(data || [])].sort(newestCreatedFirst);
-        setControls(sorted);
-        setLoading(false);
+    api.get<{ data: ControlListItem[]; total: number }>(`/controls?${params}`, token, { signal: controller.signal })
+      .then((response) => {
+        if (controller.signal.aborted) return;
+        setControls(response.data);
+        setTotal(response.total);
+        const lastPage = Math.max(1, Math.ceil(response.total / limit));
+        if (page > lastPage) setPage(lastPage);
       })
-      .catch(err => {
-        console.error("Failed to fetch controls:", err);
-        setLoading(false);
+      .catch(() => {
+        if (!controller.signal.aborted) setError("Gagal memuat control library.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
       });
-  }, [token]);
+    return () => controller.abort();
+  }, [token, page, limit, deferredSearch, organizationFilter.organizationId, retry]);
 
   return (
     <PageStack>
@@ -190,12 +210,12 @@ export default function ControlsPage() {
       <CollectionToolbar
         className="w-full"
         leading={
-          <CollectionSearchField
+          <DynamicTableFilters fields={[organizationFilter.field]} search={<CollectionSearchField
             aria-label="Cari kontrol"
             placeholder="Cari kontrol..."
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
+            onChange={(event) => { setSearch(event.target.value); setPage(1); }}
+          />} />
         }
         actions={
           (!user?.isGlobal && !user?.organizationId) ? null : (
@@ -211,14 +231,19 @@ export default function ControlsPage() {
 
       {/* Control Cards */}
       <div className="space-y-3">
-        {loading ? (
+        {error ? (
+          <div role="alert" className="space-y-2">
+            <p>{error}</p>
+            <Button variant="outline" onClick={() => setRetry((value) => value + 1)}>Coba lagi</Button>
+          </div>
+        ) : loading ? (
            <div className="rounded-lg bg-state-surface px-4 py-10 text-center text-sm text-state-foreground">Memuat data control library...</div>
-        ) : filteredControls.length === 0 ? (
+        ) : controls.length === 0 ? (
            <CollectionEmptyState
              title="Tidak ada control library yang ditemukan."
              description="Coba ubah kata kunci pencarian."
            />
-        ) : filteredControls.map((control) => {
+        ) : controls.map((control) => {
           const isExpanded = expandedId === control.id;
 
           return (
@@ -240,7 +265,7 @@ export default function ControlsPage() {
                       <Badge variant="outline" className="">
                         {control.frequency}
                       </Badge>
-                      {isReadOnlyForOrg(user, control.organizationId) && (
+                      {isReadOnlyForOrg(user, control.organizationId ?? "") && (
                         <Badge variant="secondary" className="">
                           RO
                         </Badge>
@@ -278,7 +303,7 @@ export default function ControlsPage() {
                 {isExpanded && (
                   <ControlTestingRecords
                     tests={Array.isArray(control.tests) ? control.tests : []}
-                    readOnly={isReadOnlyForOrg(user, control.organizationId)}
+                    readOnly={isReadOnlyForOrg(user, control.organizationId ?? "")}
                   />
                 )}
               </CardContent>
@@ -287,6 +312,11 @@ export default function ControlsPage() {
         })}
       </div>
       </div>
+      <CollectionPagination standalone
+        itemLabel="kontrol" total={total} page={page} pageSize={limit}
+        disabled={loading} onPageChange={setPage}
+        onPageSizeChange={(value) => { setLimit(value); setPage(1); }}
+      />
     </PageStack>
   );
 }

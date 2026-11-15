@@ -1,5 +1,5 @@
 import { api } from "@/lib/api";
-import type { RiskCategory, RiskStatus } from "@/types/risk";
+import type { RiskCategory, RiskCurrentAssessment, RiskStatus } from "@/types/risk";
 
 export type RiskRegisterStatusFilter = "all" | RiskStatus;
 export type RiskRegisterLifecycleFilter = "active" | "archived" | "all";
@@ -7,6 +7,7 @@ export type RiskRegisterCategoryFilter = "all" | Exclude<RiskCategory, "">;
 export type RiskRegisterProfileFilter = "active" | "history" | "all";
 
 export interface RiskRegisterListItem {
+  currentAssessment?: RiskCurrentAssessment;
   id: string;
   code?: string;
   title?: string;
@@ -71,6 +72,7 @@ export interface PaginatedRiskRegisterResponse {
 }
 
 interface ListRiskRegisterParams {
+  org_id?: string;
   q?: string;
   lifecycle?: RiskRegisterLifecycleFilter;
   profile?: RiskRegisterProfileFilter;
@@ -91,6 +93,7 @@ export async function listRiskRegister(
 ): Promise<PaginatedRiskRegisterResponse> {
   const searchParams = new URLSearchParams();
 
+  if (params?.org_id) searchParams.set("org_id", params.org_id);
   if (params?.q) searchParams.set("q", params.q);
   if (params?.lifecycle && params.lifecycle !== "active") {
     searchParams.set("lifecycle", params.lifecycle);

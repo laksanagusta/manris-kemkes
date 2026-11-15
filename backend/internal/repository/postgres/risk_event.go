@@ -110,20 +110,51 @@ func (r *riskEventRepository) GetByID(ctx context.Context, id uuid.UUID, orgIDs 
 }
 
 func (r *riskEventRepository) List(ctx context.Context, orgIDs []uuid.UUID, riskID *uuid.UUID) ([]*entity.RiskEvent, error) {
-	query := riskEventSelect + ` WHERE i.status='recorded'`
+	items, _, err := r.ListPage(ctx, repository.RiskEventListFilter{OrgIDs: orgIDs, RiskID: riskID})
+	return items, err
+}
+
+func (r *riskEventRepository) ListPage(ctx context.Context, f repository.RiskEventListFilter) ([]*entity.RiskEvent, int, error) {
+	where := " WHERE i.status = 'recorded'"
 	args := []any{}
-	if len(orgIDs) > 0 {
-		args = append(args, orgIDs)
-		query += fmt.Sprintf(` AND i.organization_id=ANY($%d)`, len(args))
+	add := func(clause string, value any) {
+		args = append(args, value)
+		where += fmt.Sprintf(clause, len(args))
 	}
-	if riskID != nil {
-		args = append(args, *riskID)
-		query += fmt.Sprintf(` AND EXISTS (SELECT 1 FROM incident_risk_links l WHERE l.incident_id=i.id AND l.risk_id=$%d)`, len(args))
+	if len(f.OrgIDs) > 0 {
+		add(" AND i.organization_id = ANY($%d)", f.OrgIDs)
 	}
-	query += ` ORDER BY i.created_at DESC, i.id DESC`
+	if f.OrganizationID != nil {
+		add(" AND i.organization_id = $%d", *f.OrganizationID)
+	}
+	if f.RiskID != nil {
+		add(" AND EXISTS (SELECT 1 FROM incident_risk_links l WHERE l.incident_id=i.id AND l.risk_id=$%d)", *f.RiskID)
+	}
+	if f.Severity != "" {
+		add(" AND i.severity = $%d", f.Severity)
+	}
+	if f.Query != "" {
+		args = append(args, f.Query)
+		where += fmt.Sprintf(` AND (strpos(lower(COALESCE(i.code, '') || ' ' || i.what), lower($%d)) > 0
+			OR EXISTS (SELECT 1 FROM incident_risk_links l JOIN risks r ON r.id=l.risk_id
+				WHERE l.incident_id=i.id AND strpos(lower(COALESCE(r.code, '') || ' ' || r.title), lower($%d)) > 0))`, len(args), len(args))
+	}
+
+	var total int
+	if err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM incidents i"+where, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count risk events: %w", err)
+	}
+	query := riskEventSelect + where + " ORDER BY " + collectionOrderBy(f.SortBy, f.SortOrder, "i.created_at", "i.id", map[string]string{
+		"created_at": "i.created_at", "description": "i.what", "occurred_at": `i."when"`,
+		"created_by": "u.name", "severity": "CASE i.severity WHEN 'low' THEN 1 WHEN 'medium' THEN 2 WHEN 'high' THEN 3 WHEN 'extreme' THEN 4 END",
+	})
+	if f.Limit > 0 {
+		query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", len(args)+1, len(args)+2)
+		args = append(args, f.Limit, int64(max(1, f.Page)-1)*int64(f.Limit))
+	}
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("list risk events: %w", err)
+		return nil, 0, fmt.Errorf("list risk events: %w", err)
 	}
 	defer rows.Close()
 	items := make([]*entity.RiskEvent, 0)
@@ -131,22 +162,24 @@ func (r *riskEventRepository) List(ctx context.Context, orgIDs []uuid.UUID, risk
 	for rows.Next() {
 		event, scanErr := scanRiskEvent(rows)
 		if scanErr != nil {
-			return nil, fmt.Errorf("scan risk event: %w", scanErr)
+			return nil, 0, fmt.Errorf("scan risk event: %w", scanErr)
 		}
 		items = append(items, event)
 		ids = append(ids, event.ID)
 	}
 	if err = rows.Err(); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
+	// Close the result before loading related rows so a one-connection pool works.
+	rows.Close()
 	links, err := r.loadLinks(ctx, ids)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	for _, item := range items {
 		item.LinkedRisks = links[item.ID]
 	}
-	return items, nil
+	return items, total, nil
 }
 
 func (r *riskEventRepository) AddRiskLinks(ctx context.Context, eventID uuid.UUID, riskIDs []uuid.UUID, actorID uuid.UUID) error {

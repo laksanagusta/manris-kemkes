@@ -49,3 +49,20 @@ test("late reporting never offers write actions for a terminal task", () => {
     assert.equal(getMitigationTaskReportAction({ ...task, status }, now).allowed, false);
   }
 });
+
+test("a report in final monitoring is read-only even when its execution is pending", () => {
+  const task = {
+    status: "pending",
+    periodEnd: "2027-12-31",
+    dueDate: "2027-12-31",
+    monitoringId: "monitoring",
+    reportedAt: "2027-12-01T00:00:00+07:00",
+    notes: "Kegiatan masih berlangsung.",
+  };
+  for (const monitoringStatus of ["final", "superseded"] as const) {
+    assert.deepEqual(getMitigationTaskReportAction({ ...task, monitoringStatus }, undefined, true), {
+      allowed: false, isOverdue: false, label: "Lihat laporan",
+    });
+  }
+  assert.equal(getMitigationTaskReportAction({ ...task, monitoringStatus: "draft" }, undefined, true).label, "Ubah laporan");
+});

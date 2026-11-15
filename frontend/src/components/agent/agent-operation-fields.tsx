@@ -1,5 +1,6 @@
 "use client";
 
+import { FieldHeading } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -57,8 +58,11 @@ function OperationField({ field, value, original, previous, id, disabled, organi
   const numeric = typeof original === "number" || typeof value === "number" || !!bounds;
   const previousText = previous === null ? "—" : typeof previous === "string" || typeof previous === "number" ? String(previous) : typeof previous === "boolean" ? previous ? "Ya" : "Tidak" : undefined;
   const multiline = /description|notes|action|reason|statement|summary|control|response|quote|provision/i.test(field) || String(value ?? "").length > 100;
-  return <div className="space-y-1.5"><label htmlFor={id} className="text-xs text-muted-foreground">{label}</label>
-    {previousText !== undefined && <p className="whitespace-pre-wrap break-words text-xs text-tertiary-foreground">Sebelumnya: {previousText || "—"}</p>}
+  return <div className="space-y-1.5"><FieldHeading>
+    <label htmlFor={id} className="text-xs text-muted-foreground">{label}</label>
+    {previousText !== undefined && <p className="leading-4 whitespace-pre-wrap break-words text-xs text-tertiary-foreground">Sebelumnya: {previousText || "—"}</p>}
+  </FieldHeading>
+
     {options ? <Select value={String(value ?? "")} disabled={disabled} onValueChange={(next) => onChange(typeof value === "boolean" ? next === "true" : next)}>
       <SelectTrigger id={id} className="w-full"><SelectValue /></SelectTrigger><SelectContent>
         {!!value && !options.some(([key]) => key === String(value)) && <SelectItem value={String(value)}>{String(value)}</SelectItem>}

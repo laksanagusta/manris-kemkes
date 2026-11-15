@@ -75,12 +75,12 @@ func buildSemester(ctx context.Context, tx pgx.Tx, org uuid.UUID, input UPRSemes
 	var selected AnnualProfileVersion
 	query := `SELECT ` + annualVersionColumns + ` FROM annual_risk_profile_versions WHERE organization_id=$1 AND year=$2 AND finalized_at IS NOT NULL`
 	if input.ProfileID != nil {
-		err = tx.QueryRow(ctx, query+` AND id=$3`, org, input.Year, input.ProfileID).Scan(&selected.ID, &selected.Version, &selected.FinalizedAt, &selected.FinalizedBy)
+		err = tx.QueryRow(ctx, query+` AND id=$3`, org, input.Year, input.ProfileID).Scan(&selected.MonitoringRuleID, &selected.ID, &selected.Version, &selected.FinalizedAt, &selected.FinalizedBy)
 		if errors.Is(err, pgx.ErrNoRows) {
 			return out, UPRWorkflowError("Pilih versi profil final untuk UPR dan tahun ini.")
 		}
 	} else {
-		err = tx.QueryRow(ctx, query+` AND finalized_at<$3 ORDER BY version DESC LIMIT 1`, org, input.Year, cutoff).Scan(&selected.ID, &selected.Version, &selected.FinalizedAt, &selected.FinalizedBy)
+		err = tx.QueryRow(ctx, query+` AND finalized_at<$3 ORDER BY version DESC LIMIT 1`, org, input.Year, cutoff).Scan(&selected.MonitoringRuleID, &selected.ID, &selected.Version, &selected.FinalizedAt, &selected.FinalizedBy)
 	}
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return out, err
@@ -201,7 +201,7 @@ const semesterRiskSnapshotSQL = `WITH members AS (
 			SELECT rm.*
 			FROM risk_monitorings rm JOIN risks source ON source.id=rm.source_risk_id
 			WHERE source.organization_id=$1 AND source.version_group_id=m.version_group_id
-			AND rm.status='final' AND rm.superseded_by_monitoring_id IS NULL
+			AND rm.status='final' AND rm.transaction_kind='monitoring' AND rm.superseded_by_monitoring_id IS NULL
             AND rm.observed_at >= GREATEST(m.first_effective,period.start_date)
             AND rm.observed_at <= period.end_date
 		) a

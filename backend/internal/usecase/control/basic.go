@@ -55,6 +55,10 @@ func (uc *ListControlsUseCase) Execute(ctx context.Context, input ListControlsIn
 	return controls, nil
 }
 
+func (uc *ListControlsUseCase) ListPage(ctx context.Context, filter repository.ControlListFilter) ([]*entity.Control, int, error) {
+	return uc.controlRepo.ListPage(ctx, filter)
+}
+
 // UpdateControlUseCase handles control update business logic
 type UpdateControlUseCase struct {
 	controlRepo repository.ControlRepository
@@ -108,6 +112,9 @@ func (uc *UpdateControlUseCase) Execute(ctx context.Context, input UpdateControl
 	}
 
 	// 2. Validate linked risk if changed
+	if scope != nil && input.OrganizationID != nil && !scope.CanWrite(*input.OrganizationID) {
+		return nil, errors.ErrForbidden
+	}
 	if input.RiskID != nil {
 		_, err := uc.riskRepo.GetByID(ctx, *input.RiskID, orgIDs)
 		if err != nil {

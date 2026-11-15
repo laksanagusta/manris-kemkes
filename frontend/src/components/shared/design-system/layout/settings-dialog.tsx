@@ -15,12 +15,13 @@ const sections = [
   { id: "monitoring-rules" as const, label: "Aturan periode", icon: CalendarDays, keywords: "profil risiko tahun pemantauan bulanan kuartal semester jadwal tanggal" },
 ];
 
-export function SettingsDialog({ open, onOpenChange, section, onSectionChange, showMonitoringRules = false, children }: {
+export function SettingsDialog({ open, onOpenChange, section, onSectionChange, showMonitoringRules = false, headerActionRef, children }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   section: SettingsSection;
   onSectionChange: (section: SettingsSection) => void;
   showMonitoringRules?: boolean;
+  headerActionRef?: (element: HTMLDivElement | null) => void;
   children: ReactNode;
 }) {
   const [search, setSearch] = useState("");
@@ -70,10 +71,13 @@ export function SettingsDialog({ open, onOpenChange, section, onSectionChange, s
           </aside>
           <div className="min-h-0 overflow-y-auto overscroll-contain px-4 py-6 md:px-10 md:py-16 lg:py-24">
             <div className="mx-auto w-full max-w-[38rem]">
-              <DialogHeader className="mb-8">
+              <div className="mb-8 flex flex-wrap items-start justify-between gap-3">
+              <DialogHeader className="min-w-0 flex-1 basis-40">
                 <DialogTitle data-workspace-title="">{sections.find((item) => item.id === section)?.label}</DialogTitle>
                 <DialogDescription>{section === "account" ? "Kelola profil akun Anda." : section === "security" ? "Kelola keamanan dan password akun Anda." : section === "api-key" ? "Kelola akses aplikasi eksternal ke peta risiko organisasi." : section === "monitoring-rules" ? "Tetapkan jadwal periode yang dapat dipilih pada profil risiko tahunan." : "Sesuaikan tampilan Manrisk pada perangkat ini."}</DialogDescription>
               </DialogHeader>
+              {headerActionRef && <div ref={headerActionRef} className="ms-auto shrink-0" />}
+              </div>
               {children}
             </div>
           </div>

@@ -14,19 +14,23 @@ type ListUseCase struct {
 }
 
 type ListInput struct {
-	OrgIDs      []uuid.UUID
-	Status      string
-	CascadeType string
-	Query       string
-	Page        int
-	Limit       int
+	OrgIDs         []uuid.UUID
+	OrganizationID *uuid.UUID
+	SortBy         string
+	SortOrder      string
+	Status         string
+	CascadeType    string
+	Query          string
+	Page           int
+	Limit          int
 }
 
 type ListOutput struct {
-	Data  []*entity.RiskCascade `json:"data"`
-	Total int                   `json:"total"`
-	Page  int                   `json:"page"`
-	Limit int                   `json:"limit"`
+	Data    []*entity.RiskCascade         `json:"data"`
+	Total   int                           `json:"total"`
+	Page    int                           `json:"page"`
+	Limit   int                           `json:"limit"`
+	Summary repository.RiskCascadeSummary `json:"summary"`
 }
 
 func NewListUseCase(repo repository.RiskCascadeRepository) *ListUseCase {
@@ -44,12 +48,15 @@ func (uc *ListUseCase) Execute(ctx context.Context, input ListInput) (*ListOutpu
 	}
 
 	items, total, err := uc.repo.List(ctx, repository.RiskCascadeListFilter{
-		OrgIDs:      input.OrgIDs,
-		Status:      strings.TrimSpace(input.Status),
-		CascadeType: strings.TrimSpace(input.CascadeType),
-		Query:       strings.TrimSpace(input.Query),
-		Page:        page,
-		Limit:       limit,
+		OrgIDs:         input.OrgIDs,
+		OrganizationID: input.OrganizationID,
+		SortBy:         input.SortBy,
+		SortOrder:      input.SortOrder,
+		Status:         strings.TrimSpace(input.Status),
+		CascadeType:    strings.TrimSpace(input.CascadeType),
+		Query:          strings.TrimSpace(input.Query),
+		Page:           page,
+		Limit:          limit,
 	})
 	if err != nil {
 		return nil, err
@@ -58,5 +65,10 @@ func (uc *ListUseCase) Execute(ctx context.Context, input ListInput) (*ListOutpu
 		items = []*entity.RiskCascade{}
 	}
 
-	return &ListOutput{Data: items, Total: total, Page: page, Limit: limit}, nil
+	summary, err := uc.repo.Summary(ctx, input.OrgIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ListOutput{Data: items, Total: total, Page: page, Limit: limit, Summary: summary}, nil
 }

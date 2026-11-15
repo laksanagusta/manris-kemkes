@@ -91,3 +91,25 @@ func TestQuarterlyRejectsDraftObservationAndBareDone(t *testing.T) {
 		t.Fatal("latest retrospective report must recognize expired reporting deadlines")
 	}
 }
+
+func TestQuarterlyCountsSubmittedReportsAcrossExecutionStates(t *testing.T) {
+	reportedAt := time.Date(2027, 12, 2, 0, 0, 0, 0, time.UTC)
+	for _, status := range []string{
+		entity.MitigationTaskStatusDone,
+		entity.MitigationTaskStatusPending,
+		entity.MitigationTaskStatusSkipped,
+	} {
+		t.Run(status, func(t *testing.T) {
+			task := &entity.MitigationTask{
+				Status: status, DueDate: "2027-12-01", ReportedAt: &reportedAt,
+				Notes: "Catatan pelaksanaan untuk periode ini.",
+			}
+			if got := QuarterlyTaskReportingStatus(task, "2027-Q4", reportedAt); got != "reported" {
+				t.Fatalf("report status = %q, want reported", got)
+			}
+			if !QuarterlyTaskReportLate(task) {
+				t.Fatal("late submission should be recognized for each execution state")
+			}
+		})
+	}
+}

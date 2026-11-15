@@ -1,7 +1,7 @@
 "use client";
 
+import { FieldHeading } from "@/components/ui/field";
 import Link from "next/link";
-import type { ReactNode } from "react";
 import { Trash2 } from "@/components/shared/icons";
 import { ActionButton, FormContainer, FormGroup } from "@/components/shared/design-system";
 import { Input } from "@/components/ui/input";
@@ -10,10 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import type { ReportDraftInput, ReportDocumentOption, ReportDocumentKind } from "@/lib/api/upr-workflow";
 import { reportDocumentKinds } from "./report-document-picker";
-import { workflowDate } from "./workflow-ui";
+import { periodLabel, workflowDate } from "./workflow-ui";
 
 export function ReportFields({
-  input, documents, readOnly = false, busy = false, needsReason = false, onChange, onPick, onRemove, frozenContents,
+  input, documents, readOnly = false, busy = false, needsReason = false, onChange, onPick, onRemove,
 }: {
   input: ReportDraftInput;
   documents: ReportDocumentOption[];
@@ -23,7 +23,6 @@ export function ReportFields({
   onChange?: (patch: Partial<ReportDraftInput>) => void;
   onPick?: (kind: ReportDocumentKind, trigger: HTMLButtonElement) => void;
   onRemove?: (kind: ReportDocumentKind, id: string) => void;
-  frozenContents?: Record<string, ReactNode>;
 }) {
   const disabled = readOnly || busy;
   const validYear = Number.isInteger(input.year) && input.year >= 1900 && input.year <= 9998;
@@ -46,12 +45,12 @@ export function ReportFields({
             <div className="grid gap-2">
               <Label htmlFor="report-year">Tahun laporan</Label>
               <Input id="report-year" type="number" min={1900} max={9998} required value={input.year || ""} disabled={disabled}
-                onChange={(event) => onChange?.({ year: Number(event.target.value), profileId: null, reason: "" })} />
+                onChange={(event) => onChange?.({ year: Number(event.target.value) })} />
             </div>
             <div className="grid gap-2">
               <Label htmlFor="report-semester">Semester</Label>
               <Select value={String(input.semester)} disabled={disabled}
-                onValueChange={(value) => onChange?.({ semester: Number(value), reason: "" })}>
+                onValueChange={(value) => onChange?.({ semester: Number(value) })}>
                 <SelectTrigger id="report-semester" className="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent><SelectItem value="1">Semester I</SelectItem><SelectItem value="2">Semester II</SelectItem></SelectContent>
               </Select>
@@ -81,13 +80,15 @@ export function ReportFields({
                       const title = document ? (
                         <>
                           <p className="wrap-anywhere text-sm">{document.title}</p>
-                          <p className="text-xs text-muted-foreground">{document.code} · {workflowDate(document.documentDate)}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {document.code} · {document.period ? `${periodLabel(document.period)} · ` : ""}{workflowDate(document.documentDate)}
+                          </p>
                         </>
                       ) : <p className="text-sm text-muted-foreground">Dokumen tidak tersedia</p>;
                       return (
                         <li key={id} className="grid gap-3">
                           <div className="flex flex-wrap items-center justify-between gap-2">
-                            {readOnly ? <div className="min-w-0 flex-1">{title}</div> : document ? (
+                            {document ? (
                               <Link
                                 href={kind === "profile" ? `/risk/annual-profiles/${input.year}?versi=${encodeURIComponent(id)}` : kind === "working_paper" ? `/risk/working-papers/${encodeURIComponent(id)}` : `/evaluations/${encodeURIComponent(id)}`}
                                 className="min-w-0 flex-1 rounded-sm no-underline hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"
@@ -101,12 +102,6 @@ export function ReportFields({
                               ><Trash2 aria-hidden="true" className="size-4" /></ActionButton>
                             )}
                           </div>
-                          {frozenContents?.[id] && (
-                            <details className="min-w-0">
-                              <summary className="w-fit cursor-pointer text-sm font-medium">Lihat dokumen tersimpan</summary>
-                              <div className="mt-3 min-w-0">{frozenContents[id]}</div>
-                            </details>
-                          )}
                         </li>
                       );
                     })}
@@ -117,10 +112,12 @@ export function ReportFields({
           ))}
           {(needsReason || (readOnly && input.reason)) && (
             <div className="grid gap-2">
-              <Label htmlFor="report-reason">Alasan memilih versi profil</Label>
+              <FieldHeading>
+                <Label htmlFor="report-reason">Alasan memilih versi profil</Label>
+                {!readOnly && <p className="leading-4 text-sm text-muted-foreground">Profil ini difinalisasi setelah tanggal batas data.</p>}
+              </FieldHeading>
               <Textarea id="report-reason" maxLength={2000} value={input.reason} disabled={disabled}
                 onChange={(event) => onChange?.({ reason: event.target.value })} />
-              {!readOnly && <p className="text-sm text-muted-foreground">Profil ini difinalisasi setelah tanggal batas data.</p>}
             </div>
           )}
         </div>

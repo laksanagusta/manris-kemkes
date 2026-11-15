@@ -157,7 +157,40 @@ func (r *mitigationRiskRepoStub) GetUnitResponseTime(context.Context, []uuid.UUI
 
 var _ repository.RiskRepository = (*mitigationRiskRepoStub)(nil)
 
-func TestListAllMitigationTasksUsesOwnOrgOnlyScope(t *testing.T) {
+func TestMitigationTaskOrganizationFilterNarrowsReadableScope(t *testing.T) {
+	own, child, outside := uuid.New(), uuid.New(), uuid.New()
+	for _, tt := range []struct {
+		org    uuid.UUID
+		status int
+	}{{child, 200}, {outside, 403}} {
+		t.Run(tt.org.String(), func(t *testing.T) {
+			repo := &mitigationTaskRepoStub{}
+			h := &MitigationTaskHandler{listUC: mtuc.NewListTasksUseCase(repo, &mitigationRiskRepoStub{})}
+			app := fiber.New()
+			app.Use(func(c *fiber.Ctx) error {
+				c.Locals("accessScope", &entity.AccessScope{OrganizationID: &own, AccessibleOrgIDs: []uuid.UUID{own, child}})
+				return c.Next()
+			})
+			app.Get("/mitigation-tasks/all", h.ListAll)
+			response, err := app.Test(httptest.NewRequest("GET", "/mitigation-tasks/all?org_id="+tt.org.String(), nil))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer response.Body.Close()
+			if response.StatusCode != tt.status {
+				t.Fatalf("status = %d, want %d", response.StatusCode, tt.status)
+			}
+			if tt.status == 200 && (len(repo.lastAllOrgIDs) != 1 || repo.lastAllOrgIDs[0] != child) {
+				t.Fatalf("organization filter did not reach paginated query: %v", repo.lastAllOrgIDs)
+			}
+			if tt.status == 403 && len(repo.lastAllOrgIDs) != 0 {
+				t.Fatal("outside organization reached repository")
+			}
+		})
+	}
+}
+
+func TestListAllMitigationTasksIncludesDescendants(t *testing.T) {
 	own := uuid.New()
 	descendant := uuid.New()
 	taskRepo := &mitigationTaskRepoStub{}
@@ -186,8 +219,8 @@ func TestListAllMitigationTasksUsesOwnOrgOnlyScope(t *testing.T) {
 	if resp.StatusCode != fiber.StatusOK {
 		t.Fatalf("expected status 200, got %d", resp.StatusCode)
 	}
-	if len(taskRepo.lastAllOrgIDs) != 1 || taskRepo.lastAllOrgIDs[0] != own {
-		t.Fatalf("expected own-org-only scope [%s], got %v", own, taskRepo.lastAllOrgIDs)
+	if len(taskRepo.lastAllOrgIDs) != 2 || taskRepo.lastAllOrgIDs[0] != own || taskRepo.lastAllOrgIDs[1] != descendant {
+		t.Fatalf("expected own and descendant scope, got %v", taskRepo.lastAllOrgIDs)
 	}
 }
 

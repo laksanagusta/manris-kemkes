@@ -1,4 +1,5 @@
 import Link from "next/link";
+import styles from "./risk-version-history-list.module.css";
 import type { MouseEvent } from "react";
 import { formatDisplayDate } from "@/lib/display-date";
 import type { RiskVersionTimelineItem } from "@/types/risk";
@@ -12,7 +13,7 @@ export function RiskVersionHistoryList({ versions, onVersionSelect }: {
   onVersionSelect?: (versionId: string, event: MouseEvent<HTMLAnchorElement>) => void;
 }) {
   return (
-    <ol aria-label="Riwayat versi risiko" className="min-w-0">
+    <ol aria-label="Riwayat versi risiko" className={`${styles.timeline} min-w-0`}>
       {versions.map((version, index) => {
         const date = new Date(version.createdAt);
         const validDate = Number.isFinite(date.getTime());
@@ -20,14 +21,20 @@ export function RiskVersionHistoryList({ versions, onVersionSelect }: {
         const title = version.title && version.title !== "-" ? `${label} · ${version.title}` : label;
         const context = [version.assessmentCycle, version.changeReason].filter(Boolean).join(" · ");
         return (
-          <li key={version.id} data-version-history-item className="relative pb-4 ps-6 last:pb-0">
+          <li key={version.id} data-version-history-item className={styles.item}>
             {index < versions.length - 1 && (
               <span
                 aria-hidden="true"
-                className="pointer-events-none absolute -bottom-1 start-[7.5px] top-4 w-px bg-muted-foreground/25"
+                data-version-connector=""
+                className={styles.connector}
               />
             )}
-            <span aria-hidden="true" className="absolute start-1 top-1.5 size-2 rounded-full bg-muted-foreground/40" />
+            <span
+              aria-hidden="true"
+              data-version-marker=""
+              data-current={version.isCurrent ? "true" : "false"}
+              className={styles.marker}
+            />
             <Link
               href={`/risk/register/new?id=${version.id}`}
               onClick={(event) => onVersionSelect?.(version.id, event)}

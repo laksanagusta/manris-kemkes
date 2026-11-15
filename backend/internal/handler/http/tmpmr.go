@@ -59,13 +59,15 @@ func (h *TMPMRHandler) List(c *fiber.Ctx) error {
 		} else {
 			organizationID = &parsed
 		}
-	} else if scope != nil && !scope.IsGlobal && scope.OrganizationID != nil {
-		organizationID = scope.OrganizationID
 	}
 
 	result, err := h.listUC.Execute(c.Context(), tmpmruc.ListInput{
 		OrganizationID: organizationID,
 		Period:         c.Query("period"),
+		Status:         c.Query("status"),
+		Query:          c.Query("q"),
+		SortBy:         c.Query("sort_by"),
+		SortOrder:      c.Query("sort_order"),
 		Page:           page,
 		Limit:          limit,
 		Scope:          scope,

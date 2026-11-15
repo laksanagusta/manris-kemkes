@@ -1,25 +1,60 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
-import { getProfilePeriodProgress, type ProfilePeriodProgress } from '@/lib/api/profile-periods';
-import { workflowDate, workflowError } from './workflow-ui';
+import { useEffect, useState } from "react";
+import { getProfilePeriodProgress, type ProfilePeriodWorkspace } from "@/lib/api/profile-periods";
+import { workflowDate, workflowError } from "./workflow-ui";
 
-export function BoundProfilePeriodNotice({token,profileId,periodId}: {token?:string|null;profileId?:string|null;periodId?:string|null}) {
-  const [loaded,setLoaded]=useState<{key:string;period?:ProfilePeriodProgress;year?:number;error?:string}|null>(null);
-  const key=`${token}:${profileId}:${periodId}`;
-  useEffect(()=>{
-    if(!token||!profileId||!periodId) return;
-    let active=true;
-    getProfilePeriodProgress(token,profileId).then(workspace=>{
-      if(active)setLoaded({key,period:workspace.periods.find(p=>p.id===periodId),year:workspace.rule?.year});
-    },cause=>{if(active)setLoaded({key,error:workflowError(cause)});});
-    return()=>{active=false;};
-  },[token,profileId,periodId,key]);
-  if(!profileId||!periodId) return null;
-  if(!loaded||loaded.key!==key) return <p role="status" className="text-xs text-muted-foreground">Memuat periode profil…</p>;
-  if(loaded.error) return <p role="alert" className="text-xs text-destructive">Periode gagal dimuat: {loaded.error}</p>;
-  return loaded.period ? <div className="space-y-1 text-xs text-muted-foreground">
-    <p className="font-medium text-foreground">{loaded.period.label} · {loaded.year}</p>
-    <p>Pengisian {workflowDate(loaded.period.opensOn)}–{workflowDate(loaded.period.closesOn)} WIB.</p>
+export function useProfilePeriodWorkspace(token?: string | null, profileId?: string | null) {
+  const key = `${token}:${profileId}`;
+  const [loaded, setLoaded] = useState<{ key: string; workspace?: ProfilePeriodWorkspace; error?: string } | null>(null);
+  useEffect(() => {
+    if (!token || !profileId) return;
+    let active = true;
+    let generation = 0;
+    const load = () => {
+      const request = ++generation;
+      void getProfilePeriodProgress(token, profileId).then(
+        workspace => { if (active && request === generation) setLoaded({ key, workspace }); },
+        cause => { if (active && request === generation) setLoaded({ key, error: workflowError(cause) }); },
+      );
+    };
+    load();
+    window.addEventListener("focus", load);
+    return () => {
+      active = false;
+      window.removeEventListener("focus", load);
+    };
+  }, [token, profileId, key]);
+
+  return loaded?.key === key ? loaded : null;
+}
+
+export function ProfilePeriodDetails({ loaded, periodId, showProfileVersion = false }: {
+  loaded: ReturnType<typeof useProfilePeriodWorkspace>;
+  periodId?: string | null;
+  showProfileVersion?: boolean;
+}) {
+  if (!periodId && !showProfileVersion) return null;
+  if (!loaded) return <p role="status" className="text-xs text-muted-foreground">Memuat periode profil…</p>;
+  if (loaded.error) return <p role="alert" className="text-xs text-destructive">Periode gagal dimuat: {loaded.error}</p>;
+  const workspace = loaded.workspace;
+  const period = workspace?.periods.find(item => item.id === periodId);
+  return workspace ? <div className="space-y-1 text-xs text-muted-foreground">
+    {showProfileVersion && workspace.version > 0 && (
+      <p>Profil Risiko Tahunan {workspace.year} · Versi {workspace.version}</p>
+    )}
+    {period && <>
+      <p className="font-medium text-foreground">{period.label} · {workspace.year || workspace.rule?.year}</p>
+      <p>Pengisian {workflowDate(period.opensOn)}–{workflowDate(period.closesOn)} WIB.</p>
+    </>}
   </div> : null;
+}
+
+export function BoundProfilePeriodNotice({ token, profileId, periodId }: {
+  token?: string | null;
+  profileId?: string | null;
+  periodId?: string | null;
+}) {
+  const loaded = useProfilePeriodWorkspace(token, periodId ? profileId : null);
+  return <ProfilePeriodDetails loaded={loaded} periodId={periodId} />;
 }

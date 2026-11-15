@@ -163,6 +163,7 @@ func workingPaperMonitoringExpr() string {
 		WHERE monitoring_source.version_group_id = risk.version_group_id
 		  AND ` + workingPaperObservationScopeSQL + `
 		  AND rm.status IN ('draft', 'final')
+		  AND rm.transaction_kind = 'monitoring'
 		ORDER BY CASE rm.status WHEN 'final' THEN 0 ELSE 1 END, rm.observed_at DESC, rm.finalized_at DESC NULLS LAST, rm.updated_at DESC, rm.id DESC
 		LIMIT 1
 	) monitoring ON TRUE`
@@ -484,6 +485,7 @@ func (r *workingPaperRepository) getWorkingPaperRisks(ctx context.Context, q wor
 		}
 
 		link.Risk.NormalizeDerivedScores()
+		link.ResultRisk = sameVersionMonitoringResult(link)
 		links = append(links, link)
 	}
 
@@ -1002,4 +1004,20 @@ func (r *workingPaperRepository) HasBlockingDocumentLink(ctx context.Context, ri
 	}
 
 	return exists, nil
+}
+
+// A pure observation references the same substance version. Expose its final
+// assessment separately so callers never have to overwrite the profile baseline.
+func sameVersionMonitoringResult(link entity.WorkingPaperRiskLink) *entity.WorkingPaperRiskData {
+	if link.ResultRiskID == nil || *link.ResultRiskID != link.Risk.ID || link.Risk.Monitoring == nil || link.Risk.Monitoring.Status != "final" {
+		return nil
+	}
+	result := link.Risk
+	observation := link.Risk.Monitoring
+	result.Probability = observation.ObservedProbability
+	result.Impact = observation.ObservedImpact
+	result.Bobot = observation.ObservedWeight
+	result.Nilai = observation.ObservedNilai
+	result.NormalizeDerivedScores()
+	return &result
 }

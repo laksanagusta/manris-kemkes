@@ -5,6 +5,7 @@ import {
   annualProfileReadiness,
   filterAnnualCandidates,
   groupAnnualProfiles,
+  getAnnualProfileRuleSelection,
   saveAnnualCandidateBatch,
 } from "./annual-profile";
 import type {
@@ -205,4 +206,40 @@ test("pickup excludes members and newer assessments, and the previous profile ta
     );
   assert.deepEqual(ids("active"), ["r2", "r3", "r4", "r6"]);
   assert.deepEqual(ids("prior"), ["r2", "r6"]);
+});
+
+
+const monitoringRules = [
+  { id: "current", year: 2026, active: true },
+  { id: "next", year: 2027, active: true },
+  { id: "inactive", year: 2028, active: false },
+  { id: "invalid-year", year: 10000, active: true },
+].map((rule) => ({
+  ...rule,
+  name: rule.id,
+  frequency: "quarterly" as const,
+  periods: [],
+}));
+
+test("annual initiation prefers the active rule for its default year", () => {
+  const result = getAnnualProfileRuleSelection(monitoringRules, 2026, "");
+  assert.equal(result.selectedRule?.id, "current");
+  assert.deepEqual(result.availableRules.map((rule) => rule.id), ["current", "next"]);
+});
+
+test("selected rules determine the profile year across years", () => {
+  const result = getAnnualProfileRuleSelection(monitoringRules, 2026, "next");
+  assert.equal(result.selectedRule?.year, 2027);
+  assert.equal(result.selectedRule?.id, "next");
+});
+
+test("annual initiation falls back to an available active rule", () => {
+  assert.equal(getAnnualProfileRuleSelection(monitoringRules, 2025, "").selectedRule?.year, 2026);
+  assert.equal(getAnnualProfileRuleSelection(monitoringRules, 2026, "inactive").selectedRule?.id, "current");
+});
+
+test("annual initiation has no selected rule when none is active and valid", () => {
+  const result = getAnnualProfileRuleSelection(monitoringRules.slice(2), 2026, "inactive");
+  assert.equal(result.selectedRule, undefined);
+  assert.deepEqual(result.availableRules, []);
 });

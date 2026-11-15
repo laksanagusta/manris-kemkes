@@ -2,33 +2,32 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-const source = readFileSync(new URL("./login-screen.tsx", import.meta.url), "utf8");
+const login = readFileSync(new URL("./login-screen.tsx", import.meta.url), "utf8");
+const register = readFileSync(new URL("./register-screen.tsx", import.meta.url), "utf8");
+const card = readFileSync(new URL("./auth-card.tsx", import.meta.url), "utf8");
 
-test("uses the split-screen login layout with a brand panel", () => {
-  assert.doesNotMatch(source, /from "next\/image"/);
-  assert.doesNotMatch(source, /<Card(?:\s|>)/);
-  assert.doesNotMatch(source, /logo\.svg/);
-  assert.match(source, /<aside className="hidden w-\[38%\][\s\S]*?bg-neutral-900/);
-  assert.match(source, /Masuk ke Manrisk/);
-  assert.match(source, /Isi NIP dan password untuk melanjutkan\./);
-  assert.match(source, /<form onSubmit=\{handleSubmit\} className="mt-8 flex flex-col gap-5">/);
+test("shares the Manrisk auth card with a dedicated footer", () => {
+  assert.match(card, /<CardHeader[\s\S]*?<ManriskMark[\s\S]*?<h1/);
+  assert.match(card, /<CardContent>\{children\}<\/CardContent>/);
+  assert.match(card, /<CardFooter[\s\S]*?\{footer\}/);
+  assert.match(login, /<AuthCard[\s\S]*?title="Masuk ke Manrisk"/);
+  assert.match(register, /<AuthCard[\s\S]*?title="Buat akun baru"/);
 });
 
-test("keeps the NIP and password fields functional", () => {
-  assert.match(source, /id="nip"[\s\S]*?autoComplete="username"/);
-  assert.match(source, /id="password"[\s\S]*?autoComplete="current-password"/);
-  assert.match(source, /aria-label=\{showPassword \? "Sembunyikan password" : "Tampilkan password"\}/);
-  assert.match(source, /<Button type="submit" className="h-12 w-full rounded-lg"/);
-  assert.match(source, /<Link href="\/register"[\s\S]*?>\s*Daftar\s*<\/Link>/);
+test("keeps the labelled NIP and password fields connected to Manrisk login", () => {
+  assert.match(login, /<FieldLabel htmlFor="nip">/);
+  assert.match(login, /id="nip"[\s\S]*?autoComplete="username"/);
+  assert.match(login, /<FieldLabel htmlFor="password">/);
+  assert.match(login, /id="password"[\s\S]*?autoComplete="current-password"/);
+  assert.match(login, /aria-pressed=\{showPassword\}/);
+  assert.match(login, /<form onSubmit=\{handleSubmit\}/);
+  assert.match(login, /await login\(nip, password\)/);
+  assert.match(login, /router\.replace\(result\.redirectTo\)/);
 });
 
-test("keeps brand navigation and help affordances", () => {
-  assert.doesNotMatch(source, /Kembali ke beranda/);
-  assert.match(source, /<Link href="\/docs"[\s\S]*?>\s*Docs\s*<\/Link>/);
-  assert.match(source, /Kendala masuk\? Hubungi administrator\./);
-});
-
-test("aligns the form top with the brand headline", () => {
-  assert.match(source, /<div aria-hidden="true" className="hidden h-7 md:block" \/>/);
-  assert.match(source, /<div className="md:mt-10">/);
+test("keeps navigation and help in the auth footers", () => {
+  assert.match(login, /footer=\{[\s\S]*?<Link href="\/register"/);
+  assert.match(login, /<Link href="\/docs"/);
+  assert.match(login, /Kendala masuk\? Hubungi administrator\./);
+  assert.match(register, /footer=\{[\s\S]*?<Link href="\/login"/);
 });

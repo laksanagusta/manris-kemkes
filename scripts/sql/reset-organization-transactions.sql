@@ -1,142 +1,307 @@
--- Manrisk, schema migration 83.
--- Ganti UUID organisasi pada satu baris INSERT di bawah.
--- Jalankan saat aktivitas tulis organisasi dihentikan.
--- Default ROLLBACK. Ganti baris terakhir menjadi COMMIT untuk menyimpan penghapusan.
-BEGIN;
-SET LOCAL lock_timeout = '10s';
-SET LOCAL search_path = public, pg_temp;
+-- Reset transaksi satu unit untuk skema Manrisk hingga migrasi 000089.
+-- Temukan UUID: SELECT id, name, parent_id FROM public.organizations ORDER BY name;
+-- Ganti UUID pada INSERT _reset_config. Jalankan seluruh file dalam satu koneksi.
+-- Cakupan: semua periode dan versi, termasuk risiko, pemantauan, revisi,
+-- mitigasi, insiden, KK, laporan UPR, profil tahunan, evaluasi, TMPMR, kontrol,
+-- pembelajaran, notulen dan persetujuan terkait.
+-- Pengiriman ikut terhapus jika laporan asalnya milik unit target.
+-- Data master, akun, piagam, sasaran, perencanaan, aturan pemantauan, audit,
+-- dan file lampiran tetap tersimpan.
+-- Gunakan role pemilik tabel saat aktivitas input dijeda. Operasi memegang lock
+-- penulisan pada tabel terkait, termasuk untuk unit lain. Jika error, ROLLBACK.
+-- Default: seluruh DELETE diuji dalam transaksi yang diakhiri ROLLBACK.
 
-CREATE TEMP TABLE purge_org (id uuid PRIMARY KEY) ON COMMIT DROP;
-INSERT INTO purge_org VALUES ('00000000-0000-0000-0000-000000000000');
+BEGIN;
+SET LOCAL search_path = public, pg_temp;
+SET LOCAL row_security = off;
+SET LOCAL lock_timeout = '10s';
+SET LOCAL statement_timeout = '5min';
+
+CREATE TEMP TABLE _reset_config (organization_id uuid PRIMARY KEY) ON COMMIT DROP;
+INSERT INTO _reset_config VALUES ('00000000-0000-0000-0000-000000000000'::uuid);
 
 DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM organizations WHERE id = (SELECT id FROM purge_org)) THEN
-        RAISE EXCEPTION 'UUID organisasi tidak ditemukan. Isi UUID target pada INSERT purge_org.';
+    IF NOT EXISTS (
+        SELECT 1 FROM public.organizations
+        WHERE id = (SELECT organization_id FROM _reset_config)
+    ) THEN
+        RAISE EXCEPTION 'Organisasi target tidak ditemukan; reset dibatalkan';
     END IF;
 END $$;
+SELECT id, name FROM public.organizations
+WHERE id = (SELECT organization_id FROM _reset_config) FOR UPDATE;
 
-SELECT id, name AS organisasi_target FROM organizations WHERE id IN (SELECT id FROM purge_org);
-SELECT id FROM organizations WHERE id IN (SELECT id FROM purge_org) FOR UPDATE;
+CREATE TEMP TABLE _reset_tables (
+    capture_order integer PRIMARY KEY,
+    table_name text UNIQUE NOT NULL,
+    delete_order integer NOT NULL,
+    scope_sql text NOT NULL
+) ON COMMIT DROP;
+INSERT INTO _reset_tables VALUES
+    (1, 'risks', 100, 'organization_id = (SELECT organization_id FROM _reset_config)'),
+    (2, 'risk_monitorings', 90, 'source_risk_id IN (SELECT id FROM _reset_rows WHERE table_name = ''risks'')'),
+    (3, 'mitigations', 80, 'risk_id IN (SELECT id FROM _reset_rows WHERE table_name = ''risks'')'),
+    (4, 'mitigation_tasks', 70, 'risk_id IN (SELECT id FROM _reset_rows WHERE table_name = ''risks'')'),
+    (5, 'risk_monitoring_periods', 60, 'version_group_id IN (SELECT version_group_id FROM public.risks WHERE id IN (SELECT id FROM _reset_rows WHERE table_name = ''risks''))'),
+    (6, 'likelihood_assessments', 110, 'risk_id IN (SELECT id FROM _reset_rows WHERE table_name = ''risks'')'),
+    (7, 'communication_logs', 60, 'risk_id IN (SELECT id FROM _reset_rows WHERE table_name = ''risks'')'),
+    (8, 'risk_cascades', 60, 'source_org_id = (SELECT organization_id FROM _reset_config) OR target_org_id = (SELECT organization_id FROM _reset_config)'),
+    (9, 'incidents', 85, 'organization_id = (SELECT organization_id FROM _reset_config)'),
+    (10, 'working_papers', 55, 'org_id = (SELECT organization_id FROM _reset_config)'),
+    (11, 'working_paper_risks', 50, 'working_paper_id IN (SELECT id FROM _reset_rows WHERE table_name = ''working_papers'')'),
+    (12, 'working_paper_risk_exclusions', 50, 'working_paper_id IN (SELECT id FROM _reset_rows WHERE table_name = ''working_papers'')'),
+    (13, 'working_paper_signatories', 50, 'working_paper_id IN (SELECT id FROM _reset_rows WHERE table_name = ''working_papers'')'),
+    (14, 'meeting_minutes', 55, 'organization_id = (SELECT organization_id FROM _reset_config)'),
+    (15, 'meeting_minutes_risks', 50, 'meeting_id IN (SELECT id FROM _reset_rows WHERE table_name = ''meeting_minutes'')'),
+    (16, 'controls', 55, 'organization_id = (SELECT organization_id FROM _reset_config)'),
+    (17, 'control_tests', 50, 'control_id IN (SELECT id FROM _reset_rows WHERE table_name = ''controls'')'),
+    (18, 'lessons_learned', 55, 'organization_id = (SELECT organization_id FROM _reset_config)'),
+    (19, 'formal_reports', 55, 'organization_id = (SELECT organization_id FROM _reset_config)'),
+    (20, 'evaluations', 55, 'organization_id = (SELECT organization_id FROM _reset_config)'),
+    (21, 'evaluation_sections', 50, 'evaluation_id IN (SELECT id FROM _reset_rows WHERE table_name = ''evaluations'')'),
+    (22, 'evaluation_items', 45, 'section_id IN (SELECT id FROM _reset_rows WHERE table_name = ''evaluation_sections'')'),
+    (23, 'tmpmr_assessments', 55, 'organization_id = (SELECT organization_id FROM _reset_config)'),
+    (24, 'tmpmr_items', 50, 'assessment_id IN (SELECT id FROM _reset_rows WHERE table_name = ''tmpmr_assessments'')'),
+    (25, 'annual_risk_profile_versions', 95, 'organization_id = (SELECT organization_id FROM _reset_config)'),
+    (26, 'upr_report_versions', 54, 'organization_id = (SELECT organization_id FROM _reset_config)'),
+    (27, 'upr_report_drafts', 53, 'organization_id = (SELECT organization_id FROM _reset_config)'),
+    (28, 'upr_report_deliveries', 53, 'report_version_id IN (SELECT id FROM _reset_rows WHERE table_name = ''upr_report_versions'')'),
+    (29, 'risk_event_notes', 60, 'event_id IN (SELECT id FROM _reset_rows WHERE table_name = ''incidents'')'),
+    (30, 'approval_requests', 40, 'entity_id IN (SELECT id FROM _reset_rows)'),
+    (31, 'approval_histories', 30, 'approval_request_id IN (SELECT id FROM _reset_rows WHERE table_name = ''approval_requests'')'),
+    (32, 'approval_steps', 30, 'approval_request_id IN (SELECT id FROM _reset_rows WHERE table_name = ''approval_requests'')');
 
--- Tampung seluruh versi, termasuk draf dan arsip.
-CREATE TEMP TABLE purge_ids (
+-- Lock tabel target dan semua tabel yang langsung mereferensikannya agar
+-- tidak muncul referensi baru di antara pemeriksaan dan DELETE.
+DO $$
+DECLARE t record;
+BEGIN
+    FOR t IN
+        SELECT n.nspname, c.relname
+        FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE c.oid IN (
+            SELECT ('public.' || table_name)::regclass::oid FROM _reset_tables
+            UNION SELECT 'public.incident_risk_links'::regclass::oid
+            UNION SELECT 'public.annual_risk_profile_members'::regclass::oid
+            UNION
+            SELECT fk.conrelid FROM pg_constraint fk
+            WHERE fk.contype = 'f' AND fk.confrelid IN (
+                SELECT ('public.' || table_name)::regclass::oid FROM _reset_tables
+            )
+        )
+        ORDER BY n.nspname, c.relname
+    LOOP
+        EXECUTE format('LOCK TABLE %I.%I IN SHARE ROW EXCLUSIVE MODE', t.nspname, t.relname);
+    END LOOP;
+END $$;
+
+CREATE TEMP TABLE _reset_rows (
     table_name text NOT NULL,
     id uuid NOT NULL,
     PRIMARY KEY (table_name, id)
 ) ON COMMIT DROP;
+DO $$
+DECLARE t record;
+BEGIN
+    FOR t IN SELECT table_name, scope_sql FROM _reset_tables ORDER BY capture_order LOOP
+        EXECUTE format(
+            'INSERT INTO _reset_rows SELECT %L, id FROM public.%I WHERE %s',
+            t.table_name, t.table_name, t.scope_sql
+        );
+    END LOOP;
+END $$;
 
-INSERT INTO purge_ids
-SELECT 'risks', id FROM risks WHERE organization_id IN (SELECT id FROM purge_org)
-UNION ALL SELECT 'incidents', id FROM incidents WHERE organization_id IN (SELECT id FROM purge_org)
-UNION ALL SELECT 'controls', id FROM controls WHERE organization_id IN (SELECT id FROM purge_org)
-UNION ALL SELECT 'lessons_learned', id FROM lessons_learned WHERE organization_id IN (SELECT id FROM purge_org)
-UNION ALL SELECT 'working_papers', id FROM working_papers WHERE org_id IN (SELECT id FROM purge_org)
-UNION ALL SELECT 'evaluations', id FROM evaluations WHERE organization_id IN (SELECT id FROM purge_org)
-UNION ALL SELECT 'formal_reports', id FROM formal_reports WHERE organization_id IN (SELECT id FROM purge_org)
-UNION ALL SELECT 'risk_charters', id FROM risk_charters WHERE organization_id IN (SELECT id FROM purge_org)
-UNION ALL SELECT 'risk_objectives', id FROM risk_objectives WHERE organization_id IN (SELECT id FROM purge_org)
-UNION ALL SELECT 'tmpmr_assessments', id FROM tmpmr_assessments WHERE organization_id IN (SELECT id FROM purge_org)
-UNION ALL SELECT 'meeting_minutes', id FROM meeting_minutes WHERE organization_id IN (SELECT id FROM purge_org)
-UNION ALL SELECT 'annual_risk_profile_versions', id FROM annual_risk_profile_versions WHERE organization_id IN (SELECT id FROM purge_org)
-UNION ALL SELECT 'upr_report_versions', id FROM upr_report_versions WHERE organization_id IN (SELECT id FROM purge_org)
-UNION ALL SELECT 'risk_cascades', id FROM risk_cascades
-    WHERE source_org_id IN (SELECT id FROM purge_org) OR target_org_id IN (SELECT id FROM purge_org);
+CREATE TEMP TABLE _reset_incident_links ON COMMIT DROP AS
+SELECT l.incident_id, l.risk_id FROM public.incident_risk_links l
+WHERE l.incident_id IN (SELECT id FROM _reset_rows WHERE table_name = 'incidents')
+   OR l.risk_id IN (SELECT id FROM _reset_rows WHERE table_name = 'risks');
 
-INSERT INTO purge_ids
-SELECT 'upr_report_deliveries', d.id FROM upr_report_deliveries d
-WHERE d.recipient_organization_id IN (SELECT id FROM purge_org)
-   OR d.report_version_id IN (SELECT id FROM purge_ids WHERE table_name = 'upr_report_versions')
-UNION ALL
-SELECT 'risk_monitorings', m.id FROM risk_monitorings m
-WHERE m.source_risk_id IN (SELECT id FROM purge_ids WHERE table_name = 'risks')
-UNION ALL
-SELECT 'mitigations', m.id FROM mitigations m
-WHERE m.risk_id IN (SELECT id FROM purge_ids WHERE table_name = 'risks');
+-- Stop jika version group atau link cascade/insiden melibatkan organisasi lain.
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 FROM public.risks r
+        WHERE r.organization_id IS DISTINCT FROM (SELECT organization_id FROM _reset_config)
+          AND r.version_group_id IN (
+              SELECT version_group_id FROM public.risks
+              WHERE id IN (SELECT id FROM _reset_rows WHERE table_name = 'risks')
+          )
+    ) THEN
+        RAISE EXCEPTION 'Version group risiko dipakai organisasi lain; reset dibatalkan';
+    END IF;
+    IF EXISTS (
+        SELECT 1 FROM public.risk_cascades c
+        WHERE c.id IN (SELECT id FROM _reset_rows WHERE table_name = 'risk_cascades')
+          AND (c.source_org_id IS DISTINCT FROM (SELECT organization_id FROM _reset_config)
+               OR c.target_org_id IS DISTINCT FROM (SELECT organization_id FROM _reset_config))
+    ) THEN
+        RAISE EXCEPTION 'Ada cascade lintas organisasi; tinjau link sebelum reset';
+    END IF;
+    IF EXISTS (
+        SELECT 1 FROM _reset_incident_links l
+        JOIN public.incidents i ON i.id = l.incident_id
+        JOIN public.risks r ON r.id = l.risk_id
+        WHERE i.organization_id IS DISTINCT FROM (SELECT organization_id FROM _reset_config)
+           OR r.organization_id IS DISTINCT FROM (SELECT organization_id FROM _reset_config)
+    ) THEN
+        RAISE EXCEPTION 'Ada link insiden-risiko lintas organisasi; reset dibatalkan';
+    END IF;
+END $$;
 
-INSERT INTO purge_ids
-SELECT 'mitigation_tasks', t.id FROM mitigation_tasks t
-WHERE t.risk_id IN (SELECT id FROM purge_ids WHERE table_name = 'risks')
-UNION ALL
-SELECT 'risk_event_notes', n.id FROM risk_event_notes n
-WHERE n.event_id IN (SELECT id FROM purge_ids WHERE table_name = 'incidents')
-UNION ALL
-SELECT 'approval_requests', a.id FROM approval_requests a
-WHERE a.entity_id IN (SELECT id FROM purge_ids);
+-- Periksa semua FK aktif di database, termasuk CASCADE dan SET NULL.
+-- Setiap child yang mereferensikan target harus masuk daftar penghapusan.
+-- Ini mencegah perubahan diam-diam pada transaksi organisasi lain.
+DO $$
+DECLARE fk record; outside_scope boolean;
+BEGIN
+    FOR fk IN
+        SELECT k.conname, ns.nspname AS child_schema, c.relname AS child_table,
+               p.relname AS parent_table, ca.attname AS child_column,
+               pa.attname AS parent_column,
+               cardinality(k.conkey) AS column_count
+        FROM pg_constraint k
+        JOIN pg_class c ON c.oid = k.conrelid
+        JOIN pg_namespace ns ON ns.oid = c.relnamespace
+        JOIN pg_class p ON p.oid = k.confrelid
+        JOIN pg_namespace pn ON pn.oid = p.relnamespace
+        JOIN pg_attribute ca ON ca.attrelid = k.conrelid AND ca.attnum = k.conkey[1]
+        JOIN pg_attribute pa ON pa.attrelid = k.confrelid AND pa.attnum = k.confkey[1]
+        WHERE k.contype = 'f' AND pn.nspname = 'public'
+          AND p.relname IN (SELECT DISTINCT table_name FROM _reset_rows)
+    LOOP
+        IF fk.column_count <> 1 OR fk.parent_column <> 'id' THEN
+            RAISE EXCEPTION 'FK % belum didukung skrip; tinjau skema sebelum reset', fk.conname;
+        END IF;
+        EXECUTE format($query$
+            SELECT EXISTS (
+                SELECT 1 FROM %I.%I child
+                JOIN _reset_rows parent
+                  ON parent.table_name = %L AND parent.id = child.%I
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM _reset_rows selected
+                    WHERE %L = 'public' AND selected.table_name = %L
+                      AND selected.id::text = to_jsonb(child)->>'id'
+                ) AND NOT (
+                    %L = 'public' AND %L = 'incident_risk_links'
+                    AND EXISTS (
+                        SELECT 1 FROM _reset_incident_links l
+                        WHERE l.incident_id::text = to_jsonb(child)->>'incident_id'
+                          AND l.risk_id::text = to_jsonb(child)->>'risk_id'
+                    )
+                ) AND NOT (
+                    %L = 'public' AND %L = 'annual_risk_profile_members'
+                    AND (to_jsonb(child)->>'profile_version_id') IN (
+                        SELECT id::text FROM _reset_rows
+                        WHERE table_name = 'annual_risk_profile_versions'
+                    )
+                )
+            )
+        $query$, fk.child_schema, fk.child_table, fk.parent_table, fk.child_column,
+                 fk.child_schema, fk.child_table, fk.child_schema, fk.child_table,
+                 fk.child_schema, fk.child_table)
+        INTO outside_scope;
+        IF outside_scope THEN
+            RAISE EXCEPTION 'Referensi di luar cakupan: %.% via FK %. Reset dibatalkan',
+                fk.child_schema, fk.child_table, fk.conname;
+        END IF;
+    END LOOP;
+END $$;
 
--- Rekap transaksi utama sebelum penghapusan.
-SELECT table_name, count(*) AS jumlah
-FROM purge_ids GROUP BY table_name ORDER BY table_name;
+-- Jumlah SEBELUM reset; seluruh versi/draft/final ikut dihitung.
+SELECT t.table_name, count(r.id) AS rows_before
+FROM _reset_tables t LEFT JOIN _reset_rows r USING (table_name)
+GROUP BY t.table_name
+UNION ALL SELECT 'incident_risk_links', count(*) FROM _reset_incident_links
+ORDER BY table_name;
 
--- Snapshot dan histori pengiriman lebih dulu.
-DELETE FROM upr_report_deliveries WHERE id IN (
-    SELECT id FROM purge_ids WHERE table_name = 'upr_report_deliveries'
+-- Buka guard dokumen final/periode hanya selama reset. FK tetap aktif.
+CREATE TEMP TABLE _reset_trigger_state ON COMMIT DROP AS
+SELECT c.relname AS table_name, t.tgname AS trigger_name, t.tgenabled AS mode
+FROM pg_trigger t
+JOIN pg_class c ON c.oid = t.tgrelid
+JOIN pg_namespace n ON n.oid = c.relnamespace
+WHERE n.nspname = 'public' AND NOT t.tgisinternal AND t.tgenabled <> 'D'
+AND (c.relname, t.tgname) IN (
+    ('risk_monitorings', 'monitoring_document_period_guard'),
+    ('risk_monitorings', 'risk_transaction_identity'),
+    ('mitigation_tasks', 'mitigation_task_period_guard'),
+    ('mitigation_tasks', 'mitigation_report_transaction'),
+    ('working_papers', 'working_paper_period_guard'),
+    ('working_paper_risks', 'wp_risk_period_guard'),
+    ('working_paper_signatories', 'wp_signatory_period_guard'),
+    ('working_paper_risk_exclusions', 'wp_exclusion_period_guard'),
+    ('evaluations', 'evaluation_period_guard'),
+    ('evaluation_sections', 'evaluation_section_period_guard'),
+    ('evaluation_items', 'evaluation_item_period_guard')
 );
-DELETE FROM upr_report_versions WHERE id IN (
-    SELECT id FROM purge_ids WHERE table_name = 'upr_report_versions'
-);
-DELETE FROM annual_risk_profile_members WHERE profile_version_id IN (
-    SELECT id FROM purge_ids WHERE table_name = 'annual_risk_profile_versions'
-);
-DELETE FROM annual_risk_profile_versions WHERE id IN (
-    SELECT id FROM purge_ids WHERE table_name = 'annual_risk_profile_versions'
-);
 
-DELETE FROM approval_histories WHERE approval_request_id IN (
-    SELECT id FROM purge_ids WHERE table_name = 'approval_requests'
-);
-DELETE FROM approval_steps WHERE approval_request_id IN (
-    SELECT id FROM purge_ids WHERE table_name = 'approval_requests'
-);
-DELETE FROM approval_requests WHERE id IN (
-    SELECT id FROM purge_ids WHERE table_name = 'approval_requests'
-);
+DO $$
+DECLARE guard record;
+BEGIN
+    FOR guard IN SELECT * FROM _reset_trigger_state ORDER BY table_name, trigger_name LOOP
+        EXECUTE format('ALTER TABLE public.%I DISABLE TRIGGER %I',
+                       guard.table_name, guard.trigger_name);
+    END LOOP;
+END $$;
 
--- Anak KK dan Evaluasi memiliki ON DELETE CASCADE.
-DELETE FROM working_papers WHERE id IN (SELECT id FROM purge_ids WHERE table_name = 'working_papers');
-DELETE FROM evaluations WHERE id IN (SELECT id FROM purge_ids WHERE table_name = 'evaluations');
-DELETE FROM formal_reports WHERE id IN (SELECT id FROM purge_ids WHERE table_name = 'formal_reports');
-DELETE FROM tmpmr_assessments WHERE id IN (SELECT id FROM purge_ids WHERE table_name = 'tmpmr_assessments');
-DELETE FROM risk_cascades WHERE id IN (SELECT id FROM purge_ids WHERE table_name = 'risk_cascades');
-DELETE FROM meeting_minutes WHERE id IN (SELECT id FROM purge_ids WHERE table_name = 'meeting_minutes');
+DELETE FROM public.incident_risk_links l
+USING _reset_incident_links target
+WHERE l.incident_id = target.incident_id AND l.risk_id = target.risk_id;
 
-DELETE FROM mitigation_tasks WHERE id IN (SELECT id FROM purge_ids WHERE table_name = 'mitigation_tasks');
+-- Child lebih dahulu; likelihood_assessments terhapus lewat CASCADE risiko
+-- agar FK melingkar risks.likelihood_assessment_id tidak dilanggar.
+DO $$
+DECLARE t record;
+BEGIN
+    FOR t IN SELECT table_name FROM _reset_tables ORDER BY delete_order, table_name LOOP
+        EXECUTE format(
+            'DELETE FROM public.%I WHERE id IN (SELECT id FROM _reset_rows WHERE table_name = %L)',
+            t.table_name, t.table_name
+        );
+    END LOOP;
+END $$;
 
--- Ledger periode memakai version_group_id. Pertahankan ledger kelompok yang
--- masih dimiliki risiko organisasi lain.
-DELETE FROM risk_monitoring_periods p
-WHERE EXISTS (
-    SELECT 1 FROM risks r
-    WHERE r.version_group_id = p.version_group_id
-      AND r.id IN (SELECT id FROM purge_ids WHERE table_name = 'risks')
-)
-AND NOT EXISTS (
-    SELECT 1 FROM risks r
-    WHERE r.version_group_id = p.version_group_id
-      AND r.organization_id IS DISTINCT FROM (SELECT id FROM purge_org)
-);
+DO $$
+DECLARE guard record;
+BEGIN
+    FOR guard IN SELECT * FROM _reset_trigger_state ORDER BY table_name, trigger_name LOOP
+        EXECUTE format('ALTER TABLE public.%I ENABLE %sTRIGGER %I',
+                       guard.table_name,
+                       CASE guard.mode WHEN 'A' THEN 'ALWAYS ' WHEN 'R' THEN 'REPLICA ' ELSE '' END,
+                       guard.trigger_name);
+    END LOOP;
+END $$;
 
-DELETE FROM risk_monitorings WHERE id IN (SELECT id FROM purge_ids WHERE table_name = 'risk_monitorings');
-DELETE FROM risk_event_notes WHERE id IN (SELECT id FROM purge_ids WHERE table_name = 'risk_event_notes');
-DELETE FROM incidents WHERE id IN (SELECT id FROM purge_ids WHERE table_name = 'incidents');
-DELETE FROM mitigations WHERE id IN (SELECT id FROM purge_ids WHERE table_name = 'mitigations');
-DELETE FROM controls WHERE id IN (SELECT id FROM purge_ids WHERE table_name = 'controls');
-DELETE FROM lessons_learned WHERE id IN (SELECT id FROM purge_ids WHERE table_name = 'lessons_learned');
+SET CONSTRAINTS ALL IMMEDIATE;
 
--- Semua versi risiko organisasi dihapus dalam satu statement agar referensi
--- previous_risk_id antarversi dalam organisasi terselesaikan bersama.
-DELETE FROM risks WHERE id IN (SELECT id FROM purge_ids WHERE table_name = 'risks');
-DELETE FROM risk_objectives WHERE id IN (SELECT id FROM purge_ids WHERE table_name = 'risk_objectives');
-DELETE FROM risk_charters WHERE id IN (SELECT id FROM purge_ids WHERE table_name = 'risk_charters');
-DELETE FROM audit_logs WHERE entity_id IN (SELECT id FROM purge_ids);
+-- Verifikasi scope awal dan predicate organisasi: semua harus nol.
+CREATE TEMP TABLE _reset_results (
+    table_name text, remaining_target_rows bigint, remaining_scope_rows bigint
+) ON COMMIT DROP;
+DO $$
+DECLARE t record; target_count bigint; scope_count bigint;
+BEGIN
+    FOR t IN SELECT table_name, scope_sql FROM _reset_tables ORDER BY capture_order LOOP
+        EXECUTE format(
+            'SELECT count(*) FROM public.%I WHERE id IN (SELECT id FROM _reset_rows WHERE table_name = %L)',
+            t.table_name, t.table_name
+        ) INTO target_count;
+        EXECUTE format('SELECT count(*) FROM public.%I WHERE %s', t.table_name, t.scope_sql)
+        INTO scope_count;
+        INSERT INTO _reset_results VALUES (t.table_name, target_count, scope_count);
+        IF target_count <> 0 OR scope_count <> 0 THEN
+            RAISE EXCEPTION 'Verifikasi gagal: transaksi % belum kosong', t.table_name;
+        END IF;
+    END LOOP;
+    IF EXISTS (
+        SELECT 1 FROM public.incident_risk_links l JOIN _reset_incident_links target
+        ON l.incident_id = target.incident_id AND l.risk_id = target.risk_id
+    ) THEN
+        RAISE EXCEPTION 'Verifikasi gagal: incident_risk_links belum kosong';
+    END IF;
+END $$;
+SELECT table_name, remaining_target_rows, remaining_scope_rows FROM _reset_results ORDER BY table_name;
 
--- Pemeriksaan akhir transaksi utama target.
-SELECT 'risks' AS tabel, count(*) AS sisa FROM risks WHERE organization_id IN (SELECT id FROM purge_org)
-UNION ALL SELECT 'incidents', count(*) FROM incidents WHERE organization_id IN (SELECT id FROM purge_org)
-UNION ALL SELECT 'working_papers', count(*) FROM working_papers WHERE org_id IN (SELECT id FROM purge_org)
-UNION ALL SELECT 'evaluations', count(*) FROM evaluations WHERE organization_id IN (SELECT id FROM purge_org)
-UNION ALL SELECT 'annual_profiles', count(*) FROM annual_risk_profile_versions WHERE organization_id IN (SELECT id FROM purge_org)
-UNION ALL SELECT 'upr_reports', count(*) FROM upr_report_versions WHERE organization_id IN (SELECT id FROM purge_org);
-
+-- Dry run: seluruh DELETE di atas dibatalkan. Ganti dengan COMMIT untuk reset.
 ROLLBACK;
--- Untuk penghapusan permanen, ganti ROLLBACK di atas dengan COMMIT.

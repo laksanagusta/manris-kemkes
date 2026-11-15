@@ -79,12 +79,14 @@ func (s *UPRWorkflow) DeleteAnnualDraft(ctx context.Context, org, profile uuid.U
 }
 
 type AnnualPickupRisk struct {
-	ID          *uuid.UUID `json:"id"`
-	Code        string     `json:"code"`
-	Title       string     `json:"title"`
-	Period      string     `json:"period"`
-	Score       *int       `json:"score"`
-	Unavailable string     `json:"unavailable"`
+	ID             *uuid.UUID `json:"id"`
+	Code           string     `json:"code"`
+	Title          string     `json:"title"`
+	Period         string     `json:"period"`
+	AssessmentDate *string    `json:"assessmentDate"`
+	Category       string     `json:"category"`
+	Score          *int       `json:"score"`
+	Unavailable    string     `json:"unavailable"`
 }
 
 type annualPickupRow struct {
@@ -127,9 +129,13 @@ func annualPickupRows(ctx context.Context, db riskQueryer, org uuid.UUID, year i
 		}
 	}
 	rows, err := db.Query(ctx, annualObjectivesSQL+`, active AS (
-		SELECT DISTINCT ON (r.version_group_id) r.id,r.version_group_id,r.code,r.title,r.assessment_cycle,r.nilai,r.effective_from
+		SELECT DISTINCT ON (r.version_group_id) r.id,r.version_group_id,r.code,r.title,r.assessment_cycle,r.nilai,r.effective_from,r.category,r.finalized_at
 		FROM risks r WHERE r.organization_id=$1 AND r.status='final' AND r.is_current AND r.archived_at IS NULL
 		ORDER BY r.version_group_id,r.version_number DESC,r.id DESC
+	), category_history AS (
+		SELECT DISTINCT ON (r.version_group_id) r.version_group_id,NULLIF(r.category,'') AS category
+		FROM risks r WHERE r.organization_id=$1 AND r.status='final' AND NULLIF(r.category,'') IS NOT NULL
+		ORDER BY r.version_group_id,r.version_number DESC,r.updated_at DESC,r.id DESC
 	), roster AS (
 		SELECT m.version_group_id,m.baseline FROM annual_risk_profile_members m WHERE m.profile_version_id=$3
 		UNION ALL
@@ -144,8 +150,11 @@ func annualPickupRows(ctx context.Context, db riskQueryer, org uuid.UUID, year i
 		roster.version_group_id,
 		(SELECT (array_agg(obj.id))[1] FROM available obj
 			WHERE lower(trim(obj.title))=lower(trim(roster.baseline->>'objective')) HAVING count(*)=1),
-		a.effective_from::text
+		a.effective_from::text,
+		COALESCE(a.effective_from::text,a.finalized_at::date::text,roster.baseline->>'effective_from'),
+		COALESCE(NULLIF(a.category,''),NULLIF(roster.baseline->>'category',''),category_history.category,'')
 	FROM roster LEFT JOIN active a USING(version_group_id)
+	LEFT JOIN category_history USING(version_group_id)
 	WHERE $4::uuid[] IS NULL OR a.id=ANY($4::uuid[])
 	ORDER BY COALESCE(a.code,roster.baseline->>'code',''),roster.version_group_id`, org, strconv.Itoa(year), source, chosen)
 	if err != nil {
@@ -154,7 +163,7 @@ func annualPickupRows(ctx context.Context, db riskQueryer, org uuid.UUID, year i
 	return pgx.CollectRows(rows, func(row pgx.CollectableRow) (annualPickupRow, error) {
 		var item annualPickupRow
 		err := row.Scan(&item.ID, &item.Code, &item.Title, &item.Period, &item.Score, &item.Unavailable,
-			&item.GroupID, &item.ObjectiveID, &item.Effective)
+			&item.GroupID, &item.ObjectiveID, &item.Effective, &item.AssessmentDate, &item.Category)
 		return item, err
 	})
 }

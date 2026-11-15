@@ -1,11 +1,13 @@
 package http
 
 import (
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
+	"github.com/manris/backend/internal/domain/repository"
 	"github.com/manris/backend/internal/middleware"
 	riskeventuc "github.com/manris/backend/internal/usecase/risk_event"
 )
@@ -42,7 +44,8 @@ func riskEventScope(c *fiber.Ctx) (*uuid.UUID, []uuid.UUID, error) {
 	if scope.OrganizationID == nil {
 		return nil, nil, fiber.ErrForbidden
 	}
-	return scope.OrganizationID, scope.AccessibleOrgIDs, nil
+	orgIDs, err := resolveReadableOrgIDs(scope, "")
+	return scope.OrganizationID, orgIDs, err
 }
 
 func parseUUIDs(values []string) ([]uuid.UUID, error) {
@@ -116,6 +119,28 @@ func (h *RiskEventHandler) List(c *fiber.Ctx) error {
 		}
 		riskID = &parsed
 	}
+	if c.Query("page") != "" || c.Query("limit") != "" {
+		var organizationID *uuid.UUID
+		if raw := c.Query("organization_id"); raw != "" {
+			id, err := uuid.Parse(raw)
+			if err != nil {
+				return fiber.ErrBadRequest
+			}
+			organizationID = &id
+		}
+		page := max(1, min(c.QueryInt("page", 1), 1_000_000_000))
+		limit := max(1, min(c.QueryInt("limit", 20), 100))
+		items, total, err := h.service.ListPage(c.Context(), repository.RiskEventListFilter{
+			OrgIDs: orgIDs, RiskID: riskID, OrganizationID: organizationID,
+			Query: strings.TrimSpace(c.Query("q")), Severity: c.Query("severity"),
+			SortBy: c.Query("sort_by"), SortOrder: c.Query("sort_order"), Page: page, Limit: limit,
+		})
+		if err != nil {
+			return handleError(c, err)
+		}
+		return c.JSON(fiber.Map{"data": items, "total": total, "page": page, "limit": limit})
+	}
+
 	items, err := h.service.List(c.Context(), orgIDs, riskID)
 	if err != nil {
 		return handleError(c, err)

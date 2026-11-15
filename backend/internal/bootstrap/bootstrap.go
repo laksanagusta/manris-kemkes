@@ -601,7 +601,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	// ============================================================================
 
 	c.GenerateReportUC = reportuc.NewGenerateReportUseCase(c.RiskRepository, c.IncidentRepository)
-	c.QuarterlyReportUC = reportuc.NewQuarterlyReportUseCase(postgresrepo.NewQuarterlyReportRepository(pool))
+	c.QuarterlyReportUC = reportuc.NewQuarterlyReportUseCase(postgresrepo.NewQuarterlyReportRepository(pool), postgresrepo.NewUnitProgressRepository(pool))
 	c.UnitProgressUC = reportuc.NewUnitProgressUseCase(postgresrepo.NewUnitProgressRepository(pool))
 	c.QuarterlyReportPDFRenderer = reportpdf.NewQuarterlyReportPDFRenderer()
 	var agentClient *openaiapi.Client

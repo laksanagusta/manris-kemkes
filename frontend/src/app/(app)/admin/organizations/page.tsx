@@ -1,11 +1,9 @@
 "use client";
+import { useOrganizationFilter } from "@/hooks/use-organization-filter";
 
 import { formatDisplayDate } from "@/lib/display-date";
-import { sortCollection, sortDate } from "@/lib/collection-sort";
 import { CollectionTableHead as TableHead } from "@/components/shared/design-system/collections/collection-table-head";
 import { useRemoteCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
-
-import { newestCreatedFirst } from "@/lib/collection-created-at";
 
 import {
   useState,
@@ -171,6 +169,8 @@ export default function OrganizationsManagementPage() {
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [allOrganizations, setAllOrganizations] = useState<Organization[]>([]);
   const [total, setTotal] = useState(0);
+  const [rootUnits, setRootUnits] = useState(0);
+  const [reloadVersion, setReloadVersion] = useState(0);
   const [loading, setLoading] = useState(true);
   const [isFormDialogOpen, setIsFormDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -179,7 +179,7 @@ export default function OrganizationsManagementPage() {
 
   const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
   const [uprLevelFilter, setUprLevelFilter] = useState(() => searchParams.get("upr_level") ?? "all");
-  const [structureFilter, setStructureFilter] = useState(() => {
+  const [structureFilter, setStructureFilter] = useState<"root" | "child" | "all">(() => {
     const value = searchParams.get("structure");
     return value === "root" || value === "child" ? value : "all";
   });
@@ -190,6 +190,7 @@ export default function OrganizationsManagementPage() {
     parsePositiveInt(searchParams.get("limit"), 10),
   );
 
+  const organizationFilter = useOrganizationFilter(() => setPage(1));
   const deferredSearch = useDeferredValue(search);
 
   const collectionSort = useRemoteCollectionSorting({"Nama Organisasi": "name", "Parent Unit": "parent", "UPR Level": "upr_level"}, () => setPage(1));
@@ -258,87 +259,67 @@ export default function OrganizationsManagementPage() {
 
   useEffect(() => {
     if (!token) return;
+    let cancelled = false;
 
+    // The organization directory supplies parent names and options for the form.
+    listAllOrganizations(token)
+      .then((result) => {
+        if (cancelled) return;
+        setAllOrganizations(result.map(normalizeOrganization)
+          .filter((org): org is Organization => org !== null));
+      })
+      .catch(() => {
+        if (!cancelled) toast.error("Gagal memuat pilihan organisasi.");
+      });
+
+    return () => { cancelled = true; };
+  }, [token, reloadVersion]);
+
+  useEffect(() => {
+    if (!token) return;
     let cancelled = false;
     setLoading(true);
 
-    Promise.all([
-      listOrganizations(token, {
- sort_by:collectionSort.sortBy, sort_order:collectionSort.sortOrder,
-        q: deferredSearch.trim() || undefined,
-        page,
-        limit,
-      }),
-      listAllOrganizations(token, {
-        q: deferredSearch.trim() || undefined,
-      }),
-    ])
-      .then(([result, allResult]) => {
-        if (cancelled) return;
-
-        const normalized = (result.data ?? [])
-          .map((item) => normalizeOrganization(item))
-          .filter((org): org is Organization => org !== null);
-
-        setOrganizations(normalized);
-        setAllOrganizations(
-          (allResult ?? [])
-            .map((item) => normalizeOrganization(item))
-            .filter((org): org is Organization => org !== null),
-        );
-        setTotal(result.total ?? 0);
-        setPage(result.page ?? page);
-        setLimit(result.limit ?? limit);
-        setLoading(false);
-      })
-      .catch((error) => {
-        if (cancelled) return;
-        console.error("Failed to fetch organizations", error);
-        toast.error("Gagal memuat data organisasi");
-        setLoading(false);
-      });
-
-    return () => {
-      cancelled = true;
+    const filters = {
+      ancestorId: organizationFilter.organizationId === "all" ? undefined : organizationFilter.organizationId,
+      q: deferredSearch.trim() || undefined,
+      uprLevel: uprLevelFilter === "all" ? undefined : uprLevelFilter,
     };
-  }, [token, deferredSearch, page, limit, collectionSort.sortBy, collectionSort.sortOrder]);
 
-  const handleRefetch = useCallback(() => {
-    if (!token) return;
-
-    setLoading(true);
     Promise.all([
       listOrganizations(token, {
- sort_by:collectionSort.sortBy, sort_order:collectionSort.sortOrder,
-        q: deferredSearch.trim() || undefined,
+        ...filters,
+        structure: structureFilter === "all" ? undefined : structureFilter,
+        sort_by: collectionSort.sortBy,
+        sort_order: collectionSort.sortOrder,
         page,
         limit,
       }),
-      listAllOrganizations(token, {
-        q: deferredSearch.trim() || undefined,
-      }),
+      structureFilter === "all"
+        ? listOrganizations(token, { ...filters, structure: "root", limit: 1 })
+        : null,
     ])
-      .then(([result, allResult]) => {
-        const normalized = (result.data ?? [])
-          .map((item) => normalizeOrganization(item))
-          .filter((org): org is Organization => org !== null);
-
-        setOrganizations(normalized);
-        setAllOrganizations(
-          (allResult ?? [])
-            .map((item) => normalizeOrganization(item))
-            .filter((org): org is Organization => org !== null)
-            .sort(newestCreatedFirst),
-        );
-        setTotal(result.total ?? 0);
-        setLoading(false);
+      .then(([result, roots]) => {
+        if (cancelled) return;
+        setOrganizations((result.data ?? []).map(normalizeOrganization)
+          .filter((org): org is Organization => org !== null));
+        setTotal(result.total);
+        setRootUnits(roots?.total ?? (structureFilter === "root" ? result.total : 0));
+        const resultLimit = result.limit ?? limit;
+        setLimit(resultLimit);
+        setPage(Math.min(result.page ?? page, Math.max(1, Math.ceil(result.total / resultLimit))));
       })
-      .catch((error) => {
-        console.error("Failed to fetch organizations", error);
-        toast.error("Gagal memuat data organisasi");
-        setLoading(false);
+      .catch(() => {
+        if (!cancelled) toast.error("Gagal memuat data organisasi");
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
-  }, [token, deferredSearch, page, limit, collectionSort.sortBy, collectionSort.sortOrder]);
+
+    return () => { cancelled = true; };
+  }, [token, organizationFilter.organizationId, deferredSearch, uprLevelFilter, structureFilter, page, limit, collectionSort.sortBy, collectionSort.sortOrder, reloadVersion]);
+
+  const handleRefetch = useCallback(() => setReloadVersion((current) => current + 1), []);
 
   const handleCreateClick = () => {
     setDialogMode("create");
@@ -366,28 +347,13 @@ export default function OrganizationsManagementPage() {
     return map;
   }, [allOrganizations]);
 
-  const hasFieldFilters = uprLevelFilter !== "all" || structureFilter !== "all";
-  const filteredOrganizations = useMemo(() => allOrganizations.filter((org) => {
-    if (uprLevelFilter !== "all" && org.uprLevel !== uprLevelFilter) return false;
-    if (structureFilter === "root" && org.parentId) return false;
-    if (structureFilter === "child" && !org.parentId) return false;
-    return true;
-  }), [allOrganizations, uprLevelFilter, structureFilter]);
-  const visibleTotal = hasFieldFilters ? filteredOrganizations.length : total;
-  const visiblePage = hasFieldFilters
-    ? Math.min(page, Math.max(1, Math.ceil(visibleTotal / limit)))
-    : page;
-  const visibleOrganizations = hasFieldFilters
-    ? sortCollection(filteredOrganizations, org => collectionSort.sortBy === "name" ? org.name : collectionSort.sortBy === "upr_level" ? org.uprLevel : collectionSort.sortBy === "parent" ? allOrganizations.find(parent=>parent.id===org.parentId)?.name : sortDate(org.createdAt), collectionSort.sortOrder).slice((visiblePage - 1) * limit, visiblePage * limit)
-    : organizations;
   const uprLevels = useMemo(() => [...new Set([
     ...Object.keys(uprLevelLabel),
     ...allOrganizations.map((org) => org.uprLevel).filter((level): level is string => Boolean(level)),
     ...(uprLevelFilter !== "all" ? [uprLevelFilter] : []),
   ])], [allOrganizations, uprLevelFilter]);
 
-  const rootUnits = visibleOrganizations.filter((o) => !o.parentId).length;
-  const subUnits = visibleOrganizations.length - rootUnits;
+  const subUnits = total - rootUnits;
 
   return (
     <PageStack>
@@ -397,7 +363,7 @@ export default function OrganizationsManagementPage() {
         <MetricGrid className="md:grid-cols-3 xl:grid-cols-3">
           <KpiCard
             label="Total Unit"
-            value={visibleTotal}
+            value={total}
             tone="white"
             icon={<Building2 className="size-5 text-muted-foreground" />}
           />
@@ -422,6 +388,7 @@ export default function OrganizationsManagementPage() {
                 />
               }
               fields={[
+                organizationFilter.field,
                 {
                   id: "upr-level",
                   label: "Level UPR",
@@ -440,7 +407,7 @@ export default function OrganizationsManagementPage() {
                   label: "Struktur unit",
                   value: structureFilter,
                   onChange: (value) => {
-                    setStructureFilter(value);
+                    setStructureFilter(value === "root" || value === "child" ? value : "all");
                     setPage(1);
                   },
                   options: [
@@ -485,7 +452,7 @@ export default function OrganizationsManagementPage() {
                     <Loader2 className="size-5 animate-spin mx-auto text-muted-foreground" />
                   </TableCell>
                 </TableRow>
-              ) : visibleOrganizations.length === 0 ? (
+              ) : organizations.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={5} className="">
                     <CollectionEmptyState
@@ -495,7 +462,7 @@ export default function OrganizationsManagementPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                visibleOrganizations.map((org) => (
+                organizations.map((org) => (
                   <OrgRow
                     key={getOrganizationKey(org)}
                     org={org}
@@ -509,10 +476,10 @@ export default function OrganizationsManagementPage() {
           </Table>
         <CollectionPagination
             itemLabel="organisasi"
-            page={visiblePage}
+            page={page}
             pageSize={limit}
-            total={visibleTotal}
-            disabled={isPending}
+            total={total}
+            disabled={loading || isPending}
             onPageChange={setPage}
             onPageSizeChange={(nextLimit) => {
               setLimit(nextLimit);

@@ -24,6 +24,7 @@ export interface UnitProgressMitigation extends UnitProgressItem {
   riskTitle: string;
   owner: string;
   dueDate: string;
+  executionStatus?: string;
   overdue: boolean;
   reportedLate: boolean;
 }

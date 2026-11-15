@@ -25,7 +25,7 @@ test("UI restoration validates only disclosure and scroll; malformed or domain d
 
 test("task titles open detail routes for each task kind", () => {
  const item = { targetId: "task/1", riskId: "risk/2" };
- assert.equal(workItemHref({ ...item, kind: "mitigation_report" }), "/compliance/penanganan?taskId=task%2F1&returnTo=/work");
+ assert.equal(workItemHref({ ...item, kind: "mitigation_report" }), "/risk/register/new?id=risk%2F2&tab=monitoring&returnTo=/work");
  assert.equal(workItemHref({ ...item, kind: "monitoring_start" }), "/risk/register/new?id=risk%2F2&tab=monitoring&returnTo=/work");
  assert.equal(workItemHref({ ...item, kind: "monitoring_draft" }), "/risk/monitoring/task%2F1?returnTo=/work");
  assert.equal(workItemHref({ ...item, kind: "risk_draft" }), "/risk/register/new?id=task%2F1&returnTo=/work");
@@ -37,4 +37,9 @@ test("work and monitoring detail preserve safe return links", () => {
  assert.deepEqual(getWorkReturnLink("/work"),{href:"/work",label:"Kembali ke pekerjaan"});
  assert.deepEqual(getWorkReturnLink("/risk/register?assessment_cycle=2026-Q3&monitoring_status=not_monitored"),{href:"/risk/register?assessment_cycle=2026-Q3&monitoring_status=not_monitored",label:"Kembali ke risiko"});
  for(const value of ["https://evil.test","//evil.test","/login","/work/other"])assert.equal(getWorkReturnLink(value),null);
+});
+
+test('mitigation work opens its monitoring, or risk context for legacy reports',()=>{
+ assert.equal(workItemHref({kind:'mitigation_report',targetId:'task',riskId:'risk',monitoringId:'monitor/1'}),'/risk/monitoring/monitor%2F1?returnTo=/work');
+ assert.equal(workItemHref({kind:'mitigation_report',targetId:'task',riskId:'risk/2'}),'/risk/register/new?id=risk%2F2&tab=monitoring&returnTo=/work');
 });

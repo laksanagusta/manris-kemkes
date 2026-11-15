@@ -1,12 +1,10 @@
 "use client";
+import { useOrganizationFilter } from "@/hooks/use-organization-filter";
 
 import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
 import { formatDisplayDate } from "@/lib/display-date";
-import { useCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
-import { sortDate } from "@/lib/collection-sort";
-
-import { newestCreatedFirst } from "@/lib/collection-created-at";
+import { useRemoteCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
 import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
 
 
@@ -28,6 +26,7 @@ import {
   ActionIconButton,
   CollectionPageHeader,
   CollectionEmptyState,
+  CollectionErrorState,
   CollectionSearchField,
   DynamicTableFilters,
   CollectionLoadingState,
@@ -43,8 +42,8 @@ import {
 } from "@/components/shared/design-system";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { isReadOnlyForOrg } from "@/lib/auth-helpers";
-import { deleteMeetingMinute, listMeetingMinutes } from "@/lib/meeting-minutes";
-import type { MeetingMinute } from "@/types/meeting-minute";
+import { deleteMeetingMinute, listMeetingMinuteAuthors, listMeetingMinutes } from "@/lib/meeting-minutes";
+import type { MeetingMinute, MeetingMinuteAuthor } from "@/types/meeting-minute";
 import {
   Dialog,
   DialogContent,
@@ -67,6 +66,12 @@ import {
 } from "@/components/ui/table";
 
 const DEFAULT_LIMIT = 20;
+const SORT_COLUMNS = {
+  "Judul Notulen": "title",
+  Tanggal: "date",
+  Peserta: "participants",
+  "Dibuat Oleh": "author",
+};
 
 function parsePositiveInt(value: string | null, fallback: number): number {
   const parsed = Number(value);
@@ -96,7 +101,11 @@ function MinutesPageContent() {
   const skipUrlWrite = useRef(false);
 
   const [items, setItems] = useState<MeetingMinute[]>([]);
+  const [total, setTotal] = useState(0);
+  const [authors, setAuthors] = useState<MeetingMinuteAuthor[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
+  const [reload, setReload] = useState(0);
 
   const [query, setQuery] = useState(() => searchParams.get("q") ?? "");
   const [authorFilter, setAuthorFilter] = useState(() => searchParams.get("author") ?? "all");
@@ -105,7 +114,7 @@ function MinutesPageContent() {
     parsePositiveInt(searchParams.get("page"), 1),
   );
   const [limit, setLimit] = useState(() =>
-    parsePositiveInt(searchParams.get("limit"), DEFAULT_LIMIT),
+    Math.min(100, parsePositiveInt(searchParams.get("limit"), DEFAULT_LIMIT)),
   );
 
   const [minuteToDelete, setMinuteToDelete] = useState<MeetingMinute | null>(
@@ -114,32 +123,17 @@ function MinutesPageContent() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
-  const filteredItems = useMemo(() => {
-    const normalized = query.trim().toLowerCase();
-    return items.filter((minute) => {
-      if (authorFilter !== "all" && minute.createdBy !== authorFilter) return false;
-      if (dateFilter && minute.date.slice(0, 10) !== dateFilter) return false;
-      if (!normalized) return true;
-      const haystack = [
-        minute.title,
-        minute.summary,
-        minute.createdByName,
-        ...(minute.participants || []),
-      ]
-        .join(" ")
-        .toLowerCase();
-      return haystack.includes(normalized);
-    });
-  }, [items, query, authorFilter, dateFilter]);
-
-  const collectionSort = useCollectionSorting(filteredItems, {"Judul Notulen": r => r.title, "Tanggal": r => sortDate(r.date), "Peserta": r => r.participants?.length ?? 0, "Dibuat Oleh": r => r.createdByName}, () => setPage(1));
-  const visiblePage = Math.min(page, Math.max(1, Math.ceil(filteredItems.length / limit)));
-  const paginatedItems = collectionSort.rows.slice((visiblePage - 1) * limit, visiblePage * limit);
-  const authors = useMemo(() => {
-    const names = new Map(items.filter((item) => item.createdBy).map((item) => [item.createdBy, item.createdByName || item.createdBy]));
-    if (authorFilter !== "all" && !names.has(authorFilter)) names.set(authorFilter, authorFilter);
-    return [...names].map(([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label, "id"));
-  }, [items, authorFilter]);
+  const organizationFilter = useOrganizationFilter(() => setPage(1));
+  const { controls, sortBy, sortOrder } = useRemoteCollectionSorting(SORT_COLUMNS, () => setPage(1));
+  const { organizationId } = organizationFilter;
+  const search = query.trim();
+  const authorOptions = useMemo(() => {
+    const options = [...authors];
+    if (authorFilter !== "all" && !authors.some(({ value }) => value === authorFilter)) {
+      options.push({ value: authorFilter, label: authorFilter });
+    }
+    return options.sort((a, b) => a.label.localeCompare(b.label, "id"));
+  }, [authors, authorFilter]);
 
   useEffect(() => {
     skipUrlWrite.current = true;
@@ -147,10 +141,10 @@ function MinutesPageContent() {
     setAuthorFilter(searchParams.get("author") ?? "all");
     setDateFilter(searchParams.get("date") ?? "");
     const nextPage = parsePositiveInt(searchParams.get("page"), 1);
-    const nextLimit = parsePositiveInt(
+    const nextLimit = Math.min(100, parsePositiveInt(
       searchParams.get("limit"),
       DEFAULT_LIMIT,
-    );
+    ));
 
     setQuery((c) => (c === nextQuery ? c : nextQuery));
     setPage((c) => (c === nextPage ? c : nextPage));
@@ -205,31 +199,54 @@ function MinutesPageContent() {
   useEffect(() => {
     if (!token) return;
 
-    let cancelled = false;
+    const controller = new AbortController();
     setLoading(true);
-    (async () => {
-      const rows: MeetingMinute[] = [];
-      while (true) {
-        const response = await listMeetingMinutes({ limit: 100, offset: rows.length }, token);
-        const data = response.items ?? [];
-        rows.push(...data);
-        if (data.length === 0 || rows.length >= response.total) return rows;
-      }
-    })()
-      .then((rows) => {
-        if (cancelled) return;
-        setItems(rows.sort(newestCreatedFirst));
+    setLoadError(false);
+    const timeout = window.setTimeout(() => {
+      void listMeetingMinutes({
+        organizationId: organizationId === "all" ? undefined : organizationId,
+        createdBy: authorFilter === "all" ? undefined : authorFilter,
+        date: dateFilter,
+        q: search,
+        sortBy,
+        sortOrder,
+        limit,
+        offset: (page - 1) * limit,
+      }, token, controller.signal)
+      .then((response) => {
+        if (controller.signal.aborted) return;
+        const lastPage = Math.max(1, Math.ceil(response.total / limit));
+        if (page > lastPage) {
+          setPage(lastPage);
+          return;
+        }
+        setItems(response.items ?? []);
+        setTotal(response.total);
+        setLoading(false);
       })
       .catch((error) => {
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
         console.error(error);
-        toast.error("Daftar notulen belum berhasil dimuat.");
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
+        setLoadError(true);
+        setLoading(false);
       });
-    return () => { cancelled = true; };
-  }, [token]);
+    }, search ? 250 : 0);
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [authorFilter, dateFilter, limit, organizationId, page, reload, search, sortBy, sortOrder, token]);
+
+  useEffect(() => {
+    if (!token) return;
+    const controller = new AbortController();
+    void listMeetingMinuteAuthors(token, controller.signal).then((options) => {
+      if (!controller.signal.aborted) setAuthors(options);
+    }).catch((error) => {
+      if (!controller.signal.aborted) console.error(error);
+    });
+    return () => controller.abort();
+  }, [reload, token]);
 
   const handleDelete = async () => {
     if (!token || !minuteToDelete) return;
@@ -238,9 +255,7 @@ function MinutesPageContent() {
     setDeleteError(null);
     try {
       await deleteMeetingMinute(minuteToDelete.id, token);
-      setItems((current) =>
-        current.filter((item) => item.id !== minuteToDelete.id),
-      );
+      setReload((current) => current + 1);
       toast.success("Notulen berhasil dihapus.");
       setMinuteToDelete(null);
     } catch (error) {
@@ -275,6 +290,7 @@ function MinutesPageContent() {
               />
             }
             fields={[
+              organizationFilter.field,
               {
                 id: "author",
                 label: "Pembuat",
@@ -283,7 +299,7 @@ function MinutesPageContent() {
                   setAuthorFilter(value);
                   setPage(1);
                 },
-                options: [{ value: "all", label: "Semua pembuat" }, ...authors],
+                options: [{ value: "all", label: "Semua pembuat" }, ...authorOptions],
               },
               {
                 id: "date",
@@ -309,15 +325,20 @@ function MinutesPageContent() {
         }
       />
 
-      <CollectionTableCard stickyActions sorting={collectionSort.controls}>
+      <CollectionTableCard stickyActions sorting={controls}>
         {loading ? (
           <CollectionLoadingState message="Memuat daftar notulen..." />
-        ) : items.length === 0 && !query.trim() && authorFilter === "all" && !dateFilter ? (
+        ) : loadError ? (
+          <CollectionErrorState
+            message="Daftar notulen belum berhasil dimuat."
+            onReload={() => setReload((current) => current + 1)}
+          />
+        ) : total === 0 && !search && authorFilter === "all" && !dateFilter && organizationId === "all" ? (
           <CollectionEmptyState
             title="Belum ada notulen tersimpan"
             description="Mulai dari transkrip rapat lalu simpan hasil notulennya agar muncul di daftar ini."
           />
-        ) : filteredItems.length === 0 ? (
+        ) : total === 0 ? (
           <CollectionEmptyState
             title="Tidak ada notulen yang cocok"
             description="Coba kata kunci lain atau kosongkan pencarian untuk melihat semua notulen."
@@ -347,7 +368,7 @@ function MinutesPageContent() {
               </CollectionTableHeaderRow>
             </CollectionTableHeader>
             <TableBody>
-              {paginatedItems.map((minute) => (
+              {items.map((minute) => (
                 <TableRow key={minute.id} className="hover:bg-muted/50">
                   <TableCell><CollectionCode code={minute.id} href={`/minutes/${minute.id}`} /></TableCell>
                   <TableCell className="max-w-[320px]">
@@ -402,12 +423,12 @@ function MinutesPageContent() {
           </Table>
         )}
 
-      {filteredItems.length > 0 && (
+      {!loadError && total > 0 && (
         <CollectionPagination
           itemLabel="notulen"
-          page={visiblePage}
+          page={page}
           pageSize={limit}
-          total={filteredItems.length}
+          total={total}
           disabled={loading || isPending}
           onPageChange={setPage}
           onPageSizeChange={(nextLimit) => {

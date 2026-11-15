@@ -105,3 +105,8 @@ func TestControlDashboard_PassesOrgIDsDirectly(t *testing.T) {
 		t.Fatalf("orgIDs mismatch: got %v, want [%s]", repo.dashboardOrgIDs, orgA)
 	}
 }
+
+func (r *stubControlRepo) ListPage(ctx context.Context, filter repository.ControlListFilter) ([]*entity.Control, int, error) {
+	items, err := r.List(ctx, filter.OrgIDs)
+	return items, len(items), err
+}

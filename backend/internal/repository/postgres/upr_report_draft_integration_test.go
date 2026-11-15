@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -61,12 +62,26 @@ func TestUPRReportDraftSend(t *testing.T) {
 		t.Fatal("preview accepted another unit's paper")
 	}
 	input.WorkingPaperIDs = []uuid.UUID{paper}
+	wrongSemester := input
+	wrongSemester.Semester = 2
+	if _, err := workflow.SaveReportDraft(ctx, org, actor, draft.ID, draft.Revision, wrongSemester); err == nil {
+		t.Fatal("save accepted attachments from the other semester")
+	}
+	if _, err := workflow.PreviewReportDraft(ctx, org, wrongSemester); err == nil {
+		t.Fatal("preview accepted attachments from the other semester")
+	}
+	// Simulate a draft that was saved before attachment period validation was introduced.
+	previousDraft := uuid.New()
+	exec(`INSERT INTO upr_report_drafts (id,organization_id,payload,created_by) VALUES ($1,$2,$3,$4)`, previousDraft, org, wrongSemester, actor)
+	if _, err := workflow.SendReportDraft(ctx, org, actor, previousDraft, 1, ""); err == nil || !strings.Contains(err.Error(), "semester laporan") {
+		t.Fatalf("send did not reject out-of-period attachments: %v", err)
+	}
 	saved, err := workflow.SaveReportDraft(ctx, org, actor, draft.ID, draft.Revision, input)
 	if err != nil {
 		t.Fatal(err)
 	}
 	workspace, err := workflow.ReportWorkspace(ctx, org, true)
-	if err != nil || len(workspace.Drafts) != 1 || len(workspace.Sources) != 2 {
+	if err != nil || len(workspace.Drafts) != 2 || len(workspace.Sources) != 2 {
 		t.Fatalf("draft list or available sources: %+v %v", workspace, err)
 	}
 	for _, test := range []struct {
@@ -77,16 +92,16 @@ func TestUPRReportDraftSend(t *testing.T) {
 		{"working_paper", "kk-uji", paper},
 		{"evaluation", "ev-uji", evaluation},
 	} {
-		result, err := workflow.SearchReportDocuments(ctx, org, test.kind, 2026, test.query, 1)
+		result, err := workflow.SearchReportDocuments(ctx, org, test.kind, input.UPRSemesterInput, test.query, 1)
 		if err != nil || result.HasMore || len(result.Items) != 1 || result.Items[0].ID != test.id {
 			t.Fatalf("search %s: %+v %v", test.kind, result, err)
 		}
 	}
-	result, err := workflow.SearchReportDocuments(ctx, org, "working_paper", 2026, "%", 1)
+	result, err := workflow.SearchReportDocuments(ctx, org, "working_paper", input.UPRSemesterInput, "%", 1)
 	if err != nil || len(result.Items) != 0 {
 		t.Fatalf("literal wildcard search: %+v %v", result, err)
 	}
-	selected, err := workflow.SelectedReportDocuments(ctx, org, 2026, []uuid.UUID{profile, paper, evaluation, otherPaper})
+	selected, err := workflow.SelectedReportDocuments(ctx, org, input.UPRSemesterInput, []uuid.UUID{profile, paper, evaluation, otherPaper})
 	if err != nil || len(selected) != 3 {
 		t.Fatalf("restore selected documents scoped to unit: %+v %v", selected, err)
 	}
@@ -128,7 +143,83 @@ func TestUPRReportDraftSend(t *testing.T) {
 		}
 	}
 	workspace, err = workflow.ReportWorkspace(ctx, org, true)
-	if err != nil || len(workspace.Drafts) != 0 || len(workspace.Outgoing) != 1 {
+	if err != nil || len(workspace.Drafts) != 1 || workspace.Drafts[0].ID != previousDraft || len(workspace.Outgoing) != 1 {
 		t.Fatalf("sent draft remains in inbox: %+v %v", workspace, err)
+	}
+}
+
+// Coverage follows the monitored calendar period even when the submission
+// window opens in the next semester or the next year.
+func TestReportDocumentCalendarCoverage(t *testing.T) {
+	dsn := os.Getenv("UPR_REPORT_DRAFT_TEST_DATABASE_URL")
+	if dsn == "" {
+		t.Skip("requires disposable report database")
+	}
+	ctx := context.Background()
+	pool, err := pgxpool.New(ctx, dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback(ctx)
+	exec := func(query string, args ...any) {
+		t.Helper()
+		if _, err := tx.Exec(ctx, query, args...); err != nil {
+			t.Fatal(err)
+		}
+	}
+	exec(`
+		CREATE TEMP TABLE annual_risk_profile_versions (id uuid, organization_id uuid, year int, version int, finalized_at timestamptz);
+		CREATE TEMP TABLE working_papers (id uuid, org_id uuid, title text, code text, observation_cutoff date, completed_at timestamptz, sequence_no int, assessment_cycle text, monitoring_period_id uuid, status text);
+		CREATE TEMP TABLE evaluations (id uuid, organization_id uuid, code text, report_date date, created_at timestamptz, finalized_at timestamptz, sequence_no int, period text, monitoring_period_id uuid, status text);
+		CREATE TEMP TABLE monitoring_rules (id uuid, year int, frequency text);
+		CREATE TEMP TABLE monitoring_rule_periods (id uuid, rule_id uuid, ordinal int, opens_on date, closes_on date);
+	`)
+	org := uuid.New()
+	for _, tt := range []struct {
+		name, frequency, legacyPeriod, observation string
+		ordinal, year, semester                    int
+	}{
+		{"monthly June submitted July", "monthly", "2027-Q3", "2027-06-30", 6, 2027, 1},
+		{"quarterly March", "quarterly", "2027-Q2", "2027-03-31", 1, 2027, 1},
+		{"semester December submitted January", "semester", "2028-Q1", "2027-12-31", 2, 2027, 2},
+		{"legacy quarter", "", "2027-Q3", "2027-09-30", 0, 2027, 2},
+		{"legacy cutoff", "", "", "2027-06-30", 0, 2027, 1},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			exec("DELETE FROM working_papers; DELETE FROM evaluations")
+			id, evaluation, rule := uuid.New(), uuid.New(), uuid.New()
+			var period *uuid.UUID
+			if tt.frequency != "" {
+				value := uuid.New()
+				period = &value
+				exec("INSERT INTO monitoring_rules VALUES($1,$2,$3)", rule, tt.year, tt.frequency)
+				exec("INSERT INTO monitoring_rule_periods VALUES($1,$2,$3,'2028-01-01','2028-01-31')", period, rule, tt.ordinal)
+			}
+			exec(`INSERT INTO working_papers VALUES($1,$2,'Test','KK',$3,'2028-01-02',1,$4,$5,'completed')`, id, org, tt.observation, tt.legacyPeriod, period)
+			exec(`INSERT INTO evaluations VALUES($1,$2,'EV',$3,'2028-01-02','2028-01-02',1,$4,$5,'final')`, evaluation, org, tt.observation, tt.legacyPeriod, period)
+			for _, semester := range []int{1, 2} {
+				items, err := reportDocumentOptions(ctx, tx, org, "", UPRSemesterInput{Year: tt.year, Semester: semester}, nil, "", 0, 0)
+				want := 0
+				if semester == tt.semester {
+					want = 2
+					if tt.frequency == "" && tt.legacyPeriod == "" {
+						// Only legacy working papers have an observation-cutoff fallback.
+						want = 1
+					}
+				}
+				if err != nil || len(items) != want {
+					t.Fatalf("semester %d items=%+v, want %d: %v", semester, items, want, err)
+				}
+			}
+			items, err := reportDocumentOptions(ctx, tx, org, "", UPRSemesterInput{Year: tt.year + 1, Semester: tt.semester}, nil, "", 0, 0)
+			if err != nil || len(items) != 0 {
+				t.Fatalf("accepted another year: %+v, %v", items, err)
+			}
+		})
 	}
 }

@@ -12,8 +12,21 @@ import (
 	domainerrors "github.com/manris/backend/internal/domain/errors"
 )
 
-func (s *UPRWorkflow) MonitoringRules(ctx context.Context, includeInactive bool) ([]entity.MonitoringRule, error) {
-	rows, err := s.pool.Query(ctx, `SELECT id,name,year,frequency,active FROM monitoring_rules WHERE active OR $1 ORDER BY year DESC,name,id`, includeInactive)
+type MonitoringRuleSearch struct {
+	Query string
+	Limit int
+}
+
+func (s *UPRWorkflow) MonitoringRules(ctx context.Context, includeInactive bool, search ...MonitoringRuleSearch) ([]entity.MonitoringRule, error) {
+	query := `SELECT id,name,year,frequency,active,EXISTS(SELECT 1 FROM annual_risk_profile_versions p WHERE p.monitoring_rule_id=monitoring_rules.id) FROM monitoring_rules WHERE (active OR $1)`
+	args := []any{includeInactive}
+	if len(search) > 0 {
+		query += ` AND (strpos(lower(name),lower($2))>0 OR strpos(year::text,$2)>0) ORDER BY year DESC,created_at DESC,id DESC LIMIT $3`
+		args = append(args, strings.TrimSpace(search[0].Query), search[0].Limit)
+	} else {
+		query += ` ORDER BY year DESC,name,id`
+	}
+	rows, err := s.pool.Query(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -23,7 +36,7 @@ func (s *UPRWorkflow) MonitoringRules(ctx context.Context, includeInactive bool)
 	}
 	out := make([]entity.MonitoringRule, 0, len(rules))
 	for _, header := range rules {
-		r := entity.MonitoringRule{ID: header.ID, Name: header.Name, Year: header.Year, Frequency: header.Frequency, Active: header.Active}
+		r := entity.MonitoringRule{ID: header.ID, Name: header.Name, Year: header.Year, Frequency: header.Frequency, Active: header.Active, InUse: header.InUse}
 		r.Periods, err = readRulePeriods(ctx, s.pool, r.ID)
 		if err != nil {
 			return nil, err
@@ -39,6 +52,7 @@ type ruleHeader struct {
 	Year      int
 	Frequency string
 	Active    bool
+	InUse     bool
 }
 
 func readRulePeriods(ctx context.Context, db riskQueryer, id uuid.UUID) ([]entity.MonitoringRulePeriod, error) {
@@ -120,7 +134,7 @@ func monitoringInputError(message string) error {
 	return &domainerrors.AppError{Code: "INVALID_INPUT", Message: message}
 }
 func (r *riskMonitoringRepository) GetByProfilePeriod(ctx context.Context, group, profile, period uuid.UUID) (*entity.RiskMonitoring, error) {
-	m, err := scanRiskMonitoring(r.pool.QueryRow(ctx, baseRiskMonitoringSelect()+` WHERE rm.version_group_id=$1 AND rm.profile_version_id IN (SELECT p.id FROM annual_risk_profile_versions p JOIN annual_risk_profile_versions selected ON selected.organization_id=p.organization_id AND selected.year=p.year WHERE selected.id=$2) AND rm.monitoring_period_id=$3 LIMIT 1`, group, profile, period))
+	m, err := scanRiskMonitoring(r.pool.QueryRow(ctx, baseRiskMonitoringSelect()+` WHERE rm.transaction_kind='monitoring' AND rm.version_group_id=$1 AND rm.profile_version_id IN (SELECT p.id FROM annual_risk_profile_versions p JOIN annual_risk_profile_versions selected ON selected.organization_id=p.organization_id AND selected.year=p.year WHERE selected.id=$2) AND rm.monitoring_period_id=$3 LIMIT 1`, group, profile, period))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}

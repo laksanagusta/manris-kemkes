@@ -1,6 +1,6 @@
 "use client";
 
-import { SemesterContent } from "@/components/upr/semester-content";
+import { FinalReportFields } from "@/components/upr/final-report-fields";
 import type { SemesterSnapshot } from "@/lib/api/upr-workflow";
 
 const snapshot: SemesterSnapshot = {
@@ -62,20 +62,20 @@ const snapshot: SemesterSnapshot = {
     {
       kind: "working_paper",
       period: "2026-Q2",
-      sourceId: null,
-      code: null,
-      finalizedAt: null,
+      sourceId: "example-kk2",
+      code: "KK-002",
+      finalizedAt: "2026-07-02T03:00:00Z",
     },
     {
       kind: "evaluation",
       period: "2026-H1",
-      sourceId: null,
-      code: null,
-      finalizedAt: null,
+      sourceId: "example-evaluation",
+      code: "EV-001",
+      finalizedAt: "2026-07-03T03:00:00Z",
     },
   ],
 };
 
 export function UPRReportExample() {
-  return <SemesterContent snapshot={snapshot} />;
+  return <FinalReportFields report={{ title: "Laporan Semester I 2026", period: "2026-H1", snapshot }} />;
 }

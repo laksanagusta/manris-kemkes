@@ -1,0 +1,48 @@
+.timeline {
+  min-width: 0;
+}
+
+/* Scope the rail so legacy global pseudo-elements cannot draw a second line. */
+.timeline > .item::before,
+.timeline > .item::after {
+  content: none;
+  display: none;
+}
+
+.item {
+  --marker-size: 8px;
+  --marker-top: 6px;
+  --marker-start: 4px;
+  position: relative;
+  padding-inline-start: 24px;
+  padding-block-end: 16px;
+}
+
+.item:last-child {
+  padding-block-end: 0;
+}
+
+/* One rail shares its center and endpoints with both adjacent markers. */
+.connector {
+  position: absolute;
+  pointer-events: none;
+  inset-inline-start: calc(var(--marker-start) + (var(--marker-size) - 1px) / 2);
+  inset-block-start: calc(var(--marker-top) + var(--marker-size));
+  inset-block-end: calc(-1 * var(--marker-top));
+  width: 1px;
+  background: color-mix(in oklch, var(--muted-foreground) 25%, transparent);
+}
+
+.marker {
+  position: absolute;
+  inset-inline-start: var(--marker-start);
+  inset-block-start: var(--marker-top);
+  width: var(--marker-size);
+  height: var(--marker-size);
+  border-radius: 50%;
+  background: color-mix(in oklch, var(--muted-foreground) 40%, transparent);
+}
+
+.marker[data-current="true"] {
+  background: var(--badge-green-foreground);
+}

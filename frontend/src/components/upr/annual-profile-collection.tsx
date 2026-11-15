@@ -66,7 +66,7 @@ export function AnnualProfileCollection({
     year: number,
     source: string | null,
   ) => Promise<AnnualPickupRisk[]>;
-  loadRules?: () => Promise<MonitoringRule[]>;
+  loadRules?: (search?: string, signal?: AbortSignal) => Promise<MonitoringRule[]>;
   periodProgress?: Record<string, ProfilePeriodWorkspace | {error: string}>;
   organizationId?: string;
   create: (

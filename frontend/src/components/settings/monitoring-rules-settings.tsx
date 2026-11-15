@@ -1,31 +1,39 @@
 "use client";
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
+import { ApiError } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
-import { createMonitoringRule, listMonitoringRules, type CreateMonitoringRuleInput, type MonitoringRule, type MonitoringRuleFrequency } from "@/lib/api/monitoring-rules";
+import { createMonitoringRule, deleteMonitoringRule, updateMonitoringRule, listMonitoringRules, type CreateMonitoringRuleInput, type MonitoringRule, type MonitoringRuleFrequency } from "@/lib/api/monitoring-rules";
 import { createMonitoringRulePeriods, monitoringRuleFrequencyLabels, validateMonitoringRuleInput } from "@/lib/monitoring-rule-form";
+import { AlertCircle } from "@/components/shared/icons";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export interface MonitoringRulesPanelProps {
+  headerAction: HTMLDivElement | null;
   rules: MonitoringRule[];
   loading: boolean;
   error: string;
   pending: boolean;
   onRetry: () => void;
   onCreate: (input: CreateMonitoringRuleInput) => Promise<boolean>;
+  onUpdate: (id: string, input: CreateMonitoringRuleInput) => Promise<boolean>;
+  onDelete: (id: string) => Promise<boolean>;
 }
 
 /** The production settings form also supplies the design-system specimen. */
-export function MonitoringRulesPanel({ rules, loading, error, pending, onRetry, onCreate }: MonitoringRulesPanelProps) {
+export function MonitoringRulesPanel({ headerAction, rules, loading, error, pending, onRetry, onCreate, onUpdate, onDelete }: MonitoringRulesPanelProps) {
   const [name, setName] = useState("");
   const [year, setYear] = useState(() => new Intl.DateTimeFormat("en", { year: "numeric", timeZone: "Asia/Jakarta" }).format(new Date()));
   const [frequency, setFrequency] = useState<MonitoringRuleFrequency>("quarterly");
@@ -33,6 +41,53 @@ export function MonitoringRulesPanel({ rules, loading, error, pending, onRetry, 
   const [active, setActive] = useState(true);
   const [formError, setFormError] = useState("");
   const submitting = useRef(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<MonitoringRule | null>(null);
+  const [deleting, setDeleting] = useState<MonitoringRule | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const createButtonRef = useRef<HTMLButtonElement>(null);
+  const returnFocusRef = useRef<HTMLElement | null>(null);
+  const conflict = rules.find((rule) => rule.active && rule.year === Number(year) && rule.id !== editing?.id);
+
+  function edit(rule: MonitoringRule, trigger: HTMLButtonElement) {
+    returnFocusRef.current = trigger;
+    setEditing(rule);
+    setName(rule.name);
+    setYear(String(rule.year));
+    setFrequency(rule.frequency);
+    setPeriods(rule.periods.map((period) => ({ ...period })));
+    setActive(rule.active);
+    setFormError("");
+    setFormOpen(true);
+  }
+
+  function reset() {
+    const currentYear = new Intl.DateTimeFormat("en", { year: "numeric", timeZone: "Asia/Jakarta" }).format(new Date());
+    setEditing(null);
+    setName("");
+    setYear(currentYear);
+    setFrequency("quarterly");
+    setActive(true);
+    setPeriods(createMonitoringRulePeriods(Number(currentYear), "quarterly"));
+    setFormError("");
+  }
+
+  function restoreFocus(event: Event) {
+    event.preventDefault();
+    const trigger = returnFocusRef.current;
+    if (trigger?.isConnected) trigger.focus();
+    else createButtonRef.current?.focus();
+  }
+
+  async function confirmDelete() {
+    if (!deleting || pending || submitting.current) return;
+    submitting.current = true;
+    try {
+      if (await onDelete(deleting.id)) {
+        setDeleting(null);
+      }
+    } finally { submitting.current = false; }
+  }
 
   function changeYear(value: string) {
     setYear(value);
@@ -52,11 +107,14 @@ export function MonitoringRulesPanel({ rules, loading, error, pending, onRetry, 
     const validation = validateMonitoringRuleInput(input);
     setFormError(validation ?? "");
     if (validation) return;
+    if (input.active && conflict) {
+      toast.error(`Tahun ${year} sudah memiliki aturan aktif: ${conflict.name}. Nonaktifkan aturan tersebut terlebih dahulu atau simpan aturan ini sebagai tidak aktif.`);
+      return;
+    }
     submitting.current = true;
     try {
-      if (await onCreate(input)) {
-        setName("");
-        setFormError("");
+      if (await (editing ? onUpdate(editing.id, input) : onCreate(input))) {
+        setFormOpen(false);
       }
     } finally {
       submitting.current = false;
@@ -64,17 +122,36 @@ export function MonitoringRulesPanel({ rules, loading, error, pending, onRetry, 
   }
 
   return <div className="space-y-6">
-    <Card>
-      <CardHeader><CardTitle className="text-balance">Buat aturan periode</CardTitle></CardHeader>
-      <CardContent>
-        <form onSubmit={submit} className="space-y-5">
-          <fieldset disabled={pending} className="space-y-5">
+    <Dialog open={formOpen} onOpenChange={(open) => { if (!pending) setFormOpen(open); }}>
+      {headerAction && createPortal(
+        <DialogTrigger asChild>
+          <Button
+            ref={createButtonRef}
+            onClick={(event) => {
+              returnFocusRef.current = event.currentTarget;
+              reset();
+            }}
+            disabled={pending}
+          >
+            Buat aturan periode
+          </Button>
+        </DialogTrigger>,
+        headerAction,
+      )}
+      <DialogContent className="flex flex-col gap-0 overflow-hidden p-0" showCloseButton={!pending} onOpenAutoFocus={(event) => {
+        event.preventDefault();
+        formRef.current?.querySelector<HTMLElement>(editing?.inUse ? "#monitoring-rule-active" : "#monitoring-rule-name")?.focus();
+      }} onCloseAutoFocus={restoreFocus}>
+        <DialogHeader className="shrink-0"><DialogTitle>{editing ? (editing.inUse ? "Ubah status aturan" : "Edit aturan periode") : "Buat aturan periode"}</DialogTitle><DialogDescription>{editing ? "Sesuaikan aturan dan ketersediaannya untuk profil baru." : "Tetapkan tahun, frekuensi, dan jadwal pengisian profil risiko."}</DialogDescription></DialogHeader>
+        <form ref={formRef} onSubmit={submit} className="flex min-h-0 flex-col overflow-hidden">
+          <div className="min-h-0 space-y-5 overflow-y-auto overscroll-contain p-5">
+          {editing?.inUse && <p className="text-pretty text-sm text-muted-foreground">Aturan sudah dipakai profil. Nama, tahun, frekuensi, dan jadwal dikunci; hanya status aktif yang dapat diubah.</p>}
+          <fieldset disabled={pending || editing?.inUse} className="space-y-5">
             <Field><FieldLabel htmlFor="monitoring-rule-name">Nama aturan</FieldLabel><Input id="monitoring-rule-name" value={name} maxLength={120} onChange={(event) => setName(event.target.value)} placeholder="Contoh: Pemantauan kuartalan 2027" required /></Field>
             <div className="grid gap-5 sm:grid-cols-2">
               <Field><FieldLabel htmlFor="monitoring-rule-year">Tahun profil</FieldLabel><Input id="monitoring-rule-year" type="number" min={1900} max={9998} step={1} value={year} onChange={(event) => changeYear(event.target.value)} required className="tabular-nums" /></Field>
-              <Field><FieldLabel htmlFor="monitoring-rule-frequency">Frekuensi</FieldLabel><Select value={frequency} onValueChange={(value) => changeFrequency(value as MonitoringRuleFrequency)} disabled={pending}><SelectTrigger id="monitoring-rule-frequency"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(monitoringRuleFrequencyLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></Field>
+              <Field><FieldLabel htmlFor="monitoring-rule-frequency">Frekuensi</FieldLabel><Select value={frequency} onValueChange={(value) => changeFrequency(value as MonitoringRuleFrequency)} disabled={pending || editing?.inUse}><SelectTrigger id="monitoring-rule-frequency"><SelectValue /></SelectTrigger><SelectContent>{Object.entries(monitoringRuleFrequencyLabels).map(([value, label]) => <SelectItem key={value} value={value}>{label}</SelectItem>)}</SelectContent></Select></Field>
             </div>
-            <p className="text-pretty text-xs text-muted-foreground">Mengubah tahun atau frekuensi mengisi ulang tanggal sesuai kalender. Sesuaikan jadwal di bawah ini; tanggal dapat berlanjut ke tahun berikutnya.</p>
             <fieldset className="space-y-4">
               <legend className="mb-2 text-sm font-medium">Jadwal periode</legend>
               <p id="monitoring-rule-date-help" className="text-pretty text-xs text-muted-foreground">Tanggal buka dan tutup termasuk dalam periode, mengikuti waktu Jakarta (WIB). Jadwal harus berurutan dan tidak tumpang tindih.</p>
@@ -85,25 +162,88 @@ export function MonitoringRulesPanel({ rules, loading, error, pending, onRetry, 
                 <Field><FieldLabel htmlFor={`monitoring-rule-close-${index}`}>Tanggal tutup</FieldLabel><Input id={`monitoring-rule-close-${index}`} type="date" aria-label={`Tanggal tutup ${period.label}`} aria-describedby="monitoring-rule-date-help" min={period.opensOn || `${year}-01-01`} max={`${Number(year) + 1}-12-31`} value={period.closesOn} onChange={(event) => setPeriods((current) => current.map((item, position) => position === index ? { ...item, closesOn: event.target.value } : item))} required className="tabular-nums" /></Field>
               </fieldset>)}
             </fieldset>
-            <div className="flex items-center gap-2"><Checkbox id="monitoring-rule-active" checked={active} onCheckedChange={(checked) => setActive(checked === true)} /><FieldLabel htmlFor="monitoring-rule-active">Aktif untuk dipilih pada profil risiko</FieldLabel></div>
           </fieldset>
+          <Alert variant="info" role="note" className="rounded-md px-3 py-2">
+            <AlertCircle aria-hidden="true" />
+            <AlertDescription className="text-pretty text-xs">
+              Hanya satu aturan aktif per tahun. Aturan aktif tersedia untuk profil baru. Profil lama tetap memakai aturan yang sudah dipilih.
+            </AlertDescription>
+          </Alert>
+          <div className="flex items-center gap-2"><Checkbox id="monitoring-rule-active" disabled={pending} checked={active} onCheckedChange={(checked) => setActive(checked === true)} /><FieldLabel htmlFor="monitoring-rule-active">Aktif untuk dipilih pada profil risiko</FieldLabel></div>
+          {conflict && <p className="text-pretty text-xs text-muted-foreground">Aturan aktif tahun {year}: {conflict.name}. Nonaktifkan aturan tersebut terlebih dahulu untuk mengaktifkan aturan ini.</p>}
           {formError && <Alert variant="destructive" role="alert"><AlertDescription>{formError}</AlertDescription></Alert>}
-          <div className="flex justify-end"><Button type="submit" disabled={pending}>{pending ? "Menyimpan aturan…" : "Simpan aturan"}</Button></div>
+          {error && <Alert variant="destructive" role="alert"><AlertDescription>{error}</AlertDescription></Alert>}
+          </div>
+          <DialogFooter className="shrink-0"><Button type="button" variant="outline" onClick={() => setFormOpen(false)} disabled={pending}>Batal</Button><Button type="submit" disabled={pending}>{pending ? "Menyimpan aturan…" : editing ? "Simpan perubahan" : "Simpan aturan"}</Button></DialogFooter>
         </form>
-      </CardContent>
-    </Card>
+      </DialogContent>
+    </Dialog>
     {error && <Alert variant="destructive" role="alert"><AlertDescription>{error}</AlertDescription><div className="mt-2"><Button variant="outline" onClick={onRetry} disabled={loading || pending}>Muat ulang aturan</Button></div></Alert>}
     <section aria-labelledby="monitoring-rules-list-title" className="space-y-3">
       <h3 id="monitoring-rules-list-title" className="text-balance text-sm font-medium">Aturan tersimpan</h3>
-      {loading ? <div role="status" aria-label="Memuat aturan periode" className="space-y-2"><Skeleton className="h-16 w-full" /><Skeleton className="h-16 w-full" /></div> : !rules.length ? !error && <p className="text-pretty text-sm text-muted-foreground">Belum ada aturan. Isi formulir di atas untuk membuat aturan pertama.</p> : <Card><CardContent className="divide-y divide-border">{rules.map((rule) => <details key={rule.id} className="py-3 first:pt-0 last:pb-0">
-        <summary className="cursor-pointer rounded-sm text-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"><span className="font-medium">{rule.name}</span><span className="ml-2 inline-flex flex-wrap items-center gap-2 text-xs text-muted-foreground"><span className="tabular-nums">{rule.year} · {monitoringRuleFrequencyLabels[rule.frequency]}</span><Badge variant="secondary">{rule.active ? "Aktif" : "Tidak aktif"}</Badge></span></summary>
-        <dl className="mt-3 space-y-2 text-xs tabular-nums">{rule.periods.map((period) => <div key={period.id} className="flex flex-wrap justify-between gap-2"><dt>{period.label}</dt><dd className="text-muted-foreground"><time dateTime={period.opensOn}>{period.opensOn}</time> – <time dateTime={period.closesOn}>{period.closesOn}</time></dd></div>)}</dl>
-      </details>)}</CardContent></Card>}
+      {loading ? (
+        <div role="status" aria-label="Memuat aturan periode" className="space-y-2">
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+        </div>
+      ) : rules.length ? (
+        <Card>
+          <CardContent>
+            <ul className="divide-y divide-border">
+              {rules.map((rule) => (
+                <li key={rule.id} className="flex items-start justify-between gap-3 py-3 first:pt-0 last:pb-0">
+                  <div className="min-w-0 space-y-1">
+                    <button
+                      type="button"
+                      aria-haspopup="dialog"
+                      className="block max-w-full cursor-pointer rounded-sm text-start text-sm font-medium wrap-anywhere hover:underline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring disabled:cursor-default disabled:opacity-50 disabled:hover:no-underline"
+                      onClick={(event) => edit(rule, event.currentTarget)}
+                      disabled={pending}
+                    >
+                      {rule.name}
+                    </button>
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      <span className="tabular-nums">{rule.year} · {monitoringRuleFrequencyLabels[rule.frequency]}</span>
+                      <Badge variant="secondary">{rule.active ? "Aktif" : "Tidak aktif"}</Badge>
+                    </div>
+                    {rule.inUse && (
+                      <p id={`rule-locked-${rule.id}`} className="text-xs text-muted-foreground">Sudah dipakai profil. Hanya status aktif yang dapat diubah.</p>
+                    )}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                    className="shrink-0"
+                    onClick={(event) => {
+                      returnFocusRef.current = event.currentTarget;
+                      setDeleting(rule);
+                    }}
+                    disabled={pending || rule.inUse}
+                    aria-describedby={rule.inUse ? `rule-locked-${rule.id}` : undefined}
+                  >
+                    Hapus<span className="sr-only"> {rule.name}</span>
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      ) : !error && (
+        <p className="text-pretty text-sm text-muted-foreground">Belum ada aturan. Pilih Buat aturan periode untuk memulai.</p>
+      )}
     </section>
+    <AlertDialog open={Boolean(deleting)} onOpenChange={(open) => { if (!open && !pending) setDeleting(null); }}>
+      <AlertDialogContent onCloseAutoFocus={restoreFocus}>
+        <AlertDialogHeader><AlertDialogTitle>Hapus aturan periode?</AlertDialogTitle><AlertDialogDescription>Aturan “{deleting?.name}” tahun {deleting?.year} akan dihapus beserta jadwalnya. Tindakan ini tidak dapat dibatalkan.</AlertDialogDescription></AlertDialogHeader>
+        {error && <Alert variant="destructive" role="alert"><AlertDescription>{error}</AlertDescription></Alert>}
+        <AlertDialogFooter><AlertDialogCancel disabled={pending}>Batal</AlertDialogCancel><AlertDialogAction variant="destructive" disabled={pending} onClick={(event) => { event.preventDefault(); void confirmDelete(); }}>{pending ? "Menghapus aturan…" : "Hapus aturan"}</AlertDialogAction></AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   </div>;
 }
 
-function AuthenticatedMonitoringRulesSettings({ token }: { token: string }) {
+function AuthenticatedMonitoringRulesSettings({ token, headerAction }: { token: string; headerAction: HTMLDivElement | null }) {
   const [rules, setRules] = useState<MonitoringRule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -131,22 +271,28 @@ function AuthenticatedMonitoringRulesSettings({ token }: { token: string }) {
     return () => { controller.abort(); };
   }, [token, revision]);
 
-  async function create(input: CreateMonitoringRuleInput): Promise<boolean> {
+  async function mutate(action: () => Promise<MonitoringRule | void>, message: string): Promise<boolean> {
     if (creating.current) return false;
     creating.current = true;
     setPending(true);
     try {
-      const result = await createMonitoringRule(token, input);
+      await action();
       if (!mounted.current) return false;
       ++requestVersion.current;
       setLoading(true);
-      setRules((current) => [result, ...current.filter((item) => item.id !== result.id)]);
       setRevision((value) => value + 1);
       setError("");
-      toast.success("Aturan periode disimpan.");
+      toast.success(message);
       return true;
     } catch (err) {
-      if (mounted.current) setError(err instanceof Error ? err.message : "Gagal menyimpan aturan periode. Isian Anda tetap tersimpan di formulir.");
+      if (mounted.current) {
+        if (err instanceof ApiError && err.type === "https://api.manris.com/errors/active-rule-conflict") {
+          setError("");
+          toast.error(err.message);
+        } else {
+          setError(err instanceof Error ? err.message : "Gagal menyimpan perubahan. Silakan coba lagi.");
+        }
+      }
       return false;
     } finally {
       creating.current = false;
@@ -154,11 +300,14 @@ function AuthenticatedMonitoringRulesSettings({ token }: { token: string }) {
     }
   }
 
-  return <MonitoringRulesPanel rules={rules} loading={loading} error={error} pending={pending} onRetry={() => { setLoading(true); setRevision((value) => value + 1); }} onCreate={create} />;
+  return <MonitoringRulesPanel headerAction={headerAction} rules={rules} loading={loading} error={error} pending={pending} onRetry={() => { setLoading(true); setRevision((value) => value + 1); }}
+    onCreate={(input) => mutate(() => createMonitoringRule(token, input), "Aturan periode disimpan.")}
+    onUpdate={(id, input) => mutate(() => updateMonitoringRule(token, id, input), "Aturan periode diperbarui.")}
+    onDelete={(id) => mutate(() => deleteMonitoringRule(token, id), "Aturan periode dihapus.")} />;
 }
 
-export function MonitoringRulesSettings() {
+export function MonitoringRulesSettings({ headerAction }: { headerAction: HTMLDivElement | null }) {
   const { user, token } = useAuth();
   if (user?.role !== "superadmin" || !token) return null;
-  return <AuthenticatedMonitoringRulesSettings key={`${user.id}:${token}`} token={token} />;
+  return <AuthenticatedMonitoringRulesSettings key={`${user.id}:${token}`} token={token} headerAction={headerAction} />;
 }

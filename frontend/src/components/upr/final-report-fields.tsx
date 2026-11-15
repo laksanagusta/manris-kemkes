@@ -1,18 +1,14 @@
 "use client";
 
-import type { ReactNode } from "react";
 import type { ReportDetail, ReportDocumentOption, SemesterSnapshot, WorkingPaperSnapshot, EvaluationSnapshot } from "@/lib/api/upr-workflow";
 import { ReportFields } from "./report-fields";
-import { SemesterContent } from "./semester-content";
-import { EvaluationContent, WorkingPaperContent } from "./supporting-document-content";
 
-export function FinalReportFields({ report }: { report: ReportDetail }) {
+export function FinalReportFields({ report }: { report: Pick<ReportDetail, "snapshot" | "period" | "title"> }) {
   const snapshot = report.snapshot as SemesterSnapshot;
   const [year, half] = report.period.split("-");
   const papers = snapshot.supporting.filter((item) => item.kind === "working_paper" && item.sourceId);
   const evaluation = snapshot.supporting.find((item) => item.kind === "evaluation" && item.sourceId);
   const documents: ReportDocumentOption[] = [];
-  const frozenContents: Record<string, ReactNode> = {};
 
   if (snapshot.profile) {
     documents.push({
@@ -23,7 +19,6 @@ export function FinalReportFields({ report }: { report: ReportDetail }) {
       documentDate: snapshot.profile.finalizedAt,
       finalizedAt: snapshot.profile.finalizedAt,
     });
-    frozenContents[snapshot.profile.id] = <SemesterContent snapshot={{ ...snapshot, supporting: [] }} />;
   }
 
   for (const section of snapshot.supporting) {
@@ -38,11 +33,7 @@ export function FinalReportFields({ report }: { report: ReportDetail }) {
       documentDate: paper?.observation_cutoff || evaluationContents?.reportDate || section.finalizedAt,
       finalizedAt: section.finalizedAt,
     });
-    if (section.contents) {
-      frozenContents[section.sourceId] = section.kind === "working_paper"
-        ? <WorkingPaperContent paper={section.contents as WorkingPaperSnapshot} />
-        : <EvaluationContent evaluation={section.contents as EvaluationSnapshot} />;
-    }
+
   }
 
   return (
@@ -59,7 +50,6 @@ export function FinalReportFields({ report }: { report: ReportDetail }) {
           reason: snapshot.reason,
         }}
         documents={documents}
-        frozenContents={frozenContents}
       />
     </div>
   );

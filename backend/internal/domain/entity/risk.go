@@ -42,31 +42,33 @@ var BobotMatrix = [5][5]float64{
 
 // Risk represents a risk register entry
 type Risk struct {
-	ID                     uuid.UUID  `json:"id"`
-	Code                   string     `json:"code"`
-	Title                  string     `json:"title"`
-	Description            string     `json:"description"`
-	Category               string     `json:"category"`
-	Status                 string     `json:"status"`
-	VersionGroupID         uuid.UUID  `json:"versionGroupId"`
-	PreviousRiskID         *uuid.UUID `json:"previousRiskId,omitempty"`
-	IsCurrent              bool       `json:"isCurrent"`
-	IsCycleCurrent         bool       `json:"isCycleCurrent"`
-	VersionNumber          int        `json:"versionNumber"`
-	ArchivedAt             *time.Time `json:"archivedAt,omitempty"`
-	ArchivedReason         string     `json:"archivedReason,omitempty"`
-	SupersededByRiskID     *uuid.UUID `json:"supersededByRiskId,omitempty"`
-	OrganizationID         *uuid.UUID `json:"organizationId,omitempty"`
-	OrgName                string     `json:"orgName"`
-	CreatedBy              *uuid.UUID `json:"createdBy,omitempty"`
-	CreatedByName          string     `json:"createdByName"`
-	RiskOwnerID            *uuid.UUID `json:"riskOwnerId,omitempty"`
-	ControlOwnerID         *uuid.UUID `json:"controlOwnerId,omitempty"`
-	ObjectiveID            *uuid.UUID `json:"objectiveId,omitempty"`
-	ROID                   *uuid.UUID `json:"roId,omitempty"`
-	LikelihoodAssessmentID *uuid.UUID `json:"likelihoodAssessmentId,omitempty"`
-	ImpactCriteriaID       *uuid.UUID `json:"impactCriteriaId,omitempty"`
-	ImpactJustification    string     `json:"impactJustification,omitempty"`
+	OpenDrafts             *RiskOpenDrafts        `json:"openDrafts,omitempty"`
+	CurrentAssessment      *RiskCurrentAssessment `json:"currentAssessment,omitempty"`
+	ID                     uuid.UUID              `json:"id"`
+	Code                   string                 `json:"code"`
+	Title                  string                 `json:"title"`
+	Description            string                 `json:"description"`
+	Category               string                 `json:"category"`
+	Status                 string                 `json:"status"`
+	VersionGroupID         uuid.UUID              `json:"versionGroupId"`
+	PreviousRiskID         *uuid.UUID             `json:"previousRiskId,omitempty"`
+	IsCurrent              bool                   `json:"isCurrent"`
+	IsCycleCurrent         bool                   `json:"isCycleCurrent"`
+	VersionNumber          int                    `json:"versionNumber"`
+	ArchivedAt             *time.Time             `json:"archivedAt,omitempty"`
+	ArchivedReason         string                 `json:"archivedReason,omitempty"`
+	SupersededByRiskID     *uuid.UUID             `json:"supersededByRiskId,omitempty"`
+	OrganizationID         *uuid.UUID             `json:"organizationId,omitempty"`
+	OrgName                string                 `json:"orgName"`
+	CreatedBy              *uuid.UUID             `json:"createdBy,omitempty"`
+	CreatedByName          string                 `json:"createdByName"`
+	RiskOwnerID            *uuid.UUID             `json:"riskOwnerId,omitempty"`
+	ControlOwnerID         *uuid.UUID             `json:"controlOwnerId,omitempty"`
+	ObjectiveID            *uuid.UUID             `json:"objectiveId,omitempty"`
+	ROID                   *uuid.UUID             `json:"roId,omitempty"`
+	LikelihoodAssessmentID *uuid.UUID             `json:"likelihoodAssessmentId,omitempty"`
+	ImpactCriteriaID       *uuid.UUID             `json:"impactCriteriaId,omitempty"`
+	ImpactJustification    string                 `json:"impactJustification,omitempty"`
 
 	// Section 1
 	Cause           []string `json:"cause,omitempty"`

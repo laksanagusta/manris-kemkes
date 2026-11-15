@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { FieldHeading } from '@/components/ui/field';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { uprApi, type AnnualProfileListVersion } from '@/lib/api/upr-workflow';
@@ -53,13 +54,20 @@ export function ProfilePeriodPicker({token,organizationId,initialProfileId='',in
     } : null);
   },[ready,selectedProfile,currentWorkspace,period,record,onChange]);
   return <div className="space-y-3">
-    <div className="space-y-2"><Label htmlFor={`period-profile-${process}`}>Profil risiko</Label>
+    <div className="space-y-2"><FieldHeading>
+      <Label htmlFor={`period-profile-${process}`} className="leading-5">Profil risiko</Label>
+      {profiles?.scope===scope && !error && !currentProfiles.length && <p id={`period-profile-${process}-help`} className="text-xs leading-4 text-muted-foreground">Belum ada profil final berisi risiko.</p>}
+      {currentWorkspace && !currentWorkspace.rule && <p className="text-xs leading-4 text-muted-foreground">Profil lama ini belum memakai rules. Alur sebelumnya tetap berlaku.</p>}
+    </FieldHeading>
       <Select value={selectedProfile?.id??''} onValueChange={value=>{onChange(null);setProfileId(value);setPeriodId('');setWorkspace(null);setError('');}}>
-        <SelectTrigger id={`period-profile-${process}`} className="w-full"><SelectValue placeholder="Pilih profil final" /></SelectTrigger>
+        <SelectTrigger id={`period-profile-${process}`} aria-describedby={profiles?.scope===scope && !error && !currentProfiles.length ? `period-profile-${process}-help` : undefined} className="w-full"><SelectValue placeholder="Pilih profil final" /></SelectTrigger>
         <SelectContent>{currentProfiles.map(profile=><SelectItem key={profile.id} value={profile.id}>{profile.year} · Versi {profile.version}</SelectItem>)}</SelectContent>
       </Select>
     </div>
-    {currentWorkspace?.rule && <div className="space-y-2"><Label htmlFor={`period-choice-${process}`}>Periode</Label>
+    {currentWorkspace?.rule && <div className="space-y-2"><FieldHeading>
+      <Label htmlFor={`period-choice-${process}`}>Periode</Label>
+      {period && <p className="leading-4 text-xs text-muted-foreground">Pengisian {period.opensOn}–{period.closesOn} WIB.</p>}
+    </FieldHeading>
       <Select value={periodId} onValueChange={value=>{onChange(null);setPeriodId(value);}}>
         <SelectTrigger id={`period-choice-${process}`} className="w-full"><SelectValue placeholder="Pilih periode pengisian" /></SelectTrigger>
         <SelectContent>{currentWorkspace.periods.map(item=>{
@@ -68,8 +76,7 @@ export function ProfilePeriodPicker({token,organizationId,initialProfileId='',in
           return <SelectItem key={item.id} value={item.id} disabled={state!=='open'||progress?.status==='done'||Boolean(progress && 'applicable' in progress && progress.applicable===false)}>{item.label}{state==='upcoming'?' · Belum dibuka':state==='closed'?' · Ditutup':progress?.status==='done'?' · Done':''}</SelectItem>;
         })}</SelectContent>
       </Select>
-      {period && <p className="text-xs text-muted-foreground">Pengisian {period.opensOn}–{period.closesOn} WIB.</p>}
     </div>}
-    {error ? <WorkflowError message={error} retry={()=>{setError('');setProfiles(null);setWorkspace(null);setRetry(n=>n+1);}} /> : !profiles || (selectedProfile&&!currentWorkspace) ? <p role="status" className="text-xs text-muted-foreground">Memuat jadwal profil…</p> : !currentProfiles.length ? <p className="text-xs text-muted-foreground">Belum ada profil final berisi risiko.</p> : currentWorkspace&&!currentWorkspace.rule ? <p className="text-xs text-muted-foreground">Profil lama ini belum memakai rules. Alur sebelumnya tetap berlaku.</p> : null}
+    {error ? <WorkflowError message={error} retry={()=>{setError('');setProfiles(null);setWorkspace(null);setRetry(n=>n+1);}} /> : !profiles || (selectedProfile&&!currentWorkspace) ? <p role="status" className="text-xs text-muted-foreground">Memuat jadwal profil…</p> : null}
   </div>;
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { UnitProgressTables } from "../domain/unit-progress-tables";
 import type { UnitProgressReport } from "@/types/unit-progress";
 
@@ -28,7 +29,7 @@ const exampleReport: UnitProgressReport = {
     { ...common, id: "evaluation-1", code: "EV-2026-Q3-1", title: "Evaluasi Manajemen Risiko", status: "final" },
   ],
   mitigations: [
-    { ...common, id: "task-1", code: "R-001", title: "Tinjau jadwal pengadaan", status: "reported",
+    { ...common, id: "task-1", code: "R-001", title: "Tinjau jadwal pengadaan", status: "reported", executionStatus: "pending",
       riskTitle: "Keterlambatan pengadaan", owner: "Tim Pengadaan", dueDate: "2026-09-30", overdue: false, reportedLate: false },
     { ...common, id: "task-2", code: "R-002", title: "Validasi data pelaporan", status: "overdue",
       riskTitle: "Data pelaporan tidak lengkap", owner: "Tim Surveilans", dueDate: "2026-09-30", overdue: true, reportedLate: false },
@@ -36,9 +37,16 @@ const exampleReport: UnitProgressReport = {
 };
 
 export function UnitProgressExample() {
+  const [profile, setProfile] = useState("quarterly");
+  const periods = profile === "monthly" ? Array.from({ length: 12 }, (_, i) => `Bulan ${i + 1}`) : ["Triwulan I", "Triwulan II", "Triwulan III", "Triwulan IV"];
+  const [period, setPeriod] = useState(periods[0]);
   return <UnitProgressTables report={exampleReport} example scopeFields={[{
-    id: "period", label: "Periode", required: true, value: exampleReport.cycle,
-    options: [{ value: exampleReport.cycle, label: exampleReport.cycle }],
-    onChange: () => {},
+    id: "profile", label: "Profil", required: true, value: profile,
+    options: [{ value: "quarterly", label: "2026 · Triwulanan" }, { value: "monthly", label: "2026 · Bulanan" }],
+    onChange: (value) => { setProfile(value); setPeriod(value === "monthly" ? "Bulan 1" : "Triwulan I"); },
+  }, {
+    id: "period", label: "Periode", required: true, value: period,
+    options: periods.map((value) => ({ value, label: value })),
+    onChange: setPeriod,
   }]} />;
 }

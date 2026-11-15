@@ -74,6 +74,10 @@ func (s *Service) List(ctx context.Context, orgIDs []uuid.UUID, riskID *uuid.UUI
 	return s.events.List(ctx, orgIDs, riskID)
 }
 
+func (s *Service) ListPage(ctx context.Context, filter repository.RiskEventListFilter) ([]*entity.RiskEvent, int, error) {
+	return s.events.ListPage(ctx, filter)
+}
+
 func (s *Service) LinkRisks(ctx context.Context, eventID uuid.UUID, riskIDs []uuid.UUID, actorID uuid.UUID, orgIDs []uuid.UUID) (*entity.RiskEvent, error) {
 	if len(riskIDs) == 0 {
 		return nil, domainerrors.ErrInvalidInput

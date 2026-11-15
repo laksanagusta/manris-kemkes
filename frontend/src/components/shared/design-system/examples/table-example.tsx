@@ -53,8 +53,10 @@ export function TableExample() {
   const tableMinWidth = columns.reduce((width, column) => width + column.width, codeWidth + selectionWidth + actionsWidth);
   const [status, setStatus] = useState("Semua");
   const [search, setSearch] = useState("");
+  const [hasChildren, setHasChildren] = useState(true);
+  const [organization, setOrganization] = useState("all");
   const [selected, setSelected] = useState<string[]>([]);
-  const filtered = rows.filter(row => (status === "Semua" || row.status === status) && `${row.title} ${row.unit}`.toLowerCase().includes(search.toLowerCase()));
+  const filtered = rows.filter(row => (!hasChildren || organization === "all" || row.unit === organization) && (status === "Semua" || row.status === status) && `${row.title} ${row.unit}`.toLowerCase().includes(search.toLowerCase()));
   const collectionSort = useCollectionSorting(filtered,{Risiko:r=>r.title,Status:r=>r.status,Skor:r=>r.score,Kategori:r=>r.category,"Nama Organisasi":r=>r.unit});
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
@@ -65,12 +67,29 @@ export function TableExample() {
 
   return (
     <div className="space-y-4">
+      <label className="flex items-center gap-2 text-sm"><Checkbox checked={hasChildren} onCheckedChange={(checked) => { setHasChildren(checked === true); setOrganization("all"); setPage(1); }} />Organisasi memiliki child</label>
       <CollectionToolbar
         leading={
           <DynamicTableFilters
+            organizationFilterVisible={hasChildren}
             columns={<CollectionColumnPicker {...picker} />}
             search={<CollectionSearchField value={search} onChange={(event) => setSearch(event.target.value)} aria-label="Cari risiko contoh" placeholder="Cari risiko..." />}
-            fields={[{ id: "status", label: "Status", value: status, defaultValue: "Semua", onChange: setStatus, options: ["Semua", "Aktif", "Draf", "Diarsipkan"].map((value) => ({ value, label: value })) }]}
+            fields={[
+              {
+                id: "organization", organizationScope: true, label: "Organisasi",
+                value: organization,
+                onChange(value) { setOrganization(value); setPage(1); },
+                options: [
+                  { value: "all", label: "Semua organisasi" },
+                  ...Array.from(new Set(rows.map(row => row.unit))).map(value => ({ value, label: value })),
+                ],
+              },
+              {
+                id: "status", label: "Status", value: status, defaultValue: "Semua",
+                onChange: setStatus,
+                options: ["Semua", "Aktif", "Draf", "Diarsipkan"].map(value => ({ value, label: value })),
+              },
+            ]}
           />
         }
 

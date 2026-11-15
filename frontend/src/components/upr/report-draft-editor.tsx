@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
+import { canWriteInOrg } from "@/lib/auth-helpers";
 import { useAuth } from "@/contexts/auth-context";
 import { uprApi, type ReportDraft, type ReportDraftInput, type ReportDocumentOption, type SemesterSnapshot } from "@/lib/api/upr-workflow";
 import { useSetHeaderActions } from "@/lib/header-actions-context";
@@ -38,13 +39,13 @@ async function loadEditor(token: string, id?: string) {
     ? [...input.workingPaperIds, ...(input.profileId ? [input.profileId] : []), ...(input.evaluationId ? [input.evaluationId] : [])]
     : [];
   const documents = input && ids.length
-    ? await uprApi.selectedReportDocuments(token, input.year, ids)
+    ? await uprApi.selectedReportDocuments(token, input.year, input.semester, ids, draft?.organizationId)
     : [];
   return { workspace, draft, documents };
 }
 
 export function ReportDraftEditor({ draftId }: { draftId?: string }) {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const router = useRouter();
   const [editor, setEditor] = useState<Awaited<ReturnType<typeof loadEditor>> | null>(null);
   const [draft, setDraft] = useState<ReportDraft | null>(null);
@@ -59,6 +60,7 @@ export function ReportDraftEditor({ draftId }: { draftId?: string }) {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerKind, setPickerKind] = useState<keyof ReportDocumentSelection>("profile");
   const [documents, setDocuments] = useState<ReportDocumentOption[]>([]);
+  const [removedUnavailableDocuments, setRemovedUnavailableDocuments] = useState(false);
   const pickerTrigger = useRef<HTMLButtonElement>(null);
   const setHeaderActions = useSetHeaderActions();
 
@@ -74,18 +76,40 @@ export function ReportDraftEditor({ draftId }: { draftId?: string }) {
       setEditor(data);
       setDocuments(data.documents);
       setDraft(data.draft);
-      if (data.draft) setInput(data.draft.input);
+      if (data.draft) {
+        const restored = data.draft.input;
+        const available = (kind: ReportDocumentOption["kind"], id: string | null) =>
+          data.documents.some((document) => document.kind === kind && document.id === id);
+        const profileId = available("profile", restored.profileId) ? restored.profileId : null;
+        const workingPaperIds = restored.workingPaperIds.filter((id) => available("working_paper", id));
+        const evaluationId = available("evaluation", restored.evaluationId) ? restored.evaluationId : null;
+        setRemovedUnavailableDocuments(profileId !== restored.profileId || evaluationId !== restored.evaluationId
+          || workingPaperIds.length !== restored.workingPaperIds.length);
+        setInput({ ...restored, profileId, workingPaperIds, evaluationId, reason: profileId ? restored.reason : "" });
+      }
     }).catch((cause) => { if (active) setLoadError(workflowError(cause)); });
     return () => { active = false; };
   }, [token, draftId, router, retry]);
 
+  const readOnly = !!draft && (!draft.organizationId || !canWriteInOrg(user, draft.organizationId));
+
   function edit(patch: Partial<ReportDraftInput>) {
-    setInput((current) => ({ ...current, ...patch }));
+    if (readOnly) return;
+    setInput((current) => {
+      const next = { ...current, ...patch };
+      if (next.year !== current.year) next.profileId = null;
+      if (next.year !== current.year || next.semester !== current.semester) {
+        next.workingPaperIds = [];
+        next.evaluationId = null;
+        next.reason = "";
+      }
+      return next;
+    });
     setPreview(null);
     setError("");
   }
 
-  const dirty = JSON.stringify(input) !== JSON.stringify(draft?.input ?? initialInput);
+  const dirty = !readOnly && JSON.stringify(input) !== JSON.stringify(draft?.input ?? initialInput);
   useEffect(() => {
     if (!dirty) return;
     function preventLeave(event: BeforeUnloadEvent) {
@@ -111,7 +135,7 @@ export function ReportDraftEditor({ draftId }: { draftId?: string }) {
     && input.workingPaperIds.every((id) => documents.some((item) => item.kind === "working_paper" && item.id === id))
     && documents.some((item) => item.kind === "evaluation" && item.id === input.evaluationId);
   const canPrepareSend = Boolean(
-    input.title.trim() && selectedProfile && (!needsReason || input.reason.trim())
+    !readOnly && validYear && input.title.trim() && selectedProfile && (!needsReason || input.reason.trim())
       && hasDocuments && editor?.workspace.recipient,
   );
   const canSend = Boolean(preview?.reviewKey && canPrepareSend);
@@ -140,12 +164,13 @@ export function ReportDraftEditor({ draftId }: { draftId?: string }) {
       : await uprApi.createReportDraft(activeToken, input);
     setDraft(saved);
     setInput(saved.input);
+    setRemovedUnavailableDocuments(false);
     return saved;
   }
 
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!token || pending) return;
+    if (readOnly || !token || pending) return;
     setPending("save");
     setError("");
     try {
@@ -174,7 +199,7 @@ export function ReportDraftEditor({ draftId }: { draftId?: string }) {
     }
   }, [canPrepareSend, input, pending, token]);
 
-  const canSave = Boolean(token && input.title.trim());
+  const canSave = Boolean(!readOnly && token && validYear && input.title.trim());
   const headerActions = useMemo(() => (
     <>
       <ActionButton
@@ -195,9 +220,9 @@ export function ReportDraftEditor({ draftId }: { draftId?: string }) {
 
   useEffect(() => {
     if (!editor || loadError || !token) return;
-    setHeaderActions(headerActions);
+    setHeaderActions(readOnly ? null : headerActions);
     return () => setHeaderActions(null);
-  }, [editor, headerActions, loadError, setHeaderActions, token]);
+  }, [editor, headerActions, loadError, readOnly, setHeaderActions, token]);
 
   async function send() {
     if (!token || !canSend || !preview?.reviewKey || pending) return;
@@ -228,7 +253,7 @@ export function ReportDraftEditor({ draftId }: { draftId?: string }) {
         <>
           <form id="report-draft-form" className="grid gap-6" onSubmit={save} aria-busy={Boolean(pending)}>
             <ReportFields
-              input={input} documents={documents} busy={Boolean(pending)} needsReason={needsReason}
+              input={input} documents={documents} readOnly={readOnly} busy={Boolean(pending)} needsReason={needsReason}
               onChange={edit}
               onPick={(kind, trigger) => {
                 pickerTrigger.current = trigger;
@@ -241,12 +266,13 @@ export function ReportDraftEditor({ draftId }: { draftId?: string }) {
                 else edit({ workingPaperIds: input.workingPaperIds.filter((item) => item !== id) });
               }}
             />
-            {!editor.workspace.recipient && <Alert variant="info" role="note"><AlertDescription>Atur tujuan UPR-T.I untuk organisasi Anda sebelum mengirim laporan.</AlertDescription></Alert>}
+            {removedUnavailableDocuments && <Alert variant="info" role="note"><AlertDescription>Dokumen yang tidak tersedia untuk tahun dan semester ini telah dilepas dari pilihan.</AlertDescription></Alert>}
+            {!readOnly && !editor.workspace.recipient && <Alert variant="info" role="note"><AlertDescription>Atur tujuan UPR-T.I untuk organisasi Anda sebelum mengirim laporan.</AlertDescription></Alert>}
             {error && <WorkflowError message={error} />}
             {!hasDocuments && <p className="text-sm text-muted-foreground">Pilih minimal satu KK Selesai dan satu Evaluasi Final sebelum mengirim.</p>}
           </form>
           {pickerOpen && token && (
-            <ReportDocumentPicker token={token} year={input.year} initialKind={pickerKind} initialSelection={selection} onClose={closePicker} onApply={applyDocuments} />
+            <ReportDocumentPicker token={token} year={input.year} semester={input.semester} initialKind={pickerKind} initialSelection={selection} onClose={closePicker} onApply={applyDocuments} />
           )}
           <Dialog open={confirm} onOpenChange={(open) => { if (!pending) setConfirm(open); }}>
             <DialogContent className="sm:max-w-3xl">

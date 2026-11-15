@@ -41,6 +41,7 @@ export interface PlanningObjectiveCompatibilityItem {
 }
 
 export interface PlanningObjectiveCompatibilityResponse {
+  periods: string[];
   data: PlanningObjectiveCompatibilityItem[];
   total: number;
   page: number;

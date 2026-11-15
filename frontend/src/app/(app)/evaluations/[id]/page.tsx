@@ -1,5 +1,7 @@
 "use client";
 
+import { EvaluationAnswerField } from "@/components/evaluation/evaluation-answer-field";
+import { FieldErrorMessage } from "@/components/shared/design-system/fields/field-error-message";
 import { BoundProfilePeriodNotice } from "@/components/upr/bound-profile-period-notice";
 
 import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
@@ -31,7 +33,8 @@ import {
   updateEvaluation,
 } from "@/lib/api/evaluations";
 import { listAllOrganizations, type OrganizationListItem } from "@/lib/api/organizations";
-import { evaluationStatusLabel, isEvaluationEditable } from "@/lib/evaluations";
+import { canWriteInOrg } from "@/lib/auth-helpers";
+import { evaluationStatusLabel, isEvaluationEditable, validateEvaluationFinalization } from "@/lib/evaluations";
 import { Badge } from "@/components/ui/badge";
 import type { BadgeVariant } from "@/components/ui/badge";
 import {
@@ -51,7 +54,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { FormPage } from "@/components/shared/form-shell";
 import {
@@ -189,13 +191,14 @@ function updateItemField(
 export default function EvaluationDetailPage() {
   const params = useParams<{ id: string }>();
   const evaluationId = params?.id;
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [evaluation, setEvaluation] = useState<Evaluation | null>(null);
   const [organizations, setOrganizations] = useState<OrganizationListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [savingAction, setSavingAction] = useState<
     "save" | "finalize" | "reopen" | "download" | null
   >(null);
+  const [validationAttempted, setValidationAttempted] = useState(false);
   const [showFinalizeConfirm, setShowFinalizeConfirm] = useState(false);
 
   useEffect(() => {
@@ -230,7 +233,8 @@ export default function EvaluationDetailPage() {
     () => new Map(organizations.map((org) => [org.id, org])),
     [organizations],
   );
-  const editable = evaluation ? isEvaluationEditable(evaluation) : false;
+  const canManage = !!evaluation && canWriteInOrg(user, evaluation.organizationId);
+  const editable = canManage && !!evaluation && isEvaluationEditable(evaluation);
   const evaluationSections = evaluation?.sections ?? [];
   const totalItems = evaluationSections.reduce(
     (count, section) => count + (section.items?.length ?? 0),
@@ -248,7 +252,7 @@ export default function EvaluationDetailPage() {
   }, []);
 
   useEffect(() => {
-    if (!evaluation || organizations.length === 0) {
+    if (!editable || !evaluation || organizations.length === 0) {
       return;
     }
 
@@ -274,10 +278,10 @@ export default function EvaluationDetailPage() {
     if (Object.keys(nextPatch).length > 0) {
       patchEvaluation(nextPatch);
     }
-  }, [evaluation, organizationById, organizations.length, patchEvaluation]);
+  }, [editable, evaluation, organizationById, organizations.length, patchEvaluation]);
 
   const handleSave = useCallback(async () => {
-    if (!token || !evaluation) {
+    if (!editable || !token || !evaluation) {
       toast.error("Data evaluasi belum tersedia.");
       return;
     }
@@ -293,13 +297,37 @@ export default function EvaluationDetailPage() {
     } finally {
       setSavingAction(null);
     }
-  }, [token, evaluation]);
+  }, [editable, token, evaluation]);
+
+  const validateFinalization = useCallback(() => {
+    if (!evaluation) return false;
+    setValidationAttempted(true);
+    const { unansweredItemIds, message } = validateEvaluationFinalization(evaluation);
+    if (!message) return true;
+    toast.error(message);
+    requestAnimationFrame(() => {
+      // Reapply the attribute so shared MotionFeedback can replay on repeated attempts.
+      unansweredItemIds.forEach((id) => {
+        document.getElementById(`evaluation-answer-${id}`)?.setAttribute("aria-invalid", "true");
+      });
+      const first = document.getElementById(`evaluation-answer-${unansweredItemIds[0]}`);
+      first?.focus({ preventScroll: true });
+      first?.scrollIntoView({ block: "center", behavior: "instant" });
+    });
+    return false;
+  }, [evaluation]);
+
+  const requestFinalize = useCallback(() => {
+    if (editable && validateFinalization()) setShowFinalizeConfirm(true);
+  }, [editable, validateFinalization]);
 
   const handleFinalize = async () => {
-    if (!token || !evaluation) {
+    if (!editable || !token || !evaluation) {
       toast.error("Data evaluasi belum tersedia.");
       return;
     }
+
+    if (!validateFinalization()) return;
 
     setSavingAction("finalize");
     try {
@@ -316,7 +344,7 @@ export default function EvaluationDetailPage() {
   };
 
   const handleReopen = useCallback(async () => {
-    if (!token || !evaluation) {
+    if (!canManage || !token || !evaluation) {
       toast.error("Data evaluasi belum tersedia.");
       return;
     }
@@ -332,7 +360,7 @@ export default function EvaluationDetailPage() {
     } finally {
       setSavingAction(null);
     }
-  }, [token, evaluation]);
+  }, [canManage, token, evaluation]);
 
   const handleDownload = useCallback(async () => {
     if (!token || !evaluation) {
@@ -388,12 +416,12 @@ export default function EvaluationDetailPage() {
               <Download className="size-3.5" />
               Unduh PDF
             </DropdownMenuItem>
-          ) : (
+          ) : canManage ? (
             <DropdownMenuItem onClick={() => void handleReopen()} disabled={savingAction !== null}>
               <RefreshCw className="size-3.5" />
               Buka kembali
             </DropdownMenuItem>
-          )}
+          ) : null}
           <DropdownMenuItem onClick={() => void handleCopyEvaluationId()}>
             <Copy className="size-3.5" />
             Salin ID evaluasi
@@ -421,7 +449,7 @@ export default function EvaluationDetailPage() {
                 <Send className="size-3.5" />
               )
             }
-            onClick={() => setShowFinalizeConfirm(true)}
+            onClick={requestFinalize}
             disabled={savingAction !== null}
           >
             Finalisasi
@@ -439,7 +467,7 @@ export default function EvaluationDetailPage() {
         </AccentButton>
       )}
     </>
-  ), [editable, savingAction, handleCopyEvaluationId, handleDownload, handleReopen, handleSave]);
+  ), [canManage, editable, savingAction, handleCopyEvaluationId, handleDownload, handleReopen, handleSave, requestFinalize]);
 
   useEffect(() => {
     if (!showHeaderActions) return;
@@ -468,6 +496,10 @@ export default function EvaluationDetailPage() {
       </div>
     );
   }
+
+  const finalizationErrors = validationAttempted && editable
+    ? validateEvaluationFinalization(evaluation)
+    : null;
 
   const orgName =
     organizationNameById.get(evaluation.organizationId) ?? evaluation.organizationId;
@@ -543,6 +575,7 @@ export default function EvaluationDetailPage() {
           id="hasil-evaluasi"
           title="Hasil Pemantauan dan Evaluasi"
         >
+          <FieldErrorMessage>{finalizationErrors?.message}</FieldErrorMessage>
           {evaluationSections.length === 0 ? (
             <FormGroup>
               <IllustratedEmptyState
@@ -585,46 +618,35 @@ export default function EvaluationDetailPage() {
                       description={item.description}
                       promptId={`evaluation-prompt-${item.id}`}
                       answer={
-                        <>
-                          <Label htmlFor={`evaluation-answer-${item.id}`} className="text-sm font-normal text-foreground">
-                            Jawaban
-                          </Label>
-                          <Select
-                            value={item.answer}
-                            onValueChange={(value) => {
-                              setEvaluation((current) =>
-                                current
-                                  ? {
-                                      ...current,
-                                      sections: updateSectionField(
-                                        current.sections,
-                                        sectionIndex,
-                                        {
-                                          items: updateItemField(
-                                            current.sections[sectionIndex].items,
-                                            itemIndex,
-                                            {
-                                              answer: value as EvaluationItem["answer"],
-                                            },
-                                          ),
-                                        },
-                                      ),
-                                    }
-                                  : current,
-                              );
-                            }}
-                            disabled={!editable}
-                          >
-                            <SelectTrigger id={`evaluation-answer-${item.id}`} aria-describedby={`evaluation-prompt-${item.id}`} className="w-full">
-                              <SelectValue placeholder="Ya/Tidak" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="unset">Belum diisi</SelectItem>
-                              <SelectItem value="yes">Ya</SelectItem>
-                              <SelectItem value="no">Tidak</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </>
+                        <EvaluationAnswerField
+                          id={`evaluation-answer-${item.id}`}
+                          promptId={`evaluation-prompt-${item.id}`}
+                          invalid={finalizationErrors?.unansweredItemIds.includes(item.id)}
+                          value={item.answer}
+                          onValueChange={(value) => {
+                            setEvaluation((current) =>
+                              current
+                                ? {
+                                    ...current,
+                                    sections: updateSectionField(
+                                      current.sections,
+                                      sectionIndex,
+                                      {
+                                        items: updateItemField(
+                                          current.sections[sectionIndex].items,
+                                          itemIndex,
+                                          {
+                                            answer: value,
+                                          },
+                                        ),
+                                      },
+                                    ),
+                                  }
+                                : current,
+                            );
+                          }}
+                          disabled={!editable}
+                        />
                       }
                     >
                       <div className="space-y-2">

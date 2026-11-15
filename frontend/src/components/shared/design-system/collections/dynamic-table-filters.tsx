@@ -1,6 +1,8 @@
 "use client";
 
-import { useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useOrganizationFilterAccess } from "@/hooks/use-organization-filter";
+import { visibleOrganizationFilterFields } from "@/lib/organization-filter";
 import { Check, ChevronDown, Filter, Plus, Search, XCircle } from "@/components/shared/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -93,7 +95,8 @@ function FilterChip({ field, disabled, open, onOpenChange, onRemove }: FilterChi
   );
 }
 
-export function DynamicTableFilters({ search, columns, fields, className, triggerLabel, disabled = false }: {
+export function DynamicTableFilters({ search, columns, fields: configuredFields, organizationFilterVisible, className, triggerLabel, disabled = false }: {
+  organizationFilterVisible?: boolean;
   disabled?: boolean;
   search?: ReactNode;
   columns?: ReactNode;
@@ -101,6 +104,19 @@ export function DynamicTableFilters({ search, columns, fields, className, trigge
   fields: readonly TableFilterField[];
   className?: string;
 }) {
+  const { hasChildren, ready, ownOrganizationId } = useOrganizationFilterAccess();
+  const fields = visibleOrganizationFilterFields(configuredFields, organizationFilterVisible ?? hasChildren);
+  useEffect(() => {
+    if (organizationFilterVisible !== undefined || !ready || hasChildren || !ownOrganizationId) return;
+    for (const field of configuredFields) {
+      if (!field.organizationScope) continue;
+      const values = field.value.split(",").filter(Boolean);
+      const invalid = values.some((value) => value !== "all" && value !== ownOrganizationId);
+      if (invalid || (field.required && (!field.value || field.value === "all"))) {
+        field.onChange(field.required ? ownOrganizationId : filterDefault(field));
+      }
+    }
+  }, [configuredFields, hasChildren, organizationFilterVisible, ownOrganizationId, ready]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerQuery, setPickerQuery] = useState("");
   const [pendingId, setPendingId] = useState<string | null>(null);

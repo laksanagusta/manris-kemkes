@@ -23,6 +23,8 @@ type ListOrganizationsWithFilterInput struct {
 	Limit      int
 	Q          string
 	AncestorID *uuid.UUID
+	UPRLevel   string
+	Structure  string
 }
 
 type ListOrganizationsWithFilterOutput struct {
@@ -46,6 +48,8 @@ func (uc *ListOrganizationsWithFilterUseCase) Execute(ctx context.Context, input
 		Limit:      input.Limit,
 		Q:          input.Q,
 		AncestorID: input.AncestorID,
+		UPRLevel:   input.UPRLevel,
+		Structure:  input.Structure,
 	})
 	if err != nil {
 		return nil, err

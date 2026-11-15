@@ -1,5 +1,6 @@
 "use client";
 
+import { FieldHeading } from "@/components/ui/field";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, Save } from "@/components/shared/icons";
@@ -245,11 +246,18 @@ export default function NewUserPage() {
               onChange={(event) => setPhoneNumber(event.target.value)}
             />
           </div>
-          <div className="space-y-1.5">
-            <Label className="text-sm font-medium">
-              Password sementara
-              <span className="ml-0.5 text-destructive">*</span>
-            </Label>
+          <div className="space-y-2">
+            <FieldHeading>
+              <Label className="text-sm font-medium">
+                Password sementara
+                <span className="ml-0.5 text-destructive">*</span>
+              </Label>
+              <p className="text-xs leading-4 text-muted-foreground">
+                Bagikan password sementara ini secara manual. Setelah login
+                pertama, pengguna wajib mengganti password dan status akun baru
+                berubah menjadi aktif.
+              </p>
+            </FieldHeading>
             <Input
               type="password"
               placeholder="Minimal 8 karakter untuk login pertama"
@@ -257,11 +265,6 @@ export default function NewUserPage() {
               value={password}
               onChange={(event) => setPassword(event.target.value)}
             />
-            <p className="text-xs leading-5 text-muted-foreground">
-              Bagikan password sementara ini secara manual. Setelah login
-              pertama, pengguna wajib mengganti password dan status akun baru
-              berubah menjadi aktif.
-            </p>
           </div>
         </div>
       </FormSection>

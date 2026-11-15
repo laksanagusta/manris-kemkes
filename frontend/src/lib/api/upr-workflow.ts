@@ -21,6 +21,8 @@ export type AnnualPickupRisk = {
   code: string;
   title: string;
   period: string;
+  assessmentDate: string | null;
+  category: string;
   score: number | null;
   unavailable: string;
 };
@@ -71,6 +73,7 @@ export type AnnualCandidate = {
 };
 
 export type AnnualProfile = {
+  organizationId?: string;
   versions: AnnualVersion[];
   selected: AnnualVersion | null;
   members: AnnualMember[];
@@ -131,6 +134,37 @@ export type ReportWorkspace = {
   recipient: string | null;
 };
 
+export type ReportCollectionRow = {
+  id: string;
+  draft: boolean;
+  title: string;
+  period: string;
+  status: "draft" | "accepted" | "changes_requested" | "sent" | "final";
+  unit: string;
+  version: number | null;
+  time: string | null;
+};
+
+export type ReportCollectionPage = {
+  items: ReportCollectionRow[];
+  total: number;
+  page: number;
+  limit: number;
+  periods: string[];
+  hasChildren: boolean;
+};
+
+export type ReportCollectionQuery = {
+  q?: string;
+  organizationId?: string;
+  period?: string;
+  status?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
+  page: number;
+  limit: number;
+};
+
 export type SemesterInput = {
   year: number;
   semester: number;
@@ -167,9 +201,11 @@ export type ReportDocumentOption = {
   code: string;
   documentDate: string | null;
   finalizedAt: string | null;
+  period?: string;
 };
 
 export type ReportDraft = {
+  organizationId?: string;
   id: string;
   input: ReportDraftInput;
   revision: number;
@@ -320,14 +356,26 @@ export const uprApi = {
       token,
     ),
   workspace: (token: string) => api.get<ReportWorkspace>("/upr-reports?include_sources=false", token),
-  searchReportDocuments: (token: string, kind: ReportDocumentKind, year: number, query: string, page: number, signal: AbortSignal) => {
-    const params = new URLSearchParams({ kind, year: String(year), q: query, page: String(page) });
+  reportCollection: (token: string, query: ReportCollectionQuery, signal?: AbortSignal) => {
+    const params = new URLSearchParams({
+      view: "collection", page: String(query.page), limit: String(query.limit),
+    });
+    if (query.q) params.set("q", query.q);
+    if (query.organizationId) params.set("organization_id", query.organizationId);
+    if (query.period) params.set("period", query.period);
+    if (query.status) params.set("status", query.status);
+    if (query.sortBy) params.set("sort_by", query.sortBy);
+    if (query.sortOrder) params.set("sort_order", query.sortOrder);
+    return api.get<ReportCollectionPage>(`/upr-reports?${params}`, token, { signal });
+  },
+  searchReportDocuments: (token: string, kind: ReportDocumentKind, year: number, semester: number, query: string, page: number, signal: AbortSignal) => {
+    const params = new URLSearchParams({ kind, year: String(year), semester: String(semester), q: query, page: String(page) });
     return api.get<{ items: ReportDocumentOption[]; hasMore: boolean }>(
       `/upr-report-drafts/documents?${params}`, token, { signal },
     );
   },
-  selectedReportDocuments: (token: string, year: number, ids: string[]) =>
-    api.post<ReportDocumentOption[]>("/upr-report-drafts/documents/selected", { year, ids }, token),
+  selectedReportDocuments: (token: string, year: number, semester: number, ids: string[], organizationId?: string) =>
+    api.post<ReportDocumentOption[]>("/upr-report-drafts/documents/selected", { year, semester, ids, organizationId }, token),
   reportDraft: (token: string, id: string) =>
     api.get<ReportDraft>(`/upr-report-drafts/${id}`, token),
   createReportDraft: (token: string, input: ReportDraftInput) =>

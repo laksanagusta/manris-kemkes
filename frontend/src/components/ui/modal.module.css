@@ -1,5 +1,5 @@
 .content:not([data-settings-workspace]) {
-  width: 546px;
+  width: var(--dialog-width, 546px);
   min-width: 0;
   max-width: calc(100vw - 1.25rem);
   --modal-inset: 20px;

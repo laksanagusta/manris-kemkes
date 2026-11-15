@@ -274,6 +274,7 @@ func rosterPreviewQuery() string {
 			JOIN eligible_versions ev ON ev.version_group_id = rm.version_group_id
 			WHERE rm.assessment_cycle = $2
 			  AND rm.status IN ('draft', 'final')
+			  AND rm.transaction_kind = 'monitoring'
               ORDER BY rm.version_group_id,(rm.status='final') DESC,rm.observed_at DESC,rm.finalized_at DESC NULLS LAST,rm.updated_at DESC,rm.id DESC
 		),
 		result_versions AS (
@@ -326,7 +327,7 @@ const profileRosterQuery = `
    SELECT rm.id,rm.assessment_cycle,rm.status,rm.result_risk_id,rm.observed_at
    FROM risk_monitorings rm
    WHERE rm.version_group_id=m.version_group_id AND rm.observed_at BETWEEN m.effective_from AND $3::date
-     AND rm.status IN ('draft','final') AND rm.superseded_by_monitoring_id IS NULL
+     AND rm.transaction_kind='monitoring' AND rm.status IN ('draft','final') AND rm.superseded_by_monitoring_id IS NULL
      AND (p.monitoring_rule_id IS NULL OR (rm.profile_version_id IN (SELECT ap.id FROM annual_risk_profile_versions ap WHERE ap.organization_id=p.organization_id AND ap.year=p.year) AND rm.monitoring_period_id=$4::uuid))
    ORDER BY (rm.status='final') DESC,rm.observed_at DESC,rm.finalized_at DESC NULLS LAST,rm.id DESC
    LIMIT 1
@@ -599,6 +600,7 @@ func (r *workingPaperRepository) ListSigningBlockers(ctx context.Context, workin
 			WHERE monitoring_source.version_group_id = COALESCE(wpr.version_group_id, source.version_group_id)
 			  AND `+workingPaperObservationScopeSQL+`
 			  AND rm.status IN ('draft', 'final')
+			  AND rm.transaction_kind = 'monitoring'
 			ORDER BY CASE rm.status WHEN 'final' THEN 0 ELSE 1 END, rm.observed_at DESC, rm.finalized_at DESC NULLS LAST, rm.updated_at DESC, rm.id DESC
 			LIMIT 1
 		) monitoring ON TRUE

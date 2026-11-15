@@ -32,7 +32,7 @@ func (r *riskRepository) ResolveMonitoringSource(ctx context.Context, groupID uu
 }
 
 func (r *riskMonitoringRepository) GetOpenDraftByVersionGroup(ctx context.Context, groupID uuid.UUID) (*entity.RiskMonitoring, error) {
-	monitoring, err := scanRiskMonitoring(r.pool.QueryRow(ctx, baseRiskMonitoringSelect()+` WHERE rm.version_group_id=$1 AND rm.status='draft' ORDER BY rm.created_at DESC,rm.id DESC LIMIT 1`, groupID))
+	monitoring, err := scanRiskMonitoring(r.pool.QueryRow(ctx, baseRiskMonitoringSelect()+` WHERE rm.version_group_id=$1 AND rm.status='draft' AND rm.transaction_kind='monitoring' ORDER BY rm.created_at DESC,rm.id DESC LIMIT 1`, groupID))
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
 	}

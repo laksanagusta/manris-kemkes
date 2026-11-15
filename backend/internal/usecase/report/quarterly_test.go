@@ -107,3 +107,37 @@ func TestQuarterlySnapshotHashTracksContentAndReportingDate(t *testing.T) {
 		t.Fatal("reporting-date changes must invalidate deadline state even when no updated_at changes")
 	}
 }
+
+type quarterlyProfileStub struct{ profiles []entity.UnitProgressProfile }
+
+func (r quarterlyProfileStub) ListUnitProgressProfiles(context.Context, []uuid.UUID) ([]entity.UnitProgressProfile, error) {
+	return r.profiles, nil
+}
+func TestQuarterlyReportConfiguredProfilePeriod(t *testing.T) {
+	rule, first, second := uuid.New(), uuid.New(), uuid.New()
+	profile := entity.UnitProgressProfile{ID: rule.String(), Year: 2026, RuleID: &rule, Frequency: "semester", Periods: []entity.MonitoringRulePeriod{
+		{ID: first, Label: "Semester I", Ordinal: 1, OpensOn: "2026-07-01", ClosesOn: "2026-07-31"},
+		{ID: second, Label: "Semester II", Ordinal: 2, OpensOn: "2027-01-01", ClosesOn: "2027-01-31"},
+	}}
+	repo := &quarterlyRepoStub{period: &entity.QuarterlyReportPeriodData{}}
+	uc := NewQuarterlyReportUseCase(repo, quarterlyProfileStub{[]entity.UnitProgressProfile{profile}})
+	result, err := uc.Execute(context.Background(), QuarterlyReportInput{ProfileID: rule.String(), PeriodID: second.String()})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Cycle != "2026 · Semester II" || result.ComparisonCycle != "2026 · Semester I" || repo.starts[0].Format(time.DateOnly) != "2026-07-01" || repo.starts[1].Format(time.DateOnly) != "2026-01-01" {
+		t.Fatalf("wrong calendar periods: %+v %+v", result, repo.starts)
+	}
+	explicit, err := uc.Execute(context.Background(), QuarterlyReportInput{ProfileID: rule.String(), PeriodID: first.String(), ComparisonPeriodID: second.String()})
+	if err != nil || explicit.ComparisonCycle != "2026 · Semester II" {
+		t.Fatalf("explicit rules comparator ignored: %+v %v", explicit, err)
+	}
+	if _, err := uc.Execute(context.Background(), QuarterlyReportInput{ProfileID: rule.String(), PeriodID: first.String(), ComparisonPeriodID: uuid.NewString()}); !errors.Is(err, domainerrors.ErrInvalidInput) {
+		t.Fatalf("cross-rule comparator accepted: %v", err)
+	}
+	for _, input := range []QuarterlyReportInput{{ProfileID: rule.String(), PeriodID: uuid.NewString()}, {ProfileID: uuid.NewString(), PeriodID: second.String()}, {PeriodID: second.String()}, {ProfileID: rule.String()}} {
+		if _, err := uc.Execute(context.Background(), input); !errors.Is(err, domainerrors.ErrInvalidInput) {
+			t.Fatalf("invalid rule/period accepted: %+v %v", input, err)
+		}
+	}
+}

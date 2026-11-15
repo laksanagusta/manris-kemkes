@@ -11,6 +11,10 @@ import (
 
 type fakePlanningHierarchyRepoCompat struct{}
 
+func (f fakePlanningHierarchyRepoCompat) ListCompatibilityPeriods(context.Context, *uuid.UUID) ([]string, error) {
+	return []string{"2027"}, nil
+}
+
 func (f fakePlanningHierarchyRepoCompat) ListROOptions(context.Context, repository.PlanningROOptionFilter) ([]entity.PlanningROOption, error) {
 	return nil, nil
 }

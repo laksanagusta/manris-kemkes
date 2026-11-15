@@ -55,7 +55,7 @@ export function EvaluationFiltersToolbar({
       }
       fields={[
         {
-          id: "organization",
+          id: "organization", organizationScope: true,
           label: "Organisasi",
           value: organizationId,
           onChange: onOrganizationIdChange,

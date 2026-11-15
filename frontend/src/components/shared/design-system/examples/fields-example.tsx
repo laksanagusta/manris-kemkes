@@ -1,5 +1,6 @@
 "use client";
 
+import { FieldHeading } from "@/components/ui/field";
 import { useState } from "react";
 
 import {
@@ -20,10 +21,15 @@ export function FieldsExample() {
   return (
     <div className="grid gap-4 rounded-(--surface-radius) bg-card p-4 shadow-black md:grid-cols-3">
       <div className="space-y-2">
-        <Label htmlFor="design-system-field-input">
-          Input
-          <span className="ml-0.5 text-destructive">*</span>
-        </Label>
+        <FieldHeading>
+          <Label htmlFor="design-system-field-input">
+            Input
+            <span className="ml-0.5 text-destructive">*</span>
+          </Label>
+          <p className="leading-4 text-xs text-muted-foreground">
+            40px · 8px radius · blur field kosong untuk melihat validasi
+          </p>
+        </FieldHeading>
         <Input
           id="design-system-field-input"
           placeholder="Nama risiko"
@@ -38,13 +44,16 @@ export function FieldsExample() {
         <FieldErrorMessage id="design-system-field-input-error">
           {riskNameError}
         </FieldErrorMessage>
-        <p className="text-xs text-muted-foreground">
-          40px · 8px radius · blur field kosong untuk melihat validasi
-        </p>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="design-system-field-select">Popover select</Label>
+        <FieldHeading>
+          <Label htmlFor="design-system-field-select">Popover select</Label>
+          <p className="leading-4 text-xs text-muted-foreground">
+            Shared option field dengan tinggi, radius, border, dan motion chevron
+            yang sama seperti form Risiko dan filter periode
+          </p>
+        </FieldHeading>
         <PopoverSelectField
           id="design-system-field-select"
           value={status}
@@ -55,34 +64,44 @@ export function FieldsExample() {
           ]}
           placeholder="Pilih status"
         />
-        <p className="text-xs text-muted-foreground">
-          Shared option field dengan tinggi, radius, border, dan motion chevron
-          yang sama seperti form Risiko dan filter periode
-        </p>
       </div>
 
       <div className="space-y-2 md:col-span-3 lg:col-span-1">
-        <Label htmlFor="design-system-field-textarea">Textarea</Label>
+        <FieldHeading>
+          <Label htmlFor="design-system-field-textarea">Textarea</Label>
+          <p className="leading-4 text-xs text-muted-foreground">
+            Surface solid dan state interaksi yang sama
+          </p>
+        </FieldHeading>
         <Textarea
           id="design-system-field-textarea"
           className=""
           placeholder="Catatan tambahan"
         />
-        <p className="text-xs text-muted-foreground">
-          Surface solid dan state interaksi yang sama
-        </p>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="design-system-field-disabled">Disabled</Label>
+        <FieldHeading>
+          <Label htmlFor="design-system-field-disabled">Disabled</Label>
+          <p className="leading-4 text-xs text-muted-foreground">
+            Surface disabled ringan · #f8f8f8 · opacity 100%
+          </p>
+        </FieldHeading>
         <Input
           id="design-system-field-disabled"
           defaultValue="Read-only value"
           disabled
         />
-        <p className="text-xs text-muted-foreground">
-          Surface disabled ringan · #f8f8f8 · opacity 100%
-        </p>
+      </div>
+      <div className="min-w-0 space-y-2">
+        <FieldHeading>
+          <Label htmlFor="design-system-field-long-instruction">Catatan pengamatan risiko lintas unit</Label>
+          <p id="design-system-field-long-instruction-help" className="text-xs text-muted-foreground">
+            Jelaskan kondisi yang diamati, unit yang terlibat, dan tindak lanjut yang diperlukan.
+            Instruksi panjang tetap membungkus di dalam kolom dan menyatu dengan label.
+          </p>
+        </FieldHeading>
+        <Textarea id="design-system-field-long-instruction" aria-describedby="design-system-field-long-instruction-help" placeholder="Tulis hasil pengamatan" />
       </div>
     </div>
   );

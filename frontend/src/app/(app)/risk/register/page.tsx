@@ -1,4 +1,6 @@
 "use client";
+import { useOrganizationFilter } from "@/hooks/use-organization-filter";
+import type { TableFilterField } from "@/components/shared/design-system/collections/dynamic-table-filter-state";
 import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import { businessNow } from "@/lib/business-clock";
 import { MonitoringDateField } from "@/components/shared/design-system/domain/monitoring-date-field";
@@ -163,6 +165,7 @@ function getRiskRegisterPeriodOptions(selectedCycle: string) {
 type RiskListItem = RiskRegisterListItem;
 
 type RiskRegisterFilterToolbarProps = {
+  organizationField?: TableFilterField;
   columns: ReactNode;
   search: string;
   onSearchChange: (value: string) => void;
@@ -186,6 +189,7 @@ type RiskRegisterFilterToolbarProps = {
 };
 
 function RiskRegisterFilterToolbar({
+  organizationField,
   columns,
   search,
   onSearchChange,
@@ -220,6 +224,7 @@ function RiskRegisterFilterToolbar({
         />
       }
       fields={[
+        ...(organizationField ? [organizationField] : []),
         {
           id: "status",
           label: "Status risiko",
@@ -369,7 +374,7 @@ function getRegisterRiskDisplay(risk: RiskListItem) {
         : statusLabel[risk.status || ""] ||
           risk.status ||
           "-";
-  const riskScore = risk.nilai ?? risk.inherentScore;
+  const riskScore = risk.currentAssessment?.nilai ?? risk.nilai ?? risk.inherentScore;
   const riskLevel =
     riskScore == null
       ? null
@@ -515,6 +520,7 @@ export default function RiskRegisterPage() {
   const tableSorting:CollectionSortControls = {columns:Object.keys(sortFields),key:Object.keys(sortFields).find(label=>sortFields[label]===sortBy)??"Dibuat",direction:sortOrder,onChange(label){
     const key=sortFields[label]; setSortBy(key); setSortOrder(sortBy===key?(sortOrder==="asc"?"desc":"asc"):(key==="created_at"||key==="nilai"?"desc":"asc"));setPage(1);
   }};
+  const organizationFilter = useOrganizationFilter(() => setPage(1));
   const deferredSearch = useDeferredValue(search);
   const deferredAssessmentCycleFilter = useDeferredValue(assessmentCycleFilter);
 
@@ -542,6 +548,7 @@ export default function RiskRegisterPage() {
 
     const [allRisksResponse, draftRisks] = await Promise.all([
       listRiskRegister(activeToken, {
+        org_id: organizationFilter.organizationId === "all" ? undefined : organizationFilter.organizationId,
         q: normalizedSearch || undefined,
         lifecycle: lifecycleFilter,
         profile: profileFilter,
@@ -566,6 +573,7 @@ export default function RiskRegisterPage() {
     setLimit(allRisksResponse.limit ?? limit);
 
   }, [
+    organizationFilter.organizationId,
     search,
     assessmentCycleFilter,
     createdAtFilter,
@@ -586,6 +594,7 @@ export default function RiskRegisterPage() {
     setExporting(true);
     // Capture filters before awaiting so pagination and detail requests use one scope.
     const filters = {
+      org_id: organizationFilter.organizationId === "all" ? undefined : organizationFilter.organizationId,
       q: search.trim() || undefined,
       lifecycle: lifecycleFilter,
       profile: profileFilter,
@@ -1047,6 +1056,7 @@ export default function RiskRegisterPage() {
           wrapActions
           leading={
             <RiskRegisterFilterToolbar
+              organizationField={organizationFilter.field}
               columns={<CollectionColumnPicker {...columnPicker} />}
               search={search}
               onSearchChange={handleRegisterSearchChange}

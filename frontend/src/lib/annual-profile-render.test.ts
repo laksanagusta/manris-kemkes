@@ -29,6 +29,7 @@ const props: AnnualProfileContentProps = {
   onSave: async () => undefined,
   onRemove: async () => undefined,
   onFinalize: async () => undefined,
+  onDeleteDraft: async () => undefined,
 };
 
 test("empty draft omits the finalize helper and keeps the table empty state", () => {
@@ -84,4 +85,11 @@ test("revision shows the previous final version and the incomplete risk's work",
   assert.match(html, /0 dari 1 risiko siap/);
   assert.match(html, /Penilaian belum final/);
   assert.match(html, /aria-label="Opsi untuk R-001"/);
+});
+
+
+test("parent read-only preview preserves draft status and omits child mutations", () => {
+  const html = renderToStaticMarkup(createElement(AnnualProfileContent, { ...props, readOnly: true }));
+  assert.match(html, /Draf/);
+  assert.doesNotMatch(html, /Hapus draf|Buat Baru|Buat revisi|Lanjutkan revisi|Finalisasi profil/);
 });

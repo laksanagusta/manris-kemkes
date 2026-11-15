@@ -1,32 +1,34 @@
 "use client";
 
+import { MitigationProgressIndicator } from "@/components/shared/design-system/domain/mitigation-progress-indicator";
+
+import { RiskTransactionBadge } from "@/components/shared/design-system/domain/risk-transaction-badge";
+
 
 import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
 import { createDisplayDateFormatter } from "@/lib/display-date";
-import { useCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
-import { sortDate } from "@/lib/collection-sort";
+import { useRemoteCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useState } from "react";
 import { RiskTableIdentity } from "@/components/shared/design-system/domain/risk-table-identity";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   listAllOrganizations,
   type OrganizationListItem,
 } from "@/lib/api/organizations";
-import { listAllRiskMonitoringsForCycle } from "@/lib/api/risk-monitoring";
+import { listRiskMonitorings } from "@/lib/api/risk-monitoring";
 import { useAuth } from "@/contexts/auth-context";
 import { filterToAccessibleOrgs } from "@/lib/organization";
 import {
   buildMonitoringQueryString,
   buildMonitoringTransactionRows,
-  filterMonitoringRows,
+  getOrganizationScopeIds,
   getMonitoringStatusLabel,
   parseMonitoringQueryState,
   type MonitoringOverviewRow,
   type MonitoringStatusFilter,
 } from "@/lib/monitoring-overview";
 import {
-  currentMonitoringCycle,
   getAssessmentCycleFilterOptions,
 } from "@/lib/risk-cycle-options";
 import {
@@ -82,58 +84,6 @@ function getActionHref(row: MonitoringOverviewRow) {
     : `/risk/register/${row.sourceRiskId}`;
 }
 
-function MitigationProgressIndicator({
-  riskTitle,
-  value,
-}: {
-  riskTitle: string;
-  value: number;
-}) {
-  const normalizedValue = Number.isFinite(value) ? value : 0;
-  const percent = Math.min(100, Math.max(0, Math.round(normalizedValue)));
-  const radius = 7.5;
-  const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference * (1 - percent / 100);
-
-  return (
-    <div
-      className="flex min-w-0 items-center gap-2"
-      role="img"
-      aria-label={`Progres penanganan ${riskTitle}: ${percent}%`}
-    >
-      <svg
-        aria-hidden="true"
-        viewBox="0 0 18 18"
-        className="size-[18px] shrink-0"
-      >
-        <circle
-          cx="9"
-          cy="9"
-          r={radius}
-          fill="none"
-          stroke="var(--muted)"
-          strokeWidth="2"
-        />
-        <circle
-          cx="9"
-          cy="9"
-          r={radius}
-          fill="none"
-          stroke="currentColor"
-          strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
-          strokeLinecap="round"
-          strokeWidth="2"
-          transform="rotate(-90 9 9)"
-          className="text-violet-400"
-        />
-      </svg>
-      <span className="text-sm leading-5 font-medium tabular-nums text-foreground">
-        {percent}%
-      </span>
-    </div>
-  );
-}
 
 
 export function MonitoringReadOnlyWorkspace() {
@@ -141,7 +91,6 @@ export function MonitoringReadOnlyWorkspace() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { token, user } = useAuth();
-  const requestSequence=useRef(0);
   const cycleOptions = useMemo(
     () => getAssessmentCycleFilterOptions(undefined, searchParams.get("cycle") === "all" ? "" : searchParams.get("cycle") || ""),
     [searchParams],
@@ -156,11 +105,15 @@ export function MonitoringReadOnlyWorkspace() {
   const [cycle, setCycle] = useState(initialQuery.cycle);
   const [organizationId, setOrganizationId] = useState(initialQuery.organizationId);
   const [page, setPage] = useState(initialQuery.page);
-  const [limit, setLimit] = useState(initialQuery.limit);
-  const [rows, setRows] = useState<MonitoringOverviewRow[]>([]);
+  const [limit, setLimit] = useState(Math.min(100, initialQuery.limit));
+  const [pageRows, setPageRows] = useState<MonitoringOverviewRow[]>([]);
+  const [total, setTotal] = useState(0);
+  const [summary, setSummary] = useState<{ draft: number; final: number } | null>(null);
+  const [revision, setRevision] = useState(0);
+  const [organizationsReady, setOrganizationsReady] = useState(false);
+  const [organizationError, setOrganizationError] = useState<string | null>(null);
   const [organizations, setOrganizations] = useState<OrganizationListItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const accessibleOrganizations = useMemo(() => {
@@ -175,78 +128,99 @@ export function MonitoringReadOnlyWorkspace() {
     return user?.organizationId
       ? filterToAccessibleOrgs(accessibleOrganizations, [user.organizationId])
       : [];
-  }, [accessibleOrganizations, user?.isGlobal, user?.organizationId]);
+  }, [accessibleOrganizations, user]);
 
-  const loadData = useCallback(
-    async (isInitialLoad = false) => {
-      if (!token) return;
-      const request=++requestSequence.current;
-
-      if (isInitialLoad) {
-        setLoading(true);
-      } else {
-        setRefreshing(true);
-      }
-      setError(null);
-
-      try {
-        const [organizationData, monitorings] = await Promise.all([
-          listAllOrganizations(token),
-          listAllRiskMonitoringsForCycle(token, cycle),
-        ]);
-        if(request!==requestSequence.current)return;
-        const scopedOrganizations = user?.isGlobal
-          ? organizationData
-          : filterToAccessibleOrgs(
-              organizationData,
-              user?.accessibleOrgIds ?? [],
-            );
-        const scopedMonitorings = user?.isGlobal
-          ? monitorings
-          : monitorings.filter((monitoring) => {
-              const organizationId =
-                monitoring.sourceRisk?.organizationId ??
-                monitoring.resultRisk?.organizationId;
-              return Boolean(
-                organizationId &&
-                  user?.accessibleOrgIds.includes(organizationId),
-              );
-            });
-
-        setOrganizations(scopedOrganizations);
-        setRows(buildMonitoringTransactionRows(scopedMonitorings, scopedOrganizations));
-      } catch (loadError) {
-        if(request!==requestSequence.current)return;
-        console.error(loadError);
-        setRows([]);
-        setOrganizations([]);
-        setError(
-          loadError instanceof Error
-            ? loadError.message
-            : "Data pemantauan belum berhasil dimuat.",
-        );
-      } finally {
-        if(request===requestSequence.current){setLoading(false);setRefreshing(false);}
-      }
-    },
-    [cycle, token, user?.accessibleOrgIds, user?.isGlobal],
-  );
+  const collectionSort = useRemoteCollectionSorting({
+    Risiko: "title",
+    Periode: "assessment_cycle",
+    Status: "status",
+    "Perubahan Skor": "score_change",
+    Level: "observed_score",
+    Penanganan: "mitigation_completion_percent",
+  }, () => setPage(1), "Tanggal Dibuat");
+  const deferredSearch = useDeferredValue(search.trim());
+  const reload = useCallback(() => setRevision((value) => value + 1), []);
 
   useEffect(() => {
-    void loadData(true);
-    const sequence=requestSequence;return()=>{sequence.current++;};
-  }, [loadData]);
+    if (!token) return;
+    let active = true;
+    setOrganizationError(null);
+    listAllOrganizations(token).then((data) => {
+      if (!active) return;
+      setOrganizations(data);
+      setOrganizationsReady(true);
+    }).catch(() => {
+      if (!active) return;
+      setOrganizationError("Cakupan organisasi belum berhasil dimuat.");
+    });
+    return () => { active = false; };
+  }, [token, revision]);
+
+  const scopedOrganizationId = useMemo(() => {
+    if (!user) return undefined;
+    if (!user.isGlobal) return user.organizationId || undefined;
+    if (organizationId === "all") return undefined;
+    if (!tableOrganizations.some((organization) => organization.id === organizationId)) return undefined;
+    return [...getOrganizationScopeIds(tableOrganizations, organizationId)].join(",");
+  }, [organizationId, tableOrganizations, user]);
+  const assessmentCycle = cycle === "all" ? undefined : cycle;
+  const canLoad = organizationsReady && !!user && (user.isGlobal || !!scopedOrganizationId);
+
+  useEffect(() => {
+    if (!token || !canLoad) return;
+    let active = true;
+    setLoading(true);
+    setError(null);
+    listRiskMonitorings(token, {
+      org_id: scopedOrganizationId,
+      assessment_cycle: assessmentCycle,
+      status: status === "finalized" ? "final" : status === "in_progress" ? "draft" : undefined,
+      q: deferredSearch || undefined,
+      sort_by: collectionSort.sortBy,
+      sort_order: collectionSort.sortOrder,
+      page,
+      limit,
+    }).then((result) => {
+      if (!active) return;
+      setTotal(result.total);
+      const lastPage = Math.max(1, Math.ceil(result.total / limit));
+      if (page > lastPage) {
+        setPage(lastPage);
+        return;
+      }
+      setPageRows(buildMonitoringTransactionRows(result.data ?? [], organizations));
+      setLoading(false);
+    }).catch(() => {
+      if (!active) return;
+      setError("Data pemantauan belum berhasil dimuat.");
+      setLoading(false);
+    });
+    return () => { active = false; };
+  }, [token, canLoad, scopedOrganizationId, assessmentCycle, status, deferredSearch, collectionSort.sortBy, collectionSort.sortOrder, page, limit, revision, organizations]);
+
+  useEffect(() => {
+    if (!token || !canLoad) return;
+    let active = true;
+    setSummary(null);
+    const params = { org_id: scopedOrganizationId, assessment_cycle: assessmentCycle, limit: 1 };
+    Promise.all([
+      listRiskMonitorings(token, { ...params, status: "draft" }),
+      listRiskMonitorings(token, { ...params, status: "final" }),
+    ]).then(([drafts, final]) => {
+      if (active) setSummary({ draft: drafts.total, final: final.total });
+    }).catch(() => {
+      if (active) setSummary(null);
+    });
+    return () => { active = false; };
+  }, [token, canLoad, scopedOrganizationId, assessmentCycle, revision]);
 
   useEffect(() => {
     const handleFocus = () => {
-      if (document.visibilityState === "visible") {
-        void loadData(false);
-      }
+      if (document.visibilityState === "visible") reload();
     };
-
     window.addEventListener("focus", handleFocus);
     return () => window.removeEventListener("focus", handleFocus);
-  }, [loadData]);
+  }, [reload]);
 
   useEffect(() => {
     const nextQuery = buildMonitoringQueryString(
@@ -272,7 +246,7 @@ export function MonitoringReadOnlyWorkspace() {
 
   useEffect(() => {
     if (
-      organizationId !== "all" &&
+      organizationsReady && organizationId !== "all" &&
       !tableOrganizations.some(
         (organization) => organization.id === organizationId,
       )
@@ -280,36 +254,7 @@ export function MonitoringReadOnlyWorkspace() {
       setOrganizationId("all");
       setPage(1);
     }
-  }, [organizationId, tableOrganizations]);
-
-  const scopedRows = useMemo(
-    () => filterMonitoringRows(rows, organizationId, tableOrganizations, "", "all"),
-    [organizationId, rows, tableOrganizations],
-  );
-  const filteredRows = useMemo(
-    () =>
-      filterMonitoringRows(
-        rows,
-        organizationId,
-        tableOrganizations,
-        search,
-        status,
-      ),
-    [organizationId, rows, search, status, tableOrganizations],
-  );
-
-  const collectionSort = useCollectionSorting(filteredRows,{Risiko:r=>r.title,Periode:r=>r.assessmentCycle,Status:r=>r.status,"Perubahan Skor":r=>r.observedScore !== null && r.sourceScore !== null ? r.observedScore-r.sourceScore : null,Level:r=>r.observedScore,"Tanggal Dibuat":r=>sortDate(r.createdAt),Penanganan:r=>r.mitigationCompletionPercent},()=>setPage(1),"Tanggal Dibuat");
-  const totalPages = Math.max(1, Math.ceil(filteredRows.length / limit));
-  const currentPage = loading || refreshing ? page : Math.min(page, totalPages);
-  const pageRows = collectionSort.rows.slice(
-    (currentPage - 1) * limit,
-    currentPage * limit,
-  );
-  const finalizedCount = scopedRows.filter((row) => row.status === "finalized").length;
-
-  useEffect(() => {
-    if (page !== currentPage) setPage(currentPage);
-  }, [currentPage, page]);
+  }, [organizationId, tableOrganizations, organizationsReady]);
 
   const handleRowKeyDown = (
     event: React.KeyboardEvent<HTMLTableRowElement>,
@@ -326,12 +271,12 @@ export function MonitoringReadOnlyWorkspace() {
         <MetricGrid className="md:grid-cols-2 xl:grid-cols-2">
           <KpiCard
             label="Draf"
-            value={error ? "—" : scopedRows.filter((row) => row.status === "in_progress").length}
+            value={summary?.draft ?? "—"}
             tone="white"
           />
           <KpiCard
             label="Final"
-            value={error ? "—" : finalizedCount}
+            value={summary?.final ?? "—"}
             tone="white"
           />
         </MetricGrid>
@@ -355,7 +300,7 @@ export function MonitoringReadOnlyWorkspace() {
               }
               fields={[
                 {
-                  id: "organization",
+                  id: "organization", organizationScope: true,
                   label: "Organisasi",
                   value: organizationId,
                   onChange: (value) => {
@@ -395,11 +340,11 @@ export function MonitoringReadOnlyWorkspace() {
           }
         />
 
-        {error ? (
+        {(error || organizationError) ? (
           <CollectionErrorState
             title="Data Pemantauan Tidak Tersedia"
             message="Daftar pemantauan belum berhasil dimuat. Coba lagi untuk mengambil data terbaru."
-            onReload={() => void loadData(false)}
+            onReload={reload}
           />
         ) : loading ? (
           <CollectionTableCard sorting={collectionSort.controls}>
@@ -408,11 +353,10 @@ export function MonitoringReadOnlyWorkspace() {
         ) : (
           <>
             <CollectionTableCard sorting={collectionSort.controls}>
-              <Table className="w-full min-w-[1292px] table-fixed">
+              <Table className="w-full min-w-[1138px] table-fixed">
                 <colgroup>
                   <col style={{ width: 132 }} />
                   <col style={{ width: 340 }} />
-                  <col style={{ width: 154 }} />
                   <col style={{ width: 118 }} />
                   <col style={{ width: 110 }} />
                   <col style={{ width: 154 }} />
@@ -424,7 +368,6 @@ export function MonitoringReadOnlyWorkspace() {
                   <CollectionTableHeaderRow>
                     <CollectionTableHead>Kode risiko</CollectionTableHead>
                     <CollectionTableHead className="">Risiko</CollectionTableHead>
-                    <CollectionTableHead>Tanggal pemantauan</CollectionTableHead>
                     <CollectionTableHead >Periode</CollectionTableHead>
                     <CollectionTableHead >Status</CollectionTableHead>
                     <CollectionTableHead >Perubahan Skor</CollectionTableHead>
@@ -436,7 +379,7 @@ export function MonitoringReadOnlyWorkspace() {
                 <TableBody>
                   {pageRows.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={9} className="">
+                      <TableCell colSpan={8} className="">
                         <CollectionEmptyState
                           title="Belum ada transaksi pemantauan"
                           description="Belum ada transaksi pemantauan untuk siklus atau filter yang dipilih."
@@ -463,8 +406,8 @@ export function MonitoringReadOnlyWorkspace() {
                           <TableCell><CollectionCode code={row.code} href={actionHref} /></TableCell>
                           <TableCell className="min-w-0 max-w-0 overflow-hidden">
                             <RiskTableIdentity title={row.title} href={actionHref} />
+                            <RiskTransactionBadge record={row} />
                           </TableCell>
-                          <TableCell><span data-date-time="">{formatMonitoringDate(row.observedAt ? `${row.observedAt}T00:00:00+07:00` : null)}</span></TableCell>
                           <TableCell className="max-w-0 truncate">
                             {row.assessmentCycle || "-"}
                           </TableCell>
@@ -498,11 +441,11 @@ export function MonitoringReadOnlyWorkspace() {
               </Table>
             <CollectionPagination
                 itemLabel="risiko"
-                page={currentPage}
+                page={page}
                 pageSize={limit}
                 pageSizeOptions={[25, 50, 100]}
-                total={filteredRows.length}
-                disabled={loading || refreshing}
+                total={total}
+                disabled={loading}
                 onPageChange={setPage}
                 onPageSizeChange={(nextLimit) => {
                   setLimit(nextLimit);

@@ -92,6 +92,9 @@ func (f *fakeRiskCascadeRepo) Delete(_ context.Context, id uuid.UUID) error {
 	return fiber.ErrNotFound
 }
 
+func (f *fakeRiskCascadeRepo) Summary(context.Context, []uuid.UUID) (repository.RiskCascadeSummary, error) {
+	return repository.RiskCascadeSummary{}, nil
+}
 func (f *fakeRiskCascadeRepo) List(_ context.Context, _ repository.RiskCascadeListFilter) ([]*entity.RiskCascade, int, error) {
 	if f.cascade == nil {
 		return []*entity.RiskCascade{}, 0, nil
@@ -342,8 +345,8 @@ func TestDecideUseCaseAcceptFullCreatesClone(t *testing.T) {
 	if riskRepo.risk.ReviewApprovedAt == nil {
 		t.Fatal("expected review approved at to be set")
 	}
-	if len(taskRepo.created) == 0 {
-		t.Fatal("expected mitigation tasks to be created")
+	if len(taskRepo.created) != 0 {
+		t.Fatal("expected mitigation reports to wait until monitoring starts")
 	}
 	if len(riskRepo.risk.Mitigations) == 0 || riskRepo.risk.Mitigations[0].OwnerUserID == nil || *riskRepo.risk.Mitigations[0].OwnerUserID != createdBy {
 		t.Fatalf("expected mitigation owner user to follow approver, got %#v", riskRepo.risk.Mitigations)
@@ -424,8 +427,8 @@ func TestDecideUseCaseAcceptAllowsTargetOrgOnlyScope(t *testing.T) {
 	if !riskRepo.risk.IsCurrent || !riskRepo.risk.IsCycleCurrent {
 		t.Fatalf("expected cloned risk to be current, got current=%v cycleCurrent=%v", riskRepo.risk.IsCurrent, riskRepo.risk.IsCycleCurrent)
 	}
-	if len(taskRepo.created) == 0 {
-		t.Fatal("expected mitigation tasks to be created")
+	if len(taskRepo.created) != 0 {
+		t.Fatal("expected mitigation reports to wait until monitoring starts")
 	}
 	if len(riskRepo.risk.Mitigations) == 0 || riskRepo.risk.Mitigations[0].OwnerUserID == nil || *riskRepo.risk.Mitigations[0].OwnerUserID != createdBy {
 		t.Fatalf("expected mitigation owner user to follow approver, got %#v", riskRepo.risk.Mitigations)

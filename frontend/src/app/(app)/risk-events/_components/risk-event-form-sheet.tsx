@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent } from "@/components/ui/card";
-import { Field, FieldContent, FieldDescription, FieldGroup, FieldLabel, FieldSet } from "@/components/ui/field";
+import { FieldHeading, Field, FieldContent, FieldDescription, FieldGroup, FieldLabel, FieldSet } from "@/components/ui/field";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   AccentButton, ActionButton, CollectionDialogCancel, Dialog, DialogContent,
@@ -347,10 +347,12 @@ export function RiskEventFormDialog({
         </Field>
         <Field>
           <FieldContent>
-            <FieldLabel htmlFor="event-description">Apa yang terjadi? <span className="text-destructive">*</span></FieldLabel>
-            <FieldDescription id="event-description-help" className="text-xs leading-5">
-              Tulis apa yang terjadi dan akibat yang sudah terlihat.
-            </FieldDescription>
+            <FieldHeading>
+              <FieldLabel htmlFor="event-description">Apa yang terjadi? <span className="text-destructive">*</span></FieldLabel>
+              <FieldDescription id="event-description-help" className="text-xs leading-4">
+                Tulis apa yang terjadi dan akibat yang sudah terlihat.
+              </FieldDescription>
+            </FieldHeading>
           </FieldContent>
           <Textarea id="event-description" aria-describedby="event-description-help" rows={4} value={description} onChange={(e) => setDescription(e.target.value)} />
         </Field>
@@ -401,10 +403,12 @@ export function RiskEventFormDialog({
         ) : null}
         <Field>
           <FieldContent>
-            <FieldLabel htmlFor="event-severity">Tingkat kejadian <span className="text-destructive">*</span></FieldLabel>
-            <FieldDescription id="event-severity-help" className="text-xs leading-5">
-              Nilai tingkat kejadian dari dampak yang sudah terjadi.
-            </FieldDescription>
+            <FieldHeading>
+              <FieldLabel htmlFor="event-severity">Tingkat kejadian <span className="text-destructive">*</span></FieldLabel>
+              <FieldDescription id="event-severity-help" className="text-xs leading-4">
+                Nilai tingkat kejadian dari dampak yang sudah terjadi.
+              </FieldDescription>
+            </FieldHeading>
           </FieldContent>
           <Select value={severity} onValueChange={(value) => setSeverity(value as RiskEventSeverity)}>
             <SelectTrigger id="event-severity" aria-describedby="event-severity-help" className="w-full"><SelectValue placeholder="Pilih tingkat kejadian" /></SelectTrigger>

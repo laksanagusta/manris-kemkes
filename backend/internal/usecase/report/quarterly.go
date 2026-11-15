@@ -18,47 +18,45 @@ import (
 )
 
 type QuarterlyReportInput struct {
-	Cycle, ComparisonCycle string
-	OrgIDs                 []uuid.UUID
+	Cycle, ComparisonCycle                  string
+	ProfileID, PeriodID, ComparisonPeriodID string
+	OrgIDs                                  []uuid.UUID
+}
+
+type quarterlyProfileReader interface {
+	ListUnitProgressProfiles(context.Context, []uuid.UUID) ([]entity.UnitProgressProfile, error)
 }
 
 type QuarterlyReportUseCase struct {
-	repo repository.QuarterlyReportRepository
-	now  func() time.Time
+	profiles quarterlyProfileReader
+	repo     repository.QuarterlyReportRepository
+	now      func() time.Time
 }
 
-func NewQuarterlyReportUseCase(repo repository.QuarterlyReportRepository) *QuarterlyReportUseCase {
-	return &QuarterlyReportUseCase{repo: repo, now: timeutil.BusinessNow}
+func NewQuarterlyReportUseCase(repo repository.QuarterlyReportRepository, profiles ...quarterlyProfileReader) *QuarterlyReportUseCase {
+	uc := &QuarterlyReportUseCase{repo: repo, now: timeutil.BusinessNow}
+	if len(profiles) > 0 {
+		uc.profiles = profiles[0]
+	}
+	return uc
 }
 
 func (uc *QuarterlyReportUseCase) Execute(ctx context.Context, input QuarterlyReportInput) (*entity.QuarterlyReportData, error) {
 	now := uc.now().In(timeutil.JakartaLocation())
-	cycle := input.Cycle
-	if cycle == "" {
-		current := fmt.Sprintf("%04d-Q%d", now.Year(), (int(now.Month())-1)/3+1)
-		cycle, _ = riskuc.PreviousQuarterCycle(current)
+	currentPeriod, previousPeriod, err := uc.resolvePeriods(ctx, input, now)
+	if err != nil {
+		return nil, err
 	}
-	if !riskuc.IsValidQuarterFormat(cycle) || cycle[:4] == "0000" {
-		return nil, domainerrors.Wrap(domainerrors.ErrInvalidInput, "cycle harus berformat YYYY-Q[1-4]")
-	}
-	comparison := input.ComparisonCycle
-	if comparison == "" {
-		comparison, _ = riskuc.PreviousQuarterCycle(cycle)
-	}
-	if !riskuc.IsValidQuarterFormat(comparison) || comparison[:4] == "0000" {
-		return nil, domainerrors.Wrap(domainerrors.ErrInvalidInput, "compare_cycle harus berformat YYYY-Q[1-4]")
-	}
-	start, end := service.QuarterlyPeriodBounds(cycle)
-	previousStart, previousEnd := service.QuarterlyPeriodBounds(comparison)
+	cycle, comparison := currentPeriod.Cycle, previousPeriod.Cycle
 	snapshot, err := uc.repo.ReadSnapshot(ctx,
-		repository.QuarterlyReportPeriod{Cycle: cycle, Start: start, End: end},
-		repository.QuarterlyReportPeriod{Cycle: comparison, Start: previousStart, End: previousEnd}, input.OrgIDs)
+		currentPeriod, previousPeriod, input.OrgIDs)
 	if err != nil {
 		return nil, domainerrors.Wrap(err, "failed to read quarterly report snapshot")
 	}
 	current, previous := snapshot.Current, snapshot.Previous
 	result := &entity.QuarterlyReportData{
 		Cycle: cycle, ComparisonCycle: comparison, GeneratedAt: now,
+		PeriodStart: &currentPeriod.Start, PeriodEnd: &currentPeriod.End,
 		Organizations: snapshot.Organizations, Risks: current.Risks, PreviousRisks: previous.Risks,
 		Tasks: current.Tasks, PreviousTasks: previous.Tasks, Events: current.Events,
 		Warnings: []string{}, DataUpdatedAt: current.DataUpdatedAt,
@@ -86,4 +84,71 @@ func (uc *QuarterlyReportUseCase) Execute(ctx context.Context, input QuarterlyRe
 	digest := sha256.Sum256(payload)
 	result.SnapshotHash = hex.EncodeToString(digest[:])
 	return result, nil
+}
+
+func (uc *QuarterlyReportUseCase) resolvePeriods(ctx context.Context, input QuarterlyReportInput, now time.Time) (repository.QuarterlyReportPeriod, repository.QuarterlyReportPeriod, error) {
+	var empty repository.QuarterlyReportPeriod
+	if input.ProfileID != "" || input.PeriodID != "" || input.ComparisonPeriodID != "" {
+		invalid := domainerrors.Wrap(domainerrors.ErrInvalidInput, "profil dan periode harus sesuai rules")
+		if uc.profiles == nil || input.ProfileID == "" || input.PeriodID == "" {
+			return empty, empty, invalid
+		}
+		profiles, err := uc.profiles.ListUnitProgressProfiles(ctx, input.OrgIDs)
+		if err != nil {
+			return empty, empty, err
+		}
+		for _, profile := range profiles {
+			if profile.ID != input.ProfileID {
+				continue
+			}
+			current, _, err := unitProgressProfilePeriod(profile, input.PeriodID, now)
+			if err != nil {
+				return empty, empty, err
+			}
+			previous := current
+			ordinal := 0
+			for _, p := range profile.Periods {
+				if p.ID.String() == input.PeriodID {
+					ordinal = p.Ordinal
+				}
+			}
+			for _, p := range profile.Periods {
+				if p.Ordinal == ordinal-1 {
+					previous, _, err = unitProgressProfilePeriod(profile, p.ID.String(), now)
+					if err != nil {
+						return empty, empty, err
+					}
+				}
+			}
+			if input.ComparisonPeriodID != "" {
+				previous, _, err = unitProgressProfilePeriod(profile, input.ComparisonPeriodID, now)
+				if err != nil {
+					return empty, empty, err
+				}
+			}
+			current.Cycle = fmt.Sprintf("%d · %s", profile.Year, current.Cycle)
+			previous.Cycle = fmt.Sprintf("%d · %s", profile.Year, previous.Cycle)
+			return current, previous, nil
+		}
+		return empty, empty, invalid
+	}
+	cycle := input.Cycle
+	if cycle == "" {
+		current := fmt.Sprintf("%04d-Q%d", now.Year(), (int(now.Month())-1)/3+1)
+		cycle, _ = riskuc.PreviousQuarterCycle(current)
+	}
+	if !riskuc.IsValidQuarterFormat(cycle) || cycle[:4] == "0000" {
+		return empty, empty, domainerrors.Wrap(domainerrors.ErrInvalidInput, "cycle harus berformat YYYY-Q[1-4]")
+	}
+	comparison := input.ComparisonCycle
+	if comparison == "" {
+		comparison, _ = riskuc.PreviousQuarterCycle(cycle)
+	}
+	if !riskuc.IsValidQuarterFormat(comparison) || comparison[:4] == "0000" {
+		return empty, empty, domainerrors.Wrap(domainerrors.ErrInvalidInput, "compare_cycle harus berformat YYYY-Q[1-4]")
+	}
+	start, end := service.QuarterlyPeriodBounds(cycle)
+	previousStart, previousEnd := service.QuarterlyPeriodBounds(comparison)
+
+	return repository.QuarterlyReportPeriod{Cycle: cycle, Start: start, End: end}, repository.QuarterlyReportPeriod{Cycle: comparison, Start: previousStart, End: previousEnd}, nil
 }

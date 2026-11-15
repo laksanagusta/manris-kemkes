@@ -12,6 +12,7 @@ import type {
   AnnualPickupRisk,
   AnnualProfileListVersion,
 } from "@/lib/api/upr-workflow";
+import type { MonitoringRule } from "@/lib/api/monitoring-rules";
 import { AnnualProfileExample } from "./annual-profile-example";
 
 const initial: AnnualProfileListVersion[] = [
@@ -46,6 +47,8 @@ const register: AnnualPickupRisk[] = [
     code: "R-014",
     title: "Keterlambatan validasi data",
     period: "2026-Q1",
+    assessmentDate: "2026-03-12",
+    category: "operasional",
     score: 15,
     unavailable: "",
   },
@@ -54,6 +57,8 @@ const register: AnnualPickupRisk[] = [
     code: "R-021",
     title: "Ketergantungan pada satu petugas",
     period: "2026-Q3",
+    assessmentDate: "2026-08-20",
+    category: "operasional",
     score: 12,
     unavailable: "",
   },
@@ -63,6 +68,8 @@ const inactive: AnnualPickupRisk = {
   code: "R-009",
   title: "Kendala pada sistem lama",
   period: "",
+  assessmentDate: null,
+  category: "operasional",
   score: 8,
   unavailable: "Diarsipkan atau tidak lagi aktif",
 };
@@ -86,6 +93,23 @@ function ExampleHeaderActionSlot({ year }: { year?: number }) {
   ) : null;
 }
 
+const exampleRules: MonitoringRule[] = [
+  {
+    id: "example-rule-2027",
+    name: "Pemantauan semesteran 2027",
+    year: 2027,
+    frequency: "semester",
+    active: true,
+    periods: [
+      { id: "example-2027-h1", label: "Semester I", ordinal: 1, opensOn: "2027-01-01", closesOn: "2027-06-30" },
+      { id: "example-2027-h2", label: "Semester II", ordinal: 2, opensOn: "2027-07-01", closesOn: "2027-12-31" },
+    ],
+  },
+];
+const loadRules = async (search = ""): Promise<MonitoringRule[]> =>
+  exampleRules.filter(rule => `${rule.year} ${rule.name}`.toLocaleLowerCase("id-ID").includes(search.trim().toLocaleLowerCase("id-ID"))).slice(0, 5);
+
+
 export function AnnualProfileCollectionExample() {
   const [versions, setVersions] = useState(initial);
   const [pickedByVersion, setPickedByVersion] = useState<
@@ -106,7 +130,7 @@ export function AnnualProfileCollectionExample() {
         <ExampleHeaderActionSlot year={detail?.version.year} />
         <p className="text-xs text-muted-foreground">
           Contoh dengan data ilustratif. Coba tambah profil 2027 dari Register
-          atau profil final sebelumnya.
+          atau profil final sebelumnya. Aturan aktif untuk 2027 terpilih otomatis.
         </p>
         {detail ? (
           <>
@@ -131,6 +155,7 @@ export function AnnualProfileCollectionExample() {
             defaultYear={2027}
             retry={() => undefined}
             loadPickup={loadPickup}
+            loadRules={loadRules}
             openProfile={(year, id) => {
               const version = versions.find(
                 (item) => item.id === id && item.year === year,

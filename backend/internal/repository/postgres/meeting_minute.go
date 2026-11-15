@@ -14,7 +14,7 @@ import (
 )
 
 type meetingMinuteRepository struct {
-	pool *pgxpool.Pool
+	pool repositoryDB
 }
 
 func NewMeetingMinuteRepository(pool *pgxpool.Pool) repository.MeetingMinuteRepository {
@@ -134,11 +134,12 @@ func (r *meetingMinuteRepository) GetByID(ctx context.Context, id uuid.UUID, org
 }
 
 func (r *meetingMinuteRepository) List(ctx context.Context, opts repository.ListMeetingMinutesOptions) ([]entity.MeetingMinute, int, error) {
+	const from = " FROM meeting_minutes mm LEFT JOIN users u ON mm.created_by = u.id "
 	whereClause := "WHERE 1=1"
 	var args []interface{}
 	argIdx := 1
 
-	if len(opts.OrgIDs) > 0 {
+	if opts.OrgIDs != nil {
 		whereClause += fmt.Sprintf(" AND mm.organization_id = ANY($%d)", argIdx)
 		args = append(args, opts.OrgIDs)
 		argIdx++
@@ -158,9 +159,19 @@ func (r *meetingMinuteRepository) List(ctx context.Context, opts repository.List
 		args = append(args, opts.CreatedAt)
 		argIdx++
 	}
+	if opts.Date != "" {
+		whereClause += fmt.Sprintf(" AND mm.date = $%d::date", argIdx)
+		args = append(args, opts.Date)
+		argIdx++
+	}
+	if opts.Query != "" {
+		whereClause += fmt.Sprintf(` AND strpos(lower(concat_ws(' ', mm.title, mm.summary, u.name, array_to_string(mm.participants, ' '))), lower($%d)) > 0`, argIdx)
+		args = append(args, opts.Query)
+		argIdx++
+	}
 
 	var total int
-	countQuery := "SELECT COUNT(*) FROM meeting_minutes mm " + whereClause
+	countQuery := "SELECT COUNT(*)" + from + whereClause
 	err := r.pool.QueryRow(ctx, countQuery, args...).Scan(&total)
 	if err != nil {
 		return nil, 0, fmt.Errorf("count meeting minutes: %w", err)
@@ -178,13 +189,21 @@ func (r *meetingMinuteRepository) List(ctx context.Context, opts repository.List
 		offset = 0
 	}
 
-	query := fmt.Sprintf(`SELECT mm.id, mm.title, mm.date, mm.participants, mm.agenda, mm.summary, mm.key_points, mm.decisions, mm.open_issues, mm.action_items, mm.next_check_in, mm.transcript, mm.organization_id, mm.created_by, mm.created_at, mm.updated_at,
-	        COALESCE(u.name, '') as created_by_name
-	 FROM meeting_minutes mm
-	 LEFT JOIN users u ON mm.created_by = u.id
-	 %s
-	 ORDER BY mm.created_at DESC, mm.id DESC
-	 LIMIT $%d OFFSET $%d`, whereClause, argIdx, argIdx+1)
+	sortColumns := map[string]string{
+		"created_at":   "mm.created_at",
+		"title":        "NULLIF(LOWER(mm.title), '')",
+		"date":         "mm.date",
+		"participants": "COALESCE(cardinality(mm.participants), 0)",
+		"author":       "NULLIF(LOWER(u.name), '')",
+	}
+	tieBreaker := "mm.id"
+	if opts.SortBy != "created_at" && sortColumns[opts.SortBy] != "" {
+		tieBreaker = "mm.created_at DESC NULLS LAST, mm.id"
+	}
+	orderBy := collectionOrderBy(opts.SortBy, opts.SortOrder, "mm.created_at", tieBreaker, sortColumns)
+	query := `SELECT mm.id, mm.title, mm.date, mm.participants, mm.agenda, mm.summary, mm.key_points, mm.decisions, mm.open_issues, mm.action_items, mm.next_check_in, mm.transcript, mm.organization_id, mm.created_by, mm.created_at, mm.updated_at,
+	        COALESCE(u.name, '') as created_by_name` + from + whereClause +
+		" ORDER BY " + orderBy + fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
 	args = append(args, limit, offset)
 
 	rows, err := r.pool.Query(ctx, query, args...)
@@ -193,7 +212,7 @@ func (r *meetingMinuteRepository) List(ctx context.Context, opts repository.List
 	}
 	defer rows.Close()
 
-	var results []entity.MeetingMinute
+	results := make([]entity.MeetingMinute, 0)
 	for rows.Next() {
 		var mm entity.MeetingMinute
 		var actionItemsJSON []byte
@@ -213,8 +232,41 @@ func (r *meetingMinuteRepository) List(ctx context.Context, opts repository.List
 
 		results = append(results, mm)
 	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("iterate meeting minutes: %w", err)
+	}
 
 	return results, total, nil
+}
+
+func (r *meetingMinuteRepository) ListAuthors(ctx context.Context, orgIDs []uuid.UUID) ([]repository.MeetingMinuteAuthor, error) {
+	query := `SELECT DISTINCT mm.created_by, COALESCE(NULLIF(u.name, ''), mm.created_by::text)
+		FROM meeting_minutes mm
+		LEFT JOIN users u ON mm.created_by = u.id
+		WHERE mm.created_by IS NOT NULL`
+	var args []any
+	if orgIDs != nil {
+		query += " AND mm.organization_id = ANY($1)"
+		args = append(args, orgIDs)
+	}
+	rows, err := r.pool.Query(ctx, query+" ORDER BY 2, 1", args...)
+	if err != nil {
+		return nil, fmt.Errorf("list meeting minute authors: %w", err)
+	}
+	defer rows.Close()
+
+	authors := make([]repository.MeetingMinuteAuthor, 0)
+	for rows.Next() {
+		var author repository.MeetingMinuteAuthor
+		if err := rows.Scan(&author.ID, &author.Name); err != nil {
+			return nil, fmt.Errorf("scan meeting minute author: %w", err)
+		}
+		authors = append(authors, author)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate meeting minute authors: %w", err)
+	}
+	return authors, nil
 }
 
 func (r *meetingMinuteRepository) Delete(ctx context.Context, id uuid.UUID) error {

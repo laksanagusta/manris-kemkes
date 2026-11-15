@@ -113,7 +113,7 @@ export default function HomePage() {
       <footer className={styles.footer}>
         <div className={styles.container}>
           <div className={styles.footerMain}>
-            <div className={styles.footerBrand}><Link href="/" className={styles.brand} aria-label="Manrisk beranda"><ManriskMark className="dark:invert-0" /><span>manrisk</span></Link></div>
+            <div className={styles.footerBrand}><Link href="/" className={styles.brand} aria-label="Manrisk beranda"><ManriskMark /><span>manrisk</span></Link></div>
             <div className={styles.footerColumn}><h3>Produk</h3><Link href="#fitur">Fitur Manrisk</Link><Link href="#alur-kerja">Cara kerja</Link><Link href="#keamanan">Kontrol akses</Link></div>
             <div className={styles.footerColumn}><h3>Panduan</h3><Link href="/docs">Dokumentasi</Link><Link href="/docs/account-access">Akses akun</Link><Link href="/docs/glossary-and-troubleshooting">Istilah dan kendala</Link></div>
             <div className={styles.footerColumn}><h3>Mulai</h3><Link href="/register">Daftar akun</Link><Link href="/login">Masuk aplikasi</Link><Link href="/docs/introduction">Panduan penggunaan</Link></div>

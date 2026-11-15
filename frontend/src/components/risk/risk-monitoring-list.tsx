@@ -1,5 +1,7 @@
 "use client";
 
+import { riskTransactionKind } from "@/lib/risk-transaction-kind";
+import { RiskTransactionBadge } from "@/components/shared/design-system/domain/risk-transaction-badge";
 import { monitoringObservationDate } from "@/lib/monitoring-date";
 import { formatDisplayDate } from "@/lib/display-date";
 
@@ -18,6 +20,7 @@ import { MitigationCollectionTable } from "@/components/shared/design-system/col
 const columns = [
   { key: "observation", label: "Tanggal pemantauan", width: "25%" },
   { key: "period", label: "Periode", width: "15%" },
+  { key: "kind", label: "Jenis aktivitas", width: "18%" },
   { key: "status", label: "Status", width: "15%" },
   { key: "score", label: "Skor pemantauan", width: "20%" },
   { key: "date", label: "Diperbarui", width: "25%" },
@@ -27,12 +30,13 @@ export function RiskMonitoringTable({
 }: {
   items: readonly RiskMonitoringDetail[];
 }) {
+  const results = items.filter((item) => item.status === "final" && riskTransactionKind(item) === "monitoring");
   return (
     <CollectionTableCard>
       <MitigationCollectionTable columns={columns}>
         <TableBody>
-          {items.length ? (
-            items.map((item) => {
+          {results.length ? (
+            results.map((item) => {
               const date = monitoringObservationDate(item);
               return (
               <TableRow key={item.id}>
@@ -45,6 +49,7 @@ export function RiskMonitoringTable({
                     {item.assessmentCycle || "Lihat pemantauan"}
                   </Link>
                 </TableCell>
+                <TableCell><RiskTransactionBadge record={item} /></TableCell>
                 <TableCell>
                   <Badge
                     variant={toBadgeVariant(item.status === "final" ? "success" : "neutral")}
@@ -79,8 +84,8 @@ export function RiskMonitoringTable({
             <TableRow>
               <TableCell colSpan={columns.length}>
                 <CollectionEmptyState
-                  title="Belum ada pemantauan"
-                  description="Pemantauan risiko yang sudah dimulai akan ditampilkan di sini."
+                  title="Belum ada hasil pemantauan"
+                  description="Hasil pemantauan yang sudah difinalisasi akan ditampilkan di sini."
                 />
               </TableCell>
             </TableRow>

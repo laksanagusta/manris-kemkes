@@ -73,6 +73,15 @@ export interface ListMeetingMinutesOptions {
   createdBy?: string;
   riskId?: string;
   createdAt?: string;
+  date?: string;
+  q?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
   limit?: number;
   offset?: number;
+}
+
+export interface MeetingMinuteAuthor {
+  value: string;
+  label: string;
 }

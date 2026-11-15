@@ -196,7 +196,15 @@ func TestConfiguredMonitoringDuplicateRace(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	// This test commits the fixture to exercise concurrent connections.
+	// Suppress initial history for this fixture so teardown can delete its risk.
+	if _, err := tx.Exec(ctx, "ALTER TABLE risks DISABLE TRIGGER risk_initial_assessment"); err != nil {
+		t.Fatal(err)
+	}
 	f := seedConfiguredFixture(t, ctx, tx)
+	if _, err := tx.Exec(ctx, "ALTER TABLE risks ENABLE TRIGGER risk_initial_assessment"); err != nil {
+		t.Fatal(err)
+	}
 	if err = tx.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}

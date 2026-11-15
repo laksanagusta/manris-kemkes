@@ -101,6 +101,11 @@ func (f *fakeMonitoringTransactionRepo) Finalize(_ context.Context, monitoringID
 	res.FinalizedBy = &finalizedBy
 	now := time.Now().UTC()
 	res.FinalizedAt = &now
+	if resultRisk == nil {
+		res.ResultRiskID = &m.SourceRiskID
+		f.byID[monitoringID] = res
+		return res, nil
+	}
 	resultClone := *resultRisk
 	f.finalizedR = append(f.finalizedR, &resultClone)
 	res.ResultRiskID = &resultClone.ID
@@ -316,6 +321,8 @@ func TestUpdateMonitoringUseCase_DetectsProfileRevision(t *testing.T) {
 	monitoring := entity.NewRiskMonitoringDraft(source, "2026-Q2", uuid.New())
 	monitoring.ID = monitoringID
 	monitoringRepo := newFakeMonitoringTransactionRepo()
+	monitoring.TransactionKind = "revision"
+	monitoring.ChangeReason = "Perubahan substansi terverifikasi"
 	monitoringRepo.byID[monitoringID] = monitoring
 	monitoringRepo.drafts[sourceID.String()+"|2026-Q2"] = monitoring
 
@@ -404,6 +411,8 @@ func TestUpdateMonitoringUseCase_MergesOmittedScoresAndDescription(t *testing.T)
 	monitoring := entity.NewRiskMonitoringDraft(source, "2026-Q2", uuid.New())
 	monitoring.ID = monitoringID
 	monitoringRepo := newFakeMonitoringTransactionRepo()
+	monitoring.TransactionKind = "revision"
+	monitoring.ChangeReason = "Perubahan substansi terverifikasi"
 	monitoringRepo.byID[monitoringID] = monitoring
 	riskRepo := &fakeMonitoringRiskRepoForUsecase{risks: map[uuid.UUID]*entity.Risk{sourceID: source}}
 	uc := NewUpdateMonitoringUseCase(riskRepo, monitoringRepo)
@@ -472,6 +481,8 @@ func TestFinalizeMonitoringUseCase_BuildsRiskVersion(t *testing.T) {
 	monitoring.CalculateObservedScore()
 
 	monitoringRepo := newFakeMonitoringTransactionRepo()
+	monitoring.TransactionKind = "revision"
+	monitoring.ChangeReason = "Perubahan substansi terverifikasi"
 	monitoringRepo.byID[monitoringID] = monitoring
 	monitoringRepo.drafts[sourceID.String()+"|2026-Q2"] = monitoring
 	riskRepo := &fakeMonitoringRiskRepoForUsecase{risks: map[uuid.UUID]*entity.Risk{sourceID: source}}
@@ -556,18 +567,11 @@ func TestFinalizeMonitoringUseCase_BuildsRiskVersionForScoreOnlyMonitoring(t *te
 	if err != nil {
 		t.Fatalf("expected score-only monitoring to finalize, got %v", err)
 	}
-	if len(monitoringRepo.finalizedR) != 1 {
-		t.Fatalf("expected one official result risk, got %d", len(monitoringRepo.finalizedR))
+	if len(monitoringRepo.finalizedR) != 0 {
+		t.Fatal("pure monitoring created a profile version")
 	}
-	result := monitoringRepo.finalizedR[0]
-	if result.VersionNumber != 5 || result.Probability != 2 || result.Impact != 3 {
-		t.Fatalf("expected next version with observed score, got version=%d score=%d/%d", result.VersionNumber, result.Probability, result.Impact)
-	}
-	if result.AssessmentCycle != "2026-Q3" {
-		t.Fatalf("expected Q3 observation to retain Q3 group, got %q", result.AssessmentCycle)
-	}
-	if len(result.Mitigations) != 1 || result.Mitigations[0].Action != "Perbaiki prosedur" {
-		t.Fatalf("expected mitigation retained in next profile, got %#v", result.Mitigations)
+	if source.VersionNumber != 4 {
+		t.Fatal("source version changed")
 	}
 }
 

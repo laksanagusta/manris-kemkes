@@ -14,5 +14,14 @@ type ControlRepository interface {
 	Update(ctx context.Context, control *entity.Control) error
 	Delete(ctx context.Context, id uuid.UUID) error
 	List(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.Control, error)
+	ListPage(ctx context.Context, filter ControlListFilter) ([]*entity.Control, int, error)
 	GetDashboard(ctx context.Context, orgIDs []uuid.UUID) (map[string]interface{}, error)
+}
+
+type ControlListFilter struct {
+	OrgIDs         []uuid.UUID
+	OrganizationID *uuid.UUID
+	Query          string
+	Page           int
+	Limit          int
 }

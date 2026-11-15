@@ -1,3 +1,9 @@
+export interface RiskOpenDrafts {
+  monitoringId?: string;
+  revisionRiskId?: string;
+  revisionMonitoringId?: string;
+}
+
 export type Controllability = "C" | "UC";
 export type ControlEffectiveness = "" | "efektif" | "tidak_efektif";
 export type MitigationFrequency = "insidental" | "rutin";
@@ -50,6 +56,7 @@ export interface MitigationTask {
   mitigationId: string;
   riskId: string;
   monitoringId?: string | null;
+  monitoringStatus?: "draft" | "final" | "superseded";
   periodLabel: string;
   periodStart: string;
   periodEnd: string;
@@ -272,7 +279,18 @@ export interface ExecutiveAlert {
   riskCode?: string;
 }
 
+export interface RiskCurrentAssessment {
+  id: string;
+  observedAt: string;
+  probability: number;
+  impact: number;
+  weight: number;
+  nilai: number;
+  inherentScore: number;
+}
+
 export interface Risk {
+  currentAssessment?: RiskCurrentAssessment;
   id: string;
   riskCode: string;
   code?: string;

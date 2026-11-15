@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ManriskMark } from "@/components/manrisk-mark";
+import { AuthCard } from "@/components/auth-card";
 import { useRouter } from "next/navigation";
-import { Eye, EyeOff } from "@/components/shared/icons";
+import { ArrowRight, Eye, EyeOff } from "@/components/shared/icons";
 import { useAuth } from "@/contexts/auth-context";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -41,51 +41,33 @@ export default function LoginScreen() {
   };
 
   return (
-    <div className="flex min-h-svh bg-white">
-      <aside className="hidden w-[38%] shrink-0 flex-col justify-between bg-neutral-900 px-10 py-10 text-white md:flex lg:px-14">
-        <div className="flex flex-col gap-10">
-          <span className="font-logo inline-flex items-center gap-2 text-[22px] font-semibold lowercase leading-7 tracking-[-0.4px]">
-            <ManriskMark inverted />
-            <span>manrisk</span>
-          </span>
-          <p className="max-w-md text-balance text-4xl font-medium leading-[1.2] tracking-tight">
-            Seluruh siklus manajemen risiko dalam satu tempat.
-          </p>
-        </div>
-        <div className="flex flex-col gap-3">
-          <nav aria-label="Bantuan">
-            <Link href="/docs" className="text-sm text-white/80 transition-colors hover:text-white">
-              Docs
-            </Link>
-          </nav>
-          <p className="text-sm text-white/60">
-            Kendala masuk? Hubungi administrator.
-          </p>
-        </div>
-      </aside>
-
-      <main data-motion-page className="flex min-w-0 flex-1 items-center px-6 py-10 md:items-start md:px-12 lg:justify-start lg:pl-24">
-        <div className="w-full max-w-md">
-          <div className="mb-8 md:hidden">
-            <span className="font-logo inline-flex items-center gap-2 text-[22px] font-semibold lowercase leading-7 tracking-[-0.4px] text-neutral-900">
-              <ManriskMark className="dark:invert-0" />
-              <span>manrisk</span>
-            </span>
-          </div>
-          <div aria-hidden="true" className="hidden h-7 md:block" />
-          <div className="md:mt-10">
-          <h1 className="text-3xl font-semibold tracking-normal text-neutral-900">
-            Masuk ke Manrisk
-          </h1>
-          <p className="mt-2 text-[15px] text-neutral-500">
-            Isi NIP dan password untuk melanjutkan.
-          </p>
-
-          <form onSubmit={handleSubmit} className="mt-8 flex flex-col gap-5">
-            <FieldGroup className="gap-5">
+    <main data-motion-page className="grid min-h-svh place-items-center bg-muted/50 px-4 py-8 sm:py-12">
+      <div className="w-full max-w-[400px]">
+        <AuthCard
+          title="Masuk ke Manrisk"
+          description="Isi NIP dan password untuk melanjutkan."
+          footer={
+            <>
+              <p>
+                Belum punya akun?{" "}
+                <Link href="/register" className="font-medium text-foreground underline-offset-4 hover:underline">
+                  Daftar
+                </Link>
+              </p>
+              <p className="text-xs">
+                Kendala masuk? Hubungi administrator.{" "}
+                <Link href="/docs" className="font-medium text-foreground underline-offset-4 hover:underline">
+                  Docs
+                </Link>
+              </p>
+            </>
+          }
+        >
+          <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+            <FieldGroup className="gap-4">
               {error ? <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert> : null}
-              <Field>
-                <FieldLabel htmlFor="nip" className="text-sm font-medium text-neutral-900">
+              <Field className="gap-1.5">
+                <FieldLabel htmlFor="nip">
                   NIP
                 </FieldLabel>
                 <Input
@@ -93,7 +75,7 @@ export default function LoginScreen() {
                   name="nip"
                   data-field-outline="outer"
                   data-autofill-surface="white"
-                  className="mt-1.5 h-8 rounded-control bg-white text-neutral-900 placeholder:text-neutral-400"
+                  className="h-11 rounded-control bg-white text-neutral-900 placeholder:text-neutral-500 dark:bg-white"
                   placeholder="Masukkan NIP"
                   autoComplete="username"
                   inputMode="numeric"
@@ -102,17 +84,17 @@ export default function LoginScreen() {
                   onChange={(event) => setNip(event.target.value)}
                 />
               </Field>
-              <Field>
-                <FieldLabel htmlFor="password" className="text-sm font-medium text-neutral-900">
+              <Field className="gap-1.5">
+                <FieldLabel htmlFor="password">
                   Password
                 </FieldLabel>
-                <InputGroup data-field-outline="outer" className="mt-1.5 h-8 rounded-control bg-white text-neutral-900">
+                <InputGroup data-field-outline="outer" className="h-11 rounded-control bg-white text-neutral-900 dark:bg-white">
                   <InputGroupInput
                     id="password"
                     name="password"
                     type={showPassword ? "text" : "password"}
                     data-autofill-surface="white"
-                    className="h-auto self-stretch bg-transparent text-neutral-900 placeholder:text-neutral-400"
+                    className="h-auto self-stretch bg-transparent text-neutral-900 placeholder:text-neutral-500 dark:bg-transparent"
                     placeholder="Masukkan password"
                     autoComplete="current-password"
                     required
@@ -125,7 +107,7 @@ export default function LoginScreen() {
                       aria-pressed={showPassword}
                       onClick={() => setShowPassword((value) => !value)}
                       size="icon-xs"
-                      className="h-8 w-11 text-neutral-500 hover:bg-transparent! hover:text-inherit!"
+                      className="h-10 w-10 text-neutral-500 hover:bg-transparent! dark:hover:bg-transparent! hover:text-inherit! dark:hover:text-inherit!"
                     >
                       {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
                     </InputGroupButton>
@@ -134,21 +116,14 @@ export default function LoginScreen() {
               </Field>
             </FieldGroup>
 
-            <Button type="submit" className="h-8 w-full" disabled={isLoading} aria-busy={isLoading}>
+            <Button type="submit" className="h-11 w-full" disabled={isLoading} aria-busy={isLoading}>
               {isLoading ? <Spinner data-icon="inline-start" aria-hidden="true" /> : null}
               {isLoading ? "Memproses..." : "Masuk"}
+              {!isLoading ? <ArrowRight data-icon="inline-end" aria-hidden="true" /> : null}
             </Button>
-
-            <p className="text-center text-sm text-neutral-500">
-              Belum punya akun?{" "}
-              <Link href="/register" className="font-medium text-neutral-900 underline-offset-4 hover:underline">
-                Daftar
-              </Link>
-            </p>
           </form>
-          </div>
-        </div>
-      </main>
-    </div>
+        </AuthCard>
+      </div>
+    </main>
   );
 }

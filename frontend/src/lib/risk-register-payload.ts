@@ -2,10 +2,18 @@ import type { DraftApprovalLineMember } from "@/lib/risk-approval-line";
 import type { UserPickerOption } from "@/lib/risk-register-user-picker";
 
 export type RiskRegisterPayloadMitigation = {
+  id?: string;
+  targetCost?: number;
+  frequency?: string;
+  recurringInterval?: number | null;
+  reportDay?: number | null;
+  reportDate?: string | null;
+  executionScheduleText?: string;
+
   action: string;
   owner: string;
   treatmentOwnerId?: string;
-  dueDate?: string;
+  dueDate?: string | null;
   mitigationType?: string;
 
 };
@@ -110,6 +118,12 @@ export function buildRiskRegisterPayload(
     targetWeight: data.targetWeight,
     assessmentCycle: context.assessmentCycle,
     mitigations: (data.mitigations || []).map((mitigation) => ({
+      ...(mitigation.id ? { id: mitigation.id } : {}),
+      frequency: mitigation.frequency,
+      recurringInterval: mitigation.recurringInterval,
+      reportDay: mitigation.reportDay,
+      reportDate: mitigation.reportDate,
+      executionScheduleText: mitigation.executionScheduleText,
       action: mitigation.action,
       owner: mitigation.owner,
       ...(mitigation.treatmentOwnerId
@@ -119,7 +133,7 @@ export function buildRiskRegisterPayload(
         mitigation.dueDate && mitigation.dueDate.trim() !== ""
           ? mitigation.dueDate
           : null,
-      targetCost: 0,
+      targetCost: mitigation.targetCost ?? 0,
       mitigationType: mitigation.mitigationType,
     })),
     roId: data.roId || undefined,

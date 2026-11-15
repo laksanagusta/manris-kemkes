@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { uprApi, type ReportDocumentKind, type ReportDocumentOption } from "@/lib/api/upr-workflow";
-import { WorkflowError, workflowDate, workflowError } from "./workflow-ui";
+import { periodLabel, WorkflowError, workflowDate, workflowError } from "./workflow-ui";
 
 export const reportDocumentKinds = {
   profile: "Profil Risiko Tahunan",
@@ -19,10 +19,11 @@ export const reportDocumentKinds = {
 export type ReportDocumentSelection = Record<ReportDocumentKind, string[]>;
 
 export function ReportDocumentPicker({
-  token, year, initialSelection, initialKind = "profile", onClose, onApply,
+  token, year, semester, initialSelection, initialKind = "profile", onClose, onApply,
 }: {
   token: string;
   year: number;
+  semester: number;
   initialSelection: ReportDocumentSelection;
   initialKind?: ReportDocumentKind;
   onClose: () => void;
@@ -41,14 +42,14 @@ export function ReportDocumentPicker({
     error: string;
   } | null>(null);
   const term = query.trim();
-  const requestKey = JSON.stringify([kind, year, term, page, retry]);
+  const requestKey = JSON.stringify([kind, year, semester, term, page, retry]);
   const current = result?.key === requestKey ? result : null;
   const items = current?.items ?? [];
 
   useEffect(() => {
     const controller = new AbortController();
     const timeout = window.setTimeout(() => {
-      void uprApi.searchReportDocuments(token, kind, year, term, page, controller.signal).then((data) => {
+      void uprApi.searchReportDocuments(token, kind, year, semester, term, page, controller.signal).then((data) => {
         if (!controller.signal.aborted) setResult({ ...data, key: requestKey, error: "" });
       }).catch((cause) => {
         if (!controller.signal.aborted) {
@@ -60,7 +61,7 @@ export function ReportDocumentPicker({
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [kind, page, requestKey, term, token, year]);
+  }, [kind, page, requestKey, semester, term, token, year]);
 
   function select(item: ReportDocumentOption, checked: boolean) {
     setChosen((options) => ({ ...options, [item.id]: item }));
@@ -85,7 +86,9 @@ export function ReportDocumentPicker({
         )}
         <Label htmlFor={id} className="flex min-w-0 flex-1 cursor-pointer flex-col items-start gap-1">
           <span className="wrap-anywhere">{item.title}</span>
-          <span className="text-xs font-normal text-muted-foreground">{item.code} · {workflowDate(item.documentDate)}</span>
+          <span className="text-xs font-normal text-muted-foreground">
+            {item.code} · {item.period ? `${periodLabel(item.period)} · ` : ""}{workflowDate(item.documentDate)}
+          </span>
         </Label>
       </div>
     );
@@ -97,7 +100,7 @@ export function ReportDocumentPicker({
       <DialogContent className="gap-4 sm:max-w-2xl" showCloseButton={false}>
         <DialogHeader>
           <DialogTitle>Tambahkan dokumen pendukung</DialogTitle>
-          <DialogDescription>Pilih profil tahun {year}, KK yang sudah Selesai, dan Evaluasi yang sudah Final.</DialogDescription>
+          <DialogDescription>Pilih profil {year}, KK Selesai, dan Evaluasi Final untuk {periodLabel(`${year}-H${semester}`)}.</DialogDescription>
         </DialogHeader>
         <Tabs value={kind} onValueChange={(value) => {
           setKind(value as ReportDocumentKind);

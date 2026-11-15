@@ -21,16 +21,21 @@ func NewListUseCase(repo repository.TMPMRRepository) *ListUseCase {
 type ListInput struct {
 	OrganizationID *uuid.UUID
 	Period         string
+	Status         string
+	Query          string
+	SortBy         string
+	SortOrder      string
 	Page           int
 	Limit          int
 	Scope          *entity.AccessScope
 }
 
 type ListOutput struct {
-	Data  []*entity.TMPMRAssessment `json:"data"`
-	Total int                       `json:"total"`
-	Page  int                       `json:"page"`
-	Limit int                       `json:"limit"`
+	Data    []*entity.TMPMRAssessment `json:"data"`
+	Total   int                       `json:"total"`
+	Page    int                       `json:"page"`
+	Limit   int                       `json:"limit"`
+	Summary repository.TMPMRSummary   `json:"summary"`
 }
 
 func (uc *ListUseCase) Execute(ctx context.Context, input ListInput) (*ListOutput, error) {
@@ -43,19 +48,31 @@ func (uc *ListUseCase) Execute(ctx context.Context, input ListInput) (*ListOutpu
 		limit = 10
 	}
 
-	var orgID *uuid.UUID
+	if input.Scope == nil {
+		return nil, errors.ErrForbidden
+	}
+	var defaultOrgID *uuid.UUID
+	if !input.Scope.IsGlobal {
+		defaultOrgID = input.Scope.OrganizationID
+		if defaultOrgID == nil {
+			return nil, errors.ErrForbidden
+		}
+	}
+	orgID := defaultOrgID
 	if input.OrganizationID != nil {
 		if !canAccessTMPMRRead(input.Scope, *input.OrganizationID) {
 			return nil, errors.ErrForbidden
 		}
 		orgID = input.OrganizationID
-	} else if input.Scope != nil && !input.Scope.IsGlobal && input.Scope.OrganizationID != nil {
-		orgID = input.Scope.OrganizationID
 	}
 
 	items, total, err := uc.repo.List(ctx, repository.TMPMRListFilter{
 		OrganizationID: orgID,
 		Period:         strings.TrimSpace(input.Period),
+		Status:         strings.TrimSpace(input.Status),
+		Query:          strings.TrimSpace(input.Query),
+		SortBy:         input.SortBy,
+		SortOrder:      input.SortOrder,
 		Page:           page,
 		Limit:          limit,
 	})
@@ -66,5 +83,10 @@ func (uc *ListUseCase) Execute(ctx context.Context, input ListInput) (*ListOutpu
 		items = []*entity.TMPMRAssessment{}
 	}
 
-	return &ListOutput{Data: items, Total: total, Page: page, Limit: limit}, nil
+	summary, err := uc.repo.Summary(ctx, defaultOrgID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &ListOutput{Data: items, Total: total, Page: page, Limit: limit, Summary: summary}, nil
 }

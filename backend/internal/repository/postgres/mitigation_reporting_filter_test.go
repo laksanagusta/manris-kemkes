@@ -25,37 +25,41 @@ func TestReportingDueFilterReadIntegration(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer pool.Close()
-	query := `WITH clock AS (SELECT (CURRENT_TIMESTAMP AT TIME ZONE 'Asia/Jakarta')::date today), risks AS (SELECT 'family'::text version_group_id,'final'::text status,true is_current,$6::timestamptz archived_at)
- SELECT ` + reportingDuePredicate() + `
- FROM clock CROSS JOIN LATERAL
- (SELECT $1::text status, today + $2::int due_date, today + $3::int period_end) t
- CROSS JOIN (SELECT $4::text status, $5::boolean is_current, $6::timestamptz archived_at, NULL::text archived_reason,'family'::text version_group_id) r`
+	query := `WITH clock AS (SELECT ` + businessDateSQL + ` today),
+        risks AS (SELECT 'family'::text version_group_id,'final'::text status,true is_current,$6::timestamptz archived_at),
+        risk_monitorings AS (SELECT 1 id,$3::text status,$4::text transaction_kind,1 monitoring_period_id),
+        monitoring_rule_periods AS (SELECT 1 id,today + $5::int opens_on,today + $7::int closes_on FROM clock)
+        SELECT ` + reportingDuePredicate() + `
+        FROM clock CROSS JOIN (SELECT $1::text status,$2::timestamptz reported_at,$8::int monitoring_id) t
+        CROSS JOIN (SELECT $9::text status,'family'::text version_group_id) r`
 	for _, tt := range []struct {
-		name, status            string
-		due, end                int
-		riskStatus              string
-		current, archived, want bool
+		name, status, parent, kind, riskStatus string
+		reported, archived                     bool
+		opens, closes, parentID                int
+		want                                   bool
 	}{
-		{"overdue", "overdue", -40, -41, "final", true, false, true},
-		{"today", "pending", 0, -1, "final", true, false, true},
-		{"seven days", "pending", 7, -1, "final", true, false, true},
-		{"eight days", "pending", 8, -1, "final", true, false, false},
-		{"period blocked", "pending", 7, 1, "final", true, false, false},
-		{"same period deadline", "pending", 7, 7, "final", true, false, true},
-		{"reported", "done", 0, -1, "final", true, false, false},
-		{"not reported closed", "not_reported", -4, -5, "final", true, false, false},
-		{"draft risk", "pending", 0, -1, "draft", true, false, false},
-		{"old version", "pending", 0, -1, "final", false, false, true},
-		{"archived", "pending", 0, -1, "final", true, true, false},
+		{"open draft", "pending", "draft", "monitoring", "final", false, false, -1, 1, 1, true},
+		{"same day", "pending", "draft", "monitoring", "final", false, false, 0, 0, 1, true},
+		{"future window", "pending", "draft", "monitoring", "final", false, false, 1, 2, 1, false},
+		{"closed window", "pending", "draft", "monitoring", "final", false, false, -2, -1, 1, false},
+		{"reported in progress", "pending", "draft", "monitoring", "final", true, false, -1, 1, 1, false},
+		{"final monitoring", "pending", "final", "monitoring", "final", false, false, -1, 1, 1, false},
+		{"revision", "pending", "draft", "revision", "final", false, false, -1, 1, 1, false},
+		{"standalone", "pending", "draft", "monitoring", "final", false, false, -1, 1, 0, false},
+		{"draft risk", "pending", "draft", "monitoring", "draft", false, false, -1, 1, 1, false},
+		{"archived", "pending", "draft", "monitoring", "final", false, true, -1, 1, 1, false},
 	} {
 		t.Run(tt.name, func(t *testing.T) {
-			var archived *string
+			var archived, reported *string
+			recorded := "2026-01-01T00:00:00Z"
 			if tt.archived {
-				v := "2026-01-01T00:00:00Z"
-				archived = &v
+				archived = &recorded
+			}
+			if tt.reported {
+				reported = &recorded
 			}
 			var got bool
-			if err := pool.QueryRow(ctx, query, tt.status, tt.due, tt.end, tt.riskStatus, tt.current, archived).Scan(&got); err != nil {
+			if err := pool.QueryRow(ctx, query, tt.status, reported, tt.parent, tt.kind, tt.opens, archived, tt.closes, tt.parentID, tt.riskStatus).Scan(&got); err != nil {
 				t.Fatal(err)
 			}
 			if got != tt.want {
@@ -63,6 +67,7 @@ func TestReportingDueFilterReadIntegration(t *testing.T) {
 			}
 		})
 	}
+
 	// Exercise real count, search, period and pagination SQL with an empty scope fixture.
 	repo := NewMitigationTaskRepository(pool)
 	for _, page := range []int{1, 2} {

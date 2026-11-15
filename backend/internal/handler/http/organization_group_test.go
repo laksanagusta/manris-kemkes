@@ -94,6 +94,11 @@ func (r *organizationGroupHandlerRepo) ListMemberIDs(_ context.Context, id uuid.
 	return append([]uuid.UUID(nil), r.memberIDs...), nil
 }
 
+func (r *organizationGroupHandlerRepo) ListOptions(_ context.Context, ownerID *uuid.UUID) ([]repository.OrganizationGroupOption, error) {
+	r.lastListFilter.OwnerOrganizationID = ownerID
+	return []repository.OrganizationGroupOption{}, nil
+}
+
 func newOrganizationGroupHandlerForTest() (*OrganizationGroupHandler, *organizationGroupHandlerRepo, *organizationGroupHandlerOrgRepo) {
 	orgRepo := &organizationGroupHandlerOrgRepo{descendants: []uuid.UUID{}}
 	groupRepo := &organizationGroupHandlerRepo{

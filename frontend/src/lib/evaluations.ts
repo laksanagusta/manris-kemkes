@@ -65,3 +65,17 @@ export function filterEvaluations(
     return matchesSearch(evaluation, search);
   });
 }
+
+/** Mirrors the answer requirements in the evaluation finalization use case. */
+export function validateEvaluationFinalization(evaluation: Evaluation) {
+  const items = (evaluation.sections ?? []).flatMap((section) => section.items ?? []);
+  const unansweredItemIds = evaluation.monitoringPeriodId
+    ? items.filter((item) => item.answer !== "yes" && item.answer !== "no").map((item) => item.id)
+    : [];
+  const message = !evaluation.sections?.length || (evaluation.monitoringPeriodId && !items.length)
+    ? "Evaluasi belum memiliki butir penilaian."
+    : unansweredItemIds.length
+      ? "Jawab setiap butir evaluasi sebelum finalisasi."
+      : null;
+  return { unansweredItemIds, message };
+}

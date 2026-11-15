@@ -48,7 +48,7 @@ func (r *mitigationTaskRepository) GetByID(ctx context.Context, id uuid.UUID, or
 		        t.reported_by, t.reported_at, t.generated_by, t.created_at, t.updated_at,
 		        m.action, m.owner,
 		        COALESCE(r.code, '') as risk_code, COALESCE(r.title, '') as risk_title,
-		        COALESCE(u.name, '') as reported_by_name
+		        COALESCE(u.name, '') as reported_by_name, `+mitigationTaskMonitoringStatusSQL+`
 		 FROM mitigation_tasks t
 		 JOIN mitigations m ON t.mitigation_id = m.id
 		 JOIN risks r ON t.risk_id = r.id
@@ -62,7 +62,7 @@ func (r *mitigationTaskRepository) GetByID(ctx context.Context, id uuid.UUID, or
 		&task.ReportedBy, &task.ReportedAt, &task.GeneratedBy, &task.CreatedAt, &task.UpdatedAt,
 		&task.MitigationAction, &task.MitigationOwner,
 		&task.RiskCode, &task.RiskTitle,
-		&task.ReportedByName,
+		&task.ReportedByName, &task.MonitoringStatus,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("get mitigation task: %w", err)
@@ -87,6 +87,11 @@ func (r *mitigationTaskRepository) Update(ctx context.Context, task *entity.Miti
 		if err != nil {
 			return fmt.Errorf("lock monitoring for mitigation report: %w", err)
 		}
+		if status != entity.RiskMonitoringStatusDraft {
+			return domainerrors.ErrMonitoringReportClosed
+		}
+	} else if task.Status != entity.MitigationTaskStatusOverdue {
+		return domainerrors.ErrMonitoringReportClosed
 	}
 
 	tag, err := tx.Exec(ctx,
@@ -94,10 +99,10 @@ func (r *mitigationTaskRepository) Update(ctx context.Context, task *entity.Miti
 		 status=$2, evidence_url=$3, notes=$4,
 		 report_output=$5, report_obstacle=$6,
 		 reported_by=$7, reported_at=$8, updated_at=clock_timestamp()
-		 WHERE id=$1 AND monitoring_id IS NOT DISTINCT FROM $9 AND status <> 'not_reported'`,
+		 WHERE id=$1 AND monitoring_id IS NOT DISTINCT FROM $9 AND status <> 'not_reported' AND updated_at=$10`,
 		task.ID, task.Status, task.EvidenceURL, task.Notes,
 		task.ReportOutput, task.ReportObstacle,
-		task.ReportedBy, task.ReportedAt, task.MonitoringID,
+		task.ReportedBy, task.ReportedAt, task.MonitoringID, task.UpdatedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("update mitigation task: %w", err)
@@ -120,7 +125,7 @@ func (r *mitigationTaskRepository) ListByRisk(ctx context.Context, riskID uuid.U
 		        t.reported_by, t.reported_at, t.generated_by, t.created_at, t.updated_at,
 		        m.action, m.owner,
 		        COALESCE(r.code, ''), COALESCE(r.title, ''),
-		        COALESCE(u.name, '')
+		        COALESCE(u.name, ''), `+mitigationTaskMonitoringStatusSQL+`
 		 FROM mitigation_tasks t
 		 JOIN mitigations m ON t.mitigation_id = m.id
 		 JOIN risks r ON t.risk_id = r.id
@@ -138,7 +143,7 @@ func (r *mitigationTaskRepository) ListByMitigation(ctx context.Context, mitigat
 		        t.reported_by, t.reported_at, t.generated_by, t.created_at, t.updated_at,
 		        m.action, m.owner,
 		        COALESCE(r.code, ''), COALESCE(r.title, ''),
-		        COALESCE(u.name, '')
+		        COALESCE(u.name, ''), `+mitigationTaskMonitoringStatusSQL+`
 		 FROM mitigation_tasks t
 		 JOIN mitigations m ON t.mitigation_id = m.id
 		 JOIN risks r ON t.risk_id = r.id
@@ -155,7 +160,7 @@ func (r *mitigationTaskRepository) ListByUser(ctx context.Context, userID uuid.U
 		        t.reported_by, t.reported_at, t.generated_by, t.created_at, t.updated_at,
 		        m.action, m.owner,
 		        COALESCE(r.code, ''), COALESCE(r.title, ''),
-		        COALESCE(u.name, '')
+		        COALESCE(u.name, ''), ` + mitigationTaskMonitoringStatusSQL + `
 		 FROM mitigation_tasks t
 		 JOIN mitigations m ON t.mitigation_id = m.id
 		 JOIN risks r ON t.risk_id = r.id
@@ -181,12 +186,12 @@ func (r *mitigationTaskRepository) ListPendingOverdue(ctx context.Context, refDa
 		        t.reported_by, t.reported_at, t.generated_by, t.created_at, t.updated_at,
 		        m.action, m.owner,
 		        COALESCE(r.code, ''), COALESCE(r.title, ''),
-		        COALESCE(u.name, '')
+		        COALESCE(u.name, ''), `+mitigationTaskMonitoringStatusSQL+`
 		 FROM mitigation_tasks t
 		 JOIN mitigations m ON t.mitigation_id = m.id
 		 JOIN risks r ON t.risk_id = r.id
 		 LEFT JOIN users u ON t.reported_by = u.id
-		 WHERE t.status = 'pending' AND t.due_date < $1
+		 WHERE t.status = 'pending' AND t.monitoring_id IS NULL AND t.due_date < $1
 		 ORDER BY t.due_date ASC`, refDate.Format("2006-01-02"))
 }
 
@@ -233,7 +238,7 @@ func (r *mitigationTaskRepository) ListAll(ctx context.Context, orgIDs []uuid.UU
 		        t.reported_by, t.reported_at, t.generated_by, t.created_at, t.updated_at,
 		        m.action, m.owner,
 		        COALESCE(r.code, ''), COALESCE(r.title, ''),
-		        COALESCE(u.name, '')
+		        COALESCE(u.name, ''), ` + mitigationTaskMonitoringStatusSQL + `
 		 FROM mitigation_tasks t
 		 JOIN mitigations m ON t.mitigation_id = m.id
 		 JOIN risks r ON t.risk_id = r.id
@@ -246,10 +251,11 @@ func (r *mitigationTaskRepository) ListAll(ctx context.Context, orgIDs []uuid.UU
 }
 
 func (r *mitigationTaskRepository) ListAllPaginated(ctx context.Context, orgIDs []uuid.UUID, query, status, period string, page, limit int) ([]*entity.MitigationTask, int, error) {
-	return r.ListAllSorted(ctx, orgIDs, query, status, period, page, limit, "", "")
+	result, err := r.ListCollectionPage(ctx, orgIDs, query, status, period, page, limit, "", "")
+	return result.Data, result.Total, err
 }
 
-func (r *mitigationTaskRepository) ListAllSorted(ctx context.Context, orgIDs []uuid.UUID, query, status, period string, page, limit int, sortBy, sortOrder string) ([]*entity.MitigationTask, int, error) {
+func (r *mitigationTaskRepository) ListCollectionPage(ctx context.Context, orgIDs []uuid.UUID, query, status, period string, page, limit int, sortBy, sortOrder string) (repository.TaskCollectionPage, error) {
 	baseFrom := ` FROM mitigation_tasks t
 		 JOIN mitigations m ON t.mitigation_id = m.id
 		 JOIN risks r ON t.risk_id = r.id
@@ -284,9 +290,13 @@ func (r *mitigationTaskRepository) ListAllSorted(ctx context.Context, orgIDs []u
 	}
 
 	normalizedStatus := strings.TrimSpace(status)
-	if normalizedStatus == "needs_reporting" {
+	switch normalizedStatus {
+	case "needs_reporting":
 		whereClauses = append(whereClauses, reportingDuePredicate())
-	} else if normalizedStatus != "" && normalizedStatus != "all" {
+	case "reported":
+		whereClauses = append(whereClauses, mitigationReportedSQL)
+	case "", "all":
+	default:
 		args = append(args, normalizedStatus)
 		whereClauses = append(whereClauses, fmt.Sprintf("t.status = $%d", len(args)))
 	}
@@ -309,7 +319,13 @@ func (r *mitigationTaskRepository) ListAllSorted(ctx context.Context, orgIDs []u
 	} else if normalizedStatus == "needs_reporting" {
 		orderBy = "t.due_date ASC, t.created_at ASC, t.id ASC"
 	}
-	countQuery := `SELECT COUNT(*)` + baseFrom + whereClause
+	today := `(` + businessNowSQL + ` AT TIME ZONE 'Asia/Jakarta')::date`
+	countQuery := `SELECT COUNT(*),
+		COUNT(*) FILTER (WHERE ` + mitigationReportedSQL + `),
+		COUNT(*) FILTER (WHERE NOT (` + mitigationReportedSQL + `) AND
+			(t.status = 'overdue' OR (t.status IN ('pending','not_reported','done') AND t.due_date < ` + today + `))),
+		COUNT(*) FILTER (WHERE NOT (` + mitigationReportedSQL + `) AND t.status = 'pending' AND t.due_date >= ` + today + `)` +
+		baseFrom + whereClause
 	dataQuery := `SELECT t.id, t.mitigation_id, t.risk_id, t.monitoring_id,
 		        t.period_label, t.period_start::text, t.period_end::text, t.due_date::text,
 		        t.status, t.evidence_url, t.notes,
@@ -317,19 +333,22 @@ func (r *mitigationTaskRepository) ListAllSorted(ctx context.Context, orgIDs []u
 		        t.reported_by, t.reported_at, t.generated_by, t.created_at, t.updated_at,
 		        m.action, m.owner,
 		        COALESCE(r.code, ''), COALESCE(r.title, ''),
-		        COALESCE(u.name, '')` + baseFrom + whereClause + ` ORDER BY ` + orderBy + ` LIMIT $` + fmt.Sprint(len(args)+1) + ` OFFSET $` + fmt.Sprint(len(args)+2)
+		        COALESCE(u.name, ''), ` + mitigationTaskMonitoringStatusSQL + baseFrom + whereClause + ` ORDER BY ` + orderBy + ` LIMIT $` + fmt.Sprint(len(args)+1) + ` OFFSET $` + fmt.Sprint(len(args)+2)
 	dataArgs := append(append([]interface{}{}, args...), limit, offset)
 
-	var total int
-	if err := r.pool.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
-		return nil, 0, fmt.Errorf("count mitigation tasks: %w", err)
+	var result repository.TaskCollectionPage
+	if err := r.pool.QueryRow(ctx, countQuery, args...).Scan(
+		&result.Total, &result.Summary.Reported, &result.Summary.Overdue, &result.Summary.Upcoming,
+	); err != nil {
+		return repository.TaskCollectionPage{}, fmt.Errorf("count mitigation tasks: %w", err)
 	}
 
 	tasks, err := r.queryTasks(ctx, dataQuery, dataArgs...)
 	if err != nil {
-		return nil, 0, err
+		return repository.TaskCollectionPage{}, err
 	}
-	return tasks, total, nil
+	result.Data = tasks
+	return result, nil
 }
 
 func (r *mitigationTaskRepository) TaskExistsForPeriod(ctx context.Context, mitigationID uuid.UUID, periodStart, periodEnd string) (bool, error) {
@@ -356,7 +375,7 @@ func (r *mitigationTaskRepository) ListByMonitoring(ctx context.Context, monitor
 		        t.reported_by, t.reported_at, t.generated_by, t.created_at, t.updated_at,
 		        m.action, m.owner,
 		        COALESCE(r.code, ''), COALESCE(r.title, ''),
-		        COALESCE(u.name, '')
+		        COALESCE(u.name, ''), `+mitigationTaskMonitoringStatusSQL+`
 		 FROM mitigation_tasks t
 		 JOIN mitigations m ON t.mitigation_id = m.id
 		 JOIN risks r ON t.risk_id = r.id
@@ -365,15 +384,13 @@ func (r *mitigationTaskRepository) ListByMonitoring(ctx context.Context, monitor
 		 ORDER BY t.created_at ASC`, monitoringID)
 }
 
-// CountByMonitoringAndStatus counts tasks linked to a monitoring by status
-// CountByMonitoringAndStatus treats only a completed task with actual report
-// content as reported. Empty and terminal not_reported tasks remain part of
-// the unreported count for historical summaries.
+// CountByMonitoringAndStatus distinguishes submitted reports from tasks
+// without sufficient report content, regardless of execution status.
 func (r *mitigationTaskRepository) CountByMonitoringAndStatus(ctx context.Context, monitoringID uuid.UUID, orgIDs []uuid.UUID) (*repository.MonitoringTaskCounts, error) {
 	query := `
 		SELECT COUNT(t.id), COUNT(t.id) FILTER (
-			WHERE t.status = 'done' AND t.reported_at IS NOT NULL
-			  AND NULLIF(BTRIM(COALESCE(t.notes, '')), '') IS NOT NULL
+			WHERE t.status IN ('pending','done','skipped') AND t.reported_at IS NOT NULL
+			  AND length(BTRIM(COALESCE(t.notes, ''))) >= 10
 		), md5(COALESCE(string_agg(
 			t.id::text || ':' || t.status || ':' || EXTRACT(EPOCH FROM t.updated_at)::text,
 			',' ORDER BY t.id
@@ -392,6 +409,10 @@ func (r *mitigationTaskRepository) CountByMonitoringAndStatus(ctx context.Contex
 	counts.Pending = counts.Total - counts.Done
 	return &counts, nil
 }
+
+// Keep the parent status separate from execution status so clients can tell
+// whether a report can still be edited.
+const mitigationTaskMonitoringStatusSQL = `COALESCE((SELECT rm.status::text FROM risk_monitorings rm WHERE rm.id=t.monitoring_id), '')`
 
 // queryTasks is a shared helper to scan task rows
 func (r *mitigationTaskRepository) queryTasks(ctx context.Context, query string, args ...interface{}) ([]*entity.MitigationTask, error) {
@@ -412,11 +433,11 @@ func (r *mitigationTaskRepository) queryTasks(ctx context.Context, query string,
 			&t.ReportedBy, &t.ReportedAt, &t.GeneratedBy, &t.CreatedAt, &t.UpdatedAt,
 			&t.MitigationAction, &t.MitigationOwner,
 			&t.RiskCode, &t.RiskTitle,
-			&t.ReportedByName,
+			&t.ReportedByName, &t.MonitoringStatus,
 		); err != nil {
 			return nil, fmt.Errorf("scan task: %w", err)
 		}
 		tasks = append(tasks, &t)
 	}
-	return tasks, nil
+	return tasks, rows.Err()
 }

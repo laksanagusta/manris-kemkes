@@ -232,6 +232,19 @@ export function AnnualProfileExample({
           key={`${generation}:${profile.selected?.id}`}
           year={year}
           profile={profile}
+          periodWorkspace={{
+            year,
+            version: profile.selected?.version ?? 1,
+            rule: {
+              id: "example-profile-rule",
+              name: "Manajemen Risiko",
+              year,
+              frequency: "semester",
+              active: true,
+              periods: [],
+            },
+            periods: [],
+          }}
           candidates={profileCandidates}
           organization="UPR-T.II · Unit contoh"
           busy={false}

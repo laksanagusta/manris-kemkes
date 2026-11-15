@@ -65,6 +65,8 @@ func (h *PlanningHierarchyHandler) ListObjectiveCompatibility(c *fiber.Ctx) erro
 	}
 
 	result, err := h.listCompatibilityUC.Execute(c.Context(), planninguc.ListObjectiveCompatibilityInput{
+		SortBy:         c.Query("sort_by"),
+		SortOrder:      c.Query("sort_order"),
 		OrganizationID: organizationID,
 		Period:         strings.TrimSpace(c.Query("period")),
 		Query:          strings.TrimSpace(c.Query("q")),

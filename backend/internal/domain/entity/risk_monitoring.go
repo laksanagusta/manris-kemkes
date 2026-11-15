@@ -2,7 +2,6 @@ package entity
 
 import (
 	"math"
-	"reflect"
 	"slices"
 	"time"
 
@@ -22,6 +21,9 @@ const (
 )
 
 type RiskMonitoring struct {
+	DraftTargetProbability      int                         `json:"draftTargetProbability"`
+	DraftTargetImpact           int                         `json:"draftTargetImpact"`
+	TransactionKind             string                      `json:"transactionKind"`
 	ProfileVersionID            *uuid.UUID                  `json:"profileVersionId,omitempty"`
 	MonitoringPeriodID          *uuid.UUID                  `json:"monitoringPeriodId,omitempty"`
 	ID                          uuid.UUID                   `json:"id"`
@@ -47,6 +49,7 @@ type RiskMonitoring struct {
 	ObservedLevel               string                      `json:"observedLevel"`
 	Conclusion                  string                      `json:"conclusion"`
 	MitigationProgressSummary   string                      `json:"mitigationProgressSummary"`
+	MitigationTaskCount         *int                        `json:"mitigationTaskCount"`
 	MitigationCompletionPercent int                         `json:"mitigationCompletionPercent"`
 	DraftPayload                *RiskMonitoringDraftPayload `json:"-"`
 	ObservedScoreConfirmed      bool                        `json:"observedScoreConfirmed"`
@@ -74,6 +77,8 @@ type RiskMonitoring struct {
 }
 
 type RiskMonitoringDraftPayload struct {
+	TargetProbability      int          `json:"targetProbability"`
+	TargetImpact           int          `json:"targetImpact"`
 	ObservedScoreConfirmed bool         `json:"observedScoreConfirmed,omitempty"`
 	Title                  string       `json:"title"`
 	Description            string       `json:"description"`
@@ -89,6 +94,8 @@ type RiskMonitoringDraftPayload struct {
 }
 
 type RiskMonitoringDraftValues struct {
+	TargetProbability    int
+	TargetImpact         int
 	Title                string
 	Description          string
 	Category             string
@@ -108,6 +115,7 @@ type RiskMonitoringDraftValues struct {
 
 func NewRiskMonitoringDraft(source *Risk, cycle string, startedBy uuid.UUID) *RiskMonitoring {
 	draft := &RiskMonitoring{
+		TransactionKind:     "monitoring",
 		VersionGroupID:      source.VersionGroupID,
 		SourceRiskID:        source.ID,
 		AssessmentCycle:     cycle,
@@ -141,6 +149,7 @@ func NewRiskMonitoringDraftPayloadFromRisk(source *Risk) *RiskMonitoringDraftPay
 		return &RiskMonitoringDraftPayload{}
 	}
 	return &RiskMonitoringDraftPayload{
+		TargetProbability: source.TargetProbability, TargetImpact: source.TargetImpact,
 		Title:                source.Title,
 		Description:          source.Description,
 		Category:             source.Category,
@@ -157,6 +166,7 @@ func NewRiskMonitoringDraftPayloadFromRisk(source *Risk) *RiskMonitoringDraftPay
 
 func NewRiskMonitoringDraftPayloadFromValues(values RiskMonitoringDraftValues) *RiskMonitoringDraftPayload {
 	return &RiskMonitoringDraftPayload{
+		TargetProbability: values.TargetProbability, TargetImpact: values.TargetImpact,
 		Title:                values.Title,
 		Description:          values.Description,
 		Category:             values.Category,
@@ -200,6 +210,8 @@ func (m *RiskMonitoring) DraftPayloadSnapshot() *RiskMonitoringDraftPayload {
 		return m.DraftPayload.Clone()
 	}
 	return &RiskMonitoringDraftPayload{
+		TargetProbability:      m.DraftTargetProbability,
+		TargetImpact:           m.DraftTargetImpact,
 		ObservedScoreConfirmed: m.ObservedScoreConfirmed,
 		Title:                  m.DraftTitle,
 		Description:            m.DraftDescription,
@@ -216,6 +228,10 @@ func (m *RiskMonitoring) DraftPayloadSnapshot() *RiskMonitoringDraftPayload {
 }
 
 func (m *RiskMonitoring) syncDraftFieldsFromPayload() {
+	if m != nil && m.DraftPayload != nil {
+		m.DraftTargetProbability = m.DraftPayload.TargetProbability
+		m.DraftTargetImpact = m.DraftPayload.TargetImpact
+	}
 	if m == nil || m.DraftPayload == nil {
 		return
 	}
@@ -269,7 +285,7 @@ func DetectRiskMonitoringMode(source *Risk, values *RiskMonitoringDraftValues) (
 	if source.Category != values.Category {
 		changed = append(changed, "category")
 	}
-	if !reflect.DeepEqual(source.Cause, values.Cause) {
+	if !slices.Equal(source.Cause, values.Cause) {
 		changed = append(changed, "cause")
 	}
 	if source.RiskSource != values.RiskSource {
@@ -278,7 +294,7 @@ func DetectRiskMonitoringMode(source *Risk, values *RiskMonitoringDraftValues) (
 	if source.Controllability != values.Controllability {
 		changed = append(changed, "controllability")
 	}
-	if !reflect.DeepEqual(source.ImpactDesc, values.ImpactDesc) {
+	if !slices.Equal(source.ImpactDesc, values.ImpactDesc) {
 		changed = append(changed, "impactDesc")
 	}
 	if source.ExistingControl != values.ExistingControl {
@@ -306,13 +322,26 @@ func mitigationPlanChanged(source []Mitigation, draft []Mitigation) bool {
 	for i := range source {
 		if source[i].Action != draft[i].Action ||
 			source[i].Owner != draft[i].Owner ||
-			source[i].DueDate != draft[i].DueDate ||
+			!equalOptional(source[i].OwnerUserID, draft[i].OwnerUserID) ||
+			!equalOptional(source[i].DueDate, draft[i].DueDate) ||
+			source[i].Frequency != draft[i].Frequency ||
+			!equalOptional(source[i].RecurringInterval, draft[i].RecurringInterval) ||
+			!equalOptional(source[i].ReportDay, draft[i].ReportDay) ||
+			!equalOptional(source[i].ReportDate, draft[i].ReportDate) ||
+			source[i].ExecutionScheduleText != draft[i].ExecutionScheduleText ||
 			source[i].TargetCost != draft[i].TargetCost ||
 			source[i].MitigationType != draft[i].MitigationType {
 			return true
 		}
 	}
 	return false
+}
+
+func equalOptional[T comparable](left, right *T) bool {
+	if left == nil || right == nil {
+		return left == right
+	}
+	return *left == *right
 }
 
 func (m *RiskMonitoring) Validate() error {

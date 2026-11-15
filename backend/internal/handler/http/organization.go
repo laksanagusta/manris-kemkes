@@ -55,6 +55,8 @@ func (h *OrganizationHandler) List(c *fiber.Ctx) error {
 		Limit:      limit,
 		Q:          q,
 		AncestorID: ancestorID,
+		UPRLevel:   c.Query("upr_level"),
+		Structure:  c.Query("structure"),
 	})
 	if err != nil {
 		return handleOrganizationError(c, err)

@@ -51,7 +51,7 @@ export function DialogExample() {
             </DialogTitle>
             <DialogDescription>Periksa draf risiko yang akan dihapus.</DialogDescription>
           </DialogHeader>
-          <ConfirmationConsequences>
+          <ConfirmationConsequences variant="plain">
             Draf risiko beserta isinya akan dihapus permanen dan tidak dapat dipulihkan.
           </ConfirmationConsequences>
           <div className="space-y-0.5 py-1 text-sm">

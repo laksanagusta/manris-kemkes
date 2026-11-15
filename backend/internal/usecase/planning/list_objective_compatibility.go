@@ -18,6 +18,8 @@ func NewListObjectiveCompatibilityUseCase(repo repository.PlanningHierarchyRepos
 }
 
 type ListObjectiveCompatibilityInput struct {
+	SortBy         string
+	SortOrder      string
 	OrganizationID *uuid.UUID
 	Period         string
 	Query          string
@@ -26,14 +28,17 @@ type ListObjectiveCompatibilityInput struct {
 }
 
 type ListObjectiveCompatibilityOutput struct {
-	Data  []*entity.RiskObjective `json:"data"`
-	Total int                     `json:"total"`
-	Page  int                     `json:"page"`
-	Limit int                     `json:"limit"`
+	Periods []string                `json:"periods"`
+	Data    []*entity.RiskObjective `json:"data"`
+	Total   int                     `json:"total"`
+	Page    int                     `json:"page"`
+	Limit   int                     `json:"limit"`
 }
 
 func (uc *ListObjectiveCompatibilityUseCase) Execute(ctx context.Context, input ListObjectiveCompatibilityInput) (*ListObjectiveCompatibilityOutput, error) {
 	items, total, err := uc.repo.ListObjectiveCompatibilityRows(ctx, repository.PlanningCompatibilityFilter{
+		SortBy:         input.SortBy,
+		SortOrder:      input.SortOrder,
 		OrganizationID: input.OrganizationID,
 		Period:         strings.TrimSpace(input.Period),
 		Q:              strings.TrimSpace(input.Query),
@@ -49,14 +54,20 @@ func (uc *ListObjectiveCompatibilityUseCase) Execute(ctx context.Context, input 
 		page = 1
 	}
 	limit := input.Limit
-	if limit < 1 {
+	if limit < 1 || limit > 100 {
 		limit = 10
 	}
 
+	periods, err := uc.repo.ListCompatibilityPeriods(ctx, input.OrganizationID)
+	if err != nil {
+		return nil, err
+	}
+
 	return &ListObjectiveCompatibilityOutput{
-		Data:  items,
-		Total: total,
-		Page:  page,
-		Limit: limit,
+		Periods: periods,
+		Data:    items,
+		Total:   total,
+		Page:    page,
+		Limit:   limit,
 	}, nil
 }

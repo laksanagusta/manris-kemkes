@@ -33,31 +33,57 @@ type riskMonitoringQueryer interface {
 }
 
 func (r *riskMonitoringRepository) Create(ctx context.Context, monitoring *entity.RiskMonitoring) error {
+	if monitoring.ObservedAt == "" {
+		monitoring.ObservedAt = monitoring.StartedAt.In(timeutil.JakartaLocation()).Format(time.DateOnly)
+	}
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback(ctx)
-	if monitoring.Status == entity.RiskMonitoringStatusDraft && monitoring.ProfileVersionID == nil {
-		// Serialize starts per family while allowing pre-existing drafts from
-		// separate quarters to survive the upgrade.
-		if _, err := tx.Exec(ctx, "SELECT pg_advisory_xact_lock(hashtextextended($1::text, 85))", monitoring.VersionGroupID.String()); err != nil {
-			return fmt.Errorf("lock monitoring draft creation: %w", err)
+	if monitoring.Status == entity.RiskMonitoringStatusDraft {
+		if err := lockRiskWorkflow(ctx, tx, monitoring.VersionGroupID); err != nil {
+			return err
 		}
+		if err := checkMonitoringDraftStart(ctx, tx, monitoring.VersionGroupID, monitoring.TransactionKind); err != nil {
+			return err
+		}
+	}
+	if monitoring.Status == entity.RiskMonitoringStatusDraft && monitoring.ProfileVersionID == nil {
 		var exists bool
-		if err := tx.QueryRow(ctx, "SELECT EXISTS (SELECT 1 FROM risk_monitorings WHERE version_group_id=$1 AND status='draft')", monitoring.VersionGroupID).Scan(&exists); err != nil {
+		if err := tx.QueryRow(ctx, "SELECT EXISTS (SELECT 1 FROM risk_monitorings WHERE version_group_id=$1 AND status='draft' AND transaction_kind=$2)", monitoring.VersionGroupID, monitoring.TransactionKind).Scan(&exists); err != nil {
 			return fmt.Errorf("check open monitoring draft: %w", err)
 		}
 		if exists {
 			return domainerrors.ErrMonitoringNotDraft
 		}
 	}
+	if monitoring.TransactionKind == "monitoring" {
+		var probability, impact int
+		err := tx.QueryRow(ctx, `SELECT observed_probability,observed_impact FROM risk_monitorings WHERE source_risk_id=$1 AND status='final' AND transaction_kind='monitoring' AND superseded_by_monitoring_id IS NULL AND observed_at<=$2::date ORDER BY observed_at DESC,finalized_at DESC,id DESC LIMIT 1`, monitoring.SourceRiskID, monitoring.ObservedAt).Scan(&probability, &impact)
+		if err == nil {
+			monitoring.SourceProbability = probability
+			monitoring.SourceImpact = impact
+			monitoring.SourceWeight = entity.GetBobot(probability, impact)
+			monitoring.SourceNilai = entity.CalculateNilai(probability, impact, monitoring.SourceWeight)
+			monitoring.SourceLevel = entity.GetRiskLevelFromNilai(monitoring.SourceNilai)
+			monitoring.ObservedProbability = probability
+			monitoring.ObservedImpact = impact
+			monitoring.CalculateObservedScore()
+		}
+		if err != nil && err != pgx.ErrNoRows {
+			return err
+		}
+	}
 	if err := insertRiskMonitoring(ctx, tx, monitoring); err != nil {
 		return err
 	}
-	if _, err := tx.Exec(ctx, `UPDATE mitigation_tasks SET monitoring_id=$1,updated_at=clock_timestamp() WHERE risk_id=$2 AND monitoring_id IS NULL`, monitoring.ID, monitoring.SourceRiskID); err != nil {
-		return fmt.Errorf("link observation input tasks: %w", err)
+	if monitoring.TransactionKind == "monitoring" {
+		if err := ensureMonitoringReportTasks(ctx, tx, monitoring); err != nil {
+			return err
+		}
 	}
+
 	return tx.Commit(ctx)
 }
 
@@ -86,9 +112,9 @@ func insertRiskMonitoring(
 			conclusion,
 			mitigation_progress_summary, mitigation_completion_percent,
 			draft_payload,
-			profile_change_summary, change_reason, started_by, started_at, observed_at, observed_at_inferred,profile_version_id,monitoring_period_id
+			profile_change_summary, change_reason, started_by, started_at, observed_at, observed_at_inferred,profile_version_id,monitoring_period_id,transaction_kind,finalized_at,finalized_by
 		)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32)
 		RETURNING id, started_at, created_at, updated_at`,
 		monitoring.SourceRiskID,
 		monitoring.VersionGroupID,
@@ -116,7 +142,7 @@ func insertRiskMonitoring(
 		monitoring.StartedBy,
 		monitoring.StartedAt,
 		monitoring.ObservedAt,
-		monitoring.ObservedAtInferred, monitoring.ProfileVersionID, monitoring.MonitoringPeriodID,
+		monitoring.ObservedAtInferred, monitoring.ProfileVersionID, monitoring.MonitoringPeriodID, monitoring.TransactionKind, monitoring.FinalizedAt, monitoring.FinalizedBy,
 	).Scan(&monitoring.ID, &monitoring.StartedAt, &monitoring.CreatedAt, &monitoring.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("create risk monitoring: %w", err)
@@ -134,12 +160,13 @@ func (r *riskMonitoringRepository) GetByID(ctx context.Context, id uuid.UUID, or
 			return nil, pgx.ErrNoRows
 		}
 	}
+
 	return monitoring, nil
 }
 
 func (r *riskMonitoringRepository) GetDraftBySourceAndCycle(ctx context.Context, sourceRiskID uuid.UUID, cycle string) (*entity.RiskMonitoring, error) {
 	monitoring, err := scanRiskMonitoring(r.pool.QueryRow(ctx, baseRiskMonitoringSelect()+`
-		WHERE rm.source_risk_id = $1 AND rm.assessment_cycle = $2 AND rm.status = 'draft'
+		WHERE rm.source_risk_id = $1 AND rm.assessment_cycle = $2 AND rm.status = 'draft' AND rm.transaction_kind='monitoring'
 	`, sourceRiskID, cycle))
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -158,7 +185,7 @@ func (r *riskMonitoringRepository) HasFinalizedForSourceAndCycle(ctx context.Con
 			FROM risk_monitorings
 			WHERE source_risk_id = $1
 			  AND assessment_cycle = $2
-			  AND status = 'final'
+			  AND status = 'final' AND transaction_kind='monitoring'
 		)
 	`, sourceRiskID, cycle).Scan(&exists); err != nil {
 		return false, fmt.Errorf("check finalized monitoring: %w", err)
@@ -170,7 +197,7 @@ func (r *riskMonitoringRepository) GetByVersionGroupAndCycle(ctx context.Context
 	monitoring, err := scanRiskMonitoring(r.pool.QueryRow(ctx, baseRiskMonitoringSelect()+`
 		JOIN risks rv ON rv.id = rm.source_risk_id
 		WHERE rv.version_group_id = $1 AND rm.assessment_cycle = $2
-		  AND rm.status IN ('draft', 'final')
+		  AND rm.status IN ('draft', 'final') AND rm.transaction_kind='monitoring'
 		ORDER BY (rm.status='draft') DESC, rm.observed_at DESC, rm.finalized_at DESC NULLS LAST, rm.id DESC
 		LIMIT 1
 	`, versionGroupID, cycle))
@@ -227,6 +254,7 @@ func (r *riskMonitoringRepository) List(ctx context.Context, filter repository.R
 		SELECT COUNT(*)
 		FROM risk_monitorings rm
 		LEFT JOIN risks src ON src.id = rm.source_risk_id
+		LEFT JOIN organizations src_org ON src_org.id = src.organization_id
 		WHERE rm.status <> 'superseded'`
 	dataQuery := baseRiskMonitoringSelect() + `
 		WHERE rm.status <> 'superseded'`
@@ -277,7 +305,7 @@ func (r *riskMonitoringRepository) List(ctx context.Context, filter repository.R
 	}
 
 	if filter.CreatedAt != "" {
-		clause := fmt.Sprintf(" AND rm.started_at::date = $%d::date", argIdx)
+		clause := fmt.Sprintf(" AND rm.created_at::date = $%d::date", argIdx)
 		countQuery += clause
 		dataQuery += clause
 		args = append(args, filter.CreatedAt)
@@ -290,8 +318,9 @@ func (r *riskMonitoringRepository) List(ctx context.Context, filter repository.R
 			COALESCE(src.title, '') ILIKE $%d OR
 			COALESCE(rm.draft_payload->>'title', '') ILIKE $%d OR
 			COALESCE(rm.draft_payload->>'category', '') ILIKE $%d OR
-			COALESCE(rm.draft_payload->>'riskSource', '') ILIKE $%d
-		)`, argIdx, argIdx, argIdx, argIdx, argIdx)
+			COALESCE(rm.draft_payload->>'riskSource', '') ILIKE $%d OR
+			CONCAT_WS(' ', src.code, src.title, src_org.name) ILIKE $%d
+		)`, argIdx, argIdx, argIdx, argIdx, argIdx, argIdx)
 		countQuery += clause
 		dataQuery += clause
 		args = append(args, "%"+filter.Query+"%")
@@ -303,20 +332,23 @@ func (r *riskMonitoringRepository) List(ctx context.Context, filter repository.R
 		return nil, 0, fmt.Errorf("list risk monitoring count: %w", err)
 	}
 
-	orderDir := "DESC"
-	if filter.SortOrder == "asc" {
-		orderDir = "ASC"
+	const sourceScore = `COALESCE(CASE WHEN rm.source_nilai > 0 THEN rm.source_nilai END, CASE WHEN src.nilai > 0 THEN src.nilai END)`
+	const observedScore = `CASE WHEN rm.observed_nilai > 0 THEN rm.observed_nilai END`
+	sortColumns := map[string]string{
+		"title":                         "LOWER(COALESCE(NULLIF(src.title, ''), NULLIF(rm.draft_payload->>'title', ''), res.title))",
+		"assessment_cycle":              "rm.assessment_cycle",
+		"status":                        "rm.status",
+		"observed_at":                   "rm.observed_at",
+		"started_at":                    "rm.started_at",
+		"score_change":                  "(" + observedScore + ") - (" + sourceScore + ")",
+		"observed_score":                observedScore,
+		"mitigation_completion_percent": "mitigation_completion_percent",
 	}
-	switch filter.SortBy {
-	case "assessment_cycle":
-		dataQuery += fmt.Sprintf(" ORDER BY rm.assessment_cycle %s, rm.started_at DESC, rm.id DESC", orderDir)
-	case "status":
-		dataQuery += fmt.Sprintf(" ORDER BY rm.status %s, rm.started_at DESC, rm.id DESC", orderDir)
-	case "started_at":
-		dataQuery += fmt.Sprintf(" ORDER BY rm.started_at %s, rm.id DESC", orderDir)
-	default:
-		dataQuery += fmt.Sprintf(" ORDER BY rm.created_at %s, rm.id DESC", orderDir)
+	tieBreaker := "rm.id"
+	if _, explicit := sortColumns[filter.SortBy]; explicit {
+		tieBreaker = "rm.created_at DESC NULLS LAST, rm.id"
 	}
+	dataQuery += " ORDER BY " + collectionOrderBy(filter.SortBy, filter.SortOrder, "rm.created_at", tieBreaker, sortColumns)
 	dataQuery += fmt.Sprintf(" LIMIT $%d OFFSET $%d", argIdx, argIdx+1)
 	args = append(args, filter.Limit, (filter.Page-1)*filter.Limit)
 
@@ -435,6 +467,9 @@ func (r *riskMonitoringRepository) DeleteDraft(ctx context.Context, id uuid.UUID
 		return domainerrors.ErrMonitoringHasWorkingPaper
 	}
 
+	if _, err := tx.Exec(ctx, "DELETE FROM mitigation_tasks WHERE monitoring_id=$1", id); err != nil {
+		return fmt.Errorf("delete draft mitigation reports: %w", err)
+	}
 	tag, err := tx.Exec(ctx, `
 		DELETE FROM risk_monitorings
 		WHERE id = $1 AND status = 'draft'`, id)
@@ -484,6 +519,18 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 		}
 	}
 
+	if monitoring.TransactionKind == "monitoring" {
+		if _, err := tx.Exec(ctx, "SELECT id FROM mitigation_tasks WHERE monitoring_id=$1 ORDER BY id FOR UPDATE", monitoringID); err != nil {
+			return nil, err
+		}
+		var missing int
+		if err := tx.QueryRow(ctx, `SELECT count(*) FROM mitigation_tasks WHERE monitoring_id=$1 AND (status NOT IN ('pending','done','skipped') OR reported_at IS NULL OR length(btrim(COALESCE(notes,'')))<10)`, monitoringID).Scan(&missing); err != nil {
+			return nil, err
+		}
+		if missing > 0 {
+			return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "Lengkapi laporan seluruh rencana mitigasi sebelum finalisasi pemantauan."}
+		}
+	}
 	var activeID uuid.UUID
 	var activeEffective time.Time
 	err = tx.QueryRow(ctx, `SELECT id,COALESCE(effective_from,finalized_at::date,created_at::date) FROM risks WHERE version_group_id=$1 AND is_current AND status='final' AND archived_at IS NULL FOR UPDATE`, monitoring.VersionGroupID).Scan(&activeID, &activeEffective)
@@ -512,6 +559,9 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 		return nil, domainerrors.ErrSourceRiskNoLongerActive
 	}
 	activate := monitoring.ObservedAt >= activeEffective.Format("2006-01-02")
+	if monitoring.TransactionKind == "revision" && (source.ID != activeID || !activate) {
+		return nil, domainerrors.ErrSourceRiskNoLongerActive
+	}
 	if resultRisk != nil {
 		resultRisk.EffectiveFrom = &observed
 		if err := tx.QueryRow(ctx, `SELECT COALESCE(MAX(version_number),0)+1 FROM risks WHERE version_group_id=$1`, monitoring.VersionGroupID).Scan(&resultRisk.VersionNumber); err != nil {
@@ -569,6 +619,9 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 	}
 
 	var resultRiskID *uuid.UUID
+	if monitoring.TransactionKind == "monitoring" {
+		resultRiskID = &source.ID
+	}
 	if resultRisk != nil {
 		resultRiskID = &resultRisk.ID
 	}
@@ -595,33 +648,25 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 		return nil, fmt.Errorf("mark monitoring period completed: %w", err)
 	}
 
-	evidence, err := readMonitoringEvidence(ctx, tx, source.ID, monitoringID, monitoring.AssessmentCycle, now)
-	if err != nil {
-		return nil, err
-	}
-	completion := 0
-	if len(evidence.Reports) > 0 {
-		done := 0
-		for _, report := range evidence.Reports {
-			if report.Status == "done" && report.ReportedAt != nil && strings.TrimSpace(report.Notes) != "" {
-				done++
+	if monitoring.TransactionKind == "monitoring" {
+		evidence, err := readMonitoringEvidence(ctx, tx, source.ID, monitoringID, monitoring.AssessmentCycle, now)
+		if err != nil {
+			return nil, err
+		}
+		completion := 0
+		if len(evidence.Reports) > 0 {
+			reported := 0
+			for _, report := range evidence.Reports {
+				if (report.Status == "done" || report.Status == "pending" || report.Status == "skipped") && report.ReportedAt != nil && len([]rune(strings.TrimSpace(report.Notes))) >= 10 {
+					reported++
+				}
 			}
+			completion = int(math.Round(float64(reported) * 100 / float64(len(evidence.Reports))))
 		}
-		completion = int(math.Round(float64(done) * 100 / float64(len(evidence.Reports))))
-	}
-	if _, err := tx.Exec(ctx, `UPDATE risk_monitorings SET evidence_snapshot=$2,mitigation_completion_percent=$3 WHERE id=$1`, monitoringID, evidence, completion); err != nil {
-		return nil, fmt.Errorf("save monitoring evidence: %w", err)
-	}
-	if resultRisk != nil {
-		if _, err := tx.Exec(ctx, `INSERT INTO mitigation_tasks
-		 (mitigation_id,risk_id,period_label,period_start,period_end,due_date,status,generated_by,generated_by_monitoring_id)
-		 SELECT m.id,m.risk_id,$2,$3::date,
-		 (date_trunc('quarter',$3::date)+interval '3 months - 1 day')::date,
-		 GREATEST(m.due_date,(date_trunc('quarter',$3::date)+interval '3 months - 1 day')::date),
-		 'pending','manual',$4 FROM mitigations m WHERE m.risk_id=$1
-		 ON CONFLICT (mitigation_id,period_start,period_end) DO NOTHING`, resultRisk.ID, monitoring.AssessmentCycle, monitoring.ObservedAt, monitoring.ID); err != nil {
-			return nil, fmt.Errorf("create follow-up mitigation tasks: %w", err)
+		if _, err := tx.Exec(ctx, `UPDATE risk_monitorings SET evidence_snapshot=$2,mitigation_completion_percent=$3 WHERE id=$1`, monitoringID, evidence, completion); err != nil {
+			return nil, fmt.Errorf("save monitoring evidence: %w", err)
 		}
+
 	}
 	if err := tx.Commit(ctx); err != nil {
 		return nil, fmt.Errorf("commit monitoring finalization: %w", err)
@@ -633,16 +678,23 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 func baseRiskMonitoringSelect() string {
 	return `
 		SELECT
-			rm.id, rm.source_risk_id, rm.version_group_id, rm.result_risk_id, rm.assessment_cycle, rm.status, rm.superseded_by_monitoring_id, rm.mode,
+			rm.id, rm.source_risk_id, rm.version_group_id, rm.result_risk_id, rm.assessment_cycle, rm.status, rm.superseded_by_monitoring_id, rm.mode,rm.transaction_kind,
 			rm.source_probability, rm.source_impact, rm.source_weight, rm.source_nilai, rm.source_level, rm.source_version_number,
 			rm.observed_probability, rm.observed_impact, rm.observed_weight, rm.observed_nilai, rm.observed_level,
 			rm.conclusion,
 			rm.mitigation_progress_summary,
 			CASE
 				WHEN rm.status='draft' AND mitigation_progress.total_tasks > 0
-					THEN ROUND(mitigation_progress.done_tasks * 100.0 / mitigation_progress.total_tasks)::int
+					THEN ROUND(mitigation_progress.reported_tasks * 100.0 / mitigation_progress.total_tasks)::int
 				ELSE rm.mitigation_completion_percent
 			END AS mitigation_completion_percent,
+            CASE
+              WHEN rm.status <> 'draft' AND jsonb_typeof(rm.evidence_snapshot->'reports')='array'
+                THEN jsonb_array_length(rm.evidence_snapshot->'reports')
+              WHEN rm.status='draft' OR mitigation_progress.total_tasks > 0
+                THEN COALESCE(mitigation_progress.total_tasks,0)::int
+              ELSE NULL
+            END AS mitigation_task_count,
 			rm.draft_payload, rm.profile_change_summary, rm.change_reason,
 			rm.started_by, rm.started_at, rm.finalized_by, rm.finalized_at,
 			rm.created_at, rm.updated_at, rm.observed_at::text, rm.observed_at_inferred,rm.profile_version_id,rm.monitoring_period_id,
@@ -678,10 +730,10 @@ func baseRiskMonitoringSelect() string {
 				monitoring_id,
 				COUNT(*) AS total_tasks,
 				COUNT(*) FILTER (
-					WHERE status = 'done'
+					WHERE status IN ('done','pending','skipped')
 					  AND reported_at IS NOT NULL
-					  AND NULLIF(BTRIM(COALESCE(notes, '')), '') IS NOT NULL
-				) AS done_tasks
+					  AND length(BTRIM(COALESCE(notes, ''))) >= 10
+				) AS reported_tasks
 			FROM mitigation_tasks
 			WHERE monitoring_id IS NOT NULL
 			GROUP BY monitoring_id
@@ -706,11 +758,11 @@ func scanRiskMonitoring(row pgx.Row) (*entity.RiskMonitoring, error) {
 	var resultID uuid.NullUUID
 
 	if err := row.Scan(
-		&monitoring.ID, &monitoring.SourceRiskID, &monitoring.VersionGroupID, &monitoring.ResultRiskID, &monitoring.AssessmentCycle, &monitoring.Status, &monitoring.SupersededByMonitoringID, &monitoring.Mode,
+		&monitoring.ID, &monitoring.SourceRiskID, &monitoring.VersionGroupID, &monitoring.ResultRiskID, &monitoring.AssessmentCycle, &monitoring.Status, &monitoring.SupersededByMonitoringID, &monitoring.Mode, &monitoring.TransactionKind,
 		&monitoring.SourceProbability, &monitoring.SourceImpact, &monitoring.SourceWeight, &monitoring.SourceNilai, &monitoring.SourceLevel, &monitoring.SourceVersionNumber,
 		&monitoring.ObservedProbability, &monitoring.ObservedImpact, &monitoring.ObservedWeight, &monitoring.ObservedNilai, &monitoring.ObservedLevel,
 		&monitoring.Conclusion,
-		&monitoring.MitigationProgressSummary, &monitoring.MitigationCompletionPercent,
+		&monitoring.MitigationProgressSummary, &monitoring.MitigationCompletionPercent, &monitoring.MitigationTaskCount,
 		&draftPayloadRaw, &profileChangesRaw, &monitoring.ChangeReason,
 		&monitoring.StartedBy, &monitoring.StartedAt, &monitoring.FinalizedBy, &monitoring.FinalizedAt,
 		&monitoring.CreatedAt, &monitoring.UpdatedAt, &monitoring.ObservedAt, &monitoring.ObservedAtInferred, &monitoring.ProfileVersionID, &monitoring.MonitoringPeriodID,

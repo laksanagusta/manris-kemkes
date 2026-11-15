@@ -21,7 +21,8 @@ type MitigationTask struct {
 	RiskID       uuid.UUID `json:"riskId"`
 
 	// Monitoring link (nullable — only set when task is part of a monitoring cycle)
-	MonitoringID *uuid.UUID `json:"monitoringId,omitempty"`
+	MonitoringID     *uuid.UUID `json:"monitoringId,omitempty"`
+	MonitoringStatus string     `json:"monitoringStatus,omitempty"`
 
 	// Period
 	PeriodLabel string `json:"periodLabel"`

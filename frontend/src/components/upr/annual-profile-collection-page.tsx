@@ -55,7 +55,7 @@ export function AnnualProfileCollectionPage() {
     })).then(entries => { if(active) setPeriodProgress({scope:organizationId,data:Object.fromEntries(entries)}); });
     return () => { active = false; };
   }, [token, organizationId, versions]);
-  const loadRules = useCallback(() => token ? listMonitoringRules(token) : Promise.reject(new Error("Sesi tidak tersedia.")), [token]);
+  const loadRules = useCallback((search = "", signal?: AbortSignal) => token ? listMonitoringRules(token, signal, false, { query: search, limit: 5 }) : Promise.reject(new Error("Sesi tidak tersedia.")), [token]);
   const loadPickup = useCallback(
     (year: number, source: string | null) => {
       if (!token)

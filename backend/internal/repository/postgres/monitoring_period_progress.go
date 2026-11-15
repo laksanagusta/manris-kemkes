@@ -28,18 +28,45 @@ type MonitoringPeriodProgress struct {
 	Monitorings  []RiskMonitoringPeriodProgress `json:"monitorings"`
 }
 type ProfilePeriodProgress struct {
+	Year    int                        `json:"year"`
+	Version int                        `json:"version"`
 	Rule    *entity.MonitoringRule     `json:"rule"`
 	Periods []MonitoringPeriodProgress `json:"periods"`
 }
 
-func (s *UPRWorkflow) AnnualProfilePeriodProgress(ctx context.Context, org, profile uuid.UUID) (ProfilePeriodProgress, error) {
-	return annualProfilePeriodProgress(ctx, s.pool, org, profile)
+func (s *UPRWorkflow) AnnualProfilePeriodProgress(ctx context.Context, scope *entity.AccessScope, profile uuid.UUID) (ProfilePeriodProgress, error) {
+	return annualProfilePeriodProgressForScope(ctx, s.pool, scope, profile)
+}
+
+func annualProfilePeriodProgressForScope(ctx context.Context, db riskQueryer, scope *entity.AccessScope, profile uuid.UUID) (ProfilePeriodProgress, error) {
+	org, err := annualProfileReadOrganization(ctx, db, scope, profile)
+	if err != nil {
+		return ProfilePeriodProgress{}, err
+	}
+	return annualProfilePeriodProgress(ctx, db, org, profile)
+}
+
+func annualProfileReadOrganization(ctx context.Context, db riskQueryer, scope *entity.AccessScope, profile uuid.UUID) (uuid.UUID, error) {
+	if scope == nil {
+		return uuid.Nil, ErrUPRNotFound
+	}
+	var org uuid.UUID
+	if err := db.QueryRow(ctx, `SELECT organization_id FROM annual_risk_profile_versions WHERE id=$1`, profile).Scan(&org); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return uuid.Nil, ErrUPRNotFound
+		}
+		return uuid.Nil, err
+	}
+	if !scope.CanRead(org) {
+		return uuid.Nil, ErrUPRNotFound
+	}
+	return org, nil
 }
 
 func annualProfilePeriodProgress(ctx context.Context, db riskQueryer, org, profile uuid.UUID) (ProfilePeriodProgress, error) {
 	out := ProfilePeriodProgress{Periods: []MonitoringPeriodProgress{}}
 	var ruleID *uuid.UUID
-	if err := db.QueryRow(ctx, `SELECT monitoring_rule_id FROM annual_risk_profile_versions WHERE id=$1 AND organization_id=$2`, profile, org).Scan(&ruleID); err != nil {
+	if err := db.QueryRow(ctx, `SELECT monitoring_rule_id,year,version FROM annual_risk_profile_versions WHERE id=$1 AND organization_id=$2`, profile, org).Scan(&ruleID, &out.Year, &out.Version); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return out, ErrUPRNotFound
 		}

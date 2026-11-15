@@ -4,6 +4,7 @@ import type {
   AnnualProfile,
   AnnualProfileListVersion,
 } from "./api/upr-workflow";
+import type { MonitoringRule } from "./api/monitoring-rules";
 
 export const annualProfileListHref = "/risk/annual-profiles";
 
@@ -13,6 +14,22 @@ export function annualProfileHref(year: number, version?: string) {
 
 export function isAnnualProfileYear(year: number) {
   return Number.isInteger(year) && year >= 1900 && year <= 9998;
+}
+
+export function getAnnualProfileRuleSelection(
+  rules: MonitoringRule[],
+  defaultYear: number,
+  selectedId: string,
+) {
+  const availableRules = rules.filter(
+    (rule) => rule.active && isAnnualProfileYear(rule.year),
+  );
+  const selectedRule =
+    availableRules.find((rule) => rule.id === selectedId) ??
+    availableRules.find((rule) => rule.year === defaultYear) ??
+    availableRules[0];
+
+  return { availableRules, selectedRule };
 }
 
 export function groupAnnualProfiles(versions: AnnualProfileListVersion[]) {
@@ -49,6 +66,7 @@ export function annualMemberReadiness(
       assessment: true,
       objective: Boolean(member.baseline.objective),
       label: "Siap",
+      tone: "success",
     };
   }
   const objective = objectives.some((item) => item.id === member.objectiveId);
@@ -57,7 +75,8 @@ export function annualMemberReadiness(
       ready: false,
       assessment: false,
       objective,
-      label: "Perlu dinilai ulang",
+      label: "Penilaian belum ditentukan",
+      tone: "warning",
     };
   }
   const assessment = member.riskStatus === "final";
@@ -66,6 +85,7 @@ export function annualMemberReadiness(
     assessment,
     objective,
     label: assessment ? "Siap" : "Penilaian belum final",
+    tone: assessment ? "success" : "info",
   };
 }
 

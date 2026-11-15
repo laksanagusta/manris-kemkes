@@ -2,8 +2,9 @@
 
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { ManriskMark } from "@/components/manrisk-mark";
+import { AuthCard } from "@/components/auth-card";
 import {
+  ArrowRight,
   ChevronsUpDown,
   Eye,
   EyeOff,
@@ -154,36 +155,33 @@ export default function RegisterScreen() {
   };
 
   return (
-    <div className="relative flex min-h-svh items-center justify-center overflow-x-hidden overflow-y-auto bg-background">
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-        <div className="motion-safe:animate-[pulse_8s_ease-in-out_infinite] absolute -left-[40%] -top-[40%] h-[80%] w-[80%] rounded-full bg-primary/5 blur-3xl" />
-        <div className="motion-safe:animate-[pulse_10s_ease-in-out_infinite_2s] absolute -bottom-[30%] -right-[30%] h-[70%] w-[70%] rounded-full bg-muted-foreground/5 blur-3xl" />
-        <div className="motion-safe:animate-[pulse_12s_ease-in-out_infinite_4s] absolute left-[20%] top-[60%] h-[40%] w-[40%] rounded-full bg-foreground/5 blur-3xl" />
-      </div>
-      <div className="pointer-events-none absolute inset-0 opacity-[0.02]" aria-hidden="true" style={{ backgroundImage: "linear-gradient(rgba(255,255,255,.1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.1) 1px, transparent 1px)", backgroundSize: "64px 64px" }} />
-
-      <div data-motion-page className="relative w-full max-w-3xl px-4 py-8 motion-safe:animate-fade-in">
-        <div className="flex flex-col gap-6">
-          <header className="flex w-full flex-col items-start gap-4 text-left">
-            <span className="inline-flex items-center gap-2"><ManriskMark /><span className="font-logo text-[24px] leading-6 font-semibold lowercase tracking-[-0.4px] text-tertiary-foreground underline decoration-dashed decoration-2 underline-offset-4">Manrisk</span></span>
-            <h1 className="text-base leading-5 font-medium tracking-normal text-balance">Buat akun baru</h1>
-            <div className="flex w-full flex-col gap-1 text-left text-sm text-muted-foreground">
-              <p>Akun yang dibuat akan berstatus menunggu aktivasi sampai admin menyetujui registrasi.</p>
-            </div>
-          </header>
-          <form id="registration-form" onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <FieldGroup className="grid gap-x-2 gap-y-4 md:grid-cols-2">
-              {error ? <Alert variant="destructive" className="md:col-span-2"><AlertDescription>{error}</AlertDescription></Alert> : null}
-              {success ? <Alert className="md:col-span-2"><AlertDescription>{success}</AlertDescription></Alert> : null}
-              <Field>
+    <main data-motion-page className="grid min-h-svh place-items-center bg-muted/50 px-4 py-8 sm:py-12">
+      <div className="w-full max-w-[560px]">
+        <AuthCard
+          title="Buat akun baru"
+          description="Akun yang dibuat akan berstatus menunggu aktivasi sampai admin menyetujui registrasi."
+          footer={
+            <p>
+              Sudah punya akun?{" "}
+              <Link href="/login" className="font-medium text-foreground underline-offset-4 hover:underline">
+                Masuk
+              </Link>
+            </p>
+          }
+        >
+          <form id="registration-form" onSubmit={handleSubmit} className="flex flex-col gap-5">
+            <FieldGroup className="grid gap-x-4 gap-y-4 sm:grid-cols-2">
+              {error ? <Alert variant="destructive" className="sm:col-span-2"><AlertDescription>{error}</AlertDescription></Alert> : null}
+              {success ? <Alert className="sm:col-span-2"><AlertDescription>{success}</AlertDescription></Alert> : null}
+              <Field className="gap-1.5">
                 <FieldLabel htmlFor="name">Nama lengkap</FieldLabel>
                 <Input id="name" className="h-11 bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500" value={name} onChange={(event) => setName(event.target.value)} required />
               </Field>
-              <Field>
+              <Field className="gap-1.5">
                 <FieldLabel htmlFor="email">Email</FieldLabel>
                 <Input id="email" type="email" className="h-11 bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="nama@kemenkes.go.id" required />
               </Field>
-              <Field>
+              <Field className="gap-1.5">
                 <FieldLabel htmlFor="organization">Unit kerja</FieldLabel>
                 <Popover open={organizationPickerOpen} onOpenChange={setOrganizationPickerOpen}>
                   <PopoverTrigger asChild>
@@ -192,7 +190,7 @@ export default function RegisterScreen() {
                       <ChevronsUpDown data-icon="inline-end" aria-hidden="true" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-[var(--radix-popover-trigger-width)]" align="start">
+                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] max-w-[var(--radix-popover-content-available-width)]" align="start">
                     <Command shouldFilter={false}>
                       <CommandInput placeholder="Cari nama unit kerja..." value={organizationQuery} onValueChange={setOrganizationQuery} />
                       <CommandList>
@@ -215,45 +213,41 @@ export default function RegisterScreen() {
                   </PopoverContent>
                 </Popover>
               </Field>
-              <Field>
+              <Field className="gap-1.5">
                 <FieldLabel htmlFor="nip">NIP</FieldLabel>
                 <Input id="nip" className="h-11 bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500" value={nip} onChange={(event) => setNip(event.target.value)} placeholder="Nomor induk pegawai" required />
               </Field>
-              <Field>
+              <Field className="gap-1.5">
                 <FieldLabel htmlFor="jabatan">Jabatan</FieldLabel>
                 <Input id="jabatan" className="h-11 bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500" value={jabatan} onChange={(event) => setJabatan(event.target.value)} placeholder="Jabatan" />
               </Field>
-              <Field>
+              <Field className="gap-1.5">
                 <FieldLabel htmlFor="pangkat">Pangkat</FieldLabel>
                 <Input id="pangkat" className="h-11 bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500" value={pangkat} onChange={(event) => setPangkat(event.target.value)} placeholder="Pangkat" />
               </Field>
-              <Field>
+              <Field className="gap-1.5">
                 <FieldLabel htmlFor="password">Password</FieldLabel>
                 <InputGroup className="h-11 bg-white dark:bg-white dark:text-neutral-900">
-                  <InputGroupInput id="password" className="h-11 bg-transparent dark:bg-transparent dark:text-neutral-900 dark:placeholder:text-neutral-500" type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Buat password sendiri" required />
-                  <InputGroupAddon align="inline-end" className="py-0"><InputGroupButton size="icon-xs" className="h-11 w-11 hover:bg-transparent! dark:hover:bg-transparent! hover:text-inherit! dark:hover:text-inherit!" aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"} aria-pressed={showPassword} onClick={() => setShowPassword((current) => !current)}>{showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}</InputGroupButton></InputGroupAddon>
+                  <InputGroupInput id="password" className="h-auto self-stretch bg-transparent dark:bg-transparent dark:text-neutral-900 dark:placeholder:text-neutral-500" type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} placeholder="Buat password sendiri" required />
+                  <InputGroupAddon align="inline-end" className="py-0"><InputGroupButton size="icon-xs" className="h-10 w-10 hover:bg-transparent! dark:hover:bg-transparent! hover:text-inherit! dark:hover:text-inherit!" aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"} aria-pressed={showPassword} onClick={() => setShowPassword((current) => !current)}>{showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}</InputGroupButton></InputGroupAddon>
                 </InputGroup>
               </Field>
-              <Field>
+              <Field className="gap-1.5">
                 <FieldLabel htmlFor="confirmPassword">Konfirmasi password</FieldLabel>
                 <InputGroup className="h-11 bg-white dark:bg-white dark:text-neutral-900">
-                  <InputGroupInput id="confirmPassword" className="h-11 bg-transparent dark:bg-transparent dark:text-neutral-900 dark:placeholder:text-neutral-500" type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Ulangi password" required />
-                  <InputGroupAddon align="inline-end" className="py-0"><InputGroupButton size="icon-xs" className="h-11 w-11 hover:bg-transparent! dark:hover:bg-transparent! hover:text-inherit! dark:hover:text-inherit!" aria-label={showConfirmPassword ? "Sembunyikan konfirmasi password" : "Tampilkan konfirmasi password"} aria-pressed={showConfirmPassword} onClick={() => setShowConfirmPassword((current) => !current)}>{showConfirmPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}</InputGroupButton></InputGroupAddon>
+                  <InputGroupInput id="confirmPassword" className="h-auto self-stretch bg-transparent dark:bg-transparent dark:text-neutral-900 dark:placeholder:text-neutral-500" type={showConfirmPassword ? "text" : "password"} value={confirmPassword} onChange={(event) => setConfirmPassword(event.target.value)} placeholder="Ulangi password" required />
+                  <InputGroupAddon align="inline-end" className="py-0"><InputGroupButton size="icon-xs" className="h-10 w-10 hover:bg-transparent! dark:hover:bg-transparent! hover:text-inherit! dark:hover:text-inherit!" aria-label={showConfirmPassword ? "Sembunyikan konfirmasi password" : "Tampilkan konfirmasi password"} aria-pressed={showConfirmPassword} onClick={() => setShowConfirmPassword((current) => !current)}>{showConfirmPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}</InputGroupButton></InputGroupAddon>
                 </InputGroup>
               </Field>
             </FieldGroup>
-            <div className="flex flex-col gap-1">
-              <Button type="submit" className="h-11 w-full" disabled={loading || orgLoading} aria-busy={loading}>
-                {loading ? <Spinner data-icon="inline-start" aria-hidden="true" /> : null}
-                {loading ? "Memproses..." : "Daftar sekarang"}
-              </Button>
-              <nav className="flex" aria-label="Bantuan akun">
-                <Button asChild variant="outline" className="h-11 w-full"><Link href="/login">Sudah punya akun? Masuk</Link></Button>
-              </nav>
-            </div>
+            <Button type="submit" className="h-11 w-full" disabled={loading || orgLoading} aria-busy={loading}>
+              {loading ? <Spinner data-icon="inline-start" aria-hidden="true" /> : null}
+              {loading ? "Memproses..." : "Daftar sekarang"}
+              {!loading ? <ArrowRight data-icon="inline-end" aria-hidden="true" /> : null}
+            </Button>
           </form>
-        </div>
+        </AuthCard>
       </div>
-    </div>
+    </main>
   );
 }

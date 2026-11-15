@@ -3,6 +3,7 @@ import type { Risk, RiskMitigation } from "./risk";
 export type RiskMonitoringStatus = "draft" | "final" | "superseded";
 
 export interface RiskMonitoringDetail {
+  transactionKind?: "initial" | "monitoring" | "revision";
   profileVersionId?: string;
   monitoringPeriodId?: string;
   id: string;
@@ -29,7 +30,10 @@ export interface RiskMonitoringDetail {
   observedLevel: string;
   conclusion: string;
   mitigationProgressSummary: string;
+  mitigationTaskCount?: number | null;
   mitigationCompletionPercent: number;
+  draftTargetProbability?: number;
+  draftTargetImpact?: number;
   draftTitle: string;
   draftDescription: string;
   draftCategory: string;
@@ -59,6 +63,7 @@ export interface PaginatedRiskMonitoringResponse {
 }
 
 export interface RiskMonitoringListParams {
+  org_id?: string;
   q?: string;
   lifecycle?: "active" | "archived" | "all";
   status?: string;

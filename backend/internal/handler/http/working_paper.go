@@ -365,6 +365,7 @@ func (h *WorkingPaperHandler) GetPendingSigningCount(c *fiber.Ctx) error {
 
 // pendingSigningItem is the flat response shape for pending-signing list.
 type pendingSigningItem struct {
+	OrganizationID  uuid.UUID `json:"organization_id"`
 	ID              uuid.UUID `json:"id"`
 	WorkingPaperID  uuid.UUID `json:"working_paper_id"`
 	Title           string    `json:"title"`
@@ -400,6 +401,7 @@ func (h *WorkingPaperHandler) ListPendingSigning(c *fiber.Ctx) error {
 				items = append(items, pendingSigningItem{
 					ID:              sig.ID,
 					WorkingPaperID:  wp.ID,
+					OrganizationID:  wp.OrgID,
 					Title:           wp.Title,
 					AssessmentCycle: wp.AssessmentCycle,
 					SequenceNo:      sig.SequenceNo,

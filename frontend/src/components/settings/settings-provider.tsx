@@ -25,6 +25,7 @@ function PreferencesSettings() {
 export function SettingsProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const isSuperAdmin = user?.role === "superadmin";
+  const [headerAction, setHeaderAction] = useState<HTMLDivElement | null>(null);
   const [open, setOpen] = useState(false);
   const [section, setSection] = useState<SettingsSection>("account");
   const openSettings = useCallback((nextSection: SettingsSection = "account") => {
@@ -34,8 +35,8 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const activeSection = section === "monitoring-rules" && !isSuperAdmin ? "account" : section;
   return <SettingsContext.Provider value={{ openSettings }}>
       {children}
-      <SettingsDialog open={open} onOpenChange={setOpen} section={activeSection} onSectionChange={setSection} showMonitoringRules={isSuperAdmin}>
-        {open && (activeSection === "account" ? <AccountSettings /> : activeSection === "security" ? <AccountSettings view="security" /> : activeSection === "api-key" ? <APIKeySettings /> : activeSection === "monitoring-rules" ? <MonitoringRulesSettings /> : <PreferencesSettings />)}
+      <SettingsDialog open={open} onOpenChange={setOpen} section={activeSection} onSectionChange={setSection} showMonitoringRules={isSuperAdmin} headerActionRef={activeSection === "monitoring-rules" ? setHeaderAction : undefined}>
+        {open && (activeSection === "account" ? <AccountSettings /> : activeSection === "security" ? <AccountSettings view="security" /> : activeSection === "api-key" ? <APIKeySettings /> : activeSection === "monitoring-rules" ? <MonitoringRulesSettings headerAction={headerAction} /> : <PreferencesSettings />)}
       </SettingsDialog>
   </SettingsContext.Provider>;
 }

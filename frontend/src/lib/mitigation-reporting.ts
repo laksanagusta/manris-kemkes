@@ -1,4 +1,5 @@
 import { businessNow } from "./business-clock.ts";
+import { hasReportedMitigation, type MitigationReportState } from "./mitigation-report-status.ts";
 export interface MitigationSubmissionActionState {
   allowed: boolean;
   message?: string;
@@ -128,9 +129,22 @@ export function getMitigationSubmissionActionState(
 }
 
 export function getMitigationTaskReportAction(
-  task: { status: string; periodEnd: string; dueDate: string },
+  task: MitigationReportState & {
+    periodEnd: string;
+    dueDate: string;
+    monitoringId?: string | null;
+    monitoringStatus?: "draft" | "final" | "superseded";
+  },
   now?: Date,
+  editableMonitoring = false,
 ): MitigationSubmissionActionState & { label: string } {
+  const reported = hasReportedMitigation(task);
+  if (task.monitoringStatus === "final" || task.monitoringStatus === "superseded") {
+    return { allowed: false, isOverdue: false, label: reported ? "Lihat laporan" : "Lihat detail" };
+  }
+  if (editableMonitoring && task.monitoringId && (reported || task.status === "done" || task.status === "skipped")) {
+    return { allowed: true, isOverdue: false, label: "Ubah laporan" };
+  }
   if (task.status === "done") return { allowed: false, isOverdue: false, label: "Lihat laporan" };
   if (task.status === "not_reported") {
     return {
@@ -144,6 +158,7 @@ export function getMitigationTaskReportAction(
     return { allowed: false, isOverdue: false, label: "Lihat detail" };
   }
 
+  if (task.monitoringId) return { allowed: true, isOverdue: false, label: reported ? "Ubah laporan" : "Isi laporan" };
   const state = getMitigationSubmissionActionState(task.periodEnd, task.dueDate, now);
   const reportLabel = state.isOverdue ? "Lapor terlambat" : "Isi laporan";
   return {

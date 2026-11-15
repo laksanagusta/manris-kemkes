@@ -1,4 +1,6 @@
 "use client";
+import { useOrganizationFilter } from "@/hooks/use-organization-filter";
+import type { TableFilterField } from "@/components/shared/design-system/collections/dynamic-table-filter-state";
 
 import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
 import { formatDisplayDate } from "@/lib/display-date";
@@ -95,6 +97,7 @@ const statusTones = {
 } as const;
 
 type WorkingPaperFiltersToolbarProps = {
+  organizationField?: TableFilterField;
   search: string;
   onSearchChange: (value: string) => void;
   searchPlaceholder: string;
@@ -108,6 +111,7 @@ type WorkingPaperFiltersToolbarProps = {
 };
 
 function WorkingPaperFiltersToolbar({
+  organizationField,
   search,
   onSearchChange,
   searchPlaceholder,
@@ -130,6 +134,7 @@ function WorkingPaperFiltersToolbar({
         />
       }
       fields={[
+        ...(organizationField ? [organizationField] : []),
         {
           id: "status",
           label: "Status",
@@ -241,6 +246,7 @@ export default function WorkingPapersPage() {
   const [limit, setLimit] = useState(() =>
     parsePositiveInt(searchParams.get("limit"), 10),
   );
+  const organizationFilter = useOrganizationFilter(() => setPage(1));
   const [total, setTotal] = useState(0);
 
   const debouncedSearch = useDebouncedValue(search, 500);
@@ -271,6 +277,7 @@ export default function WorkingPapersPage() {
         setLoading(true);
         setError(null);
         const res = await listWorkingPapers(activeToken, {
+          org_id: organizationFilter.organizationId === "all" ? undefined : organizationFilter.organizationId,
  sort_by:collectionSort.sortBy, sort_order:collectionSort.sortOrder,
           status: statusFilter === "all" ? undefined : statusFilter,
           q: debouncedSearch.trim() || undefined,
@@ -302,7 +309,7 @@ export default function WorkingPapersPage() {
       debouncedSearch,
       limit,
       page,
-      statusFilter, collectionSort.sortBy, collectionSort.sortOrder,
+      organizationFilter.organizationId, statusFilter, collectionSort.sortBy, collectionSort.sortOrder,
     ],
   );
 
@@ -439,6 +446,7 @@ export default function WorkingPapersPage() {
           className="w-full"
           leading={
             <WorkingPaperFiltersToolbar
+              organizationField={organizationFilter.field}
               search={search}
               onSearchChange={(value) => {
                 setSearch(value);

@@ -472,7 +472,6 @@ export default function WorkingPaperDetailPage(props: {
         actions={status === "completed" ? undefined : headerActions}
       />
 
-      <BoundProfilePeriodNotice token={token} profileId={data.profile_version_id} periodId={data.monitoring_period_id} />
       {currentAction?.tone === "success" && (
         <Alert variant="success" role="status">
           <CheckCircle2 aria-hidden="true" />
@@ -543,6 +542,9 @@ export default function WorkingPaperDetailPage(props: {
                       </div>
                     ))}
                   </PropertyList>
+                  {data.monitoring_period_id && <div className="mt-3">
+                    <BoundProfilePeriodNotice token={token} profileId={data.profile_version_id} periodId={data.monitoring_period_id} />
+                  </div>}
                 </section>
 
                 <section

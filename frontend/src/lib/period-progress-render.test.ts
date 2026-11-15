@@ -25,11 +25,12 @@ test('profile period separates documents and links to exact records without moni
  const html=renderToStaticMarkup(createElement(ProfileDocumentPeriodCell,{period,profileId:'v1'}));
  assert.match(html,/Kertas kerja/);assert.match(html,/Evaluasi/);assert.doesNotMatch(html,/>Pemantauan</);
  assert.match(html,/href="\/risk\/working-papers\/kk1"/);assert.match(html,/href="\/evaluations\/e1"/);
- assert.match(html,/2\/4 penandatangan/);assert.match(html,/16\/20 poin/);
+ assert.match(html,/Lanjutkan kertas kerja/);assert.match(html,/Lanjutkan evaluasi/);
+ assert.doesNotMatch(html,/progressbar|penandatangan|16\/20|Hingga|Ditutup|Dibuka|min-w-48/);
 });
 test('risk period only displays its own monitoring, never other risk progress or document progress',()=>{
  const html=renderToStaticMarkup(createElement(RiskMonitoringPeriodCell,{period,groupId:'g1'}));
- assert.match(html,/Pemantauan/);assert.match(html,/href="\/risk\/monitoring\/m1"/);
+ assert.match(html,/Lihat pemantauan/);assert.match(html,/href="\/risk\/monitoring\/m1"/);
  assert.doesNotMatch(html,/Kertas kerja|Evaluasi/);
  const other=renderToStaticMarkup(createElement(RiskMonitoringPeriodCell,{period,groupId:'g2'}));
  assert.match(other,/Pending/);assert.doesNotMatch(other,/m1|Done/);
@@ -45,4 +46,17 @@ test('date help does not promise repeated observations in configured periods',()
  const html=renderToStaticMarkup(createElement(MonitoringDateField,{id:'date',value:'2026-11-14',onChange:()=>{}}));
  assert.doesNotMatch(html,/beberapa kali/);
  assert.match(html,/aturan profil/);
+});
+
+test('risk monitoring cells show status and action without progress or window details', () => {
+ const html=renderToStaticMarkup(createElement(RiskMonitoringPeriodCell,{period,groupId:'g1'}));
+ assert.match(html,/Done/);
+ assert.doesNotMatch(html,/progressbar|100%|2\/2|Hingga|Ditutup|Dibuka/);
+ const draft={...period,monitorings:[{groupId:'g1',status:'ongoing' as const,completed:1,total:2,id:'draft1'}]};
+ const ongoing=renderToStaticMarkup(createElement(RiskMonitoringPeriodCell,{period:draft,groupId:'g1'}));
+ assert.match(ongoing,/Ongoing/); assert.match(ongoing,/Lanjutkan pemantauan/);
+ const start=renderToStaticMarkup(createElement(RiskMonitoringPeriodCell,{period,groupId:'g2',onStart:()=>{},disabled:true}));
+ assert.match(start,/Mulai pemantauan/); assert.match(start,/disabled/);
+ const closed=renderToStaticMarkup(createElement(RiskMonitoringPeriodCell,{period:{...period,closesOn:'1900-12-31'},groupId:'g2',onStart:()=>{}}));
+ assert.match(closed,/Mulai pemantauan/); assert.match(closed,/disabled/);
 });

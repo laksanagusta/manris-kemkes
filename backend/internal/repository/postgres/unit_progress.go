@@ -35,15 +35,15 @@ func (r *unitProgressRepository) ReadUnitProgress(ctx context.Context, period re
 	if err != nil {
 		return nil, err
 	}
-	data.WorkingPapers, err = loadUnitProgressPapers(ctx, tx, period.Cycle, orgIDs)
+	data.WorkingPapers, err = loadUnitProgressPapers(ctx, tx, period, orgIDs)
 	if err != nil {
 		return nil, err
 	}
-	data.Evaluations, err = loadUnitProgressEvaluations(ctx, tx, period.Cycle, orgIDs)
+	data.Evaluations, err = loadUnitProgressEvaluations(ctx, tx, period, orgIDs)
 	if err != nil {
 		return nil, err
 	}
-	data.Tasks, err = loadQuarterlyTasks(ctx, tx, period.Cycle, period.Start, period.End, orgIDs)
+	data.Tasks, err = loadQuarterlyTasks(ctx, tx, period.Cycle, period.Start, period.End, orgIDs, period)
 	if err != nil {
 		return nil, err
 	}
@@ -56,6 +56,9 @@ func (r *unitProgressRepository) ReadUnitProgress(ctx context.Context, period re
 func loadUnitProgressRisks(ctx context.Context, q riskQueryer, period repository.QuarterlyReportPeriod, orgIDs []uuid.UUID) ([]entity.UnitProgressRisk, error) {
 	// Initial risk drafts are a separate population. Profile revisions live in
 	// the monitoring transaction and must not increase the risk draft count.
+	if period.ProfileYear > 0 {
+		return loadProfileUnitProgressRisks(ctx, q, period, orgIDs)
+	}
 	query := riskPeriodSnapshotCTE + `, progress_risks AS (
 		SELECT id, organization_id, code, title, status, updated_at, version_group_id
 		FROM risk_snapshots
@@ -79,6 +82,7 @@ func loadUnitProgressRisks(ctx context.Context, q riskQueryer, period repository
 		FROM risk_monitorings m
 		WHERE r.status = 'final' AND m.version_group_id = r.version_group_id
 		  AND m.assessment_cycle = $1 AND m.status IN ('draft', 'final')
+		  AND m.transaction_kind = 'monitoring'
 		  AND m.superseded_by_monitoring_id IS NULL
 		ORDER BY (m.status = 'final') DESC, m.observed_at DESC, m.finalized_at DESC NULLS LAST, m.id DESC
 		LIMIT 1
@@ -107,7 +111,7 @@ func loadUnitProgressRisks(ctx context.Context, q riskQueryer, period repository
 	return items, rows.Err()
 }
 
-func loadUnitProgressPapers(ctx context.Context, q riskQueryer, cycle string, orgIDs []uuid.UUID) ([]entity.UnitProgressWorkingPaper, error) {
+func loadUnitProgressPapers(ctx context.Context, q riskQueryer, period repository.QuarterlyReportPeriod, orgIDs []uuid.UUID) ([]entity.UnitProgressWorkingPaper, error) {
 	rows, err := q.Query(ctx, `
 		SELECT wp.id, wp.org_id, wp.code, wp.title, wp.status, wp.updated_at, wp.tte_skipped,
 		       s.signed, s.total, COALESCE(s.next_signer, '')
@@ -118,9 +122,9 @@ func loadUnitProgressPapers(ctx context.Context, q riskQueryer, cycle string, or
 			         AND sequence_no = wp.current_signatory_sequence + 1) AS next_signer
 			FROM working_paper_signatories WHERE working_paper_id = wp.id
 		) s
-		WHERE wp.assessment_cycle = $1 AND (cardinality($2::uuid[]) = 0 OR wp.org_id = ANY($2::uuid[]))
+		WHERE (($3::int = 0 AND wp.assessment_cycle = $1) OR ($3 > 0 AND (wp.profile_version_id IN (SELECT id FROM annual_risk_profile_versions WHERE year=$3 AND monitoring_rule_id IS NOT DISTINCT FROM $4::uuid) OR ($4::uuid IS NULL AND wp.profile_version_id IS NULL AND EXISTS (SELECT 1 FROM annual_risk_profile_versions p WHERE p.organization_id=wp.org_id AND p.year=$3 AND p.monitoring_rule_id IS NULL AND p.finalized_at IS NOT NULL))) AND (($5::uuid IS NULL AND wp.assessment_cycle=$1) OR wp.monitoring_period_id=$5))) AND (cardinality($2::uuid[]) = 0 OR wp.org_id = ANY($2::uuid[]))
 		ORDER BY (wp.status = 'cancelled'), wp.updated_at DESC, wp.id`,
-		cycle, uuidArrayToStrings(orgIDs))
+		period.Cycle, uuidArrayToStrings(orgIDs), period.ProfileYear, period.RuleID, period.MonitoringPeriodID)
 	if err != nil {
 		return nil, fmt.Errorf("load unit progress working papers: %w", err)
 	}
@@ -139,12 +143,12 @@ func loadUnitProgressPapers(ctx context.Context, q riskQueryer, cycle string, or
 	return items, rows.Err()
 }
 
-func loadUnitProgressEvaluations(ctx context.Context, q riskQueryer, cycle string, orgIDs []uuid.UUID) ([]entity.UnitProgressItem, error) {
+func loadUnitProgressEvaluations(ctx context.Context, q riskQueryer, period repository.QuarterlyReportPeriod, orgIDs []uuid.UUID) ([]entity.UnitProgressItem, error) {
 	rows, err := q.Query(ctx, `
 		SELECT e.id, e.organization_id, e.code, COALESCE(t.name, ''), e.status, e.updated_at
 		FROM evaluations e LEFT JOIN evaluation_templates t ON t.id = e.template_id
-		WHERE e.period = $1 AND (cardinality($2::uuid[]) = 0 OR e.organization_id = ANY($2::uuid[]))
-		ORDER BY t.name, e.updated_at DESC, e.id`, cycle, uuidArrayToStrings(orgIDs))
+		WHERE (($3::int = 0 AND e.period = $1) OR ($3 > 0 AND (e.profile_version_id IN (SELECT id FROM annual_risk_profile_versions WHERE year=$3 AND monitoring_rule_id IS NOT DISTINCT FROM $4::uuid) OR ($4::uuid IS NULL AND e.profile_version_id IS NULL AND EXISTS (SELECT 1 FROM annual_risk_profile_versions p WHERE p.organization_id=e.organization_id AND p.year=$3 AND p.monitoring_rule_id IS NULL AND p.finalized_at IS NOT NULL))) AND (($5::uuid IS NULL AND e.period=$1) OR e.monitoring_period_id=$5))) AND (cardinality($2::uuid[]) = 0 OR e.organization_id = ANY($2::uuid[]))
+		ORDER BY t.name, e.updated_at DESC, e.id`, period.Cycle, uuidArrayToStrings(orgIDs), period.ProfileYear, period.RuleID, period.MonitoringPeriodID)
 	if err != nil {
 		return nil, fmt.Errorf("load unit progress evaluations: %w", err)
 	}

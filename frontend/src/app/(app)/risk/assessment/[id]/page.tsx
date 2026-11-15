@@ -1,8 +1,12 @@
 "use client";
 
+import { FieldHeading } from "@/components/ui/field";
 import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
-import { BoundProfilePeriodNotice } from "@/components/upr/bound-profile-period-notice";
-import { MonitoringDateField } from "@/components/shared/design-system/domain/monitoring-date-field";
+import { canWriteInOrg } from "@/lib/auth-helpers";
+import { riskTransactionKind } from "@/lib/risk-transaction-kind";
+import { RiskTransactionBadge } from "@/components/shared/design-system/domain/risk-transaction-badge";
+import { PropertyLabel, PropertyList } from "@/components/shared/design-system/layout/property-list";
+import { ProfilePeriodDetails, useProfilePeriodWorkspace } from "@/components/upr/bound-profile-period-notice";
 import { monitoringObservationDate, monitoringCycleForDate, isValidMonitoringDate, todayMonitoringDate } from "@/lib/monitoring-date";
 import { formatDisplayDate } from "@/lib/display-date";
 import { getWorkReturnLink } from "@/lib/operator-work";
@@ -40,9 +44,9 @@ import {
   deleteMonitoringDraft,
   finalizeMonitoring,
   getMonitoringDetail,
+  startRiskRevision,
   updateMonitoringDraft,
 } from "@/lib/api/risk-monitoring";
-import { MonitoringWorkingPaperAction } from "./_components/monitoring-working-paper-action";
 import { validateMonitoringFinalize } from "@/lib/api/mitigation-tasks";
 import {
   getBobot,
@@ -107,6 +111,8 @@ import {
   buildSubstancePayload,
   diffRiskSubstance,
   formatSubstanceDiffSummary,
+  treatmentOptionLabels,
+  type RiskSubstanceDiff,
   type RiskSubstanceValues,
 } from "@/lib/risk-assessment-substance";
 import { ProfilRisikoCard } from "../components/profil-risiko-card";
@@ -116,6 +122,20 @@ import { SimpulanCard } from "../components/simpulan-card";
 
 function dedupeApproverIds(ids: Array<string | undefined>) {
   return [...new Set(ids.filter((id): id is string => Boolean(id)))];
+}
+
+function formatRevisionValue(field: RiskSubstanceDiff["field"], value: unknown): string {
+  if (field === "mitigations") {
+    const plans = value as RiskSubstanceValues["mitigations"];
+    return plans.map(({ action, owner, executionScheduleText, dueDate }) =>
+      [action, owner, executionScheduleText || dueDate].filter(Boolean).join(" · "),
+    ).join("\n") || "—";
+  }
+  if (field === "treatmentOption" && typeof value === "string") {
+    return treatmentOptionLabels[value] || value || "—";
+  }
+  if (Array.isArray(value)) return value.join("\n") || "—";
+  return value === undefined || value === null || value === "" ? "—" : String(value);
 }
 
 function getRiskOrganizationId(risk: Risk): string {
@@ -137,21 +157,24 @@ function buildRiskFromMonitoring(
 ): Risk {
   const base = (monitoring.resultRisk ?? sourceRisk ?? {}) as Risk;
   const status = monitoring.status === "draft" ? "draft" : "final";
-  const mitigations = monitoring.draftMitigations ?? base.mitigations ?? (base.mitigation ? [base.mitigation] : []);
+  const revision = riskTransactionKind(monitoring) === "revision";
+  const mitigations = revision ? monitoring.draftMitigations ?? [] : monitoring.draftMitigations ?? base.mitigations ?? (base.mitigation ? [base.mitigation] : []);
 
   return {
     ...base,
     id: monitoring.resultRisk?.id ?? monitoring.id,
+    targetProbability: monitoring.draftTargetProbability || base.targetProbability,
+    targetImpact: monitoring.draftTargetImpact || base.targetImpact,
     title: monitoring.draftTitle || base.title,
-    description: monitoring.draftDescription || base.description,
+    description: revision ? monitoring.draftDescription : monitoring.draftDescription || base.description,
     category: monitoring.draftCategory || base.category,
-    cause: monitoring.draftCause?.length ? monitoring.draftCause : base.cause,
+    cause: revision ? monitoring.draftCause ?? [] : monitoring.draftCause?.length ? monitoring.draftCause : base.cause,
     riskSource: monitoring.draftRiskSource || base.riskSource,
     controllability: monitoring.draftControllability || base.controllability,
-    impactDesc: monitoring.draftImpactDesc?.length
+    impactDesc: revision ? monitoring.draftImpactDesc ?? [] : monitoring.draftImpactDesc?.length
       ? monitoring.draftImpactDesc
       : base.impactDesc,
-    existingControl: monitoring.draftExistingControl || base.existingControl,
+    existingControl: revision ? monitoring.draftExistingControl : monitoring.draftExistingControl || base.existingControl,
     controlEffectiveness:
       monitoring.draftControlEffectiveness || base.controlEffectiveness,
     treatmentOption: monitoring.draftTreatmentOption || base.treatmentOption,
@@ -256,7 +279,9 @@ function MonitoringHeaderActionsBridge({
 }) {
   const setHeaderActions = useSetHeaderActions();
   const handlers = useRef({ handleSaveDraft, openSubmitReviewConfirm });
-  handlers.current = { handleSaveDraft, openSubmitReviewConfirm };
+  useEffect(() => {
+    handlers.current = { handleSaveDraft, openSubmitReviewConfirm };
+  }, [handleSaveDraft, openSubmitReviewConfirm]);
 
   const actions = useMemo(() => (
     <div className="flex flex-wrap items-center justify-end gap-2">
@@ -304,10 +329,7 @@ function MonitoringHeaderActionsBridge({
           </div>
         ) : null}
         {hasFinalResult && resultRiskHref ? (
-          <>
-            <ActionButton asChild variant="outline" size="default"><Link href={resultRiskHref}>Lihat versi hasil</Link></ActionButton>
-            <ActionButton asChild variant="outline" size="default"><Link href={`${resultRiskHref}?tab=treatment`}>Lihat tindak lanjut mitigasi</Link></ActionButton>
-          </>
+          <ActionButton asChild variant="outline" size="default"><Link href={resultRiskHref}>Lihat versi hasil</Link></ActionButton>
         ) : null}
       </TooltipProvider>
     </div>
@@ -318,8 +340,7 @@ function MonitoringHeaderActionsBridge({
     isCheckingFinalize,
     isDeletingDraft,
     isSaving,
-    monitoringDraft?.id,
-    monitoringDraft?.updatedAt,
+    monitoringDraft,
     openDeleteDraftConfirm,
     resultRiskHref,
     sourceRisk,
@@ -373,7 +394,9 @@ export default function AssessmentFormPage() {
   const [sourceRisk, setSourceRisk] = useState<Risk | null>(null);
   const [monitoringDraft, setMonitoringDraft] =
     useState<RiskMonitoringDetail | null>(null);
+  const profilePeriodWorkspace = useProfilePeriodWorkspace(token, monitoringDraft?.profileVersionId);
   const [observedAt, setObservedAt] = useState(() => todayMonitoringDate());
+  const isRevision = Boolean(monitoringDraft && riskTransactionKind(monitoringDraft) === "revision");
   const [substanceEditEnabled, setSubstanceEditEnabled] = useState(false);
   const [substanceDraft, setSubstanceDraft] = useState<RiskSubstanceValues>(
     () => buildSubstanceDefaults(null),
@@ -390,6 +413,7 @@ export default function AssessmentFormPage() {
   const [showSubmitReviewConfirm, setShowSubmitReviewConfirm] = useState(false);
   const [showDeleteDraftConfirm, setShowDeleteDraftConfirm] = useState(false);
   const [isDeletingDraft, setIsDeletingDraft] = useState(false);
+  const [targetPickerOpen,setTargetPickerOpen]=useState(false);
   const [scorePickerOpen, setScorePickerOpen] = useState(false);
   const submitTarget = useRef<"draft" | "review">("draft");
 
@@ -466,7 +490,7 @@ export default function AssessmentFormPage() {
     draftRisk?.status === "final" ||
     isRiskScoreReady;
   const submitActionLabel =
-    isMonitoringRoute ? "Tinjau finalisasi"
+    isMonitoringRoute ? "Finalisasi"
       : riskApprovalCapabilityBehavior.usesDirectApprovalCopy
       ? "Finalisasi"
       : "Ajukan review";
@@ -498,6 +522,7 @@ export default function AssessmentFormPage() {
   );
 
   const riskOrganizationId = draftRisk ? getRiskOrganizationId(draftRisk) : "";
+  const canManageRisk = !!riskOrganizationId && canWriteInOrg(user, riskOrganizationId);
 
   const loadReviewerOptions = useCallback(
     async ({ q, page, limit }: { q: string; page: number; limit: number }) => {
@@ -630,7 +655,7 @@ export default function AssessmentFormPage() {
     setObservedAt(monitoringObservationDate(finalized));
     setDraftRisk(finalRisk);
     setSubstanceDraft(buildSubstanceDefaults(finalRisk));
-    setSubstanceEditEnabled(finalized.mode === "with_profile_revision");
+    setSubstanceEditEnabled(riskTransactionKind(finalized) === "revision");
     setScoreReviewed(Boolean(finalized.observedScoreConfirmed));
     reset({
       probability: finalized.observedProbability,
@@ -682,9 +707,19 @@ export default function AssessmentFormPage() {
   }
 
   const openSubmitReviewConfirm = async () => {
+    if (!canManageRisk) return;
     submitTarget.current = "review";
 
     if (isMonitoringRoute) {
+      if (isRevision && !form.getValues("changeReason")?.trim()) {
+        form.setError("changeReason", { message: "Alasan revisi wajib diisi." });
+        document.getElementById("change-reason")?.focus();
+        return;
+      }
+      if (isRevision && !substanceDiffs.length && probability === sourceRisk?.probability && impact === sourceRisk?.impact) {
+        setSaveError("Ubah substansi atau skor profil risiko sebelum finalisasi revisi.");
+        return;
+      }
       if (!isAssessmentSectionReady || !scoreReviewed) {
         form.setError("probability", { message: "Gunakan skor yang ditampilkan atau pilih probabilitas dan dampak sebelum finalisasi." });
         document.getElementById("risk-score-picker")?.focus();
@@ -718,6 +753,7 @@ export default function AssessmentFormPage() {
   };
 
   const handleSaveDraft = async () => {
+    if (!canManageRisk) return;
     if (
       draftRisk?.status === "final"
     ) {
@@ -748,6 +784,14 @@ export default function AssessmentFormPage() {
       setLoadError(null);
       if (isMonitoringRoute) {
         const monitoring = await getMonitoringDetail(token, id);
+        if (riskTransactionKind(monitoring) === "revision") {
+          const target = monitoring.resultRiskId
+            ? `/risk/register/new?id=${monitoring.resultRiskId}`
+            : (await startRiskRevision(token, monitoring.sourceRiskId, { changeReason: monitoring.changeReason })).redirectUrl;
+          router.replace(target);
+          return;
+        }
+
         const source = monitoring.sourceRisk
           ? monitoring.sourceRisk
           : await getRiskDetail(token, monitoring.sourceRiskId);
@@ -755,11 +799,11 @@ export default function AssessmentFormPage() {
 
         setMonitoringDraft(monitoring);
         setObservedAt(monitoringObservationDate(monitoring));
-        setScoreReviewed(Boolean(monitoring.observedScoreConfirmed));
+        setScoreReviewed(riskTransactionKind(monitoring) === "revision" || Boolean(monitoring.observedScoreConfirmed));
         setSaveError("");
         setDraftRisk(syntheticDraft);
         setSourceRisk(source);
-        setSubstanceEditEnabled(monitoring.mode === "with_profile_revision");
+        setSubstanceEditEnabled(riskTransactionKind(monitoring) === "revision");
         setSubstanceDraft(buildSubstanceDefaults(syntheticDraft));
         reset({
           probability: monitoring.observedProbability || 1,
@@ -943,7 +987,7 @@ export default function AssessmentFormPage() {
     } finally {
       setIsLoading(false);
     }
-  }, [id, token, reset, isMonitoringRoute]);
+  }, [id, token, reset, isMonitoringRoute, router]);
 
   useEffect(() => {
     loadRiskData();
@@ -1047,7 +1091,8 @@ export default function AssessmentFormPage() {
 
       if (isMonitoringRoute) {
         const monitoring = monitoringDraft;
-        const monitoringPayload = {
+        const monitoringPayload: Record<string,unknown> = {
+          replaceSubstance: isRevision,
           expectedUpdatedAt: monitoring?.updatedAt,
           observedAt,
           observedScoreConfirmed: scoreReviewed,
@@ -1059,6 +1104,8 @@ export default function AssessmentFormPage() {
           mitigationCompletionPercent:
             monitoring?.mitigationCompletionPercent || 0,
           values: {
+            targetProbability: substanceDraft.targetProbability,
+            targetImpact: substanceDraft.targetImpact,
             title: mergedSubstance.title ?? draftRisk.title,
             description: mergedSubstance.description ?? draftRisk.description,
             category: mergedSubstance.category ?? draftRisk.category,
@@ -1087,6 +1134,7 @@ export default function AssessmentFormPage() {
           },
         };
 
+        if (!isRevision) monitoringPayload.values = { changeReason: values.changeReason };
         const updatedMonitoring = await updateMonitoringDraft(token, id, monitoringPayload);
         draftSaved = true;
         form.reset({
@@ -1100,7 +1148,7 @@ export default function AssessmentFormPage() {
         setScoreReviewed(Boolean(updatedMonitoring.observedScoreConfirmed));
         setDraftRisk(savedRisk);
         setSubstanceDraft(buildSubstanceDefaults(savedRisk));
-        setSubstanceEditEnabled(updatedMonitoring.mode === "with_profile_revision");
+        setSubstanceEditEnabled(riskTransactionKind(updatedMonitoring) === "revision");
         if (isFinalizing && monitoringValidation) {
           try {
             const finalized = await finalizeMonitoring(token, id, {
@@ -1108,7 +1156,7 @@ export default function AssessmentFormPage() {
               reportRevision: monitoringValidation.reportRevision,
             });
             showFinalizedMonitoring(finalized);
-            toast.success(`Pemantauan ${finalized.assessmentCycle} berhasil difinalisasi`);
+            toast.success(isRevision ? "Revisi profil risiko berhasil difinalisasi" : `Pemantauan ${finalized.assessmentCycle} berhasil difinalisasi`);
           } catch (finalizeError) {
             const message = finalizeError instanceof ApiError && finalizeError.status < 500
               ? `Draf tersimpan. ${finalizeError.message}`
@@ -1116,7 +1164,7 @@ export default function AssessmentFormPage() {
             await checkMonitoringFinalization(updatedMonitoring, message);
           }
         } else {
-          toast.success("Transaksi pemantauan berhasil disimpan");
+          toast.success(isRevision ? "Draf revisi berhasil disimpan" : "Draf pemantauan berhasil disimpan");
         }
         return;
       }
@@ -1301,7 +1349,7 @@ export default function AssessmentFormPage() {
     );
   }
 
-  const isAssessmentLocked = draftRisk.status === "final" || monitoringDraft?.status === "superseded";
+  const isAssessmentLocked = !canManageRisk || draftRisk.status === "final" || monitoringDraft?.status === "superseded";
   const monitoringCycle = monitoringCycleForDate(observedAt) || monitoringDraft?.assessmentCycle || draftRisk.assessmentCycle || "";
   const hasFinalResult = isMonitoringRoute && monitoringDraft?.status === "final";
   const sourceScore = monitoringDraft?.sourceNilai ?? sourceRisk.nilai ?? sourceRisk.inherentScore ?? 0;
@@ -1313,6 +1361,7 @@ export default function AssessmentFormPage() {
     : null;
   const monitoringHeaderBadges = (
     <div className="flex flex-wrap items-center gap-2">
+      {monitoringDraft && <RiskTransactionBadge record={monitoringDraft} />}
       <Badge variant={monitoringDraft?.status === "superseded" ? "secondary" : draftRisk.status === "final" ? "default" : "secondary"}
         className={draftRisk.status === "final" ? "border-transparent bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300" : ""}
       >
@@ -1340,6 +1389,28 @@ export default function AssessmentFormPage() {
     </div>
   );
 
+  const monitoringSummary = (
+    <DetailSidePanel>
+      <section aria-labelledby="monitoring-side-summary">
+        <h2
+          id="monitoring-side-summary"
+          className="text-sm font-semibold text-primary"
+        >
+          Simpulan Pemantauan
+        </h2>
+        <div className="mt-3">
+          <SimpulanCard
+            nilaiCurrent={sourceScore}
+            currentInherentScore={isMonitoringRoute ? undefined : sourceRisk.inherentScore}
+            nilaiBaru={computedNilai}
+            probability={probability}
+            impact={impact}
+          />
+        </div>
+      </section>
+    </DetailSidePanel>
+  );
+
   return (
     <>
       {isMonitoringRoute ? (
@@ -1362,7 +1433,7 @@ export default function AssessmentFormPage() {
       <FormPage
         className="risk-form-filter-controls space-y-6"
       >
-      {isMonitoringRoute ? (
+      {isMonitoringRoute ? (returnTarget || saveError) && (
         <div className="w-full min-w-0 space-y-3">
           {returnTarget && (
             <ActionButton variant="ghost" disabled={isSaving} onClick={() => {
@@ -1370,27 +1441,7 @@ export default function AssessmentFormPage() {
               else router.push(backTarget);
             }}>{returnTarget.label}</ActionButton>
           )}
-          <p className="text-sm text-muted-foreground">
-            {[sourceRisk.code || sourceRisk.riskCode, sourceRisk.title].filter(Boolean).join(" · ")}
-          </p>
-          <BoundProfilePeriodNotice token={token} profileId={monitoringDraft?.profileVersionId} periodId={monitoringDraft?.monitoringPeriodId} />
-          <MonitoringDateField id="observation-date" value={observedAt} onChange={setObservedAt} disabled={isAssessmentLocked || isSaving} />
-          {monitoringDraft?.observedAtInferred && <p className="text-xs text-muted-foreground">Tanggal data lama diperkirakan dari periode pemantauan sebelumnya. Tanggal pengamatan asli belum dicatat.</p>}
           {saveError && <p role="alert" className="text-sm text-destructive">{saveError}</p>}
-          {hasFinalResult && (
-            <div className="space-y-2">
-              <p role="status" className="text-sm text-muted-foreground">
-                Pemantauan tanggal {observedAt} selesai dan tersedia untuk KK Pemantauan dan Reviu.
-                {resultRiskHref && <> Snapshot profil v{draftRisk.versionNumber} merekam kondisi pada {observedAt}.</>}
-              </p>
-              <MonitoringWorkingPaperAction
-                token={token}
-                organizationId={riskOrganizationId}
-                canCreate={Boolean(user?.organizationId && user.organizationId === riskOrganizationId)}
-                observedAt={observedAt}
-              />
-            </div>
-          )}
         </div>
       ) : (
       <FormHeader
@@ -1427,12 +1478,70 @@ export default function AssessmentFormPage() {
           }
         />
       )}
+      {isMonitoringRoute && !isRevision && monitoringDraft?.id && (
+        <DetailSidePanel>
+          <section aria-labelledby="monitoring-treatment-summary" className="min-w-0 space-y-3">
+            <h2 id="monitoring-treatment-summary" className="text-sm font-semibold text-primary">Laporan Penanganan</h2>
+            {monitoringDraft.status === "draft"
+              ? <MitigationStatusTable key={monitoringDraft.id} monitoringId={monitoringDraft.id} />
+              : <FinalMonitoringEvidence key={monitoringDraft.id} monitoringId={monitoringDraft.id} />}
+          </section>
+        </DetailSidePanel>
+      )}
       <div className={cn(
         "grid w-full min-w-0 gap-6 xl:items-start",
         isMonitoringRoute ? "xl:grid-cols-[minmax(0,1fr)_420px]" : "xl:grid-cols-[minmax(0,1fr)_360px]",
       )}>
+        {isMonitoringRoute && (
+          <aside className="min-w-0 xl:sticky xl:top-6 xl:col-start-2 xl:row-start-1">
+            <DetailSidePanel>
+              <section aria-labelledby="monitoring-properties" className="space-y-3">
+                <h2 id="monitoring-properties" className="text-sm font-semibold text-primary">Properti</h2>
+                <p className="wrap-break-word text-sm text-muted-foreground">{sourceRisk.title}</p>
+                <PropertyList compact className="mt-0">
+                  {monitoringDraft && (
+                    <div className="flex items-center justify-between gap-4">
+                      <PropertyLabel>Jenis transaksi</PropertyLabel>
+                      <dd className="text-right"><RiskTransactionBadge record={monitoringDraft} /></dd>
+                    </div>
+                  )}
+                  <div className="flex items-center justify-between gap-4">
+                    <PropertyLabel>Status</PropertyLabel>
+                    <dd className="text-right">
+                      <Badge
+                        variant={monitoringDraft?.status === "superseded" ? "secondary" : draftRisk.status === "final" ? "default" : "secondary"}
+                        className={draftRisk.status === "final" ? "border-transparent bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300" : ""}
+                      >
+                        {monitoringDraft?.status === "superseded"
+                          ? "Digantikan"
+                          : assessmentStatusLabel[draftRisk.status] ?? draftRisk.status}
+                      </Badge>
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-4">
+                    <PropertyLabel>Kode risiko</PropertyLabel>
+                    <dd className="max-w-[60%] break-words text-right font-mono text-foreground">
+                      {sourceRisk.code || sourceRisk.riskCode || "—"}
+                    </dd>
+                  </div>
+                  <div className="flex items-center justify-between gap-4">
+                    <PropertyLabel>Versi risiko</PropertyLabel>
+                    <dd className="text-right font-mono text-foreground">{draftRisk.versionNumber ?? "—"}</dd>
+                  </div>
+                  {monitoringCycle ? (
+                    <div className="flex items-center justify-between gap-4">
+                      <PropertyLabel>Periode pemantauan</PropertyLabel>
+                      <dd className="text-right font-mono text-foreground">{monitoringCycle}</dd>
+                    </div>
+                  ) : null}
+                </PropertyList>
+                <ProfilePeriodDetails loaded={profilePeriodWorkspace} periodId={monitoringDraft?.monitoringPeriodId} showProfileVersion />
+              </section>
+            </DetailSidePanel>
+          </aside>
+        )}
         {/* Left Column */}
-        <div className="space-y-6">
+        <div className="min-w-0 space-y-6 xl:col-start-1 xl:row-start-1">
           {!isMonitoringRoute ? (
             <ProfilRisikoCard
               risk={sourceRisk}
@@ -1442,36 +1551,28 @@ export default function AssessmentFormPage() {
           ) : null}
 
           <div className="space-y-6">
-            {isMonitoringRoute && monitoringDraft?.id && (
-              <DetailSidePanel>
-                <section aria-labelledby="monitoring-treatment-summary" className="space-y-3">
-                  <h2 id="monitoring-treatment-summary" className="text-sm font-semibold text-primary">Laporan Penanganan</h2>
-                  {monitoringDraft.status === "draft"
-                    ? <MitigationStatusTable key={monitoringDraft.id} monitoringId={monitoringDraft.id} />
-                    : <FinalMonitoringEvidence key={monitoringDraft.id} monitoringId={monitoringDraft.id} />}
-                </section>
-              </DetailSidePanel>
-            )}
             <CollapsibleCard.Root appearance="form" className="scroll-mt-28">
               <CollapsibleCard.Trigger className="flex-wrap hover:bg-transparent sm:px-5">
                 <CollapsibleCard.Header className="min-w-0 flex-1">
                   <CollapsibleCard.Icon />
                   <CollapsibleCard.Title className="overflow-visible whitespace-normal text-base font-medium">
-                    Hasil Pemantauan
+                    {isRevision ? "Penilaian hasil revisi" : "Hasil Pemantauan"}
                   </CollapsibleCard.Title>
                 </CollapsibleCard.Header>
-                <CollapsibleCard.Actions className="ms-auto flex-wrap justify-end">
-                  {monitoringHeaderBadges}
-                </CollapsibleCard.Actions>
+                {!isMonitoringRoute && (
+                  <CollapsibleCard.Actions className="ms-auto flex-wrap justify-end">
+                    {monitoringHeaderBadges}
+                  </CollapsibleCard.Actions>
+                )}
               </CollapsibleCard.Trigger>
               <CollapsibleCard.Content>
                 <FormPanel>
                   <FormGroup className="grid gap-6">
-                    {isMonitoringRoute && (
+                    {isRevision && (
                       <div className="space-y-2">
                         <p className="text-sm font-medium">Rencana tindak lanjut</p>
                         <p className="text-xs text-muted-foreground">
-                          Tinjau tindakan, PIC, dan jadwal pelaksanaan. Finalisasi membuat satu task baru untuk setiap rencana.
+                          Tinjau tindakan, PIC, dan jadwal pelaksanaan. Perubahan berlaku setelah revisi difinalisasi.
                         </p>
                         <MitigationPlanList
                           items={substanceDraft.mitigations}
@@ -1517,18 +1618,20 @@ export default function AssessmentFormPage() {
                       );
                     })()}
 
-                    <div className="flex min-w-0 flex-col gap-3">
-                      <Label htmlFor="risk-score-picker" className="text-sm font-medium">
-                        Skor Risiko Observasi<span className="text-destructive"> *</span>
-                      </Label>
-                      {isMonitoringRoute && (
-                        <p className="text-sm text-muted-foreground">
-                          Skor sebelumnya {sourceScoreLabel}.
-                          {!isAssessmentLocked && (scoreReviewed
-                            ? " Skor observasi sudah ditetapkan."
-                            : " Skor yang tampil berasal dari draf. Tetapkan skor observasi sebelum finalisasi.")}
-                        </p>
-                      )}
+                    <div className="flex min-w-0 flex-col gap-2">
+                      <FieldHeading>
+                        <Label htmlFor="risk-score-picker" className="text-sm font-medium">
+                          Skor Risiko Observasi<span className="text-destructive"> *</span>
+                        </Label>
+                        {isMonitoringRoute && (
+                          <p className="leading-4 text-sm text-muted-foreground">
+                            Skor sebelumnya {sourceScoreLabel}.
+                            {!isAssessmentLocked && (scoreReviewed
+                              ? " Skor observasi sudah ditetapkan."
+                              : " Skor yang tampil berasal dari draf. Tetapkan skor observasi sebelum finalisasi.")}
+                          </p>
+                        )}
+                      </FieldHeading>
                       <RiskScorePickerTrigger
                         id="risk-score-picker"
                         title="Skor risiko observasi"
@@ -1574,7 +1677,7 @@ export default function AssessmentFormPage() {
                   <FormGroup className="grid gap-6">
                     <div className="flex flex-col gap-2">
                       <Label htmlFor="change-reason">
-                        {isMonitoringRoute ? "Alasan penilaian" : "Alasan Perubahan"}
+                        {isRevision ? "Alasan revisi" : isMonitoringRoute ? "Alasan penilaian" : "Alasan Perubahan"}
                       </Label>
                       <Controller
                         control={form.control}
@@ -1640,17 +1743,17 @@ export default function AssessmentFormPage() {
               </CollapsibleCard.Content>
             </CollapsibleCard.Root>
 
-            <CollapsibleCard.Root
+            {(!isMonitoringRoute || isRevision) && <CollapsibleCard.Root
               appearance="form"
               className="scroll-mt-28"
-              defaultOpen={false}
+              defaultOpen={isRevision}
             >
               <CollapsibleCard.Trigger className="hover:bg-transparent sm:px-5">
                 <CollapsibleCard.Header>
                   <CollapsibleCard.Icon />
                   <CollapsibleCard.Text>
                     <CollapsibleCard.Title className="overflow-visible whitespace-normal text-base font-medium">
-                      {isMonitoringRoute ? "Ubah profil risiko" : "Perubahan Substansi Risiko"}
+                      {isRevision ? "Revisi substansi profil risiko" : "Perubahan Substansi Risiko"}
                     </CollapsibleCard.Title>
                     <CollapsibleCard.Description>
                       Buka hanya jika ada perubahan isi risiko, kontrol, atau
@@ -1682,14 +1785,16 @@ export default function AssessmentFormPage() {
               <CollapsibleCard.Content>
                 <FormPanel>
                   <FormGroup className="space-y-5">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    {!isRevision && <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="space-y-1">
-                        <Label className="text-sm font-medium text-foreground">
-                          Aktifkan edit substansi risiko
-                        </Label>
-                        <p className="max-w-2xl text-xs leading-5 text-muted-foreground">
-                          Gunakan bagian ini jika ada perubahan data risiko
-                        </p>
+                        <FieldHeading>
+                          <Label className="text-sm font-medium text-foreground">
+                            Aktifkan edit substansi risiko
+                          </Label>
+                          <p className="max-w-2xl text-xs leading-4 text-muted-foreground">
+                            Gunakan bagian ini jika ada perubahan data risiko
+                          </p>
+                        </FieldHeading>
                       </div>
                       <Switch
                         id="substance-edit-enabled"
@@ -1698,7 +1803,7 @@ export default function AssessmentFormPage() {
                         onCheckedChange={setSubstanceEditEnabled}
                         disabled={isAssessmentLocked || isSaving}
                       />
-                    </div>
+                    </div>}
 
                     {substanceEditEnabled ? (
                       <div className="mt-3 space-y-2 border-t border-dashed border-border/60 pt-3">
@@ -1721,6 +1826,7 @@ export default function AssessmentFormPage() {
                         Aktifkan saat ada update data risiko versi terbaru.
                       </p>
                     )}
+                    {isRevision && <div className="space-y-2"><Label htmlFor="revision-target-score">Target risiko residual</Label><RiskScorePickerTrigger id="revision-target-score" title="Target risiko residual" probability={substanceDraft.targetProbability || 1} impact={substanceDraft.targetImpact || 1} onClick={()=>setTargetPickerOpen(true)} disabled={isAssessmentLocked || isSaving} /></div>}
                     <RiskSubstanceFields
                       value={substanceDraft}
                       onChange={setSubstanceDraft}
@@ -1731,7 +1837,7 @@ export default function AssessmentFormPage() {
                   </FormGroup>
                 </FormPanel>
               </CollapsibleCard.Content>
-            </CollapsibleCard.Root>
+            </CollapsibleCard.Root>}
 
             {/* Approval Line */}
             {!isMonitoringRoute &&
@@ -1774,15 +1880,17 @@ export default function AssessmentFormPage() {
                     <FormPanel>
                       <FormGroup className="space-y-3">
                         <div className="space-y-1.5">
-                          <Label className="text-sm font-medium text-foreground">
-                            Reviewer (Pemeriksa)
-                            <span className="text-destructive ml-0.5">*</span>
-                          </Label>
-                          <p className="text-xs text-muted-foreground">
-                            Pilih reviewer yang akan memeriksa dan memberikan skor
-                            penilaian resmi sebelum risiko ini diajukan ke
-                            pimpinan.
-                          </p>
+                          <FieldHeading>
+                            <Label className="text-sm font-medium text-foreground">
+                              Reviewer (Pemeriksa)
+                              <span className="text-destructive ml-0.5">*</span>
+                            </Label>
+                            <p className="leading-4 text-xs text-muted-foreground">
+                              Pilih reviewer yang akan memeriksa dan memberikan skor
+                              penilaian resmi sebelum risiko ini diajukan ke
+                              pimpinan.
+                            </p>
+                          </FieldHeading>
                         </div>
                         <RemoteUserPicker
                           title="Pilih Reviewer"
@@ -1798,14 +1906,16 @@ export default function AssessmentFormPage() {
                       </FormGroup>
                       <FormGroup className="space-y-4">
                         <div className="space-y-1.5">
-                          <Label className="text-sm font-medium text-foreground">
-                            Rantai Persetujuan (Pimpinan)
-                            <span className="text-destructive ml-0.5">*</span>
-                          </Label>
-                          <p className="text-xs text-muted-foreground">
-                            Susun rantai persetujuan pimpinan. Persetujuan
-                            dilakukan secara berurutan.
-                          </p>
+                          <FieldHeading>
+                            <Label className="text-sm font-medium text-foreground">
+                              Rantai Persetujuan (Pimpinan)
+                              <span className="text-destructive ml-0.5">*</span>
+                            </Label>
+                            <p className="leading-4 text-xs text-muted-foreground">
+                              Susun rantai persetujuan pimpinan. Persetujuan
+                              dilakukan secara berurutan.
+                            </p>
+                          </FieldHeading>
                         </div>
 
                         <OrderedUserSelectionTable
@@ -1831,51 +1941,32 @@ export default function AssessmentFormPage() {
                 </CollapsibleCard.Root>
               )}
           </div>
+          {isMonitoringRoute && monitoringSummary}
         </div>
 
-        {/* Right Column / Side Panel */}
-        <aside className="min-w-0 xl:sticky xl:top-6 xl:self-start">
-          <div className="space-y-6">
-            <DetailSidePanel>
-              <section aria-labelledby="monitoring-side-summary">
-                <h2
-                  id="monitoring-side-summary"
-                  className="text-sm font-semibold text-primary"
-                >
-                  Simpulan Pemantauan
-                </h2>
-                <div className="mt-3">
-                  <SimpulanCard
-                    nilaiCurrent={sourceScore}
-                    currentInherentScore={isMonitoringRoute ? undefined : sourceRisk.inherentScore}
-                    nilaiBaru={computedNilai}
-                    probability={probability}
-                    impact={impact}
-                  />
-                </div>
-              </section>
-            </DetailSidePanel>
-            {!isMonitoringRoute && (
-              <ReviewSidePanel
-                approvalId={approvalId}
-                approvalWorkflow={approvalWorkflow}
-                currentUserId={user?.id}
-                riskStatus={draftRisk.status}
-                userRole={user?.role || ""}
-                inherentScore={Math.round(computedNilai)}
-                token={token || undefined}
-                allowStatusFallbackWorkflowStage={
-                  riskApprovalCapabilityBehavior.riskApprovalWorkflowEnabled
-                }
-                onActionComplete={loadRiskData}
-                onNavigateToLog={() =>
-                  router.push(`/risk/register/${sourceRisk.id}`)
-                }
-              />
-            )}
-          </div>
-        </aside>
+        {!isMonitoringRoute && (
+          <aside className="min-w-0 space-y-6 xl:sticky xl:top-6 xl:self-start">
+            {monitoringSummary}
+            <ReviewSidePanel
+              approvalId={approvalId}
+              approvalWorkflow={approvalWorkflow}
+              currentUserId={user?.id}
+              riskStatus={draftRisk.status}
+              userRole={user?.role || ""}
+              inherentScore={Math.round(computedNilai)}
+              token={token || undefined}
+              allowStatusFallbackWorkflowStage={
+                riskApprovalCapabilityBehavior.riskApprovalWorkflowEnabled
+              }
+              onActionComplete={loadRiskData}
+              onNavigateToLog={() =>
+                router.push(`/risk/register/${sourceRisk.id}`)
+              }
+            />
+          </aside>
+        )}
       </div>
+      <RiskScoreHeatmapModal open={targetPickerOpen} onOpenChange={setTargetPickerOpen} title="Target risiko residual" probability={substanceDraft.targetProbability || 1} impact={substanceDraft.targetImpact || 1} onApply={({probability,impact})=>setSubstanceDraft(current=>({...current,targetProbability:probability,targetImpact:impact}))} />
       <RiskScoreHeatmapModal
         open={scorePickerOpen}
         onOpenChange={setScorePickerOpen}
@@ -1903,7 +1994,7 @@ export default function AssessmentFormPage() {
         <AlertDialogContent data-monitoring-finalize-dialog={isMonitoringRoute ? "" : undefined}>
           <AlertDialogHeader>
             <AlertDialogTitle className="text-base">
-              {isMonitoringRoute ? "Tinjau finalisasi pemantauan" : (
+              {isMonitoringRoute ? isRevision ? "Tinjau finalisasi revisi" : "Tinjau finalisasi pemantauan" : (
               riskApprovalCapabilityBehavior.usesDirectApprovalCopy
                 ? "Finalisasi pemantauan?"
                 : "Ajukan Pemantauan untuk Review?")}
@@ -1912,30 +2003,31 @@ export default function AssessmentFormPage() {
           </AlertDialogHeader>
           <ConfirmationConsequences>
             {isMonitoringRoute
-                ? "Hasil pengamatan akan dikunci. Snapshot profil dan task mitigasi tindak lanjut akan dibuat dari rencana yang sudah ditinjau."
+                ? isRevision ? "Versi profil baru akan aktif setelah revisi difinalisasi." : "Finalisasi mengunci hasil pengamatan dan seluruh laporan mitigasi periode ini."
                 : riskApprovalCapabilityBehavior.usesDirectApprovalCopy
                 ? "Pemantauan akan dikunci dan snapshot versi resmi akan dibuat. Tindakan ini tidak dapat dibatalkan."
                 : "Pemantauan akan disimpan lalu dikirim ke reviewer dan approval line yang sudah dipilih. Pastikan seluruh bagian sudah final sebelum melanjutkan."}
           </ConfirmationConsequences>
           {isMonitoringRoute ? (
             <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 text-sm">
-              <dt className="text-muted-foreground">Tanggal pemantauan</dt>
+              <dt className="text-muted-foreground">{isRevision ? "Tanggal berlaku" : "Tanggal pemantauan"}</dt>
               <dd>{observedAt} · {monitoringCycle || "-"}</dd>
+              {isRevision && <><dt className="text-muted-foreground">Alasan revisi</dt><dd className="wrap-break-word">{form.watch("changeReason")}</dd></>}
               <dt className="text-muted-foreground">Skor</dt>
               <dd className="tabular-nums">
                 {sourceScoreLabel} → {formatRiskScore(computedNilai, "—")}
               </dd>
               <dt className="text-muted-foreground">Versi hasil</dt>
-              <dd>Snapshot baru dari penilaian ini</dd>
+              <dd>{isRevision ? `Versi baru setelah v${sourceRisk.versionNumber || 1}` : `Versi ${sourceRisk.versionNumber || 1}`}</dd>
             </dl>
           ) : null}
-          {isMonitoringRoute && (
+          {isMonitoringRoute && !isRevision && (
             <div className="space-y-2 text-sm">
               <p className="font-medium">Rencana tindak lanjut</p>
               <p className="text-muted-foreground">
                 {followUpPlans.length > 0
-                  ? `Finalisasi akan membuat ${followUpPlans.length} task mitigasi baru.`
-                  : "Belum ada rencana tindak lanjut untuk dibuatkan task."}
+                  ? `${followUpPlans.length} rencana mitigasi menjadi acuan pemantauan.`
+                  : "Tidak ada rencana mitigasi pada profil ini."}
               </p>
               {followUpPlans.length > 0 && (
                 <ul className="max-h-40 space-y-3 overflow-y-auto rounded-control border px-3 py-2">
@@ -1972,7 +2064,7 @@ export default function AssessmentFormPage() {
           {isMonitoringRoute && monitoringValidation && !monitoringValidation.canFinalize && (
             <p role="alert" className="text-sm text-destructive">Pemantauan belum dapat difinalisasi. Periksa status periode dan coba lagi.</p>
           )}
-          {isMonitoringRoute && monitoringValidation && monitoringValidation.pendingTasks === 0 && (
+          {isMonitoringRoute && !isRevision && monitoringValidation && monitoringValidation.pendingTasks === 0 && (
             <p className="text-sm text-muted-foreground">
               {monitoringValidation.totalTasks ? "Semua tindakan penanganan sudah dilaporkan." : "Tidak ada tugas penanganan pada periode ini."}
             </p>
@@ -2004,7 +2096,23 @@ export default function AssessmentFormPage() {
               </div>
             </div>
           )}
-          {substanceEditEnabled && substanceDiffs.length > 0 && (
+          {isRevision && substanceDiffs.length > 0 && (
+            <section className="space-y-3 text-sm" aria-label="Perubahan substansi">
+              <h2 className="font-medium">Perubahan substansi</h2>
+              <ul className="max-h-52 space-y-3 overflow-y-auto rounded-control border px-3 py-2">
+                {substanceDiffs.map(({ field, label, before, after }) => (
+                  <li key={field} className="space-y-1">
+                    <p className="font-medium">{label}</p>
+                    <dl className="grid gap-2 sm:grid-cols-2">
+                      <div><dt className="text-xs text-muted-foreground">Sebelum</dt><dd className="whitespace-pre-line wrap-break-word">{formatRevisionValue(field, before)}</dd></div>
+                      <div><dt className="text-xs text-muted-foreground">Sesudah</dt><dd className="whitespace-pre-line wrap-break-word">{formatRevisionValue(field, after)}</dd></div>
+                    </dl>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {!isRevision && substanceEditEnabled && substanceDiffs.length > 0 && (
             <div className="space-y-2 border-t border-dashed border-amber-500/30 pt-3 text-sm text-amber-800">
               <div>
                 <span className="font-medium text-foreground">
@@ -2029,7 +2137,7 @@ export default function AssessmentFormPage() {
               }}
               disabled={isSaving || isAssessmentLocked || isCheckingFinalize || (isMonitoringRoute && (finalizeBlocked || !monitoringValidation?.canFinalize))}
             >
-              {isMonitoringRoute ? (isSaving ? "Memfinalisasi…" : "Finalisasi pemantauan") : "Lanjutkan"}
+              {isMonitoringRoute ? (isSaving ? "Memfinalisasi…" : isRevision ? "Finalisasi revisi" : "Finalisasi pemantauan") : "Lanjutkan"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

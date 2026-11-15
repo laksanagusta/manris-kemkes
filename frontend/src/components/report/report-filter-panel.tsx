@@ -13,6 +13,14 @@ import type { ReportsFilterScope } from "@/lib/reports-filter-sheet";
 import { reportQuarterOptions } from "@/lib/quarterly-report";
 
 interface ReportFilterPanelProps {
+  profile?: {
+    value: string;
+    options: { value: string; label: string }[];
+    onChange: (value: string) => void;
+    period: string;
+    periods: { value: string; label: string }[];
+    onPeriodChange: (value: string) => void;
+  };
   cycle: string;
   onCycleChange: (cycle: string) => void;
   comparison?: { cycle: string; onChange: (cycle: string) => void };
@@ -34,7 +42,7 @@ interface ReportFilterPanelProps {
 }
 
 export function ReportFilterPanel({
-  cycle, onCycleChange, comparison,
+  cycle, onCycleChange, comparison, profile,
   scope, defaultScope, requireUnit = false, onScopeChange, organizations, groups, scopeSummary,
   scopeReady, loading, exporting = false, canExport, onExportExcel, onExportDataExcel, onReload, onReset,
 }: ReportFilterPanelProps) {
@@ -53,13 +61,16 @@ export function ReportFilterPanel({
   });
   const groupUnits = scope.organizationGroupId
     ? unitsForGroup(scope.organizationGroupId).map(({ id }) => id).sort() : [];
-  const fields: TableFilterField[] = [
+  const fields: TableFilterField[] = profile ? [
+    { id: "profile", label: "Profil", value: profile.value, required: true, options: profile.options, onChange: profile.onChange },
+    { id: "period", label: "Periode", value: profile.period, required: true, options: profile.periods, onChange: profile.onPeriodChange },
+  ] : [
     { id: "period", label: "Periode", value: cycle, required: true, options: periodOptions, onChange: onCycleChange },
   ];
   if (comparison) {
     fields.push({
       id: "comparison", label: "Bandingkan dengan", value: comparison.cycle, required: true,
-      options: periodOptions, onChange: comparison.onChange,
+      options: profile?.periods ?? periodOptions, onChange: comparison.onChange,
     });
   }
   if (groups.length) {
@@ -70,7 +81,7 @@ export function ReportFilterPanel({
     });
   }
   fields.push({
-    id: "organization", label: "Unit", type: "multi-select",
+    id: "organization", organizationScope: true, label: "Unit", type: "multi-select",
     value: [...scope.organizationIds].sort().join(","), defaultValue: groupUnits.join(","),
     required: requireUnit && !scope.organizationGroupId,
     options: unitsForGroup(scope.organizationGroupId).map(({ id, name }) => ({ value: id, label: name })),
@@ -96,7 +107,7 @@ export function ReportFilterPanel({
                 {exporting ? <Loader2 className="animate-spin" /> : <MoreHorizontal />}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent align="end" className="w-60">
               <DropdownMenuItem disabled={!canExport || loading || exporting} onSelect={onExportExcel}>
                 {exporting ? <Loader2 className="animate-spin" /> : <FileSpreadsheet />}Laporan lengkap Excel
               </DropdownMenuItem>

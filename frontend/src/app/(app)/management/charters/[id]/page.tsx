@@ -1,5 +1,6 @@
 "use client";
 
+import { FieldHeading } from "@/components/ui/field";
 import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import {
   useCallback,
@@ -1227,8 +1228,11 @@ export default function RiskCharterDetailPage() {
               Sistem akan membuat draf versi baru. Versi aktif tetap berlaku
                   sampai revisi difinalisasi.
             </ConfirmationConsequences>
-            <div className="space-y-1">
-              <Label htmlFor="revision-reason">Alasan revisi</Label>
+            <div className="space-y-2">
+              <FieldHeading>
+                <Label htmlFor="revision-reason">Alasan revisi</Label>
+                <p className="leading-4 text-xs text-secondary-foreground">Minimal 10 karakter.</p>
+              </FieldHeading>
               <Textarea
                 id="revision-reason"
                 value={revisionReason}
@@ -1236,7 +1240,6 @@ export default function RiskCharterDetailPage() {
                 placeholder="Jelaskan perubahan yang mendasari revisi ini."
                 className="resize-none bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500"
               />
-              <p className="text-xs text-secondary-foreground">Minimal 10 karakter.</p>
             </div>
             <DialogFooter>
               <CollectionDialogCancel

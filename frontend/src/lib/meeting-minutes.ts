@@ -2,6 +2,7 @@ import { api } from "./api";
 import type {
   CreateMeetingMinuteResult,
   MeetingMinute,
+  MeetingMinuteAuthor,
   MeetingMinuteWithRisks,
   CreateMeetingMinuteInput,
   ListMeetingMinutesOptions,
@@ -24,20 +25,30 @@ export async function getMeetingMinute(
 
 export async function listMeetingMinutes(
   options: ListMeetingMinutesOptions,
-  token: string
+  token: string,
+  signal?: AbortSignal,
 ): Promise<{ items: MeetingMinute[]; total: number }> {
   const params = new URLSearchParams();
   if (options.organizationId) params.set("organizationId", options.organizationId);
   if (options.createdBy) params.set("createdBy", options.createdBy);
   if (options.riskId) params.set("riskId", options.riskId);
   if (options.createdAt) params.set("created_at", options.createdAt);
+  if (options.date) params.set("date", options.date);
+  if (options.q) params.set("q", options.q);
+  if (options.sortBy) params.set("sort_by", options.sortBy);
+  if (options.sortOrder) params.set("sort_order", options.sortOrder);
   if (options.limit) params.set("limit", String(options.limit));
   if (options.offset) params.set("offset", String(options.offset));
 
   return api.get<{ items: MeetingMinute[]; total: number }>(
     `/meeting-minutes?${params.toString()}`,
-    token
+    token,
+    { signal },
   );
+}
+
+export function listMeetingMinuteAuthors(token: string, signal?: AbortSignal) {
+  return api.get<MeetingMinuteAuthor[]>("/meeting-minutes?authors_only=true", token, { signal });
 }
 
 export async function linkRisksToMeetingMinute(

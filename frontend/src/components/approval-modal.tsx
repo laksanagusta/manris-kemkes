@@ -1,5 +1,6 @@
 "use client";
 
+import { FieldHeading } from "@/components/ui/field";
 import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -152,15 +153,20 @@ export function ApprovalModal({
 
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <label
-              htmlFor="approval-message"
-              className="text-sm font-medium leading-none"
-            >
-              Pesan {isApprove ? "Persetujuan" : "Penolakan"}
-              <span className="text-muted-foreground font-normal ml-1">
-                (Opsional)
-              </span>
-            </label>
+            <FieldHeading>
+              <label
+                htmlFor="approval-message"
+                className="text-sm font-medium leading-none"
+              >
+                Pesan {isApprove ? "Persetujuan" : "Penolakan"}
+                <span className="text-muted-foreground font-normal ml-1">
+                  (Opsional)
+                </span>
+              </label>
+              <p className="leading-4 text-[11px] text-muted-foreground">
+                Pesan ini akan dicatat dalam riwayat persetujuan.
+              </p>
+            </FieldHeading>
             <Textarea
               id="approval-message"
               placeholder={
@@ -173,9 +179,6 @@ export function ApprovalModal({
               disabled={isSubmitting}
               className="resize-none"
             />
-            <p className="text-[11px] text-muted-foreground">
-              Pesan ini akan dicatat dalam riwayat persetujuan.
-            </p>
           </div>
         </div>
 

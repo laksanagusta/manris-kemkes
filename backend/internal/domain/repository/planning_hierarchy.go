@@ -17,6 +17,8 @@ type PlanningROOptionFilter struct {
 }
 
 type PlanningCompatibilityFilter struct {
+	SortBy         string
+	SortOrder      string
 	OrganizationID *uuid.UUID
 	Period         string
 	Q              string
@@ -25,6 +27,7 @@ type PlanningCompatibilityFilter struct {
 }
 
 type PlanningHierarchyRepository interface {
+	ListCompatibilityPeriods(ctx context.Context, organizationID *uuid.UUID) ([]string, error)
 	ListROOptions(ctx context.Context, filter PlanningROOptionFilter) ([]entity.PlanningROOption, error)
 	ListObjectiveCompatibilityRows(ctx context.Context, filter PlanningCompatibilityFilter) ([]*entity.RiskObjective, int, error)
 }

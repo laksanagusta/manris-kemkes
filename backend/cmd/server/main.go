@@ -343,6 +343,7 @@ func main() {
 	protected.Get("/risks/:id/versions", cleanRiskHandler.ListVersions)
 	protected.Post("/risks/:id/reassess", cleanRiskHandler.CreateReassessment)
 	protected.Post("/risks/:id/monitorings", cleanRiskHandler.StartMonitoring)
+	protected.Post("/risks/:id/revisions", cleanRiskHandler.StartRevision)
 	protected.Post("/risks/:id/archive", cleanRiskHandler.ArchiveRisk)
 	protected.Post("/risks/:id/restore", cleanRiskHandler.RestoreRisk)
 	protected.Put("/risks/:id", cleanRiskHandler.UpdateRisk)
@@ -379,6 +380,7 @@ func main() {
 	protected.Get("/reports/quarterly", quarterlyReportHandler.Get)
 	protected.Get("/reports/quarterly/overview", quarterlyReportHandler.Overview)
 	protected.Get("/reports/unit-progress", unitProgressHandler.Get)
+	protected.Get("/reports/unit-progress/profiles", unitProgressHandler.Profiles)
 	protected.Get("/reports/quarterly-pdf", quarterlyReportHandler.PDF)
 
 	// Controls (Clean Architecture)
@@ -406,6 +408,7 @@ func main() {
 	protected.Post("/ai/document-intelligence/analyze", cleanAIHandler.AnalyzeDocumentIntelligence)
 
 	// Approval Workflow (New Clean Architecture)
+	protected.Get("/inbox", httpHandler.ListInbox(postgresrepo.NewInboxRepository(container.Pool)))
 	protected.Get("/approvals", approvalHandler.List)
 	protected.Get("/approvals/pending-count", approvalHandler.GetPendingCount)
 	protected.Get("/approvals/by-entity", approvalHandler.GetByEntity)

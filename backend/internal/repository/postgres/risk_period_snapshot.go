@@ -27,7 +27,9 @@ const riskPeriodSnapshotCTE = quarterlyLifecycleCTE + `, period_cutoff AS (
         ELSE ` + businessNowSQL + `
       END, ` + businessNowSQL + `
     ) AS cutoff
-), effective_profiles AS (
+) ` + riskPeriodSnapshotBodyCTE
+
+const riskPeriodSnapshotBodyCTE = `, effective_profiles AS (
     SELECT r.*, ` + riskEffectiveAtSQL + ` AS snapshot_effective_at
     FROM risks r CROSS JOIN period_cutoff p
     WHERE r.status = 'final'
@@ -38,9 +40,23 @@ const riskPeriodSnapshotCTE = quarterlyLifecycleCTE + `, period_cutoff AS (
     FROM effective_profiles
     ORDER BY version_group_id, snapshot_effective_at DESC, version_number DESC, created_at DESC, id DESC
 ), risk_snapshots AS (
-    SELECT selected.*
+    SELECT selected.*,
+      COALESCE(assessment.observed_probability,selected.probability) AS current_probability,
+      COALESCE(assessment.observed_impact,selected.impact) AS current_impact,
+      COALESCE(assessment.observed_weight,selected.weight) AS current_weight,
+      COALESCE(assessment.observed_nilai,selected.nilai) AS current_nilai
     FROM selected_profiles selected
     CROSS JOIN period_cutoff p
+    LEFT JOIN LATERAL (
+      SELECT rm.observed_probability,rm.observed_impact,rm.observed_weight,rm.observed_nilai
+      FROM risk_monitorings rm
+      WHERE rm.source_risk_id=selected.id AND rm.version_group_id=selected.version_group_id
+        AND rm.status='final' AND rm.transaction_kind='monitoring' AND rm.superseded_by_monitoring_id IS NULL
+        AND rm.observed_at >= (selected.snapshot_effective_at AT TIME ZONE 'Asia/Jakarta')::date
+        AND rm.observed_at::timestamp AT TIME ZONE 'Asia/Jakarta' < p.cutoff
+      ORDER BY rm.observed_at DESC,rm.finalized_at DESC NULLS LAST,rm.id DESC
+      LIMIT 1
+    ) assessment ON TRUE
     LEFT JOIN lifecycle ON lifecycle.version_group_id = selected.version_group_id
     LEFT JOIN LATERAL (
       SELECT e.action

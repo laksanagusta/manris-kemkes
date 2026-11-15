@@ -16,7 +16,7 @@ import (
 )
 
 type organizationGroupRepository struct {
-	pool *pgxpool.Pool
+	pool repositoryDB
 }
 
 func NewOrganizationGroupRepository(pool *pgxpool.Pool) repository.OrganizationGroupRepository {
@@ -261,17 +261,21 @@ func (r *organizationGroupRepository) List(ctx context.Context, filter repositor
 			group.CreatedBy = &createdBy.UUID
 		}
 		group.MemberCount = int(memberCount)
-		if filter.IncludeMembers {
+		groups = append(groups, group)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("iterate organization groups: %w", err)
+	}
+
+	rows.Close()
+	if filter.IncludeMembers {
+		for _, group := range groups {
 			members, err := r.listMembers(ctx, group.ID)
 			if err != nil {
 				return nil, 0, err
 			}
 			group.Members = members
 		}
-		groups = append(groups, group)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, 0, fmt.Errorf("iterate organization groups: %w", err)
 	}
 
 	return groups, total, nil
@@ -305,18 +309,62 @@ func organizationGroupQueries(filter repository.OrganizationGroupListFilter) (st
 		args = append(args, *filter.OwnerOrganizationID)
 		argPos++
 	}
+	if filter.GroupID != nil {
+		clauses = append(clauses, fmt.Sprintf(" AND g.id = $%d", argPos))
+		args = append(args, *filter.GroupID)
+		argPos++
+	}
 	if trimmed := strings.TrimSpace(filter.Q); trimmed != "" {
-		clauses = append(clauses, fmt.Sprintf(" AND g.name ILIKE $%d", argPos))
-		args = append(args, "%"+trimmed+"%")
+		clauses = append(clauses, fmt.Sprintf(" AND strpos(lower(concat_ws(' ', g.name, owner.name, g.description)), lower($%d)) > 0", argPos))
+		args = append(args, trimmed)
 		argPos++
 	}
 
 	countQuery := baseCount + strings.Join(clauses, "")
-	dataQuery := baseData + strings.Join(clauses, "") + `
-		GROUP BY g.id, owner.name
-		ORDER BY g.created_at DESC, g.id DESC
-	`
+	columns := map[string]string{
+		"created_at":   "g.created_at",
+		"name":         "NULLIF(LOWER(g.name), '')",
+		"owner":        "NULLIF(LOWER(owner.name), '')",
+		"member_count": "COUNT(m.organization_id)",
+		"updated_at":   "g.updated_at",
+	}
+	tieBreaker := "g.id"
+	if filter.SortBy != "created_at" && columns[filter.SortBy] != "" {
+		tieBreaker = "g.created_at DESC NULLS LAST, g.id"
+	}
+	dataQuery := baseData + strings.Join(clauses, "") +
+		" GROUP BY g.id, owner.name ORDER BY " +
+		collectionOrderBy(filter.SortBy, filter.SortOrder, "g.created_at", tieBreaker, columns)
 	return countQuery, dataQuery, args
+}
+
+func (r *organizationGroupRepository) ListOptions(ctx context.Context, ownerID *uuid.UUID) ([]repository.OrganizationGroupOption, error) {
+	query := `SELECT g.id, g.name, g.owner_organization_id, COALESCE(owner.name, '')
+		FROM organization_groups g
+		LEFT JOIN organizations owner ON owner.id = g.owner_organization_id`
+	var args []any
+	if ownerID != nil {
+		query += " WHERE g.owner_organization_id = $1"
+		args = append(args, *ownerID)
+	}
+	rows, err := r.pool.Query(ctx, query+" ORDER BY g.name, g.id", args...)
+	if err != nil {
+		return nil, fmt.Errorf("list organization group options: %w", err)
+	}
+	defer rows.Close()
+
+	options := make([]repository.OrganizationGroupOption, 0)
+	for rows.Next() {
+		var option repository.OrganizationGroupOption
+		if err := rows.Scan(&option.ID, &option.Name, &option.OwnerOrganizationID, &option.OwnerOrganizationName); err != nil {
+			return nil, fmt.Errorf("scan organization group option: %w", err)
+		}
+		options = append(options, option)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate organization group options: %w", err)
+	}
+	return options, nil
 }
 
 func (r *organizationGroupRepository) listMembers(ctx context.Context, groupID uuid.UUID) ([]entity.OrganizationGroupMember, error) {

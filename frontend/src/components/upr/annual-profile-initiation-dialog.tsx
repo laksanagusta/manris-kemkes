@@ -1,5 +1,9 @@
 "use client";
 
+import { createDisplayDateFormatter } from "@/lib/display-date";
+import { riskCategoryLabels } from "@/lib/risk";
+import { SearchableDropdownPicker } from "@/components/shared/searchable-dropdown-picker";
+import { FieldHeading } from "@/components/ui/field";
 import { useEffect, useRef, useState } from "react";
 import { AlertTriangle } from "@/components/shared/icons";
 import { CollectionSearchField } from "@/components/shared/design-system";
@@ -24,7 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TableCell, TableRow } from "@/components/ui/table";
-import { groupAnnualProfiles, isAnnualProfileYear } from "@/lib/annual-profile";
+import { getAnnualProfileRuleSelection, groupAnnualProfiles, isAnnualProfileYear } from "@/lib/annual-profile";
 import type {
   AnnualPickupRisk,
   AnnualProfileListVersion,
@@ -32,6 +36,8 @@ import type {
 import { WorkflowError, WorkflowTable, workflowError } from "./workflow-ui";
 
 import type { MonitoringRule } from "@/lib/api/monitoring-rules";
+
+const assessmentDateFormatter = createDisplayDateFormatter("id-ID", { dateStyle: "medium", timeZone: "Asia/Jakarta" });
 
 type PickupResult = { key: string; risks: AnnualPickupRisk[]; error?: string };
 
@@ -51,7 +57,7 @@ export function AnnualProfileInitiationDialog({
     year: number,
     source: string | null,
   ) => Promise<AnnualPickupRisk[]>;
-  loadRules?: () => Promise<MonitoringRule[]>;
+  loadRules?: (search?: string, signal?: AbortSignal) => Promise<MonitoringRule[]>;
   create: (
     year: number,
     source: string | null,
@@ -63,9 +69,12 @@ export function AnnualProfileInitiationDialog({
   restoreFocus: () => void;
 }) {
   const [rulesResult, setRulesResult] = useState<{ rules: MonitoringRule[]; error?: string } | null>(null);
+  const [ruleOpen, setRuleOpen] = useState(false);
+  const [ruleSearch, setRuleSearch] = useState("");
+  const [chosenRule, setChosenRule] = useState<MonitoringRule | null>(null);
+  const [ruleResults, setRuleResults] = useState<{ rules: MonitoringRule[]; error?: string } | null>(null);
   const [ruleId, setRuleId] = useState("");
   const [rulesRetry, setRulesRetry] = useState(0);
-  const [yearInput, setYearInput] = useState(String(defaultYear));
   const [mode, setMode] = useState("register");
   const [sourceId, setSourceId] = useState("");
   const [result, setResult] = useState<PickupResult | null>(null);
@@ -75,19 +84,34 @@ export function AnnualProfileInitiationDialog({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const submitLock = useRef(false);
-  const year = Number(yearInput);
-  const validYear = /^\d{4}$/.test(yearInput) && isAnnualProfileYear(year);
-  const matchingRules = (rulesResult?.rules ?? []).filter(rule => rule.active && rule.year === year);
-  const selectedRule = matchingRules.find(rule => rule.id === ruleId);
+  const { selectedRule } = getAnnualProfileRuleSelection(
+    [...(rulesResult?.rules ?? []), ...(chosenRule ? [chosenRule] : [])],
+    defaultYear,
+    ruleId,
+  );
+  const year = selectedRule?.year ?? defaultYear;
+  const validYear = isAnnualProfileYear(year) && (!loadRules || Boolean(selectedRule));
   useEffect(() => {
     if (!loadRules) return;
     let active = true;
     loadRules().then(rules => { if (active) setRulesResult({rules}); }, error => { if(active) setRulesResult({rules:[],error:workflowError(error)}); });
     return () => { active = false; };
   }, [loadRules, rulesRetry]);
-  const existing = groupAnnualProfiles(versions).find(
-    (item) => item.year === year,
-  );
+  useEffect(() => {
+    if (!loadRules || !ruleOpen) return;
+    const controller = new AbortController();
+    setRuleResults(null);
+    const timer = setTimeout(() => {
+      loadRules(ruleSearch.trim(), controller.signal).then(
+        rules => { if (!controller.signal.aborted) setRuleResults({ rules }); },
+        error => { if (!controller.signal.aborted) setRuleResults({ rules: [], error: workflowError(error) }); },
+      );
+    }, 250);
+    return () => { clearTimeout(timer); controller.abort(); };
+  }, [loadRules, ruleOpen, ruleSearch]);
+  const existing = validYear
+    ? groupAnnualProfiles(versions).find((item) => item.year === year)
+    : undefined;
   const sources = versions
     .filter((version) => version.year < year && version.finalizedAt)
     .sort((a, b) => b.year - a.year || b.version - a.version);
@@ -169,7 +193,7 @@ export function AnnualProfileInitiationDialog({
       }}
     >
       <DialogContent
-        className="flex max-h-[min(90dvh,52rem)] max-w-4xl flex-col gap-4 overflow-hidden"
+        className="flex max-h-[min(90dvh,52rem)] flex-col gap-4 overflow-hidden [--dialog-width:var(--container-5xl)]"
         showCloseButton={!pending}
         onCloseAutoFocus={(event) => {
           event.preventDefault();
@@ -179,43 +203,71 @@ export function AnnualProfileInitiationDialog({
         <DialogHeader className="shrink-0 pr-10">
           <DialogTitle>Tambah profil risiko tahunan</DialogTitle>
           <DialogDescription>
-            Pilih tahun dan risiko awal. Setelah draf dibuat, selesaikan
+            Pilih rules pemantauan dan risiko awal. Setelah draf dibuat, selesaikan
             penilaian di detail profil dan tautkan sasaran bila relevan.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col gap-4">
           <div className="min-h-0 space-y-6 overflow-y-auto px-1 py-1">
             <div className="grid w-full gap-6">
+              {loadRules && (
+                <div className="w-full space-y-2">
+                  <FieldHeading>
+                    <Label htmlFor="initiate-profile-rule">Rules pemantauan</Label>
+                    {rulesResult && !rulesResult.error && (
+                      <p id="initiate-profile-rule-help" className="text-xs leading-4 text-muted-foreground">
+                        {(rulesResult?.rules.length ?? 0)
+                          ? "Jadwal ini berlaku untuk pemantauan, kertas kerja, dan evaluasi profil."
+                          : "Belum ada rules pemantauan aktif. Superadmin perlu membuatnya di Pengaturan."}
+                      </p>
+                    )}
+                  </FieldHeading>
+                  <SearchableDropdownPicker<MonitoringRule>
+                    id="initiate-profile-rule"
+                    title="Rules pemantauan"
+                    description="Cari rules aktif berdasarkan nama atau tahun. Menampilkan lima rules terbaru."
+                    placeholder="Pilih rules pemantauan"
+                    value={selectedRule?.id ?? ""}
+                    selectedOption={selectedRule}
+                    options={ruleResults?.rules ?? []}
+                    getOptionValue={rule => rule.id}
+                    renderValue={rule => `${rule.year} · ${rule.name}`}
+                    renderOption={rule => `${rule.year} · ${rule.name}`}
+                    onSelect={rule => {
+                      setChosenRule(rule);
+                      setRuleId(rule.id);
+                      if (rule.year !== year) { setSourceId(""); resetSelection(); }
+                    }}
+                    open={ruleOpen}
+                    onOpenChange={open => { setRuleOpen(open); if (!open) setRuleSearch(""); }}
+                    search={ruleSearch}
+                    onSearchChange={value => { setRuleSearch(value); setRuleResults(null); }}
+                    searchPlaceholder="Cari nama atau tahun…"
+                    emptyMessage="Tidak ada rules yang cocok."
+                    loading={!ruleResults}
+                    errorMessage={ruleResults?.error}
+                    disabled={pending || !rulesResult || Boolean(rulesResult.error)}
+                    focusSearchOnOpen
+                  />
+                  {!rulesResult ? (
+                    <p role="status" className="text-xs text-muted-foreground">Memuat rules…</p>
+                  ) : rulesResult.error ? (
+                    <WorkflowError message={rulesResult.error} retry={() => { setRulesResult(null); setRulesRetry((n) => n + 1); }} />
+                  ) : null}
+                </div>
+              )}
               <div className="w-full space-y-2">
-                <Label htmlFor="initiate-profile-year">Tahun profil</Label>
+                <FieldHeading>
+                  <Label htmlFor="initiate-profile-year">Tahun profil</Label>
+                </FieldHeading>
                 <Input
                   id="initiate-profile-year"
-                  inputMode="numeric"
-                  pattern="[0-9]{4}"
-                  maxLength={4}
-                  required
-                  value={yearInput}
+                  value={validYear ? String(year) : ""}
+                  placeholder={loadRules ? "Mengikuti rules pemantauan" : undefined}
+                  readOnly
                   disabled={pending}
-                  onChange={(event) => {
-                    setYearInput(event.target.value);
-                    setSourceId("");
-                    setRuleId("");
-                    resetSelection();
-                  }}
+                  className="tabular-nums"
                 />
-                {loadRules && validYear && !existing && <div className="mt-4 space-y-2">
-                  <Label htmlFor="initiate-profile-rule">Rules pemantauan</Label>
-                  <Select value={selectedRule?.id ?? ""} onValueChange={setRuleId} disabled={pending || !rulesResult || !!rulesResult.error}>
-                    <SelectTrigger id="initiate-profile-rule" className="w-full"><SelectValue placeholder="Pilih rules untuk tahun profil" /></SelectTrigger>
-                    <SelectContent>{matchingRules.map(rule => <SelectItem key={rule.id} value={rule.id}>{rule.name}</SelectItem>)}</SelectContent>
-                  </Select>
-                  {!rulesResult ? <p role="status" className="text-xs text-muted-foreground">Memuat rules…</p> : rulesResult.error ? <WorkflowError message={rulesResult.error} retry={() => { setRulesResult(null); setRulesRetry(n => n+1); }} /> : !matchingRules.length ? <p className="text-xs text-muted-foreground">Belum ada rules aktif untuk {year}. Superadmin perlu membuatnya di Pengaturan.</p> : <p className="text-xs text-muted-foreground">Jadwal ini berlaku untuk pemantauan, kertas kerja, dan evaluasi profil.</p>}
-                </div>}
-                {!validYear && (
-                  <p className="text-sm text-muted-foreground">
-                    Masukkan tahun antara 1900 dan 9998.
-                  </p>
-                )}
                 {existing && (
                   <Alert
                     role="note"
@@ -233,7 +285,7 @@ export function AnnualProfileInitiationDialog({
                   </Alert>
                 )}
               </div>
-              {!existing && (
+              {validYear && !existing && (
                 <div className="space-y-2">
                   <Label htmlFor="initiate-profile-source">Sumber risiko</Label>
                   <Select
@@ -265,7 +317,15 @@ export function AnnualProfileInitiationDialog({
             </div>
             {!existing && validYear && mode === "profile" && (
               <div className="space-y-2">
-                <Label htmlFor="initiate-source-version">Profil sumber</Label>
+                <FieldHeading>
+                  <Label htmlFor="initiate-source-version">Profil sumber</Label>
+                  {!sources.length && (
+                    <p className="leading-4 text-sm text-muted-foreground">
+                      Belum ada profil final sebelum {year}. Gunakan risiko aktif
+                      di Register.
+                    </p>
+                  )}
+                </FieldHeading>
                 <Select
                   value={sourceId}
                   disabled={pending || !sources.length}
@@ -288,12 +348,6 @@ export function AnnualProfileInitiationDialog({
                     ))}
                   </SelectContent>
                 </Select>
-                {!sources.length && (
-                  <p className="text-sm text-muted-foreground">
-                    Belum ada profil final sebelum {year}. Gunakan risiko aktif
-                    di Register.
-                  </p>
-                )}
               </div>
             )}
             {canLoad && !preview && (
@@ -347,23 +401,17 @@ export function AnnualProfileInitiationDialog({
                       },
                       "Risiko",
                       "Penilaian terakhir",
-                      "Keterangan",
+                      "Kategori",
                     ]}
-                    hiddenOnMobile={["Penilaian terakhir", "Keterangan"]}
+                    hiddenOnMobile={["Penilaian terakhir", "Kategori"]}
                   >
                     {visible.map((risk, index) => {
                       const id = risk.id;
-                      const assessment = [
-                        risk.period,
-                        risk.score === null ? "" : `Skor ${risk.score}`,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ");
-                      const status =
-                        risk.unavailable ||
-                        (risk.period.startsWith(`${year}-`)
-                          ? "Penilaian tahun tujuan tersedia"
-                          : "Perlu dinilai ulang");
+                      const date = risk.assessmentDate ? new Date(risk.assessmentDate) : null;
+                      const assessment = date && !Number.isNaN(date.getTime())
+                        ? assessmentDateFormatter.format(date)
+                        : "—";
+                      const category = riskCategoryLabels[risk.category as keyof typeof riskCategoryLabels] || risk.category || "—";
                       return (
                         <TableRow
                           key={id ?? `${risk.code}:${risk.title}:${index}`}
@@ -394,14 +442,15 @@ export function AnnualProfileInitiationDialog({
                               {assessment && (
                                 <p className="tabular-nums">{assessment}</p>
                               )}
-                              <p>{status}</p>
+                              <p>{category}</p>
                             </div>
+                            {risk.unavailable && <p className="mt-1 text-xs text-muted-foreground">{risk.unavailable}</p>}
                           </TableCell>
                           <TableCell className="hidden tabular-nums sm:table-cell">
-                            {assessment || "—"}
+                            <time dateTime={risk.assessmentDate ?? undefined}>{assessment}</time>
                           </TableCell>
                           <TableCell className="hidden min-w-36 whitespace-normal sm:table-cell">
-                            {status}
+                            {category}
                           </TableCell>
                         </TableRow>
                       );

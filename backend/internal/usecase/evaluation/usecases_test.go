@@ -30,6 +30,34 @@ type fakeOrganizationRepo struct {
 	err error
 }
 
+func TestParentCanReadButCannotMutateDescendantEvaluations(t *testing.T) {
+	own, child, grandchild := uuid.New(), uuid.New(), uuid.New()
+	scope := &entity.AccessScope{OrganizationID: &own, AccessibleOrgIDs: []uuid.UUID{own, child, grandchild}}
+	for _, org := range []uuid.UUID{child, grandchild} {
+		for _, status := range []entity.EvaluationStatus{entity.EvaluationStatusDraft, entity.EvaluationStatusFinal} {
+			t.Run(org.String()+string(status), func(t *testing.T) {
+				repo := newFakeEvaluationRepo()
+				id := uuid.New()
+				repo.evals[id] = &entity.Evaluation{ID: id, OrganizationID: org, Status: status, ReportNumber: "original"}
+				if _, err := NewGetUseCase(repo).Execute(context.Background(), GetInput{ID: id, Scope: scope}); err != nil {
+					t.Fatalf("parent read denied: %v", err)
+				}
+				_, updateErr := NewUpdateUseCase(repo).Execute(context.Background(), UpdateInput{ID: id, Scope: scope, ReportNumber: "changed"})
+				_, finalizeErr := NewFinalizeUseCase(repo).Execute(context.Background(), FinalizeInput{ID: id, Scope: scope})
+				_, reopenErr := NewReopenUseCase(repo).Execute(context.Background(), ReopenInput{ID: id, Scope: scope})
+				for _, err := range []error{updateErr, finalizeErr, reopenErr} {
+					if !errors.IsForbidden(err) {
+						t.Fatalf("descendant mutation must be forbidden, got %v", err)
+					}
+				}
+				if repo.evals[id].ReportNumber != "original" || repo.evals[id].Status != status {
+					t.Fatal("descendant record changed")
+				}
+			})
+		}
+	}
+}
+
 func newFakeEvaluationRepo() *fakeEvaluationRepo {
 	return &fakeEvaluationRepo{
 		templates: map[string]*entity.EvaluationTemplate{},

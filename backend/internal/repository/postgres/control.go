@@ -12,7 +12,7 @@ import (
 
 // controlRepository is the PostgreSQL implementation of repository.ControlRepository
 type controlRepository struct {
-	pool *pgxpool.Pool
+	pool repositoryDB
 }
 
 // NewControlRepository creates a new control repository
@@ -89,44 +89,55 @@ func (r *controlRepository) Delete(ctx context.Context, id uuid.UUID) error {
 }
 
 // List retrieves controls with optional filters
+
 func (r *controlRepository) List(ctx context.Context, orgIDs []uuid.UUID) ([]*entity.Control, error) {
-	query := `
-		SELECT c.id, c.name, c.description, c.control_type, c.frequency,
-		       c.owner, c.organization_id, COALESCE(o.name, '') as org_name, c.created_at
-		FROM controls c
-		LEFT JOIN organizations o ON c.organization_id = o.id
-		WHERE 1=1`
+	items, _, err := r.ListPage(ctx, repository.ControlListFilter{OrgIDs: orgIDs})
+	return items, err
+}
 
-	args := []interface{}{}
-	argIdx := 1
-
-	if len(orgIDs) > 0 {
-		query += fmt.Sprintf(" AND c.organization_id = ANY($%d)", argIdx)
-		args = append(args, uuidArrayToStrings(orgIDs))
-		argIdx++
+func (r *controlRepository) ListPage(ctx context.Context, f repository.ControlListFilter) ([]*entity.Control, int, error) {
+	where := " WHERE 1=1"
+	args := []any{}
+	if len(f.OrgIDs) > 0 {
+		args = append(args, f.OrgIDs)
+		where += fmt.Sprintf(" AND c.organization_id = ANY($%d)", len(args))
+	}
+	if f.OrganizationID != nil {
+		args = append(args, *f.OrganizationID)
+		where += fmt.Sprintf(" AND c.organization_id = $%d", len(args))
+	}
+	if f.Query != "" {
+		args = append(args, f.Query)
+		where += fmt.Sprintf(" AND strpos(lower(concat_ws(' ', c.name, c.description, c.owner)), lower($%d)) > 0", len(args))
 	}
 
-	query += " ORDER BY c.created_at DESC, c.id DESC"
-
+	var total int
+	if err := r.pool.QueryRow(ctx, "SELECT COUNT(*) FROM controls c"+where, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count controls: %w", err)
+	}
+	query := `SELECT c.id, c.name, c.description, c.control_type, c.frequency,
+		c.owner, c.organization_id, COALESCE(o.name, ''), c.created_at
+		FROM controls c LEFT JOIN organizations o ON o.id=c.organization_id` + where +
+		" ORDER BY c.created_at DESC, c.id DESC"
+	if f.Limit > 0 {
+		query += fmt.Sprintf(" LIMIT $%d OFFSET $%d", len(args)+1, len(args)+2)
+		args = append(args, f.Limit, int64(max(1, f.Page)-1)*int64(f.Limit))
+	}
 	rows, err := r.pool.Query(ctx, query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("list controls: %w", err)
+		return nil, 0, fmt.Errorf("list controls: %w", err)
 	}
 	defer rows.Close()
-
-	var controls []*entity.Control
+	controls := make([]*entity.Control, 0)
 	for rows.Next() {
 		var control entity.Control
-		if err := rows.Scan(
-			&control.ID, &control.Name, &control.Description, &control.Type, &control.Frequency,
-			&control.Owner, &control.OrganizationID, &control.OrgName, &control.CreatedAt,
-		); err != nil {
-			return nil, fmt.Errorf("scan control: %w", err)
+		if err := rows.Scan(&control.ID, &control.Name, &control.Description, &control.Type,
+			&control.Frequency, &control.Owner, &control.OrganizationID, &control.OrgName, &control.CreatedAt); err != nil {
+			return nil, 0, fmt.Errorf("scan control: %w", err)
 		}
 		controls = append(controls, &control)
 	}
-
-	return controls, nil
+	return controls, total, rows.Err()
 }
 
 // GetDashboard retrieves dashboard metrics for controls

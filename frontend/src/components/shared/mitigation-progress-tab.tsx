@@ -3,10 +3,12 @@
 import { formatDisplayDate } from "@/lib/display-date";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { api, ApiError } from "@/lib/api";
-import { updateTaskReport } from "@/lib/api/mitigation-tasks";
+import { ApiError } from "@/lib/api";
+import { getMitigationTask, listScopedTaskPage, type ScopedTaskPage, updateTaskReport } from "@/lib/api/mitigation-tasks";
 import { toast } from "sonner";
 
+import { useRouter } from "next/navigation";
+import { MitigationExecutionField, type MitigationExecution } from "@/components/shared/design-system/domain/mitigation-execution-field";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MitigationTaskTable } from "./mitigation-task-table";
@@ -47,15 +49,17 @@ export interface MitigationProgressDraft {
 
 interface MitigationProgressTabProps {
   riskId: string;
+  monitoringId?: string;
   token: string;
   aiDraft?: MitigationProgressDraft | null;
   onAiDraftConsumed?: () => void;
   showTaskList?: boolean;
   readOnly?: boolean;
+  allowInMonitoring?: boolean;
   loadTasks?: () => Promise<MitigationTask[]>;
   submitReport?: (
     task: MitigationTask,
-    report: { notes: string; evidenceUrl: string },
+    report: { notes: string; evidenceUrl: string; status?:string },
   ) => Promise<MitigationTask>;
   mitigationFilter?: string;
   onMitigationFilterChange?: (value: string) => void;
@@ -94,21 +98,29 @@ const STATUS_CONFIG: Record<
 
 export function MitigationProgressTab({
   riskId,
+  monitoringId,
   token,
   aiDraft,
   onAiDraftConsumed,
   showTaskList = false,
   readOnly = false,
+  allowInMonitoring = false,
   loadTasks,
   submitReport,
   mitigationFilter = "all",
 }: MitigationProgressTabProps) {
+  const router=useRouter();
+  const [execution,setExecution]=useState<MitigationExecution>("pending");
   const [tasks, setTasks] = useState<MitigationTask[]>([]);
   const [pagination, setPagination] = useState({
     query: "",
     page: 1,
     pageSize: 10,
   });
+  const [serverPage, setServerPage] = useState<ScopedTaskPage | null>(null);
+  const localData = Boolean(loadTasks);
+  const paginationQuery = JSON.stringify([riskId, monitoringId, mitigationFilter]);
+  const requestedPage = pagination.query === paginationQuery ? pagination.page : 1;
   const [loading, setLoading] = useState(true);
   const requestGeneration = useRef(0);
   const detailTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -127,7 +139,7 @@ export function MitigationProgressTab({
   const notesInputRef = useRef<HTMLTextAreaElement | null>(null);
   const [showValidationErrors, setShowValidationErrors] = useState(false);
   const [submitError, setSubmitError] = useState("");
-  const detailReportAction = detailTask ? getMitigationTaskReportAction(detailTask) : null;
+  const detailReportAction = detailTask ? getMitigationTaskReportAction(detailTask, undefined, allowInMonitoring && !readOnly) : null;
   const detailStatus = detailReportAction?.isOverdue ? "overdue" : detailTask?.status;
   const appliedDraftTaskIdRef = useRef<string | null>(null);
 
@@ -146,10 +158,24 @@ export function MitigationProgressTab({
     setLoading(true);
     setLoadError(null);
     try {
-      const data = loadTasks
-        ? await loadTasks()
-        : await api.get<MitigationTask[]>(`/risks/${riskId}/tasks`, token);
-      if (generation === requestGeneration.current) setTasks(data || []);
+      if (loadTasks) {
+        const data = await loadTasks();
+        if (generation === requestGeneration.current) setTasks(data || []);
+      } else {
+        const result = await listScopedTaskPage(token, { riskId, monitoringId }, {
+          page: requestedPage,
+          limit: showTaskList ? pagination.pageSize : 1,
+          mitigationId: mitigationFilter,
+        });
+        if (generation !== requestGeneration.current) return;
+        setServerPage(result);
+        const lastPage = Math.max(1, Math.ceil(result.total / pagination.pageSize));
+        if (requestedPage > lastPage) {
+          setPagination((current) => ({ ...current, query: paginationQuery, page: lastPage }));
+          return;
+        }
+        setTasks(result.data);
+      }
     } catch (error) {
       if (generation !== requestGeneration.current) return;
       setTasks([]);
@@ -161,24 +187,26 @@ export function MitigationProgressTab({
     } finally {
       if (generation === requestGeneration.current) setLoading(false);
     }
-  }, [riskId, token, loadTasks]);
+  }, [riskId, monitoringId, token, loadTasks, requestedPage, pagination.pageSize, showTaskList, mitigationFilter, paginationQuery]);
 
   useEffect(() => {
     setSelectedTask(null);
     setDetailTask(null);
     setShowMitigationDialog(false);
-    if ((riskId && token) || loadTasks) {
+    if (((riskId || monitoringId) && token) || loadTasks) {
       void fetchTasks();
     }
     return () => {
       requestGeneration.current += 1;
     };
-  }, [riskId, token, loadTasks, fetchTasks]);
+  }, [riskId, monitoringId, token, loadTasks, fetchTasks]);
 
   const openSubmitDialog = useCallback(
     (task: MitigationTask, draft?: MitigationProgressDraft | null) => {
       if (readOnly) return;
-      if (!getMitigationTaskReportAction(task).allowed) return;
+      if(!allowInMonitoring){router.push(task.monitoringId ? `/risk/monitoring/${task.monitoringId}` : `/risk/register/new?id=${task.riskId}&tab=monitoring`);return;}
+      if (!getMitigationTaskReportAction(task, undefined, allowInMonitoring && !readOnly).allowed) return;
+      setExecution(task.status === "skipped" ? "skipped" : task.status === "done" ? "done" : "pending");
       setSelectedTask(task);
       setDetailTask(task);
       setEvidenceUrl(draft ? "" : task.evidenceUrl || "");
@@ -188,7 +216,7 @@ export function MitigationProgressTab({
       setDialogView("form");
       setShowMitigationDialog(true);
     },
-    [readOnly],
+    [readOnly, allowInMonitoring, router],
   );
 
   const handleOpenSubmit = (task: MitigationTask) => {
@@ -210,7 +238,7 @@ export function MitigationProgressTab({
     const matchedTask = tasks.find((task) => task.id === aiDraft.taskId);
     if (
       !matchedTask ||
-      !getMitigationTaskReportAction(matchedTask).allowed
+      !getMitigationTaskReportAction(matchedTask, undefined, allowInMonitoring && !readOnly).allowed
     )
       return;
 
@@ -218,7 +246,24 @@ export function MitigationProgressTab({
     openSubmitDialog(matchedTask, aiDraft);
     onAiDraftConsumed?.();
     toast.success("Draft laporan mitigasi diisi dari Document Intelligence.");
-  }, [aiDraft, onAiDraftConsumed, openSubmitDialog, readOnly, tasks]);
+  }, [aiDraft, allowInMonitoring, onAiDraftConsumed, openSubmitDialog, readOnly, tasks]);
+
+  useEffect(() => {
+    if (localData || readOnly || !aiDraft?.taskId || loading || tasks.some((task) => task.id === aiDraft.taskId)) return;
+    if (appliedDraftTaskIdRef.current === aiDraft.taskId) return;
+    let active = true;
+    getMitigationTask(token, aiDraft.taskId).then((task) => {
+      if (!active || (monitoringId ? task.monitoringId !== monitoringId : task.riskId !== riskId)) return;
+      if (!getMitigationTaskReportAction(task, undefined, allowInMonitoring && !readOnly).allowed) return;
+      appliedDraftTaskIdRef.current = task.id;
+      openSubmitDialog(task, aiDraft);
+      onAiDraftConsumed?.();
+      toast.success("Draft laporan mitigasi diisi dari Document Intelligence.");
+    }).catch(() => {
+      if (active) toast.error("Tugas untuk draft laporan belum dapat dimuat.");
+    });
+    return () => { active = false; };
+  }, [localData, readOnly, aiDraft, loading, tasks, token, monitoringId, riskId, allowInMonitoring, openSubmitDialog, onAiDraftConsumed]);
 
   useEffect(() => {
     if (!showMitigationDialog && !aiDraft) {
@@ -239,7 +284,7 @@ export function MitigationProgressTab({
   const handleSubmitProgress = async () => {
     if (!selectedTask || readOnly || submitting) return;
     setSubmitError("");
-    const action = getMitigationTaskReportAction(selectedTask);
+    const action = getMitigationTaskReportAction(selectedTask, undefined, allowInMonitoring && !readOnly);
     if (!action.allowed) {
       setSubmitError(action.message || "Pelaporan untuk tugas ini sudah ditutup.");
       return;
@@ -258,8 +303,8 @@ export function MitigationProgressTab({
     setSubmitting(true);
     try {
       const updated = submitReport
-        ? await submitReport(selectedTask, { notes, evidenceUrl })
-        : await updateTaskReport(token, selectedTask.id, { status: "done", evidenceUrl, notes });
+        ? await submitReport(selectedTask, { notes, evidenceUrl, status:execution })
+        : await updateTaskReport(token, selectedTask.id, { status: execution, evidenceUrl, notes });
       setDetailTask(updated);
       setSelectedTask(null);
       setShowValidationErrors(false);
@@ -277,6 +322,7 @@ export function MitigationProgressTab({
   };
 
   const tableTasks = useMemo(() => {
+    if (!localData) return tasks;
     const statusOrder: Record<string, number> = {
       overdue: 0,
       pending: 1,
@@ -307,27 +353,22 @@ export function MitigationProgressTab({
 
         return new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime();
       });
-  }, [tasks, mitigationFilter]);
+  }, [tasks, mitigationFilter, localData]);
 
-  const paginationQuery = JSON.stringify([
-    mitigationFilter,
-  ]);
-  const taskPage = Math.min(
-    pagination.query === paginationQuery ? pagination.page : 1,
-    Math.max(1, Math.ceil(tableTasks.length / pagination.pageSize)),
-  );
-  const visibleTasks = tableTasks.slice(
+  const totalTasks = localData ? tableTasks.length : serverPage?.total ?? 0;
+  const taskPage = Math.min(requestedPage, Math.max(1, Math.ceil(totalTasks / pagination.pageSize)));
+  const visibleTasks = localData ? tableTasks.slice(
     (taskPage - 1) * pagination.pageSize,
     taskPage * pagination.pageSize,
-  );
+  ) : tableTasks;
 
-  const stats = {
+  const stats = localData ? {
     total: tasks.length,
     done: tasks.filter((t) => t.status === "done").length,
     pending: tasks.filter((t) => t.status === "pending").length,
     overdue: tasks.filter((t) => t.status === "overdue").length,
     notReported: tasks.filter((t) => t.status === "not_reported").length,
-  };
+  } : serverPage?.summary ?? { total: 0, done: 0, pending: 0, overdue: 0, notReported: 0 };
 
   const formatDate = (value?: string | null) => {
     if (!value) return "-";
@@ -379,7 +420,7 @@ export function MitigationProgressTab({
 
   const summaryItemClass = "flex items-center justify-between gap-4 py-1.5";
 
-  const summary = tasks.length > 0 ? (
+  const summary = stats.total > 0 ? (
     <div
       className="space-y-0.5"
       role="list"
@@ -429,10 +470,10 @@ export function MitigationProgressTab({
       {!showTaskList && summary}
       {showTaskList && (
         <CollectionTableCard>
-          {tasks.length === 0 ? (
+          {stats.total === 0 ? (
             <CollectionEmptyState
               title="Belum ada task penanganan"
-              description="Task akan muncul otomatis saat risiko difinalisasi dan setiap mitigasi hanya memiliki satu laporan."
+              description="Item pelaporan tersedia saat pemantauan dimulai. Setiap pemantauan menyimpan laporan mitigasinya sendiri."
             />
           ) : tableTasks.length === 0 ? (
             <CollectionEmptyState
@@ -455,7 +496,7 @@ export function MitigationProgressTab({
               itemLabel="mitigasi"
               page={taskPage}
               pageSize={pagination.pageSize}
-              total={tableTasks.length}
+              total={totalTasks}
               onPageChange={(page) =>
                 setPagination((current) => ({
                   ...current,
@@ -494,7 +535,7 @@ export function MitigationProgressTab({
         submitError={submitError}
         dirty={Boolean(selectedTask && (
           notes !== (selectedTask.notes || "") ||
-          evidenceUrl !== (selectedTask.evidenceUrl || "")
+          evidenceUrl !== (selectedTask.evidenceUrl || "") || execution !== selectedTask.status
         ))}
         submitting={submitting}
         onViewChange={(view) => {
@@ -597,6 +638,7 @@ export function MitigationProgressTab({
         }
         formTitle={detailReportAction?.allowed ? detailReportAction.label : "Isi laporan"}
         onFormCancel={() => setDialogView("detail")}
+        leadingContent={allowInMonitoring && <MitigationExecutionField value={execution} onChange={setExecution} disabled={submitting} />}
         evidenceUrl={evidenceUrl}
         onEvidenceUrlChange={setEvidenceUrl}
         notes={notes}

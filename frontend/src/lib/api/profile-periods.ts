@@ -7,7 +7,7 @@ export type ProfilePeriodProgress = MonitoringRulePeriod & {
   evaluation: ProcessProgress;
   monitorings: (ProcessProgress & { groupId: string; applicable?: boolean })[];
 };
-export type ProfilePeriodWorkspace = { rule: MonitoringRule | null; periods: ProfilePeriodProgress[] };
+export type ProfilePeriodWorkspace = { year: number; version: number; rule: MonitoringRule | null; periods: ProfilePeriodProgress[] };
 export function getProfilePeriodProgress(token: string, profileId: string) {
   return api.get<ProfilePeriodWorkspace>(`/annual-profile-versions/${encodeURIComponent(profileId)}/period-progress`, token);
 }

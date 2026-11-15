@@ -27,10 +27,11 @@ type UPRReportDraftSummary struct {
 }
 
 type UPRReportDraft struct {
-	ID       uuid.UUID           `json:"id"`
-	Input    UPRReportDraftInput `json:"input"`
-	Revision int                 `json:"revision"`
-	SentID   *uuid.UUID          `json:"sentId"`
+	OrganizationID uuid.UUID           `json:"organizationId"`
+	ID             uuid.UUID           `json:"id"`
+	Input          UPRReportDraftInput `json:"input"`
+	Revision       int                 `json:"revision"`
+	SentID         *uuid.UUID          `json:"sentId"`
 }
 
 func (s *UPRWorkflow) listReportDrafts(ctx context.Context, org uuid.UUID) ([]UPRReportDraftSummary, error) {
@@ -90,7 +91,10 @@ func (s *UPRWorkflow) SaveReportDraft(ctx context.Context, org, actor, id uuid.U
 	if err := input.validate(); err != nil {
 		return UPRReportDraft{}, err
 	}
-	draft := UPRReportDraft{Input: input}
+	if _, err := selectedReportSources(ctx, s.pool, org, input); err != nil {
+		return UPRReportDraft{}, err
+	}
+	draft := UPRReportDraft{OrganizationID: org, Input: input}
 	var err error
 	if id == uuid.Nil {
 		err = s.pool.QueryRow(ctx, `
@@ -117,7 +121,7 @@ func readReportDraft(ctx context.Context, q reportDraftReader, org, id uuid.UUID
 	if lock {
 		query += " FOR UPDATE"
 	}
-	var draft UPRReportDraft
+	draft := UPRReportDraft{OrganizationID: org}
 	var raw json.RawMessage
 	err := q.QueryRow(ctx, query, id, org).Scan(&draft.ID, &raw, &draft.Revision, &draft.SentID)
 	if errors.Is(err, pgx.ErrNoRows) {
@@ -150,27 +154,51 @@ func (s *UPRWorkflow) PreviewReportDraft(ctx context.Context, org uuid.UUID, inp
 	return snapshot, err
 }
 
-func selectedReportSources(ctx context.Context, tx pgx.Tx, org uuid.UUID, input UPRReportDraftInput) ([]UPRSupportingSection, error) {
-	rows, err := tx.Query(ctx, `
-		SELECT 'working_paper',COALESCE(assessment_cycle,''),id,code,completed_at
-		FROM working_papers WHERE org_id=$1 AND status='completed' AND id=ANY($2::uuid[])
-		UNION ALL
-		SELECT 'evaluation',period,id,code,finalized_at
-		FROM evaluations WHERE organization_id=$1 AND status='final' AND id=$3
-		ORDER BY 1 DESC,2,4,3`, org, input.WorkingPaperIDs, input.EvaluationID)
-	if err != nil {
-		return nil, err
+func selectedReportSources(ctx context.Context, db riskQueryer, org uuid.UUID, input UPRReportDraftInput) ([]UPRSupportingSection, error) {
+	type documentKey struct {
+		kind string
+		id   uuid.UUID
 	}
-	sources, err := pgx.CollectRows(rows, pgx.RowToStructByPos[UPRSupportingSection])
-	if err != nil {
-		return nil, err
+	chosen := make([]documentKey, 0, len(input.WorkingPaperIDs)+2)
+	if input.ProfileID != nil {
+		chosen = append(chosen, documentKey{"profile", *input.ProfileID})
 	}
-	expected := len(input.WorkingPaperIDs)
+	for _, id := range input.WorkingPaperIDs {
+		chosen = append(chosen, documentKey{"working_paper", id})
+	}
 	if input.EvaluationID != nil {
-		expected++
+		chosen = append(chosen, documentKey{"evaluation", *input.EvaluationID})
 	}
-	if len(sources) != expected {
-		return nil, UPRWorkflowError("Pilih KK yang sudah Selesai dan Evaluasi yang sudah Final dari unit Anda.")
+	sources := make([]UPRSupportingSection, 0, len(chosen))
+	if len(chosen) == 0 {
+		return sources, nil
+	}
+	ids := make([]uuid.UUID, len(chosen))
+	for i, key := range chosen {
+		ids[i] = key.id
+	}
+	options, err := reportDocumentOptions(ctx, db, org, "", input.UPRSemesterInput, ids, "", 0, 0)
+	if err != nil {
+		return nil, err
+	}
+	available := make(map[documentKey]UPRReportDocumentOption, len(options))
+	for _, option := range options {
+		available[documentKey{option.Kind, option.ID}] = option
+	}
+	for _, key := range chosen {
+		option, ok := available[key]
+		if !ok {
+			if key.kind == "profile" {
+				return nil, UPRWorkflowError("Pilih versi profil final untuk UPR dan tahun ini.")
+			}
+			return nil, UPRWorkflowError("Pilih KK Selesai dan Evaluasi Final dari unit Anda yang sesuai dengan tahun dan semester laporan.")
+		}
+		if key.kind != "profile" {
+			sources = append(sources, UPRSupportingSection{
+				Kind: option.Kind, Period: option.Period, SourceID: &option.ID,
+				Code: &option.Code, FinalizedAt: option.FinalizedAt,
+			})
+		}
 	}
 	return sources, nil
 }

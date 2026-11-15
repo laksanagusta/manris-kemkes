@@ -1,5 +1,6 @@
 "use client";
 
+import { FieldHeading } from "@/components/ui/field";
 import { useCallback, useMemo } from "react";
 
 import { EditableItemsTable, type EditableItem } from "@/components/shared/editable-items-table";
@@ -378,10 +379,12 @@ export function RiskSubstanceFields({
       {showMitigations ? (
         <div className="space-y-3">
           <div className="flex flex-col gap-1">
-            <Label className="text-sm font-medium">Rencana Mitigasi</Label>
-            <p className="text-xs text-muted-foreground">
-              Gunakan bagian ini untuk memperbarui penanganan tanpa mengubah skor pemantauan utama.
-            </p>
+            <FieldHeading>
+              <Label className="text-sm font-medium">Rencana Mitigasi</Label>
+              <p className="leading-4 text-xs text-muted-foreground">
+                Gunakan bagian ini untuk memperbarui penanganan tanpa mengubah skor pemantauan utama.
+              </p>
+            </FieldHeading>
           </div>
           <MitigationPlanList
             items={mitigationItems}

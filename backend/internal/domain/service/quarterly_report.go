@@ -79,12 +79,20 @@ func QuarterlyFinalObservation(r *entity.Risk, cycle string) (float64, bool) {
 }
 
 func QuarterlyTaskReported(t *entity.MitigationTask) bool {
+	if t == nil || t.ReportedAt == nil {
+		return false
+	}
 	length := len(strings.TrimSpace(t.Notes))
-	return t.Status == entity.MitigationTaskStatusDone && t.ReportedAt != nil && length >= 10 && length <= 1000
+	switch t.Status {
+	case entity.MitigationTaskStatusPending, entity.MitigationTaskStatusDone, entity.MitigationTaskStatusSkipped:
+		return length >= 10 && length <= 1000
+	default:
+		return false
+	}
 }
 
 // QuarterlyTaskReportingStatus is mutually exclusive. A closed unreported task
-// stays not_reported; a skipped task remains visible in the required denominator.
+// stays not_reported; skipped work counts as reported when its reason was submitted.
 func QuarterlyTaskReportingStatus(t *entity.MitigationTask, cycle string, now time.Time) string {
 	if QuarterlyTaskReported(t) {
 		return "reported"

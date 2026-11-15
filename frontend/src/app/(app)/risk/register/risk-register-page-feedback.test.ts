@@ -138,24 +138,31 @@ test("risk cause and impact suggestions share the structured-list modal", () => 
   assert.doesNotMatch(impactModal, /description="Pilih dampak/);
 });
 
+const versionHistoryStyles = readFileSync(new URL("../../../../components/shared/design-system/domain/risk-version-history-list.module.css", import.meta.url), "utf8");
+
 test("risk version history uses compact solid timeline markers", () => {
-  assert.match(
-    versionHistory,
-    /start-1 top-1\.5 size-2 rounded-full bg-muted-foreground\/40/,
-  );
+  assert.match(versionHistoryStyles, /--marker-size: 8px/);
+  assert.match(versionHistory, /className=\{styles.marker\}/);
+});
+
+test("risk version history has one connector and highlights the active profile", () => {
+  assert.doesNotMatch(globals, /\[data-version-history-item\][^{]*::before/);
+  assert.equal((versionHistory.match(/data-version-connector=/g) || []).length, 1);
+  assert.match(versionHistory, /styles.timeline/);
+  assert.match(versionHistoryStyles, /\.timeline > \.item::before,[\s\S]*?\.timeline > \.item::after\s*\{\s*content: none;\s*display: none;/);
+  assert.match(versionHistory, /data-current=\{version.isCurrent/);
+  assert.match(versionHistoryStyles, /\.marker\[data-current="true"\]\s*\{\s*background: var\(--badge-green-foreground\)/);
 });
 
 test("risk version history avoids a redundant current-version badge", () => {
-  assert.doesNotMatch(versionHistory, /Terkini/);
-  assert.doesNotMatch(versionHistory, /<Badge/);
-  assert.match(versionHistory, /aria-current=\{version\.isCurrent/);
+  assert.doesNotMatch(versionHistory, /Terkini|<Badge/);
+  assert.match(versionHistory, /aria-current=\{version.isCurrent/);
 });
 
 test("risk version history connects adjacent markers without extending past the list", () => {
-  assert.match(
-    versionHistory,
-    /index < versions\.length - 1[\s\S]*?absolute -bottom-1 start-\[7\.5px\] top-4 w-px/,
-  );
+  assert.match(versionHistory, /index < versions.length - 1/);
+  assert.match(versionHistoryStyles, /inset-block-start: calc\(var\(--marker-top\) \+ var\(--marker-size\)\)/);
+  assert.match(versionHistoryStyles, /inset-block-end: calc\(-1 \* var\(--marker-top\)\)/);
 });
 
 test("risk context panel exposes compact risk properties", () => {
@@ -231,7 +238,7 @@ test("risk creation and detail hide the RO selector", () => {
 test("risk monitoring start action uses the outline treatment", () => {
   assert.match(
     riskFormPage,
-    /<ActionButton\s+variant="outline"\s+icon=\{<RefreshCcw[\s\S]*?onClick=\{handleOpenMonitoringDialog\}[\s\S]*?>\s*Mulai Pemantauan/,
+    /<ActionButton\s+variant="outline"\s+icon=\{<RefreshCcw[\s\S]*?onClick=\{handleOpenMonitoringDialog\}[\s\S]*?>\s*Pantau/,
   );
 });
 

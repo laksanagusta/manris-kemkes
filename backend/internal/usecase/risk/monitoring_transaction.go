@@ -67,6 +67,8 @@ type FinalizeMonitoringUseCase struct {
 }
 
 type StartMonitoringInput struct {
+	TransactionKind     string
+	ChangeReason        string
 	ProfileVersionID    *uuid.UUID
 	MonitoringPeriodID  *uuid.UUID
 	ObservedAt          string
@@ -86,6 +88,7 @@ type StartMonitoringOutput struct {
 }
 
 type UpdateMonitoringInput struct {
+	ReplaceSubstance       bool
 	ObservedAt             string
 	ExpectedUpdatedAt      *time.Time
 	ObservedScoreConfirmed *bool
@@ -167,6 +170,36 @@ func (uc *StartMonitoringUseCase) Execute(ctx context.Context, input StartMonito
 	if err := validateObservationAfterSource(sourceRisk, input.ObservedAt); err != nil {
 		return nil, err
 	}
+	if input.TransactionKind == "revision" {
+		if strings.TrimSpace(input.ChangeReason) == "" {
+			return nil, &errors.AppError{Code: "INVALID_INPUT", Message: "Alasan revisi wajib diisi."}
+		}
+		if sourceRisk.ID != input.SourceRiskID || !sourceRisk.IsCurrent {
+			return nil, errors.ErrSourceRiskNoLongerActive
+		}
+		lookup, _ := uc.monitoringRepo.(interface {
+			GetOpenRevision(context.Context, uuid.UUID) (*entity.RiskMonitoring, error)
+		})
+		if lookup != nil {
+			if draft, err := lookup.GetOpenRevision(ctx, sourceRisk.VersionGroupID); err == nil && draft != nil {
+				return monitoringDraftOutput(draft, true), nil
+			}
+		}
+		monitoring := entity.NewRiskMonitoringDraft(sourceRisk, input.Cycle, input.StartedBy)
+		monitoring.TransactionKind = "revision"
+		monitoring.Mode = entity.RiskMonitoringModeWithProfileRevision
+		monitoring.ChangeReason = strings.TrimSpace(input.ChangeReason)
+		monitoring.ObservedAt = input.ObservedAt
+		if err := uc.monitoringRepo.Create(ctx, monitoring); err != nil {
+			if lookup != nil {
+				if draft, lookupErr := lookup.GetOpenRevision(ctx, sourceRisk.VersionGroupID); lookupErr == nil && draft != nil {
+					return monitoringDraftOutput(draft, true), nil
+				}
+			}
+			return nil, err
+		}
+		return monitoringDraftOutput(monitoring, false), nil
+	}
 	if validator, ok := uc.monitoringRepo.(interface {
 		ValidateMonitoringContext(context.Context, *entity.Risk, *uuid.UUID, *uuid.UUID, string) error
 	}); ok {
@@ -180,6 +213,13 @@ func (uc *StartMonitoringUseCase) Execute(ctx context.Context, input StartMonito
 	}
 	if existing != nil {
 		if existing.Status == entity.RiskMonitoringStatusDraft {
+			if provisioner, ok := uc.monitoringRepo.(interface {
+				EnsureDraftReports(context.Context, *entity.RiskMonitoring) error
+			}); ok {
+				if err := provisioner.EnsureDraftReports(ctx, existing); err != nil {
+					return nil, err
+				}
+			}
 			return monitoringDraftOutput(existing, true), nil
 		}
 		if input.ProfileVersionID != nil {
@@ -292,7 +332,13 @@ func (uc *UpdateMonitoringUseCase) Execute(ctx context.Context, input UpdateMoni
 		input.ObservedImpact = monitoring.ObservedImpact
 	}
 
-	draftValues := mergeMonitoringDraftValues(monitoring.DraftPayloadSnapshot(), input.Values)
+	if (input.Values.TargetProbability != 0 || input.Values.TargetImpact != 0) && monitoring.TransactionKind != "revision" {
+		return nil, errors.ErrInvalidInput
+	}
+	draftValues := input.Values
+	if monitoring.TransactionKind != "revision" || !input.ReplaceSubstance {
+		draftValues = mergeMonitoringDraftValues(monitoring.DraftPayloadSnapshot(), input.Values)
+	}
 	if draftValues.ChangeReason == "" {
 		draftValues.ChangeReason = monitoring.ChangeReason
 	}
@@ -304,6 +350,18 @@ func (uc *UpdateMonitoringUseCase) Execute(ctx context.Context, input UpdateMoni
 	if strings.TrimSpace(input.MitigationProgressSummary) == "" {
 		input.MitigationProgressSummary = monitoring.MitigationProgressSummary
 	}
+	if input.Values.TargetProbability != 0 {
+		draftValues.TargetProbability = input.Values.TargetProbability
+	}
+	if input.Values.TargetImpact != 0 {
+		draftValues.TargetImpact = input.Values.TargetImpact
+	}
+	if draftValues.TargetProbability == 0 {
+		draftValues.TargetProbability = sourceRisk.TargetProbability
+	}
+	if draftValues.TargetImpact == 0 {
+		draftValues.TargetImpact = sourceRisk.TargetImpact
+	}
 	draftValues.Conclusion = input.Conclusion
 	mode, changedFields := entity.DetectRiskMonitoringMode(sourceRisk, &draftValues)
 
@@ -314,6 +372,22 @@ func (uc *UpdateMonitoringUseCase) Execute(ctx context.Context, input UpdateMoni
 		return nil, errors.ErrInvalidImpact
 	}
 
+	targetChanged := draftValues.TargetProbability != sourceRisk.TargetProbability || draftValues.TargetImpact != sourceRisk.TargetImpact
+	if targetChanged {
+		if draftValues.TargetProbability < 1 || draftValues.TargetProbability > 5 || draftValues.TargetImpact < 1 || draftValues.TargetImpact > 5 {
+			return nil, errors.ErrInvalidInput
+		}
+		changedFields = append(changedFields, "targetScore")
+	}
+	if monitoring.TransactionKind != "revision" && (mode == entity.RiskMonitoringModeWithProfileRevision || targetChanged) {
+		return nil, &errors.AppError{Code: "INVALID_INPUT", Message: "Perubahan substansi harus dilakukan melalui Revisi profil risiko."}
+	}
+	if monitoring.TransactionKind == "revision" {
+		mode = entity.RiskMonitoringModeWithProfileRevision
+		if input.ObservedProbability != sourceRisk.Probability || input.ObservedImpact != sourceRisk.Impact {
+			changedFields = append(changedFields, "assessmentScore")
+		}
+	}
 	monitoring.Mode = mode
 	monitoring.ProfileChangeSummary = changedFields
 	monitoring.ChangeReason = strings.TrimSpace(draftValues.ChangeReason)
@@ -357,6 +431,12 @@ func mergeMonitoringDraftValues(current *entity.RiskMonitoringDraftPayload, inpu
 		return input
 	}
 	merged := input
+	if merged.TargetProbability == 0 {
+		merged.TargetProbability = current.TargetProbability
+	}
+	if merged.TargetImpact == 0 {
+		merged.TargetImpact = current.TargetImpact
+	}
 	if merged.Title == "" {
 		merged.Title = current.Title
 	}
@@ -431,21 +511,22 @@ func (uc *FinalizeMonitoringUseCase) Execute(ctx context.Context, input Finalize
 		return nil, &errors.AppError{Code: "INVALID_INPUT", Message: "Tinjau dan konfirmasi penilaian risiko sebelum finalisasi pemantauan."}
 	}
 
-	// Every finalized monitoring creates an immutable risk snapshot. A
-	// score-only monitoring still changes the official residual assessment;
-	// keeping it as a log-only transaction makes the UI and the ledger disagree
-	// about which score is authoritative.
-	// An unreported task remains terminal for its period, but its mitigation
-	// must remain in the profile until explicitly revised. Finalization must
-	// never silently erase a planned control from the next quarter.
-	resultRisk, err := buildRiskVersionFromMonitoring(sourceRisk, monitoring, input.FinalizedBy)
-	if err != nil {
-		return nil, err
+	var resultRisk *entity.Risk
+	if monitoring.TransactionKind == "revision" {
+		if strings.TrimSpace(monitoring.ChangeReason) == "" {
+			return nil, &errors.AppError{Code: "INVALID_INPUT", Message: "Alasan revisi wajib diisi."}
+		}
+		resultRisk, err = buildRiskVersionFromMonitoring(sourceRisk, monitoring, input.FinalizedBy)
+		if err != nil {
+			return nil, err
+		}
+		if err := resultRisk.Validate(); err != nil {
+			return nil, err
+		}
+		if len(monitoring.ProfileChangeSummary) == 0 && resultRisk.Probability == sourceRisk.Probability && resultRisk.Impact == sourceRisk.Impact {
+			return nil, &errors.AppError{Code: "INVALID_INPUT", Message: "Ubah substansi atau skor profil risiko sebelum finalisasi revisi."}
+		}
 	}
-	if err := resultRisk.Validate(); err != nil {
-		return nil, err
-	}
-
 	finalizedMonitoring, err := uc.monitoringRepo.Finalize(ctx, monitoring.ID, resultRisk, input.FinalizedBy, domainrepo.MonitoringFinalizeReview{
 		DraftUpdatedAt: monitoring.UpdatedAt,
 		ReportRevision: input.ReportRevision,
@@ -499,6 +580,8 @@ func buildRiskVersionFromMonitoring(source *entity.Risk, monitoring *entity.Risk
 
 	if monitoring.Mode == entity.RiskMonitoringModeWithProfileRevision {
 		draft := monitoring.DraftPayloadSnapshot()
+		clone.TargetProbability = draft.TargetProbability
+		clone.TargetImpact = draft.TargetImpact
 		clone.Title = draft.Title
 		clone.Description = draft.Description
 		clone.Category = draft.Category
@@ -524,7 +607,6 @@ func cloneMitigations(src []entity.Mitigation) []entity.Mitigation {
 	out := make([]entity.Mitigation, len(src))
 	copy(out, src)
 	for i := range out {
-		out[i].ID = uuid.Nil
 		out[i].RiskID = uuid.Nil
 	}
 	return out

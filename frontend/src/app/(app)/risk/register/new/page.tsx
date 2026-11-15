@@ -1,4 +1,20 @@
 "use client";
+
+import { useSetHeaderActions } from "@/lib/header-actions-context";
+import type { ReactNode } from "react";
+
+function RiskHeaderActions({ children }: { children: ReactNode }) {
+  const setHeaderActions = useSetHeaderActions();
+  useEffect(() => {
+    setHeaderActions(children);
+    return () => setHeaderActions(null);
+  }, [children, setHeaderActions]);
+  return null;
+}
+
+import { RiskRevisionReasonCard } from "@/components/shared/design-system/domain/risk-revision-reason-card";
+import { RiskWorkflowActions } from "@/components/shared/design-system/domain/risk-workflow-actions";
+import type { RiskOpenDrafts } from "@/types/risk";
 import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import { MonitoringDateField } from "@/components/shared/design-system/domain/monitoring-date-field";
 import { todayMonitoringDate, isValidMonitoringDate } from "@/lib/monitoring-date";
@@ -13,7 +29,6 @@ import { PropertyList, PropertyLabel } from "@/components/shared/design-system/l
 import { DetailSidePanel } from "@/components/shared/design-system/layout/detail-side-panel";
 import { RiskDetailTabs } from "@/components/risk/risk-detail-tabs";
 import { RiskMonitoringList } from "@/components/risk/risk-monitoring-list";
-import { RiskFinalizationNotice } from "@/components/shared/design-system/domain/risk-finalization-notice";
 
 import { useCallback, useEffect, useMemo, useState, useRef } from "react";
 
@@ -30,7 +45,6 @@ import {
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
 import { archiveRisk, restoreRisk } from "@/lib/api/risk-register";
 import {
-  listRiskMonitorings,
   startMonitoring,
 } from "@/lib/api/risk-monitoring";
 import { listRiskEvents } from "@/lib/api/risk-events";
@@ -38,7 +52,7 @@ import { listUsers, type UserListItem } from "@/lib/api/users";
 import { listAllOrganizations } from "@/lib/api/organizations";
 import { filterToAccessibleOrgs } from "@/lib/organization";
 import { useAuth } from "@/contexts/auth-context";
-import { canWriteInOrg, isReadOnlyForOrg } from "@/lib/auth-helpers";
+import { canWriteInOrg } from "@/lib/auth-helpers";
 import { useForm, Controller, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -99,7 +113,7 @@ import {
   type ApprovalLineRow,
   type DraftApprovalLineMember,
 } from "@/lib/risk-approval-line";
-import { FieldContent, FieldDescription } from "@/components/ui/field";
+import { FieldHeading, FieldContent, FieldDescription } from "@/components/ui/field";
 import { EditableList } from "@/components/shared/editable-list";
 import { EditableInsetItems } from "@/components/shared/editable-inset-items";
 import { FormPage } from "@/components/shared/form-shell";
@@ -216,9 +230,14 @@ type RiskSuggestion = {
 };
 type RiskApiMitigation = MitigationItem & {
   ownerUserId?: string;
+  targetCost?: number;
 };
 
 type RiskApiResponse = {
+  openDrafts?: RiskOpenDrafts;
+  reviewType?: string;
+  previousRiskId?: string;
+  currentAssessment?: import("@/types/risk").RiskCurrentAssessment;
   changeReason?: string;
   id: string;
   versionGroupId?: string;
@@ -475,6 +494,13 @@ function AiFieldButton({
 // ----------------------
 const mitigationSchema = z.object({
   id: z.string().optional(),
+  dueDate: z.string().optional().nullable(),
+  frequency: z.string().optional(),
+  recurringInterval: z.number().optional().nullable(),
+  reportDay: z.number().optional().nullable(),
+  reportDate: z.string().optional().nullable(),
+  executionScheduleText: z.string().optional(),
+  targetCost: z.number().optional(),
   action: z.string().default(""),
   owner: z.string().default(""),
   treatmentOwnerId: z.string().optional(),
@@ -730,6 +756,9 @@ export default function RiskInputPage() {
   const [riskVersionNumber, setRiskVersionNumber] = useState<number | null>(
     null,
   );
+  const [currentAssessment, setCurrentAssessment] = useState<RiskApiResponse["currentAssessment"]>();
+  const [revisionBaseline, setRevisionBaseline] = useState<{ probability: number; impact: number } | null>(null);
+  const [isProfileRevision, setIsProfileRevision] = useState(false);
   const [riskStatus, setRiskStatus] = useState<string>("draft");
   const [riskIsCurrent, setRiskIsCurrent] = useState(false);
   const [riskArchivedAt, setRiskArchivedAt] = useState<string | null>(null);
@@ -769,10 +798,7 @@ export default function RiskInputPage() {
     if (selection?.observedAt) setMonitoringObservedAt(selection.observedAt);
   }, []);
   const [isStartingMonitoring, setIsStartingMonitoring] = useState(false);
-  const [ongoingMonitoring, setOngoingMonitoring] = useState<{
-    id: string;
-    assessmentCycle: string;
-  } | null>(null);
+  const [openRiskDrafts, setOpenRiskDrafts] = useState<RiskOpenDrafts | undefined>();
   const [monitoringLookupStatus, setMonitoringLookupStatus] = useState<
     "idle" | "loading" | "ready" | "error"
   >("idle");
@@ -792,9 +818,6 @@ export default function RiskInputPage() {
   const riskEventsRequestRef = useRef(0);
   const finalizeValidationAttemptedRef = useRef(false);
   const draftValidationAttemptedRef = useRef(false);
-  const [ongoingAssessmentId, setOngoingAssessmentId] = useState<string | null>(
-    null,
-  );
   const submitTarget = useRef<"draft" | "review">("draft");
 
   const form = useForm<FormInput, unknown, FormValues>({
@@ -856,10 +879,10 @@ export default function RiskInputPage() {
   const treatmentOption = watch("treatmentOption") ?? "";
   const nextReviewDate = watch("nextReviewDate") ?? "";
   const riskCode = watch("riskCode") ?? "";
-  const hasUnsavedWork = (annualProfileReturn && annualChangeReason !== savedAnnualChangeReason.current) || isDirty || (!riskId && Boolean(title.trim() || description.trim() || causes.length || impacts.length));
+  const hasUnsavedWork = ((annualProfileReturn || isProfileRevision) && annualChangeReason !== savedAnnualChangeReason.current) || isDirty || (!riskId && Boolean(title.trim() || description.trim() || causes.length || impacts.length));
   const [monitoringNow,setMonitoringNow]=useState(()=>businessNow());
   const isInitialProfile = !riskVersionGroupId || (riskVersionNumber ?? 1) <= 1;
-  const finalizationCycle = riskFinalizationCycle(assessmentCycleDisplay, isInitialProfile, monitoringNow);
+  const finalizationCycle = riskFinalizationCycle(assessmentCycleDisplay, isInitialProfile || isProfileRevision, monitoringNow);
   useEffect(()=>{const refresh=()=>setMonitoringNow(businessNow());const timer=setInterval(refresh,60000);window.addEventListener("focus",refresh);return()=>{clearInterval(timer);window.removeEventListener("focus",refresh);};},[]);
   const selectedApprovalLine = approvalLine.filter((member) => member.id);
   const isApprovalLineReady =
@@ -1057,7 +1080,7 @@ export default function RiskInputPage() {
       const loadRequestId = ++riskLoadRequestRef.current;
 
       try {
-        setOngoingMonitoring(null);
+        setOpenRiskDrafts(undefined);
         setMonitoringLookupStatus("loading");
         const risk = await api.get<RiskApiResponse>(
           `/risks/${id}`,
@@ -1065,8 +1088,17 @@ export default function RiskInputPage() {
         );
         if (loadRequestId !== riskLoadRequestRef.current) return;
 
+        let baseline: { probability: number; impact: number } | null = null;
+        if (risk.reviewType === "revision" && risk.previousRiskId) {
+          const previous = await api.get<RiskApiResponse>(`/risks/${risk.previousRiskId}`, token ?? undefined);
+          if (loadRequestId !== riskLoadRequestRef.current) return;
+          baseline = { probability: previous.currentAssessment?.probability ?? previous.probability ?? 0, impact: previous.currentAssessment?.impact ?? previous.impact ?? 0 };
+        }
+        setRevisionBaseline(baseline);
         setRiskId(risk.id);
         setRiskStatus(risk.status || "draft");
+        setIsProfileRevision(risk.reviewType === "revision");
+        setCurrentAssessment(risk.currentAssessment);
         setRiskIsCurrent(risk.isCurrent ?? false);
         setRiskVersionNumber(risk.versionNumber ?? null);
         setAnnualChangeReason(risk.changeReason ?? "");
@@ -1075,56 +1107,8 @@ export default function RiskInputPage() {
         setRiskArchivedAt(risk.archivedAt || null);
         setRiskArchivedReason(risk.archivedReason || "");
         void loadLinkedRiskEvents(risk.id);
-        setOngoingAssessmentId(
-          risk.hasOngoing && risk.draftId ? risk.draftId : null,
-        );
-
-        if (risk.status === "final" && risk.isCurrent && !risk.archivedAt) {
-          void listRiskMonitorings(token ?? "", {
-            q: risk.code || undefined,
-            lifecycle: "all",
-            status: "draft",
-            limit: 100,
-          })
-            .then((monitoringResult) => {
-              if (loadRequestId !== riskLoadRequestRef.current) return;
-
-              const matchingMonitorings = monitoringResult.data.filter(
-                (monitoring) =>
-                  (monitoring.status === "draft" ||
-                    monitoring.status === "final") &&
-                  (monitoring.sourceRiskId === risk.id ||
-                    (risk.versionGroupId &&
-                      monitoring.sourceRisk?.versionGroupId ===
-                        risk.versionGroupId)),
-              );
-              const existingMonitoring = matchingMonitorings.find(
-                (monitoring) => monitoring.status === "draft",
-              );
-
-              setOngoingMonitoring(
-                existingMonitoring
-                  ? {
-                      id: existingMonitoring.id,
-                      assessmentCycle: existingMonitoring.assessmentCycle,
-                    }
-                  : null,
-              );
-              setMonitoringLookupStatus("ready");
-            })
-            .catch((monitoringError) => {
-              if (loadRequestId !== riskLoadRequestRef.current) return;
-
-              console.error(
-                "Failed to check ongoing monitoring:",
-                monitoringError,
-              );
-              setOngoingMonitoring(null);
-                    setMonitoringLookupStatus("error");
-            });
-        } else {
-          setMonitoringLookupStatus("ready");
-        }
+        setOpenRiskDrafts(risk.openDrafts);
+        setMonitoringLookupStatus(risk.openDrafts ? "ready" : "error");
 
         const loadedCauses: CauseImpactItem[] = Array.isArray(risk.cause)
           ? risk.cause
@@ -1310,8 +1294,7 @@ export default function RiskInputPage() {
           setRiskVersionNumber(null);
           setRiskArchivedAt(null);
           setRiskArchivedReason("");
-          setOngoingAssessmentId(null);
-          setOngoingMonitoring(null);
+          setOpenRiskDrafts(undefined);
           setMonitoringLookupStatus("idle");
           setReviewerId("");
           setReviewerOption(null);
@@ -1328,6 +1311,7 @@ export default function RiskInputPage() {
           toast.error("Risiko tidak ditemukan. Form baru dibuka.");
           return;
         }
+        setMonitoringLookupStatus("error");
         console.error("Failed to load risk data:", error);
         toast.error("Gagal memuat data risiko. Silakan coba lagi.");
       }
@@ -1719,7 +1703,9 @@ export default function RiskInputPage() {
   const missingSections = readinessSections.filter(section => !section.done);
   const lockedControlClass =
     "disabled:pointer-events-none disabled:cursor-not-allowed disabled:!bg-disabled-input-surface disabled:!text-disabled-foreground disabled:!opacity-100";
+  const canManageRisk = !!user?.isGlobal || (!!currentOrganizationId && canWriteInOrg(user, currentOrganizationId));
   const isRiskLocked =
+    !canManageRisk ||
     riskStatus === "final" ||
     !!riskArchivedAt;
   useEffect(() => {
@@ -1760,18 +1746,14 @@ export default function RiskInputPage() {
       document.removeEventListener("click", leave, true);
     };
   }, [hasUnsavedWork, isRiskLocked, isSubmitting, riskId]);
-  const canCreateRiskEvent = Boolean(riskId) && riskStatus === "final";
+  const canCreateRiskEvent = canManageRisk && Boolean(riskId) && riskStatus === "final";
   const canManageMonitoring =
     Boolean(riskId) &&
     riskIsCurrent &&
     riskStatus === "final" &&
     !riskArchivedAt &&
-    !isReadOnlyForOrg(user, currentOrganizationId || "");
-  const canContinueMonitoring =
-    canManageMonitoring &&
-    monitoringLookupStatus === "ready" &&
-    Boolean(ongoingMonitoring);
-  const canStartMonitoring = canManageMonitoring && monitoringLookupStatus === "ready" && !ongoingMonitoring;
+    canManageRisk;
+  const canStartMonitoring = canManageMonitoring && monitoringLookupStatus === "ready" && Boolean(openRiskDrafts) && !openRiskDrafts?.monitoringId && !openRiskDrafts?.revisionRiskId && !openRiskDrafts?.revisionMonitoringId;
 
   const scrollToSection = (sectionId: SectionId) => {
     setActiveDetailTab("overview");
@@ -2082,14 +2064,15 @@ export default function RiskInputPage() {
 
   const buildPayload = (data: FormValues, status: string) => ({
     ...buildRiskRegisterPayload(data, status, {
-      assessmentCycle: status === "final" ? riskFinalizationCycle(assessmentCycleDisplay, isInitialProfile, businessNow()) : assessmentCycleDisplay,
+      assessmentCycle: status === "final" ? riskFinalizationCycle(assessmentCycleDisplay, isInitialProfile || isProfileRevision, businessNow()) : assessmentCycleDisplay,
       userRole: user?.role,
       userOrganizationId: user?.organizationId ?? null,
       reviewerId,
       reviewerOption,
       selectedApprovalLine,
     }),
-    ...(annualProfileReturn ? { changeReason: annualChangeReason.trim() } : {}),
+    ...((annualProfileReturn || isProfileRevision) ? { changeReason: annualChangeReason.trim() } : {}),
+    ...(isProfileRevision ? { reviewType: "revision" } : {}),
   });
 
   const onSubmit = async (data: FormValues) => {
@@ -2097,6 +2080,11 @@ export default function RiskInputPage() {
       toast.info(
         "Risiko yang sudah difinalisasi hanya dapat dibaca. Buat versi baru untuk mengubah substansi.",
       );
+      return;
+    }
+    if (isProfileRevision && annualChangeReason.trim().length < 10) {
+      toast.error("Isi alasan revisi minimal 10 karakter.");
+      document.getElementById("annual-risk-change-reason")?.focus();
       return;
     }
     setIsSubmitting(true);
@@ -2108,7 +2096,7 @@ export default function RiskInputPage() {
         isDraft || riskApprovalCapabilityBehavior.submitsForApproval
           ? "draft"
           : "final";
-      if (!isDraft && isInitialProfile && currentAssessmentCycle() !== currentAssessmentCycle(monitoringNow)) {
+      if (!isDraft && (isInitialProfile || isProfileRevision) && currentAssessmentCycle() !== currentAssessmentCycle(monitoringNow)) {
         setMonitoringNow(businessNow());
         setShowSubmitReviewConfirm(true);
         setSaveState("idle");
@@ -2146,7 +2134,7 @@ export default function RiskInputPage() {
         setValue("title", form.getValues("title"), { shouldDirty: true });
         setSavedAt(new Date());
         setSaveState("saved");
-        if (annualProfileReturn) savedAnnualChangeReason.current = annualChangeReason.trim();
+        if (annualProfileReturn || isProfileRevision) savedAnnualChangeReason.current = annualChangeReason.trim();
         toast.success("Draf berhasil disimpan.");
         if (leaveAfterSaveRef.current && leaveHref && !editedWhileSaving) {
           allowNavigationRef.current = true;
@@ -2188,7 +2176,7 @@ export default function RiskInputPage() {
         if (!riskApprovalCapabilityBehavior.submitsForApproval) {
           allowNavigationRef.current = true;
           await loadRiskData(currentRiskId);
-          toast.success("Risiko berhasil disimpan dan difinalisasi!");
+          toast.success(isProfileRevision ? "Revisi difinalisasi. Versi profil baru sudah aktif." : "Risiko berhasil disimpan dan difinalisasi!");
           router.push(`/risk/register/new?id=${currentRiskId}&saved=final&returnTo=${encodeURIComponent(returnTo)}`);
           return;
         }
@@ -2537,7 +2525,7 @@ export default function RiskInputPage() {
 
     if (!canStartMonitoring) {
       toast.info(
-        ongoingMonitoring
+        openRiskDrafts?.monitoringId
           ? "Pemantauan untuk risiko ini sedang berjalan. Lanjutkan transaksi yang ada."
           : "Pemantauan hanya dapat dimulai dari risiko final yang aktif.",
       );
@@ -2575,6 +2563,7 @@ export default function RiskInputPage() {
         result.redirectUrl || `/risk/monitoring/${result.monitoring.id}`,
       );
     } catch (error) {
+      if (error instanceof ApiError && error.status === 409) void loadRiskData(riskId);
       toast.error(
         error instanceof Error
           ? error.message
@@ -2612,31 +2601,8 @@ export default function RiskInputPage() {
 
   const isSavedRiskView = Boolean(riskId || selectedRiskId);
   const hasContextReturnLink = returnTo !== "/risk/register";
-  const showSaveActions = riskStatus === "draft" || !riskId;
-  const monitoringHeaderAction = canContinueMonitoring && ongoingMonitoring && !canStartMonitoring ? (
-      <ActionButton asChild variant="outline" className="px-4">
-        <Link
-          href={`/risk/monitoring/${ongoingMonitoring.id}`}
-          title="Lanjutkan draf pemantauan"
-        >
-          Lanjutkan Pemantauan
-        </Link>
-      </ActionButton>
-    ) : canStartMonitoring ? (
-      <ActionButton
-        variant="outline"
-        icon={<RefreshCcw className="size-3.5" strokeWidth={2} />}
-        onClick={handleOpenMonitoringDialog}
-        disabled={isSubmitting || isStartingMonitoring}
-      >
-        Mulai Pemantauan
-      </ActionButton>
-    ) : canManageMonitoring && monitoringLookupStatus === "loading" ? (
-      <ActionButton variant="secondary" loading disabled>
-        Memeriksa pemantauan…
-      </ActionButton>
-    ) : null;
-  const hasHeaderActions = showSaveActions || Boolean(monitoringHeaderAction) || (!isSavedRiskView && hasContextReturnLink);
+  const showSaveActions = canManageRisk && (riskStatus === "draft" || !riskId);
+  const hasHeaderActions = showSaveActions || Boolean(canManageMonitoring && token && riskId) || (!isSavedRiskView && hasContextReturnLink);
   let saveMessage = riskId
     ? "Draf tersimpan. Anda dapat melanjutkan pengisian."
     : "";
@@ -2647,26 +2613,26 @@ export default function RiskInputPage() {
 
   return (
     <TooltipProvider>
-      <FormPage className="risk-form-filter-controls space-y-6">
-        <CollectionPageHeader
-          eyebrow={isSavedRiskView && hasContextReturnLink ? (
-            <Link href={returnTo} className="inline-flex min-h-8 items-center gap-2 rounded-sm text-sm text-muted-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
-              <ArrowLeft aria-hidden="true" className="size-4" />
-              {returnLabel}
-            </Link>
-          ) : undefined}
-          title="Tambah Risiko"
-          showTitle={!isSavedRiskView}
-          titleClassName="md:sr-only"
-          actionsPlacement="title"
-          actions={hasHeaderActions ? (
+      <RiskHeaderActions>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {hasHeaderActions ? (
             <>
               {!isSavedRiskView && hasContextReturnLink ? (
                 <ActionButton asChild variant="outline">
                   <Link href={returnTo}>{returnLabel}</Link>
                 </ActionButton>
               ) : null}
-              {monitoringHeaderAction}
+              {canManageMonitoring && token && riskId && <RiskWorkflowActions
+                token={token}
+                riskId={riskId}
+                drafts={openRiskDrafts}
+                status={monitoringLookupStatus}
+                disabled={isSubmitting}
+                monitoringPending={isStartingMonitoring}
+                onStartMonitoring={handleOpenMonitoringDialog}
+                onRevisionStarted={result => router.push(result.redirectUrl)}
+                onRetry={() => void loadRiskData(riskId)}
+              />}
               {showSaveActions ? (
                 <>
                   <ActionButton
@@ -2699,28 +2665,31 @@ export default function RiskInputPage() {
               ) : null}
             </>
           ) : undefined}
+        </div>
+      </RiskHeaderActions>
+      <FormPage className="risk-form-filter-controls space-y-6">
+        <CollectionPageHeader
+          eyebrow={isSavedRiskView && hasContextReturnLink ? (
+            <Link href={returnTo} className="inline-flex min-h-8 items-center gap-2 rounded-sm text-sm text-muted-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+              <ArrowLeft aria-hidden="true" className="size-4" />
+              {returnLabel}
+            </Link>
+          ) : undefined}
+          title={isProfileRevision ? "Revisi profil risiko" : "Tambah Risiko"}
+          showTitle={isProfileRevision || !isSavedRiskView}
+          titleClassName="md:sr-only"
+          actionsPlacement="title"
+
         />
 
-        {annualProfileReturn && !isRiskLocked && (riskVersionNumber ?? 0) > 1 && (
-          <div className="max-w-xl space-y-2">
-            <label htmlFor="annual-risk-change-reason" className="text-sm font-medium">Alasan perubahan asesmen</label>
-            <Textarea
-              id="annual-risk-change-reason"
-              value={annualChangeReason}
-              maxLength={2000}
-              onChange={(event) => setAnnualChangeReason(event.target.value)}
-              className="min-h-20 w-full rounded-md border bg-background px-3 py-2 text-sm"
-            />
-          </div>
-        )}
         {!isRiskLocked ? (
           <RiskCreationContext
             cycle={finalizationCycle}
             originalCycle={assessmentCycleDisplay}
             saveMessage={saveMessage}
+            revisionVersion={isProfileRevision ? riskVersionNumber ?? undefined : undefined}
           />
         ) : null}
-        {searchParams.get("saved") === "final" && riskStatus === "final" && riskId && token ? <RiskFinalizationNotice riskId={riskId} token={token} cycle={assessmentCycleDisplay} /> : null}
 
         {loadingVersionId && (
           <div
@@ -2785,13 +2754,15 @@ export default function RiskInputPage() {
                     <div className="flex flex-col gap-2">
                       <div className="flex items-start justify-between gap-2">
                         <FieldContent className="min-w-0">
-                          <Label htmlFor="risk-title" className="text-sm leading-5 font-medium text-foreground">
-                            Risiko
-                            <span className="text-destructive ml-0.5">*</span>
-                          </Label>
-                          <FieldDescription id="risk-title-help" className="text-xs leading-5">
-                            Tulis singkat kejadian yang mungkin terjadi, misalnya “Distribusi obat terlambat”.
-                          </FieldDescription>
+                          <FieldHeading>
+                            <Label htmlFor="risk-title" className="text-sm leading-5 font-medium text-foreground">
+                              Risiko
+                              <span className="text-destructive ml-0.5">*</span>
+                            </Label>
+                            <FieldDescription id="risk-title-help" className="text-xs leading-4">
+                              Tulis singkat kejadian yang mungkin terjadi, misalnya “Distribusi obat terlambat”.
+                            </FieldDescription>
+                          </FieldHeading>
                         </FieldContent>
                         {!aiFeaturesDisabled && !isRiskLocked ? (
                           <AiFieldButton
@@ -2826,13 +2797,15 @@ export default function RiskInputPage() {
 
                     <div className="flex flex-col gap-2">
                       <FieldContent>
-                        <Label htmlFor="risk-description" className="text-sm leading-5 font-medium text-foreground">
-                          Deskripsi Kejadian Risiko
-                          <span className="text-destructive ml-0.5">*</span>
-                        </Label>
-                        <FieldDescription id="risk-description-help" className="text-xs leading-5">
-                          Jelaskan proses yang terdampak dan kapan atau dalam kondisi apa kejadian bisa terjadi.
-                        </FieldDescription>
+                        <FieldHeading>
+                          <Label htmlFor="risk-description" className="text-sm leading-5 font-medium text-foreground">
+                            Deskripsi Kejadian Risiko
+                            <span className="text-destructive ml-0.5">*</span>
+                          </Label>
+                          <FieldDescription id="risk-description-help" className="text-xs leading-4">
+                            Jelaskan proses yang terdampak dan kapan atau dalam kondisi apa kejadian bisa terjadi.
+                          </FieldDescription>
+                        </FieldHeading>
                       </FieldContent>
                       <Controller
                         name="description"
@@ -2900,13 +2873,15 @@ export default function RiskInputPage() {
                             disabled={isRiskLocked}
                             header={
                               <FieldContent>
-                                <Label className="text-sm leading-5 font-medium text-foreground">
-                                  Sebab
-                                  <span className="text-destructive ml-0.5">*</span>
-                                </Label>
-                                <FieldDescription id="risk-causes-help" className="text-xs leading-5">
-                                  Tambahkan satu penyebab per entri. Fokus pada hal yang dapat memicu kejadian.
-                                </FieldDescription>
+                                <FieldHeading>
+                                  <Label className="text-sm leading-5 font-medium text-foreground">
+                                    Sebab
+                                    <span className="text-destructive ml-0.5">*</span>
+                                  </Label>
+                                  <FieldDescription id="risk-causes-help" className="text-xs leading-4">
+                                    Tambahkan satu penyebab per entri. Fokus pada hal yang dapat memicu kejadian.
+                                  </FieldDescription>
+                                </FieldHeading>
                               </FieldContent>
                             }
                             beforeAdd={!aiFeaturesDisabled ? (
@@ -2949,13 +2924,15 @@ export default function RiskInputPage() {
                       </div>
                       <div className="flex flex-col gap-2">
                         <FieldContent>
-                          <Label htmlFor="risk-controllability" className="text-sm leading-5 font-medium text-foreground">
-                            Tingkat Kendali
-                            <span className="text-destructive ml-0.5">*</span>
-                          </Label>
-                          <FieldDescription id="risk-controllability-help" className="text-xs leading-5">
-                            Pilih Controllable jika unit dapat memengaruhi penyebab risiko. Pilih Uncontrollable jika penyebab berada di luar kendali unit.
-                          </FieldDescription>
+                          <FieldHeading>
+                            <Label htmlFor="risk-controllability" className="text-sm leading-5 font-medium text-foreground">
+                              Tingkat Kendali
+                              <span className="text-destructive ml-0.5">*</span>
+                            </Label>
+                            <FieldDescription id="risk-controllability-help" className="text-xs leading-4">
+                              Pilih Controllable jika unit dapat memengaruhi penyebab risiko. Pilih Uncontrollable jika penyebab berada di luar kendali unit.
+                            </FieldDescription>
+                          </FieldHeading>
                         </FieldContent>
                         <Controller
                           name="controllability"
@@ -2995,13 +2972,15 @@ export default function RiskInputPage() {
                             disabled={isRiskLocked}
                             header={
                               <FieldContent>
-                                <Label className="text-sm leading-5 font-medium text-foreground">
-                                  Dampak
-                                  <span className="text-destructive ml-0.5">*</span>
-                                </Label>
-                                <FieldDescription id="risk-impacts-help" className="text-xs leading-5">
-                                  Tambahkan satu akibat per entri. Sebutkan apa yang terganggu jika kejadian terjadi.
-                                </FieldDescription>
+                                <FieldHeading>
+                                  <Label className="text-sm leading-5 font-medium text-foreground">
+                                    Dampak
+                                    <span className="text-destructive ml-0.5">*</span>
+                                  </Label>
+                                  <FieldDescription id="risk-impacts-help" className="text-xs leading-4">
+                                    Tambahkan satu akibat per entri. Sebutkan apa yang terganggu jika kejadian terjadi.
+                                  </FieldDescription>
+                                </FieldHeading>
                               </FieldContent>
                             }
                             beforeAdd={!aiFeaturesDisabled ? (
@@ -3029,13 +3008,15 @@ export default function RiskInputPage() {
                   <FormGroup className="space-y-5">
                     <div className="flex flex-col gap-2">
                       <FieldContent>
-                        <Label htmlFor="risk-existing-control" className="text-sm leading-5 font-medium text-foreground">
-                          Pengendalian yang Ada
-                          <span className="text-destructive ml-0.5">*</span>
-                        </Label>
-                        <FieldDescription id="risk-existing-control-help" className="text-xs leading-5">
-                          Catat langkah yang sudah berjalan, misalnya pemeriksaan stok setiap minggu. Rencana tindakan baru diisi pada Rencana Penanganan.
-                        </FieldDescription>
+                        <FieldHeading>
+                          <Label htmlFor="risk-existing-control" className="text-sm leading-5 font-medium text-foreground">
+                            Pengendalian yang Ada
+                            <span className="text-destructive ml-0.5">*</span>
+                          </Label>
+                          <FieldDescription id="risk-existing-control-help" className="text-xs leading-4">
+                            Catat langkah yang sudah berjalan, misalnya pemeriksaan stok setiap minggu. Rencana tindakan baru diisi pada Rencana Penanganan.
+                          </FieldDescription>
+                        </FieldHeading>
                       </FieldContent>
                       <Controller
                         name="existingControl"
@@ -3058,13 +3039,15 @@ export default function RiskInputPage() {
                     <div className="grid gap-5 md:grid-cols-2">
                       <div className="flex flex-col gap-2 md:col-span-2">
                         <FieldContent>
-                          <Label htmlFor="risk-control-effectiveness" className="text-sm leading-5 font-medium text-foreground">
-                            Efektivitas Pengendalian
-                            <span className="text-destructive ml-0.5">*</span>
-                          </Label>
-                          <FieldDescription id="risk-control-effectiveness-help" className="text-xs leading-5">
-                            Gunakan bukti pelaksanaan untuk menilai apakah pengendalian yang ada membantu menekan risiko.
-                          </FieldDescription>
+                          <FieldHeading>
+                            <Label htmlFor="risk-control-effectiveness" className="text-sm leading-5 font-medium text-foreground">
+                              Efektivitas Pengendalian
+                              <span className="text-destructive ml-0.5">*</span>
+                            </Label>
+                            <FieldDescription id="risk-control-effectiveness-help" className="text-xs leading-4">
+                              Gunakan bukti pelaksanaan untuk menilai apakah pengendalian yang ada membantu menekan risiko.
+                            </FieldDescription>
+                          </FieldHeading>
                         </FieldContent>
                         <Controller
                           name="controlEffectiveness"
@@ -3103,20 +3086,22 @@ export default function RiskInputPage() {
                   <FormGroup className="space-y-5">
                     <div className="flex flex-col gap-2">
                       <FieldContent>
-                        <Label className="text-sm leading-5 font-medium text-foreground">
-                          Skor Risiko
-                        </Label>
-                        <FieldDescription id="risk-score-help" className="text-xs leading-5">
-                          Nilai kondisi risiko dengan mempertimbangkan pengendalian yang sudah berjalan.
-                        </FieldDescription>
+                        <FieldHeading>
+                          <Label className="text-sm leading-5 font-medium text-foreground">
+                            Skor Risiko
+                          </Label>
+                          <FieldDescription id="risk-score-help" className="text-xs leading-4">
+                            Nilai kondisi risiko dengan mempertimbangkan pengendalian yang sudah berjalan.
+                          </FieldDescription>
+                        </FieldHeading>
                       </FieldContent>
                       <RiskScorePickerTrigger
                         title="Skor risiko saat ini"
                         aria-describedby="risk-score-help"
                         presentation="card"
                         invalid={Boolean(errors.probability || errors.impact)}
-                        probability={probability}
-                        impact={impact}
+                        probability={isRiskLocked ? currentAssessment?.probability ?? probability : probability}
+                        impact={isRiskLocked ? currentAssessment?.impact ?? impact : impact}
                         onClick={() => setScorePickerMode("inherent")}
                         disabled={isRiskLocked}
                       />
@@ -3155,13 +3140,15 @@ export default function RiskInputPage() {
                   <FormGroup className="space-y-5">
                     <div className="flex flex-col gap-2">
                       <FieldContent>
-                        <Label htmlFor="risk-treatment-option" className="text-sm leading-5 font-medium text-foreground">
-                          Pilihan Penanganan
-                          <span className="text-destructive ml-0.5">*</span>
-                        </Label>
-                        <FieldDescription id="risk-treatment-option-help" className="text-xs leading-5">
-                          Pilih cara unit merespons risiko. Untuk Mitigasi, uraikan tindakan yang direncanakan di Rencana Penanganan.
-                        </FieldDescription>
+                        <FieldHeading>
+                          <Label htmlFor="risk-treatment-option" className="text-sm leading-5 font-medium text-foreground">
+                            Pilihan Penanganan
+                            <span className="text-destructive ml-0.5">*</span>
+                          </Label>
+                          <FieldDescription id="risk-treatment-option-help" className="text-xs leading-4">
+                            Pilih cara unit merespons risiko. Untuk Mitigasi, uraikan tindakan yang direncanakan di Rencana Penanganan.
+                          </FieldDescription>
+                        </FieldHeading>
                       </FieldContent>
                       <Controller
                         name="treatmentOption"
@@ -3239,6 +3226,7 @@ export default function RiskInputPage() {
                             ) : null}
                             items={(field.value ?? []).map(
                               (mitigation): MitigationItem => ({
+                                ...mitigation,
                                 id: mitigation.id,
                                 action: mitigation.action ?? "",
                                 owner: mitigation.owner ?? "",
@@ -3292,13 +3280,15 @@ export default function RiskInputPage() {
                   <FormGroup className="space-y-5">
                     <div className="flex flex-col gap-2">
                       <FieldContent>
-                        <Label className="text-sm leading-5 font-medium">
-                          Pilih skor target
-                          <span className="text-destructive ml-0.5">*</span>
-                        </Label>
-                        <FieldDescription id="risk-target-help" className="text-xs leading-5">
-                          Pilih kondisi risiko yang ingin dicapai setelah rencana penanganan dilaksanakan. Tetapkan probabilitas dan dampak yang realistis.
-                        </FieldDescription>
+                        <FieldHeading>
+                          <Label className="text-sm leading-5 font-medium">
+                            Pilih skor target
+                            <span className="text-destructive ml-0.5">*</span>
+                          </Label>
+                          <FieldDescription id="risk-target-help" className="text-xs leading-4">
+                            Pilih kondisi risiko yang ingin dicapai setelah rencana penanganan dilaksanakan. Tetapkan probabilitas dan dampak yang realistis.
+                          </FieldDescription>
+                        </FieldHeading>
                       </FieldContent>
                       <RiskScorePickerTrigger
                         title="Target penurunan"
@@ -3327,15 +3317,17 @@ export default function RiskInputPage() {
                     <FormGroup className="space-y-5">
                       <div className="space-y-3">
                         <div className="flex flex-col gap-2">
-                          <Label className="text-sm font-medium text-foreground">
-                            1. Reviewer (Pemeriksa)
-                            <span className="text-destructive ml-0.5">*</span>
-                          </Label>
-                          <p className="text-xs text-muted-foreground">
-                            Pilih reviewer yang akan memeriksa dan memberikan
-                            skor penilaian resmi sebelum risiko ini diajukan ke
-                            pimpinan.
-                          </p>
+                          <FieldHeading>
+                            <Label className="text-sm font-medium text-foreground">
+                              1. Reviewer (Pemeriksa)
+                              <span className="text-destructive ml-0.5">*</span>
+                            </Label>
+                            <p className="leading-4 text-xs text-muted-foreground">
+                              Pilih reviewer yang akan memeriksa dan memberikan
+                              skor penilaian resmi sebelum risiko ini diajukan ke
+                              pimpinan.
+                            </p>
+                          </FieldHeading>
                         </div>
                         <RemoteUserPicker
                           title="Pilih Reviewer"
@@ -3353,14 +3345,16 @@ export default function RiskInputPage() {
                     <FormGroup className="space-y-5">
                       <div className="space-y-4">
                         <div className="flex flex-col gap-2">
-                          <Label className="text-sm font-medium text-foreground">
-                            2. Alur Persetujuan (Pimpinan)
-                            <span className="text-destructive ml-0.5">*</span>
-                          </Label>
-                          <p className="text-xs text-muted-foreground">
-                            Susun rantai persetujuan pimpinan. Persetujuan
-                            dilakukan secara berurutan.
-                          </p>
+                          <FieldHeading>
+                            <Label className="text-sm font-medium text-foreground">
+                              2. Alur Persetujuan (Pimpinan)
+                              <span className="text-destructive ml-0.5">*</span>
+                            </Label>
+                            <p className="leading-4 text-xs text-muted-foreground">
+                              Susun rantai persetujuan pimpinan. Persetujuan
+                              dilakukan secara berurutan.
+                            </p>
+                          </FieldHeading>
                         </div>
 
                         <OrderedUserSelectionTable
@@ -3384,6 +3378,15 @@ export default function RiskInputPage() {
                       </div>
                     </FormGroup>
                   </FormContainer>
+                )}
+                {(annualProfileReturn || isProfileRevision) && !isRiskLocked && (riskVersionNumber ?? 0) > 1 && (
+                  <RiskRevisionReasonCard
+                    id="annual-risk-change-reason"
+                    label={isProfileRevision ? "Alasan revisi" : "Alasan perubahan asesmen"}
+                    value={annualChangeReason}
+                    onChange={setAnnualChangeReason}
+                    required={isProfileRevision}
+                  />
                 )}
               </div>
             </form>
@@ -3898,17 +3901,17 @@ export default function RiskInputPage() {
           onOpenChange={setShowSubmitReviewConfirm}
         >
           <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>
+            <AlertDialogHeader style={isProfileRevision ? { display: "flex", alignItems: "center" } : undefined}>
+              <AlertDialogTitle className={isProfileRevision ? "w-full text-start" : undefined}>
                 {riskApprovalCapabilityBehavior.usesDirectApprovalCopy
-                  ? "Finalisasi Risiko?"
+                  ? isProfileRevision ? "Finalisasi revisi profil?" : "Finalisasi Risiko?"
                   : "Ajukan Risiko untuk Review?"}
               </AlertDialogTitle>
-              <AlertDialogDescription>Tinjau seluruh bagian sebelum melanjutkan.</AlertDialogDescription>
+              {!isProfileRevision && <AlertDialogDescription>Tinjau seluruh bagian sebelum melanjutkan.</AlertDialogDescription>}
             </AlertDialogHeader>
-            <ConfirmationConsequences>
+            <ConfirmationConsequences variant={isProfileRevision ? "plain" : "default"}>
               {riskApprovalCapabilityBehavior.usesDirectApprovalCopy
-                    ? "Risiko akan menjadi profil resmi untuk periode yang ditinjau dan dikunci setelah finalisasi."
+                    ? isProfileRevision ? <>Apakah anda yakin ingin finalisasi revisi risiko <span className="font-semibold">{riskCode}</span>?</> : "Risiko akan menjadi profil resmi untuk periode yang ditinjau dan dikunci setelah finalisasi."
                     : "Risiko akan disimpan lalu dikirim ke reviewer melalui alur persetujuan yang dipilih. Tinjau seluruh bagian sebelum melanjutkan."}
             </ConfirmationConsequences>
             <RiskFinalizationReview
@@ -3918,6 +3921,14 @@ export default function RiskInputPage() {
               level={getRiskLevelLabel(level)}
               target={targetNilai}
               mitigationCount={mitigations.filter(item => item.action?.trim()).length}
+              revision={isProfileRevision && revisionBaseline ? {
+                version: riskVersionNumber ?? 1,
+                reason: annualChangeReason,
+                previousProbability: revisionBaseline.probability,
+                previousImpact: revisionBaseline.impact,
+                probability,
+                impact,
+              } : undefined}
             />
             <AlertDialogFooter>
               <CollectionDialogCancel

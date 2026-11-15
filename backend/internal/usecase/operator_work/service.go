@@ -69,6 +69,10 @@ func BuildItems(candidates []Candidate, actorID uuid.UUID, now time.Time) []enti
 			}
 			item.ActionLabel = "Lengkapi risiko"
 		case "mitigation_report":
+			if item.MonitoringID != "" {
+				item.ActionLabel = "Isi laporan di pemantauan"
+				break
+			}
 			if _, err := time.Parse("2006-01-02", c.PeriodEnd); err != nil {
 				continue
 			}

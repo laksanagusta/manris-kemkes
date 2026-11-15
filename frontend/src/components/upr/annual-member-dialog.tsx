@@ -1,5 +1,6 @@
 "use client";
 
+import { FieldHeading } from "@/components/ui/field";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,7 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -52,17 +52,17 @@ export function AnnualMemberDialog({
       ? (member?.objectiveId ?? "")
       : (candidate?.suggestedObjectiveId ?? ""),
   );
-  const [date, setDate] = useState(member?.effectiveFrom ?? "");
   const [reason, setReason] = useState(member?.changeReason ?? "");
   const [error, setError] = useState("");
-  const candidateIsCurrentYear =
-    candidate?.period.startsWith(`${year}-`) ?? false;
   const candidateIsNewer =
     /^\d{4}-Q[1-4]$/.test(candidate?.period ?? "") &&
     Number(candidate?.period.slice(0, 4)) > year;
   const canReassess = Boolean(candidate && !candidateIsNewer);
+  const canUseLatest = Boolean(
+    candidate && !candidateIsNewer && candidate.id !== member?.riskId,
+  );
   const [assessment, setAssessment] = useState(
-    member?.riskId ? "saved" : candidateIsCurrentYear ? "latest" : "reassess",
+    member?.riskId ? "saved" : canUseLatest ? "latest" : "reassess",
   );
   const riskId = assessment === "saved" ? member?.riskId : candidate?.id;
   return (
@@ -76,7 +76,7 @@ export function AnnualMemberDialog({
         <DialogHeader>
           <DialogTitle>
             {member?.riskId
-              ? "Ubah sasaran & tanggal berlaku"
+              ? "Ubah sasaran"
               : "Siapkan penilaian untuk profil"}
           </DialogTitle>
           <DialogDescription>
@@ -94,7 +94,7 @@ export function AnnualMemberDialog({
               await save({
                 riskId,
                 objectiveId: objectiveId || null,
-                effectiveFrom: date,
+                effectiveFrom: "",
                 changeReason: reason,
                 reassess: assessment === "reassess",
               });
@@ -104,7 +104,7 @@ export function AnnualMemberDialog({
             }
           }}
         >
-          {!member?.riskId && !canReassess && (
+          {!member?.riskId && !canReassess && !canUseLatest && (
             <WorkflowError
               message={
                 candidateIsNewer
@@ -114,7 +114,7 @@ export function AnnualMemberDialog({
             />
           )}
           <fieldset
-            disabled={pending || (!member?.riskId && !canReassess)}
+            disabled={pending || (!member?.riskId && !canReassess && !canUseLatest)}
             className="space-y-4"
           >
             <div className="space-y-2">
@@ -129,25 +129,29 @@ export function AnnualMemberDialog({
                       Asesmen dalam draf profil
                     </SelectItem>
                   )}
-                  {candidate &&
-                    candidateIsCurrentYear &&
-                    candidate.id !== member?.riskId && (
-                      <SelectItem value="latest">
-                        Gunakan asesmen final tahun {year}
-                      </SelectItem>
-                    )}
-                  {canReassess && (
-                    <SelectItem value="reassess">
-                      Nilai ulang di formulir risiko
+                  {canUseLatest && (
+                    <SelectItem value="latest">
+                      Gunakan versi terakhir
                     </SelectItem>
+                  )}
+                  {canReassess && (
+                    <SelectItem value="reassess">Nilai ulang</SelectItem>
                   )}
                 </SelectContent>
               </Select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="annual-objective">
-                Sasaran {year} (opsional)
-              </Label>
+              <FieldHeading>
+                <Label htmlFor="annual-objective">
+                  Sasaran {year} (opsional)
+                </Label>
+                {objectives.length === 0 && (
+                  <p className="leading-4 text-sm text-muted-foreground">
+                    Sasaran aktif belum tersedia. Profil tetap bisa difinalisasi
+                    tanpa sasaran.
+                  </p>
+                )}
+              </FieldHeading>
               <Select
                 value={objectiveId || "unset"}
                 onValueChange={(value) =>
@@ -166,32 +170,14 @@ export function AnnualMemberDialog({
                   ))}
                 </SelectContent>
               </Select>
-              {objectives.length === 0 && (
-                <p className="text-sm text-muted-foreground">
-                  Sasaran aktif belum tersedia. Profil tetap bisa difinalisasi
-                  tanpa sasaran.
-                </p>
-              )}
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="annual-effective">Berlaku mulai</Label>
-              <Input
-                id="annual-effective"
-                type="date"
-                min={`${year}-01-01`}
-                max={`${year}-12-31`}
-                value={date}
-                onChange={(event) => setDate(event.target.value)}
-              />
-              <p className="text-sm text-muted-foreground">
-                Tanggal ini menentukan kapan risiko masuk ke profil dan laporan.
-                Perubahan pada baseline yang sudah final memerlukan alasan.
-              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="annual-reason">
                 Alasan perubahan atau koreksi
               </Label>
+              <p className="leading-4 text-sm text-muted-foreground">
+                Wajib diisi saat mengubah penilaian risiko yang sudah final.
+              </p>
               <Textarea
                 id="annual-reason"
                 maxLength={2000}

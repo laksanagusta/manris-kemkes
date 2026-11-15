@@ -107,5 +107,9 @@ export function periodLabel(period: string) {
   if (cycle === "H1") return `Semester I ${year}`;
   if (cycle === "H2") return `Semester II ${year}`;
   if (/^Q[1-4]$/.test(cycle ?? "")) return `Triwulan ${cycle.slice(1)} ${year}`;
+  if (/^\d{4}$/.test(year) && /^M(?:[1-9]|1[0-2])$/.test(cycle ?? "")) {
+    const date = new Date(Date.UTC(Number(year), Number(cycle.slice(1)) - 1));
+    return createDisplayDateFormatter("id-ID", { month: "long", year: "numeric", timeZone: "Asia/Jakarta" }).format(date);
+  }
   return period;
 }

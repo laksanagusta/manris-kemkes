@@ -135,6 +135,8 @@ var (
 	ErrBackCycle               = newValidationError("MONITORING_BACK_CYCLE", "tidak dapat membuat pemantauan untuk semester lebih awal jika semester lebih baru sudah ada")
 
 	// ── Monitoring ──
+	ErrRiskMonitoringInProgress       = &AppError{Code: "RISK_MONITORING_IN_PROGRESS", Message: "Selesaikan atau batalkan draf pemantauan risiko ini terlebih dahulu.", Err: ErrConflict}
+	ErrRiskRevisionInProgress         = &AppError{Code: "RISK_REVISION_IN_PROGRESS", Message: "Selesaikan atau batalkan draf revisi risiko ini terlebih dahulu.", Err: ErrConflict}
 	ErrRiskMonitoringFilterInvalid    = newValidationError("RISK_MONITORING_FILTER_INVALID", "Pilih periode triwulan dan status pemantauan yang valid.")
 	ErrMonitoringWindowClosed         = newValidationError("MONITORING_WINDOW_CLOSED", "Pemantauan terkunci. Pengisian hanya dibuka pada bulan pertama triwulan berikutnya, menggunakan waktu Jakarta.")
 	ErrMonitoringReviewChanged        = newStatusError("MONITORING_REVIEW_CHANGED", "Draf atau laporan penanganan berubah. Tinjau kembali sebelum finalisasi.")

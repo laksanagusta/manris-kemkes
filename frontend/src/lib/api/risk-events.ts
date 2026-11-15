@@ -7,6 +7,28 @@ export function listRiskEvents(token: string, riskId?: string) {
   return api.get<RiskEventResponse[]>(`/risk-events${suffix}`, token).then((events) => events.map(normalizeRiskEvent));
 }
 
+export async function listRiskEventPage(token: string, options: {
+  page: number;
+  limit: number;
+  q?: string;
+  severity?: string;
+  organizationId?: string;
+  sortBy: string;
+  sortOrder: string;
+}, signal?: AbortSignal) {
+  const params = new URLSearchParams({
+    page: String(options.page), limit: String(options.limit),
+    sort_by: options.sortBy, sort_order: options.sortOrder,
+  });
+  if (options.q) params.set("q", options.q);
+  if (options.severity) params.set("severity", options.severity);
+  if (options.organizationId) params.set("organization_id", options.organizationId);
+  const response = await api.get<{ data: RiskEventResponse[]; total: number }>(
+    `/risk-events?${params}`, token, { signal },
+  );
+  return { data: response.data.map(normalizeRiskEvent), total: response.total };
+}
+
 export function getRiskEvent(token: string, id: string) {
   return api.get<RiskEventResponse>(`/risk-events/${id}`, token).then(normalizeRiskEvent);
 }

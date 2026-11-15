@@ -24,11 +24,11 @@ export function sectionHref(key: OperatorWorkSectionKey, now=businessNow()) {
  return key==="drafts" ? "/risk/register?status=draft" : "/compliance/penanganan?status=needs_reporting";
 }
 
-export function workItemHref(item: Pick<OperatorWorkItem, "kind" | "targetId" | "riskId">) {
+export function workItemHref(item: Pick<OperatorWorkItem, "kind" | "targetId" | "riskId" | "monitoringId">) {
  const target = encodeURIComponent(item.targetId);
  switch (item.kind) {
   case "mitigation_report":
-   return `/compliance/penanganan?taskId=${target}&returnTo=/work`;
+   return item.monitoringId ? `/risk/monitoring/${encodeURIComponent(item.monitoringId)}?returnTo=/work` : `/risk/register/new?id=${encodeURIComponent(item.riskId)}&tab=monitoring&returnTo=/work`;
   case "monitoring_draft":
    return `/risk/monitoring/${target}?returnTo=/work`;
   case "monitoring_start":

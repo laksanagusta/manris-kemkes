@@ -12,8 +12,8 @@ import {
 import {
   AlertCircle,
   CheckCircle2,
+  Lock,
   MoreHorizontal,
-  ChevronDown,
   Plus,
   Trash2,
 } from "@/components/shared/icons";
@@ -24,6 +24,7 @@ import {
 } from "@/components/shared/design-system";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -61,6 +62,10 @@ import {
   type AnnualBatchResult,
 } from "@/lib/annual-profile";
 import {
+  getStatusBadgeClassName,
+  toBadgeVariant,
+} from "@/lib/badge-variant";
+import {
   getRiskLevelFromNilai,
   getRiskLevelLabel,
   levelToColor,
@@ -78,6 +83,7 @@ import type { ProfilePeriodWorkspace, ProfilePeriodProgress } from "@/lib/api/pr
 import { RiskMonitoringPeriodCell } from "./profile-period-cells";
 
 export interface AnnualProfileContentProps {
+  readOnly?: boolean;
   periodWorkspace?: ProfilePeriodWorkspace;
   onStartPeriodMonitoring?: (member: AnnualMember, period: ProfilePeriodProgress) => void;
   year: number;
@@ -118,6 +124,7 @@ function ProfileScore({ score }: { score: number | null }) {
 }
 
 export function AnnualProfileContent({
+  readOnly = false,
   year,
   periodWorkspace,
   onStartPeriodMonitoring,
@@ -139,7 +146,6 @@ export function AnnualProfileContent({
   const setHeaderActions = useSetHeaderActions();
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
-  const [actionsOpen, setActionsOpen] = useState(false);
   const [profileActionsOpen, setProfileActionsOpen] = useState(false);
   const addTrigger = useRef<HTMLButtonElement>(null);
   const [picker, setPicker] = useState(false);
@@ -151,7 +157,7 @@ export function AnnualProfileContent({
   const [dialogError, setDialogError] = useState("");
   const [deleteError, setDeleteError] = useState("");
   const selected = profile.selected;
-  const draft = Boolean(selected && !selected.finalizedAt);
+  const draft = !readOnly && Boolean(selected && !selected.finalizedAt);
   const versionSelect = selected ? (
     <Select
       value={selected.id}
@@ -199,7 +205,7 @@ export function AnnualProfileContent({
   }, [onDraft]);
 
   const profileHeaderAction = useMemo(() => {
-    if (!selected) return null;
+    if (!selected || readOnly) return null;
     if (!draft) {
       return (
         <Button
@@ -250,56 +256,27 @@ export function AnnualProfileContent({
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <DropdownMenu
-          modal={false}
-          open={actionsOpen}
-          onOpenChange={setActionsOpen}
+        <Button
+          ref={addTrigger}
+          variant="outline"
+          disabled={busy}
+          onClick={() => setPicker(true)}
         >
-          <DropdownMenuTrigger asChild>
-            <Button ref={addTrigger} disabled={busy} aria-label="Buat Baru">
-              <Plus aria-hidden="true" data-icon="inline-start" />
-              Buat Baru <ChevronDown aria-hidden="true" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="end"
-            className="w-80 max-w-[calc(100vw-2rem)]"
-            onCloseAutoFocus={(event) => {
-              if (picker || review) event.preventDefault();
-            }}
-          >
-            <DropdownMenuItem
-              className="items-start"
-              onSelect={() => setPicker(true)}
-            >
-              <div>
-                <p className="font-medium">Tambah risiko</p>
-                <p className="text-xs text-muted-foreground">
-                  Pilih dari risiko aktif atau profil sebelumnya.
-                </p>
-              </div>
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              className="items-start"
-              disabled={!readiness.total}
-              onSelect={() => {
-                setReview(true);
-                setDialogError("");
-              }}
-            >
-              <div>
-                <p className="font-medium">Tinjau & finalisasi</p>
-                <p className="text-xs text-muted-foreground">
-                  Periksa kelengkapan dan simpan versi final.
-                </p>
-              </div>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+          <Plus aria-hidden="true" data-icon="inline-start" />
+          Risiko baru
+        </Button>
+        <Button
+          disabled={busy || !readiness.total}
+          onClick={() => {
+            setReview(true);
+            setDialogError("");
+          }}
+        >
+          Finalisasi
+        </Button>
       </div>
     );
   }, [
-    actionsOpen,
     busy,
     createDraft,
     deleteOpen,
@@ -308,6 +285,7 @@ export function AnnualProfileContent({
     onSelectVersion,
     picker,
     profileActionsOpen,
+    readOnly,
     readiness.total,
     review,
     selected,
@@ -324,30 +302,46 @@ export function AnnualProfileContent({
 
   return (
     <div className="space-y-3" aria-busy={busy}>
-      {periodWorkspace?.rule && <p className="text-xs text-muted-foreground">Aturan periode: {periodWorkspace.rule.name} · {year}</p>}
       {selected && (
-        <div className="min-w-0 space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <Badge variant={draft ? "secondary" : "outline"}>
-              {draft ? "Draf" : "Final"}
-            </Badge>
-          </div>
-          {selected?.finalizedAt && (
-            <Alert
-              variant="info"
-              className="w-fit max-w-full rounded-lg px-2.5 py-2"
-            >
-              <AlertCircle
-                aria-hidden="true"
-                className="size-3.5"
-              />
-              <AlertDescription className="text-xs leading-4">
-                Difinalisasi {workflowDate(selected.finalizedAt)}. Isi versi ini
-                sudah dikunci.
-              </AlertDescription>
-            </Alert>
-          )}
-        </div>
+        <Card role="region" aria-label="Ringkasan profil">
+          <CardContent>
+            <dl className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))] gap-x-6 gap-y-4">
+              {periodWorkspace?.rule && (
+                <div className="min-w-0 space-y-1">
+                  <dt className="text-xs text-muted-foreground">Pemantauan</dt>
+                  <dd className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                    <span className="min-w-0 wrap-anywhere font-medium">{periodWorkspace.rule.name}</span>
+                    <span className="text-muted-foreground">{year}</span>
+                  </dd>
+                </div>
+              )}
+              <div className="space-y-1">
+                <dt className="text-xs text-muted-foreground">Status</dt>
+                <dd className="flex min-h-5 flex-wrap items-center gap-x-2 gap-y-1">
+                  <Badge
+                    variant={selected.finalizedAt ? "outline" : "secondary"}
+                    className={selected.finalizedAt ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300" : undefined}
+                  >
+                    {selected.finalizedAt ? "Final" : "Draf"}
+                  </Badge>
+                  {selected.finalizedAt && (
+                    <Lock
+                      role="img"
+                      aria-label="Profil terkunci"
+                      className="size-5 text-muted-foreground"
+                    />
+                  )}
+                </dd>
+              </div>
+              {selected.finalizedAt && (
+                <div className="space-y-1">
+                  <dt className="text-xs text-muted-foreground">Tanggal finalisasi</dt>
+                  <dd className="font-medium">{workflowDate(selected.finalizedAt)}</dd>
+                </div>
+              )}
+            </dl>
+          </CardContent>
+        </Card>
       )}
       {actionError && <WorkflowError message={actionError} />}
       {draft && latestFinal && (
@@ -400,7 +394,7 @@ export function AnnualProfileContent({
                   ? [
                       {
                         id: "readiness",
-                        label: "Kesiapan",
+                        label: "Status Penilaian",
                         value: status,
                         onChange: setStatus,
                         options: [
@@ -417,10 +411,9 @@ export function AnnualProfileContent({
             <WorkflowTable
               columns={[
                 "Risiko",
-                "Sasaran (opsional)",
-                "Skor awal (baseline)",
+                "Skor Awal",
                 "Berlaku sejak",
-                ...(draft ? ["Kesiapan"] : []),
+                ...(draft ? ["Status Penilaian"] : []),
                 ...(periodWorkspace?.periods.map(period => period.label) ?? []),
                 "Aksi",
               ]}
@@ -456,16 +449,6 @@ export function AnnualProfileContent({
                         </p>
                       )}
                     </TableCell>
-                    <TableCell className="min-w-44 whitespace-normal">
-                      {member.baseline?.objective ??
-                        profile.objectives.find(
-                          (item) => item.id === member.objectiveId,
-                        )?.title ?? (
-                          <span className="text-muted-foreground">
-                            Tanpa sasaran (opsional)
-                          </span>
-                        )}
-                    </TableCell>
                     <TableCell>
                       <ProfileScore
                         score={member.baseline?.score ?? member.score}
@@ -474,15 +457,18 @@ export function AnnualProfileContent({
                     <TableCell>{workflowDate(member.effectiveFrom)}</TableCell>
                     {draft && (
                       <TableCell className="min-w-36 whitespace-normal">
-                        <span className="inline-flex items-start gap-1.5 text-sm">
+                        <Badge
+                          variant={toBadgeVariant(state.tone)}
+                          className={getStatusBadgeClassName(state.tone)}
+                        >
                           {state.ready && (
                             <CheckCircle2
                               aria-hidden="true"
-                              className="mt-0.5 size-4 shrink-0"
+                              data-icon="inline-start"
                             />
                           )}
                           {state.label}
-                        </span>
+                        </Badge>
                       </TableCell>
                     )}
                     {periodWorkspace?.periods.map(period => <TableCell key={period.id}>
@@ -490,7 +476,7 @@ export function AnnualProfileContent({
                         onStart={!draft && member.riskId && onStartPeriodMonitoring ? () => onStartPeriodMonitoring(member, period) : undefined} />
                     </TableCell>)}
                     <TableCell>
-                      {(draft || member.riskId) && (
+                      {draft && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button
@@ -502,7 +488,10 @@ export function AnnualProfileContent({
                               <MoreHorizontal aria-hidden="true" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
+                          <DropdownMenuContent
+                            align="end"
+                            className="w-max min-w-56 max-w-[calc(100vw-2rem)]"
+                          >
                             {draft && !member.riskId && (
                               <DropdownMenuItem
                                 onSelect={() => setEditing(member)}
@@ -510,18 +499,11 @@ export function AnnualProfileContent({
                                 Siapkan penilaian
                               </DropdownMenuItem>
                             )}
-                            {draft && member.riskId && !state.objective && (
-                              <DropdownMenuItem
-                                onSelect={() => setEditing(member)}
-                              >
-                                Tambahkan sasaran
-                              </DropdownMenuItem>
-                            )}
                             {draft && member.riskId && state.objective && (
                               <DropdownMenuItem
                                 onSelect={() => setEditing(member)}
                               >
-                                Ubah sasaran & tanggal berlaku
+                                Ubah sasaran
                               </DropdownMenuItem>
                             )}
                             {member.riskId &&
@@ -533,15 +515,9 @@ export function AnnualProfileContent({
                                   </Link>
                                 </DropdownMenuItem>
                               )}
-                            {member.riskId && (!draft || state.assessment) && (
-                              <DropdownMenuItem asChild>
-                                <Link href={riskHref(member)}>
-                                  Buka risiko
-                                </Link>
-                              </DropdownMenuItem>
-                            )}
                             {draft && member.canRemove && (
                               <DropdownMenuItem
+                                className="min-w-max whitespace-nowrap"
                                 onSelect={() => {
                                   setRemoving(member);
                                   setDialogError("");
@@ -619,30 +595,36 @@ export function AnnualProfileContent({
               dapat ditautkan bila relevan.
             </DialogDescription>
           </DialogHeader>
-          <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-3 text-sm">
-            <dt className="text-muted-foreground">Unit</dt>
-            <dd>{organization}</dd>
-            <dt className="text-muted-foreground">Kesiapan</dt>
-            <dd>
-              {readiness.ready} dari {readiness.total} risiko siap
-            </dd>
-            <dt className="text-muted-foreground">Sasaran tertaut (opsional)</dt>
-            <dd>
-              {
-                new Set(
-                  profile.members
-                    .map(
-                      (item) =>
-                        item.baseline?.objective ??
-                        profile.objectives.find(
-                          (objective) => objective.id === item.objectiveId,
-                        )?.title,
-                    )
-                    .filter(Boolean),
-                ).size
-              }{" "}
-              sasaran terkait
-            </dd>
+          <dl className="space-y-3 text-sm">
+            <div className="space-y-1">
+              <dt className="text-muted-foreground">Unit</dt>
+              <dd>{organization}</dd>
+            </div>
+            <div className="space-y-1">
+              <dt className="text-muted-foreground">Kesiapan</dt>
+              <dd>
+                {readiness.ready} dari {readiness.total} risiko siap
+              </dd>
+            </div>
+            <div className="space-y-1">
+              <dt className="text-muted-foreground">Sasaran tertaut (opsional)</dt>
+              <dd>
+                {
+                  new Set(
+                    profile.members
+                      .map(
+                        (item) =>
+                          item.baseline?.objective ??
+                          profile.objectives.find(
+                            (objective) => objective.id === item.objectiveId,
+                          )?.title,
+                      )
+                      .filter(Boolean),
+                  ).size
+                }{" "}
+                sasaran terkait
+              </dd>
+            </div>
           </dl>
           <ul
             className="max-h-56 space-y-3 overflow-y-auto"

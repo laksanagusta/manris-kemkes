@@ -62,13 +62,15 @@ func TestDatedReportingLatestFinalAndHistory(t *testing.T) {
 		m.Status = status
 		m.ObservedNilai = score
 		m.Conclusion = "Reviewed"
-		if err := insertRiskMonitoring(ctx, tx, m); err != nil {
-			t.Fatal(err)
-		}
 		if finalized != "" {
-			if _, err := tx.Exec(ctx, `UPDATE risk_monitorings SET finalized_at=$2::timestamptz WHERE id=$1`, m.ID, finalized); err != nil {
+			value, err := time.Parse(time.DateOnly, finalized)
+			if err != nil {
 				t.Fatal(err)
 			}
+			m.FinalizedAt = &value
+		}
+		if err := insertRiskMonitoring(ctx, tx, m); err != nil {
+			t.Fatal(err)
 		}
 		return m
 	}
@@ -77,7 +79,7 @@ func TestDatedReportingLatestFinalAndHistory(t *testing.T) {
 	observe("2026-04-20", "2026-04-20", "final", 8)
 	latest := observe("2026-04-20", "2026-06-01", "final", 4)
 	observe("2026-04-10", "2026-08-01", "final", 20)
-	observe("2026-05-01", "", "draft", 25)
+	monitoringDraft := observe("2026-05-01", "", "draft", 25)
 	start, end := time.Date(2026, 4, 1, 0, 0, 0, 0, time.UTC), time.Date(2026, 7, 1, 0, 0, 0, 0, time.UTC)
 	rows, _, err := loadQuarterlyRisks(ctx, tx, "2026-Q2", start, end, []uuid.UUID{org})
 	if err != nil {
@@ -142,7 +144,7 @@ func TestDatedReportingLatestFinalAndHistory(t *testing.T) {
 		t.Fatalf("semester activities did not respect Jakarta cutoff: %s", raw)
 	}
 	// A Q1 task reviewed by an April observation remains a Q1 activity.
-	if _, err := tx.Exec(ctx, `INSERT INTO mitigation_tasks(mitigation_id,risk_id,monitoring_id,period_label,period_start,period_end,due_date,status,generated_by) SELECT id,risk_id,$2,'2026-Q1','2026-01-01','2026-03-31','2026-03-31','pending','manual' FROM mitigations WHERE risk_id=$1`, risk.ID, latest.ID); err != nil {
+	if _, err := tx.Exec(ctx, `INSERT INTO mitigation_tasks(mitigation_id,risk_id,monitoring_id,period_label,period_start,period_end,due_date,status,generated_by) SELECT id,risk_id,$2,'2026-Q1','2026-01-01','2026-03-31','2026-03-31','pending','manual' FROM mitigations WHERE risk_id=$1`, risk.ID, monitoringDraft.ID); err != nil {
 		t.Fatal(err)
 	}
 	tasks, err := loadQuarterlyTasks(ctx, tx, "2026-Q1", start.AddDate(0, -3, 0), start, []uuid.UUID{org})
@@ -181,13 +183,13 @@ func TestDatedReportingLatestFinalAndHistory(t *testing.T) {
 	if frozen.Risks[0].Risk.Monitoring.ID != latest.ID {
 		t.Fatal("later observation changed frozen KK")
 	}
-	// Saved operator work keeps old-version tasks and no synthetic quarter starts.
+	// Operator work shows the monitoring draft. Historical standalone reports remain in the archive.
 	var workRows int
 	if err := tx.QueryRow(ctx, `SELECT COUNT(*) FROM (`+operatorWorkSQL+`) work`, org).Scan(&workRows); err != nil {
 		t.Fatal(err)
 	}
 	if workRows != 2 {
-		t.Fatalf("expected one task and one actual draft; got %d", workRows)
+		t.Fatalf("expected one linked report and its draft; got %d", workRows)
 	}
 	progress, err := loadUnitProgressRisks(ctx, tx, repository.QuarterlyReportPeriod{Cycle: "2026-Q2", Start: start, End: end}, []uuid.UUID{org})
 	if err != nil || len(progress) != 1 || progress[0].MonitoringStatus != "final" {

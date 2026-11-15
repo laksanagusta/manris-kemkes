@@ -74,10 +74,11 @@ type AnnualProfileCandidate struct {
 }
 
 type AnnualProfile struct {
-	Versions   []AnnualProfileVersion   `json:"versions"`
-	Selected   *AnnualProfileVersion    `json:"selected"`
-	Members    []AnnualProfileMember    `json:"members"`
-	Objectives []AnnualProfileObjective `json:"objectives"`
+	OrganizationID uuid.UUID                `json:"organizationId"`
+	Versions       []AnnualProfileVersion   `json:"versions"`
+	Selected       *AnnualProfileVersion    `json:"selected"`
+	Members        []AnnualProfileMember    `json:"members"`
+	Objectives     []AnnualProfileObjective `json:"objectives"`
 }
 
 type AnnualMemberInput struct {
@@ -92,7 +93,7 @@ type AnnualMemberInput struct {
 const annualVersionColumns = "monitoring_rule_id, id, version, finalized_at, finalized_by"
 
 func (s *UPRWorkflow) AnnualProfile(ctx context.Context, org uuid.UUID, year int, id uuid.UUID) (AnnualProfile, error) {
-	out := AnnualProfile{Versions: []AnnualProfileVersion{}, Members: []AnnualProfileMember{}, Objectives: []AnnualProfileObjective{}}
+	out := AnnualProfile{OrganizationID: org, Versions: []AnnualProfileVersion{}, Members: []AnnualProfileMember{}, Objectives: []AnnualProfileObjective{}}
 	rows, err := s.pool.Query(ctx, `SELECT `+annualVersionColumns+` FROM annual_risk_profile_versions WHERE organization_id=$1 AND year=$2 ORDER BY version DESC`, org, year)
 	if err != nil {
 		return out, err
@@ -382,7 +383,10 @@ func (s *UPRWorkflow) SaveAnnualMember(ctx context.Context, org, actor, profile 
 	} else if status != "final" && (!existing || oldID == nil || *oldID != riskID) {
 		return uuid.Nil, UPRWorkflowError("Pilih asesmen final atau mulai penilaian ulang dari profil.")
 	}
-	if !input.Reassess && !strings.HasPrefix(cycle, strconv.Itoa(year)+"-") {
+	// A member can adopt the group's latest final version even when its
+	// assessment cycle is from an earlier year ("gunakan versi terakhir").
+	// Anything else that is not the profile year's cycle must be re-assessed.
+	if !input.Reassess && !strings.HasPrefix(cycle, strconv.Itoa(year)+"-") && (status != "final" || !current) {
 		return uuid.Nil, UPRWorkflowError("Nilai ulang risiko untuk tahun profil sebelum menyimpannya.")
 	}
 	_, err = tx.Exec(ctx, `INSERT INTO annual_risk_profile_members(profile_version_id,version_group_id,risk_id,source_risk_id,objective_id,effective_from,change_reason)
@@ -510,7 +514,9 @@ func (s *UPRWorkflow) FinalizeAnnualProfile(ctx context.Context, org, actor, pro
 		WHERE m.profile_version_id=$3 AND m.baseline IS NULL AND (r.id IS NULL OR r.status<>'final'
 			OR r.organization_id IS DISTINCT FROM $1
 			OR (r.archived_at IS NOT NULL AND r.archived_reason<>'superseded by periodic reassessment')
-			OR LEFT(r.assessment_cycle,4) IS DISTINCT FROM $2)
+			OR (LEFT(r.assessment_cycle,4) IS DISTINCT FROM $2 AND NOT (
+				r.is_current AND r.version_group_id=m.version_group_id
+			)))
 	)`, org, strconv.Itoa(year), profile).Scan(&invalid)
 	if err != nil {
 		return err

@@ -40,7 +40,7 @@ export function MonitoringActionsMenu({
         <DropdownMenuTrigger asChild>
           <ActionButton
             variant="outline"
-            size="icon-xs"
+            size="icon"
             aria-label="Tindakan pemantauan"
             title="Tindakan"
           >
