@@ -550,7 +550,7 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 		return nil, err
 	}
 	var expectedSourceID uuid.UUID
-	if err := tx.QueryRow(ctx, `SELECT id FROM risks WHERE version_group_id=$1 AND status='final' AND archived_at IS NULL AND superseded_by_risk_id IS NULL
+	if err := tx.QueryRow(ctx, `SELECT id FROM risks WHERE version_group_id=$1 AND status='final' AND (archived_at IS NULL OR archived_reason='superseded by periodic reassessment') AND superseded_by_risk_id IS NULL
 	 AND COALESCE(effective_from,(finalized_at AT TIME ZONE 'Asia/Jakarta')::date,(created_at AT TIME ZONE 'Asia/Jakarta')::date)<=$2::date
 	 ORDER BY COALESCE(effective_from,(finalized_at AT TIME ZONE 'Asia/Jakarta')::date,(created_at AT TIME ZONE 'Asia/Jakarta')::date) DESC,finalized_at DESC NULLS LAST,version_number DESC,id DESC LIMIT 1`, monitoring.VersionGroupID, monitoring.ObservedAt).Scan(&expectedSourceID); err != nil {
 		return nil, domainerrors.ErrMonitoringBeforeRiskEffective

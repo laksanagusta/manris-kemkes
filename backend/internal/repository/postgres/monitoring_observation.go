@@ -16,7 +16,7 @@ func (r *riskRepository) ResolveMonitoringSource(ctx context.Context, groupID uu
 	var id uuid.UUID
 	var effective time.Time
 	err := r.pool.QueryRow(ctx, `SELECT id,COALESCE(effective_from,(finalized_at AT TIME ZONE 'Asia/Jakarta')::date,(created_at AT TIME ZONE 'Asia/Jakarta')::date)
- FROM risks WHERE version_group_id=$1 AND EXISTS(SELECT 1 FROM risks active WHERE active.version_group_id=$1 AND active.is_current AND active.status='final' AND active.archived_at IS NULL) AND status='final' AND archived_at IS NULL AND superseded_by_risk_id IS NULL
+ FROM risks WHERE version_group_id=$1 AND EXISTS(SELECT 1 FROM risks active WHERE active.version_group_id=$1 AND active.is_current AND active.status='final' AND active.archived_at IS NULL) AND status='final' AND (archived_at IS NULL OR archived_reason='superseded by periodic reassessment') AND superseded_by_risk_id IS NULL
  AND COALESCE(effective_from,(finalized_at AT TIME ZONE 'Asia/Jakarta')::date,(created_at AT TIME ZONE 'Asia/Jakarta')::date)<=$2::date
  AND (COALESCE(cardinality($3::uuid[]),0)=0 OR organization_id=ANY($3::uuid[]))
  ORDER BY COALESCE(effective_from,(finalized_at AT TIME ZONE 'Asia/Jakarta')::date,(created_at AT TIME ZONE 'Asia/Jakarta')::date) DESC, finalized_at DESC NULLS LAST,version_number DESC,id DESC LIMIT 1`, groupID, date, orgIDs).Scan(&id, &effective)

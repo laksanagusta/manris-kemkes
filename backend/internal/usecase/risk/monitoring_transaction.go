@@ -292,7 +292,7 @@ func (uc *UpdateMonitoringUseCase) Execute(ctx context.Context, input UpdateMoni
 	if err != nil {
 		return nil, errors.ErrRiskNotFound
 	}
-	if sourceRisk.Status != entity.RiskStatusFinal || sourceRisk.ArchivedAt != nil {
+	if sourceRisk.Status != entity.RiskStatusFinal || (sourceRisk.ArchivedAt != nil && sourceRisk.ArchivedReason != "superseded by periodic reassessment") {
 		return nil, errors.ErrSourceRiskNoLongerActive
 	}
 
@@ -497,7 +497,7 @@ func (uc *FinalizeMonitoringUseCase) Execute(ctx context.Context, input Finalize
 	if err != nil {
 		return nil, errors.ErrRiskNotFound
 	}
-	if sourceRisk.Status != entity.RiskStatusFinal || sourceRisk.ArchivedAt != nil {
+	if sourceRisk.Status != entity.RiskStatusFinal || (sourceRisk.ArchivedAt != nil && sourceRisk.ArchivedReason != "superseded by periodic reassessment") {
 		return nil, errors.ErrSourceRiskNoLongerActive
 	}
 	if monitoring.ObservedProbability < 1 || monitoring.ObservedProbability > 5 {

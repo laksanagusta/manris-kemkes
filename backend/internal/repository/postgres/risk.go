@@ -290,6 +290,21 @@ func updateRiskWithQueryer(ctx context.Context, q riskQueryer, risk *entity.Risk
 	risk.CalculateTargetNilai()
 	risk.CalculateTargetScore()
 
+	// The initial-assessment trigger sees the status transition, so its date and
+	// actor must be written in the same statement.
+	var actor any
+	var effectiveFrom *time.Time
+	if risk.FinalizeRequested {
+		if risk.FinalizedBy != nil && *risk.FinalizedBy != uuid.Nil {
+			actor = *risk.FinalizedBy
+		}
+		effective := time.Now().UTC()
+		if risk.EffectiveFrom != nil {
+			effective = risk.EffectiveFrom.UTC()
+		}
+		effectiveFrom = &effective
+	}
+
 	_, err := q.Exec(ctx,
 		`UPDATE risks SET code=$2, title=$3, description=$4, category=$5, status=$6, version_group_id=$7, previous_risk_id=$8, is_current=$9, is_cycle_current=$10, version_number=$11, archived_at=$12, archived_reason=$13, organization_id=$14,
 		  ro_id=$15, cause=$16, risk_source=$17, controllability=$18, impact_description=$19,
@@ -298,6 +313,9 @@ func updateRiskWithQueryer(ctx context.Context, q riskQueryer, risk *entity.Risk
 		  target_probability=$29, target_impact=$30, target_weight=$31, target_nilai=$32, next_review_date=$33, review_schedule_text=$34,
 		  assessment_cycle=$35, review_type=$36, change_reason=$37, review_summary=$38, review_started_at=$39, review_submitted_at=$40, review_approved_at=$41,
 		  draft_approval_line=$42, impact_criteria_id=$43, impact_justification=$44, residual_acceptance_reason=$45,
+		  finalized_by=CASE WHEN $46 AND $6='final' THEN $47::uuid ELSE finalized_by END,
+		  finalized_at=CASE WHEN $46 AND $6='final' THEN COALESCE($48::timestamptz, now()) ELSE finalized_at END,
+		  effective_from=CASE WHEN $46 AND $6='final' THEN $49::date ELSE effective_from END,
 		  updated_at=now()
 		 WHERE id=$1`,
 		risk.ID, risk.Code, risk.Title, risk.Description, risk.Category, risk.Status, risk.VersionGroupID, risk.PreviousRiskID, risk.IsCurrent, risk.IsCycleCurrent, risk.VersionNumber, risk.ArchivedAt, risk.ArchivedReason, risk.OrganizationID,
@@ -307,6 +325,7 @@ func updateRiskWithQueryer(ctx context.Context, q riskQueryer, risk *entity.Risk
 		risk.TargetProbability, risk.TargetImpact, risk.TargetWeight, risk.TargetNilai, risk.NextReviewDate, risk.ReviewScheduleText,
 		risk.AssessmentCycle, risk.ReviewType, risk.ChangeReason, risk.ReviewSummary, risk.ReviewStartedAt, risk.ReviewSubmittedAt, risk.ReviewApprovedAt, mustJSON(risk.DraftApprovalLine),
 		risk.ImpactCriteriaID, risk.ImpactJustification, risk.ResidualAcceptanceReason,
+		risk.FinalizeRequested, actor, risk.FinalizedAt, effectiveFrom,
 	)
 	if err != nil {
 		return fmt.Errorf("update risk: %w", err)
@@ -354,26 +373,6 @@ func updateRiskWithQueryer(ctx context.Context, q riskQueryer, risk *entity.Risk
 	}
 
 	if risk.FinalizeRequested {
-		var actor any
-		if risk.FinalizedBy != nil && *risk.FinalizedBy != uuid.Nil {
-			actor = *risk.FinalizedBy
-		}
-		effectiveFrom := time.Now().UTC()
-		if risk.EffectiveFrom != nil {
-			effectiveFrom = risk.EffectiveFrom.UTC()
-		}
-		if _, err := q.Exec(ctx,
-			`UPDATE risks
-			 SET finalized_by = $2,
-			     finalized_at = COALESCE($3::timestamptz, now()),
-			     effective_from = $4::date,
-			     updated_at = now()
-			 WHERE id = $1 AND status = 'final'`,
-			risk.ID, actor, risk.FinalizedAt, effectiveFrom,
-		); err != nil {
-			return fmt.Errorf("record risk finalization: %w", err)
-		}
-
 		if risk.PreviousRiskID != nil {
 			if err := recordProfileRevisionScore(ctx, q, risk); err != nil {
 				return err
