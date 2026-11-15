@@ -1,5 +1,6 @@
 "use client";
 
+import { TableLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { useEffect, useId, useState } from "react";
 import Link from "next/link";
 
@@ -68,7 +69,7 @@ function TreatmentReportDialog({
         ) : result ? (
           <MitigationReportDetail task={result} />
         ) : (
-          <p role="status" className="text-muted-foreground">Memuat laporan penanganan…</p>
+          <TableLoadingSkeleton message="Memuat laporan penanganan…" />
         )
       }
       detailAction={result === "error" && (

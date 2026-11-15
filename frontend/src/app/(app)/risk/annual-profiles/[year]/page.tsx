@@ -1,5 +1,6 @@
 "use client";
 
+import { DetailLoadingSkeleton, PageLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { getProfilePeriodProgress, type ProfilePeriodWorkspace, type ProfilePeriodProgress } from "@/lib/api/profile-periods";
 import { startMonitoring } from "@/lib/api/risk-monitoring";
 import type { AnnualMember } from "@/lib/api/upr-workflow";
@@ -175,9 +176,7 @@ function AnnualProfileWorkspace() {
       {!validYear ? (
         <WorkflowError message="Tahun profil tidak valid." />
       ) : authLoading ? (
-        <p role="status" className="text-sm text-muted-foreground">
-          Memuat profil…
-        </p>
+        <DetailLoadingSkeleton message="Memuat profil…" />
       ) : !organizationId ? (
         <Alert>
           <AlertDescription>
@@ -185,9 +184,7 @@ function AnnualProfileWorkspace() {
           </AlertDescription>
         </Alert>
       ) : fetching ? (
-        <p role="status" className="text-sm text-muted-foreground">
-          Memuat profil…
-        </p>
+        <DetailLoadingSkeleton message="Memuat profil…" />
       ) : error ? (
         <WorkflowError
           message={error}
@@ -342,7 +339,7 @@ function AnnualProfileWorkspace() {
 
 export default function AnnualProfilePage() {
   return (
-    <Suspense fallback={<p role="status">Memuat profil…</p>}>
+    <Suspense fallback={<PageLoadingSkeleton><DetailLoadingSkeleton message="Memuat profil…" /></PageLoadingSkeleton>}>
       <AnnualProfileWorkspace />
     </Suspense>
   );

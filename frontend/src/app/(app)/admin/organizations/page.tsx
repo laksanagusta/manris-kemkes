@@ -1,4 +1,5 @@
 "use client";
+import { TableLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { useOrganizationFilter } from "@/hooks/use-organization-filter";
 
 import { formatDisplayDate } from "@/lib/display-date";
@@ -45,7 +46,6 @@ import {
 import {
   Plus,
   Building2,
-  Loader2,
 } from "@/components/shared/icons";
 import { useAuth } from "@/contexts/auth-context";
 import {
@@ -449,7 +449,7 @@ export default function OrganizationsManagementPage() {
               {loading ? (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center">
-                    <Loader2 className="size-5 animate-spin mx-auto text-muted-foreground" />
+                    <TableLoadingSkeleton message="Memuat organisasi…" />
                   </TableCell>
                 </TableRow>
               ) : organizations.length === 0 ? (

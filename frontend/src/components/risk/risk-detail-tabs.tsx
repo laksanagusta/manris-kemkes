@@ -21,7 +21,6 @@ export function RiskDetailTabs({
   const [localValue, setLocalValue] = useState("overview");
   const value = controlledValue ?? localValue;
   const setValue = onValueChange ?? setLocalValue;
-  if (!enabled) return <>{overview}</>;
   return (
     <Tabs
       value={enabled ? value : "overview"}
@@ -38,7 +37,8 @@ export function RiskDetailTabs({
       <TabsContent
         value="overview"
         forceMount
-        className="min-w-0 data-[state=inactive]:hidden"
+        className={enabled ? "min-w-0 data-[state=inactive]:hidden" : "min-w-0 text-inherit"}
+        {...(!enabled && { role: undefined, "aria-labelledby": undefined, tabIndex: undefined })}
       >
         {overview}
       </TabsContent>

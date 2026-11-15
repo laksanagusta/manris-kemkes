@@ -1,4 +1,5 @@
 "use client";
+import { TableLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { useOrganizationFilter } from "@/hooks/use-organization-filter";
 
 
@@ -237,7 +238,7 @@ export default function ControlsPage() {
             <Button variant="outline" onClick={() => setRetry((value) => value + 1)}>Coba lagi</Button>
           </div>
         ) : loading ? (
-           <div className="rounded-lg bg-state-surface px-4 py-10 text-center text-sm text-state-foreground">Memuat data control library...</div>
+           <TableLoadingSkeleton message="Memuat pustaka kontrol…" />
         ) : controls.length === 0 ? (
            <CollectionEmptyState
              title="Tidak ada control library yang ditemukan."

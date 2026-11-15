@@ -1,5 +1,6 @@
 "use client";
 
+import { FormLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
@@ -248,7 +249,7 @@ export function ReportDraftEditor({ draftId }: { draftId?: string }) {
       {loadError ? (
         <WorkflowError message={loadError} retry={() => { setLoadError(""); setRetry((value) => value + 1); }} />
       ) : !editor ? (
-        <p role="status" className="text-sm text-muted-foreground">Memuat draf laporan…</p>
+        <FormLoadingSkeleton message="Memuat draf laporan…" />
       ) : (
         <>
           <form id="report-draft-form" className="grid gap-6" onSubmit={save} aria-busy={Boolean(pending)}>

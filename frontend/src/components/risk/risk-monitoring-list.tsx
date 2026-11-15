@@ -1,5 +1,6 @@
 "use client";
 
+import { TableLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { riskTransactionKind } from "@/lib/risk-transaction-kind";
 import { RiskTransactionBadge } from "@/components/shared/design-system/domain/risk-transaction-badge";
 import { monitoringObservationDate } from "@/lib/monitoring-date";
@@ -158,9 +159,7 @@ export function RiskMonitoringList({
   }, [active, riskId, riskCode, versionGroupId, token, key, retry]);
   if (!state || state.key !== key)
     return (
-      <p role="status" className="py-8 text-sm text-muted-foreground">
-        Memuat pemantauan...
-      </p>
+      <TableLoadingSkeleton message="Memuat pemantauan…" />
     );
   if (state.error)
     return (

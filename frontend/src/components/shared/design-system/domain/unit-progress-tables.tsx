@@ -13,7 +13,7 @@ import { createDisplayDateFormatter } from "@/lib/display-date";
 import { getMitigationExecutionLabel } from "@/lib/mitigation-report-status";
 import { groupUnitProgress, DEFAULT_UNIT_PROGRESS_QUERY, type UnitProgressQuery, type UnitProgressPage, type UnitProgressGroup } from "@/lib/unit-progress";
 import type { UnitProgressItem, UnitProgressReport, UnitProgressWorkingPaper } from "@/types/unit-progress";
-import { CollectionLoadingState } from "../collections/collection-loading-state";
+import { TableLoadingSkeleton } from "../feedback/loading-skeleton";
 import { CollectionPagination } from "../collections/collection-pagination";
 import { CollectionSearchField } from "../collections/collection-search-field";
 import { CollectionTableCard } from "../collections/collection-table-card";
@@ -384,7 +384,7 @@ export function UnitProgressTables({ report, loading = false, example = false, s
           <p className="text-sm text-muted-foreground">Jendela pemantauan untuk periode ini belum dibuka.</p>
         )}
         <p className="sr-only" role="status">{loading ? "" : `${serverPage?.total ?? rows.length} hasil`}</p>
-        {feedback ?? (loading ? <CollectionLoadingState message="Memuat progres unit…" /> : (
+        {feedback ?? (loading ? <TableLoadingSkeleton message="Memuat progres unit…" /> : (
           <ProgressTable
             key={`${report?.cycle}:${allUnits.map(({ id }) => id).join(",")}:${tab}:${unitId}:${search}:${attentionOnly}:${statusFilter}`}
             label={title} columns={data.columns} rows={rows} numericColumns={data.numericColumns}

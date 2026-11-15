@@ -1,8 +1,8 @@
 "use client";
 
+import { FormLoadingSkeleton, PageLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useEffect } from "react";
-import { PageStack } from "@/components/shared/design-system";
 
 export default function RiskDetailRedirect() {
   const { id } = useParams<{ id: string }>();
@@ -17,12 +17,5 @@ export default function RiskDetailRedirect() {
     }
   }, [id, monitoringTab, router]);
 
-  return (
-    <PageStack className="flex min-h-[400px] items-center justify-center rounded-lg bg-state-surface text-state-foreground">
-      <div className="flex flex-col items-center gap-2">
-        <div className="size-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-        <p className="text-sm text-state-foreground">Memuat detail risiko...</p>
-      </div>
-    </PageStack>
-  );
+  return <PageLoadingSkeleton><FormLoadingSkeleton message="Memuat detail risiko…" /></PageLoadingSkeleton>;
 }

@@ -20,7 +20,7 @@ import {
   CollectionPageHeader,
   CollectionEmptyState,
   CollectionErrorState,
-  CollectionLoadingState,
+  TableLoadingSkeleton,
   CollectionSearchField,
   DynamicTableFilters,
   CollectionTableCard,
@@ -335,7 +335,7 @@ export default function InboxPage() {
   if (loading && !result) {
     return (
       <PageStack>
-        <CollectionLoadingState message="Memuat daftar persetujuan..." />
+        <TableLoadingSkeleton message="Memuat daftar persetujuan..." />
       </PageStack>
     );
   }
@@ -442,7 +442,7 @@ export default function InboxPage() {
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={6}><CollectionLoadingState message="Memuat daftar persetujuan..." /></TableCell>
+                <TableCell colSpan={6}><TableLoadingSkeleton message="Memuat daftar persetujuan..." /></TableCell>
               </TableRow>
             ) : requests.length === 0 ? (
               <TableRow>

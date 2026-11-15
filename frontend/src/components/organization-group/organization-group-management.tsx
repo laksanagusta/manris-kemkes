@@ -1,5 +1,6 @@
 "use client";
 
+import { TableLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import { createDisplayDateFormatter } from "@/lib/display-date";
 import { useRemoteCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
@@ -551,7 +552,7 @@ export function OrganizationGroupManagement({
             {loading ? (
               <TableRow className="transition-colors hover:bg-muted/70">
                 <TableCell colSpan={7} className="text-center">
-                  <Loader2 className="mx-auto size-5 animate-spin text-disabled-foreground" />
+                  <TableLoadingSkeleton message="Memuat grup organisasi…" />
                 </TableCell>
               </TableRow>
             ) : loadError ? (

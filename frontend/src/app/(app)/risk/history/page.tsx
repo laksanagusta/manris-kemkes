@@ -1,5 +1,6 @@
 "use client";
 
+import { TableLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -137,8 +138,8 @@ export default function RiskHistoryPage() {
                     <TableRow><TableCell colSpan={7} role="alert">{error}</TableCell></TableRow>
                   ) : loading ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center">
-                        Memuat data history...
+                      <TableCell colSpan={7}>
+                        <TableLoadingSkeleton message="Memuat riwayat risiko…" />
                       </TableCell>
                     </TableRow>
                   ) : historyData.length === 0 ? (

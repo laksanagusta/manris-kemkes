@@ -19,7 +19,7 @@ import type { RiskEvent, RiskEventSeverity } from "@/types/risk-event";
 import { RiskEventFormDialog } from "./_components/risk-event-form-sheet";
 import { Badge } from "@/components/ui/badge";
 import {
-  AccentButton, ActionButton, CollectionEmptyState, CollectionErrorState, CollectionLoadingState,
+  AccentButton, ActionButton, CollectionEmptyState, CollectionErrorState, TableLoadingSkeleton,
   CollectionPagination, CollectionSearchField, CollectionTableCard, DynamicTableFilters,
   CollectionTableHead, CollectionTableHeader, CollectionTableHeaderRow, CollectionToolbar, PageStack,
 } from "@/components/shared/design-system";
@@ -79,7 +79,7 @@ export default function RiskEventsPage() {
     return () => { requestVersion.current += 1; };
   }, [load]);
   const hasActiveFilters = organizationFilter.organizationId !== "all" || Boolean(query.trim()) || severityFilter !== "all";
-  if (loading && !items.length) return <PageStack><CollectionLoadingState message="Memuat kejadian risiko…" /></PageStack>;
+  if (loading && !items.length) return <PageStack><TableLoadingSkeleton message="Memuat kejadian risiko…" /></PageStack>;
   if (error) return <PageStack><CollectionErrorState title="Tidak dapat memuat kejadian risiko" message={error} onReload={() => void load()} /></PageStack>;
 
   return (

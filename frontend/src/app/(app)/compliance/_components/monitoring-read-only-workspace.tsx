@@ -34,7 +34,7 @@ import {
 import {
   CollectionEmptyState,
   CollectionErrorState,
-  CollectionLoadingState,
+  TableLoadingSkeleton,
   CollectionPagination,
   CollectionSearchField,
   CollectionTableCard,
@@ -348,7 +348,7 @@ export function MonitoringReadOnlyWorkspace() {
           />
         ) : loading ? (
           <CollectionTableCard sorting={collectionSort.controls}>
-            <CollectionLoadingState message="Memuat status pemantauan..." />
+            <TableLoadingSkeleton message="Memuat status pemantauan..." />
           </CollectionTableCard>
         ) : (
           <>

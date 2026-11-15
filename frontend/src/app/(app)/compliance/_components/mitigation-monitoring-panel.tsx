@@ -11,7 +11,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   CollectionEmptyState,
-  CollectionLoadingState,
+  TableLoadingSkeleton,
   CollectionPagination,
   CollectionSearchField,
   CollectionTableCard,
@@ -360,7 +360,7 @@ export function MitigationMonitoringPanel() {
           }
         >
           {loading ? (
-            <CollectionLoadingState message="Memuat data mitigasi..." />
+            <TableLoadingSkeleton message="Memuat data mitigasi..." />
           ) : mitigations.length === 0 ? (
             <CollectionEmptyState
               title={

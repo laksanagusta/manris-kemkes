@@ -31,7 +31,7 @@ export { CollectionFilterGrid } from "./collections/collection-filter-grid";
 export { CollectionFilterInput } from "./collections/collection-filter-input";
 export { CollectionFilterPopover } from "./collections/collection-filter-popover";
 export { CollectionFilterTrigger } from "./collections/collection-filter-trigger";
-export { CollectionLoadingState } from "./collections/collection-loading-state";
+export { TableLoadingSkeleton } from "./feedback/loading-skeleton";
 export { CollectionNotice } from "./collections/collection-notice";
 export { CollectionPagination } from "./collections/collection-pagination";
 export { shouldShowCollectionPagination } from "./collections/collection-pagination-visibility";

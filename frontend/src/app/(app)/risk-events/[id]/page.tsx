@@ -1,5 +1,6 @@
 "use client";
 
+import { DetailLoadingSkeleton, PageLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import { createDisplayDateFormatter } from "@/lib/display-date";
 
@@ -18,7 +19,7 @@ import {
   AccentButton, ActionButton, AlertDialog, AlertDialogAction, AlertDialogCancel,
   AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader,
   AlertDialogTitle, Card, CardContent, CardHeader, CardTitle, CollectionErrorState,
-  CollectionLoadingState, CollectionPageHeader, Dialog,
+  CollectionPageHeader, Dialog,
   DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, InsetList, InsetListItem, PageStack, WarningCard,
 } from "@/components/shared/design-system";
 import { Link2, Lock, Search } from "@/components/shared/icons";
@@ -77,7 +78,7 @@ export default function RiskEventDetailPage() {
     finally { setSaving(false); }
   };
 
-  if (loading) return <PageStack><CollectionLoadingState message="Memuat detail kejadian…" /></PageStack>;
+  if (loading) return <PageLoadingSkeleton><DetailLoadingSkeleton message="Memuat detail kejadian…" /></PageLoadingSkeleton>;
   if (error) return <PageStack><CollectionErrorState title="Tidak dapat memuat kejadian risiko" message={error} onReload={() => void load()} /></PageStack>;
   if (!item) return <PageStack><CollectionErrorState title="Kejadian tidak ditemukan" message="Data kejadian tidak tersedia." onReload={() => void load()} /></PageStack>;
 

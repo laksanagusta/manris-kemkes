@@ -1,5 +1,6 @@
 "use client";
 
+import { TableLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useOrganizationFilter } from "@/hooks/use-organization-filter";
@@ -152,7 +153,7 @@ export default function LaporanPage() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={4}><span role="status">Memuat laporan…</span></TableCell>
+                  <TableCell colSpan={4}><TableLoadingSkeleton message="Memuat laporan…" /></TableCell>
                 </TableRow>
               ) : data?.items.length ? data.items.map((row) => (
                 <TableRow key={`${row.draft ? "draft" : "report"}-${row.id}`}>

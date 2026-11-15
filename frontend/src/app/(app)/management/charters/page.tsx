@@ -34,7 +34,7 @@ import {
   CollectionPagination,
   CollectionEmptyState,
   CollectionErrorState,
-  CollectionLoadingState,
+  TableLoadingSkeleton,
   CollectionPageHeader,
 } from "@/components/shared/design-system";
 import {
@@ -172,7 +172,7 @@ export default function RiskChartersPage() {
   if (showInitialLoading) {
     return (
       <PageStack>
-        <CollectionLoadingState message="Memuat daftar piagam..." />
+        <TableLoadingSkeleton message="Memuat daftar piagam..." />
       </PageStack>
     );
   }

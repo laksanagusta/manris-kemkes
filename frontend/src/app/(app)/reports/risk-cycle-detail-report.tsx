@@ -1,5 +1,6 @@
 "use client";
 
+import { TableLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { businessYear } from "@/lib/business-clock";
 import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
 import { ReportFilterCard } from "@/components/report/report-filter-card";
@@ -728,9 +729,7 @@ export function RiskCycleDetailReport({
           </MetricGrid>
 
         {loading ? (
-          <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
-            Memuat report perubahan risiko...
-          </div>
+          <TableLoadingSkeleton message="Memuat laporan perubahan risiko…" />
         ) : (
           <div className="space-y-3">
             <div className="rounded-lg border border-border/60 bg-muted/15 px-4 py-3 text-xs text-muted-foreground">

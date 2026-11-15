@@ -15,7 +15,7 @@ import type {
 import {
   OperatorWorkLayout,
   CollectionErrorState,
-  CollectionLoadingState,
+  TableLoadingSkeleton,
   CollectionPageHeader,
 } from "@/components/shared/design-system";
 import { OperatorWorkSections } from "@/components/shared/design-system/domain/operator-work-sections";
@@ -25,7 +25,7 @@ export function OperatorWorkWorkspace() {
   if (!user || !token)
     return (
       <OperatorWorkLayout>
-        <CollectionLoadingState message="Memuat pekerjaan…" />
+        <TableLoadingSkeleton message="Memuat pekerjaan…" />
       </OperatorWorkLayout>
     );
   if (user.role !== "unit")
@@ -154,7 +154,7 @@ function WorkContent({ token, userID }: { token: string; userID: string }) {
         <CollectionErrorState message={error} onReload={refresh} />
       ) : null}
       {!data && loading ? (
-        <CollectionLoadingState message="Memuat pekerjaan…" />
+        <TableLoadingSkeleton message="Memuat pekerjaan…" />
       ) : null}
       {data ? (
         <div ref={workRegionRef} tabIndex={-1} role="region" aria-label="Pekerjaan saya" aria-busy={loading}>

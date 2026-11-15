@@ -1,5 +1,6 @@
 "use client";
 
+import { FormLoadingSkeleton, PageLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { FieldHeading } from "@/components/ui/field";
 import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import { canWriteInOrg } from "@/lib/auth-helpers";
@@ -1296,19 +1297,7 @@ export default function AssessmentFormPage() {
   };
 
   if (isLoading) {
-    return (
-      <div
-        className="flex h-[50vh] w-full items-center justify-center rounded-lg bg-state-surface text-state-foreground"
-        role="status"
-        aria-live="polite"
-        aria-label="Memuat data pemantauan"
-      >
-        <div className="flex flex-col items-center gap-4 text-state-foreground">
-          <Loader2 className="size-8 animate-spin motion-reduce:animate-none" aria-hidden="true" />
-          <p>Memuat data pemantauan...</p>
-        </div>
-      </div>
-    );
+    return <PageLoadingSkeleton><FormLoadingSkeleton message="Memuat data pemantauan…" /></PageLoadingSkeleton>;
   }
 
   if (loadError) {

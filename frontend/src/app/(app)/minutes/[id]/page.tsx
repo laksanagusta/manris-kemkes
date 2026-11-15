@@ -1,5 +1,6 @@
 "use client";
 
+import { DetailLoadingSkeleton, PageLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import { formatDisplayDate } from "@/lib/display-date";
 
@@ -137,19 +138,7 @@ function MeetingMinuteDetailContent() {
   }, [id, token, reloadKey]);
 
   if (loading) {
-    return (
-      <div
-        role="status"
-        aria-live="polite"
-        aria-busy="true"
-        className="flex min-h-[400px] items-center justify-center rounded-lg bg-state-surface text-state-foreground"
-      >
-        <div className="flex flex-col items-center gap-2">
-          <Loader2 aria-hidden="true" className="size-6 motion-safe:animate-spin text-primary" />
-          <p className="text-sm text-state-foreground">Memuat detail notulen...</p>
-        </div>
-      </div>
-    );
+    return <PageLoadingSkeleton><DetailLoadingSkeleton message="Memuat detail notulen…" /></PageLoadingSkeleton>;
   }
 
   if (loadError) {

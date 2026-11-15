@@ -1,5 +1,6 @@
 "use client";
 
+import { DetailLoadingSkeleton, PageLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { BoundProfilePeriodNotice } from "@/components/upr/bound-profile-period-notice";
 
 import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
@@ -60,7 +61,6 @@ import {
   CollectionDialogCancel,
   CollectionEmptyState,
   CollectionErrorState,
-  CollectionLoadingState,
 } from "@/components/shared/design-system";
 
 import { cn } from "@/lib/utils";
@@ -311,14 +311,7 @@ export default function WorkingPaperDetailPage(props: {
   };
 
   if (loading) {
-    return (
-      <FormPage className="space-y-6 pb-0">
-        <FormHeader
-          title="Memuat detail KK Pemantauan dan Reviu"
-        />
-        <CollectionLoadingState message="Memuat detail KK Pemantauan dan Reviu..." />
-      </FormPage>
-    );
+    return <PageLoadingSkeleton><DetailLoadingSkeleton message="Memuat detail KK Pemantauan dan Reviu…" /></PageLoadingSkeleton>;
   }
 
   if (error) {

@@ -1,5 +1,6 @@
 "use client";
 
+import { TableLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { formatDisplayDate } from "@/lib/display-date";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -396,10 +397,7 @@ export function MitigationProgressTab({
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center rounded-lg bg-state-surface py-6 text-sm text-state-foreground">
-        <Loader2 className="size-4 animate-spin" />
-        <span className="ml-2">Memuat task mitigasi...</span>
-      </div>
+      <TableLoadingSkeleton message="Memuat tugas penanganan…" />
     );
   }
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { ChartLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import {
   Bar,
   BarChart,
@@ -52,9 +53,7 @@ export function RiskCategoryDistributionCard({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="flex h-48 items-center justify-center rounded-lg bg-state-surface text-sm text-state-foreground">
-            Memuat data kategori...
-          </div>
+          <ChartLoadingSkeleton message="Memuat grafik risiko…" className="h-48" />
         </CardContent>
       </Card>
     );
