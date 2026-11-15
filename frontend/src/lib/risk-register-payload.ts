@@ -5,9 +5,9 @@ export type RiskRegisterPayloadMitigation = {
   id?: string;
   targetCost?: number;
   frequency?: string;
-  recurringInterval?: number | null;
+  recurringInterval?: string | null;
   reportDay?: number | null;
-  reportDate?: string | null;
+  reportDate?: number | null;
   executionScheduleText?: string;
 
   action: string;

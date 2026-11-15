@@ -81,11 +81,13 @@ test("buildRiskRegisterPayload carries roId and omits objectiveId", () => {
 });
 
 test("profile edits preserve mitigation identity, cost and execution schedule", () => {
- const plan = { id: "plan-1", action: "Periksa stok", owner: "Unit", frequency: "rutin", recurringInterval: 1, reportDay: 25, reportDate: null, executionScheduleText: "Setiap akhir bulan", targetCost: 150000 };
+ const plan = { id: "plan-1", action: "Periksa stok", owner: "Unit", frequency: "rutin", recurringInterval: "bulanan", reportDay: null, reportDate: 25, executionScheduleText: "Setiap akhir bulan", targetCost: 150000 };
  const payload = payloadModule.buildRiskRegisterPayload({ title: "Revisi risiko", description: "Koreksi pengendalian distribusi", probability: 3, impact: 3, weight: 1, riskPriority: 1, targetProbability: 1, targetImpact: 1, targetWeight: 1, mitigations: [plan] }, "draft", { assessmentCycle: "2026-Q4" });
  assert.equal(payload.mitigations[0].id, plan.id);
  assert.equal(payload.mitigations[0].executionScheduleText, plan.executionScheduleText);
  assert.equal(payload.mitigations[0].frequency, plan.frequency);
  assert.equal(payload.mitigations[0].reportDay, plan.reportDay);
+ assert.equal(payload.mitigations[0].recurringInterval, plan.recurringInterval);
+ assert.equal(payload.mitigations[0].reportDate, plan.reportDate);
  assert.equal(payload.mitigations[0].targetCost, plan.targetCost);
 });

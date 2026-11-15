@@ -177,6 +177,7 @@ import {
 } from "@/lib/risk-cycle-options";
 import { RiskCreationContext, RiskFormReadiness, RiskFinalizationReview } from "@/components/shared/design-system/domain/risk-creation-guidance";
 import { hasRiskScore, riskFinalizationCycle, riskPeriodLabel } from "@/lib/risk-creation";
+import { mitigationSchema } from "@/lib/risk-mitigation-schema";
 import { buildRiskRegisterPayload } from "@/lib/risk-register-payload";
 
 const RiskLogTimeline = dynamic(
@@ -492,24 +493,6 @@ function AiFieldButton({
 // ----------------------
 // Zod Schema
 // ----------------------
-const mitigationSchema = z.object({
-  id: z.string().optional(),
-  dueDate: z.string().optional().nullable(),
-  frequency: z.string().optional(),
-  recurringInterval: z.number().optional().nullable(),
-  reportDay: z.number().optional().nullable(),
-  reportDate: z.string().optional().nullable(),
-  executionScheduleText: z.string().optional(),
-  targetCost: z.number().optional(),
-  action: z.string().default(""),
-  owner: z.string().default(""),
-  treatmentOwnerId: z.string().optional(),
-  externalPicId: z.string().optional(),
-  mitigationType: z
-    .enum(["reduce_probability", "reduce_impact", "reduce_both"])
-    .default("reduce_probability"),
-
-});
 
 const formSchema = z
   .object({
