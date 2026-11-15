@@ -5,7 +5,7 @@ export const documentationArticles: DocumentationArticle[] = [
     slug: "introduction", title: "Panduan penggunaan Manrisk", category: "MULAI DI SINI",
     description: "Kenali fungsi utama Manrisk dan ikuti alur risiko dari identifikasi hingga pelaporan.", access: "Menu yang tampil mengikuti hak akses dan cakupan organisasi akun Anda.",
     sections: [
-      { id: "alur-manris", title: "Ikuti alur pengelolaan risiko", paragraphs: ["Manrisk membantu Anda mencatat risiko, menilai tingkatnya, merencanakan penanganan, lalu memantau perubahan dalam setiap siklus. Catat kejadian nyata secara terpisah dan gunakan laporan untuk meninjau hasil.", "Menu Dashboard, Risiko, Kejadian Risiko, Penanganan, Pemantauan, Kertas Kerja, Tanda tangan, Laporan, Tata Kelola, dan Otomasi tersedia sesuai hak akses Anda.", "Angka dan baris pada screenshot adalah snapshot saat dokumentasi disusun. Tampilan aktual mengikuti akun, organisasi, dan periode yang dipilih."], image: { src: "/documentation/screens/dashboard-start.png", alt: "Dashboard Manrisk dengan ringkasan risiko, grafik, dan peta risiko", caption: "Dashboard Manrisk menampilkan ringkasan dan tren untuk cakupan serta periode yang dipilih.", width: 3420, height: 1904 }, diagram: [
+      { id: "alur-manris", title: "Ikuti alur pengelolaan risiko", paragraphs: ["Manrisk membantu Anda mencatat risiko, menilai tingkatnya, merencanakan penanganan, lalu memantau perubahan dalam setiap siklus. Catat kejadian nyata secara terpisah dan gunakan laporan untuk meninjau hasil.", "Menu Dashboard, Risiko, Kejadian Risiko, Penanganan, Pemantauan, KK Pemantauan dan Reviu, Tanda tangan, Laporan, Tata Kelola, dan Otomasi tersedia sesuai hak akses Anda.", "Angka dan baris pada screenshot adalah snapshot saat dokumentasi disusun. Tampilan aktual mengikuti akun, organisasi, dan periode yang dipilih."], image: { src: "/documentation/screens/dashboard-start.png", alt: "Dashboard Manrisk dengan ringkasan risiko, grafik, dan peta risiko", caption: "Dashboard Manrisk menampilkan ringkasan dan tren untuk cakupan serta periode yang dipilih.", width: 3420, height: 1904 }, diagram: [
         { title: "Identifikasi", detail: "Catat profil, penyebab, dampak, dan skor risiko." },
         { title: "Penanganan", detail: "Susun rencana dan catat progres mitigasi." },
         { title: "Pemantauan", detail: "Perbarui penilaian pada siklus berjalan." },
@@ -17,7 +17,7 @@ export const documentationArticles: DocumentationArticle[] = [
         { title: "Pilih menu sesuai tugas", detail: "Buka Risiko untuk mengelola profil, Penanganan untuk melaporkan progres mitigasi, atau Pemantauan untuk meninjau risiko pada periode berjalan." },
         { title: "Ikuti status pada setiap halaman", detail: "Baca status sebelum melanjutkan. Draft masih dapat disunting; finalisasi mengaktifkan atau mengunci sebagian catatan sesuai jenis datanya." },
       ] },
-      { id: "beda-alur", title: "Bedakan finalisasi, persetujuan, dan tanda tangan", paragraphs: ["Finalisasi risiko langsung mengaktifkan profil pada alur saat ini. Persetujuan pada menu Tanda tangan adalah proses terpisah untuk permintaan persetujuan dan dokumen tertentu. TTE kertas kerja mengikuti urutan penandatangan yang dipilih saat kertas kerja dibuat."], note: "Menu dapat berbeda menurut peran, organisasi, dan izin yang diberikan. Hubungi administrator jika fitur yang diperlukan tidak tampak." },
+      { id: "beda-alur", title: "Bedakan finalisasi, persetujuan, dan tanda tangan", paragraphs: ["Finalisasi risiko langsung mengaktifkan profil pada alur saat ini. Persetujuan pada menu Tanda tangan adalah proses terpisah untuk permintaan persetujuan dan dokumen tertentu. TTE KK Pemantauan dan Reviu mengikuti urutan penandatangan yang dipilih saat KK Pemantauan dan Reviu dibuat."], note: "Menu dapat berbeda menurut peran, organisasi, dan izin yang diberikan. Hubungi administrator jika fitur yang diperlukan tidak tampak." },
     ],
   },
   {
@@ -147,7 +147,7 @@ export const documentationArticles: DocumentationArticle[] = [
       { id: "finalisasi-risiko", title: "Finalisasi dan perbarui profil", steps: [
         { title: "Periksa bagian wajib", detail: "Lengkapi identifikasi, analisis, pilihan penanganan, serta target yang diwajibkan pada form." },
         { title: "Pilih Finalisasi", detail: "Setelah finalisasi berhasil, profil berstatus Disetujui dan menjadi risiko aktif. Alur risiko saat ini tidak membuat permintaan persetujuan reviewer terpisah." },
-        { title: "Mulai pemantauan untuk mengubah profil aktif", detail: "Profil aktif dikunci untuk menjaga riwayat. Gunakan menu Pemantauan dan buat draf siklus baru untuk memperbarui penilaiannya." },
+        { title: "Mulai pemantauan untuk mengubah profil aktif", detail: "Profil aktif dikunci untuk menjaga riwayat. Gunakan menu Pemantauan dan catat pengamatan bertanggal untuk memperbarui penilaiannya." },
       ], note: "Skor dan target bawaan hanyalah titik awal. Tinjau keduanya berdasarkan asesmen organisasi sebelum memfinalisasi." },
       { id: "status-risiko", title: "Pahami status dan riwayat versi", fields: [
         { name: "Draf", description: "Profil belum difinalisasi dan masih dapat dilengkapi." },
@@ -190,11 +190,11 @@ export const documentationArticles: DocumentationArticle[] = [
   },
   {
     slug: "risk-monitoring", title: "Melakukan pemantauan risiko", category: "MANAJEMEN RISIKO",
-    description: "Mulai siklus pemantauan, perbarui asesmen, lalu finalisasi pengamatan untuk periodenya.", access: "Pengguna dengan akses pemantauan pada organisasi dan profil risiko terkait.",
+    description: "Catat pengamatan bertanggal, tinjau asesmen dan rencana mitigasi, lalu finalisasi hasilnya.", access: "Pengguna dengan akses pemantauan pada organisasi dan profil risiko terkait.",
     sections: [
       { id: "mulai-pemantauan", title: "Mulai siklus pemantauan", steps: [
-        { title: "Buka Pemantauan", detail: "Tinjau risiko aktif dan siklus berjalan. Data profil mengikuti organisasi dan periode yang tersedia untuk akun Anda." },
-        { title: "Pilih risiko dan mulai pemantauan", detail: "Sistem membuat draf baru dari profil aktif agar Anda dapat menilai kondisinya dalam siklus ini." },
+        { title: "Buka Pemantauan", detail: "Tinjau risiko aktif pada organisasi Anda. Pemantauan dapat dicatat kapan saja, termasuk beberapa kali dalam satu triwulan." },
+        { title: "Pilih risiko dan mulai pemantauan", detail: "Isi tanggal kondisi risiko diamati. Sistem menyalin profil dan rencana mitigasi yang berlaku pada tanggal itu. Triwulan laporan mengikuti tanggal pengamatan." },
         { title: "Periksa salinan profil", detail: "Pastikan penyebab, dampak, skor, rencana penanganan, dan target masih sesuai dengan keadaan terbaru." },
       ], image: { src: "/documentation/screens/pemantauan-list.png", alt: "Halaman Pemantauan dengan ringkasan draf, final, dan daftar risiko", caption: "Snapshot ringkasan dan daftar pemantauan; angka aktual mengikuti periode yang dipilih.", width: 3420, height: 1904 }, diagram: [
         { title: "Pilih risiko", detail: "Buka profil yang aktif." },
@@ -209,9 +209,9 @@ export const documentationArticles: DocumentationArticle[] = [
       ] },
       { id: "finalisasi-pemantauan", title: "Finalisasi pemantauan", steps: [
         { title: "Periksa skor dan catatan", detail: "Pastikan nilai hasil pemantauan, alasan, dan rencana tindak lanjut sudah sesuai." },
-        { title: "Pilih Finalisasi Pemantauan", detail: "Pengamatan menjadi Final untuk siklus tersebut. Perubahan periode selanjutnya dibuat melalui draf pemantauan baru." },
-        { title: "Periksa progres ringkasan", detail: "Dashboard dan daftar pemantauan menunjukkan jumlah draf dan final pada cakupan periode yang dipilih." },
-      ], note: "Finalisasi pemantauan juga menjadi prasyarat penyusunan roster Kertas Kerja untuk risiko yang masuk dalam roster." },
+        { title: "Pilih Finalisasi Pemantauan", detail: "Pengamatan menjadi Final dan menyimpan snapshot bukti. Task mitigasi baru dibuat dari rencana yang ditinjau; task lama tetap menyimpan status dan laporannya. Buat pemantauan berikutnya saat ada pengamatan baru, termasuk pada triwulan yang sama." },
+        { title: "Periksa progres ringkasan", detail: "Riwayat menyimpan seluruh pengamatan. Laporan triwulan dan semester memakai hasil final terbaru per risiko dalam rentang tanggalnya. Bila belum ada pengamatan, laporan menunjukkan belum dipantau." },
+      ], note: "Finalisasi pemantauan juga menjadi prasyarat penyusunan roster KK Pemantauan dan Reviu untuk risiko yang masuk dalam roster." },
       { id: "status-pemantauan", title: "Status pemantauan", fields: [
         { name: "Draft", description: "Pengamatan untuk siklus saat ini masih dalam penyusunan." },
         { name: "Final", description: "Pengamatan untuk periode ini telah diselesaikan." },
@@ -248,27 +248,27 @@ export const documentationArticles: DocumentationArticle[] = [
     ],
   },
   {
-    slug: "working-papers", title: "Membuat dan meninjau Kertas Kerja", category: "DOKUMEN & PELAPORAN",
-    description: "Buat dokumen berkala dari roster risiko, lalu tinjau kesiapan pemantauan dan penandatangan.", access: "Pengguna yang diizinkan menyusun Kertas Kerja untuk organisasi dan siklus terkait.",
+    slug: "working-papers", title: "Membuat dan meninjau KK Pemantauan dan Reviu", category: "DOKUMEN & PELAPORAN",
+    description: "Buat dokumen berkala dari roster risiko, lalu tinjau kesiapan pemantauan dan penandatangan.", access: "Pengguna yang diizinkan menyusun KK Pemantauan dan Reviu untuk organisasi terkait.",
     sections: [
       { id: "buat-kertas-kerja", title: "Siapkan roster", steps: [
-        { title: "Buka Kertas Kerja Baru", detail: "Periksa unit kerja dan siklus asesmen yang ditampilkan." },
-        { title: "Tinjau daftar risiko roster", detail: "Periksa keputusan penyertaan untuk setiap kelompok versi risiko. Gunakan pencarian atau pilihan semua risiko bila tersedia." },
+        { title: "Buka KK Pemantauan dan Reviu Baru", detail: "Pilih versi Profil Risiko Tahunan final. Seluruh anggota profil otomatis masuk ke daftar risiko KK." },
+        { title: "Tinjau daftar risiko roster", detail: "Periksa daftar anggota profil dan status pemantauan masing-masing hingga tanggal batas KK." },
         { title: "Pilih penandatangan secara berurutan", detail: "Cari dan pilih pengguna yang akan menandatangani. Tambahkan atau susun ulang penandatangan untuk mengatur urutan." },
-        { title: "Buat kertas kerja", detail: "Periksa kembali cakupan roster dan daftar penandatangan sebelum menyimpan." },
-      ], image: { src: "/documentation/screens/kertas-kerja-list.png", alt: "Daftar Kertas Kerja dengan periode, status, dan jumlah risiko", caption: "Snapshot daftar Kertas Kerja memperlihatkan periode, status dokumen, jumlah risiko, dan progres TTE.", width: 3420, height: 1904 } },
+        { title: "Buat KK Pemantauan dan Reviu", detail: "Periksa tanggal batas, daftar risiko dari profil, dan urutan penandatangan sebelum menyimpan." },
+      ], image: { src: "/documentation/screens/kertas-kerja-list.png", alt: "Daftar KK Pemantauan dan Reviu dengan periode, status, dan jumlah risiko", caption: "Snapshot daftar KK Pemantauan dan Reviu memperlihatkan periode, status dokumen, jumlah risiko, dan progres TTE.", width: 3420, height: 1904 } },
       { id: "status-roster", title: "Pahami status roster", fields: [
-        { name: "Belum dimulai", description: "Risiko belum memulai pemantauan pada siklus kertas kerja." },
+        { name: "Belum dimulai", description: "Belum ada hasil pemantauan hingga tanggal batas KK." },
         { name: "Dalam proses", description: "Pemantauan telah dimulai, tetapi belum final." },
-        { name: "Final", description: "Risiko telah memiliki pengamatan final untuk siklus yang diperlukan." },
+        { name: "Final", description: "Risiko memiliki hasil pemantauan final hingga tanggal batas KK." },
       ] },
       { id: "tinjau-kertas-kerja", title: "Tinjau progres dokumen", steps: [
-        { title: "Buka Kertas Kerja yang dibuat", detail: "Periksa siklus, roster, skor dan pengamatan tiap risiko, serta urutan penandatangan." },
+        { title: "Buka KK Pemantauan dan Reviu yang dibuat", detail: "Periksa tanggal batas, daftar risiko, skor dan pengamatan tiap risiko, serta urutan penandatangan." },
         { title: "Selesaikan pemantauan yang tertinggal", detail: "Jika ada risiko dengan pemantauan belum final, buka profilnya dan finalisasi pemantauan terlebih dahulu." },
         { title: "Mulai TTE ketika siap", detail: "Setelah semua risiko dalam roster berstatus final dan tidak ada blocker, pembuat dokumen dapat memulai proses tanda tangan elektronik." },
-      ], image: { src: "/documentation/screens/kertas-kerja-progress.png", alt: "Daftar Kertas Kerja dengan panel progres yang dapat dibuka", caption: "Panel Progres Kertas Kerja dapat dibuka untuk memeriksa finalisasi risiko per organisasi; angka di gambar merupakan snapshot.", width: 3420, height: 1904 }, note: "Kertas Kerja mengambil snapshot dari roster periode. Tinjau keputusan penyertaan dan urutan penandatangan sebelum menyimpannya." },
-      { id: "detail-kertas-kerja", title: "Baca detail Kertas Kerja", paragraphs: ["Halaman detail menampilkan kode dan versi risiko, perubahan skor, serta status pemantauan setiap risiko dalam roster. Panel Ringkasan menampilkan kode dokumen, periode pemantauan, status, tanggal pembuatan, dan waktu penyelesaian.", "Periksa Progres Pemantauan untuk mengetahui jumlah risiko yang sudah selesai dipantau. Histori Tanda Tangan mencatat penandatangan dan waktu penyelesaian tahapnya."], image: { src: "/documentation/screens/working-paper-detail.png", alt: "Detail Kertas Kerja dengan daftar risiko, perubahan skor, ringkasan, progres pemantauan dan histori tanda tangan", caption: "Snapshot Kertas Kerja yang selesai. Nama, kode, skor, periode, progres, dan histori tanda tangan mengikuti dokumen serta akses akun.", width: 3420, height: 1904 } },
-      { id: "status-kertas-kerja", title: "Status Kertas Kerja", fields: [
+      ], image: { src: "/documentation/screens/kertas-kerja-progress.png", alt: "Daftar KK Pemantauan dan Reviu dengan panel progres yang dapat dibuka", caption: "Panel Progres KK Pemantauan dan Reviu dapat dibuka untuk memeriksa finalisasi risiko per organisasi; angka di gambar merupakan snapshot.", width: 3420, height: 1904 }, note: "KK menggunakan hasil pemantauan final terbaru hingga tanggal batasnya. Jika dibuat dari hasil pemantauan, batasnya adalah tanggal pengamatan tersebut. Jika dibuat dari daftar KK, batasnya adalah hari ini atau akhir tahun profil yang sudah berlalu." },
+      { id: "detail-kertas-kerja", title: "Baca detail KK Pemantauan dan Reviu", paragraphs: ["Halaman detail menampilkan kode dan versi risiko, perubahan skor, serta status pemantauan setiap risiko dalam roster. Panel Ringkasan menampilkan kode dokumen, tanggal batas pengamatan, status, tanggal pembuatan, dan waktu penyelesaian.", "Periksa Progres Pemantauan untuk mengetahui jumlah risiko yang sudah selesai dipantau. Histori Tanda Tangan mencatat penandatangan dan waktu penyelesaian tahapnya."], image: { src: "/documentation/screens/working-paper-detail.png", alt: "Detail KK Pemantauan dan Reviu dengan daftar risiko, perubahan skor, ringkasan, progres pemantauan dan histori tanda tangan", caption: "Snapshot KK Pemantauan dan Reviu yang selesai. Nama, kode, skor, periode, progres, dan histori tanda tangan mengikuti dokumen serta akses akun.", width: 3420, height: 1904 } },
+      { id: "status-kertas-kerja", title: "Status KK Pemantauan dan Reviu", fields: [
         { name: "Draf", description: "Dokumen sedang disusun atau menunggu persiapan proses tanda tangan." },
         { name: "Menunggu penandatangan", description: "Dokumen sedang mengikuti urutan TTE; tindakan menunggu penandatangan yang gilirannya tiba." },
         { name: "Selesai", description: "Tanda tangan telah tuntas, atau dokumen selesai dengan pilihan melewati TTE." },
@@ -286,12 +286,12 @@ export const documentationArticles: DocumentationArticle[] = [
         { title: "Buka permintaan dan tinjau dokumen", detail: "Baca materi dan konteks lengkap sebelum memberikan keputusan." },
         { title: "Setujui atau tolak", detail: "Pilih tindakan yang sesuai pada permintaan. Penolakan atau catatan review memengaruhi status dokumen mengikuti alur permintaan." },
       ] },
-      { id: "tte-kertas-kerja", title: "Tandatangani Kertas Kerja", steps: [
-        { title: "Buka Kertas Kerja pada giliran Anda", detail: "Urutan penandatangan tampil pada timeline. Anda hanya dapat menandatangani ketika menjadi penandatangan aktif." },
+      { id: "tte-kertas-kerja", title: "Tandatangani KK Pemantauan dan Reviu", steps: [
+        { title: "Buka KK Pemantauan dan Reviu pada giliran Anda", detail: "Urutan penandatangan tampil pada timeline. Anda hanya dapat menandatangani ketika menjadi penandatangan aktif." },
         { title: "Periksa isi dan roster", detail: "Bacalah dokumen dan pastikan profil risiko serta pengamatan untuk siklus tersebut sudah final." },
         { title: "Tandatangani", detail: "Pilih tindakan tanda tangan pada halaman dokumen. Setelah tercatat, giliran berpindah ke penandatangan berikutnya." },
       ], image: { src: "/documentation/screens/tanda-tangan.png", alt: "Halaman Persetujuan dan TTE dari aplikasi Manrisk", caption: "Halaman Persetujuan & TTE dari aplikasi Manrisk saat tidak ada permintaan yang sesuai filter.", width: 1145, height: 760 } },
-      { id: "blocker-tte", title: "Jika tindakan TTE belum tersedia", paragraphs: ["Pembuat kertas kerja hanya dapat memulai TTE jika semua risiko di roster telah final dan tidak ada pemantauan yang tertinggal. Penandatangan dapat menandatangani setelah proses dimulai, urutannya tiba, dan ia adalah akun penandatangan yang ditunjuk."], note: "TTE Kertas Kerja memiliki urutan dan prasyarat sendiri. Proses ini terpisah dari finalisasi profil risiko." },
+      { id: "blocker-tte", title: "Jika tindakan TTE belum tersedia", paragraphs: ["Pembuat KK Pemantauan dan Reviu hanya dapat memulai TTE jika semua risiko di roster telah final dan tidak ada pemantauan yang tertinggal. Penandatangan dapat menandatangani setelah proses dimulai, urutannya tiba, dan ia adalah akun penandatangan yang ditunjuk."], note: "TTE KK Pemantauan dan Reviu memiliki urutan dan prasyarat sendiri. Proses ini terpisah dari finalisasi profil risiko." },
       { id: "status-tte", title: "Status permintaan dan penandatangan", fields: [
         { name: "Persetujuan saya", description: "Permintaan yang menunggu tindakan review dari akun Anda." },
         { name: "Giliran Anda", description: "Anda penandatangan aktif dan dapat meninjau lalu menandatangani." },
@@ -399,7 +399,7 @@ export const documentationArticles: DocumentationArticle[] = [
         { name: "Final / Disetujui", description: "Data sudah difinalisasi. Pada profil risiko, status Disetujui menandai profil aktif." },
         { name: "Digantikan", description: "Versi profil yang tersimpan dalam riwayat setelah versi yang lebih baru diaktifkan." },
         { name: "Overdue", description: "Tenggat tindakan penanganan telah lewat." },
-        { name: "TTE", description: "Tanda tangan elektronik yang berjalan menurut urutan penandatangan pada Kertas Kerja." },
+        { name: "TTE", description: "Tanda tangan elektronik yang berjalan menurut urutan penandatangan pada KK Pemantauan dan Reviu." },
         { name: "LED", description: "Laporan Evaluasi Diri; kejadian yang disimpan sebagai record LED terkunci setelah disimpan." },
       ] },
       { id: "kendala-akun", title: "Kendala akun", fields: [

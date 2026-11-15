@@ -1,5 +1,6 @@
 "use client";
 
+import { ActionConfirmationDialog } from "@/components/shared/design-system/actions/action-confirmation-dialog";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { toast } from "sonner";
@@ -76,6 +77,7 @@ export function DocumentProcessingWorkspace({
   const [documents, setDocuments] = useState<UploadedDocument[]>([]);
   const [issues, setIssues] = useState<FileIssue[]>([]);
   const [currentJob, setCurrentJob] = useState<ProcessingJob>();
+  const [confirmation, setConfirmation] = useState<"new" | "cancel" | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [offline, setOffline] = useState(false);
   const reduceMotion = useReducedMotion();
@@ -201,10 +203,10 @@ export function DocumentProcessingWorkspace({
     return () => window.removeEventListener("keydown", onKeyDown);
   });
 
-  function startNewProcess() {
-    if (currentJob && ["processing", "queued"].includes(currentJob.status)) {
-      const confirmed = window.confirm("Proses aktif masih berjalan. Mulai proses baru tanpa membatalkannya?");
-      if (!confirmed) return;
+  function startNewProcess(confirmed = false) {
+    if (!confirmed && currentJob && ["processing", "queued"].includes(currentJob.status)) {
+      setConfirmation("new");
+      return;
     }
     activeJobIdRef.current = undefined;
     setCurrentJob(undefined);
@@ -216,9 +218,9 @@ export function DocumentProcessingWorkspace({
     setIssues([]);
   }
 
-  function cancelProcessing() {
+  function cancelProcessing(confirmed = false) {
     if (!currentJob || !["processing", "queued"].includes(currentJob.status)) return;
-    if (!window.confirm("Batalkan proses aktif? Progress yang sudah selesai akan tetap disimpan.")) return;
+    if (!confirmed) { setConfirmation("cancel"); return; }
     controllersRef.current.get(currentJob.id)?.cancel();
     toast.message("Proses dibatalkan. Progress yang selesai tetap tersimpan.");
   }
@@ -265,7 +267,7 @@ export function DocumentProcessingWorkspace({
           />
         </div>
 
-        {currentJob && !terminalState ? <ProcessingStatus job={currentJob} status={currentStatus} onCancel={cancelProcessing} /> : null}
+        {currentJob && !terminalState ? <ProcessingStatus job={currentJob} status={currentStatus} onCancel={() => cancelProcessing()} /> : null}
         {terminalState && currentJob ? (
           <div ref={findingsRef}>
             <FindingsReviewPanel
@@ -274,11 +276,23 @@ export function DocumentProcessingWorkspace({
               onUseMitigationReport={onUseMitigationReport}
               onUseRiskEvent={onUseRiskEvent}
               reportedFindingIds={reportedFindingIds}
-              onStartNew={startNewProcess}
+              onStartNew={() => startNewProcess()}
             />
           </div>
         ) : null}
       </main>
+      <ActionConfirmationDialog
+        open={confirmation !== null} onOpenChange={(open) => { if (!open) setConfirmation(null); }}
+        title={confirmation === "new" ? "Mulai proses baru?" : "Batalkan proses aktif?"}
+        description={confirmation === "new" ? "Masih ada analisis dokumen yang berjalan." : "Periksa proses yang sedang berjalan sebelum membatalkan."}
+        confirmLabel={confirmation === "new" ? "Mulai proses baru" : "Batalkan proses"}
+        variant={confirmation === "cancel" ? "destructive" : "default"}
+        onConfirm={() => { if (confirmation === "new") startNewProcess(true); else cancelProcessing(true); }}
+      >
+        {confirmation === "new"
+          ? "Area unggahan, riwayat, dan hasil lokal pada mode analisis ini akan dikosongkan untuk proses baru. Proses aktif tetap berjalan sampai selesai dan tidak dibatalkan."
+          : "Pemrosesan aktif akan dihentikan. Hasil tugas yang sudah selesai tetap disimpan; bagian yang belum selesai tidak dilanjutkan."}
+      </ActionConfirmationDialog>
     </PageStack>
   );
 }

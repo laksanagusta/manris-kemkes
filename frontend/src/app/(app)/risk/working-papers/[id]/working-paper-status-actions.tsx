@@ -71,7 +71,7 @@ export function WorkingPaperStatusActions({
             onClick={onDelete}
           >
             <Trash2 className="size-3.5" />
-            Hapus kertas kerja
+            Hapus KK Pemantauan dan Reviu
           </DropdownMenuItem>
         ) : null}
         {hasWorkflowActions && onExport ? <DropdownMenuSeparator /> : null}

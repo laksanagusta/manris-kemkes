@@ -22,14 +22,14 @@ const workflow = [
   { title: "Catat risiko dan penyebabnya", description: "Mulai dari konteks organisasi, hasil rapat, atau temuan tim. Catat penyebab dan dampak risiko sebagai dasar penilaian.", kind: "minutes" as const },
   { title: "Susun rencana penanganan", description: "Tetapkan langkah mitigasi, penanggung jawab, dan target penyelesaian untuk setiap risiko.", kind: "treatment" as const },
   { title: "Pantau progres dan perubahan risiko", description: "Perbarui progres mitigasi dan skor risiko setiap periode. Tinjau perkembangan untuk menentukan tindak lanjut.", kind: "monitoring" as const },
-  { title: "Susun laporan dan kertas kerja", description: "Rangkum hasil pemantauan dalam laporan dan kertas kerja. Tinjau isinya, teruskan kertas kerja untuk tanda tangan, dan telusuri riwayat dokumen.", kind: "paper" as const },
+  { title: "Dokumentasikan hasil pemantauan", description: "Susun KK Pemantauan dan Reviu, teruskan dokumen untuk tanda tangan, dan telusuri riwayatnya.", kind: "paper" as const },
 ];
 
 const tools = [
   { icon: FileText, name: "Ekstraksi risiko dari dokumen", description: "Temukan kandidat risiko beserta sumbernya dalam dokumen.", href: "/docs/risk-register#ekstraksi-sop" },
   { icon: FileSpreadsheet, name: "Excel", description: "Impor profil risiko dan ekspor hasil kerja.", href: "/docs/risk-register" },
   { icon: Users, name: "Kolaborasi tim", description: "Bagikan tugas mitigasi dengan penanggung jawab yang jelas.", href: "/docs/risk-treatment" },
-  { icon: FileSignature, name: "Tanda tangan", description: "Tinjau dan tandatangani kertas kerja sesuai urutan.", href: "/docs/signatures" },
+  { icon: FileSignature, name: "Tanda tangan", description: "Tinjau dan tandatangani dokumen sesuai urutan.", href: "/docs/signatures" },
   { icon: Sparkles, name: "Notulen rapat", description: "Susun notulen, keputusan, dan tindak lanjut dari transkrip rapat.", href: "/docs/meeting-minutes" },
   { icon: BarChart3, name: "Ringkasan risiko", description: "Baca ringkasan risiko dan progresnya per periode.", href: "/docs/reports" },
   { icon: Building2, name: "Grup organisasi", description: "Kelompokkan unit kerja untuk memilih cakupan laporan.", href: "/docs/organization-groups" },
@@ -41,7 +41,7 @@ const resources = [
   ["Identifikasi dan nilai risiko", "Susun profil risiko yang siap ditindaklanjuti.", "/docs/risk-register"],
   ["Kelola rencana penanganan", "Catat mitigasi, penanggung jawab, dan progres.", "/docs/risk-treatment"],
   ["Pantau risiko setiap periode", "Tinjau perkembangan dan finalisasi pemantauan.", "/docs/risk-monitoring"],
-  ["Susun kertas kerja", "Rangkum hasil pemantauan untuk ditinjau dan ditandatangani.", "/docs/working-papers"],
+  ["Susun KK Pemantauan dan Reviu", "Rangkum hasil pemantauan untuk ditinjau dan ditandatangani.", "/docs/working-papers"],
 ];
 
 export default function HomePage() {
@@ -85,7 +85,7 @@ export default function HomePage() {
 
         <div className={styles.sectionDivider}>
           <section className={`${styles.container} ${styles.section} ${styles.resourceLayout}`} aria-labelledby="resources-heading">
-            <div><h2 id="resources-heading" className={styles.sectionHeading}>Mulai dengan panduan yang jelas.</h2><p className={styles.sectionIntro}>Baca panduan dari pencatatan risiko hingga penyusunan kertas kerja.</p></div>
+            <div><h2 id="resources-heading" className={styles.sectionHeading}>Mulai dengan panduan yang jelas.</h2><p className={styles.sectionIntro}>Baca panduan dari pencatatan risiko hingga penyusunan KK Pemantauan dan Reviu.</p></div>
             <MarketingReveal className={styles.resourceList}>{resources.map(([title, description, href]) => <Link className={styles.resource} key={href} href={href}><div><h3>{title}</h3><p>{description}</p></div><ArrowRight aria-hidden="true" /></Link>)}</MarketingReveal>
           </section>
         </div>
@@ -96,7 +96,7 @@ export default function HomePage() {
             <MarketingReveal className={styles.securityItems}>
               <article className={styles.securityItem}><Lock aria-hidden="true" /><h3>Akses berbasis peran</h3><p>Hak akses mengikuti peran pengguna dan cakupan organisasi.</p></article>
               <article className={styles.securityItem}><History aria-hidden="true" /><h3>Riwayat yang dapat ditelusuri</h3><p>Perubahan profil dan versi risiko tersimpan untuk mendukung tinjauan.</p></article>
-              <article className={styles.securityItem}><ClipboardCheck aria-hidden="true" /><h3>Alur tinjauan yang jelas</h3><p>Kertas kerja diteruskan sesuai alur tanda tangan yang ditetapkan.</p></article>
+              <article className={styles.securityItem}><ClipboardCheck aria-hidden="true" /><h3>Alur tinjauan yang jelas</h3><p>Dokumen diteruskan sesuai urutan tanda tangan yang ditetapkan.</p></article>
             </MarketingReveal>
           </section>
         </div>
@@ -113,7 +113,7 @@ export default function HomePage() {
       <footer className={styles.footer}>
         <div className={styles.container}>
           <div className={styles.footerMain}>
-            <div className={styles.footerBrand}><Link href="/" className={styles.brand} aria-label="Manrisk beranda"><ManriskMark className="dark:invert-0" /><span>manrisk</span></Link></div>
+            <div className={styles.footerBrand}><Link href="/" className={styles.brand} aria-label="Manrisk beranda"><ManriskMark /><span>manrisk</span></Link></div>
             <div className={styles.footerColumn}><h3>Produk</h3><Link href="#fitur">Fitur Manrisk</Link><Link href="#alur-kerja">Cara kerja</Link><Link href="#keamanan">Kontrol akses</Link></div>
             <div className={styles.footerColumn}><h3>Panduan</h3><Link href="/docs">Dokumentasi</Link><Link href="/docs/account-access">Akses akun</Link><Link href="/docs/glossary-and-troubleshooting">Istilah dan kendala</Link></div>
             <div className={styles.footerColumn}><h3>Mulai</h3><Link href="/register">Daftar akun</Link><Link href="/login">Masuk aplikasi</Link><Link href="/docs/introduction">Panduan penggunaan</Link></div>

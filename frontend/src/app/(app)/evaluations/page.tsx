@@ -1,5 +1,6 @@
 "use client";
 
+import { ProfilePeriodPicker, type ProfilePeriodSelection } from "@/components/upr/profile-period-picker";
 import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
 import { createDisplayDateFormatter } from "@/lib/display-date";
 import { useRemoteCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
@@ -44,11 +45,10 @@ import {
 import {
   AccentButton,
   ActionButton,
-  FieldErrorMessage,
+  CollectionDialogCancel,
   MetricGrid,
   PageStack,
 } from "@/components/shared/design-system";
-import { Label } from "@/components/ui/label";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import {
   DropdownMenu,
@@ -64,15 +64,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
-import { OrganizationPicker } from "@/components/report/organization-picker";
 import { EvaluationFiltersToolbar } from "@/components/evaluation/evaluation-filters-toolbar";
 import {
   buildSelectableReportOrganizations,
@@ -85,12 +77,6 @@ import {
   getLinearStatusBadgeClassName,
   getLinearStatusBadgeTone,
 } from "@/lib/linear-status-badge";
-import {
-  currentAssessmentCycle,
-  getAssessmentCycleFilterOptions,
-  getSelectableAssessmentCycles,
-} from "@/lib/risk-cycle-options";
-import { getEvaluationPeriodFilterOptions } from "@/lib/evaluation-period-options";
 import type { Evaluation, EvaluationStatus } from "@/types/evaluation";
 
 function formatDateTime(value?: string | null) {
@@ -121,8 +107,7 @@ export default function EvaluationsPage() {
   >([]);
   const [organizationId, setOrganizationId] = useState("all");
   const [organizationGroupId, setOrganizationGroupId] = useState("all");
-  const [periodFilter, setPeriodFilter] = useState("all");
-  const [availablePeriods, setAvailablePeriods] = useState<string[]>([]);
+  const [createdDateFilter, setCreatedDateFilter] = useState("");
   const [status, setStatus] = useState<EvaluationStatus | "all">("all");
   const [query, setQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -133,21 +118,16 @@ export default function EvaluationsPage() {
   const [total, setTotal] = useState(0);
   const [limit, setLimit] = useState(20);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [createOrganizationId, setCreateOrganizationId] = useState("");
-  const [createPeriod, setCreatePeriod] = useState(currentAssessmentCycle());
+  const [createContext,setCreateContext] = useState<ProfilePeriodSelection | null>(null);
+  const createLock=useRef(false);
   const [creatingEvaluation, setCreatingEvaluation] = useState(false);
-  const [createFieldErrors, setCreateFieldErrors] = useState<{
-    organization?: string;
-    period?: string;
-  }>({});
+  const canCreateEvaluation = Boolean(token && user?.organizationId);
   const organizationFilterInitialized = useRef(false);
 
   const handleCreateDialogOpenChange = useCallback(
     (open: boolean) => {
       setCreateDialogOpen(open);
-      if (!open) {
-        setCreateFieldErrors({});
-      }
+      setCreateContext(null);
       router.replace(open ? "/evaluations?create=1" : "/evaluations");
     },
     [router],
@@ -159,7 +139,7 @@ export default function EvaluationsPage() {
     organizationGroupId === "all" &&
     organizationId === "all";
 
-  const collectionSort = useRemoteCollectionSorting({"Kode": "code", "Periode": "period", "Organisasi": "organization", "Template": "template", "Status": "status", "Diperbarui": "updated_at"}, () => setPage(1));
+  const collectionSort = useRemoteCollectionSorting({"Kode": "code", "Organisasi": "organization", "Template": "template", "Status": "status", "Diperbarui": "updated_at"}, () => setPage(1));
   useEffect(() => {
     const handle = window.setTimeout(() => setDebouncedQuery(query), 350);
     return () => window.clearTimeout(handle);
@@ -219,14 +199,12 @@ export default function EvaluationsPage() {
     const request=++listRequest.current;
     if (!token) {
       setEvaluations([]);
-      setAvailablePeriods([]);
       setLoading(false);
       return;
     }
 
     if (requiresScopeSelection) {
       setEvaluations([]);
-      setAvailablePeriods([]);
       setLoading(false);
       return;
     }
@@ -242,7 +220,7 @@ export default function EvaluationsPage() {
         organizationGroupId !== "all"
           ? organizationGroupId
           : undefined,
-      period: periodFilter !== "all" ? periodFilter : undefined,
+      createdDate: createdDateFilter || undefined,
       status: status !== "all" ? status : undefined,
       query: debouncedQuery.trim() || undefined,
       page,
@@ -252,7 +230,6 @@ export default function EvaluationsPage() {
         if(request!==listRequest.current)return;
         const responseEvaluations = response.data ?? [];
         setEvaluations(responseEvaluations);
-        setAvailablePeriods(response.periods ?? []);
         setTotal(response.total ?? 0);
         setPage(response.page ?? page);
       })
@@ -268,7 +245,7 @@ export default function EvaluationsPage() {
     token,
     organizationId,
     organizationGroupId,
-    periodFilter,
+    createdDateFilter,
     status,
     debouncedQuery,
     page,
@@ -281,7 +258,7 @@ export default function EvaluationsPage() {
   }, [
     organizationId,
     organizationGroupId,
-    periodFilter,
+    createdDateFilter,
     status,
     debouncedQuery,
     limit,
@@ -293,31 +270,12 @@ export default function EvaluationsPage() {
     }
   }, [searchParams]);
 
-  useEffect(() => {
-    if (!createDialogOpen || createOrganizationId) return;
-    const defaultOrgId = resolveDefaultReportOrgId(user);
-    setCreateOrganizationId(
-      defaultOrgId && organizations.some((org) => org.id === defaultOrgId)
-        ? defaultOrgId
-        : requiresOrganizationSelection
-          ? ""
-          : (organizations[0]?.id ?? ""),
-    );
-  }, [
-    createDialogOpen,
-    createOrganizationId,
-    organizations,
-    requiresOrganizationSelection,
-    user,
-  ]);
-
   const visibleEvaluations = useMemo(
     () =>
       filterEvaluations(evaluations, {
         search: debouncedQuery,
         status,
-        period: periodFilter !== "all" ? periodFilter : undefined,
-      organizationId:
+        organizationId:
           organizationGroupId === "all" && organizationId !== "all"
             ? organizationId
             : undefined,
@@ -326,7 +284,6 @@ export default function EvaluationsPage() {
       evaluations,
       debouncedQuery,
       status,
-      periodFilter,
       organizationId,
       organizationGroupId,
     ],
@@ -358,26 +315,7 @@ export default function EvaluationsPage() {
       tone: "emerald" as const,
       description: "Sudah dikunci dan siap PDF",
     },
-    {
-      label: "Periode",
-      value: periodFilter === "all" ? "Semua" : periodFilter,
-      tone: "white" as const,
-      description: "Filter periode aktif",
-    },
   ];
-
-  const periodOptions = useMemo(
-    () =>
-      getEvaluationPeriodFilterOptions(
-        availablePeriods,
-        getAssessmentCycleFilterOptions(),
-      ),
-    [availablePeriods],
-  );
-  const createPeriodOptions = useMemo(
-    () => getSelectableAssessmentCycles(currentAssessmentCycle()),
-    [],
-  );
 
   const handleDownload = async (evaluation: Evaluation) => {
     if (!token) {
@@ -390,7 +328,7 @@ export default function EvaluationsPage() {
       await downloadEvaluationPdf(
         token,
         evaluation.id,
-        `evaluasi-mr-${evaluation.period}.pdf`,
+        `evaluasi-mr-${evaluation.code || evaluation.id}.pdf`,
       );
       toast.success("PDF evaluasi sedang diunduh.");
     } catch (error) {
@@ -410,31 +348,18 @@ export default function EvaluationsPage() {
       toast.error("Sesi login tidak ditemukan.");
       return;
     }
-    const nextErrors: typeof createFieldErrors = {};
-    if (!createOrganizationId) {
-      nextErrors.organization = "Pilih organisasi untuk membuat evaluasi.";
-    }
-    if (!createPeriod.trim()) {
-      nextErrors.period = "Pilih periode evaluasi.";
-    }
-    if (Object.keys(nextErrors).length > 0) {
-      setCreateFieldErrors(nextErrors);
-      const firstInvalidId = nextErrors.organization
-        ? "create-organization"
-        : "create-period";
-      window.requestAnimationFrame(() => {
-        document.getElementById(firstInvalidId)?.focus();
-      });
+    if (!canCreateEvaluation || !createContext || createLock.current) return;
+    if(createContext.existingRecordId){
+      const existingId=createContext.existingRecordId;
+      handleCreateDialogOpenChange(false);
+      router.push(`/evaluations/${existingId}`);
       return;
     }
+    createLock.current=true;
 
-    setCreateFieldErrors({});
     setCreatingEvaluation(true);
     try {
-      const evaluation = await createEvaluation(token, {
-        organizationId: createOrganizationId,
-        period: createPeriod.trim(),
-      });
+      const evaluation = await createEvaluation(token, {profileVersionId:createContext.profileVersionId,monitoringPeriodId:createContext.monitoringPeriodId});
       toast.success("Evaluasi berhasil dibuat.");
       handleCreateDialogOpenChange(false);
       router.push(`/evaluations/${evaluation.id}`);
@@ -444,6 +369,7 @@ export default function EvaluationsPage() {
         error instanceof Error ? error.message : "Gagal membuat evaluasi.",
       );
     } finally {
+      createLock.current=false;
       setCreatingEvaluation(false);
     }
   };
@@ -492,10 +418,9 @@ export default function EvaluationsPage() {
             }}
             organizations={organizations}
             organizationGroups={organizationGroups}
-            periodOptions={periodOptions}
-            periodFilter={periodFilter}
-            onPeriodFilterChange={(value) => {
-              setPeriodFilter(value);
+            createdDateFilter={createdDateFilter}
+            onCreatedDateFilterChange={(value) => {
+              setCreatedDateFilter(value);
               setPage(1);
             }}
             status={status}
@@ -507,7 +432,7 @@ export default function EvaluationsPage() {
           />
         }
         actions={
-          token ? (
+          canCreateEvaluation ? (
             <AccentButton
               type="button"
               onClick={() => handleCreateDialogOpenChange(true)}
@@ -523,21 +448,17 @@ export default function EvaluationsPage() {
           <Table className="min-w-[1180px] table-fixed">
             <colgroup>
               <col className="w-[10%]" />
-              <col className="w-[12%]" />
-              <col className="w-[26%]" />
+              <col className="w-[32%]" />
               <col className="w-[14%]" />
               <col className="w-[12%]" />
               <col className="w-[14%]" />
               <col className="w-40" />
-<col className="w-[12%]" />
+              <col className="w-[12%]" />
             </colgroup>
             <CollectionTableHeader>
               <CollectionTableHeaderRow>
                 <CollectionTableHead >
                   Kode
-                </CollectionTableHead>
-                <CollectionTableHead >
-                  Periode
                 </CollectionTableHead>
                 <CollectionTableHead >
                   Organisasi
@@ -561,7 +482,7 @@ export default function EvaluationsPage() {
               {loading ? (
                 <TableRow>
                   <TableCell
-                    colSpan={8}
+                    colSpan={7}
                     className="text-left"
                   >
                     Memuat evaluasi...
@@ -570,7 +491,7 @@ export default function EvaluationsPage() {
               ) : visibleEvaluations.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={8}
+                    colSpan={7}
                     className="text-left"
                   >
                     <CollectionEmptyState
@@ -593,9 +514,6 @@ export default function EvaluationsPage() {
                     >
                       <TableCell className="">
                         <CollectionCode code={evaluation.code} href={`/evaluations/${evaluation.id}`} />
-                      </TableCell>
-                      <TableCell className="">
-                        {evaluation.period}
                       </TableCell>
                       <TableCell className="">
                         <span className="text-sm font-medium text-foreground">
@@ -624,7 +542,7 @@ export default function EvaluationsPage() {
                                 size="icon-xs"
                                 className="text-muted-foreground"
                                 icon={<MoreHorizontal className="size-3.5" />}
-                                aria-label={`Aksi evaluasi ${evaluation.period}`}
+                                aria-label={`Aksi evaluasi ${evaluation.code || evaluation.id}`}
                               >
                               </ActionButton>
                             </DropdownMenuTrigger>
@@ -667,124 +585,45 @@ export default function EvaluationsPage() {
 
       <Dialog
         open={createDialogOpen}
-        onOpenChange={handleCreateDialogOpenChange}
+        onOpenChange={(open) => {
+          if (!creatingEvaluation) handleCreateDialogOpenChange(open);
+        }}
       >
-        <DialogContent>
-          <form
-            className="space-y-5"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void handleCreateEvaluation();
-            }}
-            aria-busy={creatingEvaluation}
-          >
-            <DialogHeader>
-              <DialogTitle className="text-base font-semibold leading-tight tracking-tight text-foreground text-balance">
-                Buat evaluasi
-              </DialogTitle>
-              <DialogDescription className="mt-1 max-w-[38ch] text-pretty">
-                Pilih organisasi dan periode untuk membuat draft evaluasi.
-                Detailnya dapat dilengkapi setelah draft dibuat.
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-5">
-              <div className="space-y-2">
-                <Label htmlFor="create-organization">Organisasi</Label>
-                <OrganizationPicker
-                  id="create-organization"
-                  value={createOrganizationId}
-                  organizations={organizations}
-                  onChange={(value) => {
-                    setCreateOrganizationId(value);
-                    setCreateFieldErrors((current) => ({
-                      ...current,
-                      organization: undefined,
-                    }));
-                  }}
-                  placeholder="Pilih organisasi"
-                  searchPlaceholder="Cari organisasi..."
-                  emptyMessage="Tidak ada organisasi ditemukan."
-                  disabled={creatingEvaluation}
-                  aria-required="true"
-                  aria-invalid={Boolean(createFieldErrors.organization)}
-                  aria-describedby={
-                    createFieldErrors.organization
-                      ? "create-organization-error"
-                      : undefined
-                  }
-                  className="h-10 rounded-lg text-sm"
-                />
-                <FieldErrorMessage id="create-organization-error">
-                  {createFieldErrors.organization}
-                </FieldErrorMessage>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="create-period">Periode</Label>
-                <Select
-                  value={createPeriod}
-                  onValueChange={(value) => {
-                    setCreatePeriod(value);
-                    setCreateFieldErrors((current) => ({
-                      ...current,
-                      period: undefined,
-                    }));
-                  }}
-                  disabled={creatingEvaluation}
-                >
-                  <SelectTrigger
-                    id="create-period"
-                    aria-required="true"
-                    aria-invalid={Boolean(createFieldErrors.period)}
-                    aria-describedby={
-                      createFieldErrors.period ? "create-period-error" : undefined
-                    }
-                    className=""
-                  >
-                    <SelectValue placeholder="Pilih periode" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {createPeriodOptions.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FieldErrorMessage id="create-period-error">
-                  {createFieldErrors.period}
-                </FieldErrorMessage>
-              </div>
-            </div>
-
-            <DialogFooter className="sm:flex-row">
-              <ActionButton
-                type="button"
-                variant="outline"
-                onClick={() => handleCreateDialogOpenChange(false)}
-                disabled={creatingEvaluation}
-                className="w-full sm:w-auto"
-              >
-                Batal
-              </ActionButton>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Buat evaluasi</DialogTitle>
+            <DialogDescription>
+              {canCreateEvaluation
+                ? <>Draf evaluasi akan dibuat untuk <strong>{user?.orgName || "organisasi Anda"}</strong>.</>
+                : "Akun Anda perlu terhubung ke organisasi untuk membuat evaluasi."}
+            </DialogDescription>
+          </DialogHeader>
+          {createDialogOpen && token && user?.organizationId && <ProfilePeriodPicker
+            key={`${user.organizationId}:${createDialogOpen}`}
+            token={token} organizationId={user.organizationId} process="evaluation"
+            initialProfileId={searchParams.get("profile_version_id") ?? ""}
+            initialPeriodId={searchParams.get("monitoring_period_id") ?? ""}
+            onChange={setCreateContext} />}
+          <DialogFooter>
+            <CollectionDialogCancel
+              type="button"
+              onClick={() => handleCreateDialogOpenChange(false)}
+              disabled={creatingEvaluation}
+            >
+              Batal
+            </CollectionDialogCancel>
+            {canCreateEvaluation && (
               <AccentButton
-                type="submit"
-                disabled={creatingEvaluation}
+                type="button"
+                onClick={handleCreateEvaluation}
+                disabled={creatingEvaluation || !createContext}
                 aria-busy={creatingEvaluation}
-                icon={
-                  creatingEvaluation ? (
-                    <Loader2 className="size-4 animate-spin" aria-hidden="true" />
-                  ) : (
-                    <FilePlus2 className="size-4" aria-hidden="true" />
-                  )
-                }
-                className="w-full sm:w-auto"
+                icon={creatingEvaluation ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : undefined}
               >
-                Buat draft
+                {createContext?.existingRecordId ? "Lanjutkan draf" : "Buat draf"}
               </AccentButton>
-            </DialogFooter>
-          </form>
+            )}
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </PageStack>

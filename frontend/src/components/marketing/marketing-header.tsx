@@ -42,7 +42,7 @@ export function MarketingHeader() {
       }
     }}>
       <div className={styles.headerInner}>
-        <Link href="/" className={styles.brand} aria-label="Manrisk beranda"><ManriskMark size={25} className="dark:invert-0" /><span>manrisk</span></Link>
+        <Link href="/" className={styles.brand} aria-label="Manrisk beranda"><ManriskMark size={25} /><span>manrisk</span></Link>
         <nav className={styles.desktopNav} aria-label="Navigasi utama">
           {navigation.map((item) => <Link key={item.href} href={item.href}>{item.label}</Link>)}
         </nav>

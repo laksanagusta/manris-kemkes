@@ -13,6 +13,7 @@ type EvaluationListFilter struct {
 	OrganizationID  *uuid.UUID
 	OrganizationIDs []uuid.UUID
 	Period          string
+	CreatedDate     string
 	Status          string
 	Query           string
 	Page            int

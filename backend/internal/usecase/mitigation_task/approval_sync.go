@@ -2,11 +2,8 @@ package mitigation_task
 
 import (
 	"context"
-	"fmt"
-	"strings"
 
 	"github.com/google/uuid"
-	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/repository"
 )
 
@@ -37,59 +34,6 @@ func (uc *EnsureTasksForRiskVersionUseCase) Execute(
 	cycle string,
 	orgIDs []uuid.UUID,
 ) (int, error) {
-	risk, err := uc.riskRepo.GetByID(ctx, riskID, orgIDs)
-	if err != nil {
-		return 0, fmt.Errorf("gagal memuat risiko: %w", err)
-	}
-
-	var periodStart, dueDate string
-	if strings.Contains(cycle, "-Q") {
-		year, quarter, err := ParseQuarterCycle(cycle)
-		if err != nil {
-			return 0, err
-		}
-		periodStart = QuarterStart(year, quarter).Format("2006-01-02")
-		dueDate = QuarterEnd(year, quarter).Format("2006-01-02")
-	} else {
-		// Legacy H1/H2 task periods remain supported for historical data.
-		year, half, err := ParseSemesterCycle(cycle)
-		if err != nil {
-			return 0, err
-		}
-		periodStart = SemesterPeriodStart(year, half)
-		dueDate = SemesterDueDate(year, half)
-	}
-	periodEnd := dueDate
-
-	created := 0
-	for _, mitigation := range risk.Mitigations {
-		if mitigation.ID == uuid.Nil {
-			continue
-		}
-
-		exists, err := uc.taskRepo.TaskExistsForPeriod(ctx, mitigation.ID, periodStart, periodEnd)
-		if err != nil {
-			return created, fmt.Errorf("gagal memeriksa keberadaan tugas: %w", err)
-		}
-		if exists {
-			continue
-		}
-
-		task := &entity.MitigationTask{
-			MitigationID: mitigation.ID,
-			RiskID:       risk.ID,
-			PeriodLabel:  cycle,
-			PeriodStart:  periodStart,
-			PeriodEnd:    periodEnd,
-			DueDate:      dueDate,
-			Status:       "pending",
-			GeneratedBy:  "manual",
-		}
-		if err := uc.taskRepo.Create(ctx, task); err != nil {
-			return created, fmt.Errorf("gagal membuat tugas mitigasi: %w", err)
-		}
-		created++
-	}
-
-	return created, nil
+	// Execution reports are created when monitoring starts.
+	return 0, nil
 }

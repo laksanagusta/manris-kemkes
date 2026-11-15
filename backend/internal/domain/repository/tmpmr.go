@@ -10,11 +10,24 @@ import (
 type TMPMRListFilter struct {
 	OrganizationID *uuid.UUID
 	Period         string
+	Status         string
+	Query          string
+	SortBy         string
+	SortOrder      string
 	Page           int
 	Limit          int
 }
 
+type TMPMRSummary struct {
+	Total     int      `json:"total"`
+	Draft     int      `json:"draft"`
+	Submitted int      `json:"submitted"`
+	Approved  int      `json:"approved"`
+	Periods   []string `json:"periods"`
+}
+
 type TMPMRRepository interface {
+	Summary(ctx context.Context, organizationID *uuid.UUID) (TMPMRSummary, error)
 	Create(ctx context.Context, assessment *entity.TMPMRAssessment) error
 	GetByID(ctx context.Context, id uuid.UUID) (*entity.TMPMRAssessment, error)
 	Update(ctx context.Context, assessment *entity.TMPMRAssessment) error

@@ -1,4 +1,5 @@
 "use client";
+import { useOrganizationFilter } from "@/hooks/use-organization-filter";
 
 import { createDisplayDateFormatter } from "@/lib/display-date";
 
@@ -57,7 +58,9 @@ export function FormalReportList({
   const [status, setStatus] = useState("all");
   const [period, setPeriod] = useState("all");
   const [kind, setKind] = useState("all");
+  const organizationFilter = useOrganizationFilter();
   const filteredReports = reports.filter((report) =>
+    (organizationFilter.organizationId === "all" || report.organizationId === organizationFilter.organizationId) &&
     (status === "all" || report.status === status) &&
     (period === "all" || report.period === period) &&
     (kind === "all" || report.reportType === kind) &&
@@ -110,6 +113,7 @@ export function FormalReportList({
       </div>
       <CardContent className="space-y-4">
         <DynamicTableFilters search={<CollectionSearchField aria-label="Cari laporan" placeholder="Cari laporan..." value={search} onChange={(event) => setSearch(event.target.value)} />} fields={[
+                organizationFilter.field,
           { id: "status", label: "Status", value: status, onChange: setStatus, options: [{ value: "all", label: "Semua status" }, ...Object.keys(reportStatusTones).map((value) => ({ value, label: value }))] },
           { id: "period", label: "Periode", value: period, onChange: setPeriod, options: [{ value: "all", label: "Semua periode" }, ...Array.from(new Set(reports.map((report) => report.period))).sort().reverse().map((value) => ({ value, label: value }))] },
           { id: "kind", label: "Jenis", value: kind, onChange: setKind, options: [{ value: "all", label: "Semua jenis" }, ...Object.entries(formalReportTypeLabels).map(([value, label]) => ({ value, label }))] },

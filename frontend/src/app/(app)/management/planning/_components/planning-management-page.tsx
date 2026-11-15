@@ -1,5 +1,5 @@
 "use client";
-import { useCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
+import { useRemoteCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
 import { sortCollection } from "@/lib/collection-sort";
 
 import {
@@ -35,6 +35,7 @@ import {
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
 import {
+  CollectionPagination,
   CollectionEmptyState,
   CollectionErrorState,
   CollectionSearchField,
@@ -137,7 +138,7 @@ function buildPlanningHierarchyTree(
     const activityText = item.kegiatan?.trim() || item.activityTitle?.trim() || "";
     const roText = item.processBusiness?.trim() || item.target?.trim() || "";
 
-    const agreementKey = `agreement:${planningTitle}`;
+    const agreementKey = `agreement:${item.planningId || planningTitle}`;
     const agreementNode = findOrCreateChild(
       root,
       agreementKey,
@@ -498,6 +499,11 @@ export function PlanningManagementPage() {
   const [search, setSearch] = useState("");
   const [periodFilter, setPeriodFilter] = useState("all");
   const [organizationFilter, setOrganizationFilter] = useState("all");
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [periods, setPeriods] = useState<string[]>([]);
+  const collectionSort = useRemoteCollectionSorting({ Struktur: "structure", Level: "level", Periode: "period", Jumlah: "count" }, () => setPage(1));
 
   const deferredSearch = useDeferredValue(search);
   const loadGeneration = useRef(0);
@@ -514,26 +520,18 @@ export function PlanningManagementPage() {
           period: periodFilter === "all" ? undefined : periodFilter,
           organization_id:
             organizationFilter === "all" ? undefined : organizationFilter,
-          page: 1,
-          limit: 100,
+          page,
+          limit,
+          sort_by: collectionSort.sortBy,
+          sort_order: collectionSort.sortOrder,
         };
-        const [rows, orgs] = await Promise.all([
-          (async () => {
-            const rows: PlanningObjectiveCompatibilityItem[] = [];
-            let page = 1;
-            while (true) {
-              const response = await listPlanningObjectiveCompatibility(token, { ...params, page });
-              const data = response.data ?? [];
-              rows.push(...data);
-              if (data.length === 0 || rows.length >= response.total) return rows;
-              page += 1;
-            }
-          })(),
-          listAllOrganizations(token),
-        ]);
+        const response = await listPlanningObjectiveCompatibility(token, params);
         if (generation !== loadGeneration.current) return;
-        setItems(rows);
-        setOrganizations(orgs);
+        const lastPage = Math.max(1, Math.ceil(response.total / limit));
+        if (page > lastPage) { setPage(lastPage); return; }
+        setItems(response.data ?? []);
+        setTotal(response.total);
+        setPeriods(response.periods ?? []);
       } catch (err) {
         if (generation !== loadGeneration.current) return;
         const message =
@@ -544,7 +542,7 @@ export function PlanningManagementPage() {
         if (generation === loadGeneration.current) setLoading(false);
       }
     },
-    [deferredSearch, organizationFilter, periodFilter, token],
+    [deferredSearch, organizationFilter, periodFilter, token, page, limit, collectionSort.sortBy, collectionSort.sortOrder],
   );
 
   useEffect(() => {
@@ -552,49 +550,28 @@ export function PlanningManagementPage() {
     return () => { loadGeneration.current += 1; };
   }, [loadData]);
 
-  const organizationMap = useMemo(
-    () => new Map(organizations.map((org) => [org.id, org.name])),
-    [organizations],
-  );
+  useEffect(() => {
+    if (!token) return;
+    let active = true;
+    listAllOrganizations(token).then((rows) => {
+      if (active) setOrganizations(rows);
+    }).catch((error) => {
+      if (active) toast.error(error instanceof Error ? error.message : "Gagal memuat organisasi.");
+    });
+    return () => { active = false; };
+  }, [token]);
 
-  const periods = useMemo(
-    () =>
-      [...new Set(items.map((item) => item.period).filter(Boolean))]
-        .sort()
-        .reverse(),
-    [items],
-  );
-
-  const filtered = useMemo(() => {
-    const query = deferredSearch.trim().toLowerCase();
-    if (!query) return items;
-    return items.filter((item) =>
-      [
-        item.tujuan,
-        item.sasaran,
-        item.indikatorKinerjaUtama,
-        item.target,
-        item.program,
-        item.kegiatan,
-        item.processBusiness,
-        organizationMap.get(item.organizationId) ?? "",
-      ]
-        .join(" ")
-        .toLowerCase()
-        .includes(query),
-    );
-  }, [deferredSearch, items, organizationMap]);
-
-  const planningHierarchyTree = useMemo(
-    () => buildPlanningHierarchyTree(filtered),
-    [filtered],
-  );
-  const nodeColumns={Struktur:(node:PlanningHierarchyNode)=>node.title,Level:(node:PlanningHierarchyNode)=>hierarchyLevelLabel[node.level],Periode:(node:PlanningHierarchyNode)=>node.periods.join(","),Jumlah:(node:PlanningHierarchyNode)=>node.count};
-  const collectionSort=useCollectionSorting(planningHierarchyTree,nodeColumns);
-  const sortNodes=(nodes:PlanningHierarchyNode[]):PlanningHierarchyNode[]=> {
-    const accessor=nodeColumns[collectionSort.controls.key as keyof typeof nodeColumns];
-    const sorted=accessor?sortCollection(nodes,accessor,collectionSort.controls.direction):nodes;
-    return sorted.map(node=>({...node,children:sortNodes(node.children)}));
+  const planningHierarchyTree = useMemo(() => buildPlanningHierarchyTree(items), [items]);
+  const nodeColumns = {
+    Struktur: (node: PlanningHierarchyNode) => node.title,
+    Level: (node: PlanningHierarchyNode) => hierarchyLevelLabel[node.level],
+    Periode: (node: PlanningHierarchyNode) => node.periods.join(","),
+    Jumlah: (node: PlanningHierarchyNode) => node.count,
+  };
+  const sortChildren = (node: PlanningHierarchyNode): PlanningHierarchyNode => {
+    const accessor = nodeColumns[collectionSort.controls.key as keyof typeof nodeColumns];
+    const children = accessor ? sortCollection(node.children, accessor, collectionSort.controls.direction) : node.children;
+    return { ...node, children: children.map(sortChildren) };
   };
   const [expandedNodeKeys, setExpandedNodeKeys] = useState<Set<string>>(
     () => new Set(),
@@ -636,7 +613,7 @@ export function PlanningManagementPage() {
           <CollectionSearchField
             id="planning-search"
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => { setSearch(event.target.value); setPage(1); }}
             placeholder="Cari perjanjian kinerja, tujuan, sasaran, IKU, program, kegiatan, atau RO"
           />
         }
@@ -645,17 +622,17 @@ export function PlanningManagementPage() {
             id: "period",
             label: "Periode",
             value: periodFilter,
-            onChange: setPeriodFilter,
+            onChange: (value) => { setPeriodFilter(value); setPage(1); },
             options: [
               { value: "all", label: "Semua periode" },
               ...periods.map((period) => ({ value: period, label: period })),
             ],
           },
           {
-            id: "organization",
+            id: "organization", organizationScope: true,
             label: "Satker",
             value: organizationFilter,
-            onChange: setOrganizationFilter,
+            onChange: (value) => { setOrganizationFilter(value); setPage(1); },
             options: [
               { value: "all", label: "Semua satker" },
               ...organizations.map((org) => ({ value: org.id, label: org.name })),
@@ -676,11 +653,14 @@ export function PlanningManagementPage() {
           />
         ) : (
           <PlanningHierarchyTable
-            nodes={sortNodes(planningHierarchyTree)}
+            nodes={planningHierarchyTree.map(sortChildren)}
             expandedNodeKeys={expandedNodeKeys}
             onToggleNode={toggleNode}
           />
         )}
+        <CollectionPagination itemLabel="perjanjian kinerja" total={total} page={page} pageSize={limit}
+          disabled={loading} onPageChange={setPage}
+          onPageSizeChange={(value) => { setLimit(value); setPage(1); }} />
       </CollectionTableCard>
       </div>
     </PageStack>

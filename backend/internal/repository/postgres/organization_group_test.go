@@ -106,6 +106,27 @@ func TestOrganizationGroupQueriesBuildsExpectedClauses(t *testing.T) {
 	}
 }
 
+func TestOrganizationGroupPaginationFiltersAndSort(t *testing.T) {
+	owner, group := uuid.New(), uuid.New()
+	count, data, args := organizationGroupQueries(repository.OrganizationGroupListFilter{
+		OwnerOrganizationID: &owner, GroupID: &group, Q: "wilayah",
+		SortBy: "member_count", SortOrder: "asc",
+	})
+	for _, predicate := range []string{"g.owner_organization_id = $1", "g.id = $2", "lower($3)"} {
+		if !strings.Contains(count, predicate) || !strings.Contains(data, predicate) {
+			t.Fatalf("count and rows must share %q: %s / %s", predicate, count, data)
+		}
+	}
+	if len(args) != 3 || args[2] != "wilayah" ||
+		!strings.Contains(data, "COUNT(m.organization_id) ASC NULLS LAST, g.created_at DESC NULLS LAST, g.id DESC") {
+		t.Fatalf("incorrect filter bindings or sort: %v / %s", args, data)
+	}
+	_, data, _ = organizationGroupQueries(repository.OrganizationGroupListFilter{SortBy: "name; DROP TABLE users"})
+	if strings.Contains(data, "DROP TABLE") || !strings.Contains(data, "ORDER BY g.created_at DESC NULLS LAST, g.id DESC") {
+		t.Fatalf("sort key must use the allowlist: %s", data)
+	}
+}
+
 func TestOrganizationGroupRepositoryCrudAgainstDatabase(t *testing.T) {
 	pool := setupOrganizationGroupPool(t)
 	repo := NewOrganizationGroupRepository(pool)

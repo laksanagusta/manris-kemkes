@@ -1,7 +1,6 @@
 "use client";
 
 import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
-import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,17 +17,17 @@ import {
   History,
   GitBranch,
   Calendar,
-  Eye,
-  ArrowRight,
   TrendingDown,
   TrendingUp,
   Minus,
 } from "@/components/shared/icons";
 import { useState, useEffect } from "react";
-import { api } from "@/lib/api";
+import { listRiskRegister } from "@/lib/api/risk-register";
 import { useAuth } from "@/contexts/auth-context";
 import { buildApprovedRiskHistoryItem, getRiskVersionDetailHref } from "@/lib/risk-history";
 import {
+  CollectionPagination,
+  CollectionTableCard,
   CollectionEmptyState,
   CollectionPageHeader,
   PageStack,
@@ -44,17 +43,33 @@ export default function RiskHistoryPage() {
   const { token } = useAuth();
   const [selectedVersion, setSelectedVersion] = useState("v3");
   const [loading, setLoading] = useState(false);
-  const [historyData, setHistoryData] = useState<any[]>([]);
+  const [historyData, setHistoryData] = useState<(ReturnType<typeof buildApprovedRiskHistoryItem> & { code?: string })[]>([]);
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!token) return;
     setLoading(true);
-    // Since there's no actual snapshot back-end yet, we simulate history by diffing Current vs Target score
-    api.get<any[]>("/risks?status=final", token).then((risks) => {
-      const mapped = risks.map((r) => buildApprovedRiskHistoryItem(r));
-      setHistoryData(mapped.slice(0, 10)); // Just show recent
-    }).finally(() => setLoading(false));
-  }, [token, selectedVersion]);
+    const controller = new AbortController();
+    setError("");
+    listRiskRegister(token, { status: "final", profile: "all", page, limit })
+      .then((response) => {
+        if (controller.signal.aborted) return;
+        setHistoryData(response.data.map((risk) => ({ ...buildApprovedRiskHistoryItem(risk), riskId: risk.id, code: risk.code })));
+        setTotal(response.total);
+        const lastPage = Math.max(1, Math.ceil(response.total / limit));
+        if (page > lastPage) setPage(lastPage);
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setError("Gagal memuat riwayat risiko.");
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false);
+      });
+    return () => controller.abort();
+  }, [token, selectedVersion, page, limit]);
 
   return (
     <PageStack>
@@ -77,7 +92,7 @@ export default function RiskHistoryPage() {
             {versions.map((ver) => (
               <button
                 key={ver.id}
-                onClick={() => setSelectedVersion(ver.id)}
+                onClick={() => { setSelectedVersion(ver.id); setPage(1); }}
                 className={cn(
                   "relative flex items-center justify-between w-full p-3 rounded-lg text-left transition-[background-color,color,box-shadow] z-10 shadow-black",
                   selectedVersion === ver.id
@@ -104,8 +119,7 @@ export default function RiskHistoryPage() {
 
         {/* Change Comparison */}
         <div className="lg:col-span-3 space-y-4">
-          <Card className="">
-            <CardContent>
+          <CollectionTableCard>
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent">
@@ -119,7 +133,9 @@ export default function RiskHistoryPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {loading ? (
+                  {error ? (
+                    <TableRow><TableCell colSpan={7} role="alert">{error}</TableCell></TableRow>
+                  ) : loading ? (
                     <TableRow>
                       <TableCell colSpan={7} className="text-center">
                         Memuat data history...
@@ -136,7 +152,7 @@ export default function RiskHistoryPage() {
                     </TableRow>
                   ) : historyData.map((history) => (
                     <TableRow key={history.riskId} className="hover:bg-muted/30">
-                      <TableCell className="max-w-48"><CollectionCode code={history.riskId} href={getRiskVersionDetailHref(history)} /></TableCell>
+                      <TableCell className="max-w-48"><CollectionCode code={history.code || history.riskId} href={getRiskVersionDetailHref(history)} /></TableCell>
                       <TableCell className="max-w-[300px] font-medium">{history.title}</TableCell>
                       <TableCell className="max-w-[320px] text-muted-foreground">{history.changeReason || "—"}</TableCell>
                       <TableCell>
@@ -159,8 +175,12 @@ export default function RiskHistoryPage() {
                   ))}
                 </TableBody>
               </Table>
-            </CardContent>
-          </Card>
+            <CollectionPagination
+              itemLabel="risiko" total={total} page={page} pageSize={limit}
+              disabled={loading} onPageChange={setPage}
+              onPageSizeChange={(value) => { setLimit(value); setPage(1); }}
+            />
+          </CollectionTableCard>
         </div>
       </div>
     </PageStack>

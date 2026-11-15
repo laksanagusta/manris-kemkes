@@ -9,6 +9,8 @@ import type {
 } from "@/types/risk";
 
 export interface RiskSubstanceValues {
+  targetProbability?: number;
+  targetImpact?: number;
   title: string;
   description: string;
   category: RiskCategory | string;
@@ -45,6 +47,8 @@ const substanceFieldLabels: Record<
   RiskSubstanceDiff["field"],
   string
 > = {
+  targetProbability: "Target probabilitas",
+  targetImpact: "Target dampak",
   title: "Judul",
   description: "Deskripsi",
   category: "Kategori",
@@ -189,6 +193,8 @@ function normalizeSubstanceValues(
   const singleMitigation = (value as Partial<Risk> | undefined)?.mitigation;
 
   return {
+    targetProbability: value?.targetProbability,
+    targetImpact: value?.targetImpact,
     title: normalizeText(value?.title),
     description: normalizeText(value?.description),
     category: normalizeText(value?.category),
@@ -200,7 +206,7 @@ function normalizeSubstanceValues(
     controlEffectiveness: normalizeText(value?.controlEffectiveness),
     treatmentOption: normalizeTreatmentOption(value?.treatmentOption),
     mitigations:
-      mitigations.length > 0
+      Array.isArray(value?.mitigations)
         ? mitigations
         : singleMitigation
           ? [normalizeMitigation(singleMitigation)]
@@ -296,6 +302,8 @@ export function buildSubstancePayload(
 
   return {
     ...previous,
+    targetProbability: nextValues.targetProbability,
+    targetImpact: nextValues.targetImpact,
     title: nextValues.title,
     description: nextValues.description,
     category: nextValues.category as RiskCategory,

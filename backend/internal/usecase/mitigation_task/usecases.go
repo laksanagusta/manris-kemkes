@@ -140,10 +140,11 @@ type ListTasksInput struct {
 }
 
 type ListTasksPaginatedResult struct {
-	Data  []*entity.MitigationTask `json:"data"`
-	Total int                      `json:"total"`
-	Page  int                      `json:"page"`
-	Limit int                      `json:"limit"`
+	Data    []*entity.MitigationTask         `json:"data"`
+	Total   int                              `json:"total"`
+	Page    int                              `json:"page"`
+	Limit   int                              `json:"limit"`
+	Summary repository.TaskCollectionSummary `json:"summary"`
 }
 
 func (uc *ListTasksUseCase) Execute(ctx context.Context, input ListTasksInput) ([]*entity.MitigationTask, error) {
@@ -174,28 +175,58 @@ func (uc *ListTasksUseCase) ExecutePaginated(ctx context.Context, input ListTask
 		input.Limit = 100
 	}
 
-	var tasks []*entity.MitigationTask
-	var total int
+	var result repository.TaskCollectionPage
 	var err error
 	if repo, ok := uc.taskRepo.(interface {
-		ListAllSorted(context.Context, []uuid.UUID, string, string, string, int, int, string, string) ([]*entity.MitigationTask, int, error)
+		ListCollectionPage(context.Context, []uuid.UUID, string, string, string, int, int, string, string) (repository.TaskCollectionPage, error)
 	}); ok {
-		tasks, total, err = repo.ListAllSorted(ctx, input.OrgIDs, input.Query, input.Status, input.Period, input.Page, input.Limit, input.SortBy, input.SortOrder)
+		result, err = repo.ListCollectionPage(ctx, input.OrgIDs, input.Query, input.Status, input.Period, input.Page, input.Limit, input.SortBy, input.SortOrder)
 	} else {
-		tasks, total, err = uc.taskRepo.ListAllPaginated(ctx, input.OrgIDs, input.Query, input.Status, input.Period, input.Page, input.Limit)
+		result.Data, result.Total, err = uc.taskRepo.ListAllPaginated(ctx, input.OrgIDs, input.Query, input.Status, input.Period, input.Page, input.Limit)
 	}
 	if err != nil {
 		return nil, fmt.Errorf("gagal mengambil daftar tugas mitigasi: %w", err)
 	}
-	if tasks == nil {
-		tasks = make([]*entity.MitigationTask, 0)
+	if result.Data == nil {
+		result.Data = make([]*entity.MitigationTask, 0)
 	}
 	return &ListTasksPaginatedResult{
-		Data:  tasks,
-		Total: total,
-		Page:  input.Page,
-		Limit: input.Limit,
+		Data: result.Data, Total: result.Total, Page: input.Page, Limit: input.Limit, Summary: result.Summary,
 	}, nil
+}
+
+func (uc *ListTasksUseCase) ListPeriods(ctx context.Context, orgIDs []uuid.UUID) ([]string, error) {
+	repo, ok := uc.taskRepo.(interface {
+		ListPeriods(context.Context, []uuid.UUID) ([]string, error)
+	})
+	if !ok {
+		return nil, domainerrors.ErrInternal
+	}
+	return repo.ListPeriods(ctx, orgIDs)
+}
+
+func (uc *ListTasksUseCase) ExecuteScopedPage(ctx context.Context, filter repository.ScopedTaskPageFilter) (*repository.ScopedTaskPage, error) {
+	if filter.Page < 1 {
+		filter.Page = 1
+	}
+	if filter.Limit < 1 {
+		filter.Limit = 10
+	}
+	if filter.Limit > 100 {
+		filter.Limit = 100
+	}
+	if filter.RiskID != nil {
+		if _, err := uc.riskRepo.GetByID(ctx, *filter.RiskID, filter.OrgIDs); err != nil {
+			return nil, fmt.Errorf("risiko tidak ditemukan atau tidak dapat diakses: %w", err)
+		}
+	}
+	repo, ok := uc.taskRepo.(interface {
+		ListScopedPage(context.Context, repository.ScopedTaskPageFilter) (*repository.ScopedTaskPage, error)
+	})
+	if !ok {
+		return nil, domainerrors.ErrInternal
+	}
+	return repo.ListScopedPage(ctx, filter)
 }
 
 // ListByMonitoring returns all tasks linked to a specific monitoring
@@ -319,8 +350,8 @@ func hasValidMonitoringReportNotes(notes string) bool {
 }
 
 func (uc *SubmitMonitoringReportUseCase) Execute(ctx context.Context, input SubmitMonitoringReportInput) (*entity.MitigationTask, error) {
-	if input.Status != "" && input.Status != "pending" && input.Status != "done" {
-		return nil, fmt.Errorf("status tidak valid: harus pending atau done")
+	if input.Status != "" && input.Status != "pending" && input.Status != "done" && input.Status != "skipped" {
+		return nil, fmt.Errorf("status tidak valid: harus pending, done, atau skipped")
 	}
 
 	evidenceURLs, err := normalizeEvidenceURLs(input.EvidenceURL, false)
@@ -370,11 +401,11 @@ func (uc *SubmitMonitoringReportUseCase) Execute(ctx context.Context, input Subm
 		// complete. Finalization will count it as not reported.
 		task.Status = "pending"
 	}
-	if task.Status == "done" {
+	if hasValidMonitoringReportNotes(task.Notes) {
 		task.ReportedBy = &input.ReportedBy
 		task.ReportedAt = &now
 	} else {
-		// An incomplete or pending report must remain visibly unreported.
+		// An incomplete report remains unreported regardless of execution state.
 		task.ReportedBy = nil
 		task.ReportedAt = nil
 	}
@@ -396,109 +427,8 @@ func NewGenerateTasksUseCase(taskRepo repository.MitigationTaskRepository) *Gene
 }
 
 func (uc *GenerateTasksUseCase) Execute(ctx context.Context, now time.Time) (int, error) {
-	mitigations, err := uc.taskRepo.GetRecurringMitigations(ctx)
-	if err != nil {
-		return 0, fmt.Errorf("gagal mengambil mitigasi berulang: %w", err)
-	}
-
-	created := 0
-
-	for _, m := range mitigations {
-		if m.RecurringInterval == nil {
-			continue
-		}
-
-		var periodStart, periodEnd, dueDate time.Time
-
-		switch *m.RecurringInterval {
-		case "harian":
-			periodStart = now.Truncate(24 * time.Hour)
-			periodEnd = periodStart
-			dueDate = periodStart.Add(23*time.Hour + 59*time.Minute)
-
-		case "mingguan":
-			// Find the start of the current week (Monday)
-			weekday := int(now.Weekday())
-			if weekday == 0 {
-				weekday = 7 // Sunday = 7
-			}
-			periodStart = now.AddDate(0, 0, -(weekday - 1)).Truncate(24 * time.Hour)
-			periodEnd = periodStart.AddDate(0, 0, 6)
-
-			// Due date = the configured report_day, default Friday (5)
-			reportDay := 5 // Friday
-			if m.ReportDay != nil {
-				reportDay = *m.ReportDay
-			}
-			// Calculate due date within NEXT week
-			daysUntilReport := reportDay - 1 // Monday=0 offset
-			if reportDay == 0 {
-				daysUntilReport = 6 // Sunday
-			}
-			dueDate = periodStart.AddDate(0, 0, daysUntilReport+7) // Add 7 days to push it to next week
-
-		case "bulanan":
-			periodStart = time.Date(now.Year(), now.Month(), 1, 0, 0, 0, 0, now.Location())
-			periodEnd = periodStart.AddDate(0, 1, -1)
-
-			reportDate := 5 // Default: tanggal 5
-			if m.ReportDate != nil {
-				reportDate = *m.ReportDate
-			}
-			// Due date is report_date of the NEXT month
-			dueDateMonth := periodStart.AddDate(0, 1, 0)
-			maxDay := time.Date(dueDateMonth.Year(), dueDateMonth.Month()+1, 0, 0, 0, 0, 0, now.Location()).Day()
-			if reportDate > maxDay {
-				reportDate = maxDay
-			}
-			dueDate = time.Date(dueDateMonth.Year(), dueDateMonth.Month(), reportDate, 0, 0, 0, 0, now.Location())
-
-		case "triwulan":
-			quarter := (int(now.Month()) - 1) / 3
-			periodStart = time.Date(now.Year(), time.Month(quarter*3+1), 1, 0, 0, 0, 0, now.Location())
-			periodEnd = periodStart.AddDate(0, 3, -1)
-
-			reportDate := 10 // Default: tanggal 10
-			if m.ReportDate != nil {
-				reportDate = *m.ReportDate
-			}
-			dueMonth := periodStart.AddDate(0, 3, 0)
-			dueDate = time.Date(dueMonth.Year(), dueMonth.Month(), reportDate, 0, 0, 0, 0, now.Location())
-
-		default:
-			continue
-		}
-
-		pStart := periodStart.Format("2006-01-02")
-		pEnd := periodEnd.Format("2006-01-02")
-
-		// Check if task already exists for this period
-		exists, err := uc.taskRepo.TaskExistsForPeriod(ctx, m.ID, pStart, pEnd)
-		if err != nil {
-			continue
-		}
-		if exists {
-			continue
-		}
-
-		task := &entity.MitigationTask{
-			MitigationID: m.ID,
-			RiskID:       m.RiskID,
-			PeriodLabel:  mitigationTaskPeriodLabel(m.AssessmentCycle),
-			PeriodStart:  pStart,
-			PeriodEnd:    pEnd,
-			DueDate:      dueDate.Format("2006-01-02"),
-			Status:       "pending",
-			GeneratedBy:  "cron",
-		}
-
-		if err := uc.taskRepo.Create(ctx, task); err != nil {
-			continue
-		}
-		created++
-	}
-
-	return created, nil
+	// Execution reports are created when monitoring starts.
+	return 0, nil
 }
 
 // MarkOverdueUseCase marks pending tasks past due_date as overdue

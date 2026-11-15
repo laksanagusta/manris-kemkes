@@ -1,29 +1,32 @@
 "use client";
 
 import { useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, KeyRound, Search, ShieldCheck, SlidersHorizontal, UserRound } from "@/components/shared/icons";
+import { ArrowLeft, CalendarDays, KeyRound, Search, ShieldCheck, SlidersHorizontal, UserRound } from "@/components/shared/icons";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 
-export type SettingsSection = "account" | "security" | "preferences" | "api-key";
+export type SettingsSection = "account" | "security" | "preferences" | "api-key" | "monitoring-rules";
 const sections = [
   { id: "preferences" as const, label: "Preferensi", icon: SlidersHorizontal, keywords: "tema tampilan terang gelap sistem" },
   { id: "account" as const, label: "Akun", icon: UserRound, keywords: "profil nama email nip jabatan pangkat password keamanan" },
   { id: "security" as const, label: "Keamanan", icon: ShieldCheck, keywords: "password kata sandi keamanan" },
   { id: "api-key" as const, label: "API key", icon: KeyRound, keywords: "integrasi heatmap peta risiko generate regenerate organisasi" },
+  { id: "monitoring-rules" as const, label: "Aturan periode", icon: CalendarDays, keywords: "profil risiko tahun pemantauan bulanan kuartal semester jadwal tanggal" },
 ];
 
-export function SettingsDialog({ open, onOpenChange, section, onSectionChange, children }: {
+export function SettingsDialog({ open, onOpenChange, section, onSectionChange, showMonitoringRules = false, headerActionRef, children }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   section: SettingsSection;
   onSectionChange: (section: SettingsSection) => void;
+  showMonitoringRules?: boolean;
+  headerActionRef?: (element: HTMLDivElement | null) => void;
   children: ReactNode;
 }) {
   const [search, setSearch] = useState("");
   const previousFocus = useRef<HTMLElement | null>(null);
-  const visibleSections = sections.filter((item) => `${item.label} ${item.keywords}`.toLowerCase().includes(search.trim().toLowerCase()));
+  const visibleSections = sections.filter((item) => (item.id !== "monitoring-rules" || showMonitoringRules) && `${item.label} ${item.keywords}`.toLowerCase().includes(search.trim().toLowerCase()));
   return (
     <Dialog open={open} onOpenChange={(value) => { if (!value) setSearch(""); onOpenChange(value); }}>
       <DialogContent
@@ -68,10 +71,13 @@ export function SettingsDialog({ open, onOpenChange, section, onSectionChange, c
           </aside>
           <div className="min-h-0 overflow-y-auto overscroll-contain px-4 py-6 md:px-10 md:py-16 lg:py-24">
             <div className="mx-auto w-full max-w-[38rem]">
-              <DialogHeader className="mb-8">
+              <div className="mb-8 flex flex-wrap items-start justify-between gap-3">
+              <DialogHeader className="min-w-0 flex-1 basis-40">
                 <DialogTitle data-workspace-title="">{sections.find((item) => item.id === section)?.label}</DialogTitle>
-                <DialogDescription>{section === "account" ? "Kelola profil akun Anda." : section === "security" ? "Kelola keamanan dan password akun Anda." : section === "api-key" ? "Kelola akses aplikasi eksternal ke peta risiko organisasi." : "Sesuaikan tampilan Manrisk pada perangkat ini."}</DialogDescription>
+                <DialogDescription>{section === "account" ? "Kelola profil akun Anda." : section === "security" ? "Kelola keamanan dan password akun Anda." : section === "api-key" ? "Kelola akses aplikasi eksternal ke peta risiko organisasi." : section === "monitoring-rules" ? "Tetapkan jadwal periode yang dapat dipilih pada profil risiko tahunan." : "Sesuaikan tampilan Manrisk pada perangkat ini."}</DialogDescription>
               </DialogHeader>
+              {headerActionRef && <div ref={headerActionRef} className="ms-auto shrink-0" />}
+              </div>
               {children}
             </div>
           </div>

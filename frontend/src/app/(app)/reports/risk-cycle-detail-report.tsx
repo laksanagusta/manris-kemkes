@@ -588,7 +588,7 @@ export function RiskCycleDetailReport({
                   options: cycleOptions.map((cycle) => ({ value: cycle, label: cycle })),
                 },
                 {
-                  id: "organization",
+                  id: "organization", organizationScope: true,
                   label: "Unit",
                   value: user?.isGlobal ? orgFilter || "all" : orgFilter,
                   defaultValue: user?.isGlobal ? "all" : "",

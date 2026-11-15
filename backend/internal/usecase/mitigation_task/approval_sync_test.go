@@ -160,17 +160,8 @@ func TestEnsureTasksForApprovedRiskUseCase_ExecuteCreatesOneTaskPerMitigation(t 
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if created != 2 {
-		t.Fatalf("expected 2 created tasks, got %d", created)
-	}
-	if len(taskRepo.created) != 2 {
-		t.Fatalf("expected 2 persisted tasks, got %d", len(taskRepo.created))
-	}
-	if taskRepo.created[0].DueDate != "2026-06-30" || taskRepo.created[0].PeriodStart != "2026-01-01" || taskRepo.created[0].PeriodEnd != "2026-06-30" {
-		t.Fatalf("expected first task to use H1 boundaries, got %+v", taskRepo.created[0])
-	}
-	if taskRepo.created[0].PeriodLabel != "2026-H1" {
-		t.Fatalf("expected period label to follow assessment cycle, got %q", taskRepo.created[0].PeriodLabel)
+	if created != 0 || len(taskRepo.created) != 0 {
+		t.Fatal("profile finalization must not generate monitoring reports")
 	}
 }
 

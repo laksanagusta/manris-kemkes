@@ -3,7 +3,6 @@ package postgres
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -12,7 +11,7 @@ import (
 )
 
 type riskCascadeRepository struct {
-	pool *pgxpool.Pool
+	pool repositoryDB
 }
 
 func NewRiskCascadeRepository(pool *pgxpool.Pool) repository.RiskCascadeRepository {
@@ -142,8 +141,37 @@ func (r *riskCascadeRepository) Delete(ctx context.Context, id uuid.UUID) error 
 	return nil
 }
 
+func (r *riskCascadeRepository) Summary(ctx context.Context, orgIDs []uuid.UUID) (repository.RiskCascadeSummary, error) {
+	var summary repository.RiskCascadeSummary
+	query := `
+		SELECT COUNT(*), COUNT(*) FILTER (WHERE rc.status IN ('proposed', 'analyzed')),
+			COUNT(*) FILTER (WHERE rc.status IN ('accepted', 'implemented')),
+			COUNT(*) FILTER (WHERE rc.cascade_type = 'bottom_up_escalation')
+		FROM risk_cascades rc WHERE 1=1
+	`
+	var args []any
+	if len(orgIDs) > 0 {
+		query += " AND (rc.source_org_id = ANY($1::uuid[]) OR rc.target_org_id = ANY($1::uuid[]))"
+		args = append(args, uuidSliceToStringSlice(orgIDs))
+	}
+	err := r.pool.QueryRow(ctx, query, args...).Scan(&summary.Total, &summary.Pending, &summary.Approved, &summary.BottomUp)
+	if err != nil {
+		return summary, fmt.Errorf("summarize risk cascades: %w", err)
+	}
+	return summary, nil
+}
+
 func (r *riskCascadeRepository) List(ctx context.Context, filter repository.RiskCascadeListFilter) ([]*entity.RiskCascade, int, error) {
-	fromClause := `
+	const statusLabel = `CASE rc.status
+		WHEN 'proposed' THEN 'Menunggu Tinjauan'
+		WHEN 'analyzed' THEN 'Sedang Ditinjau'
+		WHEN 'accepted' THEN 'Disetujui'
+		WHEN 'rejected' THEN 'Ditolak'
+		WHEN 'implemented' THEN 'Selesai'
+		ELSE rc.status END`
+	const cascadeTypeLabel = `CASE rc.cascade_type
+		WHEN 'bottom_up_escalation' THEN 'Bottom-up' ELSE 'Top-down' END`
+	from := `
 		FROM risk_cascades rc
 		LEFT JOIN risks sr ON sr.id = rc.source_risk_id
 		LEFT JOIN risks tr ON tr.id = rc.target_risk_id
@@ -151,9 +179,59 @@ func (r *riskCascadeRepository) List(ctx context.Context, filter repository.Risk
 		LEFT JOIN organizations to_org ON to_org.id = rc.target_org_id
 		LEFT JOIN users up ON up.id = rc.proposed_by
 		LEFT JOIN users ud ON ud.id = rc.decided_by
+		WHERE 1=1
 	`
-	whereClause := " WHERE 1=1"
-	countQuery := "SELECT COUNT(*) " + fromClause + whereClause
+
+	var args []any
+	if len(filter.OrgIDs) > 0 {
+		args = append(args, uuidSliceToStringSlice(filter.OrgIDs))
+		from += " AND (rc.source_org_id = ANY($1::uuid[]) OR rc.target_org_id = ANY($1::uuid[]))"
+	}
+	if filter.OrganizationID != nil {
+		args = append(args, *filter.OrganizationID)
+		arg := len(args)
+		from += fmt.Sprintf(" AND (rc.source_org_id = $%d OR rc.target_org_id = $%d)", arg, arg)
+	}
+	if filter.Status != "" {
+		args = append(args, filter.Status)
+		from += fmt.Sprintf(" AND rc.status = $%d", len(args))
+	}
+	if filter.CascadeType != "" {
+		args = append(args, filter.CascadeType)
+		from += fmt.Sprintf(" AND rc.cascade_type = $%d", len(args))
+	}
+	if filter.Query != "" {
+		args = append(args, filter.Query)
+		from += fmt.Sprintf(` AND EXISTS (
+			SELECT 1 FROM unnest(ARRAY[
+				sr.code, sr.title, tr.code, tr.title, so.name, to_org.name,
+				rc.analysis_note, rc.decision_note, rc.cascade_type, rc.status, %s, %s
+			]) AS value
+			WHERE strpos(lower(value), lower($%d)) > 0
+		)`, statusLabel, cascadeTypeLabel, len(args))
+	}
+
+	var total int
+	if err := r.pool.QueryRow(ctx, "SELECT COUNT(*) "+from, args...).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count risk cascades: %w", err)
+	}
+	page := max(1, filter.Page)
+	limit := filter.Limit
+	if limit < 1 || limit > 100 {
+		limit = 10
+	}
+	if page > max(1, (total+limit-1)/limit) {
+		return []*entity.RiskCascade{}, total, nil
+	}
+	offset := (page - 1) * limit
+	order := collectionOrderBy(filter.SortBy, filter.SortOrder, "rc.created_at", "rc.id", map[string]string{
+		"created_at":          "rc.created_at",
+		"risk":                "NULLIF(sr.title, '')",
+		"source_organization": "NULLIF(so.name, '')",
+		"cascade_type":        cascadeTypeLabel,
+		"status":              statusLabel,
+		"adoption_type":       "NULLIF(rc.adoption_type, '')",
+	})
 	dataQuery := `
 		SELECT rc.id, rc.source_risk_id, rc.target_risk_id, rc.source_org_id, rc.target_org_id,
 			rc.cascade_type, COALESCE(rc.adoption_type, ''), rc.status, rc.analysis_note, rc.decision_note,
@@ -162,65 +240,7 @@ func (r *riskCascadeRepository) List(ctx context.Context, filter repository.Risk
 			COALESCE(tr.code, ''), COALESCE(tr.title, ''),
 			COALESCE(so.name, ''), COALESCE(to_org.name, ''),
 			COALESCE(up.name, ''), COALESCE(ud.name, '')
-		` + fromClause + whereClause
-
-	var (
-		args   []any
-		argPos = 1
-	)
-
-	if len(filter.OrgIDs) > 0 {
-		clause := fmt.Sprintf(" AND (rc.source_org_id = ANY($%d::uuid[]) OR rc.target_org_id = ANY($%d::uuid[]))", argPos, argPos)
-		countQuery += clause
-		dataQuery += clause
-		args = append(args, uuidSliceToStringSlice(filter.OrgIDs))
-		argPos++
-	}
-	if strings.TrimSpace(filter.Status) != "" {
-		clause := fmt.Sprintf(" AND rc.status = $%d", argPos)
-		countQuery += clause
-		dataQuery += clause
-		args = append(args, strings.TrimSpace(filter.Status))
-		argPos++
-	}
-	if strings.TrimSpace(filter.CascadeType) != "" {
-		clause := fmt.Sprintf(" AND rc.cascade_type = $%d", argPos)
-		countQuery += clause
-		dataQuery += clause
-		args = append(args, strings.TrimSpace(filter.CascadeType))
-		argPos++
-	}
-	if strings.TrimSpace(filter.Query) != "" {
-		pattern := "%" + strings.TrimSpace(filter.Query) + "%"
-		clause := fmt.Sprintf(` AND (
-			sr.code ILIKE $%d OR sr.title ILIKE $%d OR
-			tr.code ILIKE $%d OR tr.title ILIKE $%d OR
-			so.name ILIKE $%d OR to_org.name ILIKE $%d OR
-			rc.analysis_note ILIKE $%d OR rc.decision_note ILIKE $%d
-		)`, argPos, argPos, argPos, argPos, argPos, argPos, argPos, argPos)
-		countQuery += clause
-		dataQuery += clause
-		for i := 0; i < 8; i++ {
-			args = append(args, pattern)
-		}
-		argPos += 8
-	}
-
-	var total int
-	if err := r.pool.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
-		return nil, 0, fmt.Errorf("count risk cascades: %w", err)
-	}
-
-	page := filter.Page
-	if page < 1 {
-		page = 1
-	}
-	limit := filter.Limit
-	if limit < 1 || limit > 100 {
-		limit = 10
-	}
-	offset := (page - 1) * limit
-	dataQuery += fmt.Sprintf(" ORDER BY rc.created_at DESC, rc.id DESC LIMIT $%d OFFSET $%d", argPos, argPos+1)
+	` + from + " ORDER BY " + order + fmt.Sprintf(" LIMIT $%d OFFSET $%d", len(args)+1, len(args)+2)
 	args = append(args, limit, offset)
 
 	rows, err := r.pool.Query(ctx, dataQuery, args...)

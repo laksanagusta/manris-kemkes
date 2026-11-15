@@ -4,9 +4,24 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
+	"github.com/manris/backend/internal/domain/repository"
 	"github.com/manris/backend/internal/middleware"
 	controluc "github.com/manris/backend/internal/usecase/control"
+	"strings"
+	"time"
 )
+
+type controlPageItem struct {
+	ID             uuid.UUID  `json:"id"`
+	Name           string     `json:"name"`
+	Description    string     `json:"description"`
+	Type           string     `json:"type"`
+	Frequency      string     `json:"frequency"`
+	Owner          string     `json:"owner"`
+	Effectiveness  string     `json:"effectiveness"`
+	OrganizationID *uuid.UUID `json:"organizationId"`
+	CreatedAt      time.Time  `json:"createdAt"`
+}
 
 // ControlHandler handles HTTP requests for Control operations using clean architecture
 type ControlHandler struct {
@@ -66,7 +81,15 @@ func (h *ControlHandler) CreateControl(c *fiber.Ctx) error {
 	if scope == nil {
 		return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", "cakupan akses tidak tersedia")
 	}
-	input.OrgIDs = scope.AccessibleOrgIDs
+	var err error
+	input.OrganizationID, err = resolveWritableOrganization(scope, input.OrganizationID)
+	if err != nil {
+		return handleError(c, err)
+	}
+	input.OrgIDs, err = resolveOperationalOrgIDs(scope, "")
+	if err != nil {
+		return handleError(c, err)
+	}
 
 	result, err := h.createUC.Execute(c.Context(), input)
 	if err != nil {
@@ -112,9 +135,9 @@ func (h *ControlHandler) UpdateControl(c *fiber.Ctx) error {
 	input.ID = id
 
 	scope := middleware.GetAccessScope(c)
-	var orgIDs []uuid.UUID
-	if scope != nil && !scope.IsGlobal {
-		orgIDs = scope.AccessibleOrgIDs
+	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	if err != nil {
+		return handleError(c, err)
 	}
 
 	result, err := h.updateUC.Execute(c.Context(), input, orgIDs, scope)
@@ -149,25 +172,39 @@ func (h *ControlHandler) DeleteControl(c *fiber.Ctx) error {
 // ListControls handles GET /api/controls
 func (h *ControlHandler) ListControls(c *fiber.Ctx) error {
 	scope := middleware.GetAccessScope(c)
-	var orgIDs []uuid.UUID
-	if scope != nil && !scope.IsGlobal {
-		orgIDs = scope.AccessibleOrgIDs
+	orgIDs, err := resolveReadableOrgIDs(scope, c.Query("org_id"))
+	if err != nil {
+		return handleError(c, err)
 	}
 
-	if orgIDStr := c.Query("org_id"); orgIDStr != "" {
-		orgID, err := uuid.Parse(orgIDStr)
-		if err != nil {
-			return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
-		}
-		if scope != nil && !scope.IsGlobal {
-			narrowed, err := scope.NarrowToOrg(orgID)
+	if c.Query("page") != "" || c.Query("limit") != "" {
+		var organizationID *uuid.UUID
+		if raw := c.Query("organization_id"); raw != "" {
+			id, err := uuid.Parse(raw)
 			if err != nil {
-				return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
+				return fiber.ErrBadRequest
 			}
-			orgIDs = narrowed
-		} else {
-			orgIDs = []uuid.UUID{orgID}
+			organizationID = &id
 		}
+		page := max(1, min(c.QueryInt("page", 1), 1_000_000_000))
+		limit := max(1, min(c.QueryInt("limit", 20), 100))
+		controls, total, err := h.listUC.ListPage(c.Context(), repository.ControlListFilter{
+			OrgIDs: orgIDs, OrganizationID: organizationID,
+			Query: strings.TrimSpace(c.Query("q")), Page: page, Limit: limit,
+		})
+		if err != nil {
+			return handleError(c, err)
+		}
+		items := make([]controlPageItem, 0, len(controls))
+		for _, control := range controls {
+			items = append(items, controlPageItem{
+				ID: control.ID, Name: control.Name, Description: control.Description,
+				Type: control.Type, Frequency: control.Frequency, Owner: control.Owner,
+				Effectiveness: control.Effectiveness, OrganizationID: control.OrganizationID,
+				CreatedAt: control.CreatedAt,
+			})
+		}
+		return c.JSON(fiber.Map{"data": items, "total": total, "page": page, "limit": limit})
 	}
 
 	input := controluc.ListControlsInput{

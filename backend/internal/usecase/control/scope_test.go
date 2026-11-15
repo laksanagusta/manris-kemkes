@@ -205,6 +205,20 @@ func TestUpdateControlParentCannotUpdateChildOwned(t *testing.T) {
 	}
 }
 
+func TestUpdateControlCannotMoveOwnRecordIntoReadableChild(t *testing.T) {
+	own, child, id := uuid.New(), uuid.New(), uuid.New()
+	repo := &scopeControlRepo{item: &entity.Control{ID: id, OrganizationID: &own}}
+	scope := &entity.AccessScope{OrganizationID: &own, AccessibleOrgIDs: []uuid.UUID{own, child}}
+	uc := NewUpdateControlUseCase(repo, &scopeCtrlRiskRepo{}, &scopeCtrlOrgRepo{})
+	_, err := uc.Execute(context.Background(), UpdateControlInput{ID: id, OrganizationID: &child}, scope.AccessibleOrgIDs, scope)
+	if !errors.IsForbidden(err) {
+		t.Fatalf("moving a record into child must be forbidden, got %v", err)
+	}
+	if *repo.item.OrganizationID != own {
+		t.Fatal("control ownership changed")
+	}
+}
+
 type scopeAwareCtrlRiskRepo struct {
 	scopeCtrlRiskRepo
 	item *entity.Risk
@@ -298,4 +312,9 @@ func TestDeleteControlParentCannotDeleteChildOwned(t *testing.T) {
 	if !errors.IsForbidden(err) {
 		t.Fatalf("expected ErrForbidden, got %v", err)
 	}
+}
+
+func (r *scopeControlRepo) ListPage(ctx context.Context, filter repository.ControlListFilter) ([]*entity.Control, int, error) {
+	items, err := r.List(ctx, filter.OrgIDs)
+	return items, len(items), err
 }

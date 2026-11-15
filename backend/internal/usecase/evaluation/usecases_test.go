@@ -10,6 +10,7 @@ import (
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
+	"github.com/manris/backend/internal/timeutil"
 )
 
 type fakeEvaluationRepo struct {
@@ -27,6 +28,34 @@ type fakeEvaluationRepo struct {
 type fakeOrganizationRepo struct {
 	org *entity.Organization
 	err error
+}
+
+func TestParentCanReadButCannotMutateDescendantEvaluations(t *testing.T) {
+	own, child, grandchild := uuid.New(), uuid.New(), uuid.New()
+	scope := &entity.AccessScope{OrganizationID: &own, AccessibleOrgIDs: []uuid.UUID{own, child, grandchild}}
+	for _, org := range []uuid.UUID{child, grandchild} {
+		for _, status := range []entity.EvaluationStatus{entity.EvaluationStatusDraft, entity.EvaluationStatusFinal} {
+			t.Run(org.String()+string(status), func(t *testing.T) {
+				repo := newFakeEvaluationRepo()
+				id := uuid.New()
+				repo.evals[id] = &entity.Evaluation{ID: id, OrganizationID: org, Status: status, ReportNumber: "original"}
+				if _, err := NewGetUseCase(repo).Execute(context.Background(), GetInput{ID: id, Scope: scope}); err != nil {
+					t.Fatalf("parent read denied: %v", err)
+				}
+				_, updateErr := NewUpdateUseCase(repo).Execute(context.Background(), UpdateInput{ID: id, Scope: scope, ReportNumber: "changed"})
+				_, finalizeErr := NewFinalizeUseCase(repo).Execute(context.Background(), FinalizeInput{ID: id, Scope: scope})
+				_, reopenErr := NewReopenUseCase(repo).Execute(context.Background(), ReopenInput{ID: id, Scope: scope})
+				for _, err := range []error{updateErr, finalizeErr, reopenErr} {
+					if !errors.IsForbidden(err) {
+						t.Fatalf("descendant mutation must be forbidden, got %v", err)
+					}
+				}
+				if repo.evals[id].ReportNumber != "original" || repo.evals[id].Status != status {
+					t.Fatal("descendant record changed")
+				}
+			})
+		}
+	}
 }
 
 func newFakeEvaluationRepo() *fakeEvaluationRepo {
@@ -264,10 +293,8 @@ func TestCreateUseCaseCopiesActiveTemplateSnapshot(t *testing.T) {
 
 	uc := NewCreateUseCase(repo, orgRepo)
 	result, err := uc.Execute(context.Background(), CreateInput{
-		OrganizationID: orgRepo.org.ID,
-		Period:         "2026-H1",
-		CreatedBy:      &createdBy,
-		Scope:          scope,
+		CreatedBy: &createdBy,
+		Scope:     scope,
 	})
 	if err != nil {
 		t.Fatalf("Execute() error = %v", err)
@@ -281,8 +308,8 @@ func TestCreateUseCaseCopiesActiveTemplateSnapshot(t *testing.T) {
 	if result.TemplateName == "" || result.Status != entity.EvaluationStatusDraft {
 		t.Fatalf("unexpected evaluation fields: %#v", result)
 	}
-	if result.MonitoringDateRange != "Semester I Tahun 2026" {
-		t.Fatalf("monitoring range = %q, want Semester I Tahun 2026", result.MonitoringDateRange)
+	if want := evaluationPeriodAt(timeutil.BusinessNow()); result.OrganizationID != orgRepo.org.ID || result.Period != want {
+		t.Fatalf("evaluation scope = %v / %q, want %v / %q", result.OrganizationID, result.Period, orgRepo.org.ID, want)
 	}
 	if result.UnitLocation != "Jakarta" || result.UnitAddress != "Jl. Contoh No. 1" {
 		t.Fatalf("unexpected org defaults: %#v", result)
@@ -298,7 +325,7 @@ func TestCreateUseCaseRejectsDuplicateEvaluation(t *testing.T) {
 	existing := &entity.Evaluation{
 		ID:             uuid.New(),
 		OrganizationID: orgID,
-		Period:         "2026-H1",
+		Period:         evaluationPeriodAt(timeutil.BusinessNow()),
 		TemplateID:     template.ID,
 		Status:         entity.EvaluationStatusDraft,
 	}
@@ -307,13 +334,33 @@ func TestCreateUseCaseRejectsDuplicateEvaluation(t *testing.T) {
 
 	uc := NewCreateUseCase(repo, orgRepo)
 	_, err := uc.Execute(context.Background(), CreateInput{
-		OrganizationID: orgID,
-		Period:         "2026-H1",
-		CreatedBy:      &createdBy,
-		Scope:          &entity.AccessScope{OrganizationID: &orgID},
+		CreatedBy: &createdBy,
+		Scope:     &entity.AccessScope{OrganizationID: &orgID},
 	})
 	if !errors.IsValidation(err) {
 		t.Fatalf("expected validation error, got %v", err)
+	}
+}
+
+func TestEvaluationPeriodUsesJakartaDate(t *testing.T) {
+	before := time.Date(2026, time.March, 31, 16, 59, 0, 0, time.UTC)
+	if got := evaluationPeriodAt(before); got != "2026-Q1" {
+		t.Fatalf("quarter just before midnight WIB = %s, want 2026-Q1", got)
+	}
+	if got := evaluationPeriodAt(before.Add(time.Minute)); got != "2026-Q2" {
+		t.Fatalf("quarter at midnight WIB = %s, want 2026-Q2", got)
+	}
+}
+
+func TestCreateUseCaseRequiresOrganizationEvenForGlobalAccount(t *testing.T) {
+	uc := NewCreateUseCase(newFakeEvaluationRepo(), fakeOrganizationRepo{})
+	createdBy := uuid.New()
+	_, err := uc.Execute(context.Background(), CreateInput{
+		CreatedBy: &createdBy,
+		Scope:     &entity.AccessScope{IsGlobal: true},
+	})
+	if !errors.IsForbidden(err) {
+		t.Fatalf("expected forbidden for account without an organization, got %v", err)
 	}
 }
 

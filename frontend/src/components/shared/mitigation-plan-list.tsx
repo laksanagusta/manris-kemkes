@@ -32,6 +32,7 @@ type Props = {
   showPlaceholders?: boolean;
   emptyStatePresentation?: "illustrated" | "plain";
   hideAddButton?: boolean;
+  showExecutionSchedule?: boolean;
   loadPicOptions?: (params: { q: string; page: number; limit: number }) => Promise<{
     options: UserPickerOption[]; total: number; page: number; limit: number;
   }>;
@@ -47,6 +48,7 @@ export function MitigationPlanList({
   showPlaceholders = true,
   emptyStatePresentation = "illustrated",
   hideAddButton = false,
+  showExecutionSchedule = false,
   loadPicOptions,
 }: Props) {
   const fieldId = useId();
@@ -102,12 +104,16 @@ export function MitigationPlanList({
           {!items.length && emptyStatePresentation === "illustrated" ? (
             <IllustratedEmptyState title="Belum ada rencana mitigasi." description="Tambahkan rencana mitigasi untuk mulai mencatat penanganan risiko." />
           ) : (
-            <InsetList aria-label="Rencana mitigasi">
+            <InsetList
+              aria-label="Rencana mitigasi"
+              className="rounded-lg bg-card px-5 shadow-(--surface-shadow-low) sm:px-6"
+            >
               {items.length ? items.map((item, index) => {
                 const type = typeOptions.find(option => option.value === (item.mitigationType ?? "reduce_probability"));
                 return (
                   <InsetListItem
                     key={item.id ?? index}
+                    className="py-4"
                     action={!disabled ? (
                       <div className="flex items-center gap-1">
                         <Button
@@ -134,18 +140,21 @@ export function MitigationPlanList({
                       </div>
                     ) : undefined}
                   >
-                    <p className="whitespace-pre-wrap wrap-break-word text-sm text-secondary-foreground">
+                    <p className="whitespace-pre-wrap wrap-break-word text-sm font-medium text-card-foreground">
                       {item.action || "Rencana belum diisi"}
                     </p>
-                    <p className="mt-1 wrap-break-word text-xs text-muted-foreground">
+                    <p className="mt-0.5 wrap-break-word text-sm text-muted-foreground">
                       {item.owner || "PIC belum dipilih"}{type ? ` · ${type.label}` : null}
                     </p>
+                    {showExecutionSchedule && item.executionScheduleText && (
+                      <p className="mt-0.5 wrap-break-word text-sm text-muted-foreground">{item.executionScheduleText}</p>
+                    )}
                     {actionErrors?.[index] ? <p role="alert" className="mt-1 text-xs text-destructive">{actionErrors[index]}</p> : null}
                   </InsetListItem>
                 );
               }) : (
-                <InsetListItem>
-                  <p className="text-xs text-tertiary-foreground">Belum ada rencana mitigasi.</p>
+                <InsetListItem className="py-4">
+                  <p className="text-sm text-muted-foreground">Belum ada rencana mitigasi.</p>
                 </InsetListItem>
               )}
             </InsetList>
@@ -185,6 +194,14 @@ export function MitigationPlanList({
                   ariaLabel="Tipe mitigasi"
                 />
               </Field>
+              {showExecutionSchedule && (
+                <Field>
+                  <FieldLabel htmlFor={`${fieldId}-schedule`}>Jadwal pelaksanaan</FieldLabel>
+                  <Input id={`${fieldId}-schedule`} value={draft.executionScheduleText ?? ""}
+                    onChange={(event) => setDraft({ ...draft, executionScheduleText: event.target.value })}
+                    placeholder="Contoh: setiap bulan atau Januari–April" />
+                </Field>
+              )}
             </FieldGroup>
           </DrawerBody>
           <DrawerFooter className="flex justify-end gap-2">

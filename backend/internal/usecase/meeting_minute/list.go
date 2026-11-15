@@ -21,6 +21,10 @@ type ListInput struct {
 	CreatedBy *uuid.UUID
 	RiskID    *uuid.UUID
 	CreatedAt string
+	Date      string
+	Query     string
+	SortBy    string
+	SortOrder string
 	Limit     int
 	Offset    int
 }
@@ -36,6 +40,10 @@ func (uc *ListMeetingMinutesUseCase) Execute(ctx context.Context, input ListInpu
 		CreatedBy: input.CreatedBy,
 		RiskID:    input.RiskID,
 		CreatedAt: input.CreatedAt,
+		Date:      input.Date,
+		Query:     input.Query,
+		SortBy:    input.SortBy,
+		SortOrder: input.SortOrder,
 		Limit:     input.Limit,
 		Offset:    input.Offset,
 	})
@@ -47,4 +55,8 @@ func (uc *ListMeetingMinutesUseCase) Execute(ctx context.Context, input ListInpu
 		Items: items,
 		Total: total,
 	}, nil
+}
+
+func (uc *ListMeetingMinutesUseCase) ListAuthors(ctx context.Context, orgIDs []uuid.UUID) ([]repository.MeetingMinuteAuthor, error) {
+	return uc.mmRepo.ListAuthors(ctx, orgIDs)
 }

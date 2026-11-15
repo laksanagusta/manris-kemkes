@@ -1,5 +1,6 @@
 "use client";
 
+import { FieldHeading } from "@/components/ui/field";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -109,18 +110,22 @@ export default function CriteriaPage() {
         >
           <FormGroup className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="criteria-appetite">Risk Appetite</Label>
+              <FieldHeading>
+                <Label htmlFor="criteria-appetite">Risk Appetite</Label>
+                <p className="leading-4 text-xs text-muted-foreground">
+                  Batas selera risiko yang bisa diterima organisasi
+                </p>
+              </FieldHeading>
               <Input id="criteria-appetite" defaultValue="Sedang (skor ≤ 9)" className="" />
-              <p className="text-xs text-muted-foreground">
-                Batas selera risiko yang bisa diterima organisasi
-              </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="criteria-tolerance">Risk Tolerance</Label>
+              <FieldHeading>
+                <Label htmlFor="criteria-tolerance">Risk Tolerance</Label>
+                <p className="leading-4 text-xs text-muted-foreground">
+                  Batas toleransi penyimpangan dari appetite
+                </p>
+              </FieldHeading>
               <Input id="criteria-tolerance" defaultValue="Tinggi (skor ≤ 16)" className="" />
-              <p className="text-xs text-muted-foreground">
-                Batas toleransi penyimpangan dari appetite
-              </p>
             </div>
           </FormGroup>
         </FormContainer>

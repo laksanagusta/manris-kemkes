@@ -1,10 +1,7 @@
 "use client";
-import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/contexts/auth-context";
 import { getOperatorWorkSummary } from "@/lib/api/operator-work";
-import { getMitigationTask, updateTaskReport } from "@/lib/api/mitigation-tasks";
-import type { MitigationReportFormValues } from "@/lib/validation/reporting";
 import {
   readWorkUIState,
   workItemHref,
@@ -13,13 +10,10 @@ import {
 } from "@/lib/operator-work";
 import type {
   OperatorWorkSectionKey,
-  OperatorWorkItem,
   OperatorWorkSummary,
 } from "@/types/operator-work";
 import {
   OperatorWorkLayout,
-  OperatorWorkReportDialog,
-  ActionButton,
   CollectionErrorState,
   CollectionLoadingState,
   CollectionPageHeader,
@@ -57,13 +51,7 @@ function WorkContent({ token, userID }: { token: string; userID: string }) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [reload, setReload] = useState(0);
-  const [activeReport, setActiveReport] = useState<{ item: OperatorWorkItem; trigger: HTMLButtonElement } | null>(null);
-  const [completingKey, setCompletingKey] = useState<string | null>(null);
   const workRegionRef = useRef<HTMLDivElement>(null);
-  const reportInProgress = Boolean(activeReport || completingKey);
-  const loadTask = useCallback((id: string) => getMitigationTask(token, id), [token]);
-  const saveReport = useCallback((id: string, values: MitigationReportFormValues) =>
-    updateTaskReport(token, id, { ...values, status: "done" }), [token]);
   const [ui, setUI] = useState<WorkUIState>(() => {
     try {
       return readWorkUIState(
@@ -96,7 +84,6 @@ function WorkContent({ token, userID }: { token: string; userID: string }) {
     setReload((value) => value + 1);
   }, []);
   useEffect(() => {
-    if (reportInProgress) return;
     let cancelled = false;
     const request = getOperatorWorkSummary(token);
     request
@@ -113,7 +100,7 @@ function WorkContent({ token, userID }: { token: string; userID: string }) {
     return () => {
       cancelled = true;
     };
-  }, [token, reload, reportInProgress]);
+  }, [token, reload]);
   useEffect(() => {
     window.addEventListener("focus", refresh);
     return () => window.removeEventListener("focus", refresh);
@@ -151,24 +138,6 @@ function WorkContent({ token, userID }: { token: string; userID: string }) {
     persist();
   }
 
-  const finishCompletion = useCallback(() => {
-    if (!completingKey) return;
-    setData((current) => current && ({
-      ...current,
-      sections: current.sections.map((section) =>
-        section.items.some((item) => item.key === completingKey)
-          ? {
-              ...section,
-              total: Math.max(0, section.total - 1),
-              items: section.items.filter((item) => item.key !== completingKey),
-            }
-          : section,
-      ),
-    }));
-    setCompletingKey(null);
-    refresh();
-  }, [completingKey, refresh]);
-
   return (
     <OperatorWorkLayout
       header={
@@ -177,13 +146,7 @@ function WorkContent({ token, userID }: { token: string; userID: string }) {
           showTitle
           titleClassName="md:sr-only"
           className="[&>div]:flex-row [&>div]:flex-wrap [&>div]:items-center [&>div>div:last-child]:ml-auto"
-          actions={
-            <ActionButton asChild>
-              <Link href="/risk-events?create=1" onClick={persist}>
-                Catat kejadian
-              </Link>
-            </ActionButton>
-          }
+
         />
       }
     >
@@ -194,7 +157,7 @@ function WorkContent({ token, userID }: { token: string; userID: string }) {
         <CollectionLoadingState message="Memuat pekerjaan…" />
       ) : null}
       {data ? (
-        <div ref={workRegionRef} tabIndex={-1} role="region" aria-label="Pekerjaan saya" aria-busy={loading && !reportInProgress}>
+        <div ref={workRegionRef} tabIndex={-1} role="region" aria-label="Pekerjaan saya" aria-busy={loading}>
           <OperatorWorkSections
             sections={data.sections}
             open={ui.open}
@@ -202,28 +165,9 @@ function WorkContent({ token, userID }: { token: string; userID: string }) {
             today={data.today}
             itemHref={workItemHref}
             onNavigate={persist}
-            onOpenReport={(item, trigger) => setActiveReport({ item, trigger })}
-            completingKey={completingKey}
-            onCompletionEnd={finishCompletion}
           />
         </div>
       ) : null}
-      {activeReport && (
-        <OperatorWorkReportDialog
-          taskId={activeReport.item.targetId}
-          loadTask={loadTask}
-          saveReport={saveReport}
-          onClosed={(saved) => {
-            if (saved) {
-              workRegionRef.current?.focus({ preventScroll: true });
-              setCompletingKey(activeReport.item.key);
-            } else if (activeReport.trigger.isConnected) {
-              activeReport.trigger.focus({ preventScroll: true });
-            }
-            setActiveReport(null);
-          }}
-        />
-      )}
     </OperatorWorkLayout>
   );
 }

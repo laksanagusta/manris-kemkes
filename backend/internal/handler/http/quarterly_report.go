@@ -35,7 +35,7 @@ func (h *QuarterlyReportHandler) load(c *fiber.Ctx) (*entity.QuarterlyReportData
 	if err != nil {
 		return nil, err
 	}
-	return h.uc.Execute(c.Context(), reportuc.QuarterlyReportInput{Cycle: c.Query("cycle"), ComparisonCycle: c.Query("compare_cycle"), OrgIDs: ids})
+	return h.uc.Execute(c.Context(), reportuc.QuarterlyReportInput{ComparisonPeriodID: c.Query("compare_period"), ProfileID: c.Query("profile"), PeriodID: c.Query("period"), Cycle: c.Query("cycle"), ComparisonCycle: c.Query("compare_cycle"), OrgIDs: ids})
 }
 
 func resolveQuarterlyReportScope(c *fiber.Ctx, groups organizationGroupReportResolver) ([]uuid.UUID, error) {

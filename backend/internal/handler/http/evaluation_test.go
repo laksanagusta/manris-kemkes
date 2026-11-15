@@ -118,7 +118,7 @@ func TestEvaluationHandlerCreateReturnsCreated(t *testing.T) {
 		return c.Next()
 	}, handler.Create)
 
-	req := httptest.NewRequest(fiber.MethodPost, "/evaluations", strings.NewReader(`{"organizationId":"`+orgID.String()+`","period":"2026-H1"}`))
+	req := httptest.NewRequest(fiber.MethodPost, "/evaluations", strings.NewReader(`{}`))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := app.Test(req)
 	if err != nil {
@@ -129,6 +129,10 @@ func TestEvaluationHandlerCreateReturnsCreated(t *testing.T) {
 	}
 	if createUC.input.CreatedBy == nil || *createUC.input.CreatedBy != userID {
 		t.Fatalf("CreatedBy not set from context")
+	}
+	if createUC.input.Scope == nil || createUC.input.Scope.OrganizationID == nil ||
+		*createUC.input.Scope.OrganizationID != orgID {
+		t.Fatal("organization scope not set from context")
 	}
 }
 

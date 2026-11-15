@@ -2,7 +2,7 @@ package entity
 
 import (
 	"math"
-	"reflect"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -21,10 +21,17 @@ const (
 )
 
 type RiskMonitoring struct {
+	DraftTargetProbability      int                         `json:"draftTargetProbability"`
+	DraftTargetImpact           int                         `json:"draftTargetImpact"`
+	TransactionKind             string                      `json:"transactionKind"`
+	ProfileVersionID            *uuid.UUID                  `json:"profileVersionId,omitempty"`
+	MonitoringPeriodID          *uuid.UUID                  `json:"monitoringPeriodId,omitempty"`
 	ID                          uuid.UUID                   `json:"id"`
 	VersionGroupID              uuid.UUID                   `json:"versionGroupId"`
 	SourceRiskID                uuid.UUID                   `json:"sourceRiskId"`
 	ResultRiskID                *uuid.UUID                  `json:"resultRiskId,omitempty"`
+	ObservedAtInferred          bool                        `json:"observedAtInferred"`
+	ObservedAt                  string                      `json:"observedAt"`
 	AssessmentCycle             string                      `json:"assessmentCycle"`
 	Status                      string                      `json:"status"`
 	SupersededByMonitoringID    *uuid.UUID                  `json:"supersededByMonitoringId,omitempty"`
@@ -42,6 +49,7 @@ type RiskMonitoring struct {
 	ObservedLevel               string                      `json:"observedLevel"`
 	Conclusion                  string                      `json:"conclusion"`
 	MitigationProgressSummary   string                      `json:"mitigationProgressSummary"`
+	MitigationTaskCount         *int                        `json:"mitigationTaskCount"`
 	MitigationCompletionPercent int                         `json:"mitigationCompletionPercent"`
 	DraftPayload                *RiskMonitoringDraftPayload `json:"-"`
 	ObservedScoreConfirmed      bool                        `json:"observedScoreConfirmed"`
@@ -69,6 +77,8 @@ type RiskMonitoring struct {
 }
 
 type RiskMonitoringDraftPayload struct {
+	TargetProbability      int          `json:"targetProbability"`
+	TargetImpact           int          `json:"targetImpact"`
 	ObservedScoreConfirmed bool         `json:"observedScoreConfirmed,omitempty"`
 	Title                  string       `json:"title"`
 	Description            string       `json:"description"`
@@ -84,6 +94,8 @@ type RiskMonitoringDraftPayload struct {
 }
 
 type RiskMonitoringDraftValues struct {
+	TargetProbability    int
+	TargetImpact         int
 	Title                string
 	Description          string
 	Category             string
@@ -103,6 +115,7 @@ type RiskMonitoringDraftValues struct {
 
 func NewRiskMonitoringDraft(source *Risk, cycle string, startedBy uuid.UUID) *RiskMonitoring {
 	draft := &RiskMonitoring{
+		TransactionKind:     "monitoring",
 		VersionGroupID:      source.VersionGroupID,
 		SourceRiskID:        source.ID,
 		AssessmentCycle:     cycle,
@@ -136,6 +149,7 @@ func NewRiskMonitoringDraftPayloadFromRisk(source *Risk) *RiskMonitoringDraftPay
 		return &RiskMonitoringDraftPayload{}
 	}
 	return &RiskMonitoringDraftPayload{
+		TargetProbability: source.TargetProbability, TargetImpact: source.TargetImpact,
 		Title:                source.Title,
 		Description:          source.Description,
 		Category:             source.Category,
@@ -146,12 +160,13 @@ func NewRiskMonitoringDraftPayloadFromRisk(source *Risk) *RiskMonitoringDraftPay
 		ExistingControl:      source.ExistingControl,
 		ControlEffectiveness: source.ControlEffectiveness,
 		TreatmentOption:      source.TreatmentOption,
-		Mitigations:          append([]Mitigation(nil), source.Mitigations...),
+		Mitigations:          slices.Clone(source.Mitigations),
 	}
 }
 
 func NewRiskMonitoringDraftPayloadFromValues(values RiskMonitoringDraftValues) *RiskMonitoringDraftPayload {
 	return &RiskMonitoringDraftPayload{
+		TargetProbability: values.TargetProbability, TargetImpact: values.TargetImpact,
 		Title:                values.Title,
 		Description:          values.Description,
 		Category:             values.Category,
@@ -162,7 +177,7 @@ func NewRiskMonitoringDraftPayloadFromValues(values RiskMonitoringDraftValues) *
 		ExistingControl:      values.ExistingControl,
 		ControlEffectiveness: values.ControlEffectiveness,
 		TreatmentOption:      values.TreatmentOption,
-		Mitigations:          append([]Mitigation(nil), values.Mitigations...),
+		Mitigations:          slices.Clone(values.Mitigations),
 	}
 }
 
@@ -195,6 +210,8 @@ func (m *RiskMonitoring) DraftPayloadSnapshot() *RiskMonitoringDraftPayload {
 		return m.DraftPayload.Clone()
 	}
 	return &RiskMonitoringDraftPayload{
+		TargetProbability:      m.DraftTargetProbability,
+		TargetImpact:           m.DraftTargetImpact,
 		ObservedScoreConfirmed: m.ObservedScoreConfirmed,
 		Title:                  m.DraftTitle,
 		Description:            m.DraftDescription,
@@ -206,11 +223,15 @@ func (m *RiskMonitoring) DraftPayloadSnapshot() *RiskMonitoringDraftPayload {
 		ExistingControl:        m.DraftExistingControl,
 		ControlEffectiveness:   m.DraftControlEffectiveness,
 		TreatmentOption:        m.DraftTreatmentOption,
-		Mitigations:            append([]Mitigation(nil), m.DraftMitigations...),
+		Mitigations:            slices.Clone(m.DraftMitigations),
 	}
 }
 
 func (m *RiskMonitoring) syncDraftFieldsFromPayload() {
+	if m != nil && m.DraftPayload != nil {
+		m.DraftTargetProbability = m.DraftPayload.TargetProbability
+		m.DraftTargetImpact = m.DraftPayload.TargetImpact
+	}
 	if m == nil || m.DraftPayload == nil {
 		return
 	}
@@ -225,7 +246,7 @@ func (m *RiskMonitoring) syncDraftFieldsFromPayload() {
 	m.DraftExistingControl = m.DraftPayload.ExistingControl
 	m.DraftControlEffectiveness = m.DraftPayload.ControlEffectiveness
 	m.DraftTreatmentOption = m.DraftPayload.TreatmentOption
-	m.DraftMitigations = append([]Mitigation(nil), m.DraftPayload.Mitigations...)
+	m.DraftMitigations = slices.Clone(m.DraftPayload.Mitigations)
 }
 
 func (p *RiskMonitoringDraftPayload) Clone() *RiskMonitoringDraftPayload {
@@ -235,7 +256,7 @@ func (p *RiskMonitoringDraftPayload) Clone() *RiskMonitoringDraftPayload {
 	clone := *p
 	clone.Cause = append([]string(nil), p.Cause...)
 	clone.ImpactDesc = append([]string(nil), p.ImpactDesc...)
-	clone.Mitigations = append([]Mitigation(nil), p.Mitigations...)
+	clone.Mitigations = slices.Clone(p.Mitigations)
 	return &clone
 }
 
@@ -264,7 +285,7 @@ func DetectRiskMonitoringMode(source *Risk, values *RiskMonitoringDraftValues) (
 	if source.Category != values.Category {
 		changed = append(changed, "category")
 	}
-	if !reflect.DeepEqual(source.Cause, values.Cause) {
+	if !slices.Equal(source.Cause, values.Cause) {
 		changed = append(changed, "cause")
 	}
 	if source.RiskSource != values.RiskSource {
@@ -273,7 +294,7 @@ func DetectRiskMonitoringMode(source *Risk, values *RiskMonitoringDraftValues) (
 	if source.Controllability != values.Controllability {
 		changed = append(changed, "controllability")
 	}
-	if !reflect.DeepEqual(source.ImpactDesc, values.ImpactDesc) {
+	if !slices.Equal(source.ImpactDesc, values.ImpactDesc) {
 		changed = append(changed, "impactDesc")
 	}
 	if source.ExistingControl != values.ExistingControl {
@@ -301,13 +322,26 @@ func mitigationPlanChanged(source []Mitigation, draft []Mitigation) bool {
 	for i := range source {
 		if source[i].Action != draft[i].Action ||
 			source[i].Owner != draft[i].Owner ||
-			source[i].DueDate != draft[i].DueDate ||
+			!equalOptional(source[i].OwnerUserID, draft[i].OwnerUserID) ||
+			!equalOptional(source[i].DueDate, draft[i].DueDate) ||
+			source[i].Frequency != draft[i].Frequency ||
+			!equalOptional(source[i].RecurringInterval, draft[i].RecurringInterval) ||
+			!equalOptional(source[i].ReportDay, draft[i].ReportDay) ||
+			!equalOptional(source[i].ReportDate, draft[i].ReportDate) ||
+			source[i].ExecutionScheduleText != draft[i].ExecutionScheduleText ||
 			source[i].TargetCost != draft[i].TargetCost ||
 			source[i].MitigationType != draft[i].MitigationType {
 			return true
 		}
 	}
 	return false
+}
+
+func equalOptional[T comparable](left, right *T) bool {
+	if left == nil || right == nil {
+		return left == right
+	}
+	return *left == *right
 }
 
 func (m *RiskMonitoring) Validate() error {

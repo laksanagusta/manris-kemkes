@@ -35,7 +35,15 @@ export interface RiskCascadeRecord {
   decidedAt?: string | null;
 }
 
+export interface RiskCascadeSummary {
+  total: number;
+  pending: number;
+  approved: number;
+  bottomUp: number;
+}
+
 export interface RiskCascadeListResponse {
+  summary: RiskCascadeSummary;
   data: RiskCascadeRecord[];
   total: number;
   page: number;

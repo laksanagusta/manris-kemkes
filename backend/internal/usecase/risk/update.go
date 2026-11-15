@@ -12,7 +12,6 @@ import (
 	"github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
 	"github.com/manris/backend/internal/timeutil"
-	mtuc "github.com/manris/backend/internal/usecase/mitigation_task"
 )
 
 type WorkingPaperLockChecker interface {
@@ -107,6 +106,22 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 	existingRisk, err := uc.riskRepo.GetByID(ctx, input.ID, orgIDs)
 	if err != nil {
 		return nil, errors.ErrRiskNotFound
+	}
+	// Revision identity belongs to the server, not to the editable form payload.
+	if existingRisk.ReviewType == "revision" {
+		input.ReviewType = "revision"
+		if input.ObjectiveID == nil {
+			input.ObjectiveID = existingRisk.ObjectiveID
+		}
+		if input.ReviewScheduleText == "" {
+			input.ReviewScheduleText = existingRisk.ReviewScheduleText
+		}
+		if !uuidPtrEqual(input.OrganizationID, existingRisk.OrganizationID) {
+			return nil, errors.ErrForbidden
+		}
+		if strings.TrimSpace(input.ChangeReason) == "" {
+			return nil, errors.ErrChangeReasonRequired
+		}
 	}
 	input.Status = canonicalRiskStatus(input.Status)
 	wasFinal := existingRisk.Status == entity.RiskStatusFinal
@@ -247,7 +262,7 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 	}
 	if input.Status == entity.RiskStatusFinal && !wasFinal {
 		now := uc.now().UTC()
-		if existingRisk.PreviousRiskID == nil && existingRisk.VersionNumber <= 1 {
+		if existingRisk.ReviewType == "revision" || (existingRisk.PreviousRiskID == nil && existingRisk.VersionNumber <= 1) {
 			existingRisk.AssessmentCycle = assessmentCycleAt(now)
 		}
 		existingRisk.ReviewSubmittedAt = &now
@@ -262,7 +277,7 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 			return nil, cycleErr
 		}
 		existingRisk.EffectiveFrom = &effectiveFrom
-		if existingRisk.PreviousRiskID == nil && existingRisk.VersionNumber <= 1 {
+		if existingRisk.ReviewType == "revision" || (existingRisk.PreviousRiskID == nil && existingRisk.VersionNumber <= 1) {
 			effectiveDate := finalizationDateAt(now)
 			existingRisk.EffectiveFrom = &effectiveDate
 		}
@@ -272,15 +287,7 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 	if err := uc.riskRepo.Update(ctx, existingRisk); err != nil {
 		return nil, errors.Wrap(err, "failed to update risk")
 	}
-	if input.Status == entity.RiskStatusFinal && !wasFinal && uc.taskRepo != nil {
-		if _, err := mtuc.NewEnsureTasksForRiskVersionUseCase(uc.taskRepo, uc.riskRepo).Execute(ctx, existingRisk.ID, existingRisk.AssessmentCycle, orgIDs); err != nil {
-			// Risk finalization is already committed atomically with version
-			// activation. Task generation is a post-commit side effect and is
-			// surfaced as a warning so callers do not retry finalization and hit
-			// a false failure.
-			warnings = append(warnings, fmt.Sprintf("mitigation tasks could not be generated: %v", err))
-		}
-	}
+
 	// 9. Return result
 	return &UpdateRiskOutput{
 		ID:        existingRisk.ID,

@@ -6,6 +6,7 @@ import {
   evaluationStatusLabel,
   filterEvaluations,
   isEvaluationEditable,
+  validateEvaluationFinalization,
 } from "./evaluations.mjs";
 
 const base: Evaluation = {
@@ -54,4 +55,49 @@ test("evaluation helpers filter by search, status, and period", () => {
     result.map((item) => item.id),
     ["eval-1"],
   );
+});
+
+function withAnswers(answers: Array<"yes" | "no" | "unset">): Evaluation {
+  return {
+    ...base,
+    monitoringPeriodId: "period-1",
+    sections: [{
+      id: "section-1", evaluationId: base.id, sectionKey: "section", title: "Bagian",
+      description: "", conclusion: "", sortOrder: 0, createdAt: "", updatedAt: "",
+      items: answers.map((answer, index) => ({
+        id: `item-${index}`, sectionId: "section-1", itemKey: `point-${index}`,
+        itemNo: `${index + 1}`, label: "Pertanyaan", answer, condition: "",
+        description: "", analysis: "", sortOrder: index, createdAt: "", updatedAt: "",
+      })),
+    }],
+  };
+}
+
+test("finalization identifies all unanswered points in reading order", () => {
+  const result = validateEvaluationFinalization(withAnswers(["unset", "no", "unset", "yes"]));
+  assert.deepEqual(result.unansweredItemIds, ["item-0", "item-2"]);
+  assert.equal(result.message, "Jawab setiap butir evaluasi sebelum finalisasi.");
+});
+
+test("both yes and no satisfy finalization without requiring optional text", () => {
+  assert.deepEqual(validateEvaluationFinalization(withAnswers(["yes", "no"])), {
+    unansweredItemIds: [], message: null,
+  });
+});
+
+test("finalization errors clear when answers are corrected and return when unset", () => {
+  const evaluation = withAnswers(["unset"]);
+  assert.equal(validateEvaluationFinalization(evaluation).unansweredItemIds.length, 1);
+  evaluation.sections[0].items[0].answer = "no";
+  assert.equal(validateEvaluationFinalization(evaluation).message, null);
+  evaluation.sections[0].items[0].answer = "unset";
+  assert.equal(validateEvaluationFinalization(evaluation).unansweredItemIds.length, 1);
+});
+
+test("finalization blocks empty templates and preserves legacy answer rules", () => {
+  assert.equal(validateEvaluationFinalization(base).message, "Evaluasi belum memiliki butir penilaian.");
+  assert.equal(validateEvaluationFinalization(withAnswers([])).message, "Evaluasi belum memiliki butir penilaian.");
+  const legacy = withAnswers(["unset"]);
+  delete legacy.monitoringPeriodId;
+  assert.equal(validateEvaluationFinalization(legacy).message, null);
 });

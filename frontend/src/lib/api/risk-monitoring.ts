@@ -28,11 +28,12 @@ interface MonitoringMutationResponse {
 export async function startMonitoring(
   token: string,
   riskId: string,
-  cycle: string,
+  observedAt: string,
+  periodContext?: {profileVersionId:string;monitoringPeriodId:string},
 ): Promise<StartMonitoringResponse> {
   return api.post<StartMonitoringResponse>(
     `/risks/${riskId}/monitorings`,
-    { cycle },
+    { observedAt, ...periodContext },
     token,
   );
 }
@@ -43,6 +44,7 @@ export async function listRiskMonitorings(
 ): Promise<PaginatedRiskMonitoringResponse> {
   const searchParams = new URLSearchParams();
 
+  if (params?.org_id) searchParams.set("org_id", params.org_id);
   if (params?.q) searchParams.set("q", params.q);
   if (params?.lifecycle && params.lifecycle !== "active") {
     searchParams.set("lifecycle", params.lifecycle);
@@ -98,33 +100,16 @@ export async function finalizeMonitoring(
   return result.monitoring;
 }
 
-export async function listAllRiskMonitoringsForCycle(token: string, cycle: string) {
-  const firstPage = await listRiskMonitorings(token, {
-    assessment_cycle: cycle === "all" ? undefined : cycle,
-    page: 1,
-    limit: 100,
-  });
-  const firstData = firstPage.data ?? [];
-  const pageSize = firstPage.limit || 100;
-  const totalPages = Math.max(
-    1,
-    Math.ceil((firstPage.total ?? firstData.length) / pageSize),
-  );
+export interface StartRiskRevisionResponse {
+  riskId: string;
+  redirectUrl: string;
+  existingDraft: boolean;
+}
 
-  if (totalPages === 1) return firstData;
-
-  const remainingPages = await Promise.all(
-    Array.from({ length: totalPages - 1 }, (_, index) =>
-      listRiskMonitorings(token, {
-        assessment_cycle: cycle === "all" ? undefined : cycle,
-        page: index + 2,
-        limit: pageSize,
-      }),
-    ),
-  );
-
-  return [
-    ...firstData,
-    ...remainingPages.flatMap((response) => response.data ?? []),
-  ];
+export async function startRiskRevision(token: string, riskId: string, input: { changeReason: string }): Promise<StartRiskRevisionResponse> {
+  const result = await api.post<StartRiskRevisionResponse>(`/risks/${encodeURIComponent(riskId)}/revisions`, input, token);
+  if (!result || typeof result.riskId !== "string" || !result.riskId.trim()) {
+    throw new Error("Draf revisi belum dapat dibuka. Coba muat ulang halaman.");
+  }
+  return { ...result, redirectUrl: `/risk/register/new?id=${encodeURIComponent(result.riskId)}` };
 }

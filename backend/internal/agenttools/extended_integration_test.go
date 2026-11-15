@@ -18,7 +18,7 @@ func TestIntegrationMonitoringEditsStayDraftPreservePlansAndRejectStaleSource(t 
 	f := newDomainFixture(t)
 	f.finalize(t)
 	ctx := t.Context()
-	reassess, err := f.kit.ValidateOperations(ctx, f.actor, []agent.Operation{f.patch("reassess_risk", map[string]any{"cycle": "2027-Q1"})})
+	reassess, err := f.kit.ValidateOperations(ctx, f.actor, []agent.Operation{f.patch("reassess_risk", map[string]any{"cycle": "2026-Q4"})})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -34,7 +34,7 @@ func TestIntegrationMonitoringEditsStayDraftPreservePlansAndRejectStaleSource(t 
 		t.Fatal(err)
 	}
 	repo := postgres.NewRiskMonitoringRepository(f.pool)
-	monitoring, err := repo.GetByVersionGroupAndCycle(ctx, f.risk.VersionGroupID, "2027-Q1")
+	monitoring, err := repo.GetByVersionGroupAndCycle(ctx, f.risk.VersionGroupID, "2026-Q4")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,6 +49,10 @@ func TestIntegrationMonitoringEditsStayDraftPreservePlansAndRejectStaleSource(t 
 		t.Fatal("accepted manual progress over task-derived progress")
 	}
 	delete(op.After, "mitigationCompletionPercent")
+	if _, err = f.kit.ValidateOperations(ctx, f.actor, []agent.Operation{op}); err == nil {
+		t.Fatal("accepted a substance change in pure monitoring")
+	}
+	delete(op.After, "values")
 	validated, err := f.kit.ValidateOperations(ctx, f.actor, []agent.Operation{op})
 	if err != nil {
 		t.Fatal(err)
@@ -76,7 +80,7 @@ func TestIntegrationMonitoringEditsStayDraftPreservePlansAndRejectStaleSource(t 
 		t.Fatal(err)
 	}
 	plans := after.DraftPayloadSnapshot().Mitigations
-	if after.Status != "draft" || after.ObservedProbability != 3 || after.MitigationCompletionPercent != 0 || after.Conclusion != "Hasil uji" || len(plans) != 1 || plans[0].ID != mid || plans[0].Action != "Rencana yang diperbarui" {
+	if after.Status != "draft" || after.ObservedProbability != 3 || after.MitigationCompletionPercent != 0 || after.Conclusion != "Hasil uji" || len(plans) != 1 || plans[0].ID != mid || plans[0].Action != "Existing mitigation" {
 		t.Fatalf("invalid saved draft: %+v", after)
 	}
 	source, err := postgres.NewRiskRepository(f.pool).GetByID(ctx, f.risk.ID, []uuid.UUID{f.org})

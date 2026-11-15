@@ -7,6 +7,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"github.com/manris/backend/internal/domain/repository"
 	"github.com/manris/backend/internal/middleware"
 	"github.com/manris/backend/internal/timeutil"
 	mtuc "github.com/manris/backend/internal/usecase/mitigation_task"
@@ -43,7 +44,7 @@ func (h *MitigationTaskHandler) GetTask(c *fiber.Ctx) error {
 	if scope == nil {
 		return fiber.ErrForbidden
 	}
-	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	orgIDs, err := resolveReadableOrgIDs(scope, "")
 	if err != nil {
 		return handleError(c, err)
 	}
@@ -65,9 +66,13 @@ func (h *MitigationTaskHandler) ListByRisk(c *fiber.Ctx) error {
 	}
 
 	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	orgIDs, err := resolveReadableOrgIDs(scope, "")
 	if err != nil {
 		return handleError(c, err)
+	}
+
+	if c.Query("page") != "" || c.Query("limit") != "" {
+		return h.scopedTaskPage(c, repository.ScopedTaskPageFilter{RiskID: &riskID, OrgIDs: orgIDs})
 	}
 
 	input := mtuc.ListTasksInput{RiskID: &riskID, OrgIDs: orgIDs}
@@ -85,9 +90,17 @@ func (h *MitigationTaskHandler) ListByRisk(c *fiber.Ctx) error {
 // ListAll handles GET /api/v1/mitigation-tasks/all (compliance monitoring dashboard)
 func (h *MitigationTaskHandler) ListAll(c *fiber.Ctx) error {
 	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	orgIDs, err := resolveReadableOrgIDs(scope, c.Query("org_id"))
 	if err != nil {
 		return handleError(c, err)
+	}
+
+	if c.Query("periods_only") == "true" {
+		periods, err := h.listUC.ListPeriods(c.Context(), orgIDs)
+		if err != nil {
+			return handleError(c, err)
+		}
+		return c.JSON(fiber.Map{"data": periods})
 	}
 
 	page, _ := strconv.Atoi(c.Query("page", "1"))
@@ -117,10 +130,11 @@ func (h *MitigationTaskHandler) ListAll(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"data":  result.Data,
-		"total": result.Total,
-		"page":  result.Page,
-		"limit": result.Limit,
+		"data":    result.Data,
+		"total":   result.Total,
+		"page":    result.Page,
+		"limit":   result.Limit,
+		"summary": result.Summary,
 	})
 }
 
@@ -253,9 +267,13 @@ func (h *MitigationTaskHandler) ListByMonitoring(c *fiber.Ctx) error {
 	}
 
 	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	orgIDs, err := resolveReadableOrgIDs(scope, "")
 	if err != nil {
 		return handleError(c, err)
+	}
+
+	if c.Query("page") != "" || c.Query("limit") != "" {
+		return h.scopedTaskPage(c, repository.ScopedTaskPageFilter{MonitoringID: &monitoringID, OrgIDs: orgIDs})
 	}
 
 	tasks, err := h.listUC.ListByMonitoring(c.Context(), monitoringID, orgIDs)
@@ -277,7 +295,7 @@ func (h *MitigationTaskHandler) ValidateFinalize(c *fiber.Ctx) error {
 	}
 
 	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	orgIDs, err := resolveReadableOrgIDs(scope, "")
 	if err != nil {
 		return handleError(c, err)
 	}
@@ -289,13 +307,28 @@ func (h *MitigationTaskHandler) ValidateFinalize(c *fiber.Ctx) error {
 
 	return c.JSON(fiber.Map{
 		"data": fiber.Map{
-			// Any task without a valid report is finalized as a terminal
-			// "not_reported" outcome, not a gate for the monitoring transaction.
-			"canFinalize":    true,
+			"canFinalize":    counts.Pending == 0,
 			"totalTasks":     counts.Total,
 			"reportedTasks":  counts.Done,
 			"pendingTasks":   counts.Pending,
 			"reportRevision": counts.Revision,
 		},
 	})
+}
+
+func (h *MitigationTaskHandler) scopedTaskPage(c *fiber.Ctx, filter repository.ScopedTaskPageFilter) error {
+	filter.Page = c.QueryInt("page", 1)
+	filter.Limit = c.QueryInt("limit", 10)
+	if raw := c.Query("mitigation_id"); raw != "" {
+		id, err := uuid.Parse(raw)
+		if err != nil {
+			return fiber.ErrBadRequest
+		}
+		filter.MitigationID = &id
+	}
+	result, err := h.listUC.ExecuteScopedPage(c.Context(), filter)
+	if err != nil {
+		return handleError(c, err)
+	}
+	return c.JSON(result)
 }

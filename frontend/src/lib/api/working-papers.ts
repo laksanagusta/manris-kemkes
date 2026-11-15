@@ -12,6 +12,7 @@ export async function listWorkingPapers(
     status?: string;
     q?: string;
     assessment_cycle?: string;
+    observation_cutoff?: string;
     org_id?: string;
     created_at?: string;
     sort_by?: string;
@@ -28,6 +29,7 @@ export async function listWorkingPapers(
   if (params?.assessment_cycle) {
     searchParams.set("assessment_cycle", params.assessment_cycle);
   }
+  if (params?.observation_cutoff) searchParams.set("observation_cutoff", params.observation_cutoff);
   if (params?.org_id) searchParams.set("org_id", params.org_id);
   if (params?.created_at) searchParams.set("created_at", params.created_at);
   if (params?.page) searchParams.set("page", params.page.toString());
@@ -95,13 +97,17 @@ export async function createWorkingPaper(
 
 export async function previewWorkingPaperRoster(
   organizationId: string,
-  assessmentCycle: string,
+  profileVersionId: string,
   token: string,
+  observationCutoff?: string,
+  monitoringPeriodId?: string,
 ): Promise<WorkingPaperRosterPreview> {
   const params = new URLSearchParams({
     organization_id: organizationId,
-    assessment_cycle: assessmentCycle,
+    profile_version_id: profileVersionId,
   });
+  if (monitoringPeriodId) params.set("monitoring_period_id", monitoringPeriodId);
+  if (observationCutoff) params.set("observation_cutoff", observationCutoff);
   return api.get<WorkingPaperRosterPreview>(`/working-papers/roster-preview?${params}`, token);
 }
 

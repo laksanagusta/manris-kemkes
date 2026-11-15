@@ -58,15 +58,30 @@ func readMonitoringEvidence(ctx context.Context, q riskQueryer, sourceID, monito
 	if err != nil {
 		return nil, err
 	}
+	var observed time.Time
+	var year, ordinal *int
+	var frequency *string
+	if err := q.QueryRow(ctx, `SELECT rm.observed_at,p.year,r.frequency,rp.ordinal FROM risk_monitorings rm LEFT JOIN annual_risk_profile_versions p ON p.id=rm.profile_version_id LEFT JOIN monitoring_rules r ON r.id=p.monitoring_rule_id LEFT JOIN monitoring_rule_periods rp ON rp.id=rm.monitoring_period_id WHERE rm.id=$1`, monitoringID).Scan(&observed, &year, &frequency, &ordinal); err != nil {
+		return nil, fmt.Errorf("read observation cutoff: %w", err)
+	}
+	if year != nil && frequency != nil && ordinal != nil {
+		var last time.Time
+		start, last, err = entity.MonitoringPeriodCalendarBounds(*year, *frequency, *ordinal)
+		if err != nil {
+			return nil, err
+		}
+		end = last.AddDate(0, 0, 1)
+	}
+	observationEnd := time.Date(observed.Year(), observed.Month(), observed.Day(), 0, 0, 0, 0, timeutil.JakartaLocation()).AddDate(0, 0, 1)
+	if observationEnd.Before(end) {
+		end = observationEnd
+	}
 	evidence := &entity.RiskMonitoringEvidence{CapturedAt: capturedAt, Reports: []entity.MonitoringEvidenceReport{}, Events: []entity.MonitoringEvidenceEvent{}}
 	var groupID, orgID uuid.UUID
 	if err := q.QueryRow(ctx, `SELECT version_group_id,organization_id,title,COALESCE(nilai,0),COALESCE(target_nilai,0) FROM risks WHERE id=$1`, sourceID).Scan(&groupID, &orgID, &evidence.Title, &evidence.SourceScore, &evidence.TargetScore); err != nil {
 		return nil, fmt.Errorf("read evidence profile: %w", err)
 	}
-	reports, err := q.Query(ctx, `SELECT t.id,m.action,t.status,COALESCE(t.notes,''),COALESCE(t.evidence_url,''),t.reported_at
- FROM mitigation_tasks t JOIN mitigations m ON m.id=t.mitigation_id JOIN risks r ON r.id=t.risk_id
- WHERE r.version_group_id=$1 AND r.organization_id=$2 AND
- (t.monitoring_id=$3 OR (t.period_end >= $4::date AND t.period_start < $5::date)) ORDER BY t.period_start,t.id`, groupID, orgID, monitoringID, start.Format("2006-01-02"), end.Format("2006-01-02"))
+	reports, err := q.Query(ctx, `SELECT t.id,m.action,t.status,COALESCE(t.notes,''),COALESCE(t.evidence_url,''),t.reported_at FROM mitigation_tasks t JOIN mitigations m ON m.id=t.mitigation_id WHERE t.monitoring_id=$1 ORDER BY t.id`, monitoringID)
 	if err != nil {
 		return nil, fmt.Errorf("read evidence reports: %w", err)
 	}

@@ -45,3 +45,24 @@ export async function updateTaskReport(
   );
   return res;
 }
+
+export interface ScopedTaskPage {
+  data: MitigationTask[];
+  total: number;
+  page: number;
+  limit: number;
+  summary: { total: number; done: number; pending: number; overdue: number; notReported: number };
+}
+
+export function listScopedTaskPage(
+  token: string,
+  scope: { riskId?: string; monitoringId?: string },
+  params: { page: number; limit: number; mitigationId?: string },
+): Promise<ScopedTaskPage> {
+  const path = scope.monitoringId
+    ? `/risk-monitorings/${encodeURIComponent(scope.monitoringId)}/tasks`
+    : `/risks/${encodeURIComponent(scope.riskId || "")}/tasks`;
+  const query = new URLSearchParams({ page: String(params.page), limit: String(params.limit) });
+  if (params.mitigationId && params.mitigationId !== "all") query.set("mitigation_id", params.mitigationId);
+  return api.get<ScopedTaskPage>(`${path}?${query}`, token);
+}

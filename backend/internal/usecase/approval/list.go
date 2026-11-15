@@ -38,21 +38,22 @@ type ListApprovalResult struct {
 
 // ApprovalOutput represents a single approval in the output
 type ApprovalOutput struct {
-	ID                    string  `json:"id"`
-	RequestType           string  `json:"requestType"`
-	EntityID              string  `json:"entityId"`
-	EntityCode            *string `json:"entityCode"`
-	EntityTitle           *string `json:"entityTitle"`
-	EntityOrgName         *string `json:"entityOrgName"`
-	RequestedBy           string  `json:"requestedBy"`
-	RequestedByName       string  `json:"requestedByName"`
-	RequestedAt           string  `json:"requestedAt"`
-	CreatedAt             string  `json:"createdAt"`
-	CurrentStatus         string  `json:"currentStatus"`
-	CurrentApproverRole   string  `json:"currentApproverRole"`
-	CurrentApproverUserID *string `json:"currentApproverUserId,omitempty"`
-	CurrentApproverName   *string `json:"currentApproverName,omitempty"`
-	Notes                 string  `json:"notes"`
+	EntityOrgID           *uuid.UUID `json:"entityOrgId"`
+	ID                    string     `json:"id"`
+	RequestType           string     `json:"requestType"`
+	EntityID              string     `json:"entityId"`
+	EntityCode            *string    `json:"entityCode"`
+	EntityTitle           *string    `json:"entityTitle"`
+	EntityOrgName         *string    `json:"entityOrgName"`
+	RequestedBy           string     `json:"requestedBy"`
+	RequestedByName       string     `json:"requestedByName"`
+	RequestedAt           string     `json:"requestedAt"`
+	CreatedAt             string     `json:"createdAt"`
+	CurrentStatus         string     `json:"currentStatus"`
+	CurrentApproverRole   string     `json:"currentApproverRole"`
+	CurrentApproverUserID *string    `json:"currentApproverUserId,omitempty"`
+	CurrentApproverName   *string    `json:"currentApproverName,omitempty"`
+	Notes                 string     `json:"notes"`
 }
 
 func (uc *ListApprovalUseCase) Execute(ctx context.Context, input ListApprovalInput) (*ListApprovalResult, error) {
@@ -85,6 +86,7 @@ func (uc *ListApprovalUseCase) Execute(ctx context.Context, input ListApprovalIn
 			EntityCode:            req.EntityCode,
 			EntityTitle:           req.EntityTitle,
 			EntityOrgName:         req.EntityOrgName,
+			EntityOrgID:           req.EntityOrgID,
 			RequestedBy:           req.RequestedBy.String(),
 			RequestedByName:       req.RequestedByName,
 			RequestedAt:           req.RequestedAt.Format("2006-01-02T15:04:05Z07:00"),

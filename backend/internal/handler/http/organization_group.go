@@ -56,13 +56,37 @@ func (h *OrganizationGroupHandler) List(c *fiber.Ctx) error {
 		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "nilai include_members tidak valid")
 	}
 
+	scope := middleware.GetAccessScope(c)
+	if c.QueryBool("options_only") {
+		options, err := h.listUC.Options(c.Context(), organizationgroupuc.ListInput{
+			OwnerOrganizationID: ownerOrganizationID,
+			Scope:               scope,
+		})
+		if err != nil {
+			return handleOrganizationGroupError(c, err)
+		}
+		return c.JSON(fiber.Map{"data": options})
+	}
+
+	var groupID *uuid.UUID
+	if raw := c.Query("group_id"); raw != "" {
+		parsed, err := uuid.Parse(raw)
+		if err != nil {
+			return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID grup organisasi tidak valid")
+		}
+		groupID = &parsed
+	}
+
 	result, err := h.listUC.Execute(c.Context(), organizationgroupuc.ListInput{
 		OwnerOrganizationID: ownerOrganizationID,
+		GroupID:             groupID,
 		Q:                   c.Query("q"),
+		SortBy:              c.Query("sort_by"),
+		SortOrder:           c.Query("sort_order"),
 		Page:                page,
 		Limit:               limit,
 		IncludeMembers:      includeMembers,
-		Scope:               middleware.GetAccessScope(c),
+		Scope:               scope,
 	})
 	if err != nil {
 		return handleOrganizationGroupError(c, err)

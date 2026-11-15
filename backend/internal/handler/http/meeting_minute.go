@@ -127,7 +127,7 @@ func (h *MeetingMinuteHandler) List(c *fiber.Ctx) error {
 	scope := middleware.GetAccessScope(c)
 	var orgIDs []uuid.UUID
 	if scope != nil && !scope.IsGlobal {
-		orgIDs = scope.AccessibleOrgIDs
+		orgIDs = append([]uuid.UUID{}, scope.AccessibleOrgIDs...)
 	}
 
 	if orgIDStr := c.Query("organizationId"); orgIDStr != "" {
@@ -148,6 +148,14 @@ func (h *MeetingMinuteHandler) List(c *fiber.Ctx) error {
 
 	var input mmuc.ListInput
 	input.OrgIDs = orgIDs
+
+	if c.QueryBool("authors_only") {
+		authors, err := h.listUC.ListAuthors(c.Context(), orgIDs)
+		if err != nil {
+			return handleError(c, err)
+		}
+		return c.JSON(fiber.Map{"data": authors})
+	}
 
 	if createdByIDStr := c.Query("createdBy"); createdByIDStr != "" {
 		createdBy, err := uuid.Parse(createdByIDStr)
@@ -171,6 +179,16 @@ func (h *MeetingMinuteHandler) List(c *fiber.Ctx) error {
 			return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "tanggal created_at tidak valid")
 		}
 	}
+
+	input.Date = strings.TrimSpace(c.Query("date"))
+	if input.Date != "" {
+		if _, err := time.Parse("2006-01-02", input.Date); err != nil {
+			return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "tanggal rapat tidak valid")
+		}
+	}
+	input.Query = strings.TrimSpace(c.Query("q"))
+	input.SortBy = c.Query("sort_by")
+	input.SortOrder = c.Query("sort_order")
 
 	limit := c.QueryInt("limit", 20)
 	if limit < 1 {

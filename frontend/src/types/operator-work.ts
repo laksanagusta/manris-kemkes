@@ -1,4 +1,5 @@
 export type OperatorWorkItem = {
+  monitoringId?: string | null;
   mitigationAction?: string;
   key: string;
   kind: "risk_draft" | "mitigation_report" | "monitoring_start" | "monitoring_draft";

@@ -21,35 +21,40 @@ type CreateSignatoryInput struct {
 }
 
 type CreateWorkingPaperInput struct {
-	AssessmentCycle  string
-	OrganizationID   uuid.UUID
-	RosterRevision   string
-	AccessibleOrgIDs []uuid.UUID
-	IsGlobal         bool
-	CreatedByUserID  uuid.UUID
-	Decisions        []entity.WorkingPaperRosterDecision
-	Signatories      []CreateSignatoryInput
+	MonitoringPeriodID *uuid.UUID
+	ProfileVersionID   *uuid.UUID
+	ObservationCutoff  string
+	AssessmentCycle    string
+	OrganizationID     uuid.UUID
+	RosterRevision     string
+	AccessibleOrgIDs   []uuid.UUID
+	IsGlobal           bool
+	CreatedByUserID    uuid.UUID
+	Decisions          []entity.WorkingPaperRosterDecision
+	Signatories        []CreateSignatoryInput
 }
 
 func (uc *UseCase) Create(ctx context.Context, input CreateWorkingPaperInput) (*entity.WorkingPaper, error) {
 	if len(input.Signatories) == 0 {
 		return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "at least one signatory is required"}
 	}
-	if !riskusecase.IsValidSemesterFormat(input.AssessmentCycle) {
-		return nil, domainerrors.ErrSemesterFormat
-	}
-	if len(input.Decisions) == 0 {
-		return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "roster decisions are required"}
-	}
-
-	included := 0
-	for _, decision := range input.Decisions {
-		if decision.Included {
-			included++
+	if input.ProfileVersionID != nil {
+		if input.OrganizationID == uuid.Nil || *input.ProfileVersionID == uuid.Nil ||
+			(!input.IsGlobal && !containsOrgID(input.AccessibleOrgIDs, input.OrganizationID)) ||
+			input.ObservationCutoff == "" || input.RosterRevision == "" {
+			return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "Pilih dan tinjau profil final dari unit kerja yang dapat diakses."}
 		}
-	}
-	if included == 0 {
-		return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "at least one roster risk must be included"}
+	} else {
+		if !riskusecase.IsValidSemesterFormat(input.AssessmentCycle) {
+			return nil, domainerrors.ErrSemesterFormat
+		}
+		included := false
+		for _, decision := range input.Decisions {
+			included = included || decision.Included
+		}
+		if !included {
+			return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "at least one roster risk must be included"}
+		}
 	}
 
 	title := fmt.Sprintf("Kertas Kerja %s", input.AssessmentCycle)
@@ -61,6 +66,9 @@ func (uc *UseCase) Create(ctx context.Context, input CreateWorkingPaperInput) (*
 		OrgID:                    input.OrganizationID,
 		Status:                   entity.WorkingPaperStatusDraft,
 		AssessmentCycle:          input.AssessmentCycle,
+		ProfileVersionID:         input.ProfileVersionID,
+		MonitoringPeriodID:       input.MonitoringPeriodID,
+		ObservationCutoff:        input.ObservationCutoff,
 		CurrentSignatorySequence: 0,
 		CreatedBy:                input.CreatedByUserID,
 		CreatedAt:                now,

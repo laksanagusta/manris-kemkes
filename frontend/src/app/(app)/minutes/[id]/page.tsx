@@ -1,5 +1,6 @@
 "use client";
 
+import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import { formatDisplayDate } from "@/lib/display-date";
 
 import { useEffect, useState, type ReactNode } from "react";
@@ -475,10 +476,11 @@ function MeetingMinuteDetailContent() {
         <DialogContent showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>Hapus Notulen?</DialogTitle>
-            <DialogDescription>
-              Notulen ini akan dihapus permanen beserta relasinya dengan risiko terkait.
-            </DialogDescription>
+            <DialogDescription>Periksa notulen yang akan dihapus.</DialogDescription>
           </DialogHeader>
+          <ConfirmationConsequences>
+            Notulen ini akan dihapus permanen beserta relasinya dengan risiko terkait.
+          </ConfirmationConsequences>
           <div className="space-y-0.5 py-1 text-sm">
             <p className="font-medium">{minutes.title}</p>
             <p className="font-mono text-xs text-muted-foreground">{minutes.id}</p>

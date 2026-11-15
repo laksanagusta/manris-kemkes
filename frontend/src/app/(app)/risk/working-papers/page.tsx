@@ -1,6 +1,7 @@
 "use client";
+import { useOrganizationFilter } from "@/hooks/use-organization-filter";
+import type { TableFilterField } from "@/components/shared/design-system/collections/dynamic-table-filter-state";
 
-import { businessNow } from "@/lib/business-clock";
 import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
 import { formatDisplayDate } from "@/lib/display-date";
 import { useRemoteCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
@@ -17,7 +18,6 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
 import {
-  listWorkingPaperAssessmentCycles,
   listWorkingPapers,
 } from "@/lib/api/working-papers";
 import type { WorkingPaper, WorkingPaperStatus } from "@/types/working-paper";
@@ -32,12 +32,6 @@ import {
 } from "@/components/ui/table";
 import { Plus } from "@/components/shared/icons";
 import { Badge } from "@/components/ui/badge";
-import {
-  currentAssessmentCycle,
-  getAssessmentCycleFilterOptions,
-  getSelectableMonitoringCyclesForDate,
-  shiftAssessmentCycle,
-} from "@/lib/risk-cycle-options";
 import {
   CollectionEmptyState,
   CollectionErrorState,
@@ -103,29 +97,29 @@ const statusTones = {
 } as const;
 
 type WorkingPaperFiltersToolbarProps = {
+  organizationField?: TableFilterField;
   search: string;
   onSearchChange: (value: string) => void;
   searchPlaceholder: string;
   searchAriaLabel: string;
   statusFilter: WorkingPaperStatusFilter;
   onStatusFilterChange: (value: WorkingPaperStatusFilter) => void;
-  assessmentCycleFilter: string;
-  onAssessmentCycleFilterChange: (value: string) => void;
-  assessmentCycleOptions: { value: string; label: string }[];
+  observationCutoffFilter: string;
+  onObservationCutoffFilterChange: (value: string) => void;
   createdAtFilter: string;
   onCreatedAtFilterChange: (value: string) => void;
 };
 
 function WorkingPaperFiltersToolbar({
+  organizationField,
   search,
   onSearchChange,
   searchPlaceholder,
   searchAriaLabel,
   statusFilter,
   onStatusFilterChange,
-  assessmentCycleFilter,
-  onAssessmentCycleFilterChange,
-  assessmentCycleOptions,
+  observationCutoffFilter,
+  onObservationCutoffFilterChange,
   createdAtFilter,
   onCreatedAtFilterChange,
 }: WorkingPaperFiltersToolbarProps) {
@@ -140,6 +134,7 @@ function WorkingPaperFiltersToolbar({
         />
       }
       fields={[
+        ...(organizationField ? [organizationField] : []),
         {
           id: "status",
           label: "Status",
@@ -151,11 +146,12 @@ function WorkingPaperFiltersToolbar({
           ],
         },
         {
-          id: "assessment_cycle",
-          label: "Periode",
-          value: assessmentCycleFilter || "all",
-          onChange: (value) => onAssessmentCycleFilterChange(value === "all" ? "" : value),
-          options: assessmentCycleOptions,
+          id: "observation_cutoff",
+          label: "Tanggal batas pengamatan",
+          type: "date",
+          value: observationCutoffFilter,
+          defaultValue: "",
+          onChange: onObservationCutoffFilterChange,
         },
         {
           id: "created_at",
@@ -226,14 +222,11 @@ export default function WorkingPapersPage() {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [isPending, startTransition] = useTransition();
   const isApplyingSearchParamsRef = useRef(false);
 
   const [papers, setPapers] = useState<WorkingPaper[]>([]);
-  const [availableAssessmentCycles, setAvailableAssessmentCycles] = useState<
-    string[]
-  >([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -241,8 +234,8 @@ export default function WorkingPapersPage() {
     () => getWorkingPaperStatusFilter(searchParams.get("status")),
   );
   const [search, setSearch] = useState(() => searchParams.get("q") ?? "");
-  const [assessmentCycleFilter, setAssessmentCycleFilter] = useState(
-    () => searchParams.get("assessment_cycle") ?? "",
+  const [observationCutoffFilter, setObservationCutoffFilter] = useState(
+    () => searchParams.get("observation_cutoff") ?? "",
   );
   const [createdAtFilter, setCreatedAtFilter] = useState(
     () => searchParams.get("created_at") ?? "",
@@ -253,67 +246,23 @@ export default function WorkingPapersPage() {
   const [limit, setLimit] = useState(() =>
     parsePositiveInt(searchParams.get("limit"), 10),
   );
+  const organizationFilter = useOrganizationFilter(() => setPage(1));
   const [total, setTotal] = useState(0);
 
   const debouncedSearch = useDebouncedValue(search, 500);
-  const deferredAssessmentCycleFilter = useDebouncedValue(
-    assessmentCycleFilter,
-    500,
-  );
-  const assessmentCycleOptions = getAssessmentCycleFilterOptions(
-    businessNow(),
-    assessmentCycleFilter,
-    availableAssessmentCycles,
-  );
-
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [selectedPeriod, setSelectedPeriod] = useState("");
   const [exportingPaperId, setExportingPaperId] = useState<string | null>(null);
 
-  const collectionSort = useRemoteCollectionSorting({"Judul": "title", "Periode": "assessment_cycle", "Status": "status", "Jumlah risiko": "risk_count"}, () => setPage(1));
-  useEffect(() => {
-    if (!token) {
-      setAvailableAssessmentCycles([]);
-      return;
-    }
-
-    setAvailableAssessmentCycles([]);
-    let cancelled = false;
-    listWorkingPaperAssessmentCycles(token)
-      .then((cycles) => {
-        if (!cancelled) setAvailableAssessmentCycles(cycles);
-      })
-      .catch((error) => {
-        console.error("Failed to load working paper assessment cycles", error);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [token]);
-
-  const periodOptions: {
-    value: string;
-    label: string;
-    isCurrent?: boolean;
-  }[] = (() => {
-    const currentCycle = currentAssessmentCycle();
-    const monitoringCycles = getSelectableMonitoringCyclesForDate();
-    return monitoringCycles.map((cycle) => ({
-      ...cycle,
-      isCurrent: cycle.value === currentCycle,
-    }));
-  })();
-
+  const collectionSort = useRemoteCollectionSorting({"Judul": "title", "Tanggal batas pengamatan": "observation_cutoff", "Status": "status", "Jumlah risiko": "risk_count"}, () => setPage(1));
   const handleExport = useCallback(async (workingPaper: WorkingPaper) => {
     setExportingPaperId(workingPaper.id);
     try {
       const { exportWorkingPaper } = await import("@/lib/working-paper-export");
       await exportWorkingPaper(workingPaper);
-      toast.success("Kertas kerja berhasil diunduh.");
+      toast.success("KK Pemantauan dan Reviu berhasil diunduh.");
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Gagal mengunduh kertas kerja.",
+        err instanceof Error ? err.message : "Gagal mengunduh KK Pemantauan dan Reviu.",
       );
     } finally {
       setExportingPaperId(null);
@@ -328,10 +277,11 @@ export default function WorkingPapersPage() {
         setLoading(true);
         setError(null);
         const res = await listWorkingPapers(activeToken, {
+          org_id: organizationFilter.organizationId === "all" ? undefined : organizationFilter.organizationId,
  sort_by:collectionSort.sortBy, sort_order:collectionSort.sortOrder,
           status: statusFilter === "all" ? undefined : statusFilter,
           q: debouncedSearch.trim() || undefined,
-          assessment_cycle: deferredAssessmentCycleFilter.trim() || undefined,
+          observation_cutoff: observationCutoffFilter || undefined,
           created_at: createdAtFilter.trim() || undefined,
           page,
           limit,
@@ -347,7 +297,7 @@ export default function WorkingPapersPage() {
         setError(
           err instanceof Error
             ? err.message
-            : "Gagal memuat daftar kertas kerja. Silakan coba lagi.",
+            : "Gagal memuat daftar KK Pemantauan dan Reviu. Silakan coba lagi.",
         );
       } finally {
         setLoading(false);
@@ -355,11 +305,11 @@ export default function WorkingPapersPage() {
     },
     [
       createdAtFilter,
-      deferredAssessmentCycleFilter,
+      observationCutoffFilter,
       debouncedSearch,
       limit,
       page,
-      statusFilter, collectionSort.sortBy, collectionSort.sortOrder,
+      organizationFilter.organizationId, statusFilter, collectionSort.sortBy, collectionSort.sortOrder,
     ],
   );
 
@@ -375,8 +325,8 @@ export default function WorkingPapersPage() {
       searchParams.get("status"),
     );
     const nextSearch = searchParams.get("q") ?? "";
-    const nextAssessmentCycleFilter =
-      searchParams.get("assessment_cycle") ?? "";
+    const nextObservationCutoffFilter =
+      searchParams.get("observation_cutoff") ?? "";
     const nextCreatedAtFilter = searchParams.get("created_at") ?? "";
     const nextPage = parsePositiveInt(searchParams.get("page"), 1);
     const nextLimit = parsePositiveInt(searchParams.get("limit"), 10);
@@ -385,10 +335,10 @@ export default function WorkingPapersPage() {
       current === nextStatusFilter ? current : nextStatusFilter,
     );
     setSearch((current) => (current === nextSearch ? current : nextSearch));
-    setAssessmentCycleFilter((current) =>
-      current === nextAssessmentCycleFilter
+    setObservationCutoffFilter((current) =>
+      current === nextObservationCutoffFilter
         ? current
-        : nextAssessmentCycleFilter,
+        : nextObservationCutoffFilter,
     );
     setCreatedAtFilter((current) =>
       current === nextCreatedAtFilter ? current : nextCreatedAtFilter,
@@ -406,8 +356,9 @@ export default function WorkingPapersPage() {
     if (search !== debouncedSearch) return;
 
     const nextParams = new URLSearchParams(searchParams.toString());
+    nextParams.delete("assessment_cycle");
     const normalizedSearch = debouncedSearch.trim();
-    const normalizedAssessmentCycle = assessmentCycleFilter.trim();
+    const normalizedObservationCutoff = observationCutoffFilter.trim();
     const normalizedCreatedAt = createdAtFilter.trim();
 
     if (statusFilter === "all") {
@@ -422,10 +373,10 @@ export default function WorkingPapersPage() {
       nextParams.delete("q");
     }
 
-    if (normalizedAssessmentCycle) {
-      nextParams.set("assessment_cycle", normalizedAssessmentCycle);
+    if (normalizedObservationCutoff) {
+      nextParams.set("observation_cutoff", normalizedObservationCutoff);
     } else {
-      nextParams.delete("assessment_cycle");
+      nextParams.delete("observation_cutoff");
     }
 
     if (normalizedCreatedAt) {
@@ -461,7 +412,7 @@ export default function WorkingPapersPage() {
       router.replace(nextUrl, { scroll: false });
     });
   }, [
-    assessmentCycleFilter,
+    observationCutoffFilter,
     createdAtFilter,
     debouncedSearch,
     limit,
@@ -480,19 +431,13 @@ export default function WorkingPapersPage() {
     <PageStack>
       <div className="space-y-4">
         <CollectionPageHeader
-          title="Kertas Kerja"
+          title="KK Pemantauan dan Reviu"
           actions={
             <AccentButton
-              onClick={() => {
-                setSelectedPeriod(
-                  getSelectableMonitoringCyclesForDate()[0]?.value ??
-                    shiftAssessmentCycle(currentAssessmentCycle(), -1),
-                );
-                setCreateModalOpen(true);
-              }}
+              onClick={() => setCreateModalOpen(true)}
             >
               <Plus className="size-3.5" strokeWidth={2.5} />
-              Buat Kertas Kerja
+              Buat KK Pemantauan dan Reviu
             </AccentButton>
           }
         />
@@ -501,24 +446,24 @@ export default function WorkingPapersPage() {
           className="w-full"
           leading={
             <WorkingPaperFiltersToolbar
+              organizationField={organizationFilter.field}
               search={search}
               onSearchChange={(value) => {
                 setSearch(value);
                 setPage(1);
               }}
-              searchPlaceholder="Cari judul kertas kerja..."
-              searchAriaLabel="Cari judul kertas kerja"
+              searchPlaceholder="Cari judul KK Pemantauan dan Reviu..."
+              searchAriaLabel="Cari judul KK Pemantauan dan Reviu"
               statusFilter={statusFilter}
               onStatusFilterChange={(value) => {
                 setStatusFilter(value);
                 setPage(1);
               }}
-              assessmentCycleFilter={assessmentCycleFilter}
-              onAssessmentCycleFilterChange={(value) => {
-                setAssessmentCycleFilter(value);
+              observationCutoffFilter={observationCutoffFilter}
+              onObservationCutoffFilterChange={(value) => {
+                setObservationCutoffFilter(value);
                 setPage(1);
               }}
-              assessmentCycleOptions={assessmentCycleOptions}
               createdAtFilter={createdAtFilter}
               onCreatedAtFilterChange={(value) => {
                 setCreatedAtFilter(value);
@@ -539,10 +484,10 @@ export default function WorkingPapersPage() {
         <CollectionTableCard sorting={collectionSort.controls}>
 
           {showInitialLoading ? (
-            <CollectionLoadingState message="Memuat daftar kertas kerja..." />
+            <CollectionLoadingState message="Memuat daftar KK Pemantauan dan Reviu..." />
           ) : papers.length === 0 ? (
             <CollectionEmptyState
-              title="Belum ada kertas kerja yang sesuai filter"
+              title="Belum ada KK Pemantauan dan Reviu yang sesuai filter"
               description="Ubah filter pencarian atau tab status untuk melihat data lain."
             />
           ) : (
@@ -558,12 +503,12 @@ export default function WorkingPapersPage() {
               </colgroup>
               <CollectionTableHeader density="compact">
                 <CollectionTableHeaderRow>
-                  <CollectionTableHead>Kode kertas kerja</CollectionTableHead>
+                  <CollectionTableHead>Kode KK Pemantauan dan Reviu</CollectionTableHead>
                   <CollectionTableHead className="">
                     Judul
                   </CollectionTableHead>
                   <CollectionTableHead >
-                    Periode
+                    Tanggal batas pengamatan
                   </CollectionTableHead>
                   <CollectionTableHead >
                     Status
@@ -603,7 +548,9 @@ export default function WorkingPapersPage() {
                         />
                       </TableCell>
                       <TableCell className="whitespace-nowrap align-middle">
-                        {paper.assessment_cycle || "-"}
+                        {paper.observation_cutoff
+                          ? formatWorkingPaperDate(paper.observation_cutoff, { dateStyle: "medium", timeZone: "Asia/Jakarta" })
+                          : "—"}
                       </TableCell>
                       <TableCell className="whitespace-nowrap align-middle">
                         <Badge variant={toBadgeVariant(statusTones[paper.status])}
@@ -630,7 +577,7 @@ export default function WorkingPapersPage() {
             </Table>
           )}
         <CollectionPagination
-          itemLabel="kertas kerja"
+          itemLabel="dokumen"
           page={page}
           pageSize={limit}
           total={total}
@@ -652,9 +599,8 @@ export default function WorkingPapersPage() {
       <WorkingPaperCreateDialog
         open={createModalOpen}
         onOpenChange={setCreateModalOpen}
-        selectedPeriod={selectedPeriod}
-        onSelectedPeriodChange={setSelectedPeriod}
-        periodOptions={periodOptions}
+        token={token}
+        organizationId={user?.organizationId}
       />
     </PageStack>
   );

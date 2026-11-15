@@ -16,13 +16,11 @@ import type {
   OperatorWorkSection,
 } from "@/types/operator-work";
 import { OperatorWorkList, type OpenWorkReport } from "./operator-work-list";
-import { OperatorMonitoringPeriod } from "./operator-monitoring-period";
 
 export function OperatorWorkSections({
   sections,
   open,
   onOpenChange,
-  today,
   itemHref,
   onNavigate,
   onOpenReport,
@@ -48,7 +46,6 @@ export function OperatorWorkSections({
 
   return (
     <div className="flex flex-col gap-4">
-      <OperatorMonitoringPeriod today={today} />
       <Card className="gap-0 py-0">
         <h2 className="flex min-h-12 items-center border-b border-border px-(--card-spacing) py-3 text-sm font-semibold">
           Pekerjaan saya

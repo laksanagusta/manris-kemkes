@@ -69,6 +69,8 @@ type EvaluationTemplateItem struct {
 }
 
 type Evaluation struct {
+	ProfileVersionID       *uuid.UUID          `json:"profileVersionId,omitempty"`
+	MonitoringPeriodID     *uuid.UUID          `json:"monitoringPeriodId,omitempty"`
 	ID                     uuid.UUID           `json:"id"`
 	OrganizationID         uuid.UUID           `json:"organizationId"`
 	SequenceNo             int                 `json:"sequenceNo"`

@@ -9,6 +9,7 @@ export type TableFilterField = {
   options?: readonly TableFilterOption[];
   type?: "select" | "multi-select" | "text" | "date";
   required?: boolean;
+  organizationScope?: boolean;
 };
 
 export function filterDefault(field: TableFilterField): string {

@@ -1,5 +1,6 @@
 "use client";
 
+import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import {
   createContext,
   useContext,
@@ -281,12 +282,13 @@ export function ResourceLinkRow({
           }}
         >
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete link?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Link <span className="font-medium text-foreground">“{name}”</span> akan dihapus.
-              Tindakan ini tidak dapat dibatalkan.
-            </AlertDialogDescription>
+            <AlertDialogTitle>Hapus link?</AlertDialogTitle>
+            <AlertDialogDescription>Periksa link yang akan dihapus.</AlertDialogDescription>
           </AlertDialogHeader>
+          <ConfirmationConsequences>
+            Link <span className="font-medium text-foreground">“{name}”</span> akan dihapus.
+              Tindakan ini tidak dapat dibatalkan.
+          </ConfirmationConsequences>
           <AlertDialogFooter>
             <AlertDialogCancel id={cancelDeleteId} variant="outline">
               Cancel

@@ -15,11 +15,12 @@ import { downloadEvaluationPdf } from "@/lib/api/evaluations";
 import { listAllOrganizations } from "@/lib/api/organizations";
 import { listOrganizationGroups, type OrganizationGroupListItem } from "@/lib/api/organization-groups";
 import { getWorkingPaper } from "@/lib/api/working-papers";
-import { completedReportCycle, reportQuarterOptions } from "@/lib/quarterly-report";
+import { defaultUnitProgressPeriod, unitProgressPeriods, type UnitProgressProfile } from "@/lib/unit-progress-filters";
+import { todayMonitoringDate } from "@/lib/monitoring-date";
 import { reportErrorMessage } from "@/lib/report-feedback";
 import { buildSelectableReportOrganizationGroups, buildSelectableReportOrganizations } from "@/lib/report-scope";
 import { resolveDefaultReportsFilterScope, type ReportsFilterScope } from "@/lib/reports-filter-sheet";
-import type { UnitProgressReport } from "@/types/unit-progress";
+import { DEFAULT_UNIT_PROGRESS_QUERY, type UnitProgressQuery, type UnitProgressPage } from "@/lib/unit-progress";
 
 const EMPTY_SCOPE: ReportsFilterScope = { organizationId: "", organizationGroupId: "", organizationIds: [] };
 
@@ -38,7 +39,8 @@ function UnitProgressContent({ token, user }: {
   token: string;
   user: NonNullable<ReturnType<typeof useAuth>["user"]>;
 }) {
-  const [cycle, setCycle] = useState(completedReportCycle);
+  const [profileOptions, setProfileOptions] = useState<{ key: string; profiles?: UnitProgressProfile[]; error?: string }>();
+  const [selection, setSelection] = useState<{ key: string; profileId: string; periodId: string }>();
   const [scope, setScope] = useState(EMPTY_SCOPE);
   const [metadata, setMetadata] = useState<{
     token: string;
@@ -49,7 +51,8 @@ function UnitProgressContent({ token, user }: {
   const [metadataRetry, setMetadataRetry] = useState(0);
   const [retry, setRetry] = useState(0);
   const [downloadingDocuments, setDownloadingDocuments] = useState<ReadonlySet<string>>(() => new Set());
-  const [result, setResult] = useState<{ token: string; key: string; data?: UnitProgressReport; error?: string }>();
+  const [tableState, setTableState] = useState<{ key: string; value: UnitProgressQuery }>({ key: "", value: DEFAULT_UNIT_PROGRESS_QUERY });
+  const [result, setResult] = useState<{ token: string; key: string; data?: UnitProgressPage; error?: string }>();
   const ready = metadata?.token === token;
   const organizations = metadata?.organizations ?? [];
   const groups = metadata?.groups ?? [];
@@ -58,12 +61,34 @@ function UnitProgressContent({ token, user }: {
   const selectableUnits = group ? organizations.filter(({ id }) => groupMembers.has(id)) : organizations;
   const orgIds = scope.organizationIds.length ? scope.organizationIds : group ? selectableUnits.map(({ id }) => id) : [];
   const needsSelection = orgIds.length === 0 && (!user.isGlobal || Boolean(group));
-  const params = new URLSearchParams({ cycle });
+  const scopeParams = new URLSearchParams();
+  if (orgIds.length) scopeParams.set("org_id", [...orgIds].sort().join(","));
+  const scopeQuery = scopeParams.toString();
+  const profileKey = `${token}:${scopeQuery}`;
+  const optionsRequestKey = `${retry}:${profileKey}`;
+  const optionsResult = profileOptions?.key === optionsRequestKey ? profileOptions : undefined;
+  const profiles = optionsResult?.profiles ?? [];
+  const selectedProfile = profiles.find((profile) => selection?.key === profileKey && profile.id === selection.profileId) ?? profiles[0];
+  const periods = selectedProfile ? unitProgressPeriods(selectedProfile) : [];
+  const periodId = periods.find((period) => selection?.key === profileKey && period.value === selection.periodId)?.value
+    ?? (selectedProfile ? defaultUnitProgressPeriod(selectedProfile, todayMonitoringDate()) : "");
+  const cycle = periods.find((period) => period.value === periodId)?.label ?? "";
+  const canLoad = ready && !needsSelection && Boolean(selectedProfile && periodId);
+  const params = new URLSearchParams({ profile: selectedProfile?.id ?? "", period: periodId });
   if (orgIds.length) params.set("org_id", [...orgIds].sort().join(","));
+  const scopeKey = params.toString();
+  const tableQuery = tableState.key === scopeKey ? tableState.value : { ...tableState.value, unitId: "", page: 1 };
+  params.set("tab", tableQuery.tab);
+  params.set("page", String(tableQuery.page));
+  params.set("limit", String(tableQuery.pageSize));
+  if (tableQuery.unitId) params.set("unit", tableQuery.unitId);
+  if (tableQuery.search.trim()) params.set("q", tableQuery.search.trim());
+  if (tableQuery.attentionOnly) params.set("attention", "required");
+  if (tableQuery.status !== "all") params.set("status", tableQuery.status);
   const query = params.toString();
   const requestKey = `${retry}:${query}`;
-  const active = ready && !needsSelection && result?.token === token && result.key === requestKey ? result : undefined;
-  const loading = ready && !needsSelection && !active;
+  const active = canLoad && result?.token === token && result.key === requestKey ? result : undefined;
+  const loading = ready && !needsSelection && (!optionsResult || (canLoad && !active));
   const { isGlobal, organizationId } = user;
 
   useEffect(() => {
@@ -99,7 +124,18 @@ function UnitProgressContent({ token, user }: {
   useEffect(() => {
     if (!ready || needsSelection) return;
     let current = true;
-    api.get<UnitProgressReport>(`/reports/unit-progress?${query}`, token)
+    api.get<UnitProgressProfile[]>(`/reports/unit-progress/profiles?${scopeQuery}`, token)
+      .then((profiles) => { if (current) setProfileOptions({ key: optionsRequestKey, profiles }); })
+      .catch((error: unknown) => {
+        if (current) setProfileOptions({ key: optionsRequestKey, error: reportErrorMessage(error, "Pilihan profil belum dapat dimuat.") });
+      });
+    return () => { current = false; };
+  }, [ready, needsSelection, scopeQuery, optionsRequestKey, token]);
+
+  useEffect(() => {
+    if (!canLoad) return;
+    let current = true;
+    api.get<UnitProgressPage>(`/reports/unit-progress?${query}`, token)
       .then((data) => {
         if (current) setResult({ token, key: requestKey, data });
       })
@@ -107,12 +143,21 @@ function UnitProgressContent({ token, user }: {
         if (current) setResult({ token, key: requestKey, error: reportErrorMessage(error, "Progres unit belum dapat dimuat.") });
       });
     return () => { current = false; };
-  }, [ready, needsSelection, query, requestKey, token]);
+  }, [canLoad, query, requestKey, token]);
 
   const scopeFields: TableFilterField[] = [
     {
-      id: "period", label: "Periode", required: true, value: cycle, onChange: setCycle,
-      options: reportQuarterOptions(),
+      id: "profile", label: "Profil", required: true, value: selectedProfile?.id ?? "",
+      options: profiles.map(({ id, label }) => ({ value: id, label })),
+      onChange: (profileId) => {
+        const profile = profiles.find(({ id }) => id === profileId);
+        if (profile) setSelection({ key: profileKey, profileId, periodId: defaultUnitProgressPeriod(profile, todayMonitoringDate()) });
+      },
+    },
+    {
+      id: "period", label: "Periode", required: true, value: periodId,
+      options: periods,
+      onChange: (periodId) => { if (selectedProfile) setSelection({ key: profileKey, profileId: selectedProfile.id, periodId }); },
     },
     {
       id: "group", label: "Grup", value: scope.organizationGroupId, defaultValue: "",
@@ -122,7 +167,7 @@ function UnitProgressContent({ token, user }: {
         : resolveDefaultReportsFilterScope(user, organizations)),
     },
     {
-      id: "organization", label: "Unit", type: "multi-select",
+      id: "organization", organizationScope: true, label: "Unit", type: "multi-select",
       value: scope.organizationIds.join(","), required: !user.isGlobal && !group,
       options: selectableUnits.map(({ id, name }) => ({ value: id, label: name })),
       onChange: (value) => setScope((previous) => ({
@@ -148,10 +193,10 @@ function UnitProgressContent({ token, user }: {
           import("@/lib/working-paper-export"),
         ]);
         await exportWorkingPaper(paper);
-        toast.success("Kertas kerja berhasil diunduh.");
+        toast.success("KK Pemantauan dan Reviu berhasil diunduh.");
       }
     } catch (error) {
-      toast.error(reportErrorMessage(error, tab === "evaluations" ? "Gagal mengunduh PDF evaluasi." : "Gagal mengunduh kertas kerja."));
+      toast.error(reportErrorMessage(error, tab === "evaluations" ? "Gagal mengunduh PDF evaluasi." : "Gagal mengunduh KK Pemantauan dan Reviu."));
     } finally {
       setDownloadingDocuments((documents) => {
         const next = new Set(documents);
@@ -171,6 +216,7 @@ function UnitProgressContent({ token, user }: {
   return (
     <UnitProgressTables
       report={active?.data}
+      remote={{ query: tableQuery, onQueryChange: (value) => setTableState({ key: scopeKey, value }) }}
       loading={loading}
       scopeFields={fields}
       onDownloadDocument={(tab, id) => void downloadDocument(tab, id)}
@@ -184,6 +230,10 @@ function UnitProgressContent({ token, user }: {
       feedback={needsSelection ? (
         <ReportEmptyState title={group ? "Grup belum memiliki unit yang dapat diakses" : "Pilih unit laporan"}
           description={group ? "Ubah filter Grup untuk melihat progres." : "Pilih satu atau beberapa unit untuk melihat progres."} />
+      ) : optionsResult?.error ? (
+        <CollectionErrorState title="Pilihan profil gagal dimuat" message={optionsResult.error} onReload={() => setRetry((value) => value + 1)} />
+      ) : optionsResult?.profiles && !profiles.length ? (
+        <ReportEmptyState title="Belum ada profil rules" description="Tambahkan profil rules pemantauan di Pengaturan terlebih dahulu." />
       ) : active?.error ? (
         <CollectionErrorState title="Progres unit gagal dimuat" message={active.error} onReload={() => setRetry((value) => value + 1)} />
       ) : null}

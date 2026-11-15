@@ -32,6 +32,8 @@ export type EvaluationSection = {
 };
 
 export type Evaluation = {
+  profileVersionId?: string;
+  monitoringPeriodId?: string;
   id: string;
   organizationId: string;
   sequenceNo: number;
@@ -76,6 +78,7 @@ export type ListEvaluationsParams = {
   organizationId?: string;
   organizationGroupId?: string;
   period?: string;
+  createdDate?: string;
   status?: EvaluationStatus;
   query?: string;
   page?: number;
@@ -83,8 +86,8 @@ export type ListEvaluationsParams = {
 };
 
 export type CreateEvaluationRequest = {
-  organizationId: string;
-  period: string;
+  profileVersionId?: string;
+  monitoringPeriodId?: string;
   templateKey?: string;
 };
 

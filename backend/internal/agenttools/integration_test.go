@@ -79,13 +79,33 @@ func newDomainFixture(t *testing.T) *domainFixture {
 	t.Cleanup(func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
+		tx, err := pool.Begin(ctx)
+		if err != nil {
+			t.Errorf("fixture cleanup: %v", err)
+			return
+		}
+		defer tx.Rollback(ctx)
+		// The isolated fixture database contains finalized records that are immutable in the app.
+		if _, err := tx.Exec(ctx, `ALTER TABLE mitigation_tasks DISABLE TRIGGER mitigation_report_transaction; ALTER TABLE risk_monitorings DISABLE TRIGGER risk_transaction_identity; ALTER TABLE risk_monitorings DISABLE TRIGGER monitoring_document_period_guard`); err != nil {
+			t.Errorf("fixture cleanup: %v", err)
+			return
+		}
 		for _, q := range []string{`DELETE FROM audit_logs WHERE actor_user_id=$1`, `DELETE FROM incidents WHERE created_by=$1`, `DELETE FROM mitigation_tasks WHERE risk_id IN (SELECT id FROM risks WHERE created_by=$1)`, `DELETE FROM risk_monitorings WHERE source_risk_id IN (SELECT id FROM risks WHERE created_by=$1)`, `DELETE FROM risk_monitoring_periods WHERE version_group_id IN (SELECT version_group_id FROM risks WHERE created_by=$1)`, `DELETE FROM risks WHERE created_by=$1`, `DELETE FROM users WHERE id=$1`} {
-			if _, e := pool.Exec(ctx, q, f.actor); e != nil {
+			if _, e := tx.Exec(ctx, q, f.actor); e != nil {
 				t.Errorf("fixture cleanup: %v", e)
+				return
 			}
 		}
-		if _, e := pool.Exec(ctx, `DELETE FROM organizations WHERE id=ANY($1::uuid[])`, []uuid.UUID{f.org, f.child, f.foreign}); e != nil {
+		if _, e := tx.Exec(ctx, `DELETE FROM organizations WHERE id=ANY($1::uuid[])`, []uuid.UUID{f.org, f.child, f.foreign}); e != nil {
 			t.Errorf("fixture organization cleanup: %v", e)
+			return
+		}
+		if _, err := tx.Exec(ctx, `ALTER TABLE risk_monitorings ENABLE TRIGGER monitoring_document_period_guard; ALTER TABLE risk_monitorings ENABLE TRIGGER risk_transaction_identity; ALTER TABLE mitigation_tasks ENABLE TRIGGER mitigation_report_transaction`); err != nil {
+			t.Errorf("fixture cleanup: %v", err)
+			return
+		}
+		if err := tx.Commit(ctx); err != nil {
+			t.Errorf("fixture cleanup: %v", err)
 		}
 	})
 	return f
@@ -304,8 +324,19 @@ func TestIntegrationTaskReportEventLinksAndReassessment(t *testing.T) {
 		t.Fatal("final profile patch allowed")
 	}
 	report := agent.Operation{ID: uuid.NewString(), Kind: "report_mitigation_task", Title: "Report mitigation", TargetID: f.task.ID.String(), OrganizationID: f.org.String(), Included: true, ExpectedUpdatedAt: f.task.UpdatedAt.UTC().Format(time.RFC3339Nano), After: map[string]any{"notes": "Verified mitigation result", "evidenceUrl": "https://example.org/bukti"}}
+	if _, err := f.kit.ValidateOperations(ctx, f.actor, []agent.Operation{report}); err == nil {
+		t.Fatal("standalone mitigation reporting should be rejected")
+	}
+	monitoring := entity.NewRiskMonitoringDraft(f.risk, "2026-Q4", f.actor)
+	monitoring.ObservedAt = "2026-10-01"
+	if err := postgres.NewRiskMonitoringRepository(f.pool).Create(ctx, monitoring); err != nil {
+		t.Fatal(err)
+	}
+	f.loadMonitoringTask(t, monitoring.ID)
+	report.TargetID = f.task.ID.String()
+	report.ExpectedUpdatedAt = f.task.UpdatedAt.UTC().Format(time.RFC3339Nano)
 	event := agent.Operation{ID: uuid.NewString(), Kind: "create_risk_event", Title: "Record linked event", OrganizationID: f.org.String(), Included: true, After: map[string]any{"description": "Related actual event", "occurredAt": "2026-10-20T10:00:00+07:00", "impactTypes": []any{"operational"}, "severity": "high", "riskIds": []any{f.risk.ID.String()}}}
-	reassess := f.patch("reassess_risk", map[string]any{"cycle": "2027-Q1"})
+	reassess := f.patch("reassess_risk", map[string]any{"cycle": "2026-Q4"})
 	ops, err := f.kit.ValidateOperations(ctx, f.actor, []agent.Operation{report, event, reassess})
 	if err != nil {
 		t.Fatal(err)
@@ -339,16 +370,16 @@ func TestIntegrationTaskReportEventLinksAndReassessment(t *testing.T) {
 	if links != 1 {
 		t.Fatalf("event risk links: %d", links)
 	}
-	if err = f.pool.QueryRow(ctx, `SELECT COUNT(*) FROM risks WHERE previous_risk_id=$1 AND status='draft' AND assessment_cycle='2027-Q1'`, f.risk.ID).Scan(&drafts); err != nil {
+	if err = f.pool.QueryRow(ctx, `SELECT COUNT(*) FROM risks WHERE previous_risk_id=$1 AND status='draft' AND assessment_cycle='2026-Q4'`, f.risk.ID).Scan(&drafts); err != nil {
 		t.Fatal(err)
 	}
 	if drafts != 0 {
 		t.Fatalf("reassessment drafts: %d", drafts)
 	}
-	if err = f.pool.QueryRow(ctx, `SELECT COUNT(*) FROM risk_monitorings WHERE source_risk_id=$1 AND status='draft' AND assessment_cycle='2027-Q1'`, f.risk.ID).Scan(&monitorings); err != nil {
+	if err = f.pool.QueryRow(ctx, `SELECT COUNT(*) FROM risk_monitorings WHERE source_risk_id=$1 AND status='draft' AND assessment_cycle='2026-Q4'`, f.risk.ID).Scan(&monitorings); err != nil {
 		t.Fatal(err)
 	}
-	if err = f.pool.QueryRow(ctx, `SELECT COUNT(*) FROM mitigation_tasks t JOIN risk_monitorings m ON m.id=t.monitoring_id WHERE m.source_risk_id=$1 AND m.assessment_cycle='2027-Q1'`, f.risk.ID).Scan(&linkedTasks); err != nil {
+	if err = f.pool.QueryRow(ctx, `SELECT COUNT(*) FROM mitigation_tasks t JOIN risk_monitorings m ON m.id=t.monitoring_id WHERE m.source_risk_id=$1 AND m.assessment_cycle='2026-Q4'`, f.risk.ID).Scan(&linkedTasks); err != nil {
 		t.Fatal(err)
 	}
 	if monitorings != 1 || linkedTasks != 1 || !strings.HasPrefix(receipts[2].Href, "/risk/monitoring/") {
@@ -376,6 +407,15 @@ func (f *domainFixture) finalize(t *testing.T) {
 	}
 }
 
+func (f *domainFixture) loadMonitoringTask(t *testing.T, monitoringID uuid.UUID) {
+	t.Helper()
+	tasks, err := postgres.NewMitigationTaskRepository(f.pool).ListByMonitoring(t.Context(), monitoringID, []uuid.UUID{f.org})
+	if err != nil || len(tasks) != 1 {
+		t.Fatalf("expected one monitoring report item, got %d: %v", len(tasks), err)
+	}
+	f.task = tasks[0]
+}
+
 func TestIntegrationMonitoringPolicyAndProposalIsolation(t *testing.T) {
 	f := newDomainFixture(t)
 	ctx := context.Background()
@@ -392,7 +432,7 @@ func TestIntegrationMonitoringPolicyAndProposalIsolation(t *testing.T) {
 	if err = f.pool.QueryRow(ctx, `SELECT COUNT(*) FROM risk_monitoring_periods WHERE version_group_id=$1`, f.risk.VersionGroupID).Scan(&periods); err != nil {
 		t.Fatal(err)
 	}
-	if err = f.pool.QueryRow(ctx, `SELECT COUNT(*) FROM risk_monitorings WHERE version_group_id=$1`, f.risk.VersionGroupID).Scan(&monitoringCount); err != nil {
+	if err = f.pool.QueryRow(ctx, `SELECT COUNT(*) FROM risk_monitorings WHERE version_group_id=$1 AND transaction_kind='monitoring'`, f.risk.VersionGroupID).Scan(&monitoringCount); err != nil {
 		t.Fatal(err)
 	}
 	if periods != 0 || monitoringCount != 0 {
@@ -448,11 +488,14 @@ func TestIntegrationMonitoringPolicyAndProposalIsolation(t *testing.T) {
 	if err = tx.Commit(ctx); err != nil {
 		t.Fatal(err)
 	}
+	if _, err = f.pool.Exec(ctx, `UPDATE mitigation_tasks SET status='done',notes='Valid completed mitigation report',reported_by=$2,reported_at=now() WHERE monitoring_id=$1`, monitoring.ID, f.actor); err != nil {
+		t.Fatal(err)
+	}
 	if _, err = f.pool.Exec(ctx, `UPDATE risk_monitorings SET status='final',finalized_at=now(),updated_at=now() WHERE id=$1`, monitoring.ID); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = f.kit.ValidateOperations(ctx, f.actor, []agent.Operation{op}); err == nil {
-		t.Fatal("finalized monitoring must not be reopened")
+	if _, err = f.kit.ValidateOperations(ctx, f.actor, []agent.Operation{op}); err != nil {
+		t.Fatalf("legacy monitoring may prepare a different dated observation: %v", err)
 	}
 }
 
@@ -464,7 +507,7 @@ func TestIntegrationCanonicalMonitoringSideEffectsRollbackWithPackage(t *testing
 	event := agent.Operation{ID: uuid.NewString(), Kind: "create_risk_event", Title: "Duplicate triggers rollback", OrganizationID: f.org.String(), Included: true, After: map[string]any{"description": "Rollback actual monitoring side effects", "occurredAt": "2026-10-20T10:00:00+07:00", "impactTypes": []any{"operational"}, "severity": "medium", "sourceDocumentName": "test.pdf", "sourceRefs": []any{map[string]any{"quote": "Monitoring rollback", "location": "Page 1"}}, "extractionKey": key}}
 	duplicate := event
 	duplicate.ID = uuid.NewString()
-	ops, err := f.kit.ValidateOperations(ctx, f.actor, []agent.Operation{f.patch("reassess_risk", map[string]any{"cycle": "2027-Q1"}), event, duplicate})
+	ops, err := f.kit.ValidateOperations(ctx, f.actor, []agent.Operation{f.patch("reassess_risk", map[string]any{"cycle": "2026-Q4"}), event, duplicate})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -479,7 +522,7 @@ func TestIntegrationCanonicalMonitoringSideEffectsRollbackWithPackage(t *testing
 	if err = tx.Rollback(ctx); err != nil {
 		t.Fatal(err)
 	}
-	for _, query := range []string{`SELECT COUNT(*) FROM risk_monitorings WHERE version_group_id=$1`, `SELECT COUNT(*) FROM risk_monitoring_periods WHERE version_group_id=$1`, `SELECT COUNT(*) FROM mitigation_tasks t JOIN risks r ON r.id=t.risk_id WHERE r.version_group_id=$1 AND t.period_label='2027-Q1'`} {
+	for _, query := range []string{`SELECT COUNT(*) FROM risk_monitorings WHERE version_group_id=$1 AND transaction_kind='monitoring'`, `SELECT COUNT(*) FROM risk_monitoring_periods WHERE version_group_id=$1`, `SELECT COUNT(*) FROM mitigation_tasks t JOIN risks r ON r.id=t.risk_id WHERE r.version_group_id=$1 AND t.monitoring_id IS NOT NULL`} {
 		var count int
 		if err = f.pool.QueryRow(ctx, query, f.risk.VersionGroupID).Scan(&count); err != nil {
 			t.Fatal(err)
@@ -526,7 +569,8 @@ func TestIntegrationTaskReportsBindParentAndRespectFinalMonitoring(t *testing.T)
 	if err := postgres.NewRiskMonitoringRepository(f.pool).Create(ctx, monitoring); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := f.pool.Exec(ctx, `UPDATE mitigation_tasks SET monitoring_id=$2,status='done',notes='Valid completed mitigation report',reported_by=$3,reported_at=now() WHERE id=$1`, f.task.ID, monitoring.ID, f.actor); err != nil {
+	f.loadMonitoringTask(t, monitoring.ID)
+	if _, err := f.pool.Exec(ctx, `UPDATE mitigation_tasks SET status='done',notes='Valid completed mitigation report',reported_by=$2,reported_at=now() WHERE id=$1`, f.task.ID, f.actor); err != nil {
 		t.Fatal(err)
 	}
 	var err error

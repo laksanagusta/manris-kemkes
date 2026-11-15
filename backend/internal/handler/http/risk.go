@@ -141,7 +141,7 @@ func NewRiskHandler(
 
 func (h *RiskHandler) ListRiskRegister(c *fiber.Ctx) error {
 	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveOperationalOrgIDs(scope, c.Query("org_id"))
+	orgIDs, err := resolveReadableOrgIDs(scope, c.Query("org_id"))
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
 			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
@@ -166,6 +166,7 @@ func (h *RiskHandler) ListRiskRegister(c *fiber.Ctx) error {
 		OrgIDs:           orgIDs,
 		Status:           strings.TrimSpace(c.Query("status", "all")),
 		Lifecycle:        strings.TrimSpace(c.Query("lifecycle", "active")),
+		Profile:          strings.TrimSpace(c.Query("profile", "active")),
 		AssessmentCycle:  strings.TrimSpace(c.Query("assessment_cycle", "")),
 		MonitoringStatus: strings.TrimSpace(c.Query("monitoring_status", "")),
 		CreatedAt:        strings.TrimSpace(c.Query("created_at", "")),
@@ -188,6 +189,9 @@ func (h *RiskHandler) ListRiskRegister(c *fiber.Ctx) error {
 	}
 	if input.Lifecycle != "active" && input.Lifecycle != "archived" && input.Lifecycle != "all" {
 		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "lifecycle tidak valid")
+	}
+	if input.Profile != "active" && input.Profile != "history" && input.Profile != "all" {
+		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "profile tidak valid")
 	}
 	if category := strings.TrimSpace(c.Query("category")); category != "" {
 		if !entity.IsValidRiskCategory(category) {
@@ -227,7 +231,7 @@ func (h *RiskHandler) ListRiskMonitorings(c *fiber.Ctx) error {
 	}
 
 	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveOperationalOrgIDs(scope, c.Query("org_id"))
+	orgIDs, err := resolveReadableOrgIDs(scope, c.Query("org_id"))
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
 			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
@@ -338,7 +342,7 @@ func (h *RiskHandler) ListCycleSnapshot(c *fiber.Ctx) error {
 	}
 
 	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveReportOrgIDs(scope, c.Query("org_id"))
+	orgIDs, err := resolveReadableOrgIDs(scope, c.Query("org_id"))
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
 			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
@@ -364,7 +368,7 @@ func (h *RiskHandler) ListCycleSnapshot(c *fiber.Ctx) error {
 // CompareCyclesDetail handles GET /api/risks/compare/detail
 func (h *RiskHandler) CompareCyclesDetail(c *fiber.Ctx) error {
 	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveReportOrgIDs(scope, c.Query("org_id"))
+	orgIDs, err := resolveReadableOrgIDs(scope, c.Query("org_id"))
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
 			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
@@ -398,7 +402,7 @@ func (h *RiskHandler) CompareCyclesDetail(c *fiber.Ctx) error {
 // ListReviewQueue handles GET /api/risks/review-queue
 func (h *RiskHandler) ListReviewQueue(c *fiber.Ctx) error {
 	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveOperationalOrgIDs(scope, c.Query("org_id"))
+	orgIDs, err := resolveReadableOrgIDs(scope, c.Query("org_id"))
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
 			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
@@ -429,7 +433,7 @@ func (h *RiskHandler) ListReviewQueue(c *fiber.Ctx) error {
 // CompareCycles handles GET /api/risks/compare
 func (h *RiskHandler) CompareCycles(c *fiber.Ctx) error {
 	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveReportOrgIDs(scope, c.Query("org_id"))
+	orgIDs, err := resolveReadableOrgIDs(scope, c.Query("org_id"))
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
 			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
@@ -456,7 +460,7 @@ func (h *RiskHandler) CompareCycles(c *fiber.Ctx) error {
 // ReviewSummary handles GET /api/dashboard/risk-review-summary
 func (h *RiskHandler) ReviewSummary(c *fiber.Ctx) error {
 	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveOperationalOrgIDs(scope, c.Query("org_id"))
+	orgIDs, err := resolveReadableOrgIDs(scope, c.Query("org_id"))
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
 			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
@@ -548,10 +552,15 @@ type createRiskReassessmentRequest struct {
 }
 
 type startMonitoringRequest struct {
-	Cycle string `json:"cycle"`
+	ProfileVersionID   *uuid.UUID `json:"profileVersionId"`
+	MonitoringPeriodID *uuid.UUID `json:"monitoringPeriodId"`
+	ObservedAt         string     `json:"observedAt"`
+	Cycle              string     `json:"cycle"`
 }
 
 type updateMonitoringRequest struct {
+	ReplaceSubstance            bool                             `json:"replaceSubstance"`
+	ObservedAt                  string                           `json:"observedAt"`
 	ExpectedUpdatedAt           *time.Time                       `json:"expectedUpdatedAt"`
 	ObservedScoreConfirmed      *bool                            `json:"observedScoreConfirmed"`
 	ObservedProbability         int                              `json:"observedProbability"`
@@ -585,7 +594,9 @@ func (h *RiskHandler) CreateRisk(c *fiber.Ctx) error {
 
 	// Scope enforcement — user must have write access to the target org
 	scope := middleware.GetAccessScope(c)
-	if input.OrganizationID != nil && scope != nil && !scope.CanWrite(*input.OrganizationID) {
+	var scopeErr error
+	input.OrganizationID, scopeErr = resolveWritableOrganization(scope, input.OrganizationID)
+	if scopeErr != nil {
 		return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "tidak dapat membuat risiko di organisasi ini")
 	}
 
@@ -621,6 +632,21 @@ func (h *RiskHandler) CreateRiskBatch(c *fiber.Ctx) error {
 		orgID = &parsed
 	}
 
+	scope := middleware.GetAccessScope(c)
+	var scopeErr error
+	orgID, scopeErr = resolveWritableOrganization(scope, orgID)
+	if scopeErr != nil {
+		return handleError(c, scopeErr)
+	}
+	for i := range req.Items {
+		if req.Items[i].OrganizationID == nil {
+			req.Items[i].OrganizationID = orgID
+		}
+		if _, err := resolveWritableOrganization(scope, req.Items[i].OrganizationID); err != nil {
+			return handleError(c, err)
+		}
+	}
+
 	result, err := h.createBatchUC.Execute(c.Context(), riskuc.CreateRiskBatchInput{
 		Items:          req.Items,
 		CreatedBy:      &userID,
@@ -641,7 +667,7 @@ func (h *RiskHandler) GetRisk(c *fiber.Ctx) error {
 	}
 
 	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	orgIDs, err := resolveReadableOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
 			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
@@ -755,10 +781,12 @@ func (h *RiskHandler) StartMonitoring(c *fiber.Ctx) error {
 
 	userID, _ := c.Locals("userId").(uuid.UUID)
 	result, err := h.startMonitoringUC.Execute(c.Context(), riskuc.StartMonitoringInput{
-		SourceRiskID: id,
-		Cycle:        req.Cycle,
-		OrgIDs:       orgIDs,
-		StartedBy:    userID,
+		SourceRiskID:     id,
+		Cycle:            req.Cycle,
+		ObservedAt:       req.ObservedAt,
+		ProfileVersionID: req.ProfileVersionID, MonitoringPeriodID: req.MonitoringPeriodID,
+		OrgIDs:    orgIDs,
+		StartedBy: userID,
 	})
 	if err != nil {
 		return handleError(c, err)
@@ -779,7 +807,7 @@ func (h *RiskHandler) GetMonitoring(c *fiber.Ctx) error {
 	}
 
 	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	orgIDs, err := resolveReadableOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
 			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
@@ -820,13 +848,22 @@ func (h *RiskHandler) UpdateMonitoring(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}
 
+	probability, impact := req.ObservedProbability, req.ObservedImpact
+	if probability == 0 {
+		probability = req.Values.Probability
+	}
+	if impact == 0 {
+		impact = req.Values.Impact
+	}
 	result, err := h.updateMonitoringUC.Execute(c.Context(), riskuc.UpdateMonitoringInput{
+		ReplaceSubstance:            req.ReplaceSubstance,
 		ExpectedUpdatedAt:           req.ExpectedUpdatedAt,
 		MonitoringID:                id,
+		ObservedAt:                  req.ObservedAt,
 		OrgIDs:                      orgIDs,
 		ObservedScoreConfirmed:      req.ObservedScoreConfirmed,
-		ObservedProbability:         req.Values.Probability,
-		ObservedImpact:              req.Values.Impact,
+		ObservedProbability:         probability,
+		ObservedImpact:              impact,
 		Conclusion:                  req.Conclusion,
 		MitigationProgressSummary:   req.MitigationProgressSummary,
 		MitigationCompletionPercent: req.MitigationCompletionPercent,
@@ -928,6 +965,10 @@ func (h *RiskHandler) UpdateRisk(c *fiber.Ctx) error {
 	input.FinalizedBy, _ = c.Locals("userId").(uuid.UUID)
 
 	scope := middleware.GetAccessScope(c)
+	input.OrganizationID, err = resolveWritableOrganization(scope, input.OrganizationID)
+	if err != nil {
+		return handleError(c, err)
+	}
 	orgIDs, err := resolveOperationalOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
@@ -971,7 +1012,7 @@ func (h *RiskHandler) DeleteRisk(c *fiber.Ctx) error {
 // ListApprovedRisks handles GET /api/risks/trend
 func (h *RiskHandler) ListApprovedRisks(c *fiber.Ctx) error {
 	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveReportOrgIDs(scope, c.Query("org_id"))
+	orgIDs, err := resolveReadableOrgIDs(scope, c.Query("org_id"))
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
 			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
@@ -998,7 +1039,7 @@ func (h *RiskHandler) ListApprovedRisks(c *fiber.Ctx) error {
 // ListRisks handles GET /api/risks
 func (h *RiskHandler) ListRisks(c *fiber.Ctx) error {
 	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveReportOrgIDs(scope, c.Query("org_id"))
+	orgIDs, err := resolveReadableOrgIDs(scope, c.Query("org_id"))
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
 			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
@@ -1035,7 +1076,7 @@ func (h *RiskHandler) ListVersions(c *fiber.Ctx) error {
 	}
 
 	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	orgIDs, err := resolveReadableOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
 			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
@@ -1057,7 +1098,7 @@ func (h *RiskHandler) ListVersions(c *fiber.Ctx) error {
 func (h *RiskHandler) DashboardSummary(c *fiber.Ctx) error {
 	cycle := c.Query("cycle")
 	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	orgIDs, err := resolveReadableOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
 			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
@@ -1075,7 +1116,7 @@ func (h *RiskHandler) DashboardSummary(c *fiber.Ctx) error {
 // ActionPressure handles GET /api/dashboard/action-pressure
 func (h *RiskHandler) ActionPressure(c *fiber.Ctx) error {
 	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	orgIDs, err := resolveReadableOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
 			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
@@ -1100,7 +1141,7 @@ func (h *RiskHandler) ActionPressure(c *fiber.Ctx) error {
 // ExecutiveAlerts handles GET /api/dashboard/executive-alerts
 func (h *RiskHandler) ExecutiveAlerts(c *fiber.Ctx) error {
 	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	orgIDs, err := resolveReadableOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
 			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
@@ -1125,7 +1166,7 @@ func (h *RiskHandler) ExecutiveAlerts(c *fiber.Ctx) error {
 func (h *RiskHandler) HeatmapData(c *fiber.Ctx) error {
 	cycle := c.Query("cycle")
 	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	orgIDs, err := resolveReadableOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
 			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
@@ -1155,7 +1196,7 @@ func (h *RiskHandler) HeatmapMulti(c *fiber.Ctx) error {
 		year = timeutil.BusinessNow().Year()
 	}
 	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	orgIDs, err := resolveReadableOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
 			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
@@ -1178,7 +1219,7 @@ func (h *RiskHandler) TopRisks(c *fiber.Ctx) error {
 	}
 
 	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	orgIDs, err := resolveReadableOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
 			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
@@ -1203,7 +1244,7 @@ func (h *RiskHandler) TopRisks(c *fiber.Ctx) error {
 func (h *RiskHandler) GetDashboardRiskCategories(c *fiber.Ctx) error {
 	cycle := c.Query("cycle")
 	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveReportOrgIDs(scope, c.Query("org_id"))
+	orgIDs, err := resolveReadableOrgIDs(scope, c.Query("org_id"))
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
 			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
@@ -1229,7 +1270,7 @@ func (h *RiskHandler) GetMeetingMinutes(c *fiber.Ctx) error {
 
 	// Scope enforcement — verify the parent risk belongs to user's accessible orgs
 	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	orgIDs, err := resolveReadableOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
 			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
@@ -1255,7 +1296,7 @@ func (h *RiskHandler) GetHeatmapVelocity(c *fiber.Ctx) error {
 	fromCycle := c.Query("from")
 	toCycle := c.Query("to")
 	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	orgIDs, err := resolveReadableOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
 			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
@@ -1275,7 +1316,7 @@ func (h *RiskHandler) GetHeatmapVelocity(c *fiber.Ctx) error {
 
 func (h *RiskHandler) GetOverdueMitigationsTimeline(c *fiber.Ctx) error {
 	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	orgIDs, err := resolveReadableOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
 			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
@@ -1294,7 +1335,7 @@ func (h *RiskHandler) GetOverdueMitigationsTimeline(c *fiber.Ctx) error {
 
 func (h *RiskHandler) GetUnitResponseTime(c *fiber.Ctx) error {
 	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveOperationalOrgIDs(scope, "")
+	orgIDs, err := resolveReadableOrgIDs(scope, "")
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
 			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
@@ -1309,4 +1350,28 @@ func (h *RiskHandler) GetUnitResponseTime(c *fiber.Ctx) error {
 		data = []entity.UnitResponseTime{}
 	}
 	return c.JSON(fiber.Map{"data": data})
+}
+
+func (h *RiskHandler) StartRevision(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return handleError(c, domainerrors.ErrInvalidInput)
+	}
+	var req struct {
+		ObservedAt   string `json:"observedAt"`
+		ChangeReason string `json:"changeReason"`
+	}
+	if err := c.BodyParser(&req); err != nil {
+		return handleError(c, domainerrors.ErrInvalidInput)
+	}
+	orgs, err := resolveOperationalOrgIDs(middleware.GetAccessScope(c), "")
+	if err != nil {
+		return handleError(c, err)
+	}
+	actor, _ := c.Locals("userId").(uuid.UUID)
+	result, err := h.startMonitoringUC.StartRevision(c.Context(), riskuc.StartMonitoringInput{SourceRiskID: id, ObservedAt: req.ObservedAt, ChangeReason: req.ChangeReason, TransactionKind: "revision", OrgIDs: orgs, StartedBy: actor})
+	if err != nil {
+		return handleError(c, err)
+	}
+	return c.Status(fiber.StatusCreated).JSON(fiber.Map{"data": result})
 }

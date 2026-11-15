@@ -13,6 +13,8 @@ export type QuarterlyTask = MitigationTask & {
   versionGroupId: string;
 };
 export interface QuarterlyReport {
+  periodStart?: string;
+  periodEnd?: string;
   cycle: string;
   comparisonCycle: string;
   generatedAt: string;

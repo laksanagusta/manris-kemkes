@@ -1,10 +1,10 @@
 "use client";
 
-import { newestCreatedFirst } from "@/lib/collection-created-at";
 import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 import { toast } from "sonner";
@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { RiskCharterCard } from "@/components/shared/design-system/domain/risk-charter-card";
 import {
+  CollectionPagination,
   CollectionEmptyState,
   CollectionErrorState,
   CollectionLoadingState,
@@ -61,16 +62,22 @@ const charterStatusLabel: Record<string, string> = {
 export default function RiskChartersPage() {
   const { token, user } = useAuth();
 
+  const requestVersion = useRef(0);
   const [items, setItems] = useState<RiskCharter[]>([]);
   const [organizations, setOrganizations] = useState<OrganizationListItem[]>(
     [],
   );
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(10);
+  const [total, setTotal] = useState(0);
+  const [hasOwnCharter, setHasOwnCharter] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const loadData = useCallback(
     async (showLoading = true) => {
       if (!token) return;
+      const request = ++requestVersion.current;
 
       try {
         if (showLoading) setLoading(true);
@@ -78,38 +85,44 @@ export default function RiskChartersPage() {
 
         const activeToken = token;
 
-        const [charters, orgs] = await Promise.all([
-          (async () => {
-            const rows: RiskCharter[] = [];
-            let page = 1;
-            while (true) {
-              const response = await listRiskCharters(activeToken, { page, limit: 100 });
-              const data = response.data ?? [];
-              rows.push(...data);
-              if (data.length === 0 || rows.length >= response.total) return rows;
-              page += 1;
-            }
-          })(),
-          listAllOrganizations(activeToken),
+        const [charters, own] = await Promise.all([
+          listRiskCharters(activeToken, { page, limit }),
+          user?.organizationId
+            ? listRiskCharters(activeToken, { organization_id: user.organizationId, page: 1, limit: 1 })
+            : null,
         ]);
-
-        setItems([...charters].sort(newestCreatedFirst));
-        setOrganizations(orgs);
+        if (request !== requestVersion.current) return;
+        setItems(charters.data ?? []);
+        setTotal(charters.total);
+        setHasOwnCharter(Boolean(own?.total));
+        const lastPage = Math.max(1, Math.ceil(charters.total / limit));
+        if (page > lastPage) setPage(lastPage);
       } catch (err) {
+        if (request !== requestVersion.current) return;
         const message =
           err instanceof Error ? err.message : "Gagal memuat daftar piagam.";
         setError(message);
         toast.error(message);
       } finally {
-        setLoading(false);
+        if (request === requestVersion.current) setLoading(false);
       }
     },
-    [token],
+    [token, user?.organizationId, page, limit],
   );
 
   useEffect(() => {
-    loadData();
+    void loadData();
+    return () => { requestVersion.current += 1; };
   }, [loadData]);
+
+  useEffect(() => {
+    if (!token) return;
+    let cancelled = false;
+    listAllOrganizations(token)
+      .then((orgs) => { if (!cancelled) setOrganizations(orgs); })
+      .catch(() => { if (!cancelled) toast.error("Gagal memuat nama organisasi."); });
+    return () => { cancelled = true; };
+  }, [token]);
 
   const handleArchive = useCallback(
     async (charterId: string) => {
@@ -181,7 +194,7 @@ export default function RiskChartersPage() {
     />
   );
   const canCreateOwn = user?.organizationId &&
-    !items.some((item) => item.organizationId === user.organizationId);
+    !hasOwnCharter;
 
   return (
     <PageStack>
@@ -252,6 +265,11 @@ export default function RiskChartersPage() {
           })}
         </div>
       )}
+      <CollectionPagination standalone
+        itemLabel="piagam" total={total} page={page} pageSize={limit}
+        disabled={loading} onPageChange={setPage}
+        onPageSizeChange={(value) => { setLimit(value); setPage(1); }}
+      />
     </PageStack>
   );
 }

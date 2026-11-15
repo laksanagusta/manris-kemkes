@@ -329,45 +329,34 @@ test("working paper mobile card list uses the solid card surface", () => {
   );
 });
 
-test("working paper create dialog follows the shared mitigation modal shell", () => {
-  assert.match(
-    workingPaperCreateDialog,
-    /<DialogContent className="max-w-2xl no-scrollbar" showCloseButton=\{false\}>/,
-  );
-  assert.match(workingPaperCreateDialog, /<DialogTitle className="text-base">/);
-  assert.match(
-    workingPaperCreateDialog,
-    /<DialogTitle className="text-base">Pilih Periode<\/DialogTitle>/,
-  );
-  assert.match(workingPaperCreateDialog, /<div className="flex flex-col gap-2">/);
-  assert.doesNotMatch(workingPaperCreateDialog, /<div className="space-y-2">/);
-  assert.match(workingPaperCreateDialog, /<Label htmlFor="working-paper-period"/);
-  assert.match(workingPaperCreateDialog, /<Popover open=/);
-  assert.match(workingPaperCreateDialog, /<PopoverContent/);
-  assert.match(workingPaperCreateDialog, /role="combobox"/);
-  assert.match(workingPaperCreateDialog, /role="option"/);
-  assert.doesNotMatch(workingPaperCreateDialog, /SelectItem|SelectContent/);
+test("working paper create dialog selects a finalized profile instead of a period", () => {
+  assert.match(workingPaperCreateDialog, /<DialogContent showCloseButton=\{false\}>/);
+  assert.match(workingPaperCreateDialog, /<DialogTitle>Pilih Profil Risiko Tahunan<\/DialogTitle>/);
+  assert.match(workingPaperCreateDialog, /<Label htmlFor="working-paper-profile"/);
+  assert.match(workingPaperCreateDialog, /<SelectItem/);
+  assert.match(workingPaperCreateDialog, /version.finalizedAt && version.riskCount > 0/);
+  assert.match(workingPaperCreateDialog, /profile_version_id: selectedProfile/);
+  assert.match(workingPaperCreateDialog, /query.set\("observation_cutoff", observedAt\)/);
   assert.match(workingPaperCreateDialog, /<CollectionDialogCancel/);
   assert.match(workingPaperCreateDialog, /<AccentButton type="submit"/);
-  assert.doesNotMatch(workingPaperCreateDialog, /motion-safe:animate-in/);
-  assert.doesNotMatch(workingPaperCreateDialog, /motion-safe:delay-\[(?:40|80)ms\]/);
+  assert.doesNotMatch(workingPaperCreateDialog, /Pilih Periode|assessment_cycle/);
 });
 
 test("working paper creation follows the canonical form header and roster alignment", () => {
   assert.match(workingPaperCreate, /<CollectionPageHeader/);
-  assert.match(workingPaperCreate, /actionsPlacement="title"/);
+  assert.match(workingPaperCreate, /actionsPlacement="top"/);
   assert.doesNotMatch(workingPaperCreate, /FormBackAction|backAction=|backActionPlacement=/);
   assert.match(
     workingPaperCreate,
-    /<CollectionTableCard>[\s\S]*<Table className="w-full table-fixed">[\s\S]*<\/CollectionTableCard>/,
+    /<CollectionTableCard>[\s\S]*<Table className="min-w-\[880px\] table-fixed">[\s\S]*<\/CollectionTableCard>/,
   );
   assert.match(
     workingPaperCreate,
-    /CollectionTableHead className="w-\[18%\] min-w-0 px-2 align-middle"/,
+    /CollectionTableHead className="w-\[18%\] min-w-0 align-middle"/,
   );
   assert.match(
     workingPaperCreate,
-    /TableCell className="w-\[18%\] min-w-0 px-2 py-3 align-middle"/,
+    /TableCell className="w-\[18%\] min-w-0 align-middle"/,
   );
   assert.match(
     workingPaperCreate,
@@ -403,9 +392,9 @@ test("working paper creation follows the canonical form header and roster alignm
 test("working paper detail keeps the ledger wide and context in the right rail", () => {
   assert.match(
     workingPaperDetail,
-    /<CollectionPageHeader[\s\S]*title=\{data\.code \|\| "Detail Kertas Kerja"\}/,
+    /<CollectionPageHeader[\s\S]*title=\{data\.code \|\| "Detail KK Pemantauan dan Reviu"\}/,
   );
-  assert.doesNotMatch(workingPaperDetail, /useSetHeaderActions/);
+  assert.match(workingPaperDetail, /setHeaderActions\(\s*<AccentButton[^>]*>Unduh KK Pemantauan dan Reviu/);
   assert.doesNotMatch(workingPaperDetail, /actionsPlacement="title"/);
   assert.match(workingPaperDetail, /const headerActions = \(\s*<>/);
   assert.match(workingPaperDetail, /<FormPage className="space-y-6 pb-0">/);
@@ -519,7 +508,7 @@ test("evaluations renders its filter toolbar once and keeps it outside the table
   assert.equal(usages.length, 1);
   assert.match(
     pages.evaluations,
-    /<CollectionToolbar[\s\S]*?<EvaluationFiltersToolbar[\s\S]*?<CollectionTableCard>/,
+    /<CollectionToolbar[\s\S]*?<EvaluationFiltersToolbar[\s\S]*?<CollectionTableCard\b/,
   );
 });
 
@@ -586,11 +575,11 @@ test("sidebar hierarchy prioritizes operations and consolidates administration",
   assert.match(appNavigation, /title: "TATA KELOLA RISIKO"/);
   assert.match(
     appNavigation,
-    /label: "Risiko"[\s\S]*icon: "Folder01"[\s\S]*label: "Kejadian Risiko"[\s\S]*icon: "Alert02"[\s\S]*label: "Penanganan"[\s\S]*label: "Pemantauan"[\s\S]*label: "Kertas Kerja"[\s\S]*label: "Tanda tangan"[\s\S]*label: "Laporan Risiko"/,
+    /label: "Risiko"[\s\S]*icon: "Folder01"[\s\S]*label: "Kejadian Risiko"[\s\S]*icon: "Alert02"[\s\S]*label: "Penanganan"[\s\S]*label: "Pemantauan"[\s\S]*label: "KK Pemantauan dan Reviu"[\s\S]*label: "Tanda tangan"[\s\S]*label: "Laporan Risiko"/,
   );
   assert.match(
     appNavigation,
-    /label: "Penanganan"[\s\S]*icon: "ClipboardCheck"[\s\S]*label: "Pemantauan"[\s\S]*icon: "MonitorDot"[\s\S]*label: "Kertas Kerja"[\s\S]*icon: "Agreement03"[\s\S]*label: "Tanda tangan"[\s\S]*icon: "FileSignature"/,
+    /label: "Penanganan"[\s\S]*icon: "ClipboardCheck"[\s\S]*label: "Pemantauan"[\s\S]*icon: "MonitorDot"[\s\S]*label: "KK Pemantauan dan Reviu"[\s\S]*icon: "Agreement03"[\s\S]*label: "Tanda tangan"[\s\S]*icon: "FileSignature"/,
   );
   assert.match(appSidebar, /MonitorDot/);
   assert.match(

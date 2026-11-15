@@ -89,6 +89,10 @@ func TestRiskRegisterListSupportsFiltersScopeAndPaginationEnvelope(t *testing.T)
 	handler := &RiskHandler{listRegisterUC: riskuc.NewListRiskRegisterUseCase(repo)}
 
 	app := fiber.New()
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals("accessScope", &entity.AccessScope{IsGlobal: true})
+		return c.Next()
+	})
 	app.Get("/risks/register", func(c *fiber.Ctx) error {
 		c.Locals("accessScope", &entity.AccessScope{
 			OrganizationID:   &orgOne,
@@ -164,13 +168,17 @@ func TestRiskRegisterListSupportsFiltersScopeAndPaginationEnvelope(t *testing.T)
 	}
 }
 
-func TestRiskRegisterListDefaultsToOwnOrgInsteadOfDescendants(t *testing.T) {
+func TestRiskRegisterListIncludesDescendantsByDefault(t *testing.T) {
 	own := uuid.New()
 	descendant := uuid.New()
 	repo := &riskRegisterRepoStub{}
 	handler := &RiskHandler{listRegisterUC: riskuc.NewListRiskRegisterUseCase(repo)}
 
 	app := fiber.New()
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals("accessScope", &entity.AccessScope{IsGlobal: true})
+		return c.Next()
+	})
 	app.Get("/risks/register", func(c *fiber.Ctx) error {
 		c.Locals("accessScope", &entity.AccessScope{
 			Role:             entity.RoleUnit,
@@ -190,18 +198,22 @@ func TestRiskRegisterListDefaultsToOwnOrgInsteadOfDescendants(t *testing.T) {
 	if resp.StatusCode != fiber.StatusOK {
 		t.Fatalf("expected status 200, got %d", resp.StatusCode)
 	}
-	if len(repo.registerFilter.OrgIDs) != 1 || repo.registerFilter.OrgIDs[0] != own {
-		t.Fatalf("expected own-org-only filter [%s], got %v", own, repo.registerFilter.OrgIDs)
+	if len(repo.registerFilter.OrgIDs) != 2 || repo.registerFilter.OrgIDs[0] != own || repo.registerFilter.OrgIDs[1] != descendant {
+		t.Fatalf("expected own and descendant filter, got %v", repo.registerFilter.OrgIDs)
 	}
 }
 
-func TestRiskRegisterListRejectsDescendantOrgFilterOnOperationalSurface(t *testing.T) {
+func TestRiskRegisterListAllowsDescendantReadFilter(t *testing.T) {
 	own := uuid.New()
 	descendant := uuid.New()
 	repo := &riskRegisterRepoStub{}
 	handler := &RiskHandler{listRegisterUC: riskuc.NewListRiskRegisterUseCase(repo)}
 
 	app := fiber.New()
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals("accessScope", &entity.AccessScope{IsGlobal: true})
+		return c.Next()
+	})
 	app.Get("/risks/register", func(c *fiber.Ctx) error {
 		c.Locals("accessScope", &entity.AccessScope{
 			Role:             entity.RoleReviewer,
@@ -218,8 +230,11 @@ func TestRiskRegisterListRejectsDescendantOrgFilterOnOperationalSurface(t *testi
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != fiber.StatusForbidden {
-		t.Fatalf("expected status 403, got %d", resp.StatusCode)
+	if resp.StatusCode != fiber.StatusOK {
+		t.Fatalf("expected status 200, got %d", resp.StatusCode)
+	}
+	if len(repo.registerFilter.OrgIDs) != 1 || repo.registerFilter.OrgIDs[0] != descendant {
+		t.Fatalf("expected descendant-only filter, got %v", repo.registerFilter.OrgIDs)
 	}
 }
 
@@ -244,6 +259,10 @@ func TestRiskRegisterListSupportsMonitoringTransactionsView(t *testing.T) {
 	handler := &RiskHandler{listRegisterUC: riskuc.NewListRiskRegisterUseCase(repo)}
 
 	app := fiber.New()
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals("accessScope", &entity.AccessScope{IsGlobal: true})
+		return c.Next()
+	})
 	app.Get("/risks/register", func(c *fiber.Ctx) error {
 		c.Locals("accessScope", &entity.AccessScope{
 			OrganizationID:   &orgID,
@@ -291,6 +310,10 @@ func TestRiskRegisterListSupportsMonitoringTransactionsView(t *testing.T) {
 func TestRiskRegisterListRejectsInvalidLifecycle(t *testing.T) {
 	handler := &RiskHandler{}
 	app := fiber.New()
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals("accessScope", &entity.AccessScope{IsGlobal: true})
+		return c.Next()
+	})
 	app.Get("/risks/register", handler.ListRiskRegister)
 
 	req := httptest.NewRequest(fiber.MethodGet, "/risks/register?lifecycle=disabled", nil)
@@ -309,6 +332,10 @@ func TestRiskRegisterListRejectsInvalidLifecycle(t *testing.T) {
 func TestRiskRegisterListRejectsInvalidCategory(t *testing.T) {
 	handler := &RiskHandler{}
 	app := fiber.New()
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals("accessScope", &entity.AccessScope{IsGlobal: true})
+		return c.Next()
+	})
 	app.Get("/risks/register", handler.ListRiskRegister)
 
 	req := httptest.NewRequest(fiber.MethodGet, "/risks/register?category=invalid", nil)
@@ -327,6 +354,10 @@ func TestRiskRegisterListRejectsInvalidCategory(t *testing.T) {
 func TestRiskRegisterListRejectsInvalidView(t *testing.T) {
 	handler := &RiskHandler{}
 	app := fiber.New()
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals("accessScope", &entity.AccessScope{IsGlobal: true})
+		return c.Next()
+	})
 	app.Get("/risks/register", handler.ListRiskRegister)
 
 	req := httptest.NewRequest(fiber.MethodGet, "/risks/register?view=unknown", nil)
@@ -361,6 +392,10 @@ func TestRiskRegisterListSerializesReviewScheduleText(t *testing.T) {
 	handler := &RiskHandler{listRegisterUC: riskuc.NewListRiskRegisterUseCase(repo)}
 
 	app := fiber.New()
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals("accessScope", &entity.AccessScope{IsGlobal: true})
+		return c.Next()
+	})
 	app.Get("/risks/register", handler.ListRiskRegister)
 
 	resp, err := app.Test(httptest.NewRequest(fiber.MethodGet, "/risks/register", nil))
@@ -410,6 +445,10 @@ func TestRiskRegisterListSerializesMonitoringStatusAndLastMonitoredAt(t *testing
 	handler := &RiskHandler{listRegisterUC: riskuc.NewListRiskRegisterUseCase(repo)}
 
 	app := fiber.New()
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals("accessScope", &entity.AccessScope{IsGlobal: true})
+		return c.Next()
+	})
 	app.Get("/risks/register", handler.ListRiskRegister)
 
 	resp, err := app.Test(httptest.NewRequest(fiber.MethodGet, "/risks/register", nil))
@@ -459,6 +498,10 @@ func TestRiskRegisterGenericMonitoringFilter(t *testing.T) {
 			repository := &riskRegisterRepoStub{}
 			handler := &RiskHandler{listRegisterUC: riskuc.NewListRiskRegisterUseCase(repository)}
 			app := fiber.New()
+			app.Use(func(c *fiber.Ctx) error {
+				c.Locals("accessScope", &entity.AccessScope{IsGlobal: true})
+				return c.Next()
+			})
 			app.Get("/risks/register", func(c *fiber.Ctx) error {
 				c.Locals("accessScope", &entity.AccessScope{Role: "unit", OrganizationID: &org, AccessibleOrgIDs: []uuid.UUID{org}})
 				return handler.ListRiskRegister(c)

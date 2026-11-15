@@ -1,12 +1,12 @@
 "use client";
+import { useOrganizationFilter } from "@/hooks/use-organization-filter";
 
 import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
 import { formatDisplayDate } from "@/lib/display-date";
-import { useCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
+import { useRemoteCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
 
 import Link from "next/link";
-import { newestCreatedFirst } from "@/lib/collection-created-at";
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useDeferredValue, useEffect, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   Clock,
@@ -45,6 +45,7 @@ import { api } from "@/lib/api";
 import { getLinearStatusBadgeClassName, getLinearStatusBadgeTone } from "@/lib/linear-status-badge";
 
 interface ApprovalRequest {
+  entityOrgId?: string;
   id: string;
   requestType: string;
   entityId: string;
@@ -62,6 +63,7 @@ interface ApprovalRequest {
 }
 
 interface WorkingPaperSigningItem {
+  organizationId?: string;
   id: string;
   requestType: "working_paper";
   workingPaperId: string;
@@ -105,7 +107,7 @@ const requestTypeConfig: Record<
   },
   working_paper: {
     icon: FileSignature,
-    label: "Kertas Kerja",
+    label: "KK Pemantauan dan Reviu",
     href: (id) => `/risk/working-papers/${id}`,
   },
 };
@@ -122,84 +124,20 @@ function formatDate(dateString?: string) {
 function parsePositiveInt(value: string | null, fallback: number): number {
   const parsed = Number(value);
   if (!Number.isFinite(parsed) || parsed < 1) return fallback;
-  return Math.floor(parsed);
+  return Math.min(Math.floor(parsed), 1_000_000_000);
 }
 
-interface PaginatedApprovalsResponse {
-  data: ApprovalRequest[];
+interface InboxResponse {
+  data: InboxItem[];
   total: number;
-  page: number;
-  limit: number;
-}
-
-async function getApprovalRequests(
-  token: string,
-  params: { status: string; page: number; limit: number },
-): Promise<PaginatedApprovalsResponse> {
-  const qs = new URLSearchParams({
-    status: params.status,
-    page: params.page.toString(),
-    limit: params.limit.toString(),
-  });
-  return api.get<PaginatedApprovalsResponse>(
-    `/approvals?${qs.toString()}`,
-    token,
-  );
-}
-
-async function getWorkingPaperSigningItems(
-  token: string,
-): Promise<WorkingPaperSigningItem[]> {
-  const response = await api.get<
-    {
-      id: string;
-      working_paper_id: string;
-      title: string;
-      description: string;
-      assessment_cycle: string;
-      sequence_no: number;
-      signer_pangkat: string;
-      created_at: string;
-    }[]
-  >("/working-papers/pending-signing", token);
-  return response.map((item) => ({
-    id: item.id,
-    requestType: "working_paper" as const,
-    workingPaperId: item.working_paper_id ?? item.id,
-    title: item.title,
-    description: item.description ?? "",
-    assessmentCycle: item.assessment_cycle ?? "",
-    sequenceNo: item.sequence_no ?? 1,
-    signerPangkat: item.signer_pangkat ?? "",
-    status: "pending_signing" as const,
-    createdAt: item.created_at,
-  }));
-}
-
-async function getAllInboxItems(token: string): Promise<InboxItem[]> {
-  const [approvals, signingItems] = await Promise.all([
-    (async () => {
-      const rows: ApprovalRequest[] = [];
-      let page = 1;
-      while (true) {
-        const response = await getApprovalRequests(token, { status: "all", page, limit: 100 });
-        const data = response.data ?? [];
-        rows.push(...data);
-        if (data.length === 0 || rows.length >= response.total) return rows;
-        page += 1;
-      }
-    })(),
-    getWorkingPaperSigningItems(token).catch(() => []),
-  ]);
-  return [...approvals, ...signingItems].sort(newestCreatedFirst);
+  counts: { all: number; myApprovals: number; approved: number; rejected: number };
 }
 
 export default function InboxPage() {
   const searchParams = useSearchParams();
   const pathname = usePathname();
   const router = useRouter();
-  const { token, user } = useAuth();
-  const currentUserId = user?.id ?? "";
+  const { token } = useAuth();
   const [isPending, startTransition] = useTransition();
   const skipUrlWrite = useRef(false);
   const [filter, setFilter] = useState<
@@ -220,31 +158,23 @@ export default function InboxPage() {
   });
   const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
   const [typeFilter, setTypeFilter] = useState(() => searchParams.get("type") ?? "all");
-  const [requests, setRequests] = useState<InboxItem[]>([]);
+  const [result, setResult] = useState<InboxResponse>();
+  const [reloadVersion, setReloadVersion] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(() =>
     parsePositiveInt(searchParams.get("page"), 1),
   );
   const [limit, setLimit] = useState(() =>
-    parsePositiveInt(searchParams.get("limit"), 10),
+    Math.min(parsePositiveInt(searchParams.get("limit"), 10), 100),
   );
-  const refreshRequests = async () => {
-    if (!token) return;
-
-    try {
-      setLoading(true);
-      setError(null);
-      setRequests(await getAllInboxItems(token));
-    } catch (err) {
-      console.error(err);
-      setError(
-        err instanceof Error ? err.message : "Gagal memuat daftar persetujuan.",
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+  const organizationFilter = useOrganizationFilter(() => setPage(1));
+  const collectionSort = useRemoteCollectionSorting(
+    { Kode: "code", Entitas: "title", Status: "status", Jenis: "type" },
+    () => setPage(1),
+  );
+  const deferredSearch = useDeferredValue(search);
+  const refreshRequests = () => setReloadVersion((version) => version + 1);
 
   useEffect(() => {
     skipUrlWrite.current = true;
@@ -252,7 +182,7 @@ export default function InboxPage() {
     const querySearch = searchParams.get("search");
     setTypeFilter(searchParams.get("type") ?? "all");
     const nextPage = parsePositiveInt(searchParams.get("page"), 1);
-    const nextLimit = parsePositiveInt(searchParams.get("limit"), 10);
+    const nextLimit = Math.min(parsePositiveInt(searchParams.get("limit"), 10), 100);
 
     if (
       queryStatus === "all" ||
@@ -275,27 +205,41 @@ export default function InboxPage() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (!token) {
-      setLoading(false);
-      return;
-    }
+    if (!token) return;
+
     let cancelled = false;
     setLoading(true);
     setError(null);
-    getAllInboxItems(token)
-      .then((items) => {
-        if (!cancelled) setRequests(items);
+    const params = new URLSearchParams({
+      page: String(page),
+      limit: String(limit),
+      sort_by: collectionSort.sortBy,
+      sort_order: collectionSort.sortOrder,
+    });
+    if (filter !== "all") params.set("status", filter);
+    if (typeFilter !== "all") params.set("type", typeFilter);
+    if (organizationFilter.organizationId !== "all") {
+      params.set("organization_id", organizationFilter.organizationId);
+    }
+    if (deferredSearch.trim()) params.set("q", deferredSearch.trim());
+
+    api.get<InboxResponse>(`/inbox?${params}`, token)
+      .then((response) => {
+        if (cancelled) return;
+        setResult(response);
+        const lastPage = Math.max(1, Math.ceil(response.total / limit));
+        if (page > lastPage) setPage(lastPage);
       })
       .catch((err) => {
         if (cancelled) return;
-        console.error(err);
         setError(err instanceof Error ? err.message : "Gagal memuat daftar persetujuan.");
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, [token]);
+  }, [token, page, limit, filter, typeFilter, organizationFilter.organizationId,
+    deferredSearch, collectionSort.sortBy, collectionSort.sortOrder, reloadVersion]);
 
   useEffect(() => {
     if (skipUrlWrite.current) {
@@ -362,35 +306,8 @@ export default function InboxPage() {
     return (item as ApprovalRequest).currentStatus;
   };
 
-  const isMyApproval = useCallback((item: InboxItem): boolean => {
-    if (item.requestType === "working_paper") {
-      return true;
-    }
-    const approvalItem = item as ApprovalRequest;
-    if (approvalItem.currentStatus !== "pending") return false;
-    if (approvalItem.currentApproverUserId) {
-      return approvalItem.currentApproverUserId === currentUserId;
-    }
-    return false;
-  }, [currentUserId]);
-
-  const counts = useMemo(
-    () => ({
-      all: requests.length,
-      myApprovals: requests.filter(isMyApproval).length,
-      approved: requests.filter(
-        (item) =>
-          item.requestType !== "working_paper" &&
-          (item as ApprovalRequest).currentStatus === "approved",
-      ).length,
-      rejected: requests.filter(
-        (item) =>
-          item.requestType !== "working_paper" &&
-          (item as ApprovalRequest).currentStatus === "rejected",
-      ).length,
-    }),
-    [requests, isMyApproval],
-  );
+  const counts = result?.counts ?? { all: 0, myApprovals: 0, approved: 0, rejected: 0 };
+  const requests = result?.data ?? [];
 
   const summaryCards = [
     {
@@ -415,53 +332,7 @@ export default function InboxPage() {
     },
   ];
 
-  const filteredRequests = useMemo(() => {
-    return requests.filter((item) => {
-      if (typeFilter !== "all" && item.requestType !== typeFilter) return false;
-      if (filter === "my_approvals") {
-        if (!isMyApproval(item)) return false;
-      } else if (filter === "approved") {
-        if (item.requestType === "working_paper") return false;
-        if ((item as ApprovalRequest).currentStatus !== filter) return false;
-      } else if (filter === "rejected") {
-        if (item.requestType === "working_paper") return false;
-        if ((item as ApprovalRequest).currentStatus !== filter) return false;
-      }
-
-      // Filter by search
-      const keyword = search.trim().toLowerCase();
-      if (!keyword) return true;
-
-      if (item.requestType === "working_paper") {
-        const wpItem = item as WorkingPaperSigningItem;
-        return [
-          wpItem.title,
-          wpItem.description,
-          wpItem.assessmentCycle,
-          wpItem.signerPangkat,
-        ]
-          .filter(Boolean)
-          .some((value) => value!.toLowerCase().includes(keyword));
-      }
-
-      const approvalItem = item as ApprovalRequest;
-      return [
-        approvalItem.entityCode,
-        approvalItem.entityTitle,
-        approvalItem.entityOrgName,
-        approvalItem.requestedByName,
-        approvalItem.currentApproverRole,
-      ]
-        .filter(Boolean)
-        .some((value) => value!.toLowerCase().includes(keyword));
-    });
-  }, [filter, requests, search, typeFilter, isMyApproval]);
-
-  const collectionSort = useCollectionSorting(filteredRequests, {"Kode": r => ("workingPaperId" in r?r.workingPaperId:r.entityCode), "Entitas": r => ("workingPaperId" in r?r.title:r.entityTitle), "Status": r => ("currentStatus" in r?r.currentStatus:r.status), "Jenis": r => r.requestType}, () => setPage(1));
-  const visiblePage = Math.min(page, Math.max(1, Math.ceil(filteredRequests.length / limit)));
-  const paginatedRequests = collectionSort.rows.slice((visiblePage - 1) * limit, visiblePage * limit);
-
-  if (loading) {
+  if (loading && !result) {
     return (
       <PageStack>
         <CollectionLoadingState message="Memuat daftar persetujuan..." />
@@ -514,6 +385,7 @@ export default function InboxPage() {
               />
             }
             fields={[
+              organizationFilter.field,
               {
                 id: "status",
                 label: "Status",
@@ -568,7 +440,11 @@ export default function InboxPage() {
             </CollectionTableHeaderRow>
           </CollectionTableHeader>
           <TableBody>
-            {filteredRequests.length === 0 ? (
+            {loading ? (
+              <TableRow>
+                <TableCell colSpan={6}><CollectionLoadingState message="Memuat daftar persetujuan..." /></TableCell>
+              </TableRow>
+            ) : requests.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6}>
                   <CollectionEmptyState
@@ -579,7 +455,7 @@ export default function InboxPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedRequests.map((item) => {
+              requests.map((item) => {
                 const typeConfig =
                   requestTypeConfig[item.requestType] ?? requestTypeConfig.risk;
                 const Icon = typeConfig.icon;
@@ -657,9 +533,9 @@ export default function InboxPage() {
 
           <CollectionPagination
             itemLabel="permintaan persetujuan"
-            page={visiblePage}
+            page={page}
             pageSize={limit}
-            total={filteredRequests.length}
+            total={result?.total ?? 0}
             disabled={loading || isPending}
             onPageChange={setPage}
             onPageSizeChange={(nextLimit) => {

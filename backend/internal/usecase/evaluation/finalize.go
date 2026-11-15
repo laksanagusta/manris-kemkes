@@ -38,6 +38,20 @@ func (uc *FinalizeUseCase) Execute(ctx context.Context, input FinalizeInput) (*e
 		return nil, errors.Wrap(errors.ErrInvalidInput, err.Error())
 	}
 
+	if evaluation.MonitoringPeriodID != nil {
+		total := 0
+		for _, section := range evaluation.Sections {
+			for _, item := range section.Items {
+				total++
+				if item.Answer != entity.EvaluationAnswerYes && item.Answer != entity.EvaluationAnswerNo {
+					return nil, errors.Wrap(errors.ErrInvalidInput, "Jawab setiap butir evaluasi sebelum finalisasi.")
+				}
+			}
+		}
+		if total == 0 {
+			return nil, errors.Wrap(errors.ErrInvalidInput, "Evaluasi belum memiliki butir penilaian.")
+		}
+	}
 	now := time.Now().UTC()
 	evaluation.Status = entity.EvaluationStatusFinal
 	evaluation.FinalizedAt = &now

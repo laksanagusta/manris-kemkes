@@ -33,7 +33,7 @@ const previews = {
   extraction: { image: extractionScreenshot, alt: "Ekstraksi risiko dari dokumen menjadi kandidat risiko beserta sumbernya" },
   treatment: { image: treatmentScreenshot, alt: "Daftar penanganan risiko dan progres mitigasi" },
   monitoring: { image: monitoringScreenshot, alt: "Pemantauan risiko per periode di Manrisk" },
-  paper: { image: paperScreenshot, alt: "Kertas kerja dengan skor risiko dan riwayat tanda tangan" },
+  paper: { image: paperScreenshot, alt: "KK Pemantauan dan Reviu dengan skor risiko dan riwayat tanda tangan" },
   minutes: { image: minutesScreenshot, alt: "Notulen rapat dan hasil tindak lanjut" },
   reports: { image: reportsScreenshot, alt: "Ringkasan risiko dengan profil, pencapaian target, pelaporan mitigasi, dan pemantauan final" },
   import: { image: importScreenshot, alt: "Impor risiko dari template Excel dan tinjauan hasil parsing" },

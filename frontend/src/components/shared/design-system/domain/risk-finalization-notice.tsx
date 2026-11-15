@@ -2,7 +2,6 @@
 
 import { createDisplayDateFormatter } from "@/lib/display-date";
 import { riskPeriodLabel } from "@/lib/risk-creation";
-import { getMonitoringWindow } from "@/lib/monitoring-window";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AlertCircle } from "@/components/shared/icons";
@@ -36,8 +35,6 @@ export function RiskFinalizationSummary({ cycle, next, loading, error, onRetry }
   error?: boolean;
   onRetry?: () => void;
 }) {
-  const window = cycle ? getMonitoringWindow(cycle) : null;
-  const month = window ? createDisplayDateFormatter("id-ID", { month: "long", year: "numeric", timeZone: "Asia/Jakarta" }).format(window.start) : null;
   return (
     <Alert variant="info" role="status">
       <AlertCircle aria-hidden="true" />
@@ -49,7 +46,7 @@ export function RiskFinalizationSummary({ cycle, next, loading, error, onRetry }
               : loading ? <p>Memeriksa jadwal laporan…</p>
               : next ? <p>{next.mitigationOwner || "PIC belum tersedia"} · {next.periodLabel}{next.dueDate ? <> · Tenggat <time dateTime={next.dueDate}>{createDisplayDateFormatter("id-ID", { dateStyle: "medium", timeZone: "Asia/Jakarta" }).format(new Date(`${next.dueDate}T12:00:00+07:00`))}</time></> : null}</p>
               : <p>Laporan penanganan belum tersedia.</p>}
-            {month && cycle ? <p>Pemantauan {riskPeriodLabel(cycle)} dapat diisi selama {month}, WIB.</p> : null}
+            <p>Pemantauan dapat dicatat kapan saja berdasarkan tanggal pengamatan. Hasil final terbaru menjadi kondisi akhir pada laporan periodenya.</p>
           </AlertDescription>
         </div>
         {error ? <ActionButton onClick={onRetry}>Coba lagi</ActionButton>

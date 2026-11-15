@@ -24,11 +24,11 @@ export function sectionHref(key: OperatorWorkSectionKey, now=businessNow()) {
  return key==="drafts" ? "/risk/register?status=draft" : "/compliance/penanganan?status=needs_reporting";
 }
 
-export function workItemHref(item: Pick<OperatorWorkItem, "kind" | "targetId" | "riskId">) {
+export function workItemHref(item: Pick<OperatorWorkItem, "kind" | "targetId" | "riskId" | "monitoringId">) {
  const target = encodeURIComponent(item.targetId);
  switch (item.kind) {
   case "mitigation_report":
-   return `/compliance/penanganan?taskId=${target}&returnTo=/work`;
+   return item.monitoringId ? `/risk/monitoring/${encodeURIComponent(item.monitoringId)}?returnTo=/work` : `/risk/register/new?id=${encodeURIComponent(item.riskId)}&tab=monitoring&returnTo=/work`;
   case "monitoring_draft":
    return `/risk/monitoring/${target}?returnTo=/work`;
   case "monitoring_start":
@@ -65,7 +65,7 @@ export function getWorkReturnLink(raw:string | null): {href:string;label:string}
  try {
   const url=new URL(raw,"http://manris.local");
   if(url.origin!=="http://manris.local")return null;
-  const label=url.pathname==="/work"?"Kembali ke pekerjaan":url.pathname==="/compliance/monitoring"?"Kembali ke pemantauan":url.pathname==="/risk/register"?"Kembali ke risiko":/^\/risk\/working-papers\/[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(url.pathname)?"Kembali ke Kertas Kerja":null;
+  const label=url.pathname==="/work"?"Kembali ke pekerjaan":url.pathname==="/compliance/monitoring"?"Kembali ke pemantauan":url.pathname==="/risk/register"?"Kembali ke risiko":/^\/risk\/working-papers\/[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(url.pathname)?"Kembali ke KK Pemantauan dan Reviu":null;
   return label?{href:url.pathname+url.search,label}:null;
  } catch {return null;}
 }

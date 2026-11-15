@@ -1,6 +1,8 @@
 "use client";
 
-import { isMonitoringWindowOpen } from "@/lib/monitoring-window";
+import { riskTransactionKind } from "@/lib/risk-transaction-kind";
+import { RiskTransactionBadge } from "@/components/shared/design-system/domain/risk-transaction-badge";
+import { monitoringObservationDate } from "@/lib/monitoring-date";
 import { formatDisplayDate } from "@/lib/display-date";
 
 import { useEffect, useState } from "react";
@@ -16,23 +18,29 @@ import { CollectionEmptyState } from "@/components/shared/design-system/collecti
 import { MitigationCollectionTable } from "@/components/shared/design-system/collections/mitigation-collection-table";
 
 const columns = [
-  { key: "period", label: "Periode", width: "25%" },
-  { key: "status", label: "Status", width: "20%" },
+  { key: "observation", label: "Tanggal pemantauan", width: "25%" },
+  { key: "period", label: "Periode", width: "15%" },
+  { key: "kind", label: "Jenis aktivitas", width: "18%" },
+  { key: "status", label: "Status", width: "15%" },
   { key: "score", label: "Skor pemantauan", width: "20%" },
-  { key: "date", label: "Diperbarui", width: "35%" },
+  { key: "date", label: "Diperbarui", width: "25%" },
 ];
 export function RiskMonitoringTable({
   items,
 }: {
   items: readonly RiskMonitoringDetail[];
 }) {
+  const results = items.filter((item) => item.status === "final" && riskTransactionKind(item) === "monitoring");
   return (
     <CollectionTableCard>
       <MitigationCollectionTable columns={columns}>
         <TableBody>
-          {items.length ? (
-            items.map((item) => (
+          {results.length ? (
+            results.map((item) => {
+              const date = monitoringObservationDate(item);
+              return (
               <TableRow key={item.id}>
+                <TableCell><span data-date-time="">{date ? formatDisplayDate(new Date(`${date}T00:00:00+07:00`), { day: "2-digit", month: "short", year: "numeric", timeZone: "Asia/Jakarta" }) : "—"}</span>{item.observedAtInferred && <span className="block text-xs text-muted-foreground">Tanggal perkiraan data lama</span>}</TableCell>
                 <TableCell>
                   <Link
                     className="font-medium hover:underline"
@@ -41,6 +49,7 @@ export function RiskMonitoringTable({
                     {item.assessmentCycle || "Lihat pemantauan"}
                   </Link>
                 </TableCell>
+                <TableCell><RiskTransactionBadge record={item} /></TableCell>
                 <TableCell>
                   <Badge
                     variant={toBadgeVariant(item.status === "final" ? "success" : "neutral")}
@@ -50,9 +59,7 @@ export function RiskMonitoringTable({
                       ? "Final"
                       : item.status === "superseded"
                         ? "Digantikan"
-                        : item.assessmentCycle && !isMonitoringWindowOpen(item.assessmentCycle)
-                          ? "Draf terkunci"
-                          : "Draf"}
+                        : "Draf"}
                   </Badge>
                 </TableCell>
                 <TableCell>
@@ -71,13 +78,14 @@ export function RiskMonitoringTable({
                     : "—"}</span>
                 </TableCell>
               </TableRow>
-            ))
+              );
+            })
           ) : (
             <TableRow>
               <TableCell colSpan={columns.length}>
                 <CollectionEmptyState
-                  title="Belum ada pemantauan"
-                  description="Pemantauan risiko yang sudah dimulai akan ditampilkan di sini."
+                  title="Belum ada hasil pemantauan"
+                  description="Hasil pemantauan yang sudah difinalisasi akan ditampilkan di sini."
                 />
               </TableCell>
             </TableRow>
@@ -138,7 +146,7 @@ export function RiskMonitoringList({
                 item.resultRisk?.versionGroupId === versionGroupId),
             ),
         )
-        .sort((a, b) => b.assessmentCycle.localeCompare(a.assessmentCycle));
+        .sort((a, b) => monitoringObservationDate(b).localeCompare(monitoringObservationDate(a)) || (b.finalizedAt || b.startedAt).localeCompare(a.finalizedAt || a.startedAt) || b.id.localeCompare(a.id));
       if (!cancelled) setState({ key, items: matching, error: false });
     }
     load().catch(() => {

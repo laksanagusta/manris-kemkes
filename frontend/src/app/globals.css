@@ -48,6 +48,24 @@
   z-index: 2;
 }
 
+.sidebar-navigation-scroll > [data-slot="scroll-area-scrollbar"][data-orientation="vertical"]
+  > [data-slot="scroll-area-thumb"] {
+  background: transparent;
+}
+
+.sidebar-navigation-scroll > [data-slot="scroll-area-scrollbar"][data-orientation="vertical"]
+  > [data-slot="scroll-area-thumb"]::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline: 0;
+  width: 4px;
+  margin-inline: auto;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--sidebar-foreground) 48%, var(--sidebar));
+  pointer-events: none;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -199,7 +217,7 @@
   --disabled-input-surface: #f4f4f6;
   --disabled-input-foreground: #30303a;
   --disabled-input-border: #dedee4;
-  --card-subtle-surface: #f4f4f4;
+  --card-subtle-surface: #eeeeee;
   --secondary-card-surface: #efefef;
   --sunken: #efefef;
   --table-header: #fbfbfb;
@@ -748,6 +766,23 @@ input:is([type="date"], [type="time"], [type="datetime-local"]) {
   border-radius: var(--surface-radius);
   border: 0;
   box-shadow: var(--surface-shadow-floating);
+}
+
+[data-sonner-toast][data-styled="true"][data-type="success"] [data-icon] {
+  display: flex;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 20px;
+  align-items: center;
+  justify-content: center;
+  margin-left: 0;
+  margin-right: 0;
+  padding: 0;
+}
+
+/* Sonner's SVG offset must not shift the check inside its circular badge. */
+[data-sonner-toast][data-styled="true"][data-type="success"] [data-icon] .t-success-check svg {
+  margin: 0;
 }
 
 /* Card titles and subtitles form one group without an extra vertical gap. */
@@ -1566,7 +1601,9 @@ body[data-scroll-locked] [data-component="monitoring-baseline-floating"] {
 /* Wrapper drives the appear animation; it doesn't own any
    sizing or color so you can drop in any icon. */
 .t-success-check {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   transform-origin: center;
   opacity: 0;
   will-change: transform, opacity, filter;
@@ -1700,7 +1737,7 @@ body[data-scroll-locked] [data-component="monitoring-baseline-floating"] {
 [data-slot="slider-thumb"] { transition: box-shadow 150ms var(--ease-out), border-color 150ms var(--ease-out); }
 [data-slot="button"][role="combobox"] > svg:last-child { transition: transform var(--icon-swap-dur) var(--icon-swap-ease); }
 [data-slot="button"][role="combobox"][data-state="open"] > svg:last-child { transform: rotate(180deg); }
-.app-motion-check { --check-y-amount: 6px; --check-blur-from: 2px; --check-rotate-from: 12deg; }
+.app-motion-check { --check-y-amount: 0px; --check-blur-from: 2px; --check-rotate-from: 12deg; }
 /* Motion is disabled at the root, including bespoke feature animations and portals. */
 @media (prefers-reduced-motion: reduce) {
   html *, html *::before, html *::after {
@@ -1770,7 +1807,7 @@ body[data-scroll-locked] [data-component="monitoring-baseline-floating"] {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   width: 336px;
-  height: 32px;
+  height: 36px;
   max-width: 100%;
   gap: 0;
   padding: 2px;
@@ -1911,15 +1948,7 @@ body[data-scroll-locked] [data-component="monitoring-baseline-floating"] {
   height: 14px;
 }
 
-[data-version-history-item]:not(:last-child)::before {
-  content: "";
-  position: absolute;
-  inset-inline-start: 4.5px;
-  top: 14px;
-  bottom: -4px;
-  width: 1px;
-  background: var(--border);
-}
+
 
 /* One corner token for action buttons and form-field surfaces. Grouped inner
    controls remain square so only their outer InputGroup frame is rounded. */
@@ -1935,7 +1964,7 @@ body[data-scroll-locked] [data-component="monitoring-baseline-floating"] {
   border-radius: var(--control-radius);
 }
 
-/* White login fields paint their edge outside the 32px content box. */
+/* White login fields paint their edge outside the control box. */
 :root [data-field-outline="outer"] {
   --field-outline-edge: rgb(13 13 13 / 16%);
   border-width: 0;
@@ -1973,4 +2002,56 @@ body[data-scroll-locked] [data-component="monitoring-baseline-floating"] {
 /* The PIC and mitigation type menus are portalled outside the drawer. */
 body:has([data-mitigation-plan-drawer][data-state="open"]) [data-radix-popper-content-wrapper]:has(> [data-slot="dropdown-menu-content"]) {
   z-index: 80 !important;
+}
+
+/* Shared field typography and label/instruction grouping. */
+:is(label, [data-slot="label"], [data-slot="field-label"]),
+fieldset > legend {
+  line-height: 20px;
+}
+[data-slot="field-description"],
+[data-slot="field-heading"] > p {
+  line-height: 16px;
+}
+[data-slot="field-heading"] > *,
+[data-slot="field-content"] > [data-slot="field-description"] {
+  margin-block: 0;
+}
+
+fieldset:has(> legend + :is(p, [data-slot="field-description"])) > legend {
+  margin-block: 0;
+}
+fieldset > legend + :is(p, [data-slot="field-description"]) {
+  margin-block-start: 0;
+  line-height: 16px;
+}
+
+/* Keep long instructions inside their field and aligned to the label edge. */
+[data-slot="field-heading"] > :is(label, [data-slot="field-label"], [data-slot="field-description"], p) {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  text-align: start;
+}
+[data-slot="field-heading"] > :is([data-slot="field-description"], p) {
+  font-size: 12px;
+}
+
+/* Modal subtitles remain accessible but take no visible space. */
+:is([data-slot="dialog-description"], [data-slot="alert-dialog-description"], [data-slot="sheet-description"], [data-slot="drawer-description"]) {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+:is([data-slot="dialog-header"], [data-slot="alert-dialog-header"], [data-slot="sheet-header"], [data-slot="drawer-header"]):has(> :is([data-slot="dialog-description"], [data-slot="alert-dialog-description"], [data-slot="sheet-description"], [data-slot="drawer-description"])) {
+  row-gap: 0;
+}
+[data-slot="alert-dialog-header"]:has(> [data-slot="alert-dialog-description"]):not(:has([data-slot="alert-dialog-media"])) {
+  grid-template-rows: auto;
 }

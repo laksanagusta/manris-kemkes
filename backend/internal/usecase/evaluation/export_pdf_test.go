@@ -3,6 +3,7 @@ package evaluation
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
@@ -197,8 +198,10 @@ func TestBuildMonitoringEvaluationDataUsesEvaluationRows(t *testing.T) {
 
 func TestBuildMonitoringEvaluationDataKeepsBlankOptionalMetadata(t *testing.T) {
 	evaluation := &entity.Evaluation{
-		Period: "2026-H2",
-		Status: entity.EvaluationStatusFinal,
+		Period:              "2026-H2",
+		CreatedAt:           time.Date(2026, time.December, 31, 17, 0, 0, 0, time.UTC),
+		MonitoringDateRange: "Semester II Tahun 2026",
+		Status:              entity.EvaluationStatusFinal,
 		Sections: []entity.EvaluationSection{
 			{SectionKey: "document_completeness", Title: "Dokumen"},
 		},
@@ -209,11 +212,11 @@ func TestBuildMonitoringEvaluationDataKeepsBlankOptionalMetadata(t *testing.T) {
 	if data.OrganizationName != "" {
 		t.Fatalf("OrganizationName = %q, want blank", data.OrganizationName)
 	}
-	if data.ReportNumber != "" || data.ReportDate != "" || data.AssignmentLetterNumber != "" || data.AssignmentLetterDate != "" {
+	if data.ReportNumber != "" || data.AssignmentLetterNumber != "" || data.AssignmentLetterDate != "" {
 		t.Fatalf("optional metadata should remain blank: %#v", data)
 	}
-	if data.Year != "2026" || data.SemesterLabel != "SEMESTER II" {
-		t.Fatalf("unexpected period parsing: %#v", data)
+	if data.Year != "2027" || data.SemesterLabel != "" || data.ReportDate != "01-01-2027" || data.MonitoringDateRange != "" {
+		t.Fatalf("unexpected evaluation dates: %#v", data)
 	}
 	if data.EvaluationStatus != "FINAL" {
 		t.Fatalf("evaluation status = %q, want FINAL", data.EvaluationStatus)
@@ -262,6 +265,7 @@ func TestExportPDFUseCaseRendersFilenameAndPDF(t *testing.T) {
 		ID:             evalID,
 		OrganizationID: orgID,
 		Period:         "2026-H1",
+		Code:           "EV-0001",
 		Status:         entity.EvaluationStatusDraft,
 		TemplateID:     uuid.New(),
 		Sections:       []entity.EvaluationSection{{SectionKey: "document_completeness", Title: "Dok"}},
@@ -277,8 +281,8 @@ func TestExportPDFUseCaseRendersFilenameAndPDF(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Execute() error = %v", err)
 	}
-	if out.Filename != "evaluasi-mr-2026-H1.pdf" {
-		t.Fatalf("Filename = %q, want evaluasi-mr-2026-H1.pdf", out.Filename)
+	if out.Filename != "evaluasi-mr-EV-0001.pdf" {
+		t.Fatalf("Filename = %q, want evaluasi-mr-EV-0001.pdf", out.Filename)
 	}
 	if len(out.Bytes) == 0 {
 		t.Fatal("expected PDF bytes")

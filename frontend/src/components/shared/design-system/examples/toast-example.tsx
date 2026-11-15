@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 
 export function ToastExample() {
   return (
-    <div className="flex flex-wrap gap-3">
+    <div className="space-y-2">
+      <p className="text-xs text-muted-foreground">Toast berhasil memakai centang yang terpusat di dalam lingkaran hijau.</p>
+      <div className="flex flex-wrap gap-3">
       <Button variant="outline" onClick={() => toast("Notifikasi baru", { description: "Ada pembaruan yang dapat ditinjau." })}>Pesan</Button>
       <Button variant="outline" onClick={() => toast.success("Perubahan berhasil disimpan.")}>Berhasil</Button>
       <Button variant="outline" onClick={() => toast.error("Perubahan gagal disimpan.", { description: "Silakan coba lagi." })}>Gagal</Button>
@@ -16,6 +18,7 @@ export function ToastExample() {
         success: "Contoh laporan siap.",
         error: "Contoh laporan gagal disiapkan.",
       })}>Proses async</Button>
+      </div>
     </div>
   );
 }

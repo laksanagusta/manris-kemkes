@@ -1,6 +1,8 @@
 "use client";
 
-import { useId, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useOrganizationFilterAccess } from "@/hooks/use-organization-filter";
+import { visibleOrganizationFilterFields } from "@/lib/organization-filter";
 import { Check, ChevronDown, Filter, Plus, Search, XCircle } from "@/components/shared/icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -93,7 +95,8 @@ function FilterChip({ field, disabled, open, onOpenChange, onRemove }: FilterChi
   );
 }
 
-export function DynamicTableFilters({ search, columns, fields, className, triggerLabel, disabled = false }: {
+export function DynamicTableFilters({ search, columns, fields: configuredFields, organizationFilterVisible, className, triggerLabel, disabled = false }: {
+  organizationFilterVisible?: boolean;
   disabled?: boolean;
   search?: ReactNode;
   columns?: ReactNode;
@@ -101,6 +104,19 @@ export function DynamicTableFilters({ search, columns, fields, className, trigge
   fields: readonly TableFilterField[];
   className?: string;
 }) {
+  const { hasChildren, ready, ownOrganizationId } = useOrganizationFilterAccess();
+  const fields = visibleOrganizationFilterFields(configuredFields, organizationFilterVisible ?? hasChildren);
+  useEffect(() => {
+    if (organizationFilterVisible !== undefined || !ready || hasChildren || !ownOrganizationId) return;
+    for (const field of configuredFields) {
+      if (!field.organizationScope) continue;
+      const values = field.value.split(",").filter(Boolean);
+      const invalid = values.some((value) => value !== "all" && value !== ownOrganizationId);
+      if (invalid || (field.required && (!field.value || field.value === "all"))) {
+        field.onChange(field.required ? ownOrganizationId : filterDefault(field));
+      }
+    }
+  }, [configuredFields, hasChildren, organizationFilterVisible, ownOrganizationId, ready]);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerQuery, setPickerQuery] = useState("");
   const [pendingId, setPendingId] = useState<string | null>(null);
@@ -122,24 +138,25 @@ export function DynamicTableFilters({ search, columns, fields, className, trigge
         {search}
         <div data-slot="table-filter-actions" className="flex shrink-0 items-center gap-2">
           {columns}
-          <Popover open={pickerOpen && !disabled} onOpenChange={(open) => { setPickerOpen(open); if (open) setPickerQuery(""); }}>
-            <PopoverTrigger asChild>
-              <Button data-slot="button" ref={filterButton} type="button" variant="outline" size={triggerLabel ? "default" : "icon"} disabled={disabled} aria-label="Tambah filter" title="Tambah filter">
-                {triggerLabel ? <><Plus aria-hidden="true" className="size-4" />{triggerLabel}</> : <Filter aria-hidden="true" className="size-4" />}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent aria-label="Pilih field filter" align="start" sideOffset={6} className={filterPopoverClassName} onCloseAutoFocus={(event) => { if (pendingId) event.preventDefault(); }}>
-              {available.length > 8 && <div className="relative px-1 pb-1"><Search aria-hidden="true" className="absolute left-3 top-2 size-4 text-muted-foreground" /><Input aria-label="Cari field filter" value={pickerQuery} onChange={(event) => setPickerQuery(event.target.value)} placeholder="Cari field..." className="pl-7" /></div>}
-              <div className="max-h-64 overflow-y-auto">
-                {available.filter((field) => field.label.toLocaleLowerCase("id").includes(pickerQuery.toLocaleLowerCase("id"))).map((field) => (
-                  <Button key={field.id} type="button" variant="ghost" className="w-full justify-start font-normal" onClick={() => {
-                    setPickerOpen(false); setPendingId(field.id); setOpenId(field.id);
-                  }}>{field.label}</Button>
-                ))}
-                {available.length === 0 && <p className="px-2 py-3 text-xs text-muted-foreground">Semua filter sudah ditambahkan.</p>}
-              </div>
-            </PopoverContent>
-          </Popover>
+          {available.length > 0 && (
+            <Popover open={pickerOpen && !disabled} onOpenChange={(open) => { setPickerOpen(open); if (open) setPickerQuery(""); }}>
+              <PopoverTrigger asChild>
+                <Button data-slot="button" ref={filterButton} type="button" variant="outline" size={triggerLabel ? "default" : "icon"} disabled={disabled} aria-label="Tambah filter" title="Tambah filter">
+                  {triggerLabel ? <><Plus aria-hidden="true" className="size-4" />{triggerLabel}</> : <Filter aria-hidden="true" className="size-4" />}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent aria-label="Pilih field filter" align="start" sideOffset={6} className={filterPopoverClassName} onCloseAutoFocus={(event) => { if (pendingId) event.preventDefault(); }}>
+                {available.length > 8 && <div className="relative px-1 pb-1"><Search aria-hidden="true" className="absolute left-3 top-2 size-4 text-muted-foreground" /><Input aria-label="Cari field filter" value={pickerQuery} onChange={(event) => setPickerQuery(event.target.value)} placeholder="Cari field..." className="pl-7" /></div>}
+                <div className="max-h-64 overflow-y-auto">
+                  {available.filter((field) => field.label.toLocaleLowerCase("id").includes(pickerQuery.toLocaleLowerCase("id"))).map((field) => (
+                    <Button key={field.id} type="button" variant="ghost" className="w-full justify-start font-normal" onClick={() => {
+                      setPickerOpen(false); setPendingId(field.id); setOpenId(field.id);
+                    }}>{field.label}</Button>
+                  ))}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
         </div>
       </div>
       {visible.length > 0 && <div className="flex min-w-0 flex-wrap items-center gap-2" aria-label="Filter tabel aktif">

@@ -31,10 +31,10 @@ export function OrganizationLatestProgressChart({
         <div className="flex items-center justify-between gap-3">
           <div>
             <CardTitle className="">
-              Progress Kertas Kerja Terakhir
+              Progress KK Pemantauan dan Reviu Terakhir
             </CardTitle>
             <p data-slot="card-description" className="mt-1 text-xs text-secondary-foreground">
-              Progress monitoring pada kertas kerja terbaru tiap organisasi.
+              Progress monitoring pada KK Pemantauan dan Reviu terbaru tiap organisasi.
             </p>
           </div>
           {hasData ? (

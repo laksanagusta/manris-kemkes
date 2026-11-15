@@ -1,4 +1,5 @@
 "use client";
+import { useOrganizationFilter } from "@/hooks/use-organization-filter";
 
 import { businessNow } from "@/lib/business-clock";
 import { MitigationReportDetail } from "@/components/shared/design-system/domain/mitigation-report-detail";
@@ -22,20 +23,16 @@ import {
 
 import { toast } from "sonner";
 import {
-  Loader2,
   Send,
   Upload,
 } from "@/components/shared/icons";
-import { api, ApiError } from "@/lib/api";
-import { updateTaskReport } from "@/lib/api/mitigation-tasks";
+import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 import {
   ActionButton,
   AccentButton,
   MitigationProgressFlowDialog,
-  type MitigationProgressFlowView,
 } from "@/components/shared/design-system";
-import { validateMitigationReportForm } from "@/lib/validation/reporting";
 import { getMitigationTaskReportAction } from "@/lib/mitigation-reporting";
 import { getAssessmentCycleFilterOptions } from "@/lib/risk-cycle-options";
 import {
@@ -47,52 +44,16 @@ import {
 } from "@/lib/mitigation-monitoring-query";
 import type { MitigationTask } from "@/types/risk";
 
-type MitigationTier = "upcoming" | "reminder" | "light" | "heavy";
-
 type MitigationTaskRow = MitigationTask & {
-  tier: MitigationTier;
   unit: string;
-  daysOverdue: number;
   mitigationAction: string;
   title: string;
 };
 
+type MitigationTaskSummary = { overdue: number; upcoming: number; reported: number };
+
 async function listMitigationTaskPeriods(token: string): Promise<string[]> {
-  const pageSize = 100;
-  const firstPage = await api.get<{
-    data: MitigationTask[];
-    total: number;
-  }>(`/mitigation-tasks/all?page=1&limit=${pageSize}`, token);
-  const periods = new Set(
-    firstPage.data
-      .map((task) => task.periodLabel.trim())
-      .filter(Boolean),
-  );
-  const pageCount = Math.ceil(firstPage.total / pageSize);
-
-  for (let startPage = 2; startPage <= pageCount; startPage += 5) {
-    const pages = Array.from(
-      { length: Math.min(5, pageCount - startPage + 1) },
-      (_, index) => startPage + index,
-    );
-    const responses = await Promise.all(
-      pages.map((page) =>
-        api.get<{ data: MitigationTask[]; total: number }>(
-          `/mitigation-tasks/all?page=${page}&limit=${pageSize}`,
-          token,
-        ),
-      ),
-    );
-
-    for (const response of responses) {
-      for (const task of response.data) {
-        const period = task.periodLabel.trim();
-        if (period) periods.add(period);
-      }
-    }
-  }
-
-  return [...periods];
+  return api.get<string[]>("/mitigation-tasks/all?periods_only=true", token);
 }
 
 
@@ -124,31 +85,18 @@ export function MitigationMonitoringPanel() {
     [searchParamsString],
   );
   const { page, limit } = queryState;
+  const organizationFilter = useOrganizationFilter(() => pushQueryState({ page: 1 }));
 
   const [mitigations, setMitigations] = useState<MitigationTaskRow[]>([]);
   const [availablePeriods, setAvailablePeriods] = useState<string[]>([]);
   const [total, setTotal] = useState(0);
+  const [summary, setSummary] = useState<MitigationTaskSummary>({ overdue: 0, upcoming: 0, reported: 0 });
   const [loading, setLoading] = useState(true);
   const [detailTask, setDetailTask] = useState<MitigationTaskRow | null>(null);
   const [showMitigationDialog, setShowMitigationDialog] = useState(false);
-  const [dialogView, setDialogView] = useState<MitigationProgressFlowView>(
-    "detail",
-  );
-  const [selectedTask, setSelectedTask] = useState<MitigationTaskRow | null>(
-    null,
-  );
-  const [submitting, setSubmitting] = useState(false);
-  const [submitError, setSubmitError] = useState("");
-  const [reportSent, setReportSent] = useState(false);
-  const [openedFromWork, setOpenedFromWork] = useState(false);
   const detailTriggerRef = useRef<HTMLButtonElement | null>(null);
   const detailReportAction = detailTask ? getMitigationTaskReportAction(detailTask) : null;
   const detailStatus = detailReportAction?.isOverdue ? "overdue" : detailTask?.status;
-  const [evidenceUrl, setEvidenceUrl] = useState("");
-  const [notes, setNotes] = useState("");
-  const evidenceInputRef = useRef<HTMLInputElement | null>(null);
-  const notesInputRef = useRef<HTMLTextAreaElement | null>(null);
-  const [showValidationErrors, setShowValidationErrors] = useState(false);
   const [search, setSearch] = useState(queryState.search);
   const [period, setPeriod] = useState(queryState.period ?? "");
 
@@ -187,16 +135,6 @@ export function MitigationMonitoringPanel() {
     () => getAssessmentCycleFilterOptions(businessNow(), period, availablePeriods),
     [availablePeriods, period],
   );
-
-  const formErrors = useMemo(
-    () =>
-      validateMitigationReportForm({
-        evidenceUrl,
-        notes,
-      }),
-    [evidenceUrl, notes],
-  );
-  const hasFormErrors = Object.keys(formErrors).length > 0;
 
   const pushQueryState = useCallback(
     (
@@ -265,10 +203,11 @@ export function MitigationMonitoringPanel() {
         limit,
       });
       const sortParams = new URLSearchParams(query);
+      if (organizationFilter.organizationId !== "all") sortParams.set("org_id", organizationFilter.organizationId);
       if(collectionSort.touched || queryState.status!=="needs_reporting") {
         sortParams.set("sort_by",collectionSort.sortBy);sortParams.set("sort_order",collectionSort.sortOrder);
       }
-      const response = await api.get<{ data: MitigationTask[]; total: number }>(
+      const response = await api.get<{ data: MitigationTask[]; total: number; summary: MitigationTaskSummary }>(
         `/mitigation-tasks/all?${sortParams}`,
         token,
       );
@@ -276,36 +215,14 @@ export function MitigationMonitoringPanel() {
       if(generation!==loadGeneration.current)return;
       const rawData = response.data || [];
       setTotal(response.total || 0);
-
-      const today = Date.parse(new Intl.DateTimeFormat("sv-SE", {
-        timeZone: "Asia/Jakarta",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-      }).format(businessNow()));
-      const processed: MitigationTaskRow[] = rawData.map((m) => {
-        const dueDate = Date.parse(m.dueDate.slice(0, 10));
-        const diffTime = today - dueDate;
-        const daysOverdue = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-        let tier: MitigationTaskRow["tier"] = "upcoming";
-        if (daysOverdue > 7) tier = "heavy";
-        else if (daysOverdue > 0) tier = "light";
-        else if (daysOverdue >= -7) tier = "reminder";
-
-        const backendStatus = m.status;
-
-        return {
+      setSummary(response.summary);
+      const processed: MitigationTaskRow[] = rawData.map((m) => ({
           ...m,
           riskCode: m.riskCode || "—",
           title: m.riskTitle || "—",
           unit: m.mitigationOwner || "—",
-          daysOverdue,
-          tier,
           mitigationAction: m.mitigationAction || "—",
-          status: backendStatus,
-        };
-      });
+      }));
 
       setMitigations(processed);
     } catch (error) {
@@ -313,38 +230,25 @@ export function MitigationMonitoringPanel() {
     } finally {
       if(generation===loadGeneration.current)setLoading(false);
     }
-  }, [token, page, limit, queryState.search, queryState.status, queryState.period, collectionSort.sortBy,collectionSort.sortOrder,collectionSort.touched]);
+  }, [organizationFilter.organizationId, token, page, limit, queryState.search, queryState.status, queryState.period, collectionSort.sortBy,collectionSort.sortOrder,collectionSort.touched]);
 
   useEffect(() => {
     fetchMitigations();
   }, [fetchMitigations]);
 
-  const openReportForm = useCallback((task: MitigationTaskRow, preserveInput = false) => {
-    setDetailTask(task);
-    if (!getMitigationTaskReportAction(task).allowed) {
-      setDialogView("detail");
-    } else {
-      if (!preserveInput) {
-        setSelectedTask(task);
-        setEvidenceUrl(task.evidenceUrl || "");
-        setNotes(task.notes || "");
-        setShowValidationErrors(false);
-        setSubmitError("");
-      }
-      setDialogView("form");
-    }
-    setReportSent(false);
-    setShowMitigationDialog(true);
-  }, []);
+  const openReportForm = useCallback((task: MitigationTaskRow) => {
+    if(task.monitoringId){router.push(`/risk/monitoring/${task.monitoringId}`);return;}
+    router.push(`/risk/register/new?id=${task.riskId}&tab=monitoring`);
+  }, [router]);
 
-  const openTaskDetail = useCallback((task: MitigationTaskRow, trigger: HTMLButtonElement | null, fromWork = false) => {
-    detailTriggerRef.current = trigger;
-    setOpenedFromWork(fromWork);
-    setReportSent(false);
-    setDetailTask(task);
-    setDialogView("detail");
-    setShowMitigationDialog(true);
-  }, []);
+  const openTaskDetail = useCallback(
+    (task: MitigationTaskRow, trigger: HTMLButtonElement | null) => {
+      detailTriggerRef.current = trigger;
+      setDetailTask(task);
+      setShowMitigationDialog(true);
+    },
+    [],
+  );
 
   useEffect(() => {
     const taskId = searchParams.get("taskId");
@@ -352,13 +256,11 @@ export function MitigationMonitoringPanel() {
     let cancelled = false;
     api.get<MitigationTask>(`/mitigation-tasks/${encodeURIComponent(taskId)}`, token).then(task => {
       if (cancelled) return;
-      const row: MitigationTaskRow = { ...task, riskCode: task.riskCode || "—", title: task.riskTitle || "—", unit: task.mitigationOwner || "—", daysOverdue: 0, tier: "upcoming", mitigationAction: task.mitigationAction || "—" };
+      const row: MitigationTaskRow = { ...task, riskCode: task.riskCode || "—", title: task.riskTitle || "—", unit: task.mitigationOwner || "—", mitigationAction: task.mitigationAction || "—" };
       if (searchParams.get("returnTo") === "/work") {
-        setSelectedTask(null);
-        openTaskDetail(row, null, true);
+        openTaskDetail(row, null);
       } else {
         detailTriggerRef.current = null;
-        setOpenedFromWork(false);
         openReportForm(row);
       }
       const next = new URLSearchParams(searchParams.toString());
@@ -369,57 +271,6 @@ export function MitigationMonitoringPanel() {
     return () => { cancelled = true; };
   }, [token, searchParams, router, pathname, openReportForm, openTaskDetail]);
 
-  const handleSubmitProgress = async () => {
-    if (!selectedTask || !token || submitting) return;
-    setSubmitError("");
-    const action = getMitigationTaskReportAction(selectedTask);
-    if (!action.allowed) {
-      setSubmitError(action.message || "Pelaporan untuk tugas ini sudah ditutup.");
-      return;
-    }
-    if (hasFormErrors) {
-      setShowValidationErrors(true);
-      window.requestAnimationFrame(() => {
-        if (formErrors.evidenceUrl) {
-          evidenceInputRef.current?.focus();
-        } else if (formErrors.notes) {
-          notesInputRef.current?.focus();
-        }
-      });
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const updated = await updateTaskReport(token, selectedTask.id, {
-        status: "done",
-        evidenceUrl,
-        notes,
-      });
-      setDetailTask({ ...selectedTask, ...updated });
-      setSelectedTask(null);
-      setReportSent(true);
-      setDialogView("detail");
-      void fetchMitigations();
-    } catch (error) {
-      setSubmitError(error instanceof ApiError && error.status < 500
-        ? error.message
-        : "Pengiriman belum terkonfirmasi. Isian tetap tersedia. Coba kirim lagi.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const activeMitigations = mitigations.filter(
-    (m) => m.status !== "done" && m.status !== "skipped",
-  );
-  const completedCount = mitigations.filter((m) => m.status === "done").length;
-  const heavyCount = activeMitigations.filter((m) => m.tier === "heavy").length;
-  const lightCount = activeMitigations.filter((m) => m.tier === "light").length;
-  const upcomingCount = activeMitigations.filter(
-    (m) => m.tier === "upcoming",
-  ).length;
-  const overdueCount = heavyCount + lightCount;
   const hasActiveFilters =
     Boolean(queryState.search || queryState.period) ||
     (queryState.status ?? "all") !== "all";
@@ -442,17 +293,17 @@ export function MitigationMonitoringPanel() {
         />
         <KpiCard
           label="Overdue"
-          value={overdueCount}
+          value={summary.overdue}
           tone="white"
         />
         <KpiCard
           label="Akan Datang"
-          value={upcomingCount}
+          value={summary.upcoming}
           tone="white"
         />
         <KpiCard
           label="Sudah dilaporkan"
-          value={completedCount}
+          value={summary.reported}
           tone="white"
         />
       </MetricGrid>
@@ -470,6 +321,7 @@ export function MitigationMonitoringPanel() {
                 />
               }
               fields={[
+                organizationFilter.field,
                 {
                   id: "status",
                   label: "Status",
@@ -549,7 +401,6 @@ export function MitigationMonitoringPanel() {
               onOpenDetail={openTaskDetail}
               onReport={(task, trigger) => {
                 detailTriggerRef.current = trigger;
-                setOpenedFromWork(false);
                 openReportForm(task);
               }}
             />
@@ -573,79 +424,27 @@ export function MitigationMonitoringPanel() {
 
       <MitigationProgressFlowDialog
         open={showMitigationDialog}
-        onOpenChange={(open) => {
-          setShowMitigationDialog(open);
-          if (!open) {
-            setShowValidationErrors(false);
-            setSelectedTask(null);
-            setSubmitError("");
-            setReportSent(false);
-            setDialogView("detail");
-          }
-        }}
+        readOnly
+        onOpenChange={setShowMitigationDialog}
         onCloseAutoFocus={(event) => {
           if (detailTriggerRef.current?.isConnected) {
             event.preventDefault();
             detailTriggerRef.current.focus();
           }
         }}
-        view={dialogView}
-        reportTask={detailTask}
-        availabilityMessage={detailReportAction?.allowed ? undefined : detailReportAction?.message}
-        reportSent={reportSent}
-        submitError={submitError}
-        dirty={Boolean(selectedTask && (
-          notes !== (selectedTask.notes || "") ||
-          evidenceUrl !== (selectedTask.evidenceUrl || "")
-        ))}
-        submitting={submitting}
-        onViewChange={setDialogView}
         detailTitle="Detail Laporan Penanganan"
         detailDescription="Tinjau status, bukti, dan catatan penanganan."
         detailContent={detailTask && <MitigationReportDetail task={detailTask} status={detailStatus} />}
         detailAction={
-          reportSent && openedFromWork ? (
-            <ActionButton asChild>
-              <Link href="/work">Kembali ke To-Do</Link>
-            </ActionButton>
-          ) : detailTask && detailReportAction?.allowed ? (
+          detailTask && detailReportAction?.allowed ? (
             <AccentButton
-              onClick={() => openReportForm(detailTask, selectedTask?.id === detailTask.id)}
+              onClick={() => openReportForm(detailTask)}
               icon={<Send className="size-3" />}
             >
               {detailReportAction.label}
             </AccentButton>
           ) : null
         }
-        formTitle={detailReportAction?.allowed ? detailReportAction.label : "Isi laporan"}
-        onFormCancel={() => setDialogView("detail")}
-        evidenceUrl={evidenceUrl}
-        onEvidenceUrlChange={setEvidenceUrl}
-        notes={notes}
-        onNotesChange={setNotes}
-        showValidationErrors={showValidationErrors}
-        evidenceError={formErrors.evidenceUrl}
-        notesError={formErrors.notes}
-        evidenceInputRef={evidenceInputRef}
-        notesInputRef={notesInputRef}
-        footerActions={
-          <AccentButton
-            onClick={handleSubmitProgress}
-            disabled={submitting}
-            aria-busy={submitting}
-            icon={
-              submitting ? (
-                <Loader2 className="size-3 animate-spin" />
-              ) : (
-                <Send className="size-3" />
-              )
-            }
-          >
-            {submitting ? "Mengirim…" : submitError ? "Coba kirim lagi" : "Kirim laporan"}
-          </AccentButton>
-        }
-        evidenceId="monitoring-evidence-url"
-        notesId="monitoring-notes"
       />
     </div>
   );

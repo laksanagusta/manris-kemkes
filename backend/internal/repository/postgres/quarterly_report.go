@@ -82,11 +82,11 @@ func (r *quarterlyReportRepository) ReadSnapshot(ctx context.Context, current, p
 	if err != nil {
 		return nil, err
 	}
-	a, err := loadQuarterlyPeriod(ctx, tx, current.Cycle, current.Start, current.End, orgIDs)
+	a, err := loadQuarterlyPeriod(ctx, tx, current.Cycle, current.Start, current.End, orgIDs, current)
 	if err != nil {
 		return nil, err
 	}
-	b, err := loadQuarterlyPeriod(ctx, tx, previous.Cycle, previous.Start, previous.End, orgIDs)
+	b, err := loadQuarterlyPeriod(ctx, tx, previous.Cycle, previous.Start, previous.End, orgIDs, previous)
 	if err != nil {
 		return nil, err
 	}
@@ -96,12 +96,12 @@ func (r *quarterlyReportRepository) ReadSnapshot(ctx context.Context, current, p
 	return &entity.QuarterlyReportSnapshot{Organizations: orgs, Current: a, Previous: b}, nil
 }
 
-func loadQuarterlyPeriod(ctx context.Context, q riskQueryer, cycle string, start, end time.Time, orgIDs []uuid.UUID) (*entity.QuarterlyReportPeriodData, error) {
-	risks, updated, err := loadQuarterlyRisks(ctx, q, cycle, start, end, orgIDs)
+func loadQuarterlyPeriod(ctx context.Context, q riskQueryer, cycle string, start, end time.Time, orgIDs []uuid.UUID, profiles ...repository.QuarterlyReportPeriod) (*entity.QuarterlyReportPeriodData, error) {
+	risks, updated, err := loadQuarterlyRisks(ctx, q, cycle, start, end, orgIDs, profiles...)
 	if err != nil {
 		return nil, err
 	}
-	tasks, err := loadQuarterlyTasks(ctx, q, cycle, start, end, orgIDs)
+	tasks, err := loadQuarterlyTasks(ctx, q, cycle, start, end, orgIDs, profiles...)
 	if err != nil {
 		return nil, err
 	}
@@ -132,10 +132,14 @@ func latestQuarterlyUpdate(current *time.Time, value time.Time) *time.Time {
 	return &copy
 }
 
-// A monitoring-linked task belongs to the monitoring's quarter regardless of
-// submission time. Other task frequencies belong to their period-end quarter.
-// Corrections supersede old monitoring tasks instead of duplicating them.
-func loadQuarterlyTasks(ctx context.Context, q riskQueryer, cycle string, start, end time.Time, orgIDs []uuid.UUID) ([]*entity.QuarterlyReportTask, error) {
+// Task schedules retain their report period even when reviewed in a later
+// dated observation. Submission and observation timestamps never move tasks
+// between reports. Superseded corrections remain excluded.
+func loadQuarterlyTasks(ctx context.Context, q riskQueryer, cycle string, start, end time.Time, orgIDs []uuid.UUID, profilePeriods ...repository.QuarterlyReportPeriod) ([]*entity.QuarterlyReportTask, error) {
+	var profile repository.QuarterlyReportPeriod
+	if len(profilePeriods) > 0 {
+		profile = profilePeriods[0]
+	}
 	rows, err := q.Query(ctx, `
 	 SELECT t.id, t.mitigation_id, t.risk_id, t.monitoring_id,
 	        t.period_label, t.period_start::text, t.period_end::text, t.due_date::text,
@@ -150,10 +154,10 @@ func loadQuarterlyTasks(ctx context.Context, q riskQueryer, cycle string, start,
 	 LEFT JOIN users u ON u.id = t.reported_by
 	 WHERE (cardinality($4::uuid[]) = 0 OR r.organization_id = ANY($4::uuid[]))
 	   AND r.superseded_by_risk_id IS NULL
-	   AND CASE WHEN t.monitoring_id IS NOT NULL
-	       THEN rm.assessment_cycle = $1 AND rm.status <> 'superseded' AND rm.superseded_by_monitoring_id IS NULL
-	       ELSE t.period_end >= $2::date AND t.period_end < $3::date END
-	 ORDER BY t.due_date, t.id`, cycle, start.Format("2006-01-02"), end.Format("2006-01-02"), uuidArrayToStrings(orgIDs))
+	   AND $1::text <> ''
+ AND (($5::int=0 AND t.period_end >= $2::date AND t.period_end < $3::date) OR ($5>0 AND (rm.profile_version_id IN (SELECT id FROM annual_risk_profile_versions WHERE year=$5 AND monitoring_rule_id IS NOT DISTINCT FROM $6::uuid) OR ($6::uuid IS NULL AND rm.profile_version_id IS NULL AND EXISTS (SELECT 1 FROM annual_risk_profile_members member JOIN annual_risk_profile_versions p ON p.id=member.profile_version_id WHERE member.version_group_id=r.version_group_id AND p.organization_id=r.organization_id AND p.year=$5 AND p.monitoring_rule_id IS NULL AND p.finalized_at IS NOT NULL))) AND (($7::uuid IS NULL AND t.period_end >= $2::date AND t.period_end < $3::date) OR rm.monitoring_period_id=$7)))
+       AND (rm.id IS NULL OR (rm.status <> 'superseded' AND rm.superseded_by_monitoring_id IS NULL))
+	 ORDER BY t.due_date, t.id`, cycle, start.Format("2006-01-02"), end.Format("2006-01-02"), uuidArrayToStrings(orgIDs), profile.ProfileYear, profile.RuleID, profile.MonitoringPeriodID)
 	if err != nil {
 		return nil, fmt.Errorf("load quarterly mitigation tasks: %w", err)
 	}
@@ -257,8 +261,16 @@ func loadQuarterlyEvents(ctx context.Context, q riskQueryer, start, end time.Tim
 	return items, links.Err()
 }
 
-func loadQuarterlyRisks(ctx context.Context, q riskQueryer, cycle string, start, end time.Time, orgIDs []uuid.UUID) ([]*entity.QuarterlyReportRisk, *time.Time, error) {
-	query := riskPeriodSnapshotCTE + `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.objective_id, r.ro_id, r.likelihood_assessment_id, r.impact_criteria_id, COALESCE(r.impact_justification, '') as impact_justification,
+func loadQuarterlyRisks(ctx context.Context, q riskQueryer, cycle string, start, end time.Time, orgIDs []uuid.UUID, profiles ...repository.QuarterlyReportPeriod) ([]*entity.QuarterlyReportRisk, *time.Time, error) {
+	cte := riskPeriodSnapshotCTE
+	var profile repository.QuarterlyReportPeriod
+	if len(profiles) > 0 {
+		profile = profiles[0]
+	}
+	if profile.ProfileYear > 0 {
+		cte = quarterlyLifecycleCTE + `, period_cutoff AS (SELECT LEAST($3::timestamptz, ` + businessNowSQL + `) AS cutoff) ` + riskPeriodSnapshotBodyCTE
+	}
+	query := cte + `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.objective_id, r.ro_id, r.likelihood_assessment_id, r.impact_criteria_id, COALESCE(r.impact_justification, '') as impact_justification,
 		        r.cause, r.risk_source, r.controllability, r.impact_description,
 		        r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, ROUND(COALESCE(r.nilai, 0))::int,
 		        r.risk_priority, r.risk_appetite, r.treatment_option,
@@ -268,13 +280,13 @@ func loadQuarterlyRisks(ctx context.Context, q riskQueryer, cycle string, start,
 		        r.created_at, r.updated_at,
 		        COALESCE(o.name, '') AS org_name,
 		        COALESCE(u.name, '') AS created_by_name,
-		        monitoring.assessment_cycle,
+		        CASE WHEN $4::int > 0 AND monitoring.assessment_cycle IS NOT NULL THEN $1::text ELSE monitoring.assessment_cycle END,
 		        monitoring.mode,
 		        monitoring.observed_probability,
 		        monitoring.observed_impact,
 		        monitoring.observed_weight,
 		        monitoring.observed_nilai,
-		        monitoring.observed_level, monitoring.finalized_at,
+		        monitoring.observed_level, monitoring.finalized_at, monitoring.observed_at::text, monitoring.observed_at_inferred,
 	        GREATEST(r.updated_at, monitoring.updated_at),
 	        (COALESCE(lifecycle.archived_at >= $2 AND lifecycle.archived_at < LEAST($3::timestamptz, ` + businessNowSQL + `), FALSE) OR EXISTS (SELECT 1 FROM lifecycle_events e WHERE e.version_group_id = r.version_group_id AND e.action = 'archive' AND e.created_at >= $2 AND e.created_at < LEAST($3::timestamptz, ` + businessNowSQL + `)))
 	 FROM risk_snapshots r
@@ -288,16 +300,25 @@ func loadQuarterlyRisks(ctx context.Context, q riskQueryer, cycle string, start,
 		        rm.observed_impact,
 		        rm.observed_weight,
 		        rm.observed_nilai,
-		        rm.observed_level, rm.finalized_at, rm.updated_at
+		        rm.observed_level, rm.finalized_at, rm.updated_at, rm.observed_at, rm.observed_at_inferred
 		 FROM risk_monitorings rm
 		 WHERE rm.version_group_id = r.version_group_id
-		   AND rm.assessment_cycle = $1
+		   AND rm.observed_at >= ($2::timestamptz AT TIME ZONE 'Asia/Jakarta')::date
+		   AND rm.observed_at < ($3::timestamptz AT TIME ZONE 'Asia/Jakarta')::date
 		   AND rm.status = 'final'
-		 ORDER BY rm.finalized_at DESC NULLS LAST, rm.updated_at DESC, rm.id DESC
+           AND rm.superseded_by_monitoring_id IS NULL
+           AND ($4::int=0 OR (rm.monitoring_period_id=$6::uuid AND EXISTS (SELECT 1 FROM annual_risk_profile_versions p WHERE p.id=rm.profile_version_id AND p.year=$4 AND p.monitoring_rule_id=$5::uuid)))
+		   AND rm.transaction_kind = 'monitoring'
+		 ORDER BY rm.observed_at DESC, rm.finalized_at DESC NULLS LAST, rm.id DESC
 		 LIMIT 1
 	 ) monitoring ON TRUE
-	 WHERE TRUE`
-	args := []interface{}{cycle, start, end}
+	 WHERE ($4::int=0 OR EXISTS (
+ SELECT 1 FROM annual_risk_profile_versions p JOIN annual_risk_profile_members member ON member.profile_version_id=p.id
+ WHERE p.organization_id=r.organization_id AND p.year=$4 AND p.monitoring_rule_id=$5::uuid AND p.finalized_at IS NOT NULL
+ AND member.version_group_id=r.version_group_id AND member.effective_from < ($3::timestamptz AT TIME ZONE 'Asia/Jakarta')::date
+ AND NOT EXISTS (SELECT 1 FROM annual_risk_profile_versions newer WHERE newer.organization_id=p.organization_id AND newer.year=p.year AND newer.monitoring_rule_id=p.monitoring_rule_id AND newer.finalized_at IS NOT NULL AND newer.version>p.version)
+ ))`
+	args := []interface{}{cycle, start, end, profile.ProfileYear, profile.RuleID, profile.MonitoringPeriodID}
 	if len(orgIDs) > 0 {
 		query += fmt.Sprintf(" AND r.organization_id = ANY($%d)", len(args)+1)
 		args = append(args, uuidArrayToStrings(orgIDs))
@@ -331,7 +352,7 @@ func loadQuarterlyRisks(ctx context.Context, q riskQueryer, cycle string, start,
 			&risk.MonitoringAssessmentCycle, &risk.MonitoringMode,
 			&risk.MonitoringObservedProbability, &risk.MonitoringObservedImpact,
 			&risk.MonitoringObservedWeight, &risk.MonitoringObservedNilai,
-			&risk.MonitoringObservedLevel, &risk.LastMonitoredAt, &sourceUpdatedAt, &archivedInPeriod,
+			&risk.MonitoringObservedLevel, &risk.LastMonitoredAt, &risk.MonitoringObservedAt, &risk.MonitoringObservedAtInferred, &sourceUpdatedAt, &archivedInPeriod,
 		); err != nil {
 			return nil, nil, fmt.Errorf("scan cycle snapshot risk: %w", err)
 		}

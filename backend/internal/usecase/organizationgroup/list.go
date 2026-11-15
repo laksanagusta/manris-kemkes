@@ -20,7 +20,10 @@ func NewListUseCase(groupRepo repository.OrganizationGroupRepository) *ListUseCa
 
 type ListInput struct {
 	OwnerOrganizationID *uuid.UUID
+	GroupID             *uuid.UUID
 	Q                   string
+	SortBy              string
+	SortOrder           string
 	Page                int
 	Limit               int
 	IncludeMembers      bool
@@ -37,22 +40,17 @@ type ListOutput struct {
 func (uc *ListUseCase) Execute(ctx context.Context, input ListInput) (*ListOutput, error) {
 	page, limit := normalizePageLimit(input.Page, input.Limit)
 
-	var ownerID *uuid.UUID
-	if input.Scope != nil && !input.Scope.IsGlobal {
-		if input.Scope.OrganizationID == nil {
-			return nil, errors.ErrForbidden
-		}
-		if input.OwnerOrganizationID != nil && *input.OwnerOrganizationID != *input.Scope.OrganizationID {
-			return nil, errors.ErrForbidden
-		}
-		ownerID = input.Scope.OrganizationID
-	} else {
-		ownerID = input.OwnerOrganizationID
+	ownerID, err := listOwner(input)
+	if err != nil {
+		return nil, err
 	}
 
 	items, total, err := uc.groupRepo.List(ctx, repository.OrganizationGroupListFilter{
 		OwnerOrganizationID: ownerID,
+		GroupID:             input.GroupID,
 		Q:                   strings.TrimSpace(input.Q),
+		SortBy:              input.SortBy,
+		SortOrder:           input.SortOrder,
 		Page:                page,
 		Limit:               limit,
 		IncludeMembers:      input.IncludeMembers,
@@ -70,4 +68,29 @@ func (uc *ListUseCase) Execute(ctx context.Context, input ListInput) (*ListOutpu
 		Page:  page,
 		Limit: limit,
 	}, nil
+}
+
+func (uc *ListUseCase) Options(ctx context.Context, input ListInput) ([]repository.OrganizationGroupOption, error) {
+	ownerID, err := listOwner(input)
+	if err != nil {
+		return nil, err
+	}
+	options, err := uc.groupRepo.ListOptions(ctx, ownerID)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to list organization group options")
+	}
+	return options, nil
+}
+
+func listOwner(input ListInput) (*uuid.UUID, error) {
+	if input.Scope == nil || input.Scope.IsGlobal {
+		return input.OwnerOrganizationID, nil
+	}
+	if input.Scope.OrganizationID == nil {
+		return nil, errors.ErrForbidden
+	}
+	if input.OwnerOrganizationID != nil && *input.OwnerOrganizationID != *input.Scope.OrganizationID {
+		return nil, errors.ErrForbidden
+	}
+	return input.Scope.OrganizationID, nil
 }

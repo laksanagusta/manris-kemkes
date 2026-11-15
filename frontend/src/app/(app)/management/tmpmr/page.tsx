@@ -1,14 +1,13 @@
 "use client";
+import { useOrganizationFilter } from "@/hooks/use-organization-filter";
 
 import { createDisplayDateFormatter } from "@/lib/display-date";
-import { useCollectionSorting, CollectionSortProvider } from "@/components/shared/design-system/collections/collection-sorting";
+import { useRemoteCollectionSorting, CollectionSortProvider } from "@/components/shared/design-system/collections/collection-sorting";
 import { CollectionTableHead } from "@/components/shared/design-system/collections/collection-table-head";
-import { sortDate } from "@/lib/collection-sort";
-import { newestCreatedFirst } from "@/lib/collection-created-at";
 import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
 
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
@@ -20,9 +19,8 @@ import {
 } from "@/components/shared/icons";
 
 import { useAuth } from "@/contexts/auth-context";
-import { listAllOrganizations, type OrganizationListItem } from "@/lib/api/organizations";
 import { listTMPMRAssessments } from "@/lib/api/tmpmr";
-import type { TMPMRAssessment, TMPMRStatus } from "@/types/tmpmr";
+import type { TMPMRAssessment, TMPMRStatus, TMPMRSummary } from "@/types/tmpmr";
 import { Badge, type BadgeVariant } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -84,16 +82,12 @@ function getMaturityVariant(maturityLevel: string): BadgeVariant {
   return maturityStyles.find((item) => maturityLevel.includes(item.match))?.variant ?? "secondary";
 }
 
-function getFilteredPeriods(items: TMPMRAssessment[]) {
-  return [...new Set(items.map((item) => item.period).filter(Boolean))]
-    .sort()
-    .reverse();
-}
-
 export default function TMPMRListPage() {
   const { token } = useAuth();
   const [items, setItems] = useState<TMPMRAssessment[]>([]);
-  const [organizations, setOrganizations] = useState<OrganizationListItem[]>([]);
+  const [total, setTotal] = useState(0);
+  const [summary, setSummary] = useState<TMPMRSummary>({ total: 0, draft: 0, submitted: 0, approved: 0, periods: [] });
+  const requestVersion = useRef(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -101,95 +95,56 @@ export default function TMPMRListPage() {
   const [statusFilter, setStatusFilter] = useState<TMPMRStatus | "all">("all");
   const [page, setPage] = useState(1);
 
+  const deferredSearch = useDeferredValue(search);
+  const organizationFilter = useOrganizationFilter(() => setPage(1));
+  const collectionSort = useRemoteCollectionSorting({
+    "Periode": "period", "Organisasi": "organization", "Skor": "score",
+    "Maturity": "maturity", "Status": "status", "Diperbarui": "updated_at",
+  }, () => setPage(1));
+
   const loadData = useCallback(async () => {
     if (!token) return;
-
+    const request = ++requestVersion.current;
+    setLoading(true);
+    setError(null);
     try {
-      setLoading(true);
-      setError(null);
-      const [response, orgs] = await Promise.all([
-        (async () => {
-          const rows: TMPMRAssessment[] = [];
-          let page = 1;
-          while (true) {
-            const response = await listTMPMRAssessments(token, { page, limit: 100 });
-            const data = response.data ?? [];
-            rows.push(...data);
-            if (data.length === 0 || rows.length >= response.total) return rows;
-            page += 1;
-          }
-        })(),
-        listAllOrganizations(token),
-      ]);
-
-      setItems([...response].sort(newestCreatedFirst));
-      setOrganizations(orgs);
+      const response = await listTMPMRAssessments(token, {
+        page,
+        limit: PAGE_SIZE,
+        q: deferredSearch.trim() || undefined,
+        organizationId: organizationFilter.organizationId === "all" ? undefined : organizationFilter.organizationId,
+        period: periodFilter === "all" ? undefined : periodFilter,
+        status: statusFilter === "all" ? undefined : statusFilter,
+        sort_by: collectionSort.sortBy,
+        sort_order: collectionSort.sortOrder,
+      });
+      if (request !== requestVersion.current) return;
+      const lastPage = Math.max(1, Math.ceil(response.total / PAGE_SIZE));
+      if (page > lastPage) {
+        setPage(lastPage);
+        return;
+      }
+      setItems(response.data ?? []);
+      setTotal(response.total);
+      setSummary(response.summary);
     } catch (err) {
+      if (request !== requestVersion.current) return;
       const message = err instanceof Error ? err.message : "Gagal memuat TMPMR.";
       setError(message);
       toast.error(message);
     } finally {
-      setLoading(false);
+      if (request === requestVersion.current) setLoading(false);
     }
-  }, [token]);
+  }, [token, page, deferredSearch, organizationFilter.organizationId, periodFilter, statusFilter, collectionSort.sortBy, collectionSort.sortOrder]);
 
   useEffect(() => {
-    loadData();
+    void loadData();
+    return () => { requestVersion.current += 1; };
   }, [loadData]);
 
-  const organizationMap = useMemo(
-    () => new Map(organizations.map((organization) => [organization.id, organization.name])),
-    [organizations],
-  );
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const availablePeriods = summary.periods;
 
-  const filteredItems = useMemo(() => {
-    const query = search.trim().toLowerCase();
-    return items.filter((item) => {
-      if (periodFilter !== "all" && item.period !== periodFilter) return false;
-      if (statusFilter !== "all" && item.status !== statusFilter) return false;
-
-      if (!query) return true;
-
-      const orgName = organizationMap.get(item.organizationId)?.toLowerCase() ?? "";
-      return [
-        orgName,
-        item.period.toLowerCase(),
-        statusLabel[item.status].toLowerCase(),
-        item.maturityLevel.toLowerCase(),
-        item.score.toFixed(2),
-      ].some((value) => value.includes(query));
-    });
-  }, [items, organizationMap, periodFilter, search, statusFilter]);
-
-  const collectionSort = useCollectionSorting(filteredItems, {"Periode": r => r.period, "Organisasi": r => organizationMap.get(r.organizationId), "Skor": r => r.score, "Maturity": r => r.maturityLevel, "Status": r => r.status, "Diperbarui": r => sortDate(r.updatedAt)}, () => setPage(1));
-  const totalPages = Math.max(1, Math.ceil(filteredItems.length / PAGE_SIZE));
-  const paginatedItems = useMemo(
-    () => collectionSort.rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-    [collectionSort.rows, page],
-  );
-
-  const availablePeriods = useMemo(() => getFilteredPeriods(items), [items]);
-
-  useEffect(() => {
-    setPage(1);
-  }, [search, periodFilter, statusFilter]);
-
-  useEffect(() => {
-    if (page > totalPages) {
-      setPage(totalPages);
-    }
-  }, [page, totalPages]);
-
-  const summary = useMemo(
-    () => ({
-      total: items.length,
-      draft: items.filter((item) => item.status === "draft").length,
-      submitted: items.filter((item) => item.status === "submitted").length,
-      reviewed: items.filter((item) => item.status === "reviewed").length,
-      approved: items.filter((item) => item.status === "approved").length,
-    }),
-    [items],
-  );
 
   return (
     <PageStack>
@@ -228,17 +183,18 @@ export default function TMPMRListPage() {
               <CollectionSearchField
                 id="tmpmr-search"
                 value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                onChange={(event) => { setSearch(event.target.value); setPage(1); }}
                 placeholder="Cari organisasi, skor, maturity level, atau periode"
                 aria-label="Cari TMPMR"
               />
             }
             fields={[
+              organizationFilter.field,
               {
                 id: "period",
                 label: "Periode",
                 value: periodFilter,
-                onChange: setPeriodFilter,
+                onChange: (value) => { setPeriodFilter(value); setPage(1); },
                 options: [
                   { value: "all", label: "Semua periode" },
                   ...availablePeriods.map((period) => ({ value: period, label: period })),
@@ -248,7 +204,7 @@ export default function TMPMRListPage() {
                 id: "status",
                 label: "Status",
                 value: statusFilter,
-                onChange: (value) => setStatusFilter(value as TMPMRStatus | "all"),
+                onChange: (value) => { setStatusFilter(value as TMPMRStatus | "all"); setPage(1); },
                 options: [
                   { value: "all", label: "Semua status" },
                   ...Object.entries(statusLabel).map(([value, label]) => ({ value, label })),
@@ -303,7 +259,7 @@ export default function TMPMRListPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {paginatedItems.length === 0 ? (
+                  {items.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={8} className="!p-0">
                         <CollectionEmptyState
@@ -313,9 +269,8 @@ export default function TMPMRListPage() {
                       </TableCell>
                     </TableRow>
                   ) : (
-                    paginatedItems.map((item) => {
-                      const orgName =
-                        organizationMap.get(item.organizationId) ?? item.organizationId;
+                    items.map((item) => {
+                      const orgName = item.organizationName || item.organizationId;
                       return (
                         <TableRow key={item.id}>
                           <TableCell className="whitespace-nowrap">{item.period}</TableCell>
@@ -354,12 +309,12 @@ export default function TMPMRListPage() {
                 </TableBody>
               </Table></CollectionSortProvider>
 
-              {shouldShowCollectionPagination(filteredItems.length) ? (
+              {shouldShowCollectionPagination(total) ? (
                 <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border bg-table-footer px-5 py-3 text-sm">
                   <p className="text-secondary-foreground">
-                    Menampilkan {filteredItems.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}
+                    Menampilkan {total === 0 ? 0 : (page - 1) * PAGE_SIZE + 1}
                     {" "}
-                    hingga {Math.min(page * PAGE_SIZE, filteredItems.length)} dari {filteredItems.length}
+                    hingga {Math.min(page * PAGE_SIZE, total)} dari {total}
                   </p>
                   <div className="flex items-center gap-2">
                     <Button

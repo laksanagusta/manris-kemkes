@@ -3,6 +3,10 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
+import { defaultUnitProgressPeriod, unitProgressPeriods, type UnitProgressProfile } from "@/lib/unit-progress-filters";
+import { todayMonitoringDate } from "@/lib/monitoring-date";
+import { useSetHeaderActions } from "@/lib/header-actions-context";
+import { ReportViewTabs } from "@/components/report/report-view-tabs";
 import { api } from "@/lib/api";
 import { useAuth } from "@/contexts/auth-context";
 import {
@@ -25,7 +29,6 @@ import {
 import {
   completedReportCycle,
   currentReportCycle,
-  shiftReportCycle,
 } from "@/lib/quarterly-report";
 import type {
   QuarterlyReport,
@@ -39,7 +42,7 @@ import { QuarterlyReportDashboard, RiskSummarySkeleton } from "@/components/repo
 import { PageStack, ReportEmptyState } from "@/components/shared/design-system";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/shared/animated-tabs";
+import { Tabs, TabsContent } from "@/components/shared/animated-tabs";
 import { RiskConditionCharts } from "@/components/shared/design-system/domain/risk-condition-charts";
 
 const EMPTY_SCOPE: ReportsFilterScope = {
@@ -71,6 +74,12 @@ export default function ReportsPage() {
 function ReportsContent() {
   const { token, user } = useAuth();
   const search = useSearchParams();
+  const setHeaderActions = useSetHeaderActions();
+  const [headerTabHost, setHeaderTabHost] = useState<HTMLDivElement | null>(null);
+  useEffect(() => {
+    setHeaderActions(<div ref={setHeaderTabHost} />);
+    return () => setHeaderActions(null);
+  }, [setHeaderActions]);
   const tab = search.get("tab") === "perbandingan" ? "perbandingan" : "ringkasan";
   const reportParams = new URLSearchParams(search.toString());
   reportParams.delete("tab");
@@ -157,20 +166,39 @@ function ReportsContent() {
     try { localStorage.setItem(preferencesKey, JSON.stringify({ cycle, scope })); } catch { /* Reporting still works when storage is unavailable. */ }
   }, [metadataReady, user, restoredFor, restoreKey, preferencesKey, cycle, scope, urlOverrides, linkError]);
 
-  const comparisonCycle = comparisonOverride ?? shiftReportCycle(cycle, -1);
-  const selectedComparison = tab === "perbandingan" ? comparisonOverride : undefined;
+  const [profileResult, setProfileResult] = useState<{ key: string; rows?: UnitProgressProfile[]; error?: string }>();
+  const [profileSelection, setProfileSelection] = useState<{ profile: string; period: string }>();
+  const profileScopeQuery = new URLSearchParams(scope.organizationIds.length ? { org_id: scope.organizationIds.join(",") } : {}).toString();
+  const profileKey = `${token}:${profileScopeQuery}:${metadataRetry}:${retry}`;
+  const profileState = profileResult?.key === profileKey ? profileResult : undefined;
+  const profiles = profileState?.rows ?? [];
+  const selectedProfile = profiles.find(item => item.id === profileSelection?.profile) ?? profiles[0];
+  const periods = selectedProfile ? unitProgressPeriods(selectedProfile) : [];
+  const periodId = periods.find(item => item.value === profileSelection?.period)?.value
+    ?? (selectedProfile ? defaultUnitProgressPeriod(selectedProfile, todayMonitoringDate()) : "");
+  const summaryReady = Boolean(profileState?.rows && selectedProfile && periodId);
+  useEffect(() => {
+    if (!token || !metadataReady || needsSelection) return;
+    let active = true;
+    api.get<UnitProgressProfile[]>(`/reports/unit-progress/profiles?${profileScopeQuery}`, token)
+      .then(rows => { if (active) setProfileResult({ key: profileKey, rows }); })
+      .catch((cause: unknown) => { if (active) setProfileResult({ key: profileKey, error: reportErrorMessage(cause, "Rules profil belum dapat dimuat.") }); });
+    return () => { active = false; };
+  }, [token, profileKey, profileScopeQuery, metadataReady, needsSelection]);
+
+  const comparisonPeriodId = periods.find(item => item.value === comparisonOverride)?.value
+    ?? periods[Math.max(0, periods.findIndex(item => item.value === periodId) - 1)]?.value ?? "";
+  const selectedComparison = tab === "perbandingan" ? comparisonPeriodId : undefined;
   const query = useMemo(() => {
-    const params = new URLSearchParams({
-      cycle,
-    });
+    const params = new URLSearchParams({ profile: selectedProfile?.id ?? "", period: periodId });
     if (scope.organizationIds.length)
       params.set("org_id", scope.organizationIds.join(","));
-    if (selectedComparison) params.set("compare_cycle", selectedComparison);
+    if (selectedComparison) params.set("compare_period", selectedComparison);
     return params.toString();
-  }, [cycle, scope.organizationIds, selectedComparison]);
+  }, [scope.organizationIds, selectedComparison, selectedProfile?.id, periodId]);
   const report = restoredFor === restoreKey && !linkError && loadedQuery === query ? reportData : null;
   useEffect(() => {
-    if (!token || !metadataReady || restoredFor !== restoreKey || needsSelection || linkError) {
+    if (!token || !metadataReady || restoredFor !== restoreKey || needsSelection || linkError || !summaryReady) {
       setReport(null);
       return;
     }
@@ -198,7 +226,7 @@ function ReportsContent() {
     return () => {
       cancelled = true;
     };
-  }, [token, metadataReady, restoredFor, restoreKey, needsSelection, linkError, query, retry]);
+  }, [token, metadataReady, restoredFor, restoreKey, needsSelection, linkError, query, retry, summaryReady]);
 
   async function exportExcel(format: QuarterlyReportExcelFormat = "assessment") {
     if (!report || !token || loading || exporting || needsSelection || linkError) return;
@@ -227,14 +255,18 @@ function ReportsContent() {
         else url.searchParams.delete("tab");
         window.history.replaceState(null, "", url);
       }} className="gap-4">
-        <TabsList aria-label="Tampilan laporan risiko">
-          <TabsTrigger value="ringkasan">Ringkasan</TabsTrigger>
-          <TabsTrigger value="perbandingan">Perbandingan</TabsTrigger>
-        </TabsList>
+        <ReportViewTabs target={headerTabHost} />
         <ReportFilterPanel
+          profile={{
+            value: selectedProfile?.id ?? "",
+            options: profiles.map(({ id, label }) => ({ value: id, label })),
+            onChange: (profile) => { setComparisonOverride(undefined); setLinkError(null); setUrlOverrides(false); const next = profiles.find(item => item.id === profile); setProfileSelection({ profile, period: next ? defaultUnitProgressPeriod(next, todayMonitoringDate()) : "" }); },
+            period: periodId, periods,
+            onPeriodChange: (period) => { setLinkError(null); setUrlOverrides(false); if (selectedProfile) setProfileSelection({ profile: selectedProfile.id, period }); },
+          }}
           cycle={cycle}
           onCycleChange={(value) => { setCycle(value); setLinkError(null); setUrlOverrides(false); }}
-          comparison={tab === "perbandingan" ? { cycle: comparisonCycle, onChange: setComparisonOverride } : undefined}
+          comparison={tab === "perbandingan" ? { cycle: comparisonPeriodId, onChange: setComparisonOverride } : undefined}
           scope={scope}
           defaultScope={resolveDefaultReportsFilterScope(user, organizations)}
           requireUnit={Boolean(user && !user.isGlobal)}
@@ -255,13 +287,14 @@ function ReportsContent() {
           scopeReady={metadataReady}
           loading={loading}
           exporting={exporting}
-          canExport={Boolean(report) && !needsSelection && !linkError}
+          canExport={Boolean(report) && summaryReady && !needsSelection && !linkError}
           onExportExcel={() => void exportExcel()}
           onExportDataExcel={() => void exportExcel("data")}
           onReload={() => setRetry((value) => value + 1)}
           onReset={() => {
             setLinkError(null);
             setUrlOverrides(false);
+            setProfileSelection(undefined);
             setCycle(completedReportCycle());
             setComparisonOverride(undefined);
             setScope(resolveDefaultReportsFilterScope(user, organizations));
@@ -270,6 +303,10 @@ function ReportsContent() {
         <TabsContent value={tab} className="min-w-0">
           {metadataError ? (
             <ReportFeedback title="Unit dan grup gagal dimuat" message={metadataError} onRetry={() => setMetadataRetry(value => value + 1)} />
+          ) : profileState?.error ? (
+            <ReportFeedback title="Rules profil gagal dimuat" message={profileState.error} onRetry={() => setRetry(value => value + 1)} />
+          ) : profileState?.rows && !summaryReady ? (
+            <ReportEmptyState title="Profil atau periode belum tersedia" description="Atur rules profil beserta periodenya untuk menampilkan ringkasan risiko." />
           ) : linkError ? (
             <ReportFeedback title="Filter tautan tidak dapat digunakan" message={linkError} actionLabel="Gunakan filter di atas" onRetry={() => { setLinkError(null); setUrlOverrides(false); }} />
           ) : needsSelection && metadataReady ? (
@@ -279,7 +316,7 @@ function ReportsContent() {
             />
           ) : reportError ? (
             <ReportFeedback title={tab === "perbandingan" ? "Perbandingan gagal dimuat" : "Laporan gagal dimuat"} message={reportError} onRetry={() => setRetry(value => value + 1)} />
-          ) : loading || !metadataReady ? (
+          ) : loading || !metadataReady || !summaryReady ? (
             <RiskSummarySkeleton comparison={tab === "perbandingan"} />
           ) : report && tab === "perbandingan" ? (
             <RiskConditionCharts report={report} activeProfiles={report.risks} previousProfiles={report.previousRisks} />

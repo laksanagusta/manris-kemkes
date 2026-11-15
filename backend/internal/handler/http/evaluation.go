@@ -7,6 +7,7 @@ import (
 	"log"
 	"runtime/debug"
 	"strconv"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -128,11 +129,19 @@ func (h *EvaluationHandler) List(c *fiber.Ctx) error {
 		organizationIDs = []uuid.UUID{*scope.OrganizationID}
 	}
 
+	createdDate := c.Query("created_date")
+	if createdDate != "" {
+		if _, err := time.Parse(time.DateOnly, createdDate); err != nil {
+			return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "Tanggal dibuat tidak valid.")
+		}
+	}
+
 	result, err := h.listUC.Execute(c.Context(), evaluationuc.ListInput{
 		SortBy: c.Query("sort_by"), SortOrder: c.Query("sort_order"),
 		OrganizationID:  organizationID,
 		OrganizationIDs: organizationIDs,
 		Period:          c.Query("period"),
+		CreatedDate:     createdDate,
 		Status:          c.Query("status"),
 		Query: func() string {
 			if query := c.Query("query"); query != "" {

@@ -16,6 +16,9 @@ export type UnitProgressGroup = {
   monitoring: { total: number; notStarted: number; drafts: number; final: number };
   riskDrafts: number;
   mitigationReported: number;
+  mitigationTotal?: number;
+  evaluationTotal?: number;
+  evaluationDrafts?: number;
   attention: string[];
 };
 
@@ -52,8 +55,8 @@ export function groupUnitProgress(report: UnitProgressReport): UnitProgressGroup
     unit.mitigationReported = unit.mitigations.filter((task) => task.status === "reported").length;
     if (overdue) unit.attention.push(`${overdue} laporan mitigasi lewat tenggat atau tidak dilaporkan`);
     if (incomplete) unit.attention.push(`${incomplete} laporan mitigasi belum lengkap`);
-    if (unit.papers[0]?.status === "signing") unit.attention.push("Kertas Kerja menunggu TTE");
-    if (unit.papers[0]?.status === "draft") unit.attention.push("Kertas Kerja masih draf");
+    if (unit.papers[0]?.status === "signing") unit.attention.push("KK Pemantauan dan Reviu menunggu TTE");
+    if (unit.papers[0]?.status === "draft") unit.attention.push("KK Pemantauan dan Reviu masih draf");
     if (unit.riskDrafts) unit.attention.push(`${unit.riskDrafts} risiko masih draf`);
     if (evaluationDrafts) unit.attention.push(`${evaluationDrafts} evaluasi masih draf`);
     const monitoringPending = unit.monitoring.drafts + (report.monitoringAvailable ? unit.monitoring.notStarted : 0);
@@ -61,3 +64,27 @@ export function groupUnitProgress(report: UnitProgressReport): UnitProgressGroup
   }
   return Array.from(units.values());
 }
+
+export type UnitProgressTab = "summary" | "papers" | "risks" | "monitoring" | "evaluations" | "mitigations";
+export type UnitProgressQuery = {
+  tab: UnitProgressTab;
+  unitId: string;
+  search: string;
+  attentionOnly: boolean;
+  status: string;
+  page: number;
+  pageSize: number;
+};
+export const DEFAULT_UNIT_PROGRESS_QUERY: UnitProgressQuery = {
+  tab: "summary", unitId: "", search: "", attentionOnly: false, status: "all", page: 1, pageSize: 20,
+};
+export type UnitProgressPage = {
+  cycle: string;
+  monitoringAvailable: boolean;
+  groups: UnitProgressGroup[];
+  selectedUnit?: UnitProgressGroup;
+  statuses: string[];
+  total: number;
+  page: number;
+  limit: number;
+};

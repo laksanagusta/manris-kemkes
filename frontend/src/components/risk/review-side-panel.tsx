@@ -1,5 +1,6 @@
 "use client";
 
+import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { api } from "@/lib/api";
@@ -200,6 +201,7 @@ export function ReviewSidePanel({
             Pastikan pemantauan telah sesuai dengan kondisi terkini
           </DialogDescription>
         </DialogHeader>
+        <ConfirmationConsequences>Keputusan dan catatan Anda akan disimpan dalam riwayat. Persetujuan melanjutkan proses sesuai alur; penolakan mengembalikan pengajuan untuk diperbaiki.</ConfirmationConsequences>
         <div className="space-y-4 py-2">
           <Textarea
             placeholder="Tambahkan catatan peninjauan"
@@ -249,6 +251,7 @@ export function ReviewSidePanel({
             Berikan keputusan persetujuan atau penolakan untuk risiko ini.
           </DialogDescription>
         </DialogHeader>
+        <ConfirmationConsequences>Keputusan dan catatan Anda akan disimpan dalam riwayat. Persetujuan melanjutkan proses sesuai alur; penolakan mengembalikan pengajuan untuk diperbaiki.</ConfirmationConsequences>
         <div className="space-y-4 py-2">
           <Textarea
             placeholder="Tambahkan pesan persetujuan atau alasan penolakan..."

@@ -23,6 +23,11 @@ type fakeOrgGroupRepo struct {
 	memberIDs         []uuid.UUID
 }
 
+func (r *fakeOrgGroupRepo) ListOptions(_ context.Context, ownerID *uuid.UUID) ([]repository.OrganizationGroupOption, error) {
+	r.lastListFilter.OwnerOrganizationID = ownerID
+	return nil, nil
+}
+
 func (r *fakeOrgGroupRepo) Create(_ context.Context, group *entity.OrganizationGroup, memberIDs []uuid.UUID) error {
 	if r.group == nil {
 		group.ID = uuid.New()
@@ -204,6 +209,22 @@ func TestListDefaultsToOwnOrganizationForNonGlobalScope(t *testing.T) {
 	}
 	if out.Page != 1 || out.Limit != 10 {
 		t.Fatalf("expected normalized pagination 1/10, got %d/%d", out.Page, out.Limit)
+	}
+}
+
+func TestListOptionsUsesOwnOrganizationScope(t *testing.T) {
+	owner := uuid.New()
+	repo := &fakeOrgGroupRepo{}
+	uc := NewListUseCase(repo)
+	if _, err := uc.Options(context.Background(), ListInput{Scope: scopeFor(owner, owner)}); err != nil {
+		t.Fatal(err)
+	}
+	if repo.lastListFilter.OwnerOrganizationID == nil || *repo.lastListFilter.OwnerOrganizationID != owner {
+		t.Fatalf("filter choices escaped organization scope: %+v", repo.lastListFilter)
+	}
+	other := uuid.New()
+	if _, err := uc.Options(context.Background(), ListInput{Scope: scopeFor(owner, owner), OwnerOrganizationID: &other}); !errors.Is(err, domainerrors.ErrForbidden) {
+		t.Fatalf("expected forbidden options request, got %v", err)
 	}
 }
 

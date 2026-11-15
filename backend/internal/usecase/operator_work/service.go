@@ -6,7 +6,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/timeutil"
-	riskuc "github.com/manris/backend/internal/usecase/risk"
 	"sort"
 	"time"
 )
@@ -47,7 +46,7 @@ func (s *Service) List(ctx context.Context, orgID, actorID uuid.UUID, page, limi
 	return &entity.OperatorWorkPage{Items: items[start:end], Page: page, HasNext: end < len(items), Total: len(items), Today: now.Format("2006-01-02")}, nil
 }
 
-// BuildItems follows the existing visible quarter policy without mutating tasks.
+// BuildItems surfaces actual saved work without inventing monitoring obligations.
 func BuildItems(candidates []Candidate, actorID uuid.UUID, now time.Time) []entity.OperatorWorkItem {
 	now = now.In(timeutil.JakartaLocation())
 	today := now.Format("2006-01-02")
@@ -70,6 +69,10 @@ func BuildItems(candidates []Candidate, actorID uuid.UUID, now time.Time) []enti
 			}
 			item.ActionLabel = "Lengkapi risiko"
 		case "mitigation_report":
+			if item.MonitoringID != "" {
+				item.ActionLabel = "Isi laporan di pemantauan"
+				break
+			}
 			if _, err := time.Parse("2006-01-02", c.PeriodEnd); err != nil {
 				continue
 			}
@@ -84,25 +87,10 @@ func BuildItems(candidates []Candidate, actorID uuid.UUID, now time.Time) []enti
 			}
 			item.ActionLabel = "Isi laporan"
 		case "monitoring_start":
-			if !riskuc.IsValidQuarterFormat(item.Period) || !riskuc.IsValidQuarterFormat(c.EffectiveCycle) {
-				continue
-			}
-			cmp, err := riskuc.CompareCycles(item.Period, c.EffectiveCycle)
-			if err != nil || cmp < 0 {
-				continue
-			}
-			if !entity.MonitoringWindowOpen(item.Period, now) {
-				continue
-			}
-			_, end, _ := entity.MonitoringWindow(item.Period)
-			item.DueDate = end.AddDate(0, 0, -1).Format("2006-01-02")
-			item.ActionLabel = "Mulai pemantauan"
+			// Dated observations are initiated by the user, not a quarterly obligation.
+			continue
 		case "monitoring_draft":
-			if !entity.MonitoringWindowOpen(item.Period, now) {
-				continue
-			}
-			_, end, _ := entity.MonitoringWindow(item.Period)
-			item.DueDate = end.AddDate(0, 0, -1).Format("2006-01-02")
+			item.DueDate = ""
 			item.ActionLabel = "Lanjutkan pemantauan"
 		default:
 			continue

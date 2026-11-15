@@ -121,6 +121,23 @@ func (r *organizationRepository) ListWithFilter(ctx context.Context, filter repo
 		argIdx++
 	}
 
+	if filter.UPRLevel != "" {
+		clause := fmt.Sprintf(" AND o.upr_level = $%d", argIdx)
+		countQuery += clause
+		dataQuery += clause
+		args = append(args, filter.UPRLevel)
+		argIdx++
+	}
+
+	switch filter.Structure {
+	case "root":
+		countQuery += " AND o.parent_id IS NULL"
+		dataQuery += " AND o.parent_id IS NULL"
+	case "child":
+		countQuery += " AND o.parent_id IS NOT NULL"
+		dataQuery += " AND o.parent_id IS NOT NULL"
+	}
+
 	var total int
 	if err := r.pool.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("list organizations count: %w", err)
@@ -146,7 +163,7 @@ func (r *organizationRepository) ListWithFilter(ctx context.Context, filter repo
 		orgs = append(orgs, &org)
 	}
 
-	return orgs, total, nil
+	return orgs, total, rows.Err()
 }
 
 func (r *organizationRepository) GetContext(ctx context.Context, orgID uuid.UUID) (string, error) {

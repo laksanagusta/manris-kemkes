@@ -5,6 +5,8 @@ import { useState } from "react";
 import {
   BookOpen,
   ClipboardCheck,
+  ClipboardList,
+  FileText,
   LayoutDashboard,
   Search,
 } from "@/components/shared/icons";
@@ -14,7 +16,9 @@ import { SidebarNavItem } from "@/components/shared/sidebar-nav-item";
 
 const items = [
   { label: "Dashboard", href: "/overview", icon: LayoutDashboard },
+  { label: "Profil Risiko Tahunan", href: "/risk/annual-profiles", icon: ClipboardList },
   { label: "Evaluasi", href: "/evaluations", icon: ClipboardCheck },
+  { label: "Laporan", href: "/laporan", icon: FileText },
   { label: "Library", href: "/library", icon: BookOpen },
   { label: "Search", href: "/search", icon: Search },
 ] as const;

@@ -50,6 +50,10 @@ func (f fakeIncidentRepo) List(ctx context.Context, orgIDs []uuid.UUID) ([]*enti
 
 type fakeTMPMRRepo struct{}
 
+func (f fakeTMPMRRepo) Summary(context.Context, *uuid.UUID) (repository.TMPMRSummary, error) {
+	return repository.TMPMRSummary{}, nil
+}
+
 func (f fakeTMPMRRepo) Create(ctx context.Context, assessment *entity.TMPMRAssessment) error {
 	return nil
 }

@@ -132,10 +132,10 @@ export function WorkingPaperProgressCollapsible({
             <CollapsibleCard.Icon />
             <CollapsibleCard.Text>
               <CollapsibleCard.Title>
-                Progress Kertas Kerja
+                Progress KK Pemantauan dan Reviu
               </CollapsibleCard.Title>
               <CollapsibleCard.Description>
-                Persentase risiko final pada kertas kerja yang sedang ditampilkan.
+                Persentase risiko final pada KK Pemantauan dan Reviu yang sedang ditampilkan.
               </CollapsibleCard.Description>
             </CollapsibleCard.Text>
           </CollapsibleCard.Header>
@@ -161,7 +161,7 @@ export function WorkingPaperProgressCollapsible({
       <CollapsibleCard.Content>
         <CollapsibleCard.Body className="px-0">
           {loading ? (
-            <CollectionLoadingState message="Memuat progress kertas kerja..." />
+            <CollectionLoadingState message="Memuat progress KK Pemantauan dan Reviu..." />
           ) : progressData.length === 0 ? (
             <CollectionEmptyState
               title="Belum ada progress risiko"
@@ -258,11 +258,11 @@ function LatestProgressTable({
               </TableCell>
                 <TableCell className="text-right">
                   <DocumentDownloadButton
-                    title="Download kertas kerja"
+                    title="Download KK Pemantauan dan Reviu"
                     label={
                       workingPaper
                         ? `Download ${workingPaper.title || workingPaper.code}`
-                        : `Download kertas kerja ${row.orgName}`
+                        : `Download KK Pemantauan dan Reviu ${row.orgName}`
                     }
                     downloading={isExporting}
                     onDownload={workingPaper ? () => onExport(workingPaper) : undefined}

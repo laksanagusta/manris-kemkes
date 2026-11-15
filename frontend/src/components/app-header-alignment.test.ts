@@ -39,7 +39,8 @@ const globalsSource = readFileSync(
 
 test("workspace uses a standalone mobile trigger and a desktop breadcrumb bar", () => {
   assert.match(appShellSource, /<SidebarTrigger aria-label="Buka navigasi" className="[^"]*size-11[^"]*md:hidden"/);
-  assert.match(appShellSource, /className="hidden[^"]*md:flex[^"]*">\s*<AppBreadcrumbs \/>/);
+  assert.match(appShellSource, /headerActions \? "flex" : "hidden md:flex"/);
+  assert.match(appShellSource, /<AppBreadcrumbs \/>[\s\S]*className="ms-auto flex shrink-0 items-center gap-2"/);
   assert.match(appSidebarSource, /collapsible="icon"/);
   assert.match(appSidebarSource, /openSettings\("account"\)/);
 });
@@ -97,10 +98,10 @@ test("uses the shared compact page header", () => {
   );
 });
 
-test("keeps the optional actions slot", () => {
-  assert.match(source, /const actions = useHeaderActions\(\);/);
-  assert.match(source, /\{actions\}/);
-  assert.match(source, /id=\{PAGE_HEADER_ACTION_SLOT_ID\}/);
+test("places optional profile actions at the far end of the application topbar", () => {
+  assert.match(appShellSource, /const headerActions = useHeaderActions\(\);/);
+  assert.match(appShellSource, /className="ms-auto flex shrink-0 items-center gap-2"[\s\S]*\{headerActions\}/);
+  assert.doesNotMatch(source, /useHeaderActions|PAGE_HEADER_ACTION_SLOT_ID/);
 });
 
 test("keeps the canonical header title at the shared page-title scale", () => {
@@ -123,13 +124,13 @@ test("keeps the title content free of a redundant min-width wrapper", () => {
   assert.match(collectionHeaderSource, /"min-w-0"/);
 });
 
-test("centers title-row actions against the title and subtitle block", () => {
+test("keeps profile actions out of the page title row", () => {
   assert.match(
     collectionHeaderSource,
     /actionsInTitleRow[\s\S]*sm:flex-row sm:items-center sm:justify-between/,
   );
-  assert.match(source, /actionsPlacement="title"/);
-  assert.match(source, /id=\{PAGE_HEADER_ACTION_SLOT_ID\}/);
+  assert.doesNotMatch(source, /actionsPlacement="title"/);
+  assert.match(appShellSource, /<AppBreadcrumbs \/>[\s\S]*\{headerActions\}/);
 });
 
 test("allows form and detail actions to use the global title-row slot", () => {

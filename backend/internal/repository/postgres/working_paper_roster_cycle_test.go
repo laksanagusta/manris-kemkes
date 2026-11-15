@@ -5,18 +5,14 @@ import (
 	"testing"
 )
 
-func TestRosterPreviewQueryUsesAssessmentCycleInsteadOfEffectiveDates(t *testing.T) {
+func TestRosterPreviewUsesEffectiveProfilesAndOneLatestObservation(t *testing.T) {
 	query := rosterPreviewQuery()
-
-	if !strings.Contains(query, "r.assessment_cycle = $2") {
-		t.Fatalf("roster query must filter risks by assessment cycle:\n%s", query)
-	}
-	for _, forbidden := range []string{
-		"COALESCE(r.review_approved_at, r.created_at) <",
-		"r.archived_at >=",
-	} {
-		if strings.Contains(query, forbidden) {
-			t.Fatalf("roster query must not filter cycle membership by %q:\n%s", forbidden, query)
+	for _, required := range []string{"r.effective_from", "< p.cutoff", "DISTINCT ON (rm.version_group_id)", "rm.observed_at DESC", "(rm.status='final') DESC"} {
+		if !strings.Contains(query, required) {
+			t.Fatalf("roster must use %q", required)
 		}
+	}
+	if strings.Contains(query, "AND r.assessment_cycle = $2") {
+		t.Fatal("a Q1 risk must remain eligible in Q2")
 	}
 }

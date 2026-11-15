@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/shared/animated-tabs";
+import { Tabs, TabsContent } from "@/components/shared/animated-tabs";
 import { RiskConditionCharts } from "../domain/risk-condition-charts";
-import { shiftReportCycle } from "@/lib/quarterly-report";
+import { ReportViewTabs } from "@/components/report/report-view-tabs";
 import { toast } from "sonner";
 import type { QuarterlyReportExcelFormat } from "@/lib/quarterly-report-export";
 import { ReportFilterPanel } from "@/components/report/report-filter-panel";
@@ -132,13 +132,18 @@ const exampleScope: ReportsFilterScope = {
 
 export function QuarterlyReportExample() {
   const [tab, setTab] = useState("ringkasan");
+  const [headerTabHost, setHeaderTabHost] = useState<HTMLDivElement | null>(null);
   const [comparisonOverride, setComparisonOverride] = useState<string>();
   const [cycle, setCycle] = useState(report.cycle);
+  const [profile, setProfile] = useState("quarterly");
+  const [period, setPeriod] = useState("2026-Q2");
+  const profilePeriods = profile === "semester" ? ["2026-H1", "2026-H2"] : ["2026-Q1", "2026-Q2", "2026-Q3", "2026-Q4"];
   const [scope, setScope] = useState(exampleScope);
   const [exporting, setExporting] = useState(false);
   const selected = (organizationId: string) => !scope.organizationIds.length || scope.organizationIds.includes(organizationId);
-  const comparisonCycle = comparisonOverride ?? shiftReportCycle(cycle, -1);
-  const scopedReport = { ...report, cycle, comparisonCycle,
+  const summaryCycle = period;
+  const comparisonCycle = profilePeriods.includes(comparisonOverride ?? "") ? comparisonOverride! : profilePeriods[Math.max(0, profilePeriods.indexOf(period) - 1)] ?? period;
+  const scopedReport = { ...report, cycle: summaryCycle, comparisonCycle,
     organizations: report.organizations.filter(unit => selected(unit.id)),
     risks: risks.filter(risk => selected(risk.organizationId)),
     previousRisks: report.previousRisks.filter(risk => selected(risk.organizationId)),
@@ -163,11 +168,18 @@ export function QuarterlyReportExample() {
         Contoh memakai komponen produksi dengan data ilustrasi. Filter mengubah periode dan cakupan contoh.
       </p>
       <Tabs value={tab} onValueChange={setTab} className="gap-4">
-        <TabsList aria-label="Contoh tampilan laporan risiko">
-          <TabsTrigger value="ringkasan">Ringkasan</TabsTrigger>
-          <TabsTrigger value="perbandingan">Perbandingan</TabsTrigger>
-        </TabsList>
+        <div className="flex min-h-14 flex-wrap items-center gap-2 border-b border-border py-2">
+          <span className="text-xs text-muted-foreground">Laporan Risiko</span>
+          <div ref={setHeaderTabHost} className="ms-auto" />
+        </div>
+        <ReportViewTabs target={headerTabHost} />
         <ReportFilterPanel
+          profile={{
+            value: profile,
+            options: [{ value: "quarterly", label: "Profil 2026 · Triwulan" }, { value: "semester", label: "Profil 2026 · Semester" }],
+            onChange: (value) => { setComparisonOverride(undefined); setProfile(value); setPeriod(value === "semester" ? "2026-H1" : "2026-Q2"); },
+            period, periods: profilePeriods.map(value => ({ value, label: value })), onPeriodChange: setPeriod,
+          }}
           cycle={cycle}
           onCycleChange={setCycle}
           comparison={tab === "perbandingan" ? { cycle: comparisonCycle, onChange: setComparisonOverride } : undefined}
@@ -187,6 +199,7 @@ export function QuarterlyReportExample() {
           onExportDataExcel={() => void exportExcel("data")}
           onReload={() => toast.info("Contoh memakai data ilustrasi tetap.")}
           onReset={() => {
+            setProfile("quarterly"); setPeriod("2026-Q2");
             setCycle(report.cycle);
             setComparisonOverride(undefined);
             setScope(exampleScope);

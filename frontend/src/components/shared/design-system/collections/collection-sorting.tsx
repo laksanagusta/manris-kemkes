@@ -82,12 +82,16 @@ export function CollectionSortLabel({ label, active, direction, onClick }: {
   );
 }
 
-export function useRemoteCollectionSorting(columns: Record<string, string>, onChange: () => void) {
+export function useRemoteCollectionSorting(
+  columns: Record<string, string>,
+  onChange: () => void,
+  defaultKey = "Dibuat",
+) {
   const [touched, setTouched] = useState(false);
   const [state, setState] = useState<{ key: string; direction: SortDirection }>({
-    key: "Dibuat", direction: "desc",
+    key: defaultKey, direction: "desc",
   });
-  const fields = { Dibuat: "created_at", ...columns };
+  const fields = { [defaultKey]: "created_at", ...columns };
   const controls: CollectionSortControls = {
     ...state,
     columns: Object.keys(fields),

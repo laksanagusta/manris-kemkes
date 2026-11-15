@@ -1,5 +1,6 @@
 "use client";
 
+import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import { useEffect, useMemo, useState } from "react";
 import { Loader2, Search, GitBranch, CheckCircle2, ChevronDown } from "@/components/shared/icons";
 
@@ -489,6 +490,11 @@ export function RiskCascadeActionDialog({
               {dialogDescription}
             </DialogDescription>
           </DialogHeader>
+          {mode === "decision" && (
+            <ConfirmationConsequences>
+              Keputusan dan catatan akan disimpan pada usulan eskalasi ini. Setujui akan menandai usulan disetujui dengan pilihan adopsi yang Anda tentukan; Tolak akan menandainya ditolak.
+            </ConfirmationConsequences>
+          )}
 
           {mode === "create" ? (
             <div className="space-y-3">

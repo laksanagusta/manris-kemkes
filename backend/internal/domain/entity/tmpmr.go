@@ -30,18 +30,19 @@ type TMPMRItem struct {
 }
 
 type TMPMRAssessment struct {
-	ID             uuid.UUID   `json:"id"`
-	OrganizationID uuid.UUID   `json:"organizationId"`
-	Period         string      `json:"period"`
-	AssessorID     *uuid.UUID  `json:"assessorId,omitempty"`
-	ReviewerID     *uuid.UUID  `json:"reviewerId,omitempty"`
-	Status         TMPMRStatus `json:"status"`
-	Score          float64     `json:"score"`
-	MaturityLevel  string      `json:"maturityLevel"`
-	ReviewNote     string      `json:"reviewNote"`
-	Items          []TMPMRItem `json:"items"`
-	CreatedAt      time.Time   `json:"createdAt"`
-	UpdatedAt      time.Time   `json:"updatedAt"`
+	ID               uuid.UUID   `json:"id"`
+	OrganizationID   uuid.UUID   `json:"organizationId"`
+	OrganizationName string      `json:"organizationName,omitempty"`
+	Period           string      `json:"period"`
+	AssessorID       *uuid.UUID  `json:"assessorId,omitempty"`
+	ReviewerID       *uuid.UUID  `json:"reviewerId,omitempty"`
+	Status           TMPMRStatus `json:"status"`
+	Score            float64     `json:"score"`
+	MaturityLevel    string      `json:"maturityLevel"`
+	ReviewNote       string      `json:"reviewNote"`
+	Items            []TMPMRItem `json:"items"`
+	CreatedAt        time.Time   `json:"createdAt"`
+	UpdatedAt        time.Time   `json:"updatedAt"`
 }
 
 func DefaultTMPMRItems() []TMPMRItem {

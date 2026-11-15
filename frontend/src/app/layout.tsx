@@ -27,8 +27,9 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
   icons: {
     icon: {
-      url: "/manrisk-favicon.svg?v=rounded-panels",
-      type: "image/svg+xml",
+      url: "/manrisk-favicon.png",
+      type: "image/png",
+      sizes: "32x32",
     },
   },
 };

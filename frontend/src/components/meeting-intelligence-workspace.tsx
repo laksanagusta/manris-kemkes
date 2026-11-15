@@ -1,5 +1,6 @@
 "use client";
 
+import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -62,7 +63,6 @@ import {
 import {
   AlertTriangle,
   Check,
-  CheckCircle2,
   ChevronDown,
   Download,
   GitBranch,
@@ -1267,12 +1267,7 @@ function MeetingIntelligenceWorkspaceContent({
                       <div className="min-h-0 flex-1 overflow-y-auto">
                         <div className="space-y-5">
                           {targetRiskDetails ? (
-                            <div className="flex items-start gap-2 border border-border/60 bg-muted/[0.08] px-4 py-3 text-sm leading-6 text-muted-foreground">
-                              {reviewTargetIsLocked ? (
-                                <GitBranch className="mt-1 size-4 shrink-0 text-primary" />
-                              ) : (
-                                <CheckCircle2 className="mt-1 size-4 shrink-0 text-success" />
-                              )}
+                            <ConfirmationConsequences>
                               <p>
                                 {reviewTargetIsLocked ? (
                                   <>
@@ -1284,7 +1279,7 @@ function MeetingIntelligenceWorkspaceContent({
                                   </>
                                 )}
                               </p>
-                            </div>
+                            </ConfirmationConsequences>
                           ) : (
                             <div className="border border-dashed border-border/60 bg-muted/[0.08] px-4 py-4 text-sm text-muted-foreground">
                               {isLoadingRiskDetails ? "Memuat cuplikan risiko eksisting..." : "Detail target risiko akan tampil di sini setelah dipilih."}

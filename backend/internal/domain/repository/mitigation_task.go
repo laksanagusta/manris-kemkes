@@ -58,3 +58,41 @@ type MonitoringTaskCounts struct {
 	Done     int    `json:"done"`
 	Pending  int    `json:"pending"`
 }
+
+// ScopedTaskPage contains a document-scoped page and counts across the document.
+type ScopedTaskPage struct {
+	Data    []*entity.MitigationTask `json:"data"`
+	Total   int                      `json:"total"`
+	Page    int                      `json:"page"`
+	Limit   int                      `json:"limit"`
+	Summary TaskStatusSummary        `json:"summary"`
+}
+
+type TaskStatusSummary struct {
+	Total       int `json:"total"`
+	Done        int `json:"done"`
+	Pending     int `json:"pending"`
+	Overdue     int `json:"overdue"`
+	NotReported int `json:"notReported"`
+}
+
+type TaskCollectionSummary struct {
+	Reported int `json:"reported"`
+	Overdue  int `json:"overdue"`
+	Upcoming int `json:"upcoming"`
+}
+
+type TaskCollectionPage struct {
+	Data    []*entity.MitigationTask
+	Total   int
+	Summary TaskCollectionSummary
+}
+
+type ScopedTaskPageFilter struct {
+	RiskID       *uuid.UUID
+	MonitoringID *uuid.UUID
+	MitigationID *uuid.UUID
+	OrgIDs       []uuid.UUID
+	Page         int
+	Limit        int
+}

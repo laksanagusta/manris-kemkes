@@ -35,6 +35,7 @@ function makeMonitoring(
     observedLevel: status === "final" ? "rendah" : "sedang",
     conclusion: "",
     mitigationProgressSummary: "",
+    mitigationTaskCount: 4,
     mitigationCompletionPercent: status === "final" ? 75 : 25,
     draftTitle: `Risk ${id}`,
     draftDescription: "",
@@ -151,4 +152,16 @@ test("main monitoring collection sorts creation time before status or score", ()
   newer.startedAt = "2026-08-01T00:00:00Z";
   const rows = overview.buildMonitoringTransactionRows([older, newer], organizations);
   assert.deepEqual(overview.filterMonitoringRows(rows, "parent", organizations, "", "all").map(row => row.id), ["newer", "older"]);
+});
+
+
+test("treatment progress distinguishes absent, unknown and unreported plans", () => {
+ const base=makeMonitoring("treatment", "child-a", "final");
+ const rows=overview.buildMonitoringTransactionRows([
+ {...base,mitigationTaskCount:0,mitigationCompletionPercent:0},
+ {...base,mitigationTaskCount:2,mitigationCompletionPercent:0},
+ {...base,mitigationTaskCount:4,mitigationCompletionPercent:75},
+ {...base,mitigationTaskCount:undefined,mitigationCompletionPercent:0},
+ ],organizations);
+ assert.deepEqual(rows.map(row=>row.mitigationCompletionPercent),[null,0,75,null]);
 });

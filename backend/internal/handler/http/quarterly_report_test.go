@@ -172,3 +172,23 @@ func TestQuarterlyReportRejectsEmptyOrInaccessibleGroup(t *testing.T) {
 		}
 	}
 }
+
+func TestQuarterlyReportForwardsProfileAndPeriod(t *testing.T) {
+	uc := &quarterlyExecutorStub{}
+	h := NewQuarterlyReportHandler(uc, nil, nil)
+	app := fiber.New()
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals("accessScope", &entity.AccessScope{IsGlobal: true})
+		return c.Next()
+	})
+	app.Get("/reports/quarterly", h.Get)
+	profile, period, comparison := uuid.NewString(), uuid.NewString(), uuid.NewString()
+	response, err := app.Test(httptest.NewRequest("GET", "/reports/quarterly?profile="+profile+"&period="+period+"&compare_period="+comparison, nil))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != 200 || len(uc.inputs) != 1 || uc.inputs[0].ProfileID != profile || uc.inputs[0].PeriodID != period || uc.inputs[0].ComparisonPeriodID != comparison {
+		t.Fatalf("selection not forwarded: %+v", uc.inputs)
+	}
+}

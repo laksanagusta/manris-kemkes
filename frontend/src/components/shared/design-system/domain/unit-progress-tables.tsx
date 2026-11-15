@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
 import { createDisplayDateFormatter } from "@/lib/display-date";
-import { groupUnitProgress, type UnitProgressGroup } from "@/lib/unit-progress";
+import { getMitigationExecutionLabel } from "@/lib/mitigation-report-status";
+import { groupUnitProgress, DEFAULT_UNIT_PROGRESS_QUERY, type UnitProgressQuery, type UnitProgressPage, type UnitProgressGroup } from "@/lib/unit-progress";
 import type { UnitProgressItem, UnitProgressReport, UnitProgressWorkingPaper } from "@/types/unit-progress";
 import { CollectionLoadingState } from "../collections/collection-loading-state";
 import { CollectionPagination } from "../collections/collection-pagination";
@@ -23,7 +24,7 @@ import { ReportEmptyState } from "../reports/report-empty-state";
 
 const tabs = {
   summary: "Rekap",
-  papers: "Kertas Kerja",
+  papers: "KK Pemantauan dan Reviu",
   risks: "Finalisasi Risiko",
   monitoring: "Pemantauan",
   evaluations: "Evaluasi",
@@ -97,17 +98,19 @@ function PaperStatus({ paper }: { paper?: UnitProgressWorkingPaper }) {
 }
 
 function MitigationProgress({ unit }: { unit: UnitProgressGroup }) {
-  return unit.mitigations.length
-    ? <span className="tabular-nums">{unit.mitigationReported} dari {unit.mitigations.length} terlapor</span>
+  const total = unit.mitigationTotal ?? unit.mitigations.length;
+  return total
+    ? <span className="tabular-nums">{unit.mitigationReported} dari {total} terlapor</span>
     : <span className="text-muted-foreground">Tidak ada kewajiban</span>;
 }
 
 function summaryTable(units: UnitProgressGroup[], open: OpenDetail): TableData {
   return {
-    columns: ["Unit", "Kertas Kerja", "Finalisasi Risiko", "Pemantauan", "Evaluasi", "Pelaporan Mitigasi", "Perlu tindak lanjut"],
+    columns: ["Unit", "KK Pemantauan dan Reviu", "Finalisasi Risiko", "Pemantauan", "Evaluasi", "Pelaporan Mitigasi", "Perlu tindak lanjut"],
     rows: units.map((unit) => {
       const paper = unit.papers[0];
-      const evalDrafts = unit.evaluations.filter((item) => item.status === "draft").length;
+      const evalDrafts = unit.evaluationDrafts ?? unit.evaluations.filter((item) => item.status === "draft").length;
+      const evaluationTotal = unit.evaluationTotal ?? unit.evaluations.length;
       return {
         id: unit.id,
         cells: [
@@ -126,8 +129,8 @@ function summaryTable(units: UnitProgressGroup[], open: OpenDetail): TableData {
               : <span className="text-muted-foreground">Tidak ada kewajiban</span>}
           </SummaryAction>,
           <SummaryAction key="evaluations" unit={unit} tab="evaluations" open={open}>
-            {unit.evaluations.length > 1
-              ? <span className="tabular-nums">{evalDrafts} draf · {unit.evaluations.length - evalDrafts} final</span>
+            {evaluationTotal > 1
+              ? <span className="tabular-nums">{evalDrafts} draf · {evaluationTotal - evalDrafts} final</span>
               : <Status value={unit.evaluations[0]?.status ?? "missing"} />}
           </SummaryAction>,
           <SummaryAction key="mitigations" unit={unit} tab="mitigations" open={open}><MitigationProgress unit={unit} /></SummaryAction>,
@@ -146,7 +149,7 @@ function detailTable(tab: DetailTab, units: UnitProgressGroup[], selected: boole
   switch (tab) {
     case "papers":
       return {
-        columns: ["Unit", "Kertas Kerja", "Status", "Tanda tangan", "Giliran berikutnya", "Diperbarui", actionColumn],
+        columns: ["Unit", "KK Pemantauan dan Reviu", "Status", "Tanda tangan", "Giliran berikutnya", "Diperbarui", actionColumn],
         rows: units.flatMap((unit): Row[] => unit.papers.length ? unit.papers.map((item) => ({
           id: item.id, status: item.status, cells: [
             unit.name, source(`/risk/working-papers/${item.id}`, item.code || item.title),
@@ -177,18 +180,21 @@ function detailTable(tab: DetailTab, units: UnitProgressGroup[], selected: boole
       };
     case "mitigations":
       return {
-        columns: ["Unit", "Rencana mitigasi", "Risiko", "PIC", "Tenggat", "Status"],
+        columns: ["Unit", "Rencana mitigasi", "Risiko", "PIC", "Tenggat", "Pelaksanaan", "Pelaporan"],
         rows: units.flatMap((unit): Row[] => unit.mitigations.length ? unit.mitigations.map((item) => ({
           id: item.id, status: item.status, cells: [
             unit.name, source(`/compliance/penanganan?taskId=${item.id}`, item.title || "Lihat tugas mitigasi"),
             item.riskTitle || item.code || "—", item.owner || "—", displayDate(item.dueDate),
+            item.status === "reported" || item.status === "skipped" || item.status === "incomplete"
+              ? getMitigationExecutionLabel(item.executionStatus ?? "") ?? "—"
+              : "—",
             <div key="status" className="flex flex-wrap gap-1">
               <Status value={item.status} />
               {item.reportedLate && <Status value="overdue" label="Dilaporkan lewat tenggat" />}
               {item.overdue && item.status !== "overdue" && <Status value="overdue" />}
             </div>,
           ],
-        })) : [{ id: unit.id, status: "none", cells: [unit.name, "—", "—", "—", "—", <Status key="status" value="none" />] }]),
+        })) : [{ id: unit.id, status: "none", cells: [unit.name, "—", "—", "—", "—", "—", <Status key="status" value="none" />] }]),
       };
     case "monitoring":
       if (selected) return {
@@ -217,11 +223,14 @@ function detailTable(tab: DetailTab, units: UnitProgressGroup[], selected: boole
   }
 }
 
-function ProgressTable({ label, columns, rows, numericColumns = [], empty }: TableData & { label: string; empty: string }) {
+type RemotePagination = { page: number; pageSize: number; total: number; onPageChange: (page: number) => void; onPageSizeChange: (size: number) => void };
+function ProgressTable({ label, columns, rows, numericColumns = [], empty, pagination }: TableData & {
+  label: string; empty: string; pagination?: RemotePagination;
+}) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
-  const activePage = Math.min(page, Math.max(1, Math.ceil(rows.length / pageSize)));
-  const visible = rows.slice((activePage - 1) * pageSize, activePage * pageSize);
+  const activePage = pagination?.page ?? Math.min(page, Math.max(1, Math.ceil(rows.length / pageSize)));
+  const visible = pagination ? rows : rows.slice((activePage - 1) * pageSize, activePage * pageSize);
   return (
     <CollectionTableCard>
       <Table aria-label={label}>
@@ -249,14 +258,16 @@ function ProgressTable({ label, columns, rows, numericColumns = [], empty }: Tab
           )}
         </TableBody>
       </Table>
-      <CollectionPagination itemLabel="baris" total={rows.length} page={activePage} pageSize={pageSize}
-        onPageChange={setPage} onPageSizeChange={(size) => { setPageSize(size); setPage(1); }} />
+      <CollectionPagination itemLabel="baris" total={pagination?.total ?? rows.length} page={activePage} pageSize={pagination?.pageSize ?? pageSize}
+        onPageChange={pagination?.onPageChange ?? setPage}
+        onPageSizeChange={pagination?.onPageSizeChange ?? ((size) => { setPageSize(size); setPage(1); })} />
     </CollectionTableCard>
   );
 }
 
-export function UnitProgressTables({ report, loading = false, example = false, scopeFields = [], reloadAction, feedback, onDownloadDocument, isDownloadingDocument }: {
-  report?: UnitProgressReport;
+export function UnitProgressTables({ report, loading = false, example = false, scopeFields = [], reloadAction, feedback, onDownloadDocument, isDownloadingDocument, remote }: {
+  report?: UnitProgressReport | UnitProgressPage;
+  remote?: { query: UnitProgressQuery; onQueryChange: (query: UnitProgressQuery) => void };
   loading?: boolean;
   example?: boolean;
   scopeFields?: TableFilterField[];
@@ -265,25 +276,32 @@ export function UnitProgressTables({ report, loading = false, example = false, s
   onDownloadDocument?: (tab: UnitProgressDocumentTab, id: string) => void;
   isDownloadingDocument?: (tab: UnitProgressDocumentTab, id: string) => boolean;
 }) {
-  const [tab, setTab] = useState<Tab>("summary");
-  const [unitId, setUnitId] = useState("");
-  const [search, setSearch] = useState("");
-  const [attentionOnly, setAttentionOnly] = useState(false);
-  const [status, setStatus] = useState("all");
+  const [localQuery, setLocalQuery] = useState(DEFAULT_UNIT_PROGRESS_QUERY);
+  const query = remote?.query ?? localQuery;
+  const { tab, unitId, search, attentionOnly, status } = query;
+  const updateQuery = (change: Partial<UnitProgressQuery>) => {
+    const next = { ...query, page: 1, ...change };
+    if (remote) remote.onQueryChange(next);
+    else setLocalQuery(next);
+  };
+  const setTab = (tab: Tab) => updateQuery({ tab, status: "all" });
+  const setUnitId = (unitId: string) => updateQuery({ unitId, status: "all" });
+  const setSearch = (search: string) => updateQuery({ search });
+  const setAttentionOnly = (attentionOnly: boolean) => updateQuery({ attentionOnly });
+  const setStatus = (status: string) => updateQuery({ status });
+  const serverPage = report && "groups" in report ? report : undefined;
   const heading = useRef<HTMLHeadingElement>(null);
   const [focusRequest, requestFocus] = useState(0);
-  const allUnits = useMemo(() => report ? groupUnitProgress(report) : [], [report]);
-  const filtered = allUnits.filter((unit) => (
+  const allUnits = useMemo(() => report ? "groups" in report ? report.groups : groupUnitProgress(report) : [], [report]);
+  const filtered = remote ? allUnits : allUnits.filter((unit) => (
     unit.name.toLocaleLowerCase("id").includes(search.trim().toLocaleLowerCase("id")) &&
     (!attentionOnly || unit.attention.length > 0)
   ));
-  const selectedUnit = tab === "summary" ? undefined : allUnits.find((unit) => unit.id === unitId);
+  const selectedUnit = tab === "summary" ? undefined : serverPage?.selectedUnit ?? allUnits.find((unit) => unit.id === unitId);
   const units = selectedUnit ? filtered.filter((unit) => unit.id === selectedUnit.id) : filtered;
   const open: OpenDetail = (nextTab, nextUnit) => {
     requestFocus((value) => value + 1);
-    setStatus("all");
-    setUnitId(nextUnit);
-    setTab(nextTab);
+    updateQuery({ tab: nextTab, unitId: nextUnit, status: "all" });
   };
   const source: Source = (href, label) => example ? label : (
     <Link className="block min-w-28 whitespace-normal text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-ring" href={href}>
@@ -294,12 +312,12 @@ export function UnitProgressTables({ report, loading = false, example = false, s
     const isEvaluation = documentTab === "evaluations";
     const label = isEvaluation
       ? `Unduh PDF evaluasi ${item?.code || item?.title || unit.name}`
-      : `Download ${item?.title || item?.code || `kertas kerja ${unit.name}`}`;
+      : `Download ${item?.title || item?.code || `KK Pemantauan dan Reviu ${unit.name}`}`;
 
     return (
       <DocumentDownloadButton
         label={label}
-        title={isEvaluation ? "Unduh PDF evaluasi" : "Download kertas kerja"}
+        title={isEvaluation ? "Unduh PDF evaluasi" : "Download KK Pemantauan dan Reviu"}
         downloading={item ? isDownloadingDocument?.(documentTab, item.id) : false}
         onDownload={item && onDownloadDocument ? () => onDownloadDocument(documentTab, item.id) : undefined}
       />
@@ -308,10 +326,11 @@ export function UnitProgressTables({ report, loading = false, example = false, s
   const data = tab === "summary" ? summaryTable(units, open) : detailTable(tab, units, Boolean(selectedUnit), open, source, documentAction);
   const statusFilter = status;
   const availableStatuses = Array.from(new Set([
+    ...(serverPage?.statuses ?? []),
     ...data.rows.flatMap((row) => row.status ? [row.status] : []),
     ...(statusFilter === "all" ? [] : [statusFilter]),
   ]));
-  const rows = statusFilter === "all" ? data.rows : data.rows.filter((row) => row.status === statusFilter);
+  const rows = remote || statusFilter === "all" ? data.rows : data.rows.filter((row) => row.status === statusFilter);
   const title = `${tabs[tab]}${selectedUnit ? ` · ${selectedUnit.name}` : ""}`;
 
   const fields: TableFilterField[] = [
@@ -332,7 +351,7 @@ export function UnitProgressTables({ report, loading = false, example = false, s
   }, [focusRequest]);
 
   return (
-    <Tabs value={tab} onValueChange={(value) => { setTab(value as Tab); setStatus("all"); }} className="min-w-0 gap-4">
+    <Tabs value={tab} onValueChange={(value) => setTab(value as Tab)} className="min-w-0 gap-4">
       <TabsList aria-label="Tabel progres per unit" className="h-auto max-w-full flex-wrap justify-start gap-y-1">
         {Object.entries(tabs).map(([value, label]) => <TabsTrigger key={value} value={value}>{label}</TabsTrigger>)}
       </TabsList>
@@ -356,7 +375,7 @@ export function UnitProgressTables({ report, loading = false, example = false, s
                 </p>
               )}
             </div>
-            <Button variant="outline" size="sm" onClick={() => { requestFocus((value) => value + 1); setUnitId(""); setStatus("all"); }}>
+            <Button variant="outline" size="sm" onClick={() => { requestFocus((value) => value + 1); setUnitId(""); }}>
               Semua unit dalam filter
             </Button>
           </div>
@@ -364,11 +383,16 @@ export function UnitProgressTables({ report, loading = false, example = false, s
         {report && !report.monitoringAvailable && tab === "monitoring" && (
           <p className="text-sm text-muted-foreground">Jendela pemantauan untuk periode ini belum dibuka.</p>
         )}
-        <p className="sr-only" role="status">{loading ? "" : `${rows.length} hasil`}</p>
+        <p className="sr-only" role="status">{loading ? "" : `${serverPage?.total ?? rows.length} hasil`}</p>
         {feedback ?? (loading ? <CollectionLoadingState message="Memuat progres unit…" /> : (
           <ProgressTable
             key={`${report?.cycle}:${allUnits.map(({ id }) => id).join(",")}:${tab}:${unitId}:${search}:${attentionOnly}:${statusFilter}`}
             label={title} columns={data.columns} rows={rows} numericColumns={data.numericColumns}
+            pagination={remote ? {
+              page: serverPage?.page ?? query.page, pageSize: query.pageSize, total: serverPage?.total ?? 0,
+              onPageChange: (page) => updateQuery({ page }),
+              onPageSizeChange: (pageSize) => updateQuery({ pageSize }),
+            } : undefined}
             empty={search || attentionOnly || statusFilter !== "all"
               ? "Ubah filter untuk melihat hasil lainnya."
               : "Tidak ada data untuk unit dan periode yang dipilih."}

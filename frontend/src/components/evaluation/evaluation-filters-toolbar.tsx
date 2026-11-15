@@ -6,7 +6,6 @@ import {
 } from "@/components/shared/design-system";
 import type { OrganizationGroupListItem } from "@/lib/api/organization-groups";
 import type { OrganizationListItem } from "@/lib/api/organizations";
-import type { EvaluationPeriodOption } from "@/lib/evaluation-period-options";
 import type { EvaluationStatus } from "@/types/evaluation";
 
 type EvaluationFiltersToolbarProps = {
@@ -21,9 +20,8 @@ type EvaluationFiltersToolbarProps = {
   organizations: OrganizationListItem[];
   organizationGroups: OrganizationGroupListItem[];
   organizationRequired?: boolean;
-  periodOptions: EvaluationPeriodOption[];
-  periodFilter: string;
-  onPeriodFilterChange: (value: string) => void;
+  createdDateFilter: string;
+  onCreatedDateFilterChange: (value: string) => void;
   status: EvaluationStatus | "all";
   onStatusChange: (value: EvaluationStatus | "all") => void;
 };
@@ -40,9 +38,8 @@ export function EvaluationFiltersToolbar({
   organizations,
   organizationGroups,
   organizationRequired = false,
-  periodOptions,
-  periodFilter,
-  onPeriodFilterChange,
+  createdDateFilter,
+  onCreatedDateFilterChange,
   status,
   onStatusChange,
 }: EvaluationFiltersToolbarProps) {
@@ -58,7 +55,7 @@ export function EvaluationFiltersToolbar({
       }
       fields={[
         {
-          id: "organization",
+          id: "organization", organizationScope: true,
           label: "Organisasi",
           value: organizationId,
           onChange: onOrganizationIdChange,
@@ -85,11 +82,12 @@ export function EvaluationFiltersToolbar({
           ],
         }] : []),
         {
-          id: "period",
-          label: "Periode",
-          value: periodFilter,
-          onChange: onPeriodFilterChange,
-          options: periodOptions,
+          id: "created-date",
+          label: "Tanggal dibuat",
+          type: "date",
+          defaultValue: "",
+          value: createdDateFilter,
+          onChange: onCreatedDateFilterChange,
         },
         {
           id: "status",

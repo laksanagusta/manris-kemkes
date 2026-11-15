@@ -10,6 +10,8 @@ export type MonitoringRosterStatus =
 export type MonitoringStatusFilter = "all" | MonitoringRosterStatus;
 
 export type MonitoringOverviewRow = {
+  transactionKind?: string;
+  mode?: string;
   id: string;
   versionGroupId: string;
   code: string;
@@ -17,6 +19,7 @@ export type MonitoringOverviewRow = {
   organizationId: string;
   organizationName: string;
   assessmentCycle: string;
+  observedAt?: string;
   sourceRiskId: string;
   monitoringId: string | null;
   status: MonitoringRosterStatus;
@@ -24,7 +27,7 @@ export type MonitoringOverviewRow = {
   sourceLevel: string;
   observedScore: number | null;
   observedLevel: string;
-  mitigationCompletionPercent: number;
+  mitigationCompletionPercent: number | null;
   createdAt: string | null;
   updatedAt: string | null;
   finalizedAt: string | null;
@@ -107,6 +110,8 @@ export function buildMonitoringTransactionRows(
       "Organisasi tidak diketahui";
 
     return {
+      transactionKind: monitoring.transactionKind,
+      mode: monitoring.mode,
       id: monitoring.id,
       versionGroupId:
         monitoring.versionGroupId || sourceRisk?.versionGroupId || "",
@@ -115,6 +120,7 @@ export function buildMonitoringTransactionRows(
       organizationId,
       organizationName,
       assessmentCycle: monitoring.assessmentCycle || "-",
+      observedAt: monitoring.observedAt,
       sourceRiskId: monitoring.sourceRiskId,
       monitoringId: monitoring.id,
       status:
@@ -129,10 +135,10 @@ export function buildMonitoringTransactionRows(
       sourceLevel: getMonitoringRiskLevelLabel(monitoring.sourceLevel),
       observedScore: firstPositive(monitoring.observedNilai),
       observedLevel: getMonitoringRiskLevelLabel(monitoring.observedLevel),
-      mitigationCompletionPercent: Math.min(
+      mitigationCompletionPercent: (monitoring.mitigationTaskCount ?? 0) > 0 ? Math.min(
         100,
         Math.max(0, Math.round(monitoring.mitigationCompletionPercent || 0)),
-      ),
+      ) : null,
       createdAt: monitoring.createdAt || null,
       updatedAt: monitoring.updatedAt || monitoring.startedAt || null,
       finalizedAt: monitoring.finalizedAt ?? null,

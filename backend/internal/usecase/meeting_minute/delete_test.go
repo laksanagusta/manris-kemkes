@@ -27,6 +27,10 @@ func (r *fakeDeleteMeetingMinuteRepo) List(context.Context, repository.ListMeeti
 	return nil, 0, errors.New("not implemented")
 }
 
+func (r *fakeDeleteMeetingMinuteRepo) ListAuthors(context.Context, []uuid.UUID) ([]repository.MeetingMinuteAuthor, error) {
+	return nil, nil
+}
+
 func (r *fakeDeleteMeetingMinuteRepo) Delete(_ context.Context, id uuid.UUID) error {
 	r.deletedID = id
 	return r.err

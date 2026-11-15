@@ -1,5 +1,6 @@
 "use client";
 
+import { FieldHeading } from "@/components/ui/field";
 import { useState } from "react";
 import { CheckCircle2, Info, X } from "@/components/shared/icons";
 import { cn } from "@/lib/utils";
@@ -437,11 +438,17 @@ export function LikelihoodAssessmentWizard({
                   </div>
 
                   {m === "probability" && (
-                    <div className="space-y-1">
-                      <label className="text-xs font-medium text-muted-foreground">
-                        Total Populasi
-                        <span className="text-destructive ml-0.5">*</span>
-                      </label>
+                    <div className="space-y-2">
+                      <FieldHeading>
+                        <label className="text-xs font-medium text-muted-foreground">
+                          Total Populasi
+                          <span className="text-destructive ml-0.5">*</span>
+                        </label>
+                        <p className="leading-4 text-[11px] text-muted-foreground">
+                          Untuk menghitung probabilitas: event count / population count ×
+                          100
+                        </p>
+                      </FieldHeading>
                       <Input
                         type="number"
                         min={1}
@@ -463,10 +470,6 @@ export function LikelihoodAssessmentWizard({
                         className=""
                         placeholder="Total populasi yang berisiko"
                       />
-                      <p className="text-[11px] text-muted-foreground">
-                        Untuk menghitung probabilitas: event count / population count ×
-                        100
-                      </p>
                     </div>
                   )}
 

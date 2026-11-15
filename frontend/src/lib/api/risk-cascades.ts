@@ -2,6 +2,9 @@ import { api } from "@/lib/api";
 import type { RiskCascadeListResponse, RiskCascadeRecord } from "@/types/risk-cascade";
 
 export interface ListRiskCascadesParams {
+  organizationId?: string;
+  sort_by?: string;
+  sort_order?: string;
   q?: string;
   status?: string;
   cascade_type?: string;
@@ -26,6 +29,9 @@ export async function listRiskCascades(
   params?: ListRiskCascadesParams,
 ): Promise<RiskCascadeListResponse> {
   const searchParams = new URLSearchParams();
+  if (params?.organizationId) searchParams.set("organization_id", params.organizationId);
+  if (params?.sort_by) searchParams.set("sort_by", params.sort_by);
+  if (params?.sort_order) searchParams.set("sort_order", params.sort_order);
   if (params?.q) searchParams.set("q", params.q);
   if (params?.status) searchParams.set("status", params.status);
   if (params?.cascade_type) searchParams.set("cascade_type", params.cascade_type);

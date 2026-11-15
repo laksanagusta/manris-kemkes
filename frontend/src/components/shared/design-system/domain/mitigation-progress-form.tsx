@@ -1,8 +1,8 @@
 "use client";
 
-import type { RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
 
-import { Field, FieldContent, FieldDescription, FieldLabel } from "@/components/ui/field";
+import { FieldHeading, Field, FieldContent, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -11,6 +11,7 @@ import { MitigationProgressFormShell } from "./mitigation-progress-form-shell";
 import { FieldErrorMessage } from "../fields/field-error-message";
 
 export type MitigationProgressFormProps = {
+  leadingContent?: ReactNode;
   evidenceUrl: string;
   onEvidenceUrlChange: (value: string) => void;
   notes: string;
@@ -27,6 +28,7 @@ export type MitigationProgressFormProps = {
 };
 
 export function MitigationProgressForm({
+  leadingContent,
   evidenceUrl,
   onEvidenceUrlChange,
   notes,
@@ -43,14 +45,17 @@ export function MitigationProgressForm({
 }: MitigationProgressFormProps) {
   return (
     <MitigationProgressFormShell>
+      {leadingContent}
       <Field>
         <FieldContent>
-          <FieldLabel htmlFor={notesId}>
-            Catatan Pelaksanaan <span className="text-destructive">*</span>
-          </FieldLabel>
-          <FieldDescription id={`${notesId}-hint`} className="text-xs leading-5">
-            Contoh: 3 dari 5 lokasi sudah diperiksa. Dua lokasi menunggu jadwal kunjungan.
-          </FieldDescription>
+          <FieldHeading>
+            <FieldLabel htmlFor={notesId}>
+              Catatan Pelaksanaan <span className="text-destructive">*</span>
+            </FieldLabel>
+            <FieldDescription id={`${notesId}-hint`} className="text-xs leading-4">
+              Contoh: 3 dari 5 lokasi sudah diperiksa. Dua lokasi menunggu jadwal kunjungan.
+            </FieldDescription>
+          </FieldHeading>
         </FieldContent>
         <Textarea
           id={notesId}

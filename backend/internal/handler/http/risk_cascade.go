@@ -37,18 +37,35 @@ func (h *RiskCascadeHandler) List(c *fiber.Ctx) error {
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	limit, _ := strconv.Atoi(c.Query("limit", "10"))
 	scope := middleware.GetAccessScope(c)
+	if scope == nil || (!scope.IsGlobal && len(scope.AccessibleOrgIDs) == 0) {
+		return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "cakupan akses tidak tersedia")
+	}
 	var orgIDs []uuid.UUID
-	if scope != nil && !scope.IsGlobal {
+	if !scope.IsGlobal {
 		orgIDs = scope.AccessibleOrgIDs
+	}
+	var organizationID *uuid.UUID
+	if raw := c.Query("organization_id"); raw != "" {
+		id, err := uuid.Parse(raw)
+		if err != nil {
+			return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
+		}
+		if !scope.CanRead(id) {
+			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
+		}
+		organizationID = &id
 	}
 
 	result, err := h.listUC.Execute(c.Context(), riskcascadeuc.ListInput{
-		OrgIDs:      orgIDs,
-		Status:      c.Query("status"),
-		CascadeType: c.Query("cascade_type"),
-		Query:       c.Query("q"),
-		Page:        page,
-		Limit:       limit,
+		OrgIDs:         orgIDs,
+		OrganizationID: organizationID,
+		SortBy:         c.Query("sort_by"),
+		SortOrder:      c.Query("sort_order"),
+		Status:         c.Query("status"),
+		CascadeType:    c.Query("cascade_type"),
+		Query:          c.Query("q"),
+		Page:           page,
+		Limit:          limit,
 	})
 	if err != nil {
 		return handleError(c, err)

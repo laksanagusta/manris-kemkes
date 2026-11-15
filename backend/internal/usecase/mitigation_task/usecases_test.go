@@ -230,14 +230,8 @@ func TestGenerateTasksUseCase_ExecuteUsesAssessmentCycleAsPeriodLabel(t *testing
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if created != 1 {
-		t.Fatalf("expected 1 created task, got %d", created)
-	}
-	if len(taskRepo.created) != 1 {
-		t.Fatalf("expected 1 persisted task, got %d", len(taskRepo.created))
-	}
-	if taskRepo.created[0].PeriodLabel != "2026-H1" {
-		t.Fatalf("expected period label to follow assessment cycle, got %q", taskRepo.created[0].PeriodLabel)
+	if created != 0 || len(taskRepo.created) != 0 {
+		t.Fatal("cron must not generate monitoring reports")
 	}
 }
 

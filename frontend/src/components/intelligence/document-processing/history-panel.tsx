@@ -1,5 +1,6 @@
 "use client";
 
+import { ActionConfirmationDialog } from "@/components/shared/design-system/actions/action-confirmation-dialog";
 import { formatDisplayDate } from "@/lib/display-date";
 
 import { useState } from "react";
@@ -71,6 +72,7 @@ export function HistoryPanel({
 }) {
   const [editingJobId, setEditingJobId] = useState<string | null>(null);
   const [editingName, setEditingName] = useState("");
+  const [deletingJob, setDeletingJob] = useState<ProcessingJob | null>(null);
 
   function startRename(job: ProcessingJob) {
     setEditingJobId(job.id);
@@ -175,7 +177,7 @@ export function HistoryPanel({
                         <DropdownMenuItem
                           variant="destructive"
                           onSelect={() => {
-                            if (window.confirm(`Hapus proses “${job.name}”? Hasil lokal proses ini akan dihapus.`)) onDelete(job.id);
+                            setDeletingJob(job);
                           }}
                         >
                           <Trash2 className="size-4" />
@@ -201,6 +203,14 @@ export function HistoryPanel({
         <MoreHorizontal className="size-3" />
         <span>Hasil tersimpan lokal di perangkat ini.</span>
       </div>
+      <ActionConfirmationDialog
+        open={Boolean(deletingJob)} onOpenChange={(open) => { if (!open) setDeletingJob(null); }}
+        title="Hapus proses?" description={`Periksa proses “${deletingJob?.name ?? ""}” sebelum menghapus.`}
+        confirmLabel="Hapus proses" variant="destructive"
+        onConfirm={() => { if (deletingJob) onDelete(deletingJob.id); }}
+      >
+        Riwayat dan hasil lokal proses ini akan dihapus dari perangkat ini dan tidak dapat dipulihkan melalui riwayat proses.
+      </ActionConfirmationDialog>
     </section>
   );
 }

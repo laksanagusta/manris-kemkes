@@ -251,3 +251,6 @@ export { RiskConditionCharts } from "./domain/risk-condition-charts";
 
 export { RiskTableScore } from "./domain/risk-table-score";
 export { RiskCreationContext, RiskFormReadiness, RiskFinalizationReview } from "./domain/risk-creation-guidance";
+
+export { ConfirmationConsequences } from "./actions/confirmation-consequences";
+export { ActionConfirmationDialog } from "./actions/action-confirmation-dialog";

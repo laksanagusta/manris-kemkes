@@ -14,7 +14,7 @@ export const documentationGroups = [
     { slug: "risk-events", title: "Kejadian Risiko" },
   ] },
   { title: "DOKUMEN & PELAPORAN", items: [
-    { slug: "working-papers", title: "Kertas Kerja" },
+    { slug: "working-papers", title: "KK Pemantauan dan Reviu" },
     { slug: "signatures", title: "Tanda tangan" },
     { slug: "dashboard", title: "Dashboard" },
     { slug: "reports", title: "Laporan" },

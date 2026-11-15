@@ -11,6 +11,7 @@ import (
 
 type scopeListMMRepo struct {
 	capturedOrgIDs []uuid.UUID
+	capturedOptions repository.ListMeetingMinutesOptions
 	items          []entity.MeetingMinute
 }
 
@@ -24,6 +25,7 @@ func (r *scopeListMMRepo) GetByID(_ context.Context, _ uuid.UUID, _ []uuid.UUID)
 
 func (r *scopeListMMRepo) List(_ context.Context, opts repository.ListMeetingMinutesOptions) ([]entity.MeetingMinute, int, error) {
 	r.capturedOrgIDs = opts.OrgIDs
+	r.capturedOptions = opts
 	var result []entity.MeetingMinute
 	for _, m := range r.items {
 		if len(opts.OrgIDs) > 0 && m.OrganizationID != nil {
@@ -43,7 +45,29 @@ func (r *scopeListMMRepo) List(_ context.Context, opts repository.ListMeetingMin
 	return result, len(result), nil
 }
 
+func TestMeetingMinuteListPreservesServerFiltersAndPagination(t *testing.T) {
+	repo := &scopeListMMRepo{}
+	author := uuid.New()
+	_, err := NewListMeetingMinutesUseCase(repo).Execute(context.Background(), ListInput{
+		CreatedBy: &author, Date: "2026-11-15", Query: "peserta",
+		SortBy: "participants", SortOrder: "asc", Limit: 10, Offset: 20,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := repo.capturedOptions
+	if got.CreatedBy == nil || *got.CreatedBy != author || got.Date != "2026-11-15" ||
+		got.Query != "peserta" || got.SortBy != "participants" || got.SortOrder != "asc" ||
+		got.Limit != 10 || got.Offset != 20 {
+		t.Fatalf("server list options were lost: %+v", got)
+	}
+}
+
 func (r *scopeListMMRepo) Delete(context.Context, uuid.UUID) error { return nil }
+
+func (r *scopeListMMRepo) ListAuthors(context.Context, []uuid.UUID) ([]repository.MeetingMinuteAuthor, error) {
+	return nil, nil
+}
 
 func (r *scopeListMMRepo) ListByRiskID(context.Context, uuid.UUID) ([]entity.MeetingMinutesRisk, error) {
 	return nil, nil

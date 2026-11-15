@@ -1,9 +1,8 @@
 "use client";
 
+import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import { createDisplayDateFormatter } from "@/lib/display-date";
-import { sortDate } from "@/lib/collection-sort";
-import { useCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
-import { newestCreatedFirst } from "@/lib/collection-created-at";
+import { useRemoteCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
 import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
 
 
@@ -27,6 +26,7 @@ import {
   CollectionTableCard,
   CollectionToolbar,
   CollectionEmptyState,
+  CollectionErrorState,
   IllustratedEmptyState,
   DropdownActionMenu,
 } from "@/components/shared/design-system";
@@ -50,7 +50,7 @@ import {
   ComboboxValue,
   useComboboxAnchor,
 } from "@/components/ui/combobox";
-import {
+import { FieldHeading,
   Field,
   FieldDescription,
   FieldGroup,
@@ -76,8 +76,10 @@ import {
   createOrganizationGroup,
   deleteOrganizationGroup,
   listOrganizationGroups,
+  listOrganizationGroupOptions,
   updateOrganizationGroup,
   type OrganizationGroupListItem,
+  type OrganizationGroupFilterOption,
 } from "@/lib/api/organization-groups";
 import type { User } from "@/contexts/auth-context";
 
@@ -117,6 +119,9 @@ export function OrganizationGroupManagement({
   user,
 }: Props) {
   const [groups, setGroups] = useState<OrganizationGroupListItem[]>([]);
+  const [totalGroups, setTotalGroups] = useState(0);
+  const [filterOptions, setFilterOptions] = useState<OrganizationGroupFilterOption[]>([]);
+  const [loadError, setLoadError] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -144,6 +149,12 @@ export function OrganizationGroupManagement({
   const groupsRequestId = useRef(0);
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const { controls, sortBy, sortOrder } = useRemoteCollectionSorting({
+    "Nama Grup": "name",
+    Pemilik: "owner",
+    Anggota: "member_count",
+    Diperbarui: "updated_at",
+  }, () => setPage(1));
   const [memberSearch, setMemberSearch] = useState("");
   const [groupToDelete, setGroupToDelete] = useState<OrganizationGroupListItem | null>(null);
   const memberComboboxAnchor = useComboboxAnchor();
@@ -232,41 +243,49 @@ export function OrganizationGroupManagement({
     }
 
     setLoading(true);
+    setLoadError(false);
     try {
-      const allGroups: OrganizationGroupListItem[] = [];
-      let nextPage = 1;
-      let total = 0;
-      do {
-        const response = await listOrganizationGroups(token, {
-          ownerOrganizationId: groupOwnerScope,
+      const [response, options] = await Promise.all([
+        listOrganizationGroups(token, {
+          ownerOrganizationId: ownerFilter === "all" ? groupOwnerScope : ownerFilter,
+          groupId: groupFilter === "all" ? undefined : groupFilter,
+          q: groupSearch.trim(),
+          sortBy,
+          sortOrder,
           includeMembers: true,
-          page: nextPage,
-          limit: 200,
-        });
-        if (requestId !== groupsRequestId.current) return;
-        const pageGroups = response.data ?? [];
-        total = response.total ?? pageGroups.length;
-        if (pageGroups.length === 0 && allGroups.length < total) {
-          throw new Error("Daftar grup organisasi belum lengkap.");
-        }
-        allGroups.push(...pageGroups);
-        nextPage += 1;
-      } while (allGroups.length < total);
-      setGroups([...allGroups].sort(newestCreatedFirst));
+          page,
+          limit,
+        }),
+        listOrganizationGroupOptions(token, groupOwnerScope),
+      ]);
+      if (requestId !== groupsRequestId.current) return;
+      setFilterOptions(options);
+      const lastPage = Math.max(1, Math.ceil(response.total / limit));
+      if (page > lastPage) {
+        setPage(lastPage);
+        return;
+      }
+      setGroups(response.data ?? []);
+      setTotalGroups(response.total);
+      setLoading(false);
     } catch (error) {
       if (requestId !== groupsRequestId.current) return;
       setGroups([]);
+      setLoadError(true);
       console.error(error);
       toast.error("Gagal memuat grup organisasi.");
-    } finally {
-      if (requestId === groupsRequestId.current) setLoading(false);
+      setLoading(false);
     }
-  }, [groupOwnerScope, token]);
+  }, [groupFilter, groupOwnerScope, groupSearch, limit, ownerFilter, page, sortBy, sortOrder, token]);
 
   useEffect(() => {
-    void loadGroups();
-    return () => { groupsRequestId.current += 1; };
-  }, [loadGroups]);
+    setLoading(true);
+    const timeout = window.setTimeout(() => { void loadGroups(); }, groupSearch.trim() ? 250 : 0);
+    return () => {
+      window.clearTimeout(timeout);
+      groupsRequestId.current += 1;
+    };
+  }, [groupSearch, loadGroups]);
 
   const resetForm = () => {
     setEditingGroup(null);
@@ -438,40 +457,20 @@ export function OrganizationGroupManagement({
 
   const groupOptions = useMemo(() => [
     { value: "all", label: "Semua grup" },
-    ...groups.map((group) => ({ value: group.id, label: group.name }))
+    ...filterOptions.map((group) => ({ value: group.id, label: group.name }))
       .sort((a, b) => a.label.localeCompare(b.label, "id")),
-  ], [groups]);
+    ...(groupFilter !== "all" && !filterOptions.some(({ id }) => id === groupFilter)
+      ? [{ value: groupFilter, label: groupFilter }] : []),
+  ], [filterOptions, groupFilter]);
   const ownerOptions = useMemo(() => [
     { value: "all", label: "Semua pemilik" },
-    ...Array.from(new Map(groups.map((group) => [
+    ...Array.from(new Map(filterOptions.map((group) => [
       group.ownerOrganizationId,
       { value: group.ownerOrganizationId, label: group.ownerOrganizationName },
     ])).values()).sort((a, b) => a.label.localeCompare(b.label, "id")),
-  ], [groups]);
-  const visibleGroups = useMemo(() => {
-    const query = groupSearch.trim().toLowerCase();
-    return groups.filter((group) => {
-      if (groupFilter !== "all" && group.id !== groupFilter) return false;
-      if (ownerFilter !== "all" && group.ownerOrganizationId !== ownerFilter) return false;
-      const haystack = `${group.name} ${group.ownerOrganizationName} ${group.description}`.toLowerCase();
-      return !query || haystack.includes(query);
-    });
-  }, [groups, groupSearch, groupFilter, ownerFilter]);
-
-  const collectionSort = useCollectionSorting(visibleGroups, {"Nama Grup": r => r.name, "Pemilik": r => r.ownerOrganizationName, "Anggota": r => r.memberCount, "Diperbarui":r=>sortDate(r.updatedAt)}, () => setPage(1));
-  const totalGroups = visibleGroups.length;
-  const totalPages = Math.max(1, Math.ceil(totalGroups / limit));
-  const currentPage = Math.min(page, totalPages);
-  const paginatedGroups = useMemo(() => {
-    const start = (currentPage - 1) * limit;
-    return collectionSort.rows.slice(start, start + limit);
-  }, [collectionSort.rows, currentPage, limit]);
-
-  useEffect(() => {
-    if (page !== currentPage) {
-      setPage(currentPage);
-    }
-  }, [currentPage, page]);
+    ...(ownerFilter !== "all" && !filterOptions.some(({ ownerOrganizationId }) => ownerOrganizationId === ownerFilter)
+      ? [{ value: ownerFilter, label: ownerFilter }] : []),
+  ], [filterOptions, ownerFilter]);
 
   return (
     <div className="space-y-4">
@@ -515,7 +514,7 @@ export function OrganizationGroupManagement({
                 options: groupOptions,
               },
               {
-                id: "owner",
+                id: "owner", organizationScope: true,
                 label: "Pemilik",
                 value: ownerFilter,
                 onChange: (value) => { setOwnerFilter(value); setPage(1); },
@@ -525,7 +524,7 @@ export function OrganizationGroupManagement({
           />
         }
       />
-      <CollectionTableCard stickyActions sorting={collectionSort.controls}>
+      <CollectionTableCard stickyActions sorting={controls}>
         <Table className="min-w-[1320px]">
           <TableHeader>
             <TableRow className="transition-colors hover:bg-transparent">
@@ -555,7 +554,16 @@ export function OrganizationGroupManagement({
                   <Loader2 className="mx-auto size-5 animate-spin text-disabled-foreground" />
                 </TableCell>
               </TableRow>
-            ) : paginatedGroups.length === 0 ? (
+            ) : loadError ? (
+              <TableRow>
+                <TableCell colSpan={7}>
+                  <CollectionErrorState
+                    message="Grup organisasi belum berhasil dimuat."
+                    onReload={() => { void loadGroups(); }}
+                  />
+                </TableCell>
+              </TableRow>
+            ) : groups.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={7} className="">
                   <CollectionEmptyState
@@ -565,7 +573,7 @@ export function OrganizationGroupManagement({
                 </TableCell>
               </TableRow>
             ) : (
-              paginatedGroups.map((group) => (
+              groups.map((group) => (
                 <TableRow
                   key={group.id}
                   className="transition-colors hover:bg-muted/70"
@@ -619,10 +627,10 @@ export function OrganizationGroupManagement({
         </Table>
       <CollectionPagination
         itemLabel="grup"
-        page={currentPage}
+        page={page}
         pageSize={limit}
         total={totalGroups}
-        disabled={loading}
+        disabled={loading || loadError}
         onPageChange={setPage}
         onPageSizeChange={(nextLimit) => {
           setLimit(nextLimit);
@@ -653,7 +661,12 @@ export function OrganizationGroupManagement({
           <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
             <FieldGroup className="gap-4">
               <Field>
-                <FieldLabel htmlFor="group-name">Nama Grup</FieldLabel>
+                <FieldHeading>
+                  <FieldLabel htmlFor="group-name">Nama Grup</FieldLabel>
+                  <FieldDescription className="text-xs">
+                    Gunakan nama yang mudah dikenali saat memilih cakupan laporan.
+                  </FieldDescription>
+                </FieldHeading>
                 <Input
                   id="group-name"
                   value={name}
@@ -661,9 +674,6 @@ export function OrganizationGroupManagement({
                   placeholder="Contoh: Jawa Timur"
                   disabled={saving}
                 />
-                <FieldDescription className="text-xs">
-                  Gunakan nama yang mudah dikenali saat memilih cakupan laporan.
-                </FieldDescription>
               </Field>
 
               <Field>
@@ -878,10 +888,11 @@ export function OrganizationGroupManagement({
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Hapus Grup Organisasi</DialogTitle>
-            <DialogDescription>
-              Grup {groupToDelete?.name ? `"${groupToDelete.name}"` : "ini"} akan dihapus dan tidak bisa dipilih lagi sebagai filter laporan.
-            </DialogDescription>
+            <DialogDescription>Periksa grup organisasi yang akan dihapus.</DialogDescription>
           </DialogHeader>
+          <ConfirmationConsequences>
+            Grup {groupToDelete?.name ? `"${groupToDelete.name}"` : "ini"} akan dihapus permanen dan tidak bisa dipilih lagi sebagai filter laporan. Organisasi anggotanya tetap tersimpan. Tindakan ini tidak dapat dibatalkan.
+          </ConfirmationConsequences>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setDeleteOpen(false)} disabled={saving}>
               Batal

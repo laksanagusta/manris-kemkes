@@ -1,11 +1,43 @@
 package http
 
 import (
+	"errors"
+	"slices"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
+	domainerrors "github.com/manris/backend/internal/domain/errors"
 )
+
+func TestReadableScopeIncludesAllDescendantsWithoutGrantingWrite(t *testing.T) {
+	own, child, grandchild, outside := uuid.New(), uuid.New(), uuid.New(), uuid.New()
+	scope := &entity.AccessScope{OrganizationID: &own, AccessibleOrgIDs: []uuid.UUID{own, child, grandchild}}
+	got, err := resolveReadableOrgIDs(scope, "")
+	if err != nil || !slices.Equal(got, scope.AccessibleOrgIDs) {
+		t.Fatalf("read scope = %v, %v", got, err)
+	}
+	for _, org := range []uuid.UUID{child, grandchild} {
+		got, err := resolveReadableOrgIDs(scope, org.String())
+		if err != nil || !slices.Equal(got, []uuid.UUID{org}) {
+			t.Fatalf("descendant read scope = %v, %v", got, err)
+		}
+		if scope.CanWrite(org) {
+			t.Fatal("descendant read must not grant write")
+		}
+		if _, err := resolveOperationalOrgIDs(scope, org.String()); !errors.Is(err, domainerrors.ErrForbidden) {
+			t.Fatalf("descendant mutation scope must be forbidden, got %v", err)
+		}
+	}
+	if _, err := resolveReadableOrgIDs(scope, outside.String()); !errors.Is(err, domainerrors.ErrForbidden) {
+		t.Fatalf("outside read must be forbidden, got %v", err)
+	}
+	for _, empty := range []*entity.AccessScope{nil, {}} {
+		if _, err := resolveReadableOrgIDs(empty, ""); !errors.Is(err, domainerrors.ErrForbidden) {
+			t.Fatalf("empty scope must not become unrestricted, got %v", err)
+		}
+	}
+}
 
 func TestResolveOperationalOrgIDsUsesOwnOrgOnly(t *testing.T) {
 	own := uuid.New()

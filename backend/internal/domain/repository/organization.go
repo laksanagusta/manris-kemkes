@@ -15,6 +15,8 @@ type OrganizationListFilter struct {
 	Limit      int
 	Q          string
 	AncestorID *uuid.UUID
+	UPRLevel   string
+	Structure  string
 }
 
 // OrganizationRepository defines the interface for organization data access

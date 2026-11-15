@@ -1,5 +1,6 @@
 "use client";
 
+import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import { createDisplayDateFormatter } from "@/lib/display-date";
 
 import { useLayoutEffect, useRef, useState } from "react";
@@ -156,8 +157,11 @@ export function APIKeyPanel({ metadata, secret, loading, pending, error, onGener
           {dialogStep === "confirm" ? <>
             <DialogHeader>
               <DialogTitle>Regenerate API key?</DialogTitle>
-              <DialogDescription>Key lama langsung tidak berlaku untuk seluruh integrasi organisasi ini. Semua aplikasi integrasi harus diperbarui dengan key baru.</DialogDescription>
+              <DialogDescription>Pastikan integrasi organisasi siap memakai key baru.</DialogDescription>
             </DialogHeader>
+            <ConfirmationConsequences>
+              Key lama langsung tidak berlaku untuk seluruh integrasi organisasi ini. Semua aplikasi integrasi harus diperbarui dengan key baru.
+            </ConfirmationConsequences>
             <DialogFooter>
               <Button variant="outline" disabled={pending} onClick={closeDialog}>Batal</Button>
               <Button variant="destructive" disabled={pending} onClick={() => void generateAndReveal()}>

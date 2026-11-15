@@ -165,14 +165,6 @@ func (t *Toolkit) Apply(ctx context.Context, tx pgx.Tx, actor uuid.UUID, operati
 			if e != nil {
 				return nil, safeDomainError(e)
 			}
-			if !out.ExistingDraft {
-				if _, e = mtuc.NewEnsureTasksForRiskVersionUseCase(tasks, risks).Execute(ctx, id, cycle, []uuid.UUID{orgID}); e != nil {
-					return nil, safeDomainError(e)
-				}
-				if e = monitorings.UpdateTaskMonitoringIDs(ctx, out.Monitoring.ID, id, cycle); e != nil {
-					return nil, safeDomainError(e)
-				}
-			}
 			entityID = out.Monitoring.ID
 			entityType = "risk_monitoring"
 			href = out.RedirectURL

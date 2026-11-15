@@ -1,5 +1,6 @@
 "use client";
 
+import { FieldHeading } from "@/components/ui/field";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -58,10 +59,12 @@ export function GlobalMotionExample() {
               </div>
             </TabsContent>
             <TabsContent value="validation">
-              <form className="flex flex-col gap-3" onSubmit={(event) => { event.preventDefault(); toast.success("Validasi berhasil"); }}>
-                <Label htmlFor="motion-required">Nama contoh (wajib)</Label>
+              <form className="flex flex-col gap-2" onSubmit={(event) => { event.preventDefault(); toast.success("Validasi berhasil"); }}>
+                <FieldHeading>
+                  <Label htmlFor="motion-required">Nama contoh (wajib)</Label>
+                  <p className="leading-4 text-xs text-muted-foreground">Submit kosong untuk mengulang shake. Validasi native tetap aktif.</p>
+                </FieldHeading>
                 <Input id="motion-required" required placeholder="Kosongkan untuk menguji feedback" />
-                <p className="text-xs text-muted-foreground">Submit kosong untuk mengulang shake. Validasi native tetap aktif.</p>
                 <Button type="submit">Uji validasi</Button>
               </form>
             </TabsContent>

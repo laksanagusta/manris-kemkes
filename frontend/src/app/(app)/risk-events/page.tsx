@@ -1,27 +1,26 @@
 "use client";
+import { useOrganizationFilter } from "@/hooks/use-organization-filter";
 
 import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
 import { createDisplayDateFormatter } from "@/lib/display-date";
-import { useCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
-import { sortDate } from "@/lib/collection-sort";
-import { newestCreatedFirst } from "@/lib/collection-created-at";
+import { useRemoteCollectionSorting } from "@/components/shared/design-system/collections/collection-sorting";
 import { CreatedAtHead, CreatedAtCell } from "@/components/shared/design-system/collections/collection-created-at";
 
 
 import Link from "next/link";
 import { RiskTableIdentity } from "@/components/shared/design-system/domain/risk-table-identity";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useRef, useState } from "react";
 
 import { useAuth } from "@/contexts/auth-context";
-import { listRiskEvents } from "@/lib/api/risk-events";
+import { listRiskEventPage } from "@/lib/api/risk-events";
 import { getStatusBadgeClassName } from "@/lib/badge-variant";
 import type { RiskEvent, RiskEventSeverity } from "@/types/risk-event";
 import { RiskEventFormDialog } from "./_components/risk-event-form-sheet";
 import { Badge } from "@/components/ui/badge";
 import {
   AccentButton, ActionButton, CollectionEmptyState, CollectionErrorState, CollectionLoadingState,
-  CollectionSearchField, CollectionTableCard, DynamicTableFilters,
+  CollectionPagination, CollectionSearchField, CollectionTableCard, DynamicTableFilters,
   CollectionTableHead, CollectionTableHeader, CollectionTableHeaderRow, CollectionToolbar, PageStack,
 } from "@/components/shared/design-system";
 import { isAIFeaturesDisabled } from "@/lib/ai-feature-capability";
@@ -31,17 +30,14 @@ import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 const severityLabel: Record<RiskEventSeverity, string> = { low: "Rendah", medium: "Sedang", high: "Tinggi", extreme: "Ekstrem" };
 const severityTone: Record<RiskEventSeverity, "default" | "outline" | "destructive"> = { low: "default", medium: "default", high: "destructive", extreme: "destructive" };
 
-function normalizeRiskEvent(event: RiskEvent): RiskEvent {
-  return {
-    ...event,
-    linkedRisks: Array.isArray(event.linkedRisks) ? event.linkedRisks : [],
-  };
-}
-
 export default function RiskEventsPage() {
   const { token, user } = useAuth();
   const searchParams = useSearchParams();
   const initialRiskId = searchParams.get("riskId") || undefined;
+  const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(20);
+  const [total, setTotal] = useState(0);
+  const requestVersion = useRef(0);
   const [items, setItems] = useState<RiskEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -49,27 +45,41 @@ export default function RiskEventsPage() {
   const [severityFilter, setSeverityFilter] = useState<RiskEventSeverity | "all">("all");
   const [formOpen, setFormOpen] = useState(Boolean(initialRiskId) || searchParams.get("create") === "1");
 
+
+  const organizationFilter = useOrganizationFilter(() => setPage(1));
+  const collectionSort = useRemoteCollectionSorting({
+    Kejadian: "description", Tingkat: "severity", "Dicatat oleh": "created_by", Tanggal: "occurred_at",
+  }, () => setPage(1));
+  const deferredQuery = useDeferredValue(query);
   const load = useCallback(async () => {
     if (!token) return;
-    setLoading(true); setError("");
-    try { setItems((await listRiskEvents(token)).map(normalizeRiskEvent).sort(newestCreatedFirst)); }
-    catch { setError("Tidak dapat memuat kejadian risiko. Coba lagi."); }
-    finally { setLoading(false); }
-  }, [token]);
-  useEffect(() => { void load(); }, [load]);
-
-  const filtered = useMemo(() => {
-    const value = query.trim().toLowerCase();
-    return items.filter((item) => {
-      const matchesQuery = !value || `${item.code} ${item.description} ${item.linkedRisks.map((risk) => `${risk.code} ${risk.title}`).join(" ")}`.toLowerCase().includes(value);
-      const matchesSeverity = severityFilter === "all" || item.severity === severityFilter;
-      return matchesQuery && matchesSeverity;
-    });
-  }, [items, query, severityFilter]);
-  const hasActiveFilters = Boolean(query.trim()) || severityFilter !== "all";
-
-  const collectionSort = useCollectionSorting(filtered, {"Kejadian": r => r.description, "Tingkat": r => ({low:1,medium:2,high:3,extreme:4})[r.severity], "Dicatat oleh": r => r.createdByName, "Tanggal": r => sortDate(r.occurredAt)});
-  if (loading) return <PageStack><CollectionLoadingState message="Memuat kejadian risiko…" /></PageStack>;
+    const version = ++requestVersion.current;
+    setLoading(true);
+    setError("");
+    try {
+      const result = await listRiskEventPage(token, {
+        page, limit, q: deferredQuery.trim() || undefined,
+        severity: severityFilter === "all" ? undefined : severityFilter,
+        organizationId: organizationFilter.organizationId === "all" ? undefined : organizationFilter.organizationId,
+        sortBy: collectionSort.sortBy, sortOrder: collectionSort.sortOrder,
+      });
+      if (version !== requestVersion.current) return;
+      setItems(result.data);
+      setTotal(result.total);
+      const lastPage = Math.max(1, Math.ceil(result.total / limit));
+      if (page > lastPage) setPage(lastPage);
+    } catch {
+      if (version === requestVersion.current) setError("Tidak dapat memuat kejadian risiko. Coba lagi.");
+    } finally {
+      if (version === requestVersion.current) setLoading(false);
+    }
+  }, [token, page, limit, deferredQuery, severityFilter, organizationFilter.organizationId, collectionSort.sortBy, collectionSort.sortOrder]);
+  useEffect(() => {
+    void load();
+    return () => { requestVersion.current += 1; };
+  }, [load]);
+  const hasActiveFilters = organizationFilter.organizationId !== "all" || Boolean(query.trim()) || severityFilter !== "all";
+  if (loading && !items.length) return <PageStack><CollectionLoadingState message="Memuat kejadian risiko…" /></PageStack>;
   if (error) return <PageStack><CollectionErrorState title="Tidak dapat memuat kejadian risiko" message={error} onReload={() => void load()} /></PageStack>;
 
   return (
@@ -81,17 +91,18 @@ export default function RiskEventsPage() {
               search={
                 <CollectionSearchField
                   value={query}
-                  onChange={(event) => setQuery(event.target.value)}
+                  onChange={(event) => { setQuery(event.target.value); setPage(1); }}
                   placeholder="Cari kode, kejadian, atau risiko"
                   aria-label="Cari kejadian atau risiko"
                 />
               }
               fields={[
+                organizationFilter.field,
                 {
                   id: "severity",
                   label: "Tingkat",
                   value: severityFilter,
-                  onChange: (value) => setSeverityFilter(value as RiskEventSeverity | "all"),
+                  onChange: (value) => { setSeverityFilter(value as RiskEventSeverity | "all"); setPage(1); },
                   options: [
                     { value: "all", label: "Semua tingkat" },
                     { value: "low", label: severityLabel.low },
@@ -136,7 +147,7 @@ export default function RiskEventsPage() {
 </CollectionTableHeaderRow>
           </CollectionTableHeader>
           <TableBody>
-            {filtered.length === 0 ? (
+            {items.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} className="">
                   <CollectionEmptyState
@@ -161,6 +172,7 @@ export default function RiskEventsPage() {
                           onClick={() => {
                             setQuery("");
                             setSeverityFilter("all");
+                            setPage(1);
                           }}
                         >
                           Reset filter
@@ -171,7 +183,7 @@ export default function RiskEventsPage() {
                 </TableCell>
               </TableRow>
             ) : (
-              collectionSort.rows.map((item) => (
+              items.map((item) => (
                 <TableRow key={item.id} className="group">
                   <TableCell><CollectionCode code={item.code} href={`/risk-events/${item.id}`} /></TableCell>
                   <TableCell className="align-middle">
@@ -193,9 +205,14 @@ export default function RiskEventsPage() {
             )}
           </TableBody>
           </Table>
+          <CollectionPagination
+            itemLabel="kejadian" total={total} page={page} pageSize={limit}
+            disabled={loading} onPageChange={setPage}
+            onPageSizeChange={(value) => { setLimit(value); setPage(1); }}
+          />
         </CollectionTableCard>
       </div>
-      {token ? <RiskEventFormDialog open={formOpen} onOpenChange={setFormOpen} token={token} organizationId={user?.organizationId ?? undefined} initialRiskId={initialRiskId} onCreated={(event) => setItems((current) => [normalizeRiskEvent(event), ...current])} /> : null}
+      {token ? <RiskEventFormDialog open={formOpen} onOpenChange={setFormOpen} token={token} organizationId={user?.organizationId ?? undefined} initialRiskId={initialRiskId} onCreated={() => { if (page === 1) void load(); else setPage(1); }} /> : null}
     </PageStack>
   );
 }

@@ -104,7 +104,7 @@ export function QuarterlyReportDashboard({ report, illustrative = false }: {
   }), [report]);
   const { reporting, distribution, units } = data;
   const highest = Math.max(1, ...units.map(unit => unit.highCount));
-  const running = report.cycle === currentReportCycle();
+  const running = report.periodEnd ? new Date(report.generatedAt) < new Date(report.periodEnd) : report.cycle === currentReportCycle();
   const metrics = [
     { value: data.total, change: data.total - previous.total },
     { value: data.highCount, change: data.highCount - previous.highCount },
@@ -122,7 +122,7 @@ export function QuarterlyReportDashboard({ report, illustrative = false }: {
       {(illustrative || running) && (
         <div className="flex flex-wrap gap-2">
           {illustrative && <Badge variant="secondary">Data ilustrasi</Badge>}
-          {running && <Badge variant="secondary">Kuartal berjalan, data sementara</Badge>}
+          {running && <Badge variant="secondary">Periode berjalan, data sementara</Badge>}
         </div>
       )}
       <dl className={metricsLayout}>

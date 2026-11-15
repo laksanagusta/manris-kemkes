@@ -208,6 +208,9 @@ func (t *Toolkit) validateOne(ctx context.Context, tx pgx.Tx, actor uuid.UUID, s
 			if lock && fmt.Sprint(previousBefore["riskUpdatedAt"]) != fmt.Sprint(op.Before["riskUpdatedAt"]) {
 				return op, agent.ErrStale
 			}
+			if task.MonitoringID == nil {
+				return op, invalid("buka draf pemantauan untuk melaporkan mitigasi")
+			}
 			if task.MonitoringID != nil {
 				var status string
 				var updated time.Time
@@ -594,7 +597,7 @@ func monitoringCondition(ctx context.Context, tx pgx.Tx, group uuid.UUID, cycle 
 	if err != nil {
 		return nil, err
 	}
-	rows, err := tx.Query(ctx, `SELECT id,assessment_cycle,status,updated_at FROM risk_monitorings WHERE version_group_id=$1 AND assessment_cycle=ANY($2::text[]) ORDER BY id`, group, []string{cycle, previous})
+	rows, err := tx.Query(ctx, `SELECT id,assessment_cycle,status,updated_at FROM risk_monitorings WHERE version_group_id=$1 AND transaction_kind='monitoring' AND assessment_cycle=ANY($2::text[]) ORDER BY id`, group, []string{cycle, previous})
 	if err != nil {
 		return nil, err
 	}

@@ -13,6 +13,8 @@ export type ListPlanningROOptionsParams = {
 };
 
 export type ListPlanningObjectiveCompatibilityParams = {
+  sort_by?: string;
+  sort_order?: string;
   organization_id?: string;
   period?: string;
   q?: string;
@@ -36,6 +38,8 @@ export function buildPlanningObjectiveCompatibilityQuery(
   const search = new URLSearchParams();
   if (!params) return "";
   if (params.organization_id) search.set("organization_id", params.organization_id);
+  if (params.sort_by) search.set("sort_by", params.sort_by);
+  if (params.sort_order) search.set("sort_order", params.sort_order);
   if (params.period) search.set("period", params.period);
   if (params.q) search.set("q", params.q);
   if (params.page) search.set("page", String(params.page));

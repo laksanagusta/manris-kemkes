@@ -12,11 +12,12 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/manris/backend/internal/domain/entity"
+	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
 )
 
 type evaluationRepository struct {
-	pool *pgxpool.Pool
+	pool repositoryDB
 }
 
 type evaluationReader interface {
@@ -71,6 +72,25 @@ func (r *evaluationRepository) Create(ctx context.Context, evaluation *entity.Ev
 	if err := lockOrganizationForEvaluationSequence(ctx, tx, evaluation.OrganizationID); err != nil {
 		return err
 	}
+	if evaluation.MonitoringPeriodID != nil {
+		var existingID uuid.UUID
+		var state string
+		err := tx.QueryRow(ctx, `SELECT e.id,e.status FROM evaluations e JOIN annual_risk_profile_versions p ON p.id=e.profile_version_id JOIN annual_risk_profile_versions selected ON selected.organization_id=p.organization_id AND selected.year=p.year WHERE selected.id=$1 AND e.monitoring_period_id=$2`, evaluation.ProfileVersionID, evaluation.MonitoringPeriodID).Scan(&existingID, &state)
+		if err == nil {
+			if state != "draft" {
+				return monitoringInputError("Evaluasi profil dan periode ini sudah final.")
+			}
+			existing, err := (&evaluationRepository{pool: tx}).GetByID(ctx, existingID)
+			if err != nil {
+				return err
+			}
+			*evaluation = *existing
+			return nil
+		}
+		if err != pgx.ErrNoRows {
+			return err
+		}
+	}
 	if err := assignNextEvaluationSequence(ctx, tx, evaluation); err != nil {
 		return err
 	}
@@ -101,7 +121,7 @@ func (r *evaluationRepository) GetByID(ctx context.Context, id uuid.UUID) (*enti
 		       e.report_number, e.report_date, e.assignment_letter_number, e.assignment_letter_date,
 		       e.monitoring_date_range, e.unit_code, e.unit_location, e.unit_address, e.unit_eselon_i,
 		       e.unit_leader_name, e.team_coordinator, e.team_lead, e.team_members, e.problems,
-		       e.recommendations, e.created_by, e.finalized_at, e.created_at, e.updated_at
+		       e.recommendations, e.created_by, e.finalized_at, e.created_at, e.updated_at,e.profile_version_id,e.monitoring_period_id
 		FROM evaluations e
 		LEFT JOIN evaluation_templates et ON et.id = e.template_id
 		WHERE e.id = $1
@@ -132,7 +152,7 @@ func (r *evaluationRepository) GetByID(ctx context.Context, id uuid.UUID) (*enti
 		&createdBy,
 		&finalizedAt,
 		&evaluation.CreatedAt,
-		&evaluation.UpdatedAt,
+		&evaluation.UpdatedAt, &evaluation.ProfileVersionID, &evaluation.MonitoringPeriodID,
 	); err != nil {
 		return nil, fmt.Errorf("get evaluation by id: %w", err)
 	}
@@ -157,6 +177,18 @@ func (r *evaluationRepository) Update(ctx context.Context, evaluation *entity.Ev
 	}
 	defer func() { _ = tx.Rollback(ctx) }()
 
+	if evaluation.MonitoringPeriodID != nil {
+		var status string
+		if err := tx.QueryRow(ctx, `SELECT status FROM evaluations WHERE id=$1 FOR UPDATE`, evaluation.ID).Scan(&status); err != nil {
+			return err
+		}
+		if status != "draft" {
+			return domainerrors.ErrOnlyDraftEvaluationUpdated
+		}
+		if err := upsertEvaluationSections(ctx, tx, evaluation); err != nil {
+			return err
+		}
+	}
 	if _, err := tx.Exec(ctx, `
 		UPDATE evaluations
 		SET report_number = $2,
@@ -185,8 +217,10 @@ func (r *evaluationRepository) Update(ctx context.Context, evaluation *entity.Ev
 		return fmt.Errorf("update evaluation: %w", err)
 	}
 
-	if err := upsertEvaluationSections(ctx, tx, evaluation); err != nil {
-		return err
+	if evaluation.MonitoringPeriodID == nil {
+		if err := upsertEvaluationSections(ctx, tx, evaluation); err != nil {
+			return err
+		}
 	}
 
 	if err := tx.Commit(ctx); err != nil {
@@ -208,7 +242,7 @@ func (r *evaluationRepository) List(ctx context.Context, filter repository.Evalu
 		       e.report_number, e.report_date, e.assignment_letter_number, e.assignment_letter_date,
 		       e.monitoring_date_range, e.unit_code, e.unit_location, e.unit_address, e.unit_eselon_i,
 		       e.unit_leader_name, e.team_coordinator, e.team_lead, e.team_members, e.problems,
-		       e.recommendations, e.created_by, e.finalized_at, e.created_at, e.updated_at
+		       e.recommendations, e.created_by, e.finalized_at, e.created_at, e.updated_at,e.profile_version_id,e.monitoring_period_id
 		FROM evaluations e
 		LEFT JOIN organizations o ON o.id = e.organization_id
 		LEFT JOIN evaluation_templates et ON et.id = e.template_id
@@ -247,6 +281,13 @@ func (r *evaluationRepository) List(ctx context.Context, filter repository.Evalu
 		countQuery += clause
 		dataQuery += clause
 		args = append(args, strings.TrimSpace(filter.Period))
+		argPos++
+	}
+	if filter.CreatedDate != "" {
+		clause := fmt.Sprintf(" AND (e.created_at AT TIME ZONE 'Asia/Jakarta')::date = $%d::date", argPos)
+		countQuery += clause
+		dataQuery += clause
+		args = append(args, filter.CreatedDate)
 		argPos++
 	}
 	if strings.TrimSpace(filter.Status) != "" {
@@ -395,15 +436,18 @@ func (r *evaluationRepository) listTemplateSections(ctx context.Context, templat
 		); err != nil {
 			return nil, fmt.Errorf("scan evaluation template section: %w", err)
 		}
-		items, err := r.listTemplateItems(ctx, section.ID)
-		if err != nil {
-			return nil, err
-		}
-		section.Items = items
 		sections = append(sections, section)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate evaluation template sections: %w", err)
+	}
+	rows.Close()
+	for i := range sections {
+		items, err := r.listTemplateItems(ctx, sections[i].ID)
+		if err != nil {
+			return nil, err
+		}
+		sections[i].Items = items
 	}
 	return sections, nil
 }
@@ -478,15 +522,18 @@ func (r *evaluationRepository) loadEvaluationSections(ctx context.Context, evalu
 		}
 		section.TemplateSectionID = evaluationNullableUUIDPtr(templateSectionID)
 
-		items, err := r.loadEvaluationItems(ctx, section.ID)
-		if err != nil {
-			return nil, err
-		}
-		section.Items = items
 		sections = append(sections, section)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate evaluation sections: %w", err)
+	}
+	rows.Close()
+	for i := range sections {
+		items, err := r.loadEvaluationItems(ctx, sections[i].ID)
+		if err != nil {
+			return nil, err
+		}
+		sections[i].Items = items
 	}
 	return sections, nil
 }
@@ -555,16 +602,16 @@ func insertEvaluation(ctx context.Context, q evaluationExecer, evaluation *entit
 			id, organization_id, sequence_no, code, period, template_id, status, report_number, report_date,
 			assignment_letter_number, assignment_letter_date, monitoring_date_range, unit_code,
 			unit_location, unit_address, unit_eselon_i, unit_leader_name, team_coordinator,
-			team_lead, team_members, problems, recommendations, created_by, finalized_at
+			team_lead, team_members, problems, recommendations, created_by, finalized_at,profile_version_id,monitoring_period_id
 		) VALUES (
-			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24
+			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26
 		)
 		RETURNING created_at, updated_at
 	`, evaluation.ID, evaluation.OrganizationID, evaluation.SequenceNo, evaluation.Code, evaluation.Period, evaluation.TemplateID, evaluation.Status,
 		evaluation.ReportNumber, reportDate, evaluation.AssignmentLetterNumber, assignmentLetterDate,
 		evaluation.MonitoringDateRange, evaluation.UnitCode, evaluation.UnitLocation, evaluation.UnitAddress,
 		evaluation.UnitEselonI, evaluation.UnitLeaderName, evaluation.TeamCoordinator, evaluation.TeamLead,
-		evaluation.TeamMembers, evaluation.Problems, evaluation.Recommendations, evaluation.CreatedBy, evaluation.FinalizedAt,
+		evaluation.TeamMembers, evaluation.Problems, evaluation.Recommendations, evaluation.CreatedBy, evaluation.FinalizedAt, evaluation.ProfileVersionID, evaluation.MonitoringPeriodID,
 	).Scan(&evaluation.CreatedAt, &evaluation.UpdatedAt); err != nil {
 		return fmt.Errorf("create evaluation: %w", err)
 	}
@@ -738,7 +785,7 @@ func scanEvaluationRow(row pgx.Row) (*entity.Evaluation, error) {
 		&createdBy,
 		&finalizedAt,
 		&evaluation.CreatedAt,
-		&evaluation.UpdatedAt,
+		&evaluation.UpdatedAt, &evaluation.ProfileVersionID, &evaluation.MonitoringPeriodID,
 	); err != nil {
 		return nil, fmt.Errorf("scan evaluation: %w", err)
 	}

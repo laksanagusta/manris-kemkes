@@ -22,6 +22,8 @@ export interface ListOrganizationsParams {
  sort_order?: string;
   q?: string;
   ancestorId?: string;
+  uprLevel?: string;
+  structure?: "root" | "child";
   page?: number;
   limit?: number;
 }
@@ -43,6 +45,8 @@ export async function listOrganizations(
 
   if (params?.q) searchParams.set("q", params.q);
   if (params?.ancestorId) searchParams.set("ancestor_id", params.ancestorId);
+  if (params?.uprLevel) searchParams.set("upr_level", params.uprLevel);
+  if (params?.structure) searchParams.set("structure", params.structure);
   if (params?.page) searchParams.set("page", params.page.toString());
   if (params?.limit) searchParams.set("limit", params.limit.toString());
 

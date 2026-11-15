@@ -3,7 +3,6 @@ package postgres
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -12,7 +11,7 @@ import (
 )
 
 type tmpmrRepository struct {
-	pool *pgxpool.Pool
+	pool repositoryDB
 }
 
 func NewTMPMRRepository(pool *pgxpool.Pool) repository.TMPMRRepository {
@@ -163,50 +162,76 @@ func (r *tmpmrRepository) Update(ctx context.Context, assessment *entity.TMPMRAs
 	return nil
 }
 
-func (r *tmpmrRepository) List(ctx context.Context, filter repository.TMPMRListFilter) ([]*entity.TMPMRAssessment, int, error) {
-	countQuery := `SELECT COUNT(*) FROM tmpmr_assessments WHERE 1=1`
-	dataQuery := `
-		SELECT id, organization_id, period, assessor_id, reviewer_id, status, score, maturity_level, review_note, created_at, updated_at
+func (r *tmpmrRepository) Summary(ctx context.Context, organizationID *uuid.UUID) (repository.TMPMRSummary, error) {
+	var summary repository.TMPMRSummary
+	err := r.pool.QueryRow(ctx, `
+		SELECT COUNT(*), COUNT(*) FILTER (WHERE status = 'draft'),
+			COUNT(*) FILTER (WHERE status = 'submitted'), COUNT(*) FILTER (WHERE status = 'approved'),
+			COALESCE(array_agg(DISTINCT period ORDER BY period DESC) FILTER (WHERE period <> ''), ARRAY[]::text[])
 		FROM tmpmr_assessments
+		WHERE $1::uuid IS NULL OR organization_id = $1
+	`, organizationID).Scan(&summary.Total, &summary.Draft, &summary.Submitted, &summary.Approved, &summary.Periods)
+	if err != nil {
+		return summary, fmt.Errorf("summarize tmpmr assessments: %w", err)
+	}
+	return summary, nil
+}
+
+func (r *tmpmrRepository) List(ctx context.Context, filter repository.TMPMRListFilter) ([]*entity.TMPMRAssessment, int, error) {
+	from := `
+		FROM tmpmr_assessments a
+		LEFT JOIN organizations o ON o.id = a.organization_id
 		WHERE 1=1
 	`
-
-	var (
-		args   []any
-		argPos = 1
-	)
-
+	var args []any
 	if filter.OrganizationID != nil {
-		clause := fmt.Sprintf(" AND organization_id = $%d", argPos)
-		countQuery += clause
-		dataQuery += clause
 		args = append(args, *filter.OrganizationID)
-		argPos++
+		from += fmt.Sprintf(" AND a.organization_id = $%d", len(args))
 	}
-	if strings.TrimSpace(filter.Period) != "" {
-		clause := fmt.Sprintf(" AND period = $%d", argPos)
-		countQuery += clause
-		dataQuery += clause
-		args = append(args, strings.TrimSpace(filter.Period))
-		argPos++
+	if filter.Period != "" {
+		args = append(args, filter.Period)
+		from += fmt.Sprintf(" AND a.period = $%d", len(args))
+	}
+	if filter.Status != "" {
+		args = append(args, filter.Status)
+		from += fmt.Sprintf(" AND a.status = $%d", len(args))
+	}
+	if filter.Query != "" {
+		args = append(args, filter.Query)
+		from += fmt.Sprintf(` AND EXISTS (
+			SELECT 1 FROM unnest(ARRAY[o.name, a.period, a.status, a.maturity_level, a.score::text]) AS value
+			WHERE strpos(lower(value), lower($%d)) > 0
+		)`, len(args))
 	}
 
 	var total int
-	if err := r.pool.QueryRow(ctx, countQuery, args...).Scan(&total); err != nil {
+	if err := r.pool.QueryRow(ctx, "SELECT COUNT(*) "+from, args...).Scan(&total); err != nil {
 		return nil, 0, fmt.Errorf("count tmpmr assessments: %w", err)
 	}
 
-	page := filter.Page
-	if page < 1 {
-		page = 1
-	}
+	page := max(1, filter.Page)
 	limit := filter.Limit
 	if limit < 1 || limit > 100 {
 		limit = 10
 	}
+	if page > max(1, (total+limit-1)/limit) {
+		return []*entity.TMPMRAssessment{}, total, nil
+	}
 	offset := (page - 1) * limit
-
-	dataQuery += fmt.Sprintf(" ORDER BY created_at DESC, id DESC LIMIT $%d OFFSET $%d", argPos, argPos+1)
+	order := collectionOrderBy(filter.SortBy, filter.SortOrder, "a.created_at", "a.id", map[string]string{
+		"created_at":   "a.created_at",
+		"period":       "a.period",
+		"organization": "o.name",
+		"score":        "a.score",
+		"maturity":     "NULLIF(a.maturity_level, '')",
+		"status":       "a.status",
+		"updated_at":   "a.updated_at",
+	})
+	dataQuery := `
+		SELECT a.id, a.organization_id, a.period, a.assessor_id, a.reviewer_id,
+			a.status, a.score, a.maturity_level, a.review_note, a.created_at, a.updated_at,
+			COALESCE(o.name, '')
+	` + from + " ORDER BY " + order + fmt.Sprintf(" LIMIT $%d OFFSET $%d", len(args)+1, len(args)+2)
 	args = append(args, limit, offset)
 
 	rows, err := r.pool.Query(ctx, dataQuery, args...)
@@ -230,6 +255,7 @@ func (r *tmpmrRepository) List(ctx context.Context, filter repository.TMPMRListF
 			&assessment.ReviewNote,
 			&assessment.CreatedAt,
 			&assessment.UpdatedAt,
+			&assessment.OrganizationName,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan tmpmr assessment: %w", err)
 		}

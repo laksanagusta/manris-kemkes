@@ -1,5 +1,7 @@
 "use client";
 
+import { ActionConfirmationDialog } from "@/components/shared/design-system/actions/action-confirmation-dialog";
+import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import { useState } from "react";
 
 import { CollectionDialogCancel, DestructiveButton } from "@/components/shared/design-system";
@@ -9,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 export function DialogExample() {
+  const [finalizeOpen, setFinalizeOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [referenceOpen, setReferenceOpen] = useState(false);
 
@@ -39,17 +42,18 @@ export function DialogExample() {
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogTrigger asChild>
-          <Button size="sm">Open Dialog</Button>
+          <Button size="sm">Contoh hapus draf</Button>
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="text-base">
               Hapus Draft Risiko?
             </DialogTitle>
-            <DialogDescription>
-              Draft yang dihapus tidak bisa dikembalikan.
-            </DialogDescription>
+            <DialogDescription>Periksa draf risiko yang akan dihapus.</DialogDescription>
           </DialogHeader>
+          <ConfirmationConsequences variant="plain">
+            Draf risiko beserta isinya akan dihapus permanen dan tidak dapat dipulihkan.
+          </ConfirmationConsequences>
           <div className="space-y-0.5 py-1 text-sm">
             <p className="font-medium">Contoh Item</p>
             <p className="text-xs text-muted-foreground">RISK-001</p>
@@ -67,19 +71,29 @@ export function DialogExample() {
         </DialogContent>
       </Dialog>
 
+      <Button size="sm" onClick={() => setFinalizeOpen(true)}>Contoh finalisasi</Button>
+      <ActionConfirmationDialog
+        open={finalizeOpen} onOpenChange={setFinalizeOpen}
+        title="Finalisasi profil?" description="Periksa seluruh penilaian sebelum finalisasi."
+        confirmLabel="Finalisasi profil" onConfirm={() => undefined}
+      >
+        Anggota profil, penilaian, sasaran tertaut, dan rencana akan dikunci sebagai versi final. Perubahan berikutnya dibuat melalui revisi.
+      </ActionConfirmationDialog>
+
       <AlertDialog>
         <AlertDialogTrigger asChild>
-          <Button size="sm">Open AlertDialog</Button>
+          <Button size="sm">Contoh mulai pemantauan</Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle className="text-base">
               Konfirmasi Pemantauan
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              Periksa detail risiko sebelum memulai pemantauan.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Periksa risiko sebelum memulai pemantauan.</AlertDialogDescription>
           </AlertDialogHeader>
+          <ConfirmationConsequences>
+            Draf pemantauan akan dibuat dari risiko ini. Rencana mitigasi sebelumnya disalin untuk ditinjau sebelum finalisasi.
+          </ConfirmationConsequences>
           <div className="space-y-2 rounded-lg bg-accent p-3 ring-1 ring-inset ring-border">
             <div className="text-sm">
               <span className="font-medium text-foreground">Kode: </span>

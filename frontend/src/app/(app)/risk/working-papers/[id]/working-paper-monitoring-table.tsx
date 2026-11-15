@@ -28,6 +28,7 @@ import {
   WORKING_PAPER_MONITORING_COLUMNS,
   buildWorkingPaperMonitoringRowFromLink,
 } from "@/lib/working-paper-monitoring-table";
+import { formatDisplayDate } from "@/lib/display-date";
 import { formatRiskScore } from "@/lib/risk";
 import type { WorkingPaperRiskLink } from "@/types/working-paper";
 import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
@@ -142,6 +143,7 @@ export function WorkingPaperMonitoringTable({
                 >
                   {row.title}
                 </span>
+                {row.observedAt && <span className="block text-xs text-muted-foreground">{row.observedAtInferred ? "Tanggal perkiraan data lama" : "Diamati"} {formatDisplayDate(new Date(`${row.observedAt}T00:00:00+07:00`), { dateStyle: "medium", timeZone: "Asia/Jakarta" })}</span>}
               </TableCell>
               <TableCell className="">
                 <div className="flex items-center gap-1.5 whitespace-nowrap">

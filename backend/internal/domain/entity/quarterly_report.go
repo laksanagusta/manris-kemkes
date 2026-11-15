@@ -27,6 +27,8 @@ type QuarterlyReportOrganization struct {
 // QuarterlyReportData is the shared source for the report page and exports.
 // Empty source data is represented by arrays and a null dataUpdatedAt.
 type QuarterlyReportData struct {
+	PeriodStart     *time.Time                    `json:"periodStart,omitempty"`
+	PeriodEnd       *time.Time                    `json:"periodEnd,omitempty"`
 	Cycle           string                        `json:"cycle"`
 	ComparisonCycle string                        `json:"comparisonCycle"`
 	GeneratedAt     time.Time                     `json:"generatedAt"`

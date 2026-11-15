@@ -517,8 +517,8 @@ func TestUpdateRiskUseCase_ExecuteApprovedRiskCreatesMitigationTask(t *testing.T
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if len(taskRepo.created) != 1 {
-		t.Fatalf("expected 1 mitigation task, got %d", len(taskRepo.created))
+	if len(taskRepo.created) != 0 {
+		t.Fatalf("expected no task before monitoring, got %d", len(taskRepo.created))
 	}
 }
 

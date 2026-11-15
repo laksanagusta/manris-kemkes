@@ -45,6 +45,7 @@ export const mainMenuItems: MainMenuGroup[] = [
     items: [
       { label: "Dashboard", href: "/overview", icon: "DashboardCircle" },
       { label: "Risiko", href: "/risk/register", icon: "Brochure" },
+      { label: "Profil Risiko Tahunan", href: "/risk/annual-profiles", icon: "ClipboardList" },
       {
         label: "Kejadian Risiko",
         href: "/risk-events",
@@ -62,7 +63,7 @@ export const mainMenuItems: MainMenuGroup[] = [
         matchHrefs: ["/compliance/monitoring"],
       },
       {
-        label: "Kertas Kerja",
+        label: "KK Pemantauan dan Reviu",
         href: "/risk/working-papers",
         icon: "Note",
       },
@@ -74,6 +75,7 @@ export const mainMenuItems: MainMenuGroup[] = [
       },
       { label: "Tanda tangan", href: "/inbox", icon: "FileSignature" },
       { label: "Laporan Risiko", href: "/reports", icon: "PieChart09" },
+      { label: "Laporan", href: "/laporan", icon: "FileText", matchHrefs: ["/laporan"] },
     ],
   },
 ];
@@ -167,13 +169,19 @@ export function getBreadcrumbItems(
     );
   }
 
-  const workingPaperParent = parentBreadcrumb("Kertas Kerja", "/risk/working-papers");
+  if (route === "/risk/annual-profiles") return [{ label: "Profil Risiko Tahunan" }];
+  const annualProfileDetail = /^\/risk\/annual-profiles\/(\d{4})$/.exec(route);
+  if (annualProfileDetail) {
+    return detailBreadcrumb(parentBreadcrumb("Profil Risiko Tahunan", "/risk/annual-profiles"), `Profil ${annualProfileDetail[1]}`);
+  }
+
+  const workingPaperParent = parentBreadcrumb("KK Pemantauan dan Reviu", "/risk/working-papers");
   if (route === "/risk/working-papers") return [workingPaperParent];
   if (route === "/risk/working-papers/new") {
-    return detailBreadcrumb(workingPaperParent, "Buat Kertas Kerja");
+    return detailBreadcrumb(workingPaperParent, "Buat KK Pemantauan dan Reviu");
   }
   if (/^\/risk\/working-papers\/[^/]+$/.test(route)) {
-    return detailBreadcrumb(workingPaperParent, dynamicLabel ?? "Detail Kertas Kerja");
+    return detailBreadcrumb(workingPaperParent, dynamicLabel ?? "Detail KK Pemantauan dan Reviu");
   }
 
   const riskEventParent = parentBreadcrumb("Kejadian Risiko", "/risk-events");
@@ -224,6 +232,12 @@ export function getBreadcrumbItems(
   if (/^\/evaluations\/[^/]+$/.test(route)) {
     return detailBreadcrumb(evaluationParent, dynamicLabel ?? "Detail Evaluasi");
   }
+
+  const uprReportParent = parentBreadcrumb("Laporan", "/laporan");
+  if (route === "/laporan") return [uprReportParent];
+  if (route === "/laporan/baru") return detailBreadcrumb(uprReportParent, "Buat laporan");
+  if (route.startsWith("/laporan/draf/")) return detailBreadcrumb(uprReportParent, "Draf laporan");
+  if (route.startsWith("/laporan/")) return detailBreadcrumb(uprReportParent, dynamicLabel ?? "Detail Laporan");
 
   const reportParent = parentBreadcrumb("Laporan Risiko", "/reports");
   if (route === "/reports") return [reportParent];
@@ -289,12 +303,14 @@ export const breadcrumbMap: Record<string, string> = {
   "/compliance/controls": "Control Library",
   "/risk": "Risk Assessments",
   "/risk/register": "Risiko",
+  "/risk/annual-profiles": "Profil Risiko Tahunan",
+  "/laporan": "Laporan",
   "/risk/register/import-sop": "Ekstrak Risiko dari Dokumen",
   "/risk-events": "Kejadian Risiko",
   "/risk/new": "New Risk",
   "/risk/history": "Risk History",
-  "/risk/working-papers": "Kertas Kerja",
-  "/risk/working-papers/new": "Buat Kertas Kerja",
+  "/risk/working-papers": "KK Pemantauan dan Reviu",
+  "/risk/working-papers/new": "Buat KK Pemantauan dan Reviu",
   "/controls": "Control Library",
   "/monitoring/overdue": "Overdue",
   "/reports": "Laporan",
@@ -333,6 +349,8 @@ export type AppPageMeta = {
 };
 
 export const appPageMeta: Record<string, AppPageMeta> = {
+  "/risk/annual-profiles": { title: "Profil Risiko Tahunan", subtitle: "Susun risiko dan baseline untuk tahun berjalan." },
+  "/laporan": { title: "Laporan", subtitle: "Kirim dan terima versi laporan antar-UPR." },
   "/agent": { title: "Agent", subtitle: "Telusuri data dan tinjau tindak lanjut melalui percakapan pribadi." },
   "/overview": {
     title: "Dashboard",
@@ -487,12 +505,12 @@ export const appPageMeta: Record<string, AppPageMeta> = {
     subtitle: "Identifikasi konteks, penyebab, dampak, dan penanganan risiko.",
   },
   "/risk/working-papers": {
-    title: "Kertas Kerja",
-    subtitle: "Kelola roster risiko dan progres penyusunan kertas kerja.",
+    title: "KK Pemantauan dan Reviu",
+    subtitle: "Kelola roster risiko dan progres penyusunan KK Pemantauan dan Reviu.",
   },
   "/risk/working-papers/new": {
-    title: "Buat Kertas Kerja Baru",
-    subtitle: "Pilih risiko dan penandatangan untuk memulai kertas kerja.",
+    title: "Buat KK Pemantauan dan Reviu Baru",
+    subtitle: "Pilih risiko dan penandatangan untuk memulai KK Pemantauan dan Reviu.",
   },
   "/settings": {
     title: "Pengaturan",
@@ -546,7 +564,7 @@ const dynamicAppPageMeta: Array<[string, AppPageMeta]> = [
     subtitle: "Tinjau record LED dan hubungan risikonya.",
   }],
   ["/risk/working-papers/", {
-    title: "Detail Kertas Kerja",
+    title: "Detail KK Pemantauan dan Reviu",
     subtitle: "Tinjau roster risiko, status, dan proses tanda tangan.",
   }],
 ];

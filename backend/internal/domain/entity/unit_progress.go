@@ -32,11 +32,12 @@ type UnitProgressWorkingPaper struct {
 
 type UnitProgressMitigation struct {
 	UnitProgressItem
-	RiskTitle    string `json:"riskTitle"`
-	Owner        string `json:"owner"`
-	DueDate      string `json:"dueDate"`
-	Overdue      bool   `json:"overdue"`
-	ReportedLate bool   `json:"reportedLate"`
+	RiskTitle       string `json:"riskTitle"`
+	Owner           string `json:"owner"`
+	DueDate         string `json:"dueDate"`
+	ExecutionStatus string `json:"executionStatus"`
+	Overdue         bool   `json:"overdue"`
+	ReportedLate    bool   `json:"reportedLate"`
 }
 
 type UnitProgressReport struct {

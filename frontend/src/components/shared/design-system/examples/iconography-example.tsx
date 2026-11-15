@@ -17,7 +17,7 @@ const iconExamples = [
   { label: "Agent (SVG khusus)", icon: AgentIcon },
   { label: "Lampiran (SVG khusus)", icon: AttachmentIcon },
   { label: "Risiko", icon: Brochure },
-  { label: "Kertas Kerja", icon: Note },
+  { label: "KK Pemantauan dan Reviu", icon: Note },
   { label: "Dashboard", icon: DashboardCircle },
   { label: "Laporan", icon: PieChart09 },
   { label: "Kejadian Risiko", icon: MessageSquareWarning },

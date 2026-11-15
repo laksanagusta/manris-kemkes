@@ -66,6 +66,11 @@ func (t *Toolkit) readMonitoring(ctx context.Context, tx pgx.Tx, scope *entity.A
 
 func monitoringValues(monitoring *entity.RiskMonitoring) map[string]any {
 	values := jsonMap(monitoring.DraftPayloadSnapshot())
+	delete(values, "observedScoreConfirmed")
+	if monitoring.TransactionKind != "revision" {
+		delete(values, "targetProbability")
+		delete(values, "targetImpact")
+	}
 	values["changeReason"] = monitoring.ChangeReason
 	return values
 }

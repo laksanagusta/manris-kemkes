@@ -70,7 +70,7 @@ test("working paper progress exposes a row-level download action", () => {
   assert.match(workingPaperProgressSource, /onExport: \(workingPaper: WorkingPaper\) => void/);
   assert.match(workingPaperProgressSource, /<CollectionTableHead className="px-3 text-right">\s*Aksi/);
   assert.match(workingPaperProgressSource, /variant="outline"\s*\n\s*size="icon-xs"/);
-  assert.match(workingPaperProgressSource, /Download kertas kerja/);
+  assert.match(workingPaperProgressSource, /Download KK Pemantauan dan Reviu/);
   assert.match(workingPaperProgressSource, /<Download className="size-3\.5" aria-hidden="true" \/>/);
   assert.match(workingPaperProgressSource, /onClick=\{\(\) => \{\s*if \(workingPaper\) onExport\(workingPaper\);/);
 });

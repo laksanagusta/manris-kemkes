@@ -28,7 +28,10 @@ export interface OrganizationGroupListResponse {
 
 export interface ListOrganizationGroupsParams {
   ownerOrganizationId?: string;
+  groupId?: string;
   q?: string;
+  sortBy?: string;
+  sortOrder?: "asc" | "desc";
   page?: number;
   limit?: number;
   includeMembers?: boolean;
@@ -57,6 +60,9 @@ function buildOrganizationGroupsQuery(params?: ListOrganizationGroupsParams) {
   if (params?.q) {
     searchParams.set("q", params.q);
   }
+  if (params?.groupId) searchParams.set("group_id", params.groupId);
+  if (params?.sortBy) searchParams.set("sort_by", params.sortBy);
+  if (params?.sortOrder) searchParams.set("sort_order", params.sortOrder);
   if (params?.page) {
     searchParams.set("page", params.page.toString());
   }
@@ -79,6 +85,17 @@ export async function listOrganizationGroups(
     `/organization-groups${qs ? `?${qs}` : ""}`,
     token,
   );
+}
+
+export type OrganizationGroupFilterOption = Pick<
+  OrganizationGroupListItem,
+  "id" | "name" | "ownerOrganizationId" | "ownerOrganizationName"
+>;
+
+export function listOrganizationGroupOptions(token: string, ownerOrganizationId?: string) {
+  const params = new URLSearchParams({ options_only: "true" });
+  if (ownerOrganizationId) params.set("owner_organization_id", ownerOrganizationId);
+  return api.get<OrganizationGroupFilterOption[]>(`/organization-groups?${params}`, token);
 }
 
 export async function createOrganizationGroup(

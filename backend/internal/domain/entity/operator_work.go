@@ -4,6 +4,7 @@ import "time"
 
 // OperatorWorkItem is a read projection of an existing domain obligation.
 type OperatorWorkItem struct {
+	MonitoringID     string    `json:"monitoringId,omitempty"`
 	MitigationAction string    `json:"mitigationAction,omitempty"`
 	Key              string    `json:"key"`
 	Kind             string    `json:"kind"`

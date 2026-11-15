@@ -18,6 +18,40 @@ func resolveOwnOrgID(scope *entity.AccessScope) (uuid.UUID, error) {
 	return *scope.OrganizationID, nil
 }
 
+func resolveWritableOrganization(scope *entity.AccessScope, requested *uuid.UUID) (*uuid.UUID, error) {
+	if scope == nil {
+		return nil, domainerrors.ErrForbidden
+	}
+	if requested == nil && !scope.IsGlobal {
+		requested = scope.OrganizationID
+	}
+	if !scope.IsGlobal && (requested == nil || *requested == uuid.Nil || !scope.CanWrite(*requested)) {
+		return nil, domainerrors.ErrForbidden
+	}
+	return requested, nil
+}
+
+// resolveReadableOrgIDs includes every descendant supplied by the hierarchy.
+// Mutation handlers must continue to use resolveOperationalOrgIDs.
+func resolveReadableOrgIDs(scope *entity.AccessScope, rawOrgID string) ([]uuid.UUID, error) {
+	if scope == nil {
+		return nil, domainerrors.ErrForbidden
+	}
+	if rawOrgID != "" {
+		return resolveReportOrgIDs(scope, rawOrgID)
+	}
+	if scope.IsGlobal {
+		return []uuid.UUID{}, nil
+	}
+	if len(scope.AccessibleOrgIDs) == 0 {
+		if scope.OrganizationID != nil && *scope.OrganizationID != uuid.Nil {
+			return []uuid.UUID{*scope.OrganizationID}, nil
+		}
+		return nil, domainerrors.ErrForbidden
+	}
+	return append([]uuid.UUID(nil), scope.AccessibleOrgIDs...), nil
+}
+
 func resolveOperationalOrgIDs(scope *entity.AccessScope, rawOrgID string) ([]uuid.UUID, error) {
 	if scope == nil || scope.IsGlobal {
 		if rawOrgID == "" {

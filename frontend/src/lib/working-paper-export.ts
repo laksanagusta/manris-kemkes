@@ -309,7 +309,9 @@ function buildSheetMetadata(workingPaper: WorkingPaper, risks: WorkingPaperRiskD
     riskOwnerUnit: primaryOrgName,
     riskOwnerName,
     assessmentDate: formatLongDate(workingPaper.created_at),
-    riskPeriod: getRiskPeriodLabel(workingPaper.assessment_cycle, workingPaper.created_at),
+    riskPeriod: workingPaper.observation_cutoff
+      ? `Per ${formatLongDate(workingPaper.observation_cutoff)}`
+      : getRiskPeriodLabel(workingPaper.assessment_cycle, workingPaper.created_at),
   };
 }
 

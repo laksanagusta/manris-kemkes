@@ -35,6 +35,19 @@ func (uc *UseCase) PreviewRoster(
 	return uc.wpRepo.PreviewPeriodRoster(ctx, orgID, assessmentCycle)
 }
 
+func (uc *UseCase) PreviewProfileRoster(ctx context.Context, orgID, profileID uuid.UUID, cutoff string, accessibleOrgIDs []uuid.UUID, isGlobal bool) (*entity.WorkingPaperRosterPreview, error) {
+	if orgID == uuid.Nil || profileID == uuid.Nil || (!isGlobal && !containsOrgID(accessibleOrgIDs, orgID)) {
+		return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "Pilih profil final dari unit kerja yang dapat diakses."}
+	}
+	repo, ok := uc.wpRepo.(interface {
+		PreviewProfileRoster(context.Context, uuid.UUID, uuid.UUID, string) (*entity.WorkingPaperRosterPreview, error)
+	})
+	if !ok {
+		return nil, fmt.Errorf("working paper repository does not support annual profiles")
+	}
+	return repo.PreviewProfileRoster(ctx, orgID, profileID, cutoff)
+}
+
 func isValidQuarterFormat(cycle string) bool {
 	if len(cycle) < 4 {
 		return false
@@ -58,4 +71,17 @@ func containsOrgID(orgIDs []uuid.UUID, target uuid.UUID) bool {
 		}
 	}
 	return false
+}
+
+func (uc *UseCase) PreviewConfiguredProfileRoster(ctx context.Context, org, profile, period uuid.UUID, cutoff string, accessible []uuid.UUID, global bool) (*entity.WorkingPaperRosterPreview, error) {
+	if org == uuid.Nil || profile == uuid.Nil || period == uuid.Nil || (!global && !containsOrgID(accessible, org)) {
+		return nil, domainerrors.ErrForbidden
+	}
+	repo, ok := uc.wpRepo.(interface {
+		PreviewConfiguredProfileRoster(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, string) (*entity.WorkingPaperRosterPreview, error)
+	})
+	if !ok {
+		return nil, domainerrors.ErrInvalidInput
+	}
+	return repo.PreviewConfiguredProfileRoster(ctx, org, profile, period, cutoff)
 }
