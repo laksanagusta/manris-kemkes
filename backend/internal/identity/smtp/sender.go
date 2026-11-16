@@ -5,12 +5,18 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"net"
 	"net/mail"
 	"net/smtp"
 	"strconv"
 	"strings"
 	"time"
+)
+
+var (
+	ErrAuthentication    = errors.New("smtp authentication failed")
+	ErrRecipientRejected = errors.New("smtp recipient rejected")
 )
 
 type Config struct {
@@ -79,14 +85,14 @@ func (s *Sender) Send(ctx context.Context, recipient, subject, textBody, htmlBod
 	}
 	if s.config.Username != "" {
 		if err := client.Auth(smtp.PlainAuth("", s.config.Username, s.config.Password, s.host)); err != nil {
-			return err
+			return fmt.Errorf("%w: %w", ErrAuthentication, err)
 		}
 	}
 	if err := client.Mail(s.config.From); err != nil {
 		return err
 	}
 	if err := client.Rcpt(recipient); err != nil {
-		return err
+		return fmt.Errorf("%w: %w", ErrRecipientRejected, err)
 	}
 	message, err := client.Data()
 	if err != nil {

@@ -31,9 +31,12 @@ var ErrInvalidEmailToken = errors.New("email link is invalid or expired")
 type EmailToken struct {
 	Hash, Purpose, Email, PasswordFingerprint string
 	UserID                                    uuid.UUID
+	DeliveryID                                uuid.UUID
+	DeliveryAttempt                           int
 }
 
 type EmailRecoveryStore interface {
+	VerificationDeliveryStore
 	IssueEmailToken(context.Context, EmailToken, time.Duration) (bool, error)
 	UsableResetToken(context.Context, string) (bool, error)
 	ConsumeEmailToken(ctx context.Context, hash, purpose, newPasswordHash string) (pendingApproval bool, err error)
@@ -44,17 +47,11 @@ type EmailSender interface {
 }
 
 type EmailRecovery struct {
-	store  EmailRecoveryStore
-	users  Directory
-	sender EmailSender
-	origin url.URL
-	jobs   chan emailJob
-}
-
-type emailJob struct {
-	nip          string
-	verification EmailToken
-	registration bool
+	store         EmailRecoveryStore
+	users         Directory
+	sender        EmailSender
+	origin        url.URL
+	resetRequests chan string
 }
 
 func NewEmailRecovery(store EmailRecoveryStore, users Directory, sender EmailSender, origin string) (*EmailRecovery, error) {
@@ -63,20 +60,11 @@ func NewEmailRecovery(store EmailRecoveryStore, users Directory, sender EmailSen
 		(u.Path != "" && u.Path != "/") || (u.Scheme != "https" && !(u.Scheme == "http" && isLoopbackHost(u.Hostname()))) {
 		return nil, errors.New("AUTH_APP_ORIGIN must be an HTTPS origin, or HTTP loopback for development")
 	}
-	return &EmailRecovery{store: store, users: users, sender: sender, origin: *u, jobs: make(chan emailJob, 64)}, nil
+	return &EmailRecovery{store: store, users: users, sender: sender, origin: *u, resetRequests: make(chan string, 64)}, nil
 }
 
 func isLoopbackHost(host string) bool {
 	return host == "localhost" || host == "127.0.0.1" || host == "::1"
-}
-
-func (r *EmailRecovery) enqueue(job emailJob) error {
-	select {
-	case r.jobs <- job:
-		return nil
-	default:
-		return ErrEmailRecoveryBusy
-	}
 }
 
 func (r *EmailRecovery) RequestReset(nip string) error {
@@ -85,7 +73,12 @@ func (r *EmailRecovery) RequestReset(nip string) error {
 		return domainerrors.ErrInvalidInput
 	}
 	// Make the HTTP response independent of directory lookup and SMTP delivery.
-	return r.enqueue(emailJob{nip: nip})
+	select {
+	case r.resetRequests <- nip:
+		return nil
+	default:
+		return ErrEmailRecoveryBusy
+	}
 }
 
 func (r *EmailRecovery) RequestVerification(ctx context.Context, id uuid.UUID, password string) error {
@@ -105,51 +98,69 @@ func (r *EmailRecovery) RequestVerification(ctx context.Context, id uuid.UUID, p
 	if u.EmailVerified {
 		return nil
 	}
-	return r.queueVerification(u, false)
+	_, err = r.queueVerification(ctx, u, false)
+	return err
 }
 
-func (r *EmailRecovery) QueueRegistrationVerification(u *domain.User) error {
-	return r.queueVerification(u, true)
+func (r *EmailRecovery) QueueRegistrationVerification(ctx context.Context, u *domain.User) (uuid.UUID, error) {
+	return r.queueVerification(ctx, u, true)
 }
 
-func (r *EmailRecovery) RequestRegistrationVerification(ctx context.Context, nip, password string) error {
+func (r *EmailRecovery) RequestRegistrationVerification(ctx context.Context, nip, password string, statusOnly bool) (uuid.UUID, error) {
 	nip = strings.TrimSpace(nip)
 	if nip == "" || len(nip) > 64 || password == "" || len(password) > 72 {
-		return domainerrors.ErrInvalidInput
+		return uuid.Nil, domainerrors.ErrInvalidInput
 	}
 	u, err := r.users.GetByNIP(ctx, nip)
 	if errors.Is(err, domainerrors.ErrNotFound) {
-		return domainerrors.ErrInvalidCredentials
+		return uuid.Nil, domainerrors.ErrInvalidCredentials
 	}
 	if err != nil {
-		return err
+		return uuid.Nil, err
 	}
 	if u == nil || bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password)) != nil {
-		return domainerrors.ErrInvalidCredentials
+		return uuid.Nil, domainerrors.ErrInvalidCredentials
 	}
 	if !u.IsAwaitingEmailVerification() {
-		return nil
+		return uuid.Nil, nil
 	}
 	if !domain.ValidEmailAddress(u.Email) {
-		return domainerrors.ErrInvalidEmail
+		return uuid.Nil, domainerrors.ErrInvalidEmail
 	}
-	return r.QueueRegistrationVerification(u)
+	if statusOnly {
+		id, _, err := r.store.LatestRegistrationVerification(ctx, u.ID)
+		return id, err
+	}
+	return r.QueueRegistrationVerification(ctx, u)
 }
 
-func (r *EmailRecovery) queueVerification(u *domain.User, registration bool) error {
-	return r.enqueue(emailJob{registration: registration, verification: EmailToken{
+func (r *EmailRecovery) queueVerification(ctx context.Context, u *domain.User, registration bool) (uuid.UUID, error) {
+	return r.store.EnqueueVerification(ctx, EmailToken{
 		UserID: u.ID, Purpose: VerifyEmail, Email: u.Email, PasswordFingerprint: fingerprint(u.PasswordHash),
-	}})
+	}, registration)
 }
 
 func (r *EmailRecovery) RunWorker(ctx context.Context) {
+	tick := time.NewTicker(500 * time.Millisecond)
+	defer tick.Stop()
+	prune := time.NewTicker(time.Hour)
+	defer prune.Stop()
 	for ctx.Err() == nil {
 		select {
 		case <-ctx.Done():
 			return
-		case job := <-r.jobs:
+		case <-tick.C:
+			r.processVerification(ctx)
+		case <-prune.C:
+			pruneContext, cancel := context.WithTimeout(ctx, 5*time.Second)
+			err := r.store.PruneVerificationDeliveries(pruneContext)
+			cancel()
+			if err != nil && ctx.Err() == nil {
+				slog.Warn("could not prune email verification deliveries")
+			}
+		case nip := <-r.resetRequests:
 			deliveryContext, cancel := context.WithTimeout(ctx, 15*time.Second)
-			err := r.deliver(deliveryContext, job)
+			err := r.deliverReset(deliveryContext, nip)
 			cancel()
 			if err != nil && ctx.Err() == nil {
 				// SMTP errors may contain recipient data. Link tokens never go to logs.
@@ -159,31 +170,31 @@ func (r *EmailRecovery) RunWorker(ctx context.Context) {
 	}
 }
 
-func (r *EmailRecovery) deliver(ctx context.Context, job emailJob) error {
-	request := job.verification
-	if job.nip != "" {
-		u, err := r.users.GetByNIP(ctx, job.nip)
-		if errors.Is(err, domainerrors.ErrNotFound) {
-			return nil
-		}
-		if err != nil {
-			return err
-		}
-		if u == nil || u.Status != domain.UserStatusActive || !u.EmailVerified || !domain.ValidEmailAddress(u.Email) {
-			return nil
-		}
-		request = EmailToken{UserID: u.ID, Purpose: ResetByEmail, Email: u.Email, PasswordFingerprint: fingerprint(u.PasswordHash)}
+func (r *EmailRecovery) deliverReset(ctx context.Context, nip string) error {
+	u, err := r.users.GetByNIP(ctx, nip)
+	if errors.Is(err, domainerrors.ErrNotFound) {
+		return nil
 	}
+	if err != nil {
+		return err
+	}
+	if u == nil || u.Status != domain.UserStatusActive || !u.EmailVerified || !domain.ValidEmailAddress(u.Email) {
+		return nil
+	}
+	_, err = r.deliver(ctx, EmailToken{UserID: u.ID, Purpose: ResetByEmail, Email: u.Email, PasswordFingerprint: fingerprint(u.PasswordHash)}, false)
+	return err
+}
 
+func (r *EmailRecovery) deliver(ctx context.Context, request EmailToken, registration bool) (bool, error) {
 	var secret [32]byte
 	if _, err := rand.Read(secret[:]); err != nil {
-		return err
+		return false, err
 	}
 	token := base64.RawURLEncoding.EncodeToString(secret[:])
 	request.Hash = fingerprint(token)
 	created, err := r.store.IssueEmailToken(ctx, request, emailTokenLifetime)
 	if err != nil || !created {
-		return err
+		return false, err
 	}
 
 	link := r.origin
@@ -196,7 +207,7 @@ func (r *EmailRecovery) deliver(ctx context.Context, job emailJob) error {
 		subject = "Verifikasi email Manrisk"
 		instruction = "Buka tautan berikut untuk mengonfirmasi email akun Manrisk Anda."
 		action = "Verifikasi email"
-		if job.registration {
+		if registration {
 			instruction = "Verifikasi email Anda agar Super Admin dapat meninjau registrasi akun Manrisk Anda."
 		}
 	}
@@ -233,7 +244,10 @@ func (r *EmailRecovery) deliver(ctx context.Context, job emailJob) error {
 	</table>
 </body>
 </html>`, instruction, html.EscapeString(link.String()), action, expiryNote)
-	return r.sender.Send(ctx, request.Email, subject, textBody, htmlBody)
+	if err := r.sender.Send(ctx, request.Email, subject, textBody, htmlBody); err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 func tokenFingerprint(token string) (string, error) {

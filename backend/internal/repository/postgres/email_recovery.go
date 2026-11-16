@@ -38,11 +38,20 @@ func (r *IdentityAuthStore) IssueEmailToken(ctx context.Context, token identity.
 		return false, fmt.Errorf("remove expired email tokens: %w", err)
 	}
 
+	var deliveryID *uuid.UUID
+	if token.DeliveryID != uuid.Nil {
+		deliveryID = &token.DeliveryID
+	}
+	// Durable sends are throttled when enqueuing. A leased retry may issue a fresh link even
+	// if an earlier attempt's token still exists, since its SMTP outcome may have been ambiguous.
 	tag, err := tx.Exec(ctx, `INSERT INTO auth_email_tokens(token_hash, user_id, purpose, email, password_fingerprint, expires_at)
 		SELECT $1, $2, $3, $4, $5, clock_timestamp()+make_interval(secs => $6)
-		WHERE NOT EXISTS (SELECT 1 FROM auth_email_tokens
-			WHERE user_id=$2 AND purpose=$3 AND created_at>clock_timestamp()-interval '2 minutes')`,
-		token.Hash, id, token.Purpose, token.Email, token.PasswordFingerprint, lifetime.Seconds())
+		WHERE ($7::uuid IS NULL AND NOT EXISTS (SELECT 1 FROM auth_email_tokens
+			WHERE user_id=$2 AND purpose=$3 AND created_at>clock_timestamp()-interval '2 minutes'))
+		OR ($7::uuid IS NOT NULL AND $3='verify_email' AND EXISTS (SELECT 1 FROM auth_verification_deliveries
+			WHERE id=$7 AND user_id=$2 AND email=$4 AND password_fingerprint=$5
+			AND status='sending' AND attempt=$8 AND available_at>clock_timestamp() FOR SHARE))`,
+		token.Hash, id, token.Purpose, token.Email, token.PasswordFingerprint, lifetime.Seconds(), deliveryID, token.DeliveryAttempt)
 	if err != nil {
 		return false, fmt.Errorf("issue email token: %w", err)
 	}

@@ -26,11 +26,11 @@ export function RecoveryEmailSettings() {
   const id = useId();
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
-  const [sentTo, setSentTo] = useState("");
+  const [requestedFor, setRequestedFor] = useState("");
   const [error, setError] = useState("");
   const email = user?.email ?? "";
   const verified = user?.emailVerified === true;
-  const awaitingVerification = !verified && !!sentTo && sentTo === email;
+  const awaitingVerification = !verified && !!requestedFor && requestedFor === email;
 
   useEffect(() => {
     if (!token) return;
@@ -62,7 +62,7 @@ export function RecoveryEmailSettings() {
     setPending(true);
     try {
       await requestEmailVerification(token, password);
-      setSentTo(email);
+      setRequestedFor(email);
       setOpen(false);
     } catch (err) {
       setError(err instanceof ApiError
@@ -89,7 +89,7 @@ export function RecoveryEmailSettings() {
           </div>
           {awaitingVerification && (
             <p role="status" className="text-xs text-muted-foreground md:text-right">
-              Periksa kotak masuk dan folder spam, lalu buka tautan verifikasi.
+              Permintaan pengiriman diterima. Periksa kotak masuk dan folder spam untuk tautan verifikasi.
             </p>
           )}
           {!verified && email && (

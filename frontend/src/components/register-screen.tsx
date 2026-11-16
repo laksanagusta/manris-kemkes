@@ -25,6 +25,7 @@ import {
   type OrganizationListItem,
 } from "@/lib/api/organizations";
 import { registerUser } from "@/lib/api/auth";
+import { VerificationDeliveryAlert, VerificationDeliveryStatusPanel } from "@/components/verification-delivery-status";
 
 export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
@@ -32,7 +33,11 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(false);
   const [orgLoading, setOrgLoading] = useState(true);
   const [error, setError] = useState("");
-  const [registration, setRegistration] = useState<{ email: string; verificationQueued: boolean } | null>(null);
+  const [registration, setRegistration] = useState<{
+    email: string;
+    verificationQueued: boolean;
+    deliveryId?: string;
+  } | null>(null);
   const [organizations, setOrganizations] = useState<OrganizationListItem[]>(
     [],
   );
@@ -125,7 +130,11 @@ export default function RegisterScreen() {
         jabatan,
         pangkat,
       });
-      setRegistration({ email: email.trim(), verificationQueued: result.verificationQueued });
+      setRegistration({
+        email: email.trim(),
+        verificationQueued: result.verificationQueued,
+        deliveryId: result.verificationDeliveryId,
+      });
       setPassword("");
       setConfirmPassword("");
     } catch (err) {
@@ -145,15 +154,17 @@ export default function RegisterScreen() {
     setOrganizationQuery("");
   };
 
+  const resendLink = (
+    <Link href="/verify-email/resend" className="font-medium underline underline-offset-4">Kirim ulang tautan verifikasi</Link>
+  );
+
   return (
     <main data-motion-page className="grid min-h-svh place-items-center bg-muted/50 px-4 py-8 sm:py-12">
       <div className="w-full max-w-[560px]">
         <AuthCard
-          title={registration ? (registration.verificationQueued ? "Periksa email Anda" : "Registrasi tersimpan") : "Buat akun baru"}
+          title={registration ? "Registrasi tersimpan" : "Buat akun baru"}
           description={registration
-            ? registration.verificationQueued
-              ? `Tautan verifikasi akan dikirim ke ${registration.email}. Setelah email terverifikasi, Super Admin dapat menyetujui akun Anda.`
-              : "Pengiriman tautan belum dapat diproses. Minta tautan baru untuk melanjutkan verifikasi email."
+            ? `Alamat verifikasi Anda adalah ${registration.email}. Setelah email terverifikasi, Super Admin dapat menyetujui akun Anda.`
             : "Verifikasi email Anda, lalu tunggu persetujuan Super Admin sebelum masuk."}
           footer={
             <p>
@@ -165,12 +176,11 @@ export default function RegisterScreen() {
           }
         >
           {registration ? (
-            <Alert role="status">
-              <AlertDescription>
-                {registration.verificationQueued && "Periksa folder spam jika email belum terlihat. "}
-                <Link href="/verify-email/resend" className="font-medium underline underline-offset-4">Kirim ulang tautan verifikasi</Link>
-              </AlertDescription>
-            </Alert>
+            registration.deliveryId ? (
+              <VerificationDeliveryStatusPanel deliveryId={registration.deliveryId}>{resendLink}</VerificationDeliveryStatusPanel>
+            ) : (
+              <VerificationDeliveryAlert status={registration.verificationQueued ? "queued" : "failed"}>{resendLink}</VerificationDeliveryAlert>
+            )
           ) : <form id="registration-form" onSubmit={handleSubmit} className="flex flex-col gap-5">
             <FieldGroup className="grid gap-x-4 gap-y-4 sm:grid-cols-2">
               {error ? <Alert variant="destructive" className="sm:col-span-2"><AlertDescription>{error}</AlertDescription></Alert> : null}

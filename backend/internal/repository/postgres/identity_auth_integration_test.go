@@ -48,6 +48,7 @@ func TestIdentityAuthPostgresMigrationAndLifecycle(t *testing.T) {
 	}
 	execIdentityMigration(t, pool, "000091_password_reset.up.sql")
 	execIdentityMigration(t, pool, "000092_email_password_reset.up.sql")
+	execIdentityMigration(t, pool, "000093_verification_email_delivery.up.sql")
 	hash, err := bcrypt.GenerateFromPassword([]byte("Password123!"), bcrypt.MinCost)
 	if err != nil {
 		t.Fatal(err)
@@ -157,6 +158,7 @@ func TestIdentityAuthPostgresMigrationAndLifecycle(t *testing.T) {
 	testPasswordResetLifecycle(t, pool, svc, actor, orgID, string(hash))
 	testEmailRecoveryLifecycle(t, pool, svc, orgID, string(hash))
 	testAdminCreatedAccountActivation(t, pool, svc, orgID)
+	execIdentityMigration(t, pool, "000093_verification_email_delivery.down.sql")
 	execIdentityMigration(t, pool, "000092_email_password_reset.down.sql")
 	execIdentityMigration(t, pool, "000091_password_reset.down.sql")
 	down, err := os.ReadFile("../../../db/migrations/000071_shared_identity_auth.down.sql")

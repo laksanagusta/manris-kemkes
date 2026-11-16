@@ -22,12 +22,13 @@ type registerStubUserRepo struct {
 
 type registerStubVerifier struct {
 	user *entity.User
+	id   uuid.UUID
 	err  error
 }
 
-func (s *registerStubVerifier) QueueRegistrationVerification(user *entity.User) error {
+func (s *registerStubVerifier) QueueRegistrationVerification(_ context.Context, user *entity.User) (uuid.UUID, error) {
 	s.user = user
-	return s.err
+	return s.id, s.err
 }
 
 func (s *registerStubUserRepo) Create(_ context.Context, user *entity.User) error {
@@ -113,7 +114,7 @@ func TestRegisterUseCaseCreatesPendingUnitUser(t *testing.T) {
 		},
 	}
 
-	verifier := &registerStubVerifier{}
+	verifier := &registerStubVerifier{id: uuid.New()}
 	uc := NewRegisterUseCase(userRepo, orgRepo, verifier)
 
 	result, err := uc.Execute(context.Background(), RegisterInput{
@@ -137,6 +138,9 @@ func TestRegisterUseCaseCreatesPendingUnitUser(t *testing.T) {
 	}
 	if !result.VerificationQueued || verifier.user == nil || verifier.user.ID == uuid.Nil || verifier.user.ID != result.ID {
 		t.Fatal("expected verification to be queued for the newly persisted account")
+	}
+	if result.VerificationDeliveryID == nil || *result.VerificationDeliveryID != verifier.id {
+		t.Fatal("expected registration to return its delivery receipt")
 	}
 	if userRepo.created.Role != entity.RoleUnit {
 		t.Fatalf("expected forced unit role, got %q", userRepo.created.Role)

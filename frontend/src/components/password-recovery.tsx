@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import { VerificationDeliveryStatusPanel } from "@/components/verification-delivery-status";
 import { ApiError } from "@/lib/api";
 import { confirmEmailVerification, requestPasswordReset, resendRegistrationVerification, resetPasswordByEmail } from "@/lib/api/auth";
 
@@ -44,9 +45,9 @@ function CredentialInput(props: ComponentProps<typeof Input>) {
   );
 }
 
-function RecoverySubmit({ pending, children }: { pending: boolean; children: ReactNode }) {
+function RecoverySubmit({ pending, disabled, children }: { pending: boolean; disabled?: boolean; children: ReactNode }) {
   return (
-    <Button type="submit" className="h-11 w-full" disabled={pending} aria-busy={pending}>
+    <Button type="submit" className="h-11 w-full" disabled={pending || disabled} aria-busy={pending}>
       {pending && <Spinner data-icon="inline-start" aria-hidden="true" />}
       {pending ? "Memproses..." : children}
       {!pending && <ArrowRight data-icon="inline-end" aria-hidden="true" />}
@@ -108,32 +109,44 @@ export function ForgotPasswordScreen() {
 }
 
 export function ResendRegistrationVerificationScreen() {
-  const [pending, setPending] = useState(false);
-  const [sent, setSent] = useState(false);
+  const [pending, setPending] = useState<"resend" | "status" | null>(null);
+  const [result, setResult] = useState<{ deliveryId?: string } | null>(null);
   const [error, setError] = useState("");
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending) return;
     const form = new FormData(event.currentTarget);
+    const statusOnly = (event.nativeEvent as SubmitEvent).submitter?.getAttribute("value") === "status";
     setError("");
-    setPending(true);
+    setPending(statusOnly ? "status" : "resend");
     try {
-      await resendRegistrationVerification(String(form.get("nip") ?? "").trim(), String(form.get("password") ?? ""));
-      setSent(true);
+      const response = await resendRegistrationVerification(
+        String(form.get("nip") ?? "").trim(),
+        String(form.get("password") ?? ""),
+        statusOnly,
+      );
+      setResult({ deliveryId: response.deliveryId });
     } catch (err) {
       setError(actionError(err));
     } finally {
-      setPending(false);
+      setPending(null);
     }
   }
 
-  if (sent) {
+  if (result) {
     return (
-      <RecoveryCard title="Periksa email Anda" description="Jika email belum terverifikasi, tautan akan dikirim ke alamat yang terdaftar.">
-        <Alert role="status">
-          <AlertDescription>Periksa folder spam. Jika Anda baru meminta tautan, tunggu dua menit sebelum mencoba lagi.</AlertDescription>
-        </Alert>
+      <RecoveryCard title="Status pengiriman verifikasi" description="Pengiriman tautan menggunakan alamat email yang Anda daftarkan.">
+        <div className="flex flex-col gap-4">
+          {result.deliveryId ? (
+            <VerificationDeliveryStatusPanel deliveryId={result.deliveryId} />
+          ) : (
+            <Alert role="status">
+              <AlertDescription>Belum ada status pengiriman yang bisa ditampilkan. Jika email sudah terverifikasi, tunggu persetujuan Super Admin.</AlertDescription>
+            </Alert>
+          )}
+          <Button type="button" variant="outline" onClick={() => setResult(null)}>Kembali ke formulir</Button>
+        </div>
       </RecoveryCard>
     );
   }
@@ -150,7 +163,11 @@ export function ResendRegistrationVerificationScreen() {
           <FieldLabel htmlFor="registration-password">Password</FieldLabel>
           <CredentialInput id="registration-password" name="password" type="password" autoComplete="current-password" required />
         </Field>
-        <RecoverySubmit pending={pending}>Kirim tautan verifikasi</RecoverySubmit>
+        <RecoverySubmit pending={pending === "resend"} disabled={pending === "status"}>Kirim tautan verifikasi</RecoverySubmit>
+        <Button type="submit" value="status" variant="outline" className="h-11 w-full" disabled={pending !== null} aria-busy={pending === "status"}>
+          {pending === "status" && <Spinner data-icon="inline-start" aria-hidden="true" />}
+          {pending === "status" ? "Memeriksa…" : "Cek status pengiriman"}
+        </Button>
       </form>
     </RecoveryCard>
   );

@@ -199,3 +199,41 @@ test("proxy accepts only POST for the email recovery routes", async () => {
   }
   assert.deepEqual(forwarded, paths.map((path) => `/api/v1/auth/${path}`));
 });
+
+test("proxy restricts verification delivery routes to UUIDs and the declared methods", async () => {
+  process.env.MANRIS_APP_KEY = "server-test-key";
+  process.env.AUTH_SERVICE_URL = "http://localhost:8080/api/v1";
+  const id = "00000000-0000-0000-0000-000000000001";
+  const delivery = `verify-email/delivery/${id}`;
+  const admin = `verify-email/admin/${id}`;
+  const retry = `${admin}/retry`;
+  const calls: [string, string | undefined, string | null][] = [];
+  globalThis.fetch = async (input, options) => {
+    calls.push([new URL(String(input)).pathname, options?.method, new Headers(options?.headers).get("Authorization")]);
+    return Response.json({ data: { status: "queued" } });
+  };
+
+  const request = (path: string, method: string, authorization?: string) =>
+    new Request(`http://localhost:3000/api/auth/${path}`, {
+      method,
+      headers: authorization ? { Authorization: authorization } : undefined,
+    });
+
+  const status = await route.GET(request(delivery, "GET"), context(delivery));
+  assert.equal(status.status, 200);
+  assert.equal(status.headers.get("Cache-Control"), "no-store");
+  assert.equal((await route.GET(request(admin, "GET", "Bearer admin-token"), context(admin))).status, 200);
+  assert.equal((await route.POST(request(retry, "POST", "Bearer admin-token"), context(retry))).status, 200);
+  assert.equal((await route.POST(request(delivery, "POST"), context(delivery))).status, 404);
+  assert.equal((await route.POST(request(admin, "POST"), context(admin))).status, 404);
+  assert.equal((await route.GET(request(retry, "GET"), context(retry))).status, 404);
+  for (const path of ["verify-email/delivery/invalid", "verify-email/admin/invalid/retry", `${admin}/extra`]) {
+    assert.equal((await route.GET(request(path, "GET"), context(path))).status, 404);
+    assert.equal((await route.POST(request(path, "POST"), context(path))).status, 404);
+  }
+  assert.deepEqual(calls, [
+    [`/api/v1/auth/${delivery}`, "GET", null],
+    [`/api/v1/auth/${admin}`, "GET", "Bearer admin-token"],
+    [`/api/v1/auth/${retry}`, "POST", "Bearer admin-token"],
+  ]);
+});
