@@ -1,10 +1,11 @@
--- Reset transaksi satu unit untuk skema Manrisk hingga migrasi 000089.
+-- Reset transaksi satu organisasi untuk skema Manrisk hingga migrasi 000092.
 -- Temukan UUID: SELECT id, name, parent_id FROM public.organizations ORDER BY name;
 -- Ganti UUID pada INSERT _reset_config. Jalankan seluruh file dalam satu koneksi.
 -- Cakupan: semua periode dan versi, termasuk risiko, pemantauan, revisi,
 -- mitigasi, insiden, KK, laporan UPR, profil tahunan, evaluasi, TMPMR, kontrol,
 -- pembelajaran, notulen dan persetujuan terkait.
--- Pengiriman ikut terhapus jika laporan asalnya milik unit target.
+-- Pengiriman UPR ikut terhapus jika organisasi target pemilik atau penerima
+-- laporan. Versi laporan milik pengirim lain tetap tersimpan.
 -- Data master, akun, piagam, sasaran, perencanaan, aturan pemantauan, audit,
 -- dan file lampiran tetap tersimpan.
 -- Gunakan role pemilik tabel saat aktivitas input dijeda. Operasi memegang lock
@@ -66,7 +67,7 @@ INSERT INTO _reset_tables VALUES
     (25, 'annual_risk_profile_versions', 95, 'organization_id = (SELECT organization_id FROM _reset_config)'),
     (26, 'upr_report_versions', 54, 'organization_id = (SELECT organization_id FROM _reset_config)'),
     (27, 'upr_report_drafts', 53, 'organization_id = (SELECT organization_id FROM _reset_config)'),
-    (28, 'upr_report_deliveries', 53, 'report_version_id IN (SELECT id FROM _reset_rows WHERE table_name = ''upr_report_versions'')'),
+    (28, 'upr_report_deliveries', 53, 'recipient_organization_id = (SELECT organization_id FROM _reset_config) OR report_version_id IN (SELECT id FROM _reset_rows WHERE table_name = ''upr_report_versions'')'),
     (29, 'risk_event_notes', 60, 'event_id IN (SELECT id FROM _reset_rows WHERE table_name = ''incidents'')'),
     (30, 'approval_requests', 40, 'entity_id IN (SELECT id FROM _reset_rows)'),
     (31, 'approval_histories', 30, 'approval_request_id IN (SELECT id FROM _reset_rows WHERE table_name = ''approval_requests'')'),
@@ -302,6 +303,49 @@ BEGIN
     END IF;
 END $$;
 SELECT table_name, remaining_target_rows, remaining_scope_rows FROM _reset_results ORDER BY table_name;
+
+-- Tampilkan relasi yang masih menunjuk ke organisasi. NO ACTION dan RESTRICT
+-- menghalangi penghapusan. CASCADE dan SET NULL menunjukkan dampak penghapusan.
+CREATE TEMP TABLE _reset_organization_references (
+    table_name text, constraint_name text, on_delete text, remaining_rows bigint
+) ON COMMIT DROP;
+DO $$
+DECLARE fk record; reference_count bigint;
+BEGIN
+    FOR fk IN
+        SELECT k.conname, k.conrelid::regclass AS child_table, k.confdeltype,
+               string_agg(format('child.%I = org.%I', ca.attname, pa.attname),
+                          ' AND ' ORDER BY key.column_index) AS join_condition
+        FROM pg_constraint k
+        CROSS JOIN LATERAL unnest(k.conkey, k.confkey)
+            WITH ORDINALITY AS key(child_column, parent_column, column_index)
+        JOIN pg_attribute ca ON ca.attrelid = k.conrelid AND ca.attnum = key.child_column
+        JOIN pg_attribute pa ON pa.attrelid = k.confrelid AND pa.attnum = key.parent_column
+        WHERE k.contype = 'f' AND k.confrelid = 'public.organizations'::regclass
+        GROUP BY k.oid, k.conname, k.conrelid, k.confdeltype
+    LOOP
+        EXECUTE format(
+            'SELECT count(*) FROM %s child JOIN public.organizations org ON %s
+             WHERE org.id = (SELECT organization_id FROM _reset_config)',
+            fk.child_table, fk.join_condition
+        ) INTO reference_count;
+        IF reference_count > 0 THEN
+            INSERT INTO _reset_organization_references VALUES (
+                fk.child_table::text, fk.conname,
+                CASE fk.confdeltype
+                    WHEN 'a' THEN 'NO ACTION'
+                    WHEN 'r' THEN 'RESTRICT'
+                    WHEN 'c' THEN 'CASCADE'
+                    WHEN 'n' THEN 'SET NULL'
+                    WHEN 'd' THEN 'SET DEFAULT'
+                END,
+                reference_count
+            );
+        END IF;
+    END LOOP;
+END $$;
+SELECT table_name, constraint_name, on_delete, remaining_rows
+FROM _reset_organization_references ORDER BY table_name, constraint_name;
 
 -- Dry run: seluruh DELETE di atas dibatalkan. Ganti dengan COMMIT untuk reset.
 ROLLBACK;
