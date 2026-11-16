@@ -11,7 +11,7 @@ test("shares the Manrisk auth card with a dedicated footer", () => {
   assert.match(card, /<CardContent>\{children\}<\/CardContent>/);
   assert.match(card, /<CardFooter[\s\S]*?\{footer\}/);
   assert.match(login, /<AuthCard[\s\S]*?title="Masuk ke Manrisk"/);
-  assert.match(register, /<AuthCard[\s\S]*?title="Buat akun baru"/);
+  assert.match(register, /<AuthCard[\s\S]*?title=\{[^\n]*"Buat akun baru"/);
 });
 
 test("keeps the labelled NIP and password fields connected to Manrisk login", () => {
@@ -28,6 +28,6 @@ test("keeps the labelled NIP and password fields connected to Manrisk login", ()
 test("keeps navigation and help in the auth footers", () => {
   assert.match(login, /footer=\{[\s\S]*?<Link href="\/register"/);
   assert.match(login, /<Link href="\/docs"/);
-  assert.match(login, /Kendala masuk\? Hubungi administrator\./);
+  assert.match(login, /href="\/forgot-password"[\s\S]*?Lupa password\?/);
   assert.match(register, /footer=\{[\s\S]*?<Link href="\/login"/);
 });

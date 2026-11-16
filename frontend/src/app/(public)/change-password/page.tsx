@@ -111,7 +111,7 @@ export default function ChangePasswordPage() {
           <h1 className="text-xl font-semibold">MANRISK</h1>
           <p className="text-muted-foreground">
             {isSetupFlow
-              ? "Aktivasi akun pada login pertama"
+              ? "Masuk dengan password sementara"
               : "Kelola keamanan akun Anda"}
           </p>
         </div>
@@ -140,6 +140,7 @@ export default function ChangePasswordPage() {
                   <Input
                     id="current-password"
                     type="password"
+autoComplete="current-password"
                     placeholder="masukkan password saat ini"
                     value={currentPassword}
                     onChange={(event) => setCurrentPassword(event.target.value)}
@@ -155,6 +156,7 @@ export default function ChangePasswordPage() {
                 <Input
                   id="new-password"
                   type="password"
+autoComplete="new-password"
                   placeholder="minimal 8 karakter"
                   value={newPassword}
                   onChange={(event) => setNewPassword(event.target.value)}
@@ -169,6 +171,7 @@ export default function ChangePasswordPage() {
                 <Input
                   id="confirm-password"
                   type="password"
+autoComplete="new-password"
                   placeholder="ulangi password baru"
                   value={confirmPassword}
                   onChange={(event) => setConfirmPassword(event.target.value)}

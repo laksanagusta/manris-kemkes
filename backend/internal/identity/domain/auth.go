@@ -13,6 +13,7 @@ type Profile struct {
 	Username           string        `json:"username,omitempty"`
 	Name               string        `json:"name"`
 	Email              string        `json:"email"`
+	EmailVerified      bool          `json:"emailVerified"`
 	Role               string        `json:"role"`
 	OrganizationID     *uuid.UUID    `json:"organizationId,omitempty"`
 	Organization       *Organization `json:"organization,omitempty"`

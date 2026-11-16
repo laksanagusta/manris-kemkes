@@ -108,6 +108,46 @@ func (s *memoryIdentityStore) RevokeSession(_ context.Context, id uuid.UUID) err
 	return nil
 }
 
+func (s *memoryIdentityStore) ResetPassword(_ context.Context, _, _ uuid.UUID, _, _, _ string, _ time.Time) error {
+	return s.err
+}
+
+func TestSharedAuthAdminPasswordResetRoute(t *testing.T) {
+	f := newSharedAuthFixture(t)
+	target := &domain.User{ID: uuid.New(), Role: domain.RoleUnit, Status: domain.UserStatusActive}
+	f.users.directoryUsers = append(f.users.directoryUsers, target)
+	admin := f.login(t, manrisTestKey)
+	path := "/auth/users/" + target.ID.String() + "/reset-password"
+	body := map[string]string{"currentPassword": "Password123!"}
+
+	f.request(t, "POST", path, admin.Token, "", body, 401)
+	f.request(t, "POST", path, "", manrisTestKey, body, 401)
+	external, err := f.svc.CreateApplication(context.Background(), "other_app", "Other app", admin.User.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	f.request(t, "POST", path, admin.Token, external.AppKey, body, 401)
+	f.request(t, "POST", "/auth/users/"+admin.User.ID.String()+"/reset-password", admin.Token, manrisTestKey, body, 422)
+	f.request(t, "POST", path, admin.Token, manrisTestKey, map[string]string{"currentPassword": "wrong"}, 422)
+	target.Status = domain.UserStatusPendingActivation
+	f.request(t, "POST", path, admin.Token, manrisTestKey, body, 404)
+	target.Status = domain.UserStatusActive
+	result := f.request(t, "POST", path, admin.Token, manrisTestKey, body, 200)
+	var response struct {
+		Data identity.PasswordResetResult
+	}
+	if err := json.Unmarshal(result, &response); err != nil || len(response.Data.TemporaryPassword) != 24 || !response.Data.ExpiresAt.After(time.Now()) {
+		t.Fatalf("did not return a temporary credential and expiry: %v", err)
+	}
+
+	f.users.user.MustChangePassword = true
+	f.request(t, "POST", path, admin.Token, manrisTestKey, body, 403)
+	f.users.user.MustChangePassword = false
+	f.users.user.Role = domain.RoleUnit
+	f.users.user.OrganizationID = &f.orgs.org.ID
+	f.request(t, "POST", path, admin.Token, manrisTestKey, body, 403)
+}
+
 type sharedOrgDirectory struct {
 	org   *domain.Organization
 	child *domain.Organization

@@ -14,6 +14,7 @@ export interface RegisterInput {
 export interface RegisterResponse {
   message: string;
   userId?: string;
+  verificationQueued: boolean;
 }
 
 export async function registerUser(input: RegisterInput): Promise<RegisterResponse> {
@@ -27,4 +28,24 @@ export async function registerUser(input: RegisterInput): Promise<RegisterRespon
     jabatan: input.jabatan ?? "",
     pangkat: input.pangkat ?? "",
   });
+}
+
+export function requestPasswordReset(nip: string) {
+  return api.post("/auth/forgot-password", { nip });
+}
+
+export function resetPasswordByEmail(token: string, newPassword: string, confirmPassword: string) {
+  return api.post<void>("/auth/reset-password", { token, newPassword, confirmPassword });
+}
+
+export function requestEmailVerification(sessionToken: string, currentPassword: string) {
+  return api.post("/auth/verify-email/request", { currentPassword }, sessionToken);
+}
+
+export function confirmEmailVerification(token: string) {
+  return api.post<{ pendingApproval?: boolean }>("/auth/verify-email/confirm", { token });
+}
+
+export function resendRegistrationVerification(nip: string, password: string) {
+  return api.post("/auth/verify-email/resend-registration", { nip, password });
 }

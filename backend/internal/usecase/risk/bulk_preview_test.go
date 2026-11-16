@@ -187,6 +187,34 @@ func TestBulkRiskSpreadsheetUseCase_TemplateHasSheet2Structure(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = f.Close() })
 
+	sheets := f.GetSheetList()
+	if !slices.Equal(sheets, []string{"Template Upload", "Panduan Kolom", "Contoh Data"}) {
+		t.Fatalf("unexpected sheet order: %v", sheets)
+	}
+	if active := f.GetSheetName(f.GetActiveSheetIndex()); active != "Template Upload" {
+		t.Fatalf("expected Template Upload to open first, got %q", active)
+	}
+	guide, err := f.GetRows("Panduan Kolom")
+	if err != nil {
+		t.Fatalf("read column guide: %v", err)
+	}
+	if want := len(bulkRiskTemplateColumns) + 3; len(guide) != want {
+		t.Fatalf("expected %d guide rows, got %d", want, len(guide))
+	}
+	for i, name := range bulkRiskTemplateColumns {
+		letter, _ := excelize.ColumnNumberToName(i + 1)
+		row := guide[i+3]
+		if len(row) != 5 || row[0] != letter || row[1] != name || row[2] == "" || row[3] == "" || row[4] == "" {
+			t.Fatalf("incomplete guide for %s (%s): %v", letter, name, row)
+		}
+		if bulkRiskComputedColumns[name] && row[2] != "Diisi sistem" {
+			t.Fatalf("expected %s to be labeled Diisi sistem, got %q", name, row[2])
+		}
+	}
+	if !slices.Equal(guide[4], []string{"B", bulkRiskCategoryColumn, "Wajib", bulkRiskCategoryChoices, "Kepatuhan"}) {
+		t.Fatalf("unexpected category guidance: %v", guide[4])
+	}
+
 	templateRows, err := f.GetRows("Template Upload")
 	if err != nil {
 		t.Fatalf("read template sheet: %v", err)

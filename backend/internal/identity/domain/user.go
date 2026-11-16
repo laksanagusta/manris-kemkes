@@ -1,6 +1,7 @@
 package domain
 
 import (
+	"net/mail"
 	"time"
 
 	"github.com/google/uuid"
@@ -41,23 +42,30 @@ func NormalizeRole(role string) string {
 
 // User represents an application user
 type User struct {
-	ID                 uuid.UUID  `json:"id"`
-	Name               string     `json:"name"`
-	Username           string     `json:"username,omitempty"`
-	Email              string     `json:"email"`
-	PasswordHash       string     `json:"-"`
-	Role               string     `json:"role"`
-	OrganizationID     *uuid.UUID `json:"organizationId,omitempty"`
-	OrgName            string     `json:"orgName,omitempty"`
-	Status             string     `json:"status"`
-	MustChangePassword bool       `json:"mustChangePassword"`
-	NIP                string     `json:"nip"`
-	Jabatan            string     `json:"jabatan"`
-	Pangkat            string     `json:"pangkat"`
-	PhoneNumber        string     `json:"phoneNumber"`
-	CreatedAt          time.Time  `json:"createdAt"`
-	UpdatedAt          time.Time  `json:"updatedAt"`
-	LastLoggedIn       time.Time  `json:"lastLoggedIn"`
+	ID                         uuid.UUID  `json:"id"`
+	Name                       string     `json:"name"`
+	Username                   string     `json:"username,omitempty"`
+	Email                      string     `json:"email"`
+	PasswordHash               string     `json:"-"`
+	Role                       string     `json:"role"`
+	OrganizationID             *uuid.UUID `json:"organizationId,omitempty"`
+	OrgName                    string     `json:"orgName,omitempty"`
+	Status                     string     `json:"status"`
+	EmailVerified              bool       `json:"emailVerified,omitempty"`
+	TemporaryPasswordExpiresAt *time.Time `json:"-"`
+	MustChangePassword         bool       `json:"mustChangePassword"`
+	NIP                        string     `json:"nip"`
+	Jabatan                    string     `json:"jabatan"`
+	Pangkat                    string     `json:"pangkat"`
+	PhoneNumber                string     `json:"phoneNumber"`
+	CreatedAt                  time.Time  `json:"createdAt"`
+	UpdatedAt                  time.Time  `json:"updatedAt"`
+	LastLoggedIn               time.Time  `json:"lastLoggedIn"`
+}
+
+func ValidEmailAddress(email string) bool {
+	address, err := mail.ParseAddress(email)
+	return err == nil && address.Address == email && len(email) <= 254
 }
 
 // Validate performs domain validation on User

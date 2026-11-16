@@ -3,11 +3,17 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 type Context = { params: Promise<{ path: string[] }> };
+const userPath = /^users\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 const methods: Record<string, string[]> = {
   login: ["POST"],
   me: ["GET", "PUT"],
   logout: ["POST"],
   "change-password": ["POST"],
+  "forgot-password": ["POST"],
+  "reset-password": ["POST"],
+  "verify-email/request": ["POST"],
+  "verify-email/resend-registration": ["POST"],
+  "verify-email/confirm": ["POST"],
   roles: ["GET"],
   organizations: ["GET"],
   users: ["GET"],
@@ -24,7 +30,8 @@ async function proxy(request: Request, context: Context) {
   const { path } = await context.params;
   const endpoint = path.join("/");
   const allowed = methods[endpoint] ?? (
-    /^users\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(endpoint) ? ["GET"] :
+    userPath.test(endpoint) ? ["GET"] :
+    endpoint.endsWith("/reset-password") && userPath.test(endpoint.slice(0, -"/reset-password".length)) ? ["POST"] :
     /^apps\/[a-z][a-z0-9_-]{1,63}\/rotate-key$/.test(endpoint) ? ["POST"] :
     /^apps\/[a-z][a-z0-9_-]{1,63}$/.test(endpoint) ? ["DELETE"] : []
   );

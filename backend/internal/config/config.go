@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/joho/godotenv"
+	identitysmtp "github.com/manris/backend/internal/identity/smtp"
 )
 
 // Config holds the application configuration loaded from environment variables.
@@ -15,6 +16,8 @@ type Config struct {
 	JWTSecret                   string
 	JWTExpiry                   int // hours
 	AuthTokenExpiryMinutes      int
+	AuthAppOrigin               string
+	AuthSMTP                    identitysmtp.Config
 	CORSOrigins                 string
 	OpenAIKey                   string
 	RiskApprovalWorkflowEnabled bool
@@ -55,11 +58,19 @@ func Load() *Config {
 	tokenMinutes, _ := strconv.Atoi(getEnv("AUTH_TOKEN_EXPIRY_MINUTES", strconv.Itoa(expiry*60)))
 
 	return &Config{
-		Port:                        getEnv("PORT", "8080"),
-		DatabaseURL:                 getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/manris?sslmode=disable"),
-		JWTSecret:                   getEnv("JWT_SECRET", "change-me"),
-		JWTExpiry:                   expiry,
-		AuthTokenExpiryMinutes:      tokenMinutes,
+		Port:                   getEnv("PORT", "8080"),
+		DatabaseURL:            getEnv("DATABASE_URL", "postgres://postgres:postgres@localhost:5432/manris?sslmode=disable"),
+		JWTSecret:              getEnv("JWT_SECRET", "change-me"),
+		JWTExpiry:              expiry,
+		AuthTokenExpiryMinutes: tokenMinutes,
+		AuthAppOrigin:          getEnv("AUTH_APP_ORIGIN", ""),
+		AuthSMTP: identitysmtp.Config{
+			Address:  getEnv("AUTH_SMTP_ADDR", ""),
+			Mode:     getEnv("AUTH_SMTP_MODE", "starttls"),
+			From:     getEnv("AUTH_SMTP_FROM", ""),
+			Username: getEnv("AUTH_SMTP_USERNAME", ""),
+			Password: getEnv("AUTH_SMTP_PASSWORD", ""),
+		},
 		CORSOrigins:                 getEnv("CORS_ORIGINS", "http://localhost:3000"),
 		OpenAIKey:                   getEnv("OPENAI_API_KEY", ""),
 		RiskApprovalWorkflowEnabled: getEnvBool("RISK_APPROVAL_WORKFLOW_ENABLED", false),

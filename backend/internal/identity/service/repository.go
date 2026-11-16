@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/identity/domain"
@@ -18,6 +19,7 @@ type Store interface {
 	CreateSession(context.Context, *domain.Session) error
 	Session(context.Context, uuid.UUID) (*domain.Session, error)
 	RevokeSession(context.Context, uuid.UUID) error
+	ResetPassword(ctx context.Context, actor, target uuid.UUID, actorHash, targetHash, newHash string, expiresAt time.Time) error
 }
 
 // Directory owns the canonical shared profile, role, and organization membership.

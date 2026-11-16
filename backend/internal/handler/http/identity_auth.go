@@ -36,6 +36,10 @@ func identityError(c *fiber.Ctx, err error) error {
 	status := fiber.StatusServiceUnavailable
 	detail := "Layanan identitas tidak tersedia"
 	switch {
+	case errors.Is(err, domainerrors.ErrEmailVerificationRequired):
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": err.Error(), "type": "EMAIL_VERIFICATION_REQUIRED"})
+	case errors.Is(err, domainerrors.ErrAccountPendingApproval):
+		return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Akun Anda menunggu persetujuan Super Admin."})
 	case errors.Is(err, domainerrors.ErrUnauthorized), errors.Is(err, domainerrors.ErrInvalidCredentials):
 		status = fiber.StatusUnauthorized
 		detail = "Credential aplikasi atau pengguna tidak valid"
@@ -200,6 +204,12 @@ func (h *IdentityAuthHandler) RegisterPublicRoutes(api fiber.Router) {
 	api.Post("/auth/change-password", h.ChangePassword)
 }
 func (h *IdentityAuthHandler) RegisterManagementRoutes(api fiber.Router) {
+	api.Post("/auth/users/:id/reset-password", h.RequireApplication, requireManrisApplication,
+		middleware.IdentityRequired(h.service, domain.ManrisApplication), middleware.RequireFullSession(), middleware.RoleGuard(domain.RoleSuperAdmin),
+		limiter.New(limiter.Config{Max: 10, Expiration: time.Minute, KeyGenerator: func(c *fiber.Ctx) string {
+			return fmt.Sprint(c.Locals("userId"))
+		}}), h.ResetPassword)
+
 	apps := api.Group("/auth/apps", h.RequireApplication, requireManrisApplication, middleware.IdentityRequired(h.service, domain.ManrisApplication), middleware.RequireFullSession(), middleware.RoleGuard(domain.RoleSuperAdmin))
 	apps.Get("/", h.ListApplications)
 	apps.Post("/", h.CreateApplication)
@@ -234,6 +244,11 @@ func (h *IdentityAuthHandler) ChangePassword(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusBadRequest)
 	}
 	r, err := h.service.ChangePassword(c.Context(), i.ApplicationID, bearerToken(c), input.CurrentPassword, input.NewPassword, input.ConfirmPassword)
+	if errors.Is(err, identity.ErrInvalidResetPassword) {
+		return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{
+			"error": "Gunakan minimal 8 karakter dan pilih password yang berbeda dari password sementara.",
+		})
+	}
 	if err != nil {
 		return identityError(c, err)
 	}

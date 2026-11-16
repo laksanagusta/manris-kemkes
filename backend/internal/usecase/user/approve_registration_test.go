@@ -50,6 +50,7 @@ func TestApproveRegistrationExecuteActivatesPendingUser(t *testing.T) {
 		user: &entity.User{
 			ID:                 userID,
 			Status:             entity.UserStatusPendingActivation,
+			EmailVerified:      true,
 			MustChangePassword: false,
 			CreatedAt:          time.Now(),
 			UpdatedAt:          time.Now(),
@@ -72,6 +73,31 @@ func TestApproveRegistrationExecuteActivatesPendingUser(t *testing.T) {
 	}
 	if repo.updatedUser.MustChangePassword {
 		t.Fatal("expected mustChangePassword to stay false")
+	}
+}
+
+func TestApproveRegistrationRefusesUnverifiedEmail(t *testing.T) {
+	userID := uuid.New()
+	repo := &approveRegistrationStubUserRepo{
+		user: &entity.User{ID: userID, Status: entity.UserStatusPendingActivation},
+	}
+	if _, err := NewApproveRegistrationUseCase(repo).Execute(t.Context(), userID); err == nil || repo.updatedUser != nil {
+		t.Fatalf("unverified registration must remain pending, got user %v and err %v", repo.updatedUser, err)
+	}
+}
+
+func TestUpdateUserCannotBypassRegistrationApproval(t *testing.T) {
+	for _, status := range []string{entity.UserStatusActive, entity.UserStatusInactive} {
+		t.Run(status, func(t *testing.T) {
+			userID := uuid.New()
+			repo := &approveRegistrationStubUserRepo{
+				user: &entity.User{ID: userID, Status: entity.UserStatusPendingActivation, EmailVerified: true},
+			}
+			input := UpdateUserInput{ID: userID, Status: status, Name: "Siti", Email: "siti@example.com", Role: entity.RoleUnit}
+			if _, err := NewUpdateUserUseCase(repo, nil).Execute(t.Context(), input); err == nil || repo.updatedUser != nil {
+				t.Fatalf("status change must go through approval, got user %v and err %v", repo.updatedUser, err)
+			}
+		})
 	}
 }
 

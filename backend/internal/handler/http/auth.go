@@ -1,7 +1,11 @@
 package http
 
 import (
+	"errors"
+	"time"
+
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/google/uuid"
 	authuc "github.com/manris/backend/internal/usecase/auth"
 )
@@ -64,6 +68,11 @@ type RegisterRequest struct {
 	PhoneNumber     string `json:"phoneNumber"`
 }
 
+func (h *AuthHandler) RegisterPublicRegistrationRoutes(api fiber.Router, organizations fiber.Handler) {
+	api.Post("/auth/register", requireManrisApplication, limiter.New(limiter.Config{Max: 60, Expiration: time.Minute}), h.Register)
+	api.Get("/auth/register/organizations", requireManrisApplication, organizations)
+}
+
 // Login handles POST /api/v1/auth/login
 func (h *AuthHandler) Login(c *fiber.Ctx) error {
 	// 1. Parse request
@@ -109,6 +118,9 @@ func (h *AuthHandler) Register(c *fiber.Ctx) error {
 		PhoneNumber:     req.PhoneNumber,
 	})
 	if err != nil {
+		if errors.Is(err, authuc.ErrRegistrationEmailUnavailable) {
+			return sendProblemDetails(c, fiber.StatusServiceUnavailable, "Registrasi belum tersedia", "https://api.manris.com/errors/registration", err.Error())
+		}
 		return handleError(c, err)
 	}
 
@@ -170,12 +182,12 @@ func (h *AuthHandler) UpdateProfile(c *fiber.Ctx) error {
 	}
 
 	result, err := h.updateProfileUC.Execute(c.Context(), authuc.UpdateProfileInput{
-		UserID:   userID,
-		Name:     req.Name,
-		Email:    req.Email,
-		NIP:      req.NIP,
-		Jabatan:  req.Jabatan,
-		Pangkat:  req.Pangkat,
+		UserID:  userID,
+		Name:    req.Name,
+		Email:   req.Email,
+		NIP:     req.NIP,
+		Jabatan: req.Jabatan,
+		Pangkat: req.Pangkat,
 	})
 	if err != nil {
 		return handleError(c, err)

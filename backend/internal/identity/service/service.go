@@ -90,7 +90,7 @@ func (s *Service) profile(ctx context.Context, u *domain.User) (*domain.Profile,
 	if !validRole(u.Role) {
 		return nil, domainerrors.ErrUnauthorized
 	}
-	p := &domain.Profile{ID: u.ID, Username: u.Username, Name: u.Name, Email: u.Email, Role: domain.NormalizeRole(u.Role), OrganizationID: u.OrganizationID, OrgName: u.OrgName,
+	p := &domain.Profile{ID: u.ID, Username: u.Username, Name: u.Name, Email: u.Email, EmailVerified: u.EmailVerified, Role: domain.NormalizeRole(u.Role), OrganizationID: u.OrganizationID, OrgName: u.OrgName,
 		Status: u.Status, NIP: u.NIP, Jabatan: u.Jabatan, Pangkat: u.Pangkat, PhoneNumber: u.PhoneNumber, MustChangePassword: u.MustChangePassword, CreatedAt: u.CreatedAt, UpdatedAt: u.UpdatedAt}
 	p.IsGlobal = p.Role == domain.RoleSuperAdmin
 	if u.OrganizationID != nil {
@@ -147,8 +147,14 @@ func (s *Service) login(ctx context.Context, a *domain.Application, nip, passwor
 	if err != nil {
 		return nil, err
 	}
-	if bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password)) != nil {
+	if temporaryPasswordExpired(u) || bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password)) != nil {
 		return nil, domainerrors.ErrInvalidCredentials
+	}
+	if appID == domain.ManrisApplication && u.IsPendingActivation() {
+		if !u.EmailVerified {
+			return nil, domainerrors.ErrEmailVerificationRequired
+		}
+		return nil, domainerrors.ErrAccountPendingApproval
 	}
 	if u.Status != domain.UserStatusActive {
 		return nil, domainerrors.ErrAccountInactive
@@ -236,7 +242,7 @@ func (s *Service) Validate(ctx context.Context, appID, token string) (*domain.Id
 	if err != nil {
 		return nil, err
 	}
-	if u == nil || u.Status != domain.UserStatusActive || (a.ID != domain.ManrisApplication && u.MustChangePassword) || subtle.ConstantTimeCompare([]byte(session.PasswordFingerprint), []byte(fingerprint(u.PasswordHash))) != 1 {
+	if u == nil || u.Status != domain.UserStatusActive || temporaryPasswordExpired(u) || (a.ID != domain.ManrisApplication && u.MustChangePassword) || subtle.ConstantTimeCompare([]byte(session.PasswordFingerprint), []byte(fingerprint(u.PasswordHash))) != 1 {
 		return nil, domainerrors.ErrUnauthorized
 	}
 	p, err := s.profile(ctx, u)
@@ -387,6 +393,18 @@ func (s *Service) ChangePassword(ctx context.Context, appID, token, current, new
 	if u == nil || u.Status != domain.UserStatusActive {
 		return nil, domainerrors.ErrUnauthorized
 	}
+	// Bind the update to the same credential that the session originally proved.
+	session, err := s.store.Session(ctx, i.SessionID)
+	if err != nil {
+		return nil, err
+	}
+	if session == nil || session.PasswordFingerprint != fingerprint(u.PasswordHash) || temporaryPasswordExpired(u) {
+		return nil, domainerrors.ErrUnauthorized
+	}
+	if u.TemporaryPasswordExpiresAt != nil && (utf8.RuneCountInString(newPassword) < 8 ||
+		bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(newPassword)) == nil) {
+		return nil, ErrInvalidResetPassword
+	}
 	// A restricted setup session proves the temporary password was verified at login.
 	// Full sessions still require the current password for this sensitive operation.
 	if !i.Profile.MustChangePassword && bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(current)) != nil {
@@ -399,6 +417,7 @@ func (s *Service) ChangePassword(ctx context.Context, appID, token, current, new
 	oldHash := u.PasswordHash
 	u.PasswordHash = string(hash)
 	u.MustChangePassword = false
+	u.TemporaryPasswordExpiresAt = nil
 	if err := s.users.ChangePassword(ctx, u.ID, oldHash, u.PasswordHash); err != nil {
 		return nil, err
 	}

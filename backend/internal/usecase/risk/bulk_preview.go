@@ -19,6 +19,8 @@ import (
 
 const bulkRiskCategoryColumn = "KATEGORI RISIKO"
 const bulkRiskCategoryRequired = "Kolom Kategori Risiko wajib diisi."
+const bulkRiskCategoryChoices = "Kebijakan, Operasional, Kepatuhan, Fraud - Korupsi, Reputasi, atau Legal."
+const bulkRiskTreatmentChoices = "Menghindari Risiko, Berbagi Risiko, Mitigasi, atau Menerima Risiko."
 
 var bulkRiskTemplateColumns = []string{
 	"RISIKO",
@@ -141,24 +143,16 @@ func (uc *BulkRiskSpreadsheetUseCase) Preview(ctx context.Context, input BulkRis
 
 func (uc *BulkRiskSpreadsheetUseCase) Template() ([]byte, string, error) {
 	f := excelize.NewFile()
+	defer f.Close()
 	templateSheet := "Template Upload"
-	index, err := f.NewSheet(templateSheet)
-	if err != nil {
+	if err := f.SetSheetName("Sheet1", templateSheet); err != nil {
 		return nil, "", err
 	}
-	f.DeleteSheet("Sheet1")
-	f.SetActiveSheet(index)
 
 	if err := writeSheet2StyleHeaders(f, templateSheet); err != nil {
 		return nil, "", err
 	}
 
-	if _, err := f.NewSheet("Contoh Data"); err != nil {
-		return nil, "", err
-	}
-	if err := writeSheet2StyleHeaders(f, "Contoh Data"); err != nil {
-		return nil, "", err
-	}
 	example := []string{
 		"Usulan layanan tidak sesuai kewenangan", // A: Risiko
 		"Kepatuhan",                              // B: Kategori
@@ -185,6 +179,15 @@ func (uc *BulkRiskSpreadsheetUseCase) Template() ([]byte, string, error) {
 		"1.8",      // W: Bobot (target)
 		"4",        // X: Nilai (target)
 		"Sedang",   // Y: Tingkat Risiko (target)
+	}
+	if err := writeBulkRiskColumnGuide(f, example); err != nil {
+		return nil, "", err
+	}
+	if _, err := f.NewSheet("Contoh Data"); err != nil {
+		return nil, "", err
+	}
+	if err := writeSheet2StyleHeaders(f, "Contoh Data"); err != nil {
+		return nil, "", err
 	}
 	if err := f.SetSheetRow("Contoh Data", "A5", &example); err != nil {
 		return nil, "", err
@@ -549,7 +552,7 @@ func mapBulkRiskRecord(record map[string]string, rowNumber int, orgs []*entity.O
 	if item.Category == "" {
 		errors = append(errors, bulkRiskCategoryRequired)
 	} else if !entity.IsValidRiskCategory(item.Category) {
-		errors = append(errors, "Kategori Risiko tidak valid. Gunakan Kebijakan, Operasional, Kepatuhan, Fraud - Korupsi, Reputasi, atau Legal.")
+		errors = append(errors, "Kategori Risiko tidak valid. Gunakan "+bulkRiskCategoryChoices)
 	}
 	if rawRiskSource := getVal("SUMBER RISIKO"); rawRiskSource != "" && item.RiskSource != "internal" && item.RiskSource != "eksternal" {
 		errors = append(errors, "Kolom Sumber Risiko harus berisi Internal atau external.")
@@ -578,7 +581,7 @@ func mapBulkRiskRecord(record map[string]string, rowNumber int, orgs []*entity.O
 		item.TreatmentOption != "transfer" &&
 		item.TreatmentOption != "mitigate" &&
 		item.TreatmentOption != "accept" {
-		errors = append(errors, "Kolom Pilihan Penanganan harus berisi Menghindari Risiko, Berbagi Risiko, Mitigasi, atau Menerima Risiko.")
+		errors = append(errors, "Kolom Pilihan Penanganan harus berisi "+bulkRiskTreatmentChoices)
 	}
 	if controlEff == "__both_efektif_tidak_efektif__" {
 		errors = append(errors, "Kolom EFEKTIF dan TIDAK EFEKTIF tidak boleh keduanya diisi.")

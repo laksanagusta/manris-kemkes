@@ -162,7 +162,7 @@ func (r *identityDirectory) UpdateProfile(ctx context.Context, id uuid.UUID, p d
 	return nil
 }
 func (r *identityDirectory) ChangePassword(ctx context.Context, id uuid.UUID, expectedHash, newHash string) error {
-	tag, err := r.pool.Exec(ctx, `UPDATE users SET password_hash=$3,must_change_password=FALSE,updated_at=NOW() WHERE id=$1 AND password_hash=$2 AND status='active'`, id, expectedHash, newHash)
+	tag, err := r.pool.Exec(ctx, `UPDATE users SET password_hash=$3,must_change_password=FALSE,temporary_password_expires_at=NULL,updated_at=NOW() WHERE id=$1 AND password_hash=$2 AND status='active' AND (temporary_password_expires_at IS NULL OR temporary_password_expires_at>clock_timestamp())`, id, expectedHash, newHash)
 	if err != nil {
 		return err
 	}

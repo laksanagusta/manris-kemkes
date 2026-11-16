@@ -221,8 +221,8 @@ func main() {
 
 	// Auth (public)
 	sharedAuthHandler.RegisterPublicRoutes(api)
-	api.Post("/auth/register", cleanAuthHandler.Register)
-	api.Get("/auth/register/organizations", cleanOrgHandler.List)
+	httpHandler.RegisterEmailRecoveryRoutes(api, container.IdentityService, container.EmailRecovery)
+	cleanAuthHandler.RegisterPublicRegistrationRoutes(api, cleanOrgHandler.List)
 
 	sharedAuthHandler.RegisterManagementRoutes(api)
 
@@ -469,6 +469,15 @@ func main() {
 			defer workers.Done()
 			container.AgentService.RunWorker(workerContext)
 		}()
+	}
+	if container.EmailRecovery != nil {
+		for range 2 {
+			workers.Add(1)
+			go func() {
+				defer workers.Done()
+				container.EmailRecovery.RunWorker(workerContext)
+			}()
+		}
 	}
 	defer func() { stopWorkers(); workers.Wait() }()
 

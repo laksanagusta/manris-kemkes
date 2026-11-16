@@ -171,6 +171,7 @@ func TestUserHandlerApproveRegistrationActivatesPendingUser(t *testing.T) {
 			userID: {
 				ID:                 userID,
 				Status:             entity.UserStatusPendingActivation,
+				EmailVerified:      true,
 				MustChangePassword: false,
 			},
 		},
