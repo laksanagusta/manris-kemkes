@@ -36,15 +36,17 @@ var (
 	ErrRiskNotFound     = &AppError{Code: "RISK_NOT_FOUND", Message: "risiko tidak ditemukan"}
 	ErrIncidentNotFound = &AppError{Code: "INCIDENT_NOT_FOUND", Message: "insiden tidak ditemukan"}
 
-	ErrAlreadyPending         = &AppError{Code: "ALREADY_PENDING", Message: "sudah menunggu persetujuan"}
-	ErrNotPending             = &AppError{Code: "NOT_PENDING", Message: "permintaan persetujuan tidak dalam status menunggu"}
-	ErrUnauthorized           = &AppError{Code: "UNAUTHORIZED", Message: "akses tidak sah"}
-	ErrForbidden              = &AppError{Code: "FORBIDDEN", Message: "izin tidak mencukupi"}
-	ErrConflict               = &AppError{Code: "CONFLICT", Message: "konflik sumber daya"}
-	ErrInvalidCredentials     = &AppError{Code: "INVALID_CREDENTIALS", Message: "username atau kata sandi tidak valid"}
-	ErrAccountInactive        = &AppError{Code: "ACCOUNT_INACTIVE", Message: "akun tidak aktif"}
-	ErrAccountPendingApproval = &AppError{Code: "ACCOUNT_PENDING_APPROVAL", Message: "akun sedang menunggu persetujuan superadmin"}
-	ErrTokenGeneration        = &AppError{Code: "TOKEN_GENERATION", Message: "gagal menghasilkan token"}
+	ErrAlreadyPending               = &AppError{Code: "ALREADY_PENDING", Message: "sudah menunggu persetujuan"}
+	ErrNotPending                   = &AppError{Code: "NOT_PENDING", Message: "permintaan persetujuan tidak dalam status menunggu"}
+	ErrUnauthorized                 = &AppError{Code: "UNAUTHORIZED", Message: "akses tidak sah"}
+	ErrForbidden                    = &AppError{Code: "FORBIDDEN", Message: "izin tidak mencukupi"}
+	ErrConflict                     = &AppError{Code: "CONFLICT", Message: "konflik sumber daya"}
+	ErrInvalidCredentials           = &AppError{Code: "INVALID_CREDENTIALS", Message: "username atau kata sandi tidak valid"}
+	ErrAccountInactive              = &AppError{Code: "ACCOUNT_INACTIVE", Message: "akun tidak aktif"}
+	ErrAccountPendingApproval       = &AppError{Code: "ACCOUNT_PENDING_APPROVAL", Message: "akun sedang menunggu persetujuan superadmin"}
+	ErrEmailVerificationRequired    = &AppError{Code: "EMAIL_VERIFICATION_REQUIRED", Message: "Verifikasi email akun terlebih dahulu."}
+	ErrRegistrationApprovalRequired = &AppError{Code: "REGISTRATION_APPROVAL_REQUIRED", Message: "Gunakan aksi Setujui atau Tolak untuk memproses registrasi."}
+	ErrTokenGeneration              = &AppError{Code: "TOKEN_GENERATION", Message: "gagal menghasilkan token"}
 
 	ErrDatabase = &AppError{Code: "DATABASE_ERROR", Message: "kesalahan basis data"}
 	ErrInternal = &AppError{Code: "INTERNAL_ERROR", Message: "kesalahan server internal"}

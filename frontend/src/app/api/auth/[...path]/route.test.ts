@@ -147,3 +147,55 @@ test("proxy allows shared user list and UUID detail with GET only", async () => 
   }
   assert.deepEqual(paths, ["/api/v1/auth/users", `/api/v1/auth/users/${id}`]);
 });
+
+test("proxy forwards password resets only for POST and UUID user paths, with no caching", async () => {
+  process.env.MANRIS_APP_KEY = "server-test-key";
+  process.env.AUTH_SERVICE_URL = "http://localhost:8080/api/v1";
+  const path = "users/00000000-0000-0000-0000-000000000001/reset-password";
+  const url = `http://localhost:3000/api/auth/${path}`;
+  let calls = 0;
+  globalThis.fetch = async (input, options) => {
+    calls += 1;
+    assert.equal(String(input), `http://localhost:8080/api/v1/auth/${path}`);
+    assert.equal(new Headers(options?.headers).get("Authorization"), "Bearer admin-token");
+    assert.equal(options?.body, '{"currentPassword":"admin-test-password"}');
+    return Response.json({ data: { temporaryPassword: "test-only" } });
+  };
+  const response = await route.POST(new Request(url, {
+    method: "POST",
+    headers: { Authorization: "Bearer admin-token" },
+    body: '{"currentPassword":"admin-test-password"}',
+  }), context(path));
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("Cache-Control"), "no-store");
+  assert.equal((await route.GET(new Request(url), context(path))).status, 404);
+  assert.equal((await route.POST(new Request(url, { method: "POST" }), context("users/invalid/reset-password"))).status, 404);
+  assert.equal(calls, 1);
+});
+
+test("proxy accepts only POST for the email recovery routes", async () => {
+  process.env.MANRIS_APP_KEY = "server-test-key";
+  process.env.AUTH_SERVICE_URL = "http://localhost:8080/api/v1";
+  const paths = ["forgot-password", "reset-password", "verify-email/request", "verify-email/resend-registration", "verify-email/confirm"];
+  const forwarded: string[] = [];
+  globalThis.fetch = async (input, options) => {
+    const path = new URL(String(input)).pathname;
+    forwarded.push(path);
+    const headers = new Headers(options?.headers);
+    assert.equal(headers.get("X-App-Key"), "server-test-key");
+    if (path.endsWith("/verify-email/request")) assert.equal(headers.get("Authorization"), "Bearer session-token");
+    return Response.json({ accepted: true }, { status: 202 });
+  };
+  for (const path of paths) {
+    const url = `http://localhost:3000/api/auth/${path}`;
+    const res = await route.POST(new Request(url, {
+      method: "POST",
+      headers: { Authorization: "Bearer session-token" },
+      body: "{}",
+    }), context(path));
+    assert.equal(res.status, 202);
+    assert.equal(res.headers.get("Cache-Control"), "no-store");
+    assert.equal((await route.GET(new Request(url), context(path))).status, 404);
+  }
+  assert.deepEqual(forwarded, paths.map((path) => `/api/v1/auth/${path}`));
+});

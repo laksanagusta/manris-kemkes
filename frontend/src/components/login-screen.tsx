@@ -12,11 +12,13 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput } from "@/components/ui/input-group";
 import { Spinner } from "@/components/ui/spinner";
+import { ApiError } from "@/lib/api";
 
 export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [needsVerification, setNeedsVerification] = useState(false);
   const [nip, setNip] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
@@ -29,11 +31,13 @@ export default function LoginScreen() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
+    setNeedsVerification(false);
     setIsLoading(true);
     try {
       const result = await login(nip, password);
       router.replace(result.redirectTo);
     } catch (err: unknown) {
+      setNeedsVerification(err instanceof ApiError && err.type === "EMAIL_VERIFICATION_REQUIRED");
       setError(err instanceof Error ? err.message : "Login gagal. Periksa kredensial Anda.");
     } finally {
       setIsLoading(false);
@@ -55,7 +59,9 @@ export default function LoginScreen() {
                 </Link>
               </p>
               <p className="text-xs">
-                Kendala masuk? Hubungi administrator.{" "}
+                <Link href="/forgot-password" className="font-medium text-foreground underline-offset-4 hover:underline">
+                  Lupa password?
+                </Link>{" · "}
                 <Link href="/docs" className="font-medium text-foreground underline-offset-4 hover:underline">
                   Docs
                 </Link>
@@ -65,7 +71,14 @@ export default function LoginScreen() {
         >
           <form onSubmit={handleSubmit} className="flex flex-col gap-5">
             <FieldGroup className="gap-4">
-              {error ? <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert> : null}
+              {error ? (
+                <Alert variant="destructive">
+                  <AlertDescription>
+                    {error}
+                    {needsVerification && <Link href="/verify-email/resend" className="font-medium underline underline-offset-4">Kirim ulang tautan verifikasi</Link>}
+                  </AlertDescription>
+                </Alert>
+              ) : null}
               <Field className="gap-1.5">
                 <FieldLabel htmlFor="nip">
                   NIP

@@ -7,6 +7,7 @@ import Image from "next/image";
 import { KeyRound, Save } from "@/components/shared/icons";
 import { toast } from "sonner";
 
+import { RecoveryEmailSettings } from "./recovery-email-settings";
 import { useAuth } from "@/contexts/auth-context";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -234,6 +235,7 @@ export function AccountSettings({ view = "account" }: { view?: "account" | "secu
                 <Button ref={passwordTriggerRef} type="button" variant="outline" onClick={() => handlePasswordDialogChange(true)}><KeyRound data-icon="inline-start" />Ganti Password</Button>
               </div>
             </div>
+            <RecoveryEmailSettings />
             <ActiveDeviceRow />
           </CardContent>
         </Card>

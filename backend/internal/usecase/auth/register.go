@@ -2,12 +2,15 @@ package auth
 
 import (
 	"context"
+	stderrors "errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
+	"github.com/manris/backend/internal/identity/domain"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -24,27 +27,39 @@ type RegisterInput struct {
 }
 
 type RegisterOutput struct {
-	ID        uuid.UUID
-	Message   string
-	CreatedAt time.Time
+	ID                 uuid.UUID
+	Message            string
+	CreatedAt          time.Time
+	VerificationQueued bool `json:"verificationQueued"`
+}
+
+var ErrRegistrationEmailUnavailable = stderrors.New("Registrasi belum tersedia karena layanan verifikasi email belum aktif.")
+
+type RegistrationVerifier interface {
+	QueueRegistrationVerification(*entity.User) error
 }
 
 type RegisterUseCase struct {
 	userRepo repository.UserRepository
 	orgRepo  repository.OrganizationRepository
+	verifier RegistrationVerifier
 }
 
 func NewRegisterUseCase(
 	userRepo repository.UserRepository,
 	orgRepo repository.OrganizationRepository,
+	verifier RegistrationVerifier,
 ) *RegisterUseCase {
 	return &RegisterUseCase{
 		userRepo: userRepo,
 		orgRepo:  orgRepo,
+		verifier: verifier,
 	}
 }
 
 func (uc *RegisterUseCase) Execute(ctx context.Context, input RegisterInput) (*RegisterOutput, error) {
+	input.Email = strings.TrimSpace(input.Email)
+	input.NIP = strings.TrimSpace(input.NIP)
 	if err := validateRegisterInput(input); err != nil {
 		return nil, err
 	}
@@ -63,6 +78,10 @@ func (uc *RegisterUseCase) Execute(ctx context.Context, input RegisterInput) (*R
 
 	if existingUser, err := uc.userRepo.GetByNIP(ctx, input.NIP); err == nil && existingUser != nil {
 		return nil, errors.ErrNIPAlreadyExists
+	}
+
+	if uc.verifier == nil {
+		return nil, ErrRegistrationEmailUnavailable
 	}
 
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(input.Password), bcrypt.DefaultCost)
@@ -94,9 +113,10 @@ func (uc *RegisterUseCase) Execute(ctx context.Context, input RegisterInput) (*R
 	}
 
 	return &RegisterOutput{
-		ID:        user.ID,
-		Message:   "Registration submitted successfully",
-		CreatedAt: user.CreatedAt,
+		ID:                 user.ID,
+		Message:            "Registration submitted successfully",
+		CreatedAt:          user.CreatedAt,
+		VerificationQueued: uc.verifier.QueueRegistrationVerification(user) == nil,
 	}, nil
 }
 
@@ -104,7 +124,7 @@ func validateRegisterInput(input RegisterInput) error {
 	if input.Name == "" {
 		return errors.ErrInvalidName
 	}
-	if input.Email == "" {
+	if !domain.ValidEmailAddress(input.Email) {
 		return errors.ErrInvalidEmail
 	}
 	if input.Password == "" {

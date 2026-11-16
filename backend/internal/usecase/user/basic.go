@@ -150,6 +150,9 @@ func (uc *UpdateUserUseCase) Execute(ctx context.Context, input UpdateUserInput)
 	if err != nil {
 		return nil, errors.ErrNotFound
 	}
+	if existingUser.IsPendingActivation() && input.Status != existingUser.Status {
+		return nil, errors.ErrRegistrationApprovalRequired
+	}
 
 	// 2. Validate organization if changed
 	if input.OrganizationID != nil {

@@ -32,7 +32,7 @@ export default function RegisterScreen() {
   const [loading, setLoading] = useState(false);
   const [orgLoading, setOrgLoading] = useState(true);
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [registration, setRegistration] = useState<{ email: string; verificationQueued: boolean } | null>(null);
   const [organizations, setOrganizations] = useState<OrganizationListItem[]>(
     [],
   );
@@ -91,7 +91,6 @@ export default function RegisterScreen() {
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setError("");
-    setSuccess("");
 
     if (
       !name ||
@@ -117,7 +116,7 @@ export default function RegisterScreen() {
 
     setLoading(true);
     try {
-      await registerUser({
+      const result = await registerUser({
         name,
         email,
         password,
@@ -126,15 +125,7 @@ export default function RegisterScreen() {
         jabatan,
         pangkat,
       });
-      setSuccess(
-        "Registrasi berhasil. Akun sekarang menunggu approval sebelum bisa digunakan.",
-      );
-      setName("");
-      setEmail("");
-      setOrganizationId("");
-      setNip("");
-      setJabatan("");
-      setPangkat("");
+      setRegistration({ email: email.trim(), verificationQueued: result.verificationQueued });
       setPassword("");
       setConfirmPassword("");
     } catch (err) {
@@ -158,8 +149,12 @@ export default function RegisterScreen() {
     <main data-motion-page className="grid min-h-svh place-items-center bg-muted/50 px-4 py-8 sm:py-12">
       <div className="w-full max-w-[560px]">
         <AuthCard
-          title="Buat akun baru"
-          description="Akun yang dibuat akan berstatus menunggu aktivasi sampai admin menyetujui registrasi."
+          title={registration ? (registration.verificationQueued ? "Periksa email Anda" : "Registrasi tersimpan") : "Buat akun baru"}
+          description={registration
+            ? registration.verificationQueued
+              ? `Tautan verifikasi akan dikirim ke ${registration.email}. Setelah email terverifikasi, Super Admin dapat menyetujui akun Anda.`
+              : "Pengiriman tautan belum dapat diproses. Minta tautan baru untuk melanjutkan verifikasi email."
+            : "Verifikasi email Anda, lalu tunggu persetujuan Super Admin sebelum masuk."}
           footer={
             <p>
               Sudah punya akun?{" "}
@@ -169,10 +164,16 @@ export default function RegisterScreen() {
             </p>
           }
         >
-          <form id="registration-form" onSubmit={handleSubmit} className="flex flex-col gap-5">
+          {registration ? (
+            <Alert role="status">
+              <AlertDescription>
+                {registration.verificationQueued && "Periksa folder spam jika email belum terlihat. "}
+                <Link href="/verify-email/resend" className="font-medium underline underline-offset-4">Kirim ulang tautan verifikasi</Link>
+              </AlertDescription>
+            </Alert>
+          ) : <form id="registration-form" onSubmit={handleSubmit} className="flex flex-col gap-5">
             <FieldGroup className="grid gap-x-4 gap-y-4 sm:grid-cols-2">
               {error ? <Alert variant="destructive" className="sm:col-span-2"><AlertDescription>{error}</AlertDescription></Alert> : null}
-              {success ? <Alert className="sm:col-span-2"><AlertDescription>{success}</AlertDescription></Alert> : null}
               <Field className="gap-1.5">
                 <FieldLabel htmlFor="name">Nama lengkap</FieldLabel>
                 <Input id="name" className="h-11 bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500" value={name} onChange={(event) => setName(event.target.value)} required />
@@ -245,7 +246,7 @@ export default function RegisterScreen() {
               {loading ? "Memproses..." : "Daftar sekarang"}
               {!loading ? <ArrowRight data-icon="inline-end" aria-hidden="true" /> : null}
             </Button>
-          </form>
+          </form>}
         </AuthCard>
       </div>
     </main>

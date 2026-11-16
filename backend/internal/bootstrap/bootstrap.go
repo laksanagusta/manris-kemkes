@@ -17,6 +17,7 @@ import (
 	domainrepo "github.com/manris/backend/internal/domain/repository"
 	domainsvc "github.com/manris/backend/internal/domain/service"
 	identityservice "github.com/manris/backend/internal/identity/service"
+	identitysmtp "github.com/manris/backend/internal/identity/smtp"
 	openairepo "github.com/manris/backend/internal/repository/openai"
 	postgresrepo "github.com/manris/backend/internal/repository/postgres"
 	reportpdf "github.com/manris/backend/internal/service/pdfreport"
@@ -57,6 +58,7 @@ type Container struct {
 	RiskEventNoteService *riskeventuc.NoteService
 	AgentService         *agent.Service
 	IdentityService      *identityservice.Service
+	EmailRecovery        *identityservice.EmailRecovery
 	// Infrastructure
 	Pool *pgxpool.Pool
 	Cfg  *config.Config
@@ -453,14 +455,30 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 	// ============================================================================
 
 	c.AuthLoginUC = authuc.NewLoginUseCase(c.UserRepository, c.OrgHierarchySvc, cfg.JWTSecret, cfg.JWTExpiry, cfg.RiskApprovalWorkflowEnabled)
-	c.AuthRegisterUC = authuc.NewRegisterUseCase(c.UserRepository, c.OrgRepository)
 	c.AuthMeUC = authuc.NewGetCurrentUserUseCase(c.UserRepository, c.OrgHierarchySvc, cfg.RiskApprovalWorkflowEnabled)
 	c.AuthUpdateProfileUC = authuc.NewUpdateProfileUseCase(c.UserRepository, c.OrgHierarchySvc, cfg.RiskApprovalWorkflowEnabled)
-	c.IdentityService, err = identityservice.New(postgresrepo.NewIdentityAuthStore(pool), postgresrepo.NewIdentityDirectory(pool), c.OrgRepository, cfg.JWTSecret, time.Duration(cfg.AuthTokenExpiryMinutes)*time.Minute)
+	identityStore := postgresrepo.NewIdentityAuthStore(pool)
+	identityDirectory := postgresrepo.NewIdentityDirectory(pool)
+	c.IdentityService, err = identityservice.New(identityStore, identityDirectory, c.OrgRepository, cfg.JWTSecret, time.Duration(cfg.AuthTokenExpiryMinutes)*time.Minute)
 	if err != nil {
 		pool.Close()
 		return nil, fmt.Errorf("initialize shared identity: %w", err)
 	}
+	var registrationVerifier authuc.RegistrationVerifier
+	if cfg.AuthSMTP.Address != "" {
+		sender, err := identitysmtp.New(cfg.AuthSMTP)
+		if err != nil {
+			pool.Close()
+			return nil, fmt.Errorf("configure auth SMTP: %w", err)
+		}
+		c.EmailRecovery, err = identityservice.NewEmailRecovery(identityStore, identityDirectory, sender, cfg.AuthAppOrigin)
+		if err != nil {
+			pool.Close()
+			return nil, fmt.Errorf("configure email recovery: %w", err)
+		}
+		registrationVerifier = c.EmailRecovery
+	}
+	c.AuthRegisterUC = authuc.NewRegisterUseCase(c.UserRepository, c.OrgRepository, registrationVerifier)
 	c.AuthChangePasswordUC = authuc.NewChangePasswordUseCase(c.UserRepository, c.OrgHierarchySvc, cfg.JWTSecret, cfg.JWTExpiry, cfg.RiskApprovalWorkflowEnabled)
 
 	// ============================================================================

@@ -24,6 +24,7 @@ import {
 import {
   CheckCircle2,
   Clock3,
+  KeyRound,
   Loader2,
   MinusCircle,
   Plus,
@@ -34,6 +35,7 @@ import {
 } from "@/components/shared/icons";
 import { toast } from "sonner";
 
+import { ResetUserPasswordDialog } from "@/components/admin/reset-user-password-dialog";
 import { AdminOnlyState } from "@/components/admin/admin-only-state";
 import {
   CollectionPageHeader,
@@ -205,6 +207,8 @@ export default function UsersManagementPage() {
     id: string;
     type: "approve" | "reject";
   } | null>(null);
+
+  const [resetTarget, setResetTarget] = useState<UserListItem | null>(null);
 
   const organizationFilter = useOrganizationFilter(() => setPage(1));
   const deferredSearch = useDeferredValue(search);
@@ -404,6 +408,9 @@ export default function UsersManagementPage() {
 
   return (
     <PageStack className="flex flex-col">
+      {resetTarget && token && (
+        <ResetUserPasswordDialog user={resetTarget} token={token} onClose={() => setResetTarget(null)} />
+      )}
       <CollectionPageHeader title="Administrasi pengguna" />
 
       <MetricGrid>
@@ -515,6 +522,11 @@ export default function UsersManagementPage() {
                   const role = roleMeta[managedUser.role];
                   const status =
                     statusMeta[managedUser.status] ?? statusMeta.inactive;
+                  const awaitingEmail = managedUser.status === "pending_activation"
+                    && !managedUser.mustChangePassword && !managedUser.emailVerified;
+                  const statusLabel = managedUser.status === "pending_activation"
+                    ? (awaitingEmail ? "Menunggu verifikasi email" : "Menunggu persetujuan")
+                    : status.label;
 
                   return (
                     <TableRow
@@ -567,7 +579,7 @@ export default function UsersManagementPage() {
                               status.dotClassName,
                             )}
                           />
-                          {status.label}
+                          {statusLabel}
                         </Badge>
                       </TableCell>
                       <CreatedAtCell record={managedUser} />
@@ -578,6 +590,7 @@ export default function UsersManagementPage() {
                               variant="ghost"
                               size="icon-xs"
                               className=""
+                              id={`user-actions-${managedUser.id}`}
                               aria-label={`Aksi untuk ${managedUser.name}`}
                             >
                               <MoreHorizontal className="size-3.5" />
@@ -587,6 +600,7 @@ export default function UsersManagementPage() {
                             {managedUser.status === "pending_activation" ? (
                               <>
                                 <DropdownMenuItem
+                                  disabled={awaitingEmail || pendingAction?.id === managedUser.id}
                                   onClick={() =>
                                     handleRegistrationAction(managedUser, "approve")
                                   }
@@ -597,10 +611,11 @@ export default function UsersManagementPage() {
                                   ) : (
                                     <ShieldCheck className="size-3.5" />
                                   )}
-                                  Approve
+                                  Setujui
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   variant="destructive"
+                                  disabled={pendingAction?.id === managedUser.id}
                                   onClick={() =>
                                     handleRegistrationAction(managedUser, "reject")
                                   }
@@ -611,9 +626,14 @@ export default function UsersManagementPage() {
                                   ) : (
                                     <ShieldX className="size-3.5" />
                                   )}
-                                  Reject
+                                  Tolak
                                 </DropdownMenuItem>
                               </>
+                            ) : managedUser.status === "active" && managedUser.id !== user?.id ? (
+                              <DropdownMenuItem onSelect={() => setResetTarget(managedUser)}>
+                                <KeyRound aria-hidden="true" />
+                                Reset password
+                              </DropdownMenuItem>
                             ) : (
                               <DropdownMenuItem disabled>
                                 Tidak ada aksi

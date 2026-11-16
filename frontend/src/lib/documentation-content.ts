@@ -22,7 +22,7 @@ export const documentationArticles: DocumentationArticle[] = [
   },
   {
     slug: "account-access", title: "Masuk dan akses akun", category: "MULAI DI SINI",
-    description: "Masuk memakai NIP dan password, daftar akun unit kerja, atau ubah password setelah masuk.", access: "Akun Manrisk; registrasi baru harus menunggu persetujuan administrator.",
+    description: "Masuk memakai NIP dan password, daftar akun unit kerja, atau pulihkan password lewat email.", access: "Akun baru memerlukan verifikasi email dan persetujuan Super Admin.",
     sections: [
       { id: "masuk", title: "Masuk ke Manrisk", steps: [
         { title: "Buka halaman Masuk", detail: "Masukkan NIP dan password akun Manrisk Anda." },
@@ -32,8 +32,19 @@ export const documentationArticles: DocumentationArticle[] = [
       { id: "daftar-akun", title: "Daftar akun unit kerja", steps: [
         { title: "Buka Daftar akun dari halaman Masuk", detail: "Isi nama lengkap, email, unit kerja, NIP, dan password. Jabatan dan pangkat dapat diisi bila diminta." },
         { title: "Cari dan pilih unit kerja", detail: "Gunakan pencarian pada pilihan Unit kerja, lalu pilih organisasi yang sesuai dengan tempat Anda bertugas." },
-        { title: "Kirim registrasi dan tunggu aktivasi", detail: "Password harus memiliki minimal 8 karakter dan kolom konfirmasi harus cocok. Setelah registrasi berhasil, administrator perlu menyetujui akun sebelum Anda dapat masuk." },
-      ], image: { src: "/documentation/screens/registrasi-akun-desktop.png", alt: "Form pendaftaran akun Manrisk dengan kolom nama, email, unit kerja, NIP, jabatan, pangkat, dan password", caption: "Screenshot form pendaftaran. Kolom dan status aktivasi dapat mengikuti konfigurasi akun dan aturan registrasi yang aktif.", width: 3420, height: 1902 }, note: "Jangan bagikan password melalui email atau chat. Jika password perlu diatur ulang, hubungi administrator." },
+        { title: "Kirim registrasi", detail: "Password harus memiliki minimal 8 karakter dan kolom konfirmasi harus cocok. Setelah mendaftar, periksa email untuk mendapatkan tautan verifikasi." },
+        { title: "Verifikasi email dan tunggu persetujuan", detail: "Buka tautan dalam 30 menit dan konfirmasi email. Anda bisa masuk setelah Super Admin menyetujui akun." },
+      ], image: { src: "/documentation/screens/registrasi-akun-desktop.png", alt: "Form pendaftaran akun Manrisk dengan kolom nama, email, unit kerja, NIP, jabatan, pangkat, dan password", caption: "Screenshot form pendaftaran. Kolom dan status aktivasi dapat mengikuti konfigurasi akun dan aturan registrasi yang aktif.", width: 3420, height: 1902 }, note: "Jika email belum masuk atau tautan kedaluwarsa, pilih Kirim ulang tautan verifikasi dan masukkan NIP serta password registrasi." },
+      { id: "reset-password", title: "Reset password", steps: [
+        { title: "Pilih Lupa password? di halaman masuk", detail: "Masukkan NIP. Jika akun aktif dan emailnya telah terverifikasi, Manrisk mengirim tautan reset." },
+        { title: "Buka tautan dari email", detail: "Periksa folder spam bila perlu. Tautan berlaku 30 menit dan hanya dapat digunakan sekali." },
+        { title: "Buat password baru", detail: "Konfirmasi password baru, lalu masuk kembali. Manrisk mengakhiri sesi sebelumnya." },
+      ], note: "Jika email belum terverifikasi atau sudah tidak bisa diakses, hubungi Super Admin untuk mendapatkan password sementara." },
+      { id: "verifikasi-email", title: "Verifikasi email pemulihan", steps: [
+        { title: "Buka Pengaturan → Keamanan", detail: "Periksa alamat pada Email pemulihan. Jika perlu, ubah alamat dari pengaturan Akun." },
+        { title: "Pilih Verifikasi email", detail: "Masukkan password saat ini, lalu kirim tautan verifikasi." },
+        { title: "Konfirmasi melalui email", detail: "Buka tautan dalam 30 menit. Manrisk langsung memverifikasi email dan menampilkan halaman sukses. Perubahan alamat memerlukan verifikasi ulang." },
+      ] },
       { id: "ubah-password", title: "Ubah password", paragraphs: ["Jika aplikasi meminta Anda membuat password baru, selesaikan perubahan sebelum membuka halaman kerja. Untuk mengganti password setelah masuk, buka Pengaturan lalu pilih Keamanan."], steps: [
         { title: "Masukkan password saat ini", detail: "Buka kolom password saat ini dan isi kredensial yang digunakan untuk masuk." },
         { title: "Buat dan konfirmasi password baru", detail: "Ikuti aturan yang ditampilkan dan pastikan kedua kolom password baru sama." },
@@ -403,7 +414,7 @@ export const documentationArticles: DocumentationArticle[] = [
         { name: "LED", description: "Laporan Evaluasi Diri; kejadian yang disimpan sebagai record LED terkunci setelah disimpan." },
       ] },
       { id: "kendala-akun", title: "Kendala akun", fields: [
-        { name: "Registrasi masih menunggu", description: "Administrator belum menyetujui aktivasi. Hubungi administrator unit untuk memeriksa status registrasi." },
+        { name: "Registrasi masih menunggu", description: "Jika email belum terverifikasi, gunakan tautan verifikasi atau minta tautan baru. Setelah email terverifikasi, Super Admin dapat menyetujui akun." },
         { name: "Password tidak dapat digunakan", description: "Periksa NIP dan password. Hubungi administrator jika perlu reset atau akses masih gagal." },
         { name: "Diminta mengatur ulang password", description: "Selesaikan alur perubahan password sebelum melanjutkan ke halaman aplikasi." },
       ] },

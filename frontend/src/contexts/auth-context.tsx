@@ -24,6 +24,7 @@ export interface User {
   name: string;
   username: string;
   email: string;
+  emailVerified?: boolean;
   role: string;
   organizationId: string | null;
   orgName: string;
@@ -48,6 +49,7 @@ type RawUser = {
   name?: string;
   username?: string;
   email?: string;
+  emailVerified?: boolean;
   role?: string;
   organizationId?: string | null;
   organization_id?: string | null;
@@ -87,6 +89,7 @@ function parseUser(raw: unknown): User | null {
     name: user.name ?? "",
     username: user.username ?? "",
     email: user.email ?? "",
+    emailVerified: user.emailVerified === true,
     role: user.role ?? "",
     organizationId: user.organizationId ?? user.organization_id ?? null,
     orgName: user.orgName ?? user.org_name ?? "",
@@ -166,6 +169,7 @@ interface AuthContextType {
   completeFirstPasswordChange: (newPassword: string, confirmPassword: string) => Promise<AuthTransition>;
   changePassword: (currentPassword: string, newPassword: string, confirmPassword: string) => Promise<AuthTransition>;
   updateProfile: (input: UpdateProfileInput) => Promise<User>;
+  refreshProfile: (signal?: AbortSignal) => Promise<User | null>;
   logout: () => void;
   isAuthenticated: boolean;
   hasFullSession: boolean;
@@ -191,6 +195,7 @@ const AuthContext = createContext<AuthContextType>({
   updateProfile: async () => {
     throw new Error("Auth context is not available.");
   },
+  refreshProfile: async () => null,
   logout: () => {},
   isAuthenticated: false,
   hasFullSession: false,
@@ -339,6 +344,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return applyUserProfile(res);
   }, [applyUserProfile, token]);
 
+  const refreshProfile = useCallback(async (signal?: AbortSignal) => {
+    if (!token) return null;
+    const profile = await api.get<User>("/auth/me", token, { signal });
+    return signal?.aborted ? null : applyUserProfile(profile);
+  }, [applyUserProfile, token]);
+
   const logout = useCallback(() => {
     if (token) {
       // Revoke the server session while keeping local sign-out immediate.
@@ -368,6 +379,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     completeFirstPasswordChange,
     changePassword,
     updateProfile,
+    refreshProfile,
     logout,
     isAuthenticated,
     hasFullSession,
@@ -383,6 +395,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     completeFirstPasswordChange,
     changePassword,
     updateProfile,
+    refreshProfile,
     logout,
     isAuthenticated,
     hasFullSession,

@@ -8,6 +8,8 @@ export interface UserListItem {
   phoneNumber?: string | null;
   role: string;
   status: string;
+  emailVerified?: boolean;
+  mustChangePassword?: boolean;
   nip?: string | null;
   jabatan?: string | null;
   pangkat?: string | null;
@@ -74,4 +76,13 @@ export async function rejectUserRegistration(
   userId: string,
 ): Promise<UserActionResponse> {
   return api.delete<UserActionResponse>(`/users/${userId}/reject-registration`, undefined, token);
+}
+
+export interface PasswordResetResult {
+  temporaryPassword: string;
+  expiresAt: string;
+}
+
+export function resetUserPassword(token: string, userId: string, currentPassword: string) {
+  return api.post<PasswordResetResult>(`/auth/users/${userId}/reset-password`, { currentPassword }, token);
 }

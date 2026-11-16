@@ -31,9 +31,11 @@ func (uc *ApproveRegistrationUseCase) Execute(ctx context.Context, id uuid.UUID)
 	if user.Status != entity.UserStatusPendingActivation {
 		return nil, errors.ErrNotPending
 	}
+	if user.IsAwaitingEmailVerification() {
+		return nil, errors.ErrEmailVerificationRequired
+	}
 
 	user.Status = entity.UserStatusActive
-	user.MustChangePassword = false
 
 	if err := uc.userRepo.Update(ctx, user); err != nil {
 		return nil, errors.Wrap(err, "failed to approve registration")

@@ -358,11 +358,13 @@ export default function BulkRiskRegisterPage() {
                             </Badge>
                           </TableCell>
                           <TableCell className="max-w-[520px]">
-                            {preview.errors.length > 0
-                              ? preview.errors.join(" ")
-                              : preview.warnings.length > 0
-                                ? preview.warnings.join(" ")
-                                : "Siap dibuat."}
+                            <span className="block whitespace-normal wrap-anywhere">
+                              {preview.errors.length > 0
+                                ? preview.errors.join(" ")
+                                : preview.warnings.length > 0
+                                  ? preview.warnings.join(" ")
+                                  : "Siap dibuat."}
+                            </span>
                           </TableCell>
                         </TableRow>
                       );

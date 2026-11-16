@@ -2,6 +2,7 @@ package auth
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -17,6 +18,16 @@ type registerStubUserRepo struct {
 	byLookup  map[string]*entity.User
 	byNIP     map[string]*entity.User
 	createErr error
+}
+
+type registerStubVerifier struct {
+	user *entity.User
+	err  error
+}
+
+func (s *registerStubVerifier) QueueRegistrationVerification(user *entity.User) error {
+	s.user = user
+	return s.err
 }
 
 func (s *registerStubUserRepo) Create(_ context.Context, user *entity.User) error {
@@ -62,7 +73,7 @@ func (s *registerStubUserRepo) GetByNIP(_ context.Context, nip string) (*entity.
 
 func (s *registerStubUserRepo) Update(_ context.Context, _ *entity.User) error { return nil }
 func (s *registerStubUserRepo) Delete(_ context.Context, _ uuid.UUID) error    { return nil }
-func (s *registerStubUserRepo) List(_ context.Context) ([]*entity.User, error)  { return nil, nil }
+func (s *registerStubUserRepo) List(_ context.Context) ([]*entity.User, error) { return nil, nil }
 func (s *registerStubUserRepo) ListWithFilter(_ context.Context, _ repository.UserListFilter) ([]*entity.User, int, error) {
 	return nil, 0, nil
 }
@@ -74,7 +85,9 @@ type registerStubOrgRepo struct {
 func (s *registerStubOrgRepo) Create(_ context.Context, _ *entity.Organization) error { return nil }
 func (s *registerStubOrgRepo) Update(_ context.Context, _ *entity.Organization) error { return nil }
 func (s *registerStubOrgRepo) Delete(_ context.Context, _ uuid.UUID) error            { return nil }
-func (s *registerStubOrgRepo) List(_ context.Context) ([]*entity.Organization, error)  { return nil, nil }
+func (s *registerStubOrgRepo) List(_ context.Context) ([]*entity.Organization, error) {
+	return nil, nil
+}
 func (s *registerStubOrgRepo) ListWithFilter(_ context.Context, _ repository.OrganizationListFilter) ([]*entity.Organization, int, error) {
 	return nil, 0, nil
 }
@@ -100,7 +113,8 @@ func TestRegisterUseCaseCreatesPendingUnitUser(t *testing.T) {
 		},
 	}
 
-	uc := NewRegisterUseCase(userRepo, orgRepo)
+	verifier := &registerStubVerifier{}
+	uc := NewRegisterUseCase(userRepo, orgRepo, verifier)
 
 	result, err := uc.Execute(context.Background(), RegisterInput{
 		Name:            "Siti Rahma",
@@ -120,6 +134,9 @@ func TestRegisterUseCaseCreatesPendingUnitUser(t *testing.T) {
 	}
 	if userRepo.created == nil {
 		t.Fatal("expected user to be created")
+	}
+	if !result.VerificationQueued || verifier.user == nil || verifier.user.ID == uuid.Nil || verifier.user.ID != result.ID {
+		t.Fatal("expected verification to be queued for the newly persisted account")
 	}
 	if userRepo.created.Role != entity.RoleUnit {
 		t.Fatalf("expected forced unit role, got %q", userRepo.created.Role)
@@ -141,7 +158,7 @@ func TestRegisterUseCaseRejectsPasswordMismatch(t *testing.T) {
 		orgs: map[uuid.UUID]*entity.Organization{
 			orgID: {ID: orgID, Name: "Direktorat Surveilans"},
 		},
-	})
+	}, nil)
 
 	_, err := uc.Execute(context.Background(), RegisterInput{
 		Name:            "Siti Rahma",
@@ -187,7 +204,7 @@ func TestRegisterUseCaseRejectsDuplicateEmailAndNIP(t *testing.T) {
 				orgs: map[uuid.UUID]*entity.Organization{
 					orgID: {ID: orgID, Name: "Direktorat Surveilans"},
 				},
-			})
+			}, nil)
 
 			_, err := uc.Execute(context.Background(), RegisterInput{
 				Name:            "Siti Rahma",
@@ -210,7 +227,7 @@ func TestRegisterUseCaseRejectsDuplicateEmailAndNIP(t *testing.T) {
 
 func TestRegisterUseCaseRejectsMissingOrganization(t *testing.T) {
 	orgID := uuid.New()
-	uc := NewRegisterUseCase(&registerStubUserRepo{}, &registerStubOrgRepo{})
+	uc := NewRegisterUseCase(&registerStubUserRepo{}, &registerStubOrgRepo{}, nil)
 
 	_, err := uc.Execute(context.Background(), RegisterInput{
 		Name:            "Siti Rahma",
@@ -224,4 +241,32 @@ func TestRegisterUseCaseRejectsMissingOrganization(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
+}
+
+func TestRegisterUseCaseHandlesUnavailableVerification(t *testing.T) {
+	orgID := uuid.New()
+	orgRepo := &registerStubOrgRepo{orgs: map[uuid.UUID]*entity.Organization{
+		orgID: {ID: orgID},
+	}}
+	input := RegisterInput{
+		Name: "Siti", Email: "siti@example.test", NIP: "12345", OrganizationID: &orgID,
+		Password: "Password123!", ConfirmPassword: "Password123!",
+	}
+
+	t.Run("no mail configured", func(t *testing.T) {
+		userRepo := &registerStubUserRepo{}
+		_, err := NewRegisterUseCase(userRepo, orgRepo, nil).Execute(t.Context(), input)
+		if !errors.Is(err, ErrRegistrationEmailUnavailable) || userRepo.created != nil {
+			t.Fatalf("registration should remain unsaved when email is disabled, got %v", err)
+		}
+	})
+
+	t.Run("mail queue busy", func(t *testing.T) {
+		userRepo := &registerStubUserRepo{}
+		verifier := &registerStubVerifier{err: errors.New("test queue is busy")}
+		result, err := NewRegisterUseCase(userRepo, orgRepo, verifier).Execute(t.Context(), input)
+		if err != nil || result == nil || result.VerificationQueued || userRepo.created == nil {
+			t.Fatalf("registration should be saved so the applicant can resend, got %v and %v", result, err)
+		}
+	})
 }

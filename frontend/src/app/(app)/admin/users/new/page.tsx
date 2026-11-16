@@ -129,7 +129,7 @@ export default function NewUserPage() {
         token || undefined,
       );
       toast.success(
-        "Pengguna berhasil dibuat. Sampaikan NIP dan password sementara secara manual. Akun akan tetap menunggu aktivasi sampai password diganti saat login pertama.",
+        "Pengguna berhasil dibuat. Pilih Setujui di Kelola Pengguna sebelum pengguna masuk dengan password sementara.",
       );
       router.push("/admin/users");
     } catch (error) {
@@ -247,9 +247,8 @@ export default function NewUserPage() {
                 <span className="ml-0.5 text-destructive">*</span>
               </Label>
               <p className="text-xs leading-4 text-muted-foreground">
-                Bagikan password sementara ini secara manual. Setelah login
-                pertama, pengguna wajib mengganti password dan status akun baru
-                berubah menjadi aktif.
+                Setujui akun di Kelola Pengguna, lalu bagikan NIP dan password sementara secara manual.
+                Pengguna wajib mengganti password saat pertama kali masuk.
               </p>
             </FieldHeading>
             <Input

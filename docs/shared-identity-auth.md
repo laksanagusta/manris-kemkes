@@ -175,6 +175,44 @@ A user requiring a password change gets a restricted Manris setup session and mu
 
 Successful identity responses use `Cache-Control: no-store`. Login is limited to 20 attempts per minute per source IP, application and NIP, per server process. Add a shared gateway limit when running multiple auth instances. Session records persist for audit/revocation: schedule retention cleanup of expired sessions using `auth_sessions.expires_at` rather than allowing the table to grow indefinitely.
 
+## Email verification and self-service password reset
+
+Apply migrations `000091_password_reset` and `000092_email_password_reset` before starting the updated backend. In the backend runtime environment, set:
+
+| Variable | Value |
+| --- | --- |
+| `AUTH_APP_ORIGIN` | Public Manrisk HTTPS origin, without a path. HTTP is allowed for local loopback development. |
+| `AUTH_SMTP_ADDR` | SMTP relay host and port, e.g. `smtp.example.com:587`. An empty value disables email recovery and self-service registration. |
+| `AUTH_SMTP_MODE` | `starttls` (default, commonly port 587) or `tls` (implicit TLS, commonly port 465). The relay must present a trusted certificate. |
+| `AUTH_SMTP_FROM` | Verified sender mailbox on the relay. |
+| `AUTH_SMTP_USERNAME`, `AUTH_SMTP_PASSWORD` | Server-side SMTP credentials. Leave both unset for a trusted relay that accepts unauthenticated TLS submissions. |
+
+Set the same public `AUTH_APP_ORIGIN` on the frontend. Recreate the backend with the SMTP environment and deploy the frontend proxy and screens. Disable link tracking for the transactional email stream if the relay rewrites links and removes their URL fragments.
+
+Self-service registration immediately queues a verification link and keeps the account pending activation. The applicant can request a replacement with their registration NIP and password. Super Admin can approve only after verification, and Manris login is blocked until approval. Existing pending self-registered accounts can use the resend form. Accounts created through **Tambah pengguna** wait for Super Admin approval in **Kelola Pengguna**. After approval, signing in with the temporary password opens a setup session and requires a password change.
+
+Existing email addresses start unverified. In **Pengaturan → Keamanan**, a signed-in user confirms the current password, receives a verification link, and opens it to see the verification result. The page submits the token as soon as it loads. Changing the profile email clears verification and invalidates outstanding links. Users who have lost access before verification can use the Super Admin recovery flow below.
+
+From **Lupa password?**, the user submits their NIP. The request acknowledgement is independent of account eligibility. The worker sends a reset link only for an active user with a verified address. Delivery is asynchronous, with a two-minute send cooldown per account and purpose. Requests awaiting delivery in memory may need to be repeated after a backend restart or SMTP outage. Tokens are stored as SHA-256 hashes, expire after 30 minutes, and can only be used once. Verification and reset emails show the Manrisk logo and wordmark in a header above the white message panel, which contains the action button. Their plain-text versions include the URL. Completing the reset revokes sessions across shared apps and records an audit event.
+
+| Endpoint (POST) | Body | Result |
+| --- | --- | --- |
+| `/api/v1/auth/verify-email/request` | `currentPassword` | `202`; requires a full Manris session |
+| `/api/v1/auth/verify-email/resend-registration` | `nip`, `password` | `202`; requires the applicant’s credentials |
+| `/api/v1/auth/verify-email/confirm` | `token` | `204` for an active account, or `200` with `data.pendingApproval: true` for an applicant |
+| `/api/v1/auth/forgot-password` | `nip` | `202` with a generic acknowledgement |
+| `/api/v1/auth/reset-password` | `token`, `newPassword`, `confirmPassword` | `204`; the user signs in again |
+
+These endpoints require the Manris app key and are available through the same-origin Next.js proxy. Links include the token in their URL fragment so the token is submitted in a POST body. Public recovery routes have per-source IP limits on each backend instance. If the proxy shares one IP or there are multiple backend instances, add an edge limit per originating client. Issuance removes expired tokens for that user. Expired rows for idle accounts may also be removed by periodic cleanup of `auth_email_tokens.expires_at`.
+
+## Administrator-assisted password reset
+
+Apply migration `000091_password_reset` before deploying the updated API. In **Administrasi pengguna**, a Super Admin opens **Reset password** for another active account and confirms with their own password. The generated password is shown once. Verify the recipient's identity, then share the password directly with them.
+
+The endpoint is `POST /api/v1/auth/users/:id/reset-password` with the Manris app key, a full Super Admin session, and the JSON body `{"currentPassword":"<ADMIN_PASSWORD>"}`. The response contains `data.temporaryPassword` and `data.expiresAt` and is served with `Cache-Control: no-store`. Attempts are limited to ten per minute per administrator, per server process.
+
+A reset ends the user's sessions across shared apps and records a `reset_password` audit event with the administrator and target IDs. The temporary password expires after 24 hours and opens a Manris setup session. The user must choose a different password of at least eight characters before that deadline. If the temporary password expires or is lost, issue a new one.
+
 ## Validation
 
 Targeted HTTP tests cover global identity consistency, app isolation, shared profile changes, live role/organization changes, revoked/expired/malformed tokens, disabled users/apps, key rotation, password-change revocation, setup restrictions, error handling and login rate limits. PostgreSQL integration tests apply both migration directions in a disposable schema and verify actual key/session persistence and audit events.
