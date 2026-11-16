@@ -151,7 +151,7 @@ func (s *Service) login(ctx context.Context, a *domain.Application, nip, passwor
 		return nil, domainerrors.ErrInvalidCredentials
 	}
 	if appID == domain.ManrisApplication && u.IsPendingActivation() {
-		if !u.EmailVerified {
+		if u.IsAwaitingEmailVerification() {
 			return nil, domainerrors.ErrEmailVerificationRequired
 		}
 		return nil, domainerrors.ErrAccountPendingApproval

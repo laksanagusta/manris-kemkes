@@ -528,7 +528,8 @@ export default function UsersManagementPage() {
                   const role = roleMeta[managedUser.role];
                   const status =
                     statusMeta[managedUser.status] ?? statusMeta.inactive;
-                  const awaitingEmail = managedUser.status === "pending_activation" && !managedUser.emailVerified;
+                  const awaitingEmail = managedUser.status === "pending_activation"
+                    && !managedUser.mustChangePassword && !managedUser.emailVerified;
                   const statusLabel = managedUser.status === "pending_activation"
                     ? (awaitingEmail ? "Menunggu verifikasi email" : "Menunggu persetujuan")
                     : status.label;

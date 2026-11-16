@@ -127,7 +127,7 @@ func (r *EmailRecovery) RequestRegistrationVerification(ctx context.Context, nip
 	if u == nil || bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password)) != nil {
 		return domainerrors.ErrInvalidCredentials
 	}
-	if !u.IsPendingActivation() || u.EmailVerified {
+	if !u.IsAwaitingEmailVerification() {
 		return nil
 	}
 	if !domain.ValidEmailAddress(u.Email) {

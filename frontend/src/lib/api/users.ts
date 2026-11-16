@@ -9,6 +9,7 @@ export interface UserListItem {
   role: string;
   status: string;
   emailVerified?: boolean;
+  mustChangePassword?: boolean;
   nip?: string | null;
   jabatan?: string | null;
   pangkat?: string | null;

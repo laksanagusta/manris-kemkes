@@ -89,6 +89,12 @@ func (u *User) IsPendingActivation() bool {
 	return u.Status == UserStatusPendingActivation
 }
 
+// IsAwaitingEmailVerification reports whether a self-registered account still needs email verification.
+func (u *User) IsAwaitingEmailVerification() bool {
+	// Administrator-created accounts are pending with a temporary password.
+	return u.IsPendingActivation() && !u.MustChangePassword && !u.EmailVerified
+}
+
 func (u *User) CanUseFullSession() bool {
 	return u.Status == UserStatusActive && !u.MustChangePassword
 }

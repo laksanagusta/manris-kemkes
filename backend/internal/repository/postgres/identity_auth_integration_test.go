@@ -11,6 +11,7 @@ import (
 	"github.com/manris/backend/internal/identity/domain"
 	identity "github.com/manris/backend/internal/identity/service"
 	"github.com/manris/backend/internal/repository/postgres"
+	useruc "github.com/manris/backend/internal/usecase/user"
 	"golang.org/x/crypto/bcrypt"
 	"os"
 	"testing"
@@ -155,6 +156,7 @@ func TestIdentityAuthPostgresMigrationAndLifecycle(t *testing.T) {
 	}
 	testPasswordResetLifecycle(t, pool, svc, actor, orgID, string(hash))
 	testEmailRecoveryLifecycle(t, pool, svc, orgID, string(hash))
+	testAdminCreatedAccountActivation(t, pool, svc, orgID)
 	execIdentityMigration(t, pool, "000092_email_password_reset.down.sql")
 	execIdentityMigration(t, pool, "000091_password_reset.down.sql")
 	down, err := os.ReadFile("../../../db/migrations/000071_shared_identity_auth.down.sql")
@@ -174,6 +176,46 @@ func execIdentityMigration(t *testing.T, pool *pgxpool.Pool, name string) {
 	}
 	if _, err := pool.Exec(context.Background(), string(migration)); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func testAdminCreatedAccountActivation(t *testing.T, pool *pgxpool.Pool, auth *identity.Service, orgID uuid.UUID) {
+	t.Helper()
+	ctx := t.Context()
+	users := postgres.NewUserRepository(pool)
+
+	const nip = "78911"
+	const temporary = "Temporary123!"
+	const permanent = "Permanent123!"
+	created, err := useruc.NewCreateUserUseCase(users, postgres.NewOrganizationRepository(pool)).Execute(ctx, useruc.CreateUserInput{
+		Name: "Administrator-created account", Email: "provisioned@example.test", NIP: nip,
+		Password: temporary, Role: domain.RoleUnit, OrganizationID: &orgID,
+	})
+	if err != nil {
+		t.Fatalf("create provisioned account: %v", err)
+	}
+	if _, err := auth.Login(ctx, domain.ManrisApplication, nip, temporary); !errors.Is(err, domainerrors.ErrAccountPendingApproval) {
+		t.Fatalf("expected account to wait for approval, got %v", err)
+	}
+	if _, err := useruc.NewApproveRegistrationUseCase(users).Execute(ctx, created.ID); err != nil {
+		t.Fatalf("approve provisioned account: %v", err)
+	}
+	setup, err := auth.Login(ctx, domain.ManrisApplication, nip, temporary)
+	if err != nil || setup.SessionMode != "setup" || setup.User.EmailVerified {
+		t.Fatalf("expected a password setup session for the provisioned account: %v", err)
+	}
+	if _, err := auth.Login(ctx, "recovery_test", nip, temporary); !errors.Is(err, domainerrors.ErrUnauthorized) {
+		t.Fatalf("temporary password must only open a Manris setup session: %v", err)
+	}
+	full, err := auth.ChangePassword(ctx, domain.ManrisApplication, setup.Token, "", permanent, permanent)
+	if err != nil || full.SessionMode != "full" || full.MustChangePassword {
+		t.Fatalf("expected a full session after password setup: %v", err)
+	}
+	if _, err := auth.Login(ctx, domain.ManrisApplication, nip, temporary); !errors.Is(err, domainerrors.ErrInvalidCredentials) {
+		t.Fatalf("temporary password remained valid: %v", err)
+	}
+	if _, err := auth.Login(ctx, domain.ManrisApplication, nip, permanent); err != nil {
+		t.Fatalf("sign in with the permanent password: %v", err)
 	}
 }
 

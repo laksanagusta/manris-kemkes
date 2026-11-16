@@ -189,7 +189,7 @@ Apply migrations `000091_password_reset` and `000092_email_password_reset` befor
 
 Set the same public `AUTH_APP_ORIGIN` on the frontend. Recreate the backend with the SMTP environment and deploy the frontend proxy and screens. Disable link tracking for the transactional email stream if the relay rewrites links and removes their URL fragments.
 
-Self-service registration immediately queues a verification link and keeps the account pending activation. The applicant can request a replacement with their registration NIP and password. Super Admin can approve only after verification, and Manris login is blocked until approval. Accounts already pending when this is deployed can use the resend form.
+Self-service registration immediately queues a verification link and keeps the account pending activation. The applicant can request a replacement with their registration NIP and password. Super Admin can approve only after verification, and Manris login is blocked until approval. Existing pending self-registered accounts can use the resend form. Accounts created through **Tambah pengguna** wait for Super Admin approval in **Kelola Pengguna**. After approval, signing in with the temporary password opens a setup session and requires a password change.
 
 Existing email addresses start unverified. In **Pengaturan → Keamanan**, a signed-in user confirms the current password, receives a verification link, and opens it to see the verification result. The page submits the token as soon as it loads. Changing the profile email clears verification and invalidates outstanding links. Users who have lost access before verification can use the Super Admin recovery flow below.
 

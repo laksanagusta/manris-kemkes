@@ -76,6 +76,25 @@ func TestApproveRegistrationExecuteActivatesPendingUser(t *testing.T) {
 	}
 }
 
+func TestApproveRegistrationActivatesAdminCreatedAccountWithTemporaryPassword(t *testing.T) {
+	userID := uuid.New()
+	repo := &approveRegistrationStubUserRepo{
+		user: &entity.User{
+			ID:                 userID,
+			Status:             entity.UserStatusPendingActivation,
+			MustChangePassword: true,
+		},
+	}
+
+	if _, err := NewApproveRegistrationUseCase(repo).Execute(t.Context(), userID); err != nil {
+		t.Fatalf("approve admin-created account: %v", err)
+	}
+	updated := repo.updatedUser
+	if updated == nil || updated.Status != entity.UserStatusActive || !updated.MustChangePassword || updated.EmailVerified {
+		t.Fatal("approval must activate the account and preserve first-login password setup")
+	}
+}
+
 func TestApproveRegistrationRefusesUnverifiedEmail(t *testing.T) {
 	userID := uuid.New()
 	repo := &approveRegistrationStubUserRepo{
