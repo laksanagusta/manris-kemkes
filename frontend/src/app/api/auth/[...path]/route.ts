@@ -4,6 +4,8 @@ export const dynamic = "force-dynamic";
 
 type Context = { params: Promise<{ path: string[] }> };
 const userPath = /^users\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+const verificationDeliveryPath = /^verify-email\/(delivery|admin)\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+const verificationRetryPath = /^verify-email\/admin\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\/retry$/;
 const methods: Record<string, string[]> = {
   login: ["POST"],
   me: ["GET", "PUT"],
@@ -32,6 +34,8 @@ async function proxy(request: Request, context: Context) {
   const allowed = methods[endpoint] ?? (
     userPath.test(endpoint) ? ["GET"] :
     endpoint.endsWith("/reset-password") && userPath.test(endpoint.slice(0, -"/reset-password".length)) ? ["POST"] :
+    verificationDeliveryPath.test(endpoint) ? ["GET"] :
+    verificationRetryPath.test(endpoint) ? ["POST"] :
     /^apps\/[a-z][a-z0-9_-]{1,63}\/rotate-key$/.test(endpoint) ? ["POST"] :
     /^apps\/[a-z][a-z0-9_-]{1,63}$/.test(endpoint) ? ["DELETE"] : []
   );

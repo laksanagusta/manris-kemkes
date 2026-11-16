@@ -177,7 +177,7 @@ Successful identity responses use `Cache-Control: no-store`. Login is limited to
 
 ## Email verification and self-service password reset
 
-Apply migrations `000091_password_reset` and `000092_email_password_reset` before starting the updated backend. In the backend runtime environment, set:
+Apply migrations `000091_password_reset`, `000092_email_password_reset`, and `000093_verification_email_delivery` before starting the updated backend. In the backend runtime environment, set:
 
 | Variable | Value |
 | --- | --- |
@@ -189,21 +189,25 @@ Apply migrations `000091_password_reset` and `000092_email_password_reset` befor
 
 Set the same public `AUTH_APP_ORIGIN` on the frontend. Recreate the backend with the SMTP environment and deploy the frontend proxy and screens. Disable link tracking for the transactional email stream if the relay rewrites links and removes their URL fragments.
 
-Self-service registration immediately queues a verification link and keeps the account pending activation. The applicant can request a replacement with their registration NIP and password. Super Admin can approve only after verification, and Manris login is blocked until approval. Existing pending self-registered accounts can use the resend form. Accounts created through **Tambah pengguna** wait for Super Admin approval in **Kelola Pengguna**. After approval, signing in with the temporary password opens a setup session and requires a password change.
+Self-service registration saves the pending account and its initial verification delivery in one database transaction. The applicant can check the delivery or request another link with their registration NIP and password. Super Admin can check the latest status in **Kelola Pengguna**, see the failure category, and retry a failed delivery after resolving the issue. Super Admin can approve only after verification, and Manris login is blocked until approval. Accounts created through **Tambah pengguna** wait for Super Admin approval in **Kelola Pengguna**. After approval, signing in with the temporary password opens a setup session and requires a password change.
+
+Verification requests use a PostgreSQL queue that survives backend restarts. The worker retries temporary failures up to three times, after delays of one, two, and four minutes. Each attempt issues a fresh 30-minute link. Repeated requests reuse work that is queued, sending, or waiting for an automatic retry. After an accepted or failed delivery, the resend response specifies when the two-minute cooldown ends. The status **Layanan email menerima pengiriman** confirms SMTP relay acceptance. Inbox placement and later bounces require delivery events from the email provider. The worker prunes terminal delivery records after seven days.
 
 Existing email addresses start unverified. In **Pengaturan → Keamanan**, a signed-in user confirms the current password, receives a verification link, and opens it to see the verification result. The page submits the token as soon as it loads. Changing the profile email clears verification and invalidates outstanding links. Users who have lost access before verification can use the Super Admin recovery flow below.
 
-From **Lupa password?**, the user submits their NIP. The request acknowledgement is independent of account eligibility. The worker sends a reset link only for an active user with a verified address. Delivery is asynchronous, with a two-minute send cooldown per account and purpose. Requests awaiting delivery in memory may need to be repeated after a backend restart or SMTP outage. Tokens are stored as SHA-256 hashes, expire after 30 minutes, and can only be used once. Verification and reset emails show the Manrisk logo and wordmark in a header above the white message panel, which contains the action button. Their plain-text versions include the URL. Completing the reset revokes sessions across shared apps and records an audit event.
+From **Lupa password?**, the user submits their NIP. The request acknowledgement is independent of account eligibility. The worker sends a reset link only for an active user with a verified address. Password-reset requests use an in-memory queue, with a two-minute send cooldown per account. Requests awaiting delivery may need to be repeated after a backend restart or SMTP outage. Tokens are stored as SHA-256 hashes, expire after 30 minutes, and can only be used once. Verification and reset emails show the Manrisk logo and wordmark in a header above the white message panel, which contains the action button. Their plain-text versions include the URL. Completing the reset revokes sessions across shared apps and records an audit event.
 
 | Endpoint (POST) | Body | Result |
 | --- | --- | --- |
 | `/api/v1/auth/verify-email/request` | `currentPassword` | `202`; requires a full Manris session |
-| `/api/v1/auth/verify-email/resend-registration` | `nip`, `password` | `202`; requires the applicant’s credentials |
+| `/api/v1/auth/verify-email/resend-registration` | `nip`, `password`, optional `statusOnly` | `202` with a delivery receipt when available. Set `statusOnly` to look up the latest request without sending. An actual resend includes its outcome. |
 | `/api/v1/auth/verify-email/confirm` | `token` | `204` for an active account, or `200` with `data.pendingApproval: true` for an applicant |
 | `/api/v1/auth/forgot-password` | `nip` | `202` with a generic acknowledgement |
 | `/api/v1/auth/reset-password` | `token`, `newPassword`, `confirmPassword` | `204`; the user signs in again |
 
 These endpoints require the Manris app key and are available through the same-origin Next.js proxy. Links include the token in their URL fragment so the token is submitted in a POST body. Public recovery routes have per-source IP limits on each backend instance. If the proxy shares one IP or there are multiple backend instances, add an edge limit per originating client. Issuance removes expired tokens for that user. Expired rows for idle accounts may also be removed by periodic cleanup of `auth_email_tokens.expires_at`.
+
+`GET /api/v1/auth/verify-email/delivery/:receipt` returns only the delivery state. `GET /api/v1/auth/verify-email/admin/:userID` returns the latest registration delivery and its failure category. `POST /api/v1/auth/verify-email/admin/:userID/retry` requests another verification for a pending applicant and returns the delivery state along with the outcome. Both administrator routes require a full Super Admin session. Resend outcomes are `scheduled`, `existing`, `cooldown`, or `unavailable`. A `cooldown` response includes the server's `retryAt` timestamp.
 
 ## Administrator-assisted password reset
 

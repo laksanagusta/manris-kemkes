@@ -12,8 +12,10 @@ import (
 	"html"
 	"io"
 	"net/http/httptest"
+	"net/textproto"
 	"net/url"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -38,6 +40,23 @@ type testRecoveryMailer chan recoveryEmail
 func (m testRecoveryMailer) Send(_ context.Context, to, subject, textBody, htmlBody string) error {
 	m <- recoveryEmail{to: to, subject: subject, textBody: textBody, htmlBody: htmlBody}
 	return nil
+}
+
+type temporarilyUnavailableMailer struct {
+	testRecoveryMailer
+	recipient string
+	failFirst sync.Once
+}
+
+func (m *temporarilyUnavailableMailer) Send(ctx context.Context, to, subject, textBody, htmlBody string) error {
+	if to == m.recipient {
+		var failure error
+		m.failFirst.Do(func() { failure = &textproto.Error{Code: 451, Msg: "test temporary failure"} })
+		if failure != nil {
+			return failure
+		}
+	}
+	return m.testRecoveryMailer.Send(ctx, to, subject, textBody, htmlBody)
 }
 
 func (m testRecoveryMailer) receive(t *testing.T, subject, to string) recoveryEmail {
@@ -91,6 +110,8 @@ func testEmailRecoveryLifecycle(t *testing.T, pool *pgxpool.Pool, auth *identity
 	const nip = "789"
 	const oldPassword = "Password123!"
 	const newPassword = "PasswordBaru123!"
+	const registrationNIP = "78910"
+	const registeredEmail = "registrasi@example.test"
 	userID := uuid.New()
 	_, err := pool.Exec(ctx, `INSERT INTO users(id,name,username,email,password_hash,role,status,must_change_password,nip,jabatan,pangkat,phone_number,organization_id)
 		VALUES($1,'Email Recovery','email-recovery',$2,$3,'unit','active',FALSE,$4,'','','',$5)`, userID, recipient, oldHash, nip, orgID)
@@ -107,7 +128,8 @@ func testEmailRecoveryLifecycle(t *testing.T, pool *pgxpool.Pool, auth *identity
 
 	mailbox := make(testRecoveryMailer, 8)
 	directory := postgres.NewIdentityDirectory(pool)
-	recovery, err := identity.NewEmailRecovery(postgres.NewIdentityAuthStore(pool), directory, mailbox, "https://manrisk.example")
+	sender := &temporarilyUnavailableMailer{testRecoveryMailer: mailbox, recipient: registeredEmail}
+	recovery, err := identity.NewEmailRecovery(postgres.NewIdentityAuthStore(pool), directory, sender, "https://manrisk.example")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -123,17 +145,17 @@ func testEmailRecoveryLifecycle(t *testing.T, pool *pgxpool.Pool, auth *identity
 	identityhttp.NewIdentityAuthHandler(auth, true).RegisterPublicRoutes(api)
 	identityhttp.RegisterEmailRecoveryRoutes(api, auth, recovery)
 	users := postgres.NewUserRepository(pool)
-	registration := authuc.NewRegisterUseCase(users, postgres.NewOrganizationRepository(pool), recovery)
+	registration := authuc.NewRegisterUseCase(users, postgres.NewOrganizationRepository(pool), postgres.NewIdentityAuthStore(pool))
 	identityhttp.NewAuthHandler(nil, registration, nil, nil, nil).RegisterPublicRegistrationRoutes(api, func(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusOK)
 	})
-	post := func(path, session string, body map[string]string, want int) string {
+	request := func(method, path, session string, body any, want int) string {
 		t.Helper()
 		content, err := json.Marshal(body)
 		if err != nil {
 			t.Fatal(err)
 		}
-		req := httptest.NewRequest("POST", "/api/v1/auth/"+path, bytes.NewReader(content))
+		req := httptest.NewRequest(method, "/api/v1/auth/"+path, bytes.NewReader(content))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("X-App-Key", appKey)
 		if session != "" {
@@ -153,35 +175,102 @@ func testEmailRecoveryLifecycle(t *testing.T, pool *pgxpool.Pool, auth *identity
 		}
 		return string(data)
 	}
+	post := func(path, session string, body map[string]string, want int) string {
+		t.Helper()
+		return request("POST", path, session, body, want)
+	}
 
-	const registrationNIP = "78910"
-	const registeredEmail = "registrasi@example.test"
 	result := post("register", "", map[string]string{
 		"nip": registrationNIP, "name": "Calon pengguna", "email": registeredEmail, "organizationId": orgID.String(),
 		"password": oldPassword, "confirmPassword": oldPassword,
 	}, 201)
-	if !strings.Contains(result, `"verificationQueued":true`) {
-		t.Fatal("registration did not queue email verification")
+	var registrationResult struct {
+		Data struct {
+			VerificationQueued     bool      `json:"verificationQueued"`
+			VerificationDeliveryID uuid.UUID `json:"verificationDeliveryId"`
+		} `json:"data"`
 	}
+	if err := json.Unmarshal([]byte(result), &registrationResult); err != nil ||
+		!registrationResult.Data.VerificationQueued || registrationResult.Data.VerificationDeliveryID == uuid.Nil {
+		t.Fatal("registration did not return a verification delivery receipt", err)
+	}
+	receipt := registrationResult.Data.VerificationDeliveryID.String()
 	registered, err := users.GetByNIP(ctx, registrationNIP)
 	if err != nil {
 		t.Fatal(err)
 	}
 	approve := useruc.NewApproveRegistrationUseCase(users)
 	login := map[string]string{"nip": registrationNIP, "password": oldPassword}
+	lookup := request("POST", "verify-email/resend-registration", "", map[string]any{
+		"nip": registrationNIP, "password": oldPassword, "statusOnly": true,
+	}, 202)
+	if !strings.Contains(lookup, receipt) || strings.Contains(lookup, "outcome") {
+		t.Fatal("applicant could not recover the original receipt")
+	}
+	request("GET", "verify-email/delivery/"+uuid.NewString(), "", nil, 404)
+	request("GET", "verify-email/admin/"+registered.ID.String(), "", nil, 401)
+	admin, err := auth.Login(ctx, domain.ManrisApplication, "123", oldPassword)
+	if err != nil {
+		t.Fatal(err)
+	}
 	if !strings.Contains(post("login", "", login, 403), "EMAIL_VERIFICATION_REQUIRED") {
 		t.Fatal("login did not identify the missing verification")
 	}
 	if _, err := approve.Execute(ctx, registered.ID); !errors.Is(err, domainerrors.ErrEmailVerificationRequired) {
 		t.Fatalf("unverified registration can be approved: %v", err)
 	}
+	waitForDelivery := func(status string) {
+		t.Helper()
+		deadline := time.Now().Add(3 * time.Second)
+		for {
+			result := request("GET", "verify-email/delivery/"+receipt, "", nil, 200)
+			if strings.Contains(result, `"status":"`+status+`"`) {
+				if strings.Contains(result, "failure") {
+					t.Fatal("receipt disclosed internal failure details")
+				}
+				return
+			}
+			if time.Now().After(deadline) {
+				t.Fatalf("delivery did not reach state %q: %s", status, result)
+			}
+			time.Sleep(50 * time.Millisecond)
+		}
+	}
+	waitForDelivery("retrying")
+	adminStatus := request("GET", "verify-email/admin/"+registered.ID.String(), admin.Token, nil, 200)
+	if !strings.Contains(adminStatus, `"failure":"temporary"`) {
+		t.Fatal("admin did not receive the sanitized failure category")
+	}
+	if _, err := pool.Exec(ctx, `UPDATE auth_verification_deliveries SET available_at=NOW() WHERE id=$1`, receipt); err != nil {
+		t.Fatal(err)
+	}
 	expiredRegistration := recoveryLinkToken(t, mailbox.receive(t, "Verifikasi email Manrisk", registeredEmail), "/verify-email")
+	waitForDelivery("accepted")
+	duringCooldown := post("verify-email/resend-registration", "", login, 202)
+	if !strings.Contains(duringCooldown, receipt) || !strings.Contains(duringCooldown, `"outcome":"cooldown"`) ||
+		!strings.Contains(duringCooldown, `"retryAt":`) {
+		t.Fatalf("resend did not return the cooldown and previous receipt: %s", duringCooldown)
+	}
+	adminRetry := post("verify-email/admin/"+registered.ID.String()+"/retry", admin.Token, nil, 200)
+	if !strings.Contains(adminRetry, `"outcome":"cooldown"`) || !strings.Contains(adminRetry, `"retryAt":`) ||
+		!strings.Contains(adminRetry, `"status":"accepted"`) {
+		t.Fatalf("administrator retry did not return the same cooldown and delivery state: %s", adminRetry)
+	}
 	if _, err := pool.Exec(ctx, `UPDATE auth_email_tokens SET expires_at=NOW()-interval '1 second' WHERE user_id=$1`, registered.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pool.Exec(ctx, `UPDATE auth_verification_deliveries SET updated_at=NOW()-interval '31 minutes' WHERE id=$1`, receipt); err != nil {
 		t.Fatal(err)
 	}
 	post("verify-email/confirm", "", map[string]string{"token": expiredRegistration}, 422)
 	post("verify-email/resend-registration", "", map[string]string{"nip": registrationNIP, "password": "wrong"}, 422)
-	post("verify-email/resend-registration", "", login, 202)
+	adminRetry = post("verify-email/admin/"+registered.ID.String()+"/retry", admin.Token, nil, 200)
+	if !strings.Contains(adminRetry, `"outcome":"scheduled"`) || !strings.Contains(adminRetry, `"status":"queued"`) {
+		t.Fatalf("administrator retry did not return the newly queued delivery: %s", adminRetry)
+	}
+	if result := post("verify-email/resend-registration", "", login, 202); !strings.Contains(result, "deliveryId") {
+		t.Fatal("resend did not return a receipt")
+	}
 	registeredToken := recoveryLinkToken(t, mailbox.receive(t, "Verifikasi email Manrisk", registeredEmail), "/verify-email")
 	if !strings.Contains(post("verify-email/confirm", "", map[string]string{"token": registeredToken}, 200), `"pendingApproval":true`) {
 		t.Fatal("verification did not leave the account pending approval")
@@ -203,6 +292,7 @@ func testEmailRecoveryLifecycle(t *testing.T, pool *pgxpool.Pool, auth *identity
 	if err != nil {
 		t.Fatal(err)
 	}
+	request("GET", "verify-email/admin/"+registered.ID.String(), session.Token, nil, 403)
 	external, err := auth.Login(ctx, "recovery_test", nip, oldPassword)
 	if err != nil {
 		t.Fatal(err)

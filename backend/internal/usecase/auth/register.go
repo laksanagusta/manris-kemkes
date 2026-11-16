@@ -27,33 +27,34 @@ type RegisterInput struct {
 }
 
 type RegisterOutput struct {
-	ID                 uuid.UUID
-	Message            string
-	CreatedAt          time.Time
-	VerificationQueued bool `json:"verificationQueued"`
+	ID                     uuid.UUID
+	Message                string
+	CreatedAt              time.Time
+	VerificationQueued     bool      `json:"verificationQueued"`
+	VerificationDeliveryID uuid.UUID `json:"verificationDeliveryId"`
 }
 
 var ErrRegistrationEmailUnavailable = stderrors.New("Registrasi belum tersedia karena layanan verifikasi email belum aktif.")
 
-type RegistrationVerifier interface {
-	QueueRegistrationVerification(*entity.User) error
+type RegistrationWriter interface {
+	RegisterPendingWithVerification(context.Context, *entity.User) (uuid.UUID, error)
 }
 
 type RegisterUseCase struct {
 	userRepo repository.UserRepository
 	orgRepo  repository.OrganizationRepository
-	verifier RegistrationVerifier
+	writer   RegistrationWriter
 }
 
 func NewRegisterUseCase(
 	userRepo repository.UserRepository,
 	orgRepo repository.OrganizationRepository,
-	verifier RegistrationVerifier,
+	writer RegistrationWriter,
 ) *RegisterUseCase {
 	return &RegisterUseCase{
 		userRepo: userRepo,
 		orgRepo:  orgRepo,
-		verifier: verifier,
+		writer:   writer,
 	}
 }
 
@@ -80,7 +81,7 @@ func (uc *RegisterUseCase) Execute(ctx context.Context, input RegisterInput) (*R
 		return nil, errors.ErrNIPAlreadyExists
 	}
 
-	if uc.verifier == nil {
+	if uc.writer == nil {
 		return nil, ErrRegistrationEmailUnavailable
 	}
 
@@ -108,15 +109,16 @@ func (uc *RegisterUseCase) Execute(ctx context.Context, input RegisterInput) (*R
 		return nil, err
 	}
 
-	if err := uc.userRepo.Create(ctx, user); err != nil {
-		return nil, errors.Wrap(err, "failed to create user")
+	deliveryID, err := uc.writer.RegisterPendingWithVerification(ctx, user)
+	if err != nil {
+		return nil, errors.Wrap(err, "failed to submit registration")
 	}
-
 	return &RegisterOutput{
-		ID:                 user.ID,
-		Message:            "Registration submitted successfully",
-		CreatedAt:          user.CreatedAt,
-		VerificationQueued: uc.verifier.QueueRegistrationVerification(user) == nil,
+		ID:                     user.ID,
+		Message:                "Registration submitted successfully",
+		CreatedAt:              user.CreatedAt,
+		VerificationQueued:     true,
+		VerificationDeliveryID: deliveryID,
 	}, nil
 }
 

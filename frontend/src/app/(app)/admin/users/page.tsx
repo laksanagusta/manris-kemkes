@@ -29,6 +29,7 @@ import {
   MinusCircle,
   Plus,
   MoreHorizontal,
+  Send,
   ShieldCheck,
   ShieldX,
   Users,
@@ -36,6 +37,7 @@ import {
 import { toast } from "sonner";
 
 import { ResetUserPasswordDialog } from "@/components/admin/reset-user-password-dialog";
+import { VerificationDeliveryDialog } from "@/components/admin/verification-delivery-dialog";
 import { AdminOnlyState } from "@/components/admin/admin-only-state";
 import {
   CollectionPageHeader,
@@ -209,6 +211,7 @@ export default function UsersManagementPage() {
   } | null>(null);
 
   const [resetTarget, setResetTarget] = useState<UserListItem | null>(null);
+  const [verificationTarget, setVerificationTarget] = useState<UserListItem | null>(null);
 
   const organizationFilter = useOrganizationFilter(() => setPage(1));
   const deferredSearch = useDeferredValue(search);
@@ -411,6 +414,14 @@ export default function UsersManagementPage() {
       {resetTarget && token && (
         <ResetUserPasswordDialog user={resetTarget} token={token} onClose={() => setResetTarget(null)} />
       )}
+      {verificationTarget && token && (
+        <VerificationDeliveryDialog
+          key={verificationTarget.id}
+          user={verificationTarget}
+          token={token}
+          onClose={() => setVerificationTarget(null)}
+        />
+      )}
       <CollectionPageHeader title="Administrasi pengguna" />
 
       <MetricGrid>
@@ -599,6 +610,12 @@ export default function UsersManagementPage() {
                           <DropdownMenuContent align="end" className="w-44">
                             {managedUser.status === "pending_activation" ? (
                               <>
+                                {awaitingEmail && (
+                                  <DropdownMenuItem onSelect={() => setVerificationTarget(managedUser)}>
+                                    <Send aria-hidden="true" />
+                                    Status pengiriman
+                                  </DropdownMenuItem>
+                                )}
                                 <DropdownMenuItem
                                   disabled={awaitingEmail || pendingAction?.id === managedUser.id}
                                   onClick={() =>
