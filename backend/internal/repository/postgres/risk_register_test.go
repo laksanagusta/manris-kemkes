@@ -36,7 +36,7 @@ func TestRiskListRegisterMonitoringTransactionsIncludesBeforeAndAfterNilai(t *te
 		IsCurrent:       true,
 		IsCycleCurrent:  true,
 		VersionNumber:   1,
-		AssessmentCycle: "2025-H2",
+		AssessmentCycle: "2025-Q4",
 		Probability:     1,
 		Impact:          1,
 		Weight:          1.0,
@@ -54,7 +54,7 @@ func TestRiskListRegisterMonitoringTransactionsIncludesBeforeAndAfterNilai(t *te
 
 	monitoring := riskuc.BuildPeriodicReassessmentDraft(
 		source,
-		"2026-H1",
+		"2026-Q1",
 		time.Date(2026, time.January, 10, 9, 0, 0, 0, time.UTC),
 		uuid.Nil,
 	)
@@ -73,10 +73,25 @@ func TestRiskListRegisterMonitoringTransactionsIncludesBeforeAndAfterNilai(t *te
 	}
 	t.Cleanup(func() { _ = repo.Delete(ctx, monitoring.ID) })
 
+	var observationID uuid.UUID
+	if err := pool.QueryRow(ctx, `
+		INSERT INTO risk_monitorings (
+			source_risk_id, version_group_id, result_risk_id, assessment_cycle, status, mode,
+			source_probability, source_impact, source_nilai,
+			observed_probability, observed_impact, observed_nilai, observed_at, finalized_at
+		) VALUES ($1, $2, $3, $4, 'final', 'score_only', 1, 1, 1, 5, 5, 25, CURRENT_DATE, now())
+		RETURNING id
+	`, source.ID, versionGroupID, monitoring.ID, monitoring.AssessmentCycle).Scan(&observationID); err != nil {
+		t.Fatalf("Create finalized observation: %v", err)
+	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(ctx, `DELETE FROM risk_monitorings WHERE id = $1`, observationID)
+	})
+
 	items, total, err := repo.ListRegister(ctx, repository.RiskRegisterFilter{
 		View:            "monitoring-transactions",
 		Lifecycle:       "active",
-		AssessmentCycle: "2026-H1",
+		AssessmentCycle: "2026-Q1",
 		OrgIDs:          []uuid.UUID{orgID},
 		Page:            1,
 		Limit:           20,
@@ -110,7 +125,7 @@ func TestRiskListRegisterMonitoringTransactionsIncludesBeforeAndAfterNilai(t *te
 	}
 }
 
-func TestRiskListRegisterIncludesQuarterlyMonitoringScoreStatusAndLastMonitoredAt(t *testing.T) {
+func TestRiskListRegisterIncludesMonitoringScoreStatusAndLastMonitoredAt(t *testing.T) {
 	pool := setupPool(t)
 	repo := postgres.NewRiskRepository(pool)
 	monitoringRepo := postgres.NewRiskMonitoringRepository(pool)
@@ -224,21 +239,8 @@ func TestRiskListRegisterIncludesQuarterlyMonitoringScoreStatusAndLastMonitoredA
 		if item.LastMonitoredAt == nil {
 			t.Fatal("expected lastMonitoredAt to be populated")
 		}
-		if item.SemesterMonitoring == nil || item.SemesterMonitoring.Q2 == nil || *item.SemesterMonitoring.Q2 != entity.RiskMonitoringStatusFinal {
-			t.Fatalf("expected Q2 monitoring status final, got %#v", item.SemesterMonitoring)
-		}
-		if item.SemesterMonitoring.Q2Nilai == nil || *item.SemesterMonitoring.Q2Nilai != monitoring.ObservedNilai {
-			t.Fatalf("expected Q2 monitoring score %v, got %#v", monitoring.ObservedNilai, item.SemesterMonitoring.Q2Nilai)
-		}
-		if len(item.RecentMonitoring) != 4 {
-			t.Fatalf("expected four recent quarters, got %v", item.RecentMonitoring)
-		}
-		for _, quarter := range item.RecentMonitoring {
-			if quarter.Cycle == monitoring.AssessmentCycle {
-				if quarter.Status == nil || *quarter.Status != entity.RiskMonitoringStatusFinal || quarter.Nilai == nil || *quarter.Nilai != monitoring.ObservedNilai {
-					t.Fatalf("recent monitoring must preserve matching final status/score: %+v", quarter)
-				}
-			}
+		if item.MonitoringResultNilai == nil || *item.MonitoringResultNilai != monitoring.ObservedNilai {
+			t.Fatalf("expected latest monitoring score %v, got %#v", monitoring.ObservedNilai, item.MonitoringResultNilai)
 		}
 		break
 	}

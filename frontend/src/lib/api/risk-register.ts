@@ -45,23 +45,11 @@ export interface RiskRegisterListItem {
   draftStatus?: RiskStatus | null;
   hasOngoing?: boolean;
   monitoringStatus?: string | null;
-  previousQuarterMonitoringStatus?: string | null;
   lastMonitoredAt?: string | null;
   archivedAt?: string | null;
   archivedReason?: string;
   beforeMonitoringNilai?: number | null;
   monitoringResultNilai?: number | null;
-  recentMonitoring?: { cycle: string; status: string | null; nilai: number | null }[];
-  semesterMonitoring?: {
-    q1?: string | null;
-    q2?: string | null;
-    q3?: string | null;
-    q4?: string | null;
-    q1Nilai?: number | null;
-    q2Nilai?: number | null;
-    q3Nilai?: number | null;
-    q4Nilai?: number | null;
-  } | null;
 }
 
 export interface PaginatedRiskRegisterResponse {

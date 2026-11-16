@@ -21,16 +21,12 @@ test("sidebar does not duplicate the page-level create-risk action", () => {
   assert.doesNotMatch(sidebarSource, /href="\/risk\/register\/new"/);
 });
 
-test("risk register table exposes accessible sorting and monitoring progress", () => {
-  assert.match(registerSource, /aria-sort=\{scoreAriaSort\}/);
-  assert.match(registerSource, /aria-label=\{`Urutkan berdasarkan skor/);
-  assert.match(registerSource, /flex w-full items-center gap-1 px-0 text-left capitalize outline-none transition-colors/);
-  assert.doesNotMatch(registerSource, /text-left uppercase outline-none transition-colors/);
-  assert.match(registerSource, /<MonitoringTransactionProgress/);
-  assert.match(registerSource, /<MonitoringTransactionProgress\s+data=\{risk\.semesterMonitoring\}\s+showCount=\{false\}/);
-  assert.doesNotMatch(registerSource, /<CollectionTableHead[^>]*>\s*Kode\s*<\/CollectionTableHead>/);
-  assert.match(registerSource, /<CollectionTableHead className="min-w-\[176px\]">\s*Pemantauan/);
-  assert.match(registerSource, /Mulai Pemantauan/);
+test("risk register uses current assessment and monitoring status", () => {
+  assert.match(registerSource, /<CollectionTableCard sorting=\{tableSorting\}/);
+  assert.match(registerSource, /risk\.currentAssessment\?\.nilai/);
+  assert.match(registerSource, /onContinueMonitoring=\{\s*canReassess && risk\.monitoringStatus === "draft"/);
+  assert.match(registerSource, /onStartMonitoring=\{\s*canReassess && risk\.monitoringStatus !== "draft"/);
+  assert.doesNotMatch(registerSource, /recentMonitoring|semesterMonitoring|previousQuarterMonitoringStatus/);
 });
 
 test("risk register table uses the approved column proportions", () => {
@@ -131,7 +127,6 @@ test("risk register body rows use internal separator borders", () => {
     registerSource,
     /className="sticky right-0 w-\[6%\] bg-card px-5 py-3"/,
   );
-  assert.match(registerSource, /<MonitoringTransactionProgress\s+data=\{risk\.semesterMonitoring\}/);
   assert.doesNotMatch(registerSource, /countLabel=""/);
   assert.doesNotMatch(registerSource, /Pemantauan \{new Date\(\)\.getFullYear\(\)\}/);
   assert.doesNotMatch(

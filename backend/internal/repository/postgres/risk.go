@@ -583,19 +583,9 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 		                  draft.status as draft_status,
 		                  CASE WHEN draft.id IS NOT NULL THEN true ELSE false END as has_ongoing,
 			                  monitoring.status as monitoring_status,
-			                  previous_quarter_monitoring.status as previous_quarter_monitoring_status,
 			                  monitoring_last.last_monitored_at as last_monitored_at,
 		                  COALESCE(monitoring_score.source_nilai, prev.nilai, r.nilai) as before_monitoring_nilai,
-		                  monitoring_score.observed_nilai as monitoring_result_nilai,
-		                  quarters.q1 as quarter_q1,
-			                  quarters.q2 as quarter_q2,
-			                  quarters.q3 as quarter_q3,
-			                  quarters.q4 as quarter_q4,
-			                  quarters.q1_nilai as quarter_q1_nilai,
-			                  quarters.q2_nilai as quarter_q2_nilai,
-			                  quarters.q3_nilai as quarter_q3_nilai,
-			                  quarters.q4_nilai as quarter_q4_nilai,
-                          recent_monitoring.items
+		                  monitoring_score.observed_nilai as monitoring_result_nilai
 		           FROM risks r
 		           LEFT JOIN organizations o ON r.organization_id = o.id
 		           LEFT JOIN users u ON r.created_by = u.id
@@ -624,48 +614,12 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 		             LIMIT 1
 			           ) monitoring ON true
 			           LEFT JOIN LATERAL (
-			             SELECT rm.status
-			             FROM risk_monitorings rm
-			             WHERE rm.version_group_id = r.version_group_id
-			               AND rm.status IN ('draft', 'final')
-			               AND rm.assessment_cycle = CASE
-			                 WHEN EXTRACT(QUARTER FROM ` + businessDateSQL + `)::int = 1
-			                   THEN (EXTRACT(YEAR FROM ` + businessDateSQL + `)::int - 1)::text || '-Q4'
-			                 ELSE EXTRACT(YEAR FROM ` + businessDateSQL + `)::text || '-Q' || (EXTRACT(QUARTER FROM ` + businessDateSQL + `)::int - 1)::text
-			               END
-			             ORDER BY (rm.status = 'final') DESC, rm.observed_at DESC, rm.finalized_at DESC NULLS LAST, rm.updated_at DESC, rm.id DESC
-			             LIMIT 1
-			           ) previous_quarter_monitoring ON true
-			           LEFT JOIN LATERAL (
 		             SELECT MAX(rm.observed_at::timestamp AT TIME ZONE 'Asia/Jakarta') AS last_monitored_at
 		             FROM risk_monitorings rm
 		             WHERE rm.version_group_id = r.version_group_id
 		               AND rm.finalized_at IS NOT NULL
 		           ) monitoring_last ON true
-		           LEFT JOIN LATERAL (
-		             SELECT
-		               MAX(CASE WHEN rm.assessment_cycle = EXTRACT(YEAR FROM NOW())::text || '-Q1' THEN rm.status END) AS q1,
-		               MAX(CASE WHEN rm.assessment_cycle = EXTRACT(YEAR FROM NOW())::text || '-Q2' THEN rm.status END) AS q2,
-		               MAX(CASE WHEN rm.assessment_cycle = EXTRACT(YEAR FROM NOW())::text || '-Q3' THEN rm.status END) AS q3,
-		               MAX(CASE WHEN rm.assessment_cycle = EXTRACT(YEAR FROM NOW())::text || '-Q4' THEN rm.status END) AS q4,
-		               MAX(CASE WHEN rm.assessment_cycle = EXTRACT(YEAR FROM NOW())::text || '-Q1' AND rm.status = 'final' THEN rm.observed_nilai END) AS q1_nilai,
-		               MAX(CASE WHEN rm.assessment_cycle = EXTRACT(YEAR FROM NOW())::text || '-Q2' AND rm.status = 'final' THEN rm.observed_nilai END) AS q2_nilai,
-		               MAX(CASE WHEN rm.assessment_cycle = EXTRACT(YEAR FROM NOW())::text || '-Q3' AND rm.status = 'final' THEN rm.observed_nilai END) AS q3_nilai,
-		               MAX(CASE WHEN rm.assessment_cycle = EXTRACT(YEAR FROM NOW())::text || '-Q4' AND rm.status = 'final' THEN rm.observed_nilai END) AS q4_nilai
-                         FROM (
-                           SELECT DISTINCT ON (assessment_cycle) assessment_cycle,status,observed_nilai
-                           FROM risk_monitorings
-                           WHERE version_group_id = r.version_group_id AND status IN ('draft','final')
-                           ORDER BY assessment_cycle,(status='final') DESC,observed_at DESC,finalized_at DESC NULLS LAST,updated_at DESC,id DESC
-                         ) rm
-                         WHERE rm.assessment_cycle IN (
-		                 EXTRACT(YEAR FROM NOW())::text || '-Q1',
-		                 EXTRACT(YEAR FROM NOW())::text || '-Q2',
-		                 EXTRACT(YEAR FROM NOW())::text || '-Q3',
-		                 EXTRACT(YEAR FROM NOW())::text || '-Q4'
-		               )
-		           ) quarters ON true
-` + riskRegisterRecentMonitoringJoin + ` WHERE 1=1`
+		           WHERE 1=1`
 	args := []interface{}{}
 	argIdx := 1
 
@@ -779,8 +733,6 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 	risks := make([]*entity.Risk, 0)
 	for rows.Next() {
 		var risk entity.Risk
-		var q1, q2, q3, q4 *string
-		var q1Nilai, q2Nilai, q3Nilai, q4Nilai *float64
 		if err := rows.Scan(
 			&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.IsCycleCurrent, &risk.VersionNumber, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy, &risk.ObjectiveID, &risk.LikelihoodAssessmentID, &risk.ImpactCriteriaID, &risk.ImpactJustification,
 			&risk.Cause, &risk.RiskSource, &risk.Controllability, &risk.ImpactDesc,
@@ -791,19 +743,10 @@ func (r *riskRepository) ListRegister(ctx context.Context, filter repository.Ris
 			&risk.CreatedAt, &risk.UpdatedAt,
 			&risk.OrgName, &risk.CreatedByName,
 			&risk.DraftID, &risk.DraftStatus, &risk.HasOngoing,
-			&risk.MonitoringStatus, &risk.PreviousQuarterMonitoringStatus, &risk.LastMonitoredAt,
+			&risk.MonitoringStatus, &risk.LastMonitoredAt,
 			&risk.BeforeMonitoringNilai, &risk.MonitoringResultNilai,
-			&q1, &q2, &q3, &q4,
-			&q1Nilai, &q2Nilai, &q3Nilai, &q4Nilai,
-			&risk.RecentMonitoring,
 		); err != nil {
 			return nil, 0, fmt.Errorf("scan risk register row: %w", err)
-		}
-		if q1 != nil || q2 != nil || q3 != nil || q4 != nil {
-			risk.SemesterMonitoring = &entity.SemesterMonitoringStatus{
-				Q1: q1, Q2: q2, Q3: q3, Q4: q4,
-				Q1Nilai: q1Nilai, Q2Nilai: q2Nilai, Q3Nilai: q3Nilai, Q4Nilai: q4Nilai,
-			}
 		}
 		risks = append(risks, &risk)
 	}
