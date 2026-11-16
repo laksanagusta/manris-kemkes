@@ -915,53 +915,24 @@ func (r *riskRepository) DashboardSummary(ctx context.Context, cycle string, org
 	if cycle == "" {
 		cycle = currentQuarterCycle()
 	}
-	scoreExpr := "r.effective_inherent_score"
-	var orgFilter string
-	var orgArgs []interface{}
-	if len(orgIDs) > 0 {
-		orgFilter = " AND r.organization_id = ANY($%d)"
-		orgArgs = []interface{}{orgIDs}
-	}
+	var riskCountsQuery string
+	var riskCountsArgs []any
 	if cycle != "" {
-		args := []interface{}{cycle}
-		argIdx := 2
-		q := dashboardRiskSnapshotCTE + "SELECT COUNT(*) FROM dashboard_risks r WHERE TRUE"
-		if len(orgIDs) > 0 {
-			q += fmt.Sprintf(orgFilter, argIdx)
-			args = append(args, orgArgs...)
-		}
-		if err := r.pool.QueryRow(ctx, q, args...).Scan(&s.TotalRisks); err != nil {
-			return nil, fmt.Errorf("count risks: %w", err)
-		}
-		args2 := []interface{}{cycle}
-		q2 := dashboardRiskSnapshotCTE + fmt.Sprintf("SELECT COUNT(*) FROM dashboard_risks r WHERE (%s) >= 15", scoreExpr)
-		if len(orgIDs) > 0 {
-			q2 += fmt.Sprintf(orgFilter, argIdx)
-			args2 = append(args2, orgArgs...)
-		}
-		if err := r.pool.QueryRow(ctx, q2, args2...).Scan(&s.HighExtreme); err != nil {
-			return nil, fmt.Errorf("count high/extreme: %w", err)
-		}
+		riskCountsQuery = dashboardRiskSnapshotCTE + `SELECT COUNT(*),
+			COUNT(*) FILTER (WHERE r.effective_inherent_score >= 15)
+			FROM dashboard_risks r WHERE TRUE`
+		riskCountsArgs = append(riskCountsArgs, cycle)
 	} else {
-		var args []interface{}
-		argIdx := 1
-		q := "SELECT COUNT(*) FROM risks r WHERE r.status = 'final' AND r.is_current = TRUE AND r.archived_at IS NULL"
-		if len(orgIDs) > 0 {
-			q += fmt.Sprintf(orgFilter, argIdx)
-			args = append(args, orgArgs...)
-		}
-		if err := r.pool.QueryRow(ctx, q, args...).Scan(&s.TotalRisks); err != nil {
-			return nil, fmt.Errorf("count risks: %w", err)
-		}
-		var args2 []interface{}
-		q2 := "SELECT COUNT(*) FROM risks r WHERE r.status = 'final' AND r.is_current = TRUE AND r.archived_at IS NULL AND ROUND(COALESCE(r.nilai, 0))::int >= 15"
-		if len(orgIDs) > 0 {
-			q2 += fmt.Sprintf(orgFilter, argIdx)
-			args2 = append(args2, orgArgs...)
-		}
-		if err := r.pool.QueryRow(ctx, q2, args2...).Scan(&s.HighExtreme); err != nil {
-			return nil, fmt.Errorf("count high/extreme: %w", err)
-		}
+		riskCountsQuery = `SELECT COUNT(*),
+			COUNT(*) FILTER (WHERE ROUND(COALESCE(r.nilai, 0))::int >= 15)
+			FROM risks r WHERE r.status = 'final' AND r.is_current = TRUE AND r.archived_at IS NULL`
+	}
+	if len(orgIDs) > 0 {
+		riskCountsArgs = append(riskCountsArgs, orgIDs)
+		riskCountsQuery += fmt.Sprintf(" AND r.organization_id = ANY($%d)", len(riskCountsArgs))
+	}
+	if err := r.pool.QueryRow(ctx, riskCountsQuery, riskCountsArgs...).Scan(&s.TotalRisks, &s.HighExtreme); err != nil {
+		return nil, fmt.Errorf("count dashboard risks: %w", err)
 	}
 	if len(orgIDs) > 0 {
 		err := r.pool.QueryRow(ctx,

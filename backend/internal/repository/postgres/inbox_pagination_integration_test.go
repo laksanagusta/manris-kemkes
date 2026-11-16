@@ -64,7 +64,7 @@ func TestInboxServerPagination(t *testing.T) {
 	}
 	for _, status := range []string{"pending", "approved", "rejected"} {
 		_, err = tx.Exec(ctx, `INSERT INTO approval_requests VALUES (
-			$1, '2026-01-01', 'risk', $2, $3, $4, $4, '2026-01-01', 'reviewer', ''
+			$1, '2026-01-01', 'risk', $2, $3, $4, $4, '2026-01-01', 'reviewer', 'Approval notes'
 		)`, uuid.New(), risk, status, user)
 		if err != nil {
 			t.Fatal(err)
@@ -91,6 +91,11 @@ func TestInboxServerPagination(t *testing.T) {
 	}
 	if first.Total != 4 || len(rows) != 2 || rows[0]["id"] != signingID.String() || first.Counts.MyApprovals != 2 || first.Counts.Approved != 1 || first.Counts.Rejected != 1 {
 		t.Fatalf("mixed inbox page/counts mismatch: %+v %s", first, first.Data)
+	}
+	if rows[0]["workingPaperId"] != paper.String() || rows[0]["signerPangkat"] != "IV/a" ||
+		rows[1]["entityId"] != risk.String() || rows[1]["entityOrgName"] != "Unit A" ||
+		rows[1]["requestedByName"] != "Requester" || rows[1]["notes"] != "Approval notes" {
+		t.Fatalf("inbox payload details mismatch: %s", first.Data)
 	}
 	seen := map[string]bool{}
 	for _, row := range rows {
@@ -121,6 +126,13 @@ func TestInboxServerPagination(t *testing.T) {
 	searched, err := repo.List(ctx, filter)
 	if err != nil || searched.Total != 3 || searched.Counts.All != 4 {
 		t.Fatalf("search and independent KPI mismatch: %+v %v", searched, err)
+	}
+	for term, total := range map[string]int{"UNIT A": 3, "requester": 3, "iv/A": 1, "IV/b": 0} {
+		filter.Query = term
+		match, err := repo.List(ctx, filter)
+		if err != nil || match.Total != total || match.Counts.All != 4 {
+			t.Fatalf("search %q mismatch: %+v %v", term, match, err)
+		}
 	}
 	filter.Query, filter.OrganizationID = "", &otherOrg
 	forbidden, err := repo.List(ctx, filter)
