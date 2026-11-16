@@ -65,7 +65,7 @@ jobs:
             cd /opt/manris
 
             echo "== Checking compose file =="
-            docker compose config
+            docker compose config --quiet
 
             echo "== Starting containers =="
             docker compose pull backend frontend
