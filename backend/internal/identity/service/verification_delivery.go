@@ -18,7 +18,7 @@ const maxVerificationAttempts = 4
 
 type VerificationDelivery struct {
 	ID           uuid.UUID
-	Token        EmailToken
+	Recipient    EmailRecipient
 	Registration bool
 	Attempt      int
 }
@@ -28,9 +28,26 @@ type VerificationDeliveryStatus struct {
 	Failure string `json:"failure,omitempty"`
 }
 
+type VerificationRequestOutcome string
+
+const (
+	VerificationScheduled   VerificationRequestOutcome = "scheduled"
+	VerificationExisting    VerificationRequestOutcome = "existing"
+	VerificationCooldown    VerificationRequestOutcome = "cooldown"
+	VerificationUnavailable VerificationRequestOutcome = "unavailable"
+)
+
+type VerificationRequestResult struct {
+	DeliveryID uuid.UUID                  `json:"-"`
+	Outcome    VerificationRequestOutcome `json:"outcome"`
+	VerificationDeliveryStatus
+	RetryAt *time.Time `json:"retryAt,omitempty"`
+}
+
 type VerificationDeliveryStore interface {
-	EnqueueVerification(context.Context, EmailToken, bool) (uuid.UUID, error)
+	EnqueueVerification(context.Context, EmailRecipient, bool) (VerificationRequestResult, error)
 	ClaimVerification(context.Context) (*VerificationDelivery, error)
+	IssueVerificationEmailToken(context.Context, VerificationDelivery, string, time.Duration) (bool, error)
 	FinishVerification(ctx context.Context, id uuid.UUID, attempt int, status, failure string, retryAfter time.Duration) error
 	VerificationByID(context.Context, uuid.UUID) (*VerificationDeliveryStatus, error)
 	LatestRegistrationVerification(context.Context, uuid.UUID) (uuid.UUID, *VerificationDeliveryStatus, error)
@@ -41,7 +58,7 @@ func (r *EmailRecovery) VerificationDeliveryStatus(ctx context.Context, id uuid.
 	return r.store.VerificationByID(ctx, id)
 }
 
-func (r *EmailRecovery) RegistrationDeliveryForAdmin(ctx context.Context, userID uuid.UUID, retry bool) (*VerificationDeliveryStatus, error) {
+func (r *EmailRecovery) RegistrationDeliveryForAdmin(ctx context.Context, userID uuid.UUID) (*VerificationDeliveryStatus, error) {
 	user, err := r.users.GetByID(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -52,18 +69,6 @@ func (r *EmailRecovery) RegistrationDeliveryForAdmin(ctx context.Context, userID
 	if !user.IsAwaitingEmailVerification() {
 		return &VerificationDeliveryStatus{Status: "unknown"}, nil
 	}
-	if retry {
-		if !domain.ValidEmailAddress(user.Email) {
-			return nil, domainerrors.ErrInvalidEmail
-		}
-		id, err := r.QueueRegistrationVerification(ctx, user)
-		if err != nil {
-			return nil, err
-		}
-		if id == uuid.Nil {
-			return &VerificationDeliveryStatus{Status: "unknown"}, nil
-		}
-	}
 	_, status, err := r.store.LatestRegistrationVerification(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -72,6 +77,29 @@ func (r *EmailRecovery) RegistrationDeliveryForAdmin(ctx context.Context, userID
 		return &VerificationDeliveryStatus{Status: "unknown"}, nil
 	}
 	return status, nil
+}
+
+func (r *EmailRecovery) RetryRegistrationDelivery(ctx context.Context, userID uuid.UUID) (VerificationRequestResult, error) {
+	user, err := r.users.GetByID(ctx, userID)
+	if err != nil {
+		return VerificationRequestResult{}, err
+	}
+	if user == nil {
+		return VerificationRequestResult{}, domainerrors.ErrNotFound
+	}
+	if !user.IsAwaitingEmailVerification() {
+		return unavailableVerificationRequest(), nil
+	}
+	if !domain.ValidEmailAddress(user.Email) {
+		return VerificationRequestResult{}, domainerrors.ErrInvalidEmail
+	}
+	return r.store.EnqueueVerification(ctx, recipientForEmail(user), true)
+}
+
+func unavailableVerificationRequest() VerificationRequestResult {
+	return VerificationRequestResult{
+		Outcome: VerificationUnavailable, VerificationDeliveryStatus: VerificationDeliveryStatus{Status: "unknown"},
+	}
 }
 
 func (r *EmailRecovery) processVerification(ctx context.Context) {
@@ -92,7 +120,7 @@ func (r *EmailRecovery) processVerification(ctx context.Context) {
 	var delay time.Duration
 	if job.Attempt <= maxVerificationAttempts {
 		deliveryContext, cancelDelivery := context.WithTimeout(ctx, 15*time.Second)
-		sent, err := r.deliver(deliveryContext, job.Token, job.Registration)
+		sent, err := r.deliverVerification(deliveryContext, *job)
 		cancelDelivery()
 		status, failure, delay = verificationDeliveryOutcome(job.Attempt, sent, err)
 	}
@@ -109,6 +137,19 @@ func (r *EmailRecovery) processVerification(ctx context.Context) {
 	if status == "failed" {
 		slog.Warn("email verification delivery failed", "failure", failure, "attempt", job.Attempt)
 	}
+}
+
+func (r *EmailRecovery) deliverVerification(ctx context.Context, job VerificationDelivery) (bool, error) {
+	token, err := newEmailToken()
+	if err != nil {
+		return false, err
+	}
+	created, err := r.store.IssueVerificationEmailToken(ctx, job, fingerprint(token), emailTokenLifetime)
+	if err != nil || !created {
+		return false, err
+	}
+	err = r.sendEmail(ctx, job.Recipient.Email, token, VerifyEmail, job.Registration)
+	return err == nil, err
 }
 
 func verificationDeliveryOutcome(attempt int, sent bool, err error) (status, failure string, delay time.Duration) {

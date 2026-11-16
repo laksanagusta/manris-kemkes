@@ -9,9 +9,15 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldDescription, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
-import { VerificationDeliveryStatusPanel } from "@/components/verification-delivery-status";
+import { VerificationDeliveryStatusPanel, VerificationResendAlert } from "@/components/verification-delivery-status";
 import { ApiError } from "@/lib/api";
-import { confirmEmailVerification, requestPasswordReset, resendRegistrationVerification, resetPasswordByEmail } from "@/lib/api/auth";
+import {
+  confirmEmailVerification,
+  requestPasswordReset,
+  resendRegistrationVerification,
+  resetPasswordByEmail,
+  type VerificationResendResult,
+} from "@/lib/api/auth";
 
 const footerLink = "font-medium text-foreground underline-offset-4 hover:underline";
 const recoveryHelp = "/docs/account-access#reset-password";
@@ -110,7 +116,7 @@ export function ForgotPasswordScreen() {
 
 export function ResendRegistrationVerificationScreen() {
   const [pending, setPending] = useState<"resend" | "status" | null>(null);
-  const [result, setResult] = useState<{ deliveryId?: string } | null>(null);
+  const [result, setResult] = useState<(VerificationResendResult & { deliveryId?: string }) | null>(null);
   const [error, setError] = useState("");
 
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -126,7 +132,7 @@ export function ResendRegistrationVerificationScreen() {
         String(form.get("password") ?? ""),
         statusOnly,
       );
-      setResult({ deliveryId: response.deliveryId });
+      setResult(response);
     } catch (err) {
       setError(actionError(err));
     } finally {
@@ -138,9 +144,10 @@ export function ResendRegistrationVerificationScreen() {
     return (
       <RecoveryCard title="Status pengiriman verifikasi" description="Pengiriman tautan menggunakan alamat email yang Anda daftarkan.">
         <div className="flex flex-col gap-4">
+          <VerificationResendAlert outcome={result.outcome} retryAt={result.retryAt} />
           {result.deliveryId ? (
             <VerificationDeliveryStatusPanel deliveryId={result.deliveryId} />
-          ) : (
+          ) : !result.outcome && (
             <Alert role="status">
               <AlertDescription>Belum ada status pengiriman yang bisa ditampilkan. Jika email sudah terverifikasi, tunggu persetujuan Super Admin.</AlertDescription>
             </Alert>

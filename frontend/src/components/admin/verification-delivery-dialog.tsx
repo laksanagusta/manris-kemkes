@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { VerificationDeliveryAlert } from "@/components/verification-delivery-status";
+import { VerificationDeliveryAlert, VerificationResendAlert } from "@/components/verification-delivery-status";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,6 +18,7 @@ import {
   getAdminVerificationDelivery,
   retryAdminVerificationDelivery,
   type AdminVerificationDelivery,
+  type VerificationResendResult,
 } from "@/lib/api/auth";
 import type { UserListItem } from "@/lib/api/users";
 
@@ -33,13 +34,14 @@ export function VerificationDeliveryDialog({ user, token, onClose }: {
   token: string;
   onClose: () => void;
 }) {
-  const [delivery, setDelivery] = useState<AdminVerificationDelivery | null>(null);
+  const [delivery, setDelivery] = useState<(AdminVerificationDelivery & VerificationResendResult) | null>(null);
   const [loading, setLoading] = useState(true);
   const [retrying, setRetrying] = useState(false);
   const [error, setError] = useState("");
   const [revision, setRevision] = useState(0);
   const busy = loading || retrying;
-  const canRetry = delivery && ["failed", "cancelled", "unknown"].includes(delivery.status);
+  const canRetry = delivery && ["accepted", "failed", "cancelled", "unknown"].includes(delivery.status);
+  const resendResult = busy || error ? null : delivery;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -92,10 +94,11 @@ export function VerificationDeliveryDialog({ user, token, onClose }: {
         </DialogHeader>
         <div className="flex flex-col gap-4">
           {error && <Alert variant="destructive"><AlertDescription>{error}</AlertDescription></Alert>}
+          {resendResult && <VerificationResendAlert outcome={resendResult.outcome} retryAt={resendResult.retryAt} />}
           {loading ? (
             <p role="status" className="text-sm text-muted-foreground">Memuat status pengiriman…</p>
           ) : delivery?.status === "unknown" ? (
-            <Alert role="status"><AlertDescription>Belum ada riwayat pengiriman untuk registrasi ini.</AlertDescription></Alert>
+            resendResult?.outcome !== "unavailable" && <Alert role="status"><AlertDescription>Belum ada riwayat pengiriman untuk registrasi ini.</AlertDescription></Alert>
           ) : delivery ? (
             <VerificationDeliveryAlert
               status={delivery.status}

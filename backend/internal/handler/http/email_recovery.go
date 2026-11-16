@@ -88,7 +88,20 @@ func RegisterEmailRecoveryRoutes(api fiber.Router, auth *identity.Service, recov
 		if err := c.BodyParser(&input); err != nil {
 			return identityError(c, domainerrors.ErrInvalidInput)
 		}
-		id, err := recovery.RequestRegistrationVerification(c.Context(), input.NIP, input.Password, input.StatusOnly)
+		response := fiber.Map{"accepted": true}
+		var id uuid.UUID
+		var err error
+		if input.StatusOnly {
+			id, err = recovery.LookupRegistrationVerification(c.Context(), input.NIP, input.Password)
+		} else {
+			var request identity.VerificationRequestResult
+			request, err = recovery.RequestRegistrationVerification(c.Context(), input.NIP, input.Password)
+			id = request.DeliveryID
+			response["outcome"] = request.Outcome
+			if request.RetryAt != nil {
+				response["retryAt"] = request.RetryAt
+			}
+		}
 		switch {
 		case errors.Is(err, domainerrors.ErrInvalidCredentials):
 			return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": "NIP atau password tidak sesuai."})
@@ -97,11 +110,10 @@ func RegisterEmailRecoveryRoutes(api fiber.Router, auth *identity.Service, recov
 		case err != nil:
 			return emailRecoveryError(c, err)
 		}
-		result := fiber.Map{"accepted": true}
 		if id != uuid.Nil {
-			result["deliveryId"] = id
+			response["deliveryId"] = id
 		}
-		return c.Status(fiber.StatusAccepted).JSON(result)
+		return c.Status(fiber.StatusAccepted).JSON(response)
 	})
 
 	api.Get("/auth/verify-email/delivery/:receipt", requireManrisApplication, enabled,
@@ -123,8 +135,31 @@ func RegisterEmailRecoveryRoutes(api fiber.Router, auth *identity.Service, recov
 	admin := api.Group("/auth/verify-email/admin", requireManrisApplication,
 		middleware.IdentityRequired(auth, domain.ManrisApplication), middleware.RequireFullSession(),
 		middleware.RoleGuard(domain.RoleSuperAdmin), enabled)
-	admin.Get("/:userID", registrationDeliveryAdmin(recovery, false))
-	admin.Post("/:userID/retry", verificationLimit, registrationDeliveryAdmin(recovery, true))
+	admin.Get("/:userID", func(c *fiber.Ctx) error {
+		id, err := uuid.Parse(c.Params("userID"))
+		if err != nil || id == uuid.Nil {
+			return identityError(c, domainerrors.ErrNotFound)
+		}
+		status, err := recovery.RegistrationDeliveryForAdmin(c.Context(), id)
+		if err != nil {
+			return emailRecoveryError(c, err)
+		}
+		return c.JSON(fiber.Map{"data": status})
+	})
+	admin.Post("/:userID/retry", verificationLimit, func(c *fiber.Ctx) error {
+		id, err := uuid.Parse(c.Params("userID"))
+		if err != nil || id == uuid.Nil {
+			return identityError(c, domainerrors.ErrNotFound)
+		}
+		result, err := recovery.RetryRegistrationDelivery(c.Context(), id)
+		if errors.Is(err, domainerrors.ErrInvalidEmail) {
+			return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": "Alamat email registrasi tidak valid. Perbarui alamat sebelum mengirim ulang."})
+		}
+		if err != nil {
+			return emailRecoveryError(c, err)
+		}
+		return c.JSON(fiber.Map{"data": result})
+	})
 
 	api.Post("/auth/verify-email/confirm", requireManrisApplication, enabled, ipLimit(), func(c *fiber.Ctx) error {
 		var input struct {
@@ -142,23 +177,6 @@ func RegisterEmailRecoveryRoutes(api fiber.Router, auth *identity.Service, recov
 		}
 		return c.SendStatus(fiber.StatusNoContent)
 	})
-}
-
-func registrationDeliveryAdmin(recovery *identity.EmailRecovery, retry bool) fiber.Handler {
-	return func(c *fiber.Ctx) error {
-		id, err := uuid.Parse(c.Params("userID"))
-		if err != nil || id == uuid.Nil {
-			return identityError(c, domainerrors.ErrNotFound)
-		}
-		status, err := recovery.RegistrationDeliveryForAdmin(c.Context(), id, retry)
-		if err != nil {
-			if errors.Is(err, domainerrors.ErrInvalidEmail) {
-				return c.Status(fiber.StatusUnprocessableEntity).JSON(fiber.Map{"error": "Alamat email registrasi tidak valid. Perbarui alamat sebelum mengirim ulang."})
-			}
-			return emailRecoveryError(c, err)
-		}
-		return c.JSON(fiber.Map{"data": status})
-	}
 }
 
 func emailRecoveryError(c *fiber.Ctx, err error) error {

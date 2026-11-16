@@ -19,6 +19,12 @@ export interface RegisterResponse {
 }
 
 export type VerificationDeliveryStatus = "queued" | "sending" | "retrying" | "accepted" | "failed" | "cancelled";
+export type VerificationResendOutcome = "scheduled" | "existing" | "cooldown" | "unavailable";
+
+export interface VerificationResendResult {
+  outcome?: VerificationResendOutcome;
+  retryAt?: string;
+}
 
 export interface AdminVerificationDelivery {
   status: VerificationDeliveryStatus | "unknown";
@@ -55,7 +61,7 @@ export function confirmEmailVerification(token: string) {
 }
 
 export function resendRegistrationVerification(nip: string, password: string, statusOnly = false) {
-  return api.post<{ accepted: true; deliveryId?: string }>(
+  return api.post<VerificationResendResult & { accepted: true; deliveryId?: string }>(
     "/auth/verify-email/resend-registration",
     { nip, password, statusOnly },
   );
@@ -70,5 +76,5 @@ export function getAdminVerificationDelivery(userId: string, token: string, sign
 }
 
 export function retryAdminVerificationDelivery(userId: string, token: string) {
-  return api.post<AdminVerificationDelivery>(`/auth/verify-email/admin/${userId}/retry`, {}, token);
+  return api.post<AdminVerificationDelivery & VerificationResendResult>(`/auth/verify-email/admin/${userId}/retry`, {}, token);
 }

@@ -3,7 +3,12 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { getVerificationDelivery, type VerificationDeliveryStatus } from "@/lib/api/auth";
+import {
+  getVerificationDelivery,
+  type VerificationDeliveryStatus,
+  type VerificationResendResult,
+} from "@/lib/api/auth";
+import { getVerificationResendFeedback } from "@/lib/verification-resend-feedback";
 
 const messages = {
   queued: ["Permintaan pengiriman diterima", "Tautan verifikasi menunggu pengiriman."],
@@ -24,17 +29,31 @@ export function VerificationDeliveryAlert({
   children?: ReactNode;
 }) {
   const [title, defaultDescription] = messages[status];
-  const showResendHint = status === "accepted" || status === "failed";
   return (
     <Alert role="status" variant={status === "failed" ? "destructive" : "default"}>
       <AlertTitle>{title}</AlertTitle>
       <AlertDescription>
-        <p>
-          {description ?? defaultDescription}
-          {showResendHint && " Jika pengiriman baru selesai diproses, tunggu dua menit sebelum meminta tautan baru."}
-        </p>
+        <p>{description ?? defaultDescription}</p>
         {children}
       </AlertDescription>
+    </Alert>
+  );
+}
+
+export function VerificationResendAlert({ outcome, retryAt }: VerificationResendResult) {
+  if (!outcome) return null;
+  const feedback = getVerificationResendFeedback(outcome, retryAt);
+
+  return (
+    <Alert role="status" variant={outcome === "unavailable" ? "destructive" : "default"}>
+      <AlertTitle>{feedback.title}</AlertTitle>
+      {feedback.retryTime ? (
+        <AlertDescription>
+          Coba lagi pada <time dateTime={feedback.retryTime.value}>{feedback.retryTime.label}</time>.
+        </AlertDescription>
+      ) : feedback.description && (
+        <AlertDescription>{feedback.description}</AlertDescription>
+      )}
     </Alert>
   );
 }

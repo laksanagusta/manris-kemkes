@@ -28,16 +28,19 @@ const (
 var ErrEmailRecoveryBusy = errors.New("email recovery queue is full")
 var ErrInvalidEmailToken = errors.New("email link is invalid or expired")
 
+type EmailRecipient struct {
+	Email, PasswordFingerprint string
+	UserID                     uuid.UUID
+}
+
 type EmailToken struct {
-	Hash, Purpose, Email, PasswordFingerprint string
-	UserID                                    uuid.UUID
-	DeliveryID                                uuid.UUID
-	DeliveryAttempt                           int
+	EmailRecipient
+	Hash string
 }
 
 type EmailRecoveryStore interface {
 	VerificationDeliveryStore
-	IssueEmailToken(context.Context, EmailToken, time.Duration) (bool, error)
+	IssueResetEmailToken(context.Context, EmailToken, time.Duration) (bool, error)
 	UsableResetToken(context.Context, string) (bool, error)
 	ConsumeEmailToken(ctx context.Context, hash, purpose, newPasswordHash string) (pendingApproval bool, err error)
 }
@@ -98,46 +101,56 @@ func (r *EmailRecovery) RequestVerification(ctx context.Context, id uuid.UUID, p
 	if u.EmailVerified {
 		return nil
 	}
-	_, err = r.queueVerification(ctx, u, false)
+	_, err = r.store.EnqueueVerification(ctx, recipientForEmail(u), false)
 	return err
 }
 
-func (r *EmailRecovery) QueueRegistrationVerification(ctx context.Context, u *domain.User) (uuid.UUID, error) {
-	return r.queueVerification(ctx, u, true)
-}
-
-func (r *EmailRecovery) RequestRegistrationVerification(ctx context.Context, nip, password string, statusOnly bool) (uuid.UUID, error) {
+func (r *EmailRecovery) registrationApplicant(ctx context.Context, nip, password string) (*domain.User, error) {
 	nip = strings.TrimSpace(nip)
 	if nip == "" || len(nip) > 64 || password == "" || len(password) > 72 {
-		return uuid.Nil, domainerrors.ErrInvalidInput
+		return nil, domainerrors.ErrInvalidInput
 	}
 	u, err := r.users.GetByNIP(ctx, nip)
 	if errors.Is(err, domainerrors.ErrNotFound) {
-		return uuid.Nil, domainerrors.ErrInvalidCredentials
+		return nil, domainerrors.ErrInvalidCredentials
 	}
 	if err != nil {
-		return uuid.Nil, err
+		return nil, err
 	}
 	if u == nil || bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(password)) != nil {
-		return uuid.Nil, domainerrors.ErrInvalidCredentials
+		return nil, domainerrors.ErrInvalidCredentials
 	}
 	if !u.IsAwaitingEmailVerification() {
-		return uuid.Nil, nil
+		return nil, nil
 	}
 	if !domain.ValidEmailAddress(u.Email) {
-		return uuid.Nil, domainerrors.ErrInvalidEmail
+		return nil, domainerrors.ErrInvalidEmail
 	}
-	if statusOnly {
-		id, _, err := r.store.LatestRegistrationVerification(ctx, u.ID)
-		return id, err
-	}
-	return r.QueueRegistrationVerification(ctx, u)
+	return u, nil
 }
 
-func (r *EmailRecovery) queueVerification(ctx context.Context, u *domain.User, registration bool) (uuid.UUID, error) {
-	return r.store.EnqueueVerification(ctx, EmailToken{
-		UserID: u.ID, Purpose: VerifyEmail, Email: u.Email, PasswordFingerprint: fingerprint(u.PasswordHash),
-	}, registration)
+func (r *EmailRecovery) LookupRegistrationVerification(ctx context.Context, nip, password string) (uuid.UUID, error) {
+	user, err := r.registrationApplicant(ctx, nip, password)
+	if err != nil || user == nil {
+		return uuid.Nil, err
+	}
+	id, _, err := r.store.LatestRegistrationVerification(ctx, user.ID)
+	return id, err
+}
+
+func (r *EmailRecovery) RequestRegistrationVerification(ctx context.Context, nip, password string) (VerificationRequestResult, error) {
+	user, err := r.registrationApplicant(ctx, nip, password)
+	if err != nil {
+		return VerificationRequestResult{}, err
+	}
+	if user == nil {
+		return unavailableVerificationRequest(), nil
+	}
+	return r.store.EnqueueVerification(ctx, recipientForEmail(user), true)
+}
+
+func recipientForEmail(u *domain.User) EmailRecipient {
+	return EmailRecipient{UserID: u.ID, Email: u.Email, PasswordFingerprint: fingerprint(u.PasswordHash)}
 }
 
 func (r *EmailRecovery) RunWorker(ctx context.Context) {
@@ -181,28 +194,32 @@ func (r *EmailRecovery) deliverReset(ctx context.Context, nip string) error {
 	if u == nil || u.Status != domain.UserStatusActive || !u.EmailVerified || !domain.ValidEmailAddress(u.Email) {
 		return nil
 	}
-	_, err = r.deliver(ctx, EmailToken{UserID: u.ID, Purpose: ResetByEmail, Email: u.Email, PasswordFingerprint: fingerprint(u.PasswordHash)}, false)
-	return err
+	token, err := newEmailToken()
+	if err != nil {
+		return err
+	}
+	created, err := r.store.IssueResetEmailToken(ctx, EmailToken{EmailRecipient: recipientForEmail(u), Hash: fingerprint(token)}, emailTokenLifetime)
+	if err != nil || !created {
+		return err
+	}
+	return r.sendEmail(ctx, u.Email, token, ResetByEmail, false)
 }
 
-func (r *EmailRecovery) deliver(ctx context.Context, request EmailToken, registration bool) (bool, error) {
+func newEmailToken() (string, error) {
 	var secret [32]byte
 	if _, err := rand.Read(secret[:]); err != nil {
-		return false, err
+		return "", err
 	}
-	token := base64.RawURLEncoding.EncodeToString(secret[:])
-	request.Hash = fingerprint(token)
-	created, err := r.store.IssueEmailToken(ctx, request, emailTokenLifetime)
-	if err != nil || !created {
-		return false, err
-	}
+	return base64.RawURLEncoding.EncodeToString(secret[:]), nil
+}
 
+func (r *EmailRecovery) sendEmail(ctx context.Context, recipient, token, purpose string, registration bool) error {
 	link := r.origin
 	link.Path = "/reset-password"
 	subject := "Reset password Manrisk"
 	instruction := "Buka tautan berikut untuk membuat password baru."
 	action := "Reset password"
-	if request.Purpose == VerifyEmail {
+	if purpose == VerifyEmail {
 		link.Path = "/verify-email"
 		subject = "Verifikasi email Manrisk"
 		instruction = "Buka tautan berikut untuk mengonfirmasi email akun Manrisk Anda."
@@ -244,10 +261,7 @@ func (r *EmailRecovery) deliver(ctx context.Context, request EmailToken, registr
 	</table>
 </body>
 </html>`, instruction, html.EscapeString(link.String()), action, expiryNote)
-	if err := r.sender.Send(ctx, request.Email, subject, textBody, htmlBody); err != nil {
-		return false, err
-	}
-	return true, nil
+	return r.sender.Send(ctx, recipient, subject, textBody, htmlBody)
 }
 
 func tokenFingerprint(token string) (string, error) {

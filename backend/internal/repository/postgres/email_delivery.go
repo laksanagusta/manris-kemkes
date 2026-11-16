@@ -8,13 +8,36 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/manris/backend/internal/identity/domain"
 	identity "github.com/manris/backend/internal/identity/service"
 )
 
-func (r *IdentityAuthStore) EnqueueVerification(ctx context.Context, token identity.EmailToken, registration bool) (uuid.UUID, error) {
+func (r *IdentityAuthStore) RegisterPendingWithVerification(ctx context.Context, user *domain.User) (uuid.UUID, error) {
 	tx, err := r.pool.Begin(ctx)
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("begin verification delivery enqueue: %w", err)
+		return uuid.Nil, fmt.Errorf("begin registration: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	pending := *user
+	if err := NewUserRepositoryWithTx(tx).Create(ctx, &pending); err != nil {
+		return uuid.Nil, err
+	}
+	delivery, err := insertVerificationDelivery(ctx, tx, pending.ID, true)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return uuid.Nil, fmt.Errorf("commit registration: %w", err)
+	}
+	*user = pending
+	return delivery.DeliveryID, nil
+}
+
+func (r *IdentityAuthStore) EnqueueVerification(ctx context.Context, recipient identity.EmailRecipient, registration bool) (identity.VerificationRequestResult, error) {
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return identity.VerificationRequestResult{}, fmt.Errorf("begin verification delivery enqueue: %w", err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -24,35 +47,58 @@ func (r *IdentityAuthStore) EnqueueVerification(ctx context.Context, token ident
 		AND encode(sha256(convert_to(password_hash, 'UTF8')), 'hex')=$3
 		AND status=CASE WHEN $4::boolean THEN 'pending_activation' ELSE 'active' END
 		AND email_verified_at IS NULL AND NOT must_change_password
-		FOR UPDATE`, token.UserID, token.Email, token.PasswordFingerprint, registration).Scan(&userID)
+		FOR UPDATE`, recipient.UserID, recipient.Email, recipient.PasswordFingerprint, registration).Scan(&userID)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return uuid.Nil, nil
+		return identity.VerificationRequestResult{
+			Outcome:                    identity.VerificationUnavailable,
+			VerificationDeliveryStatus: identity.VerificationDeliveryStatus{Status: "unknown"},
+		}, nil
 	}
 	if err != nil {
-		return uuid.Nil, fmt.Errorf("lock verification delivery recipient: %w", err)
+		return identity.VerificationRequestResult{}, fmt.Errorf("lock verification delivery recipient: %w", err)
 	}
 
-	var id uuid.UUID
-	err = tx.QueryRow(ctx, `SELECT id FROM auth_verification_deliveries
+	result := identity.VerificationRequestResult{Outcome: identity.VerificationExisting}
+	err = tx.QueryRow(ctx, `SELECT id, status, failure,
+		CASE WHEN status IN ('accepted', 'failed') THEN updated_at+interval '2 minutes' END
+		FROM auth_verification_deliveries
 		WHERE user_id=$1 AND email=$2 AND password_fingerprint=$3 AND registration=$4
 		AND (status IN ('queued', 'sending', 'retrying')
-			OR (status IN ('accepted', 'failed') AND updated_at>clock_timestamp()-interval '2 minutes'))
-		ORDER BY created_at DESC, id DESC LIMIT 1`, userID, token.Email, token.PasswordFingerprint, registration).Scan(&id)
-	if errors.Is(err, pgx.ErrNoRows) {
-		err = tx.QueryRow(ctx, `INSERT INTO auth_verification_deliveries(user_id, email, password_fingerprint, registration)
-			VALUES ($1, $2, $3, $4) RETURNING id`, userID, token.Email, token.PasswordFingerprint, registration).Scan(&id)
-	}
-	if err != nil {
-		return uuid.Nil, fmt.Errorf("enqueue verification delivery: %w", err)
+			OR (status IN ('accepted', 'failed') AND updated_at>statement_timestamp()-interval '2 minutes'))
+		ORDER BY created_at DESC, id DESC LIMIT 1`, userID, recipient.Email, recipient.PasswordFingerprint, registration).
+		Scan(&result.DeliveryID, &result.Status, &result.Failure, &result.RetryAt)
+	switch {
+	case errors.Is(err, pgx.ErrNoRows):
+		result, err = insertVerificationDelivery(ctx, tx, userID, registration)
+		if err != nil {
+			return identity.VerificationRequestResult{}, err
+		}
+	case err != nil:
+		return identity.VerificationRequestResult{}, fmt.Errorf("find reusable verification delivery: %w", err)
+	case result.RetryAt != nil:
+		retryAt := result.RetryAt.UTC()
+		result.RetryAt = &retryAt
+		result.Outcome = identity.VerificationCooldown
 	}
 	if err := tx.Commit(ctx); err != nil {
-		return uuid.Nil, fmt.Errorf("commit verification delivery enqueue: %w", err)
+		return identity.VerificationRequestResult{}, fmt.Errorf("commit verification delivery enqueue: %w", err)
 	}
-	return id, nil
+	return result, nil
+}
+
+func insertVerificationDelivery(ctx context.Context, tx pgx.Tx, userID uuid.UUID, registration bool) (identity.VerificationRequestResult, error) {
+	result := identity.VerificationRequestResult{Outcome: identity.VerificationScheduled}
+	err := tx.QueryRow(ctx, `INSERT INTO auth_verification_deliveries(user_id, email, password_fingerprint, registration)
+		SELECT id, email, encode(sha256(convert_to(password_hash, 'UTF8')), 'hex'), $2 FROM users WHERE id=$1
+		RETURNING id, status, failure`, userID, registration).Scan(&result.DeliveryID, &result.Status, &result.Failure)
+	if err != nil {
+		return identity.VerificationRequestResult{}, fmt.Errorf("enqueue verification delivery: %w", err)
+	}
+	return result, nil
 }
 
 func (r *IdentityAuthStore) ClaimVerification(ctx context.Context) (*identity.VerificationDelivery, error) {
-	delivery := identity.VerificationDelivery{Token: identity.EmailToken{Purpose: identity.VerifyEmail}}
+	var delivery identity.VerificationDelivery
 	// A sending job becomes claimable again after its lease if the worker exits before recording a result.
 	err := r.pool.QueryRow(ctx, `WITH next_delivery AS (
 		SELECT id FROM auth_verification_deliveries
@@ -63,7 +109,7 @@ func (r *IdentityAuthStore) ClaimVerification(ctx context.Context) (*identity.Ve
 	SET status='sending', attempt=d.attempt+1, available_at=clock_timestamp()+interval '1 minute', updated_at=clock_timestamp()
 	FROM next_delivery n WHERE d.id=n.id
 	RETURNING d.id, d.user_id, d.email, d.password_fingerprint, d.registration, d.attempt`).Scan(
-		&delivery.ID, &delivery.Token.UserID, &delivery.Token.Email, &delivery.Token.PasswordFingerprint,
+		&delivery.ID, &delivery.Recipient.UserID, &delivery.Recipient.Email, &delivery.Recipient.PasswordFingerprint,
 		&delivery.Registration, &delivery.Attempt)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, nil
@@ -71,8 +117,6 @@ func (r *IdentityAuthStore) ClaimVerification(ctx context.Context) (*identity.Ve
 	if err != nil {
 		return nil, fmt.Errorf("claim verification delivery: %w", err)
 	}
-	delivery.Token.DeliveryID = delivery.ID
-	delivery.Token.DeliveryAttempt = delivery.Attempt
 	return &delivery, nil
 }
 

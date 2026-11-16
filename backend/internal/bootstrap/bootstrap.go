@@ -464,7 +464,7 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 		pool.Close()
 		return nil, fmt.Errorf("initialize shared identity: %w", err)
 	}
-	var registrationVerifier authuc.RegistrationVerifier
+	var registrationWriter authuc.RegistrationWriter
 	if cfg.AuthSMTP.Address != "" {
 		sender, err := identitysmtp.New(cfg.AuthSMTP)
 		if err != nil {
@@ -476,9 +476,9 @@ func Build(ctx context.Context, cfg *config.Config) (*Container, error) {
 			pool.Close()
 			return nil, fmt.Errorf("configure email recovery: %w", err)
 		}
-		registrationVerifier = c.EmailRecovery
+		registrationWriter = identityStore
 	}
-	c.AuthRegisterUC = authuc.NewRegisterUseCase(c.UserRepository, c.OrgRepository, registrationVerifier)
+	c.AuthRegisterUC = authuc.NewRegisterUseCase(c.UserRepository, c.OrgRepository, registrationWriter)
 	c.AuthChangePasswordUC = authuc.NewChangePasswordUseCase(c.UserRepository, c.OrgHierarchySvc, cfg.JWTSecret, cfg.JWTExpiry, cfg.RiskApprovalWorkflowEnabled)
 
 	// ============================================================================

@@ -20,15 +20,17 @@ type registerStubUserRepo struct {
 	createErr error
 }
 
-type registerStubVerifier struct {
-	user *entity.User
+type registerStubWriter struct {
+	repo *registerStubUserRepo
 	id   uuid.UUID
 	err  error
 }
 
-func (s *registerStubVerifier) QueueRegistrationVerification(_ context.Context, user *entity.User) (uuid.UUID, error) {
-	s.user = user
-	return s.id, s.err
+func (s *registerStubWriter) RegisterPendingWithVerification(ctx context.Context, user *entity.User) (uuid.UUID, error) {
+	if s.err != nil {
+		return uuid.Nil, s.err
+	}
+	return s.id, s.repo.Create(ctx, user)
 }
 
 func (s *registerStubUserRepo) Create(_ context.Context, user *entity.User) error {
@@ -114,8 +116,8 @@ func TestRegisterUseCaseCreatesPendingUnitUser(t *testing.T) {
 		},
 	}
 
-	verifier := &registerStubVerifier{id: uuid.New()}
-	uc := NewRegisterUseCase(userRepo, orgRepo, verifier)
+	writer := &registerStubWriter{repo: userRepo, id: uuid.New()}
+	uc := NewRegisterUseCase(userRepo, orgRepo, writer)
 
 	result, err := uc.Execute(context.Background(), RegisterInput{
 		Name:            "Siti Rahma",
@@ -136,10 +138,10 @@ func TestRegisterUseCaseCreatesPendingUnitUser(t *testing.T) {
 	if userRepo.created == nil {
 		t.Fatal("expected user to be created")
 	}
-	if !result.VerificationQueued || verifier.user == nil || verifier.user.ID == uuid.Nil || verifier.user.ID != result.ID {
+	if !result.VerificationQueued || userRepo.created.ID == uuid.Nil || userRepo.created.ID != result.ID {
 		t.Fatal("expected verification to be queued for the newly persisted account")
 	}
-	if result.VerificationDeliveryID == nil || *result.VerificationDeliveryID != verifier.id {
+	if result.VerificationDeliveryID != writer.id {
 		t.Fatal("expected registration to return its delivery receipt")
 	}
 	if userRepo.created.Role != entity.RoleUnit {
@@ -265,12 +267,13 @@ func TestRegisterUseCaseHandlesUnavailableVerification(t *testing.T) {
 		}
 	})
 
-	t.Run("mail queue busy", func(t *testing.T) {
+	t.Run("queue write fails", func(t *testing.T) {
 		userRepo := &registerStubUserRepo{}
-		verifier := &registerStubVerifier{err: errors.New("test queue is busy")}
-		result, err := NewRegisterUseCase(userRepo, orgRepo, verifier).Execute(t.Context(), input)
-		if err != nil || result == nil || result.VerificationQueued || userRepo.created == nil {
-			t.Fatalf("registration should be saved so the applicant can resend, got %v and %v", result, err)
+		queueErr := errors.New("test queue write rejected")
+		writer := &registerStubWriter{repo: userRepo, err: queueErr}
+		result, err := NewRegisterUseCase(userRepo, orgRepo, writer).Execute(t.Context(), input)
+		if !errors.Is(err, queueErr) || result != nil || userRepo.created != nil {
+			t.Fatalf("failed queue write should fail registration before saving the user, got %v and %v", result, err)
 		}
 	})
 }

@@ -145,7 +145,7 @@ func testEmailRecoveryLifecycle(t *testing.T, pool *pgxpool.Pool, auth *identity
 	identityhttp.NewIdentityAuthHandler(auth, true).RegisterPublicRoutes(api)
 	identityhttp.RegisterEmailRecoveryRoutes(api, auth, recovery)
 	users := postgres.NewUserRepository(pool)
-	registration := authuc.NewRegisterUseCase(users, postgres.NewOrganizationRepository(pool), recovery)
+	registration := authuc.NewRegisterUseCase(users, postgres.NewOrganizationRepository(pool), postgres.NewIdentityAuthStore(pool))
 	identityhttp.NewAuthHandler(nil, registration, nil, nil, nil).RegisterPublicRegistrationRoutes(api, func(c *fiber.Ctx) error {
 		return c.SendStatus(fiber.StatusOK)
 	})
@@ -204,7 +204,7 @@ func testEmailRecoveryLifecycle(t *testing.T, pool *pgxpool.Pool, auth *identity
 	lookup := request("POST", "verify-email/resend-registration", "", map[string]any{
 		"nip": registrationNIP, "password": oldPassword, "statusOnly": true,
 	}, 202)
-	if !strings.Contains(lookup, receipt) {
+	if !strings.Contains(lookup, receipt) || strings.Contains(lookup, "outcome") {
 		t.Fatal("applicant could not recover the original receipt")
 	}
 	request("GET", "verify-email/delivery/"+uuid.NewString(), "", nil, 404)
@@ -246,6 +246,16 @@ func testEmailRecoveryLifecycle(t *testing.T, pool *pgxpool.Pool, auth *identity
 	}
 	expiredRegistration := recoveryLinkToken(t, mailbox.receive(t, "Verifikasi email Manrisk", registeredEmail), "/verify-email")
 	waitForDelivery("accepted")
+	duringCooldown := post("verify-email/resend-registration", "", login, 202)
+	if !strings.Contains(duringCooldown, receipt) || !strings.Contains(duringCooldown, `"outcome":"cooldown"`) ||
+		!strings.Contains(duringCooldown, `"retryAt":`) {
+		t.Fatalf("resend did not return the cooldown and previous receipt: %s", duringCooldown)
+	}
+	adminRetry := post("verify-email/admin/"+registered.ID.String()+"/retry", admin.Token, nil, 200)
+	if !strings.Contains(adminRetry, `"outcome":"cooldown"`) || !strings.Contains(adminRetry, `"retryAt":`) ||
+		!strings.Contains(adminRetry, `"status":"accepted"`) {
+		t.Fatalf("administrator retry did not return the same cooldown and delivery state: %s", adminRetry)
+	}
 	if _, err := pool.Exec(ctx, `UPDATE auth_email_tokens SET expires_at=NOW()-interval '1 second' WHERE user_id=$1`, registered.ID); err != nil {
 		t.Fatal(err)
 	}
@@ -254,7 +264,10 @@ func testEmailRecoveryLifecycle(t *testing.T, pool *pgxpool.Pool, auth *identity
 	}
 	post("verify-email/confirm", "", map[string]string{"token": expiredRegistration}, 422)
 	post("verify-email/resend-registration", "", map[string]string{"nip": registrationNIP, "password": "wrong"}, 422)
-	post("verify-email/admin/"+registered.ID.String()+"/retry", admin.Token, nil, 200)
+	adminRetry = post("verify-email/admin/"+registered.ID.String()+"/retry", admin.Token, nil, 200)
+	if !strings.Contains(adminRetry, `"outcome":"scheduled"`) || !strings.Contains(adminRetry, `"status":"queued"`) {
+		t.Fatalf("administrator retry did not return the newly queued delivery: %s", adminRetry)
+	}
 	if result := post("verify-email/resend-registration", "", login, 202); !strings.Contains(result, "deliveryId") {
 		t.Fatal("resend did not return a receipt")
 	}
