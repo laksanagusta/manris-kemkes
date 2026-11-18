@@ -19,7 +19,7 @@ export function RiskVersionHistoryList({ versions, onVersionSelect }: {
         const validDate = Number.isFinite(date.getTime());
         const label = version.versionNumber ? `Versi ${version.versionNumber}` : "Versi";
         const title = version.title && version.title !== "-" ? `${label} · ${version.title}` : label;
-        const context = [version.assessmentCycle, version.changeReason].filter(Boolean).join(" · ");
+        const context = version.changeReason?.trim() || "";
         return (
           <li key={version.id} data-version-history-item className={styles.item}>
             {index < versions.length - 1 && (

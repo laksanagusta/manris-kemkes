@@ -177,7 +177,7 @@ import {
   currentAssessmentCycle,
 } from "@/lib/risk-cycle-options";
 import { RiskCreationContext, RiskFormReadiness, RiskFinalizationReview } from "@/components/shared/design-system/domain/risk-creation-guidance";
-import { hasRiskScore, riskFinalizationCycle, riskPeriodLabel } from "@/lib/risk-creation";
+import { hasRiskScore, riskFinalizationCycle } from "@/lib/risk-creation";
 import { buildRiskRegisterPayload } from "@/lib/risk-register-payload";
 
 const RiskLogTimeline = dynamic(
@@ -879,10 +879,7 @@ export default function RiskInputPage() {
   const nextReviewDate = watch("nextReviewDate") ?? "";
   const riskCode = watch("riskCode") ?? "";
   const hasUnsavedWork = ((annualProfileReturn || isProfileRevision) && annualChangeReason !== savedAnnualChangeReason.current) || isDirty || (!riskId && Boolean(title.trim() || description.trim() || causes.length || impacts.length));
-  const [monitoringNow,setMonitoringNow]=useState(()=>businessNow());
   const isInitialProfile = !riskVersionGroupId || (riskVersionNumber ?? 1) <= 1;
-  const finalizationCycle = riskFinalizationCycle(assessmentCycleDisplay, isInitialProfile || isProfileRevision, monitoringNow);
-  useEffect(()=>{const refresh=()=>setMonitoringNow(businessNow());const timer=setInterval(refresh,60000);window.addEventListener("focus",refresh);return()=>{clearInterval(timer);window.removeEventListener("focus",refresh);};},[]);
   const selectedApprovalLine = approvalLine.filter((member) => member.id);
   const isApprovalLineReady =
     selectedApprovalLine.length > 0 &&
@@ -2095,13 +2092,6 @@ export default function RiskInputPage() {
         isDraft || riskApprovalCapabilityBehavior.submitsForApproval
           ? "draft"
           : "final";
-      if (!isDraft && (isInitialProfile || isProfileRevision) && currentAssessmentCycle() !== currentAssessmentCycle(monitoringNow)) {
-        setMonitoringNow(businessNow());
-        setShowSubmitReviewConfirm(true);
-        setSaveState("idle");
-        toast.info("Triwulan telah berganti. Tinjau kembali periode finalisasi.");
-        return;
-      }
       const payload = buildPayload(data, submissionStatus);
 
       let currentRiskId = riskId;
@@ -2687,8 +2677,6 @@ export default function RiskInputPage() {
 
         {!isRiskLocked ? (
           <RiskCreationContext
-            cycle={finalizationCycle}
-            originalCycle={assessmentCycleDisplay}
             saveMessage={saveMessage}
             revisionVersion={isProfileRevision ? riskVersionNumber ?? undefined : undefined}
           />
@@ -3411,12 +3399,6 @@ export default function RiskInputPage() {
                           </dd>
                         </div>
                         <div className="flex items-center justify-between gap-4">
-                            <PropertyLabel showIcon={false}>Periode profil</PropertyLabel>
-                          <dd className="shrink-0 text-right font-sans text-foreground">
-                            {riskPeriodLabel(isRiskLocked ? assessmentCycleDisplay : finalizationCycle)}
-                          </dd>
-                        </div>
-                        <div className="flex items-center justify-between gap-4">
                           <PropertyLabel showIcon={false}>Status</PropertyLabel>
                           <dd className="shrink-0 text-right">
                             <Badge variant={toBadgeVariant(getRiskStatusTone(riskStatus))}
@@ -3893,12 +3875,10 @@ export default function RiskInputPage() {
             </AlertDialogHeader>
             <ConfirmationConsequences variant={isProfileRevision ? "plain" : "default"}>
               {riskApprovalCapabilityBehavior.usesDirectApprovalCopy
-                    ? isProfileRevision ? <>Apakah anda yakin ingin finalisasi revisi risiko <span className="font-semibold">{riskCode}</span>?</> : "Risiko akan menjadi profil resmi untuk periode yang ditinjau dan dikunci setelah finalisasi."
+                    ? isProfileRevision ? <>Apakah anda yakin ingin finalisasi revisi risiko <span className="font-semibold">{riskCode}</span>?</> : "Risiko akan menjadi profil resmi dan dikunci setelah finalisasi."
                     : "Risiko akan disimpan lalu dikirim ke reviewer melalui alur persetujuan yang dipilih. Tinjau seluruh bagian sebelum melanjutkan."}
             </ConfirmationConsequences>
             <RiskFinalizationReview
-              cycle={finalizationCycle}
-              originalCycle={assessmentCycleDisplay}
               score={nilai}
               level={getRiskLevelLabel(level)}
               target={targetNilai}

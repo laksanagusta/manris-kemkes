@@ -17,8 +17,8 @@ export function RiskRevisionExample(){
    <div className="space-y-2"><p className="text-sm">Draf revisi tersedia</p><div className="flex flex-wrap gap-2"><RiskWorkflowActions token="example" riskId="example" drafts={{revisionRiskId:'example-revision'}} status="ready" onStartMonitoring={()=>{}} onRevisionStarted={()=>{}} onRetry={()=>{}} /></div></div>
    <div className="space-y-2"><p className="text-sm">Draf pemantauan tersedia</p><div className="flex flex-wrap gap-2"><RiskWorkflowActions token="example" riskId="example" drafts={{monitoringId:'example-monitoring'}} status="ready" onStartMonitoring={()=>{}} onRevisionStarted={()=>{}} onRetry={()=>{}} /></div></div>
    {notice&&<p role="status" className="text-sm text-muted-foreground">{notice}</p>}
-   <RiskCreationContext cycle="2026-Q4" saveMessage="Draf revisi tersimpan." revisionVersion={2} />
-   <RiskFinalizationReview cycle="2026-Q4" score={11} target={4} level="Sedang" mitigationCount={2} revision={{version:2,reason:'Perubahan pengendalian distribusi',previousProbability:3,previousImpact:3,probability:2,impact:3}} />
+   <RiskCreationContext saveMessage="Draf revisi tersimpan." revisionVersion={2} />
+   <RiskFinalizationReview score={11} target={4} level="Sedang" mitigationCount={2} revision={{version:2,reason:'Perubahan pengendalian distribusi',previousProbability:3,previousImpact:3,probability:2,impact:3}} />
   </div>
   <div className="max-w-xl space-y-3"><h3 className="text-sm font-medium">Laporan di dalam pemantauan</h3><p className="text-xs text-muted-foreground">Setiap tindakan wajib dilaporkan. Kondisi belum dilaksanakan tetap bisa dilaporkan dengan alasan.</p><MitigationProgressForm leadingContent={<MitigationExecutionField value={execution} onChange={setExecution} />} evidenceUrl={evidence} onEvidenceUrlChange={setEvidence} notes={notes} onNotesChange={setNotes} /></div>
  </section>;

@@ -168,15 +168,15 @@ test("risk version history connects adjacent markers without extending past the 
 test("risk context panel exposes compact risk properties", () => {
   assert.match(riskFormPage, /aria-labelledby="risk-side-properties"/);
   assert.match(riskFormPage, />\s*Properti\s*</);
-  assert.match(riskFormPage, /<dt className="text-\[13px\] text-muted-foreground">Status<\/dt>/);
-  assert.match(riskFormPage, /<dt className="text-\[13px\] text-muted-foreground">Kode risiko<\/dt>/);
-  assert.match(riskFormPage, /<dt className="text-\[13px\] text-muted-foreground">Versi<\/dt>/);
-  assert.match(riskFormPage, /<dt className="text-\[13px\] text-muted-foreground">Periode<\/dt>/);
+  assert.match(riskFormPage, /<PropertyLabel showIcon=\{false\}>Status<\/PropertyLabel>/);
+  assert.match(riskFormPage, /<PropertyLabel showIcon=\{false\}>Kode risiko<\/PropertyLabel>/);
+  assert.match(riskFormPage, /<PropertyLabel showIcon=\{false\}>Versi<\/PropertyLabel>/);
+  assert.doesNotMatch(riskFormPage, /<PropertyLabel showIcon=\{false\}>Periode profil<\/PropertyLabel>/);
   assert.match(riskFormPage, /riskVersionNumber/);
   assert.match(riskFormPage, /assessmentCycleDisplay/);
 });
 
-test("risk properties stay limited to status, code, version, and assessment period", () => {
+test("risk properties stay limited to status, code, and version", () => {
   const propertyStart = riskFormPage.indexOf(
     '<section aria-labelledby="risk-side-properties">',
   );
@@ -186,10 +186,10 @@ test("risk properties stay limited to status, code, version, and assessment peri
   );
 
   assert.equal(
-    propertySection.match(/<dt className="text-\[13px\] text-muted-foreground">/g)?.length,
-    4,
+    propertySection.match(/<PropertyLabel showIcon=\{false\}>/g)?.length,
+    3,
   );
-  assert.match(propertySection, /<dl className="mt-3 space-y-3">/);
+  assert.match(propertySection, /<PropertyList compact/);
   assert.doesNotMatch(propertySection, /grid-cols-2/);
   assert.doesNotMatch(propertySection, /Kategori|Unit kerja|Sumber risiko|Tingkat kendali|Skor inheren/);
   assert.match(
@@ -298,7 +298,7 @@ test("risk evaluation metadata labels use the primary foreground", () => {
   );
 });
 
-test("risk form keeps code and assessment period in the context panel only", () => {
+test("risk form keeps code in the context panel and period in monitoring only", () => {
   const identificationSection = riskFormPage.slice(
     riskFormPage.indexOf('id="identifikasi"'),
     riskFormPage.indexOf('id="analisis"'),
@@ -306,8 +306,9 @@ test("risk form keeps code and assessment period in the context panel only", () 
 
   assert.doesNotMatch(identificationSection, />\s*Kode Risiko\s*</);
   assert.doesNotMatch(identificationSection, />\s*Periode\s*</);
-  assert.match(riskFormPage, /<dt className="text-\[13px\] text-muted-foreground">Kode risiko<\/dt>/);
-  assert.match(riskFormPage, /<dt className="text-\[13px\] text-muted-foreground">Periode<\/dt>/);
+  assert.match(riskFormPage, /<PropertyLabel showIcon=\{false\}>Kode risiko<\/PropertyLabel>/);
+  assert.doesNotMatch(riskFormPage, /<PropertyLabel showIcon=\{false\}>Periode profil<\/PropertyLabel>/);
+  assert.doesNotMatch(riskFormPage, /Triwulan telah berganti/);
 });
 
 test("RO picker remains independently locked when reused", () => {
