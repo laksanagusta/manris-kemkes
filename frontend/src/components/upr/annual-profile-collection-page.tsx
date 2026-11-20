@@ -27,7 +27,7 @@ export function AnnualProfileCollectionPage() {
   useEffect(() => {
     if (!token || !organizationId) return;
     let cancelled = false;
-    uprApi.profiles(token).then(
+    uprApi.profiles(token, { includeDescendants: true }).then(
       (rows) => {
         if (!cancelled) {
           setVersions(rows);
@@ -111,7 +111,7 @@ export function AnnualProfileCollectionPage() {
         } catch (cause) {
           if (cause instanceof ApiError && cause.status === 409) {
             try {
-              setVersions(await uprApi.profiles(token));
+              setVersions(await uprApi.profiles(token, { includeDescendants: true }));
             } catch {
               /* keep the original submission error */
             }
@@ -121,6 +121,9 @@ export function AnnualProfileCollectionPage() {
       }}
       deleteDraft={async (profile) => {
         if (!token) throw new Error("Sesi tidak tersedia. Muat ulang halaman.");
+        if (profile.organizationId !== organizationId) {
+          throw new Error("Profil unit lain hanya dapat dibaca.");
+        }
         await uprApi.deleteDraft(token, profile.id);
         setVersions((current) =>
           current.filter((version) => version.id !== profile.id),

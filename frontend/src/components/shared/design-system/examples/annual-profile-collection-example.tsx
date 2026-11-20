@@ -18,6 +18,16 @@ import { AnnualProfileExample } from "./annual-profile-example";
 
 const initial: AnnualProfileListVersion[] = [
   {
+    id: "example-child-2026-v1",
+    year: 2026,
+    version: 1,
+    finalizedAt: null,
+    updatedAt: "2026-11-12T00:00:00Z",
+    riskCount: 1,
+    organizationId: "example-child",
+    organizationName: "Unit bawahan contoh",
+  },
+  {
     id: "example-2026-v2",
     year: 2026,
     version: 2,
@@ -172,15 +182,17 @@ export function AnnualProfileCollectionExample() {
               year={detail.version.year}
               sampleVersion={detail.version}
               sampleVersions={versions.filter(
-                (version) => version.year === detail.version.year,
+                (version) => version.year === detail.version.year && version.organizationId === detail.version.organizationId,
               )}
               pickup={detail.risks}
+              readOnly={detail.version.organizationId === "example-child"}
             />
           </>
         ) : (
           <AnnualProfileCollection
             embedded
             organization="UPR-T.II · Unit contoh"
+            organizationId="example-owner"
             versions={versions}
             defaultYear={2027}
             retry={() => undefined}

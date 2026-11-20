@@ -88,6 +88,17 @@ test("profile history groups all years and keeps the final and revision visible 
   assert.equal(rows[0].draft?.id, "draft-3");
 });
 
+test("profiles in the same year stay separate for the owner and each descendant", () => {
+  const updatedAt = "2026-11-12T00:00:00Z";
+  const owner = { id: "owner", organizationId: "parent", organizationName: "Induk", year: 2026, version: 1, finalizedAt: updatedAt, updatedAt, riskCount: 2 };
+  const child = { ...owner, id: "child-final", organizationId: "child", organizationName: "Unit bawahan" };
+  const rows = groupAnnualProfiles([owner, child, { ...child, id: "child-draft", version: 2, finalizedAt: null }]);
+  assert.deepEqual(rows.map(({ final, draft }) => [final?.id, draft?.id]), [
+    ["owner", undefined],
+    ["child-final", "child-draft"],
+  ]);
+});
+
 test("batch failures report committed IDs and stop before processing later risks", async () => {
   const candidates = [1, 2, 3].map(
     (index): AnnualCandidate => ({

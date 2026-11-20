@@ -14,6 +14,8 @@ export type AnnualProfileListVersion = Pick<
   year: number;
   updatedAt: string;
   riskCount: number;
+  organizationId?: string;
+  organizationName?: string;
 };
 
 export type AnnualPickupRisk = {
@@ -74,6 +76,7 @@ export type AnnualCandidate = {
 
 export type AnnualProfile = {
   organizationId?: string;
+  organizationName?: string;
   versions: AnnualVersion[];
   selected: AnnualVersion | null;
   members: AnnualMember[];
@@ -307,8 +310,11 @@ export const reportKindLabel: Record<ReportKind, string> = {
 };
 
 export const uprApi = {
-  profiles: (token: string) =>
-    api.get<AnnualProfileListVersion[]>("/annual-profiles", token),
+  profiles: (token: string, { includeDescendants = false } = {}) =>
+    api.get<AnnualProfileListVersion[]>(
+      includeDescendants ? "/annual-profiles?include_descendants=true" : "/annual-profiles",
+      token,
+    ),
   pickup: (token: string, year: number, sourceProfileId: string | null) =>
     api.get<AnnualPickupRisk[]>(
       `/annual-profiles/${year}/pickup${sourceProfileId ? `?sourceProfileId=${encodeURIComponent(sourceProfileId)}` : ""}`,

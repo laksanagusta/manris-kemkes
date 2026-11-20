@@ -9,11 +9,12 @@ import { workflowDate, WorkflowError } from "./workflow-ui";
 const windowLabels = { open: "Terbuka", closed: "Ditutup", upcoming: "Akan datang" };
 const documentLabels = { workingPaper: "Kertas kerja", evaluation: "Evaluasi" };
 
-export function AnnualProfilePeriods({ workspace, profileId, organizationId, finalized, retry }: {
+export function AnnualProfilePeriods({ workspace, profileId, organizationId, finalized, readOnly, retry }: {
   workspace?: ProfilePeriodWorkspace | { error: string };
   profileId: string;
   organizationId?: string;
   finalized: boolean;
+  readOnly?: boolean;
   retry: () => void;
 }) {
   return (
@@ -56,7 +57,7 @@ export function AnnualProfilePeriods({ workspace, profileId, organizationId, fin
                   <h3 className="flex flex-wrap items-baseline justify-between gap-x-2 text-xs font-medium">
                     {period.label}<span className="font-normal text-muted-foreground">{windowLabels[periodWindowState(period)]}</span>
                   </h3>
-                  <ProfileDocumentPeriodCell period={period} profileId={profileId} organizationId={organizationId} canCreate={finalized && Boolean(organizationId)} inline />
+                  <ProfileDocumentPeriodCell period={period} profileId={profileId} organizationId={organizationId} canCreate={finalized && Boolean(organizationId)} readOnly={readOnly} inline />
                 </section>
               ))}
             </div>

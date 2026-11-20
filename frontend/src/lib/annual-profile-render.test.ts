@@ -6,6 +6,8 @@ import {
   AnnualProfileContent,
   type AnnualProfileContentProps,
 } from "../components/upr/annual-profile-content";
+import { ProfileDocumentPeriodCell, RiskMonitoringPeriodCell } from "../components/upr/profile-period-cells";
+import type { ProfilePeriodProgress } from "./api/profile-periods";
 import type { AnnualProfile } from "./api/upr-workflow";
 
 const version = { id: "v1", version: 1, finalizedAt: null, finalizedBy: null };
@@ -89,7 +91,31 @@ test("revision shows the previous final version and the incomplete risk's work",
 
 
 test("parent read-only preview preserves draft status and omits child mutations", () => {
-  const html = renderToStaticMarkup(createElement(AnnualProfileContent, { ...props, readOnly: true }));
+  const html = renderToStaticMarkup(createElement(AnnualProfileContent, { ...props, organization: "Unit bawahan", readOnly: true }));
   assert.match(html, /Draf/);
+  assert.match(html, /Unit bawahan/);
+  assert.match(html, /Hanya baca/);
   assert.doesNotMatch(html, /Hapus draf|Buat Baru|Buat revisi|Lanjutkan revisi|Finalisasi profil/);
+});
+
+test("descendant period cells expose existing records for viewing and hide start actions", () => {
+  const period: ProfilePeriodProgress = {
+    id: "period-1",
+    label: "Q1",
+    ordinal: 1,
+    opensOn: "2020-01-01",
+    closesOn: "2099-12-31",
+    workingPaper: { id: "paper-1", status: "ongoing", completed: 0, total: 1 },
+    evaluation: { status: "pending", completed: 0, total: 1 },
+    monitorings: [{ groupId: "g1", id: "monitoring-1", status: "ongoing", completed: 0, total: 1 }],
+  };
+  const docs = renderToStaticMarkup(createElement(ProfileDocumentPeriodCell, { period, profileId: "v1", readOnly: true }));
+  assert.match(docs, /href="\/risk\/working-papers\/paper-1"/);
+  assert.match(docs, /Lihat kertas kerja/);
+  assert.doesNotMatch(docs, /Mulai evaluasi|Lanjutkan kertas kerja/);
+  const observed = renderToStaticMarkup(createElement(RiskMonitoringPeriodCell, { period, groupId: "g1", readOnly: true }));
+  assert.match(observed, /href="\/risk\/monitoring\/monitoring-1"/);
+  assert.match(observed, /Lihat pemantauan/);
+  const pending = renderToStaticMarkup(createElement(RiskMonitoringPeriodCell, { period, groupId: "g2", readOnly: true }));
+  assert.doesNotMatch(pending, /Mulai pemantauan|Lanjutkan pemantauan/);
 });

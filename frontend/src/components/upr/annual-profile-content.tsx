@@ -306,6 +306,15 @@ export function AnnualProfileContent({
         <Card role="region" aria-label="Ringkasan profil">
           <CardContent>
             <dl className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,14rem),1fr))] gap-x-6 gap-y-4">
+              {readOnly && (
+                <div className="min-w-0 space-y-1">
+                  <dt className="text-xs text-muted-foreground">Unit</dt>
+                  <dd className="flex flex-wrap items-center gap-2">
+                    <span className="wrap-anywhere font-medium">{organization}</span>
+                    <Badge variant="outline">Hanya baca</Badge>
+                  </dd>
+                </div>
+              )}
               {periodWorkspace?.rule && (
                 <div className="min-w-0 space-y-1">
                   <dt className="text-xs text-muted-foreground">Pemantauan</dt>
@@ -415,7 +424,7 @@ export function AnnualProfileContent({
                 "Berlaku sejak",
                 ...(draft ? ["Status Penilaian"] : []),
                 ...(periodWorkspace?.periods.map(period => period.label) ?? []),
-                "Aksi",
+                ...(readOnly ? [] : ["Aksi"]),
               ]}
             >
               {visible.map((member) => {
@@ -472,10 +481,10 @@ export function AnnualProfileContent({
                       </TableCell>
                     )}
                     {periodWorkspace?.periods.map(period => <TableCell key={period.id}>
-                      <RiskMonitoringPeriodCell period={period} groupId={member.groupId} disabled={busy}
-                        onStart={!draft && member.riskId && onStartPeriodMonitoring ? () => onStartPeriodMonitoring(member, period) : undefined} />
+                      <RiskMonitoringPeriodCell period={period} groupId={member.groupId} disabled={busy} readOnly={readOnly}
+                        onStart={!readOnly && !draft && member.riskId && onStartPeriodMonitoring ? () => onStartPeriodMonitoring(member, period) : undefined} />
                     </TableCell>)}
-                    <TableCell>
+                    {!readOnly && <TableCell>
                       {draft && (
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
@@ -529,14 +538,14 @@ export function AnnualProfileContent({
                           </DropdownMenuContent>
                         </DropdownMenu>
                       )}
-                    </TableCell>
+                    </TableCell>}
                   </TableRow>
                 );
               })}
               {!visible.length && (
                 <TableRow>
                   <TableCell
-                    colSpan={(draft ? 6 : 5) + (periodWorkspace?.periods.length ?? 0)}
+                    colSpan={(draft ? 5 : readOnly ? 3 : 4) + (periodWorkspace?.periods.length ?? 0)}
                     className="py-8 text-center text-muted-foreground"
                   >
                     {profile.members.length

@@ -29,6 +29,7 @@ type ListRiskMonitoringsInput struct {
 	AssessmentCycle string
 	CreatedAt       string
 	Status          string
+	TransactionKind string
 	Page            int
 	Limit           int
 	SortBy          string
@@ -64,6 +65,7 @@ func (uc *ListRiskMonitoringsUseCase) Execute(ctx context.Context, input ListRis
 		AssessmentCycle: input.AssessmentCycle,
 		CreatedAt:       input.CreatedAt,
 		Status:          input.Status,
+		TransactionKind: input.TransactionKind,
 		Page:            input.Page,
 		Limit:           input.Limit,
 		SortBy:          input.SortBy,

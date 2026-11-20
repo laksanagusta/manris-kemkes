@@ -174,6 +174,7 @@ export function MonitoringReadOnlyWorkspace() {
     listRiskMonitorings(token, {
       org_id: scopedOrganizationId,
       assessment_cycle: assessmentCycle,
+      transaction_kind: "monitoring",
       status: status === "finalized" ? "final" : status === "in_progress" ? "draft" : undefined,
       q: deferredSearch || undefined,
       sort_by: collectionSort.sortBy,
@@ -202,7 +203,12 @@ export function MonitoringReadOnlyWorkspace() {
     if (!token || !canLoad) return;
     let active = true;
     setSummary(null);
-    const params = { org_id: scopedOrganizationId, assessment_cycle: assessmentCycle, limit: 1 };
+    const params = {
+      org_id: scopedOrganizationId,
+      assessment_cycle: assessmentCycle,
+      transaction_kind: "monitoring" as const,
+      limit: 1,
+    };
     Promise.all([
       listRiskMonitorings(token, { ...params, status: "draft" }),
       listRiskMonitorings(token, { ...params, status: "final" }),

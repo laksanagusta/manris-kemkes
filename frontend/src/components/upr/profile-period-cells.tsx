@@ -9,12 +9,13 @@ import { periodWindowState, type ProcessProgress } from '@/lib/profile-period-pr
 
 const statusLabels = { pending: 'Pending', ongoing: 'Ongoing', done: 'Done' };
 
-function PeriodStatusAction({ progress, label, actionLabel, actionContext, href, disabled, onStart, inline }: {
+function PeriodStatusAction({ progress, label, actionLabel, actionContext, href, disabled, onStart, inline, readOnly }: {
   progress: ProcessProgress;
   label?: string;
   actionLabel: string;
   actionContext?: string;
   inline?: boolean;
+  readOnly?: boolean;
   href?: string;
   disabled?: boolean;
   onStart?: () => void;
@@ -28,16 +29,16 @@ function PeriodStatusAction({ progress, label, actionLabel, actionContext, href,
     </div>
     {href ? (
       <Button asChild variant="outline" size="xs"><Link href={href} aria-label={actionContext && `${actionLabel} · ${actionContext}`}>{inline ? actionLabel.split(" ")[0] : actionLabel}</Link></Button>
-    ) : (
+    ) : !readOnly ? (
       <Button type="button" variant="outline" size="xs" disabled={disabled || !onStart} onClick={onStart} aria-label={actionContext && `${actionLabel} · ${actionContext}`}>{inline ? actionLabel.split(" ")[0] : actionLabel}</Button>
-    )}
+    ) : null}
   </div>;
 }
 
-export function ProfileDocumentPeriodCell({ period, profileId, organizationId, canCreate = true, inline = false }: {
-  period: ProfilePeriodProgress; profileId: string; organizationId?: string; canCreate?: boolean; inline?: boolean;
+export function ProfileDocumentPeriodCell({ period, profileId, organizationId, canCreate = true, inline = false, readOnly }: {
+  period: ProfilePeriodProgress; profileId: string; organizationId?: string; canCreate?: boolean; inline?: boolean; readOnly?: boolean;
 }) {
-  const canStart = canCreate && periodWindowState(period) === 'open';
+  const canStart = !readOnly && canCreate && periodWindowState(period) === 'open';
   const query = new URLSearchParams({ profile_version_id: profileId, monitoring_period_id: period.id });
   if (organizationId) query.set('org_id', organizationId);
   const wpHref = period.workingPaper.id ? `/risk/working-papers/${period.workingPaper.id}` : canStart ? `/risk/working-papers/new?${query}` : undefined;
@@ -51,7 +52,8 @@ export function ProfileDocumentPeriodCell({ period, profileId, organizationId, c
       label="Kertas kerja"
       progress={period.workingPaper}
       href={wpHref}
-      actionLabel={period.workingPaper.id ? period.workingPaper.status === 'done' ? 'Lihat kertas kerja' : 'Lanjutkan kertas kerja' : 'Mulai kertas kerja'}
+      readOnly={readOnly}
+      actionLabel={period.workingPaper.id ? readOnly || period.workingPaper.status === 'done' ? 'Lihat kertas kerja' : 'Lanjutkan kertas kerja' : 'Mulai kertas kerja'}
     />
     <PeriodStatusAction
       inline={inline}
@@ -59,13 +61,14 @@ export function ProfileDocumentPeriodCell({ period, profileId, organizationId, c
       label="Evaluasi"
       progress={period.evaluation}
       href={evalHref}
-      actionLabel={period.evaluation.id ? period.evaluation.status === 'done' ? 'Lihat evaluasi' : 'Lanjutkan evaluasi' : 'Mulai evaluasi'}
+      readOnly={readOnly}
+      actionLabel={period.evaluation.id ? readOnly || period.evaluation.status === 'done' ? 'Lihat evaluasi' : 'Lanjutkan evaluasi' : 'Mulai evaluasi'}
     />
   </div>;
 }
 
-export function RiskMonitoringPeriodCell({ period, groupId, onStart, disabled }: {
-  period: ProfilePeriodProgress; groupId: string; onStart?: () => void; disabled?: boolean;
+export function RiskMonitoringPeriodCell({ period, groupId, onStart, disabled, readOnly }: {
+  period: ProfilePeriodProgress; groupId: string; onStart?: () => void; disabled?: boolean; readOnly?: boolean;
 }) {
   const monitoring = period.monitorings.find(item => item.groupId === groupId);
   if (monitoring?.applicable === false) return <p className="text-xs text-muted-foreground">Belum berlaku pada periode ini</p>;
@@ -76,9 +79,10 @@ export function RiskMonitoringPeriodCell({ period, groupId, onStart, disabled }:
     <PeriodStatusAction
       progress={progress}
       href={href}
-      actionLabel={href ? progress.status === 'done' ? 'Lihat pemantauan' : 'Lanjutkan pemantauan' : 'Mulai pemantauan'}
+      actionLabel={href ? readOnly || progress.status === 'done' ? 'Lihat pemantauan' : 'Lanjutkan pemantauan' : 'Mulai pemantauan'}
       disabled={disabled || periodWindowState(period) !== 'open'}
       onStart={onStart}
+      readOnly={readOnly}
     />
   </div>;
 }
