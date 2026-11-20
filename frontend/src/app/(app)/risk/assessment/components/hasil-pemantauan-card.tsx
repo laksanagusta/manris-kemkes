@@ -62,7 +62,7 @@ export function HasilPemantauanCard({
       </CardHeader>
       <CardContent className="grid gap-6">
         {treatmentPlan && (
-          <div className="rounded-lg border border-border/50 bg-muted/20 p-4 space-y-3">
+          <div className="rounded-lg border border-border bg-muted/20 p-4 space-y-3">
             <Label className="text-sm font-medium text-foreground">
               Rencana Penanganan (dari versi terakhir yang disetujui)
             </Label>

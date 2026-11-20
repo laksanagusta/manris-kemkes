@@ -202,7 +202,7 @@ export function RiskHeatmap({
         </div>
 
         {showLegend && !compact ? (
-          <div className="mt-3 flex items-center justify-center gap-3 border-t border-border/40 pt-3">
+          <div className="mt-3 flex items-center justify-center gap-3 border-t border-border pt-3">
             {[
               { label: "Sangat Rendah", cls: "heatmap-sangat-rendah" },
               { label: "Rendah", cls: "heatmap-rendah" },

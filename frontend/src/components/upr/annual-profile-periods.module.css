@@ -1,0 +1,36 @@
+[data-slot="table-body"] > .detailRow {
+  height: 0;
+}
+
+.collection [data-slot="table-body"] > .detailRow > .detailCell {
+  padding: 0;
+  border: 0;
+  white-space: normal;
+}
+
+.collection [data-slot="table-body"] > :has(+ .detailRow:last-child[aria-hidden="true"]) > [data-slot="table-cell"] {
+  border-block-end: 0;
+}
+
+.disclosure:not([data-animate]) {
+  transition: none;
+}
+
+.clip {
+  min-width: 0;
+  min-height: 0;
+  overflow: clip;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .chevron[data-animate] {
+    transition: transform 150ms var(--ease-out);
+  }
+}
+
+@media (width < 48rem) {
+  .collection :is(th[data-slot="table-head"], td[data-slot="table-cell"]) {
+    padding-inline: 8px;
+    white-space: normal;
+  }
+}

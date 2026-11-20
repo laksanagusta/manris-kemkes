@@ -74,7 +74,7 @@ test("risk register primary controls follow shared geometry", () => {
   assert.doesNotMatch(source, /className="h-8 gap-2 shadow-none"/);
   assert.match(
     source,
-    /className="h-11 rounded-lg border border-border\/50 bg-background\/80 text-xs"/,
+    /className="h-11 rounded-lg border border-border bg-background\/80 text-xs"/,
   );
   assert.match(
     source,

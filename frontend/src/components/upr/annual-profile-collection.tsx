@@ -3,12 +3,12 @@
 import { TableLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import type { MonitoringRule } from "@/lib/api/monitoring-rules";
 import type { ProfilePeriodWorkspace } from "@/lib/api/profile-periods";
-import { periodColumns } from "@/lib/profile-period-progress";
-import { ProfileDocumentPeriodCell } from "./profile-period-cells";
+import { AnnualProfilePeriods } from "./annual-profile-periods";
+import periodStyles from "./annual-profile-periods.module.css";
 import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { MoreHorizontal, Plus, Trash2 } from "@/components/shared/icons";
+import { Fragment, useEffect, useId, useMemo, useRef, useState } from "react";
+import { ChevronDown, MoreHorizontal, Plus, Trash2 } from "@/components/shared/icons";
 import {
   CollectionEmptyState,
   CollectionPageHeader,
@@ -32,6 +32,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { TableCell, TableRow } from "@/components/ui/table";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { annualProfileHref, groupAnnualProfiles } from "@/lib/annual-profile";
 import type {
   AnnualPickupRisk,
@@ -51,6 +52,7 @@ export function AnnualProfileCollection({
   loadPickup,
   loadRules,
   periodProgress = {},
+  retryPeriodProgress = retry,
   organizationId,
   create,
   openProfile,
@@ -69,6 +71,7 @@ export function AnnualProfileCollection({
   ) => Promise<AnnualPickupRisk[]>;
   loadRules?: (search?: string, signal?: AbortSignal) => Promise<MonitoringRule[]>;
   periodProgress?: Record<string, ProfilePeriodWorkspace | {error: string}>;
+  retryPeriodProgress?: () => void;
   organizationId?: string;
   create: (
     year: number,
@@ -88,7 +91,9 @@ export function AnnualProfileCollection({
   const [deleteError, setDeleteError] = useState("");
   const addTrigger = useRef<HTMLButtonElement>(null);
   const profiles = groupAnnualProfiles(versions);
-  const dynamicColumns = periodColumns(Object.values(periodProgress).flatMap(value => "periods" in value ? [value.periods] : []));
+  const disclosureId = useId();
+  const isMobile = useIsMobile();
+  const [disclosure, setDisclosure] = useState<{ year: number | null; animate: boolean }>({ year: null, animate: false });
   const canAdd = Boolean(organization && !loading && !error);
   const add = useMemo(
     () => (
@@ -125,7 +130,6 @@ export function AnnualProfileCollection({
           titleClassName="md:sr-only"
         />
       )}
-      {Object.values(periodProgress).some(value => "error" in value) && <WorkflowError message="Sebagian progres periode gagal dimuat. Muat ulang untuk melihat status terbaru." retry={retry} />}
       {loading ? (
         <TableLoadingSkeleton message="Memuat daftar profil…" />
       ) : !organization ? (
@@ -142,117 +146,160 @@ export function AnnualProfileCollection({
           description="Pilih tahun dan risiko awal untuk mulai menyusun profil unit."
         />
       ) : (
-        <WorkflowTable
-          columns={[
-            "Tahun",
-            "Status",
-            "Jumlah risiko",
-            "Terakhir diperbarui",
-            ...dynamicColumns,
-            "Aksi",
-          ]}
-          hiddenOnMobile={["Jumlah risiko", "Terakhir diperbarui"]}
-        >
-          {profiles.map(({ year, draft, final, updatedAt }) => {
-            const latest = draft ?? final;
-            const processProfile = final ?? draft;
-            if (!latest) return null;
-            return (
-              <TableRow key={year}>
-                <TableCell className="tabular-nums font-medium whitespace-normal">
-                  <div className="space-y-1">
-                    {embedded ? (
+        <div className={periodStyles.collection}>
+          <WorkflowTable
+            columns={[
+              "Tahun",
+              "Status",
+              { label: "Jumlah risiko", header: "Jumlah risiko", className: "hidden md:table-cell" },
+              { label: "Terakhir diperbarui", header: "Terakhir diperbarui", className: "hidden md:table-cell" },
+              "Jadwal pemantauan",
+              "Aksi",
+            ]}
+          >
+            {profiles.map(({ year, draft, final, updatedAt }) => {
+              const latest = draft ?? final;
+              const processProfile = final ?? draft;
+              if (!latest || !processProfile) return null;
+              const expanded = disclosure.year === year;
+              const detailsId = `${disclosureId}-${year}`;
+              const progress = periodProgress[processProfile.id];
+              const schedule = progress && "periods" in progress ? progress : undefined;
+              const scheduleLabel =
+                progress && "error" in progress
+                  ? "Jadwal gagal dimuat"
+                  : schedule?.rule
+                    ? `${{ monthly: "Bulanan", quarterly: "Triwulanan", semester: "Semesteran" }[schedule.rule.frequency]} · ${schedule.periods.length} periode`
+                    : schedule
+                      ? "Dokumen tertaut"
+                      : "Lihat jadwal";
+              return (
+                <Fragment key={year}>
+                  <TableRow>
+                    <TableCell className="tabular-nums font-medium whitespace-normal">
+                      <div className="space-y-1">
+                        {embedded ? (
+                          <Button
+                            variant="link"
+                            size="sm"
+                            className="h-auto min-h-8 px-0 py-0 tabular-nums font-medium no-underline hover:no-underline"
+                            aria-label={`${draft ? "Lanjutkan draf" : "Buka profil"} ${year}`}
+                            onClick={() => openProfile(year, latest.id)}
+                          >
+                            {year}
+                          </Button>
+                        ) : (
+                          <Link
+                            className="inline-flex min-h-8 items-center tabular-nums no-underline hover:no-underline hover:text-primary"
+                            href={annualProfileHref(year, latest.id)}
+                            aria-label={`${draft ? "Lanjutkan draf" : "Buka profil"} ${year}`}
+                          >
+                            {year}
+                          </Link>
+                        )}
+                        <div className="space-y-1 md:hidden">
+                          <p className="text-xs font-normal text-muted-foreground">
+                            {latest.riskCount} risiko
+                            {draft &&
+                              final &&
+                              ` di draf · ${final.riskCount} di final`}
+                          </p>
+                          <p className="text-xs font-normal text-muted-foreground">
+                            Diperbarui {workflowDate(updatedAt)}
+                          </p>
+                        </div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1.5">
+                        {final && (
+                          <Badge variant="outline">v{final.version} Final</Badge>
+                        )}
+                        {draft && (
+                          <Badge variant="secondary">
+                            v{draft.version} {final ? "Draf revisi" : "Draf"}
+                          </Badge>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="hidden tabular-nums md:table-cell">
+                      {latest.riskCount}
+                      {draft && final && (
+                        <span className="ml-1 text-xs text-muted-foreground">
+                          di draf · {final.riskCount} di final
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {workflowDate(updatedAt)}
+                    </TableCell>
+                    <TableCell className="whitespace-normal">
                       <Button
-                        variant="link"
+                        variant="outline"
                         size="sm"
-                        className="h-auto min-h-8 px-0 py-0 tabular-nums font-medium no-underline hover:no-underline"
-                        aria-label={`${draft ? "Lanjutkan draf" : "Buka profil"} ${year}`}
-                        onClick={() => openProfile(year, latest.id)}
+                        aria-expanded={expanded}
+                        aria-controls={detailsId}
+                        aria-label={`${scheduleLabel} profil ${year}`}
+                        onClick={(event) => setDisclosure({ year: expanded ? null : year, animate: event.detail > 0 })}
+                        className="h-auto min-h-7 whitespace-normal"
                       >
-                        {year}
+                        {scheduleLabel}
+                        <ChevronDown aria-hidden="true" data-animate={disclosure.animate || undefined}
+                          className={`${periodStyles.chevron} ${expanded ? "rotate-180" : ""}`} />
                       </Button>
-                    ) : (
-                      <Link
-                        className="inline-flex min-h-8 items-center tabular-nums no-underline hover:no-underline hover:text-primary"
-                        href={annualProfileHref(year, latest.id)}
-                        aria-label={`${draft ? "Lanjutkan draf" : "Buka profil"} ${year}`}
-                      >
-                        {year}
-                      </Link>
-                    )}
-                    <div className="space-y-1 sm:hidden">
-                      <p className="text-xs font-normal text-muted-foreground">
-                        {latest.riskCount} risiko
-                        {draft &&
-                          final &&
-                          ` di draf · ${final.riskCount} di final`}
-                      </p>
-                      <p className="text-xs font-normal text-muted-foreground">
-                        Diperbarui {workflowDate(updatedAt)}
-                      </p>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-wrap gap-1.5">
-                    {final && (
-                      <Badge variant="outline">v{final.version} Final</Badge>
-                    )}
-                    {draft && (
-                      <Badge variant="secondary">
-                        v{draft.version} {final ? "Draf revisi" : "Draf"}
-                      </Badge>
-                    )}
-                  </div>
-                </TableCell>
-                <TableCell className="hidden tabular-nums sm:table-cell">
-                  {latest.riskCount}
-                  {draft && final && (
-                    <span className="ml-1 text-xs text-muted-foreground">
-                      di draf · {final.riskCount} di final
-                    </span>
-                  )}
-                </TableCell>
-                <TableCell className="hidden sm:table-cell">
-                  {workflowDate(updatedAt)}
-                </TableCell>
-                {dynamicColumns.map(label => {
-                  const workspace = processProfile ? periodProgress[processProfile.id] : undefined;
-                  const period = workspace && "periods" in workspace ? workspace.periods.find(p => p.label === label) : undefined;
-                  return <TableCell key={label}>{period ? <ProfileDocumentPeriodCell period={period} profileId={processProfile!.id} organizationId={organizationId} canCreate={Boolean(processProfile?.finalizedAt)} /> : <span className="text-xs text-muted-foreground">{workspace && "error" in workspace ? "Progres gagal dimuat" : "—"}</span>}</TableCell>;
-                })}
-                <TableCell className="w-10 text-right">
-                  {draft && (
-                    <DropdownMenu modal={false}>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          aria-label={`Tindakan draf profil ${year}`}
-                          title={`Tindakan draf profil ${year}`}
-                        >
-                          <MoreHorizontal aria-hidden="true" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem
-                          onSelect={() => {
-                            if (!draft) return;
-                            setDeleteError("");
-                            setDeleting(draft);
-                          }}
-                        >
-                          <Trash2 aria-hidden="true" />
-                          <span>Hapus draf</span>
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  )}
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </WorkflowTable>
+                    </TableCell>
+                    <TableCell className="w-10 text-right">
+                      {draft && (
+                        <DropdownMenu modal={false}>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Tindakan draf profil ${year}`}
+                              title={`Tindakan draf profil ${year}`}
+                            >
+                              <MoreHorizontal aria-hidden="true" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onSelect={() => {
+                                if (!draft) return;
+                                setDeleteError("");
+                                setDeleting(draft);
+                              }}
+                            >
+                              <Trash2 aria-hidden="true" />
+                              <span>Hapus draf</span>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                  <TableRow id={detailsId} className={periodStyles.detailRow} aria-hidden={!expanded}>
+                    <TableCell colSpan={isMobile ? 4 : 6} className={periodStyles.detailCell}>
+                      <div className={`motion-panel ${periodStyles.disclosure}`} data-open={expanded} data-animate={disclosure.animate || undefined}>
+                        <div className={periodStyles.clip} inert={!expanded}>
+                          <div className="bg-muted/30 p-3">
+                            <AnnualProfilePeriods
+                              key={processProfile.id}
+                              workspace={progress}
+                              profileId={processProfile.id}
+                              organizationId={organizationId}
+                              finalized={Boolean(processProfile.finalizedAt)}
+                              retry={retryPeriodProgress}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                </Fragment>
+              );
+            })}
+          </WorkflowTable>
+        </div>
       )}
       {adding && (
         <AnnualProfileInitiationDialog

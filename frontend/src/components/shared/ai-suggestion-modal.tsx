@@ -149,7 +149,7 @@ export function AiSuggestionModal({
               ? isStructuredList
                 ? undefined
                 : "border-primary bg-primary/[0.03] ring-1 ring-primary/20"
-              : !isStructuredList && "border-border/50 bg-card hover:border-primary/30 hover:bg-muted/50",
+              : !isStructuredList && "border-border bg-card hover:border-primary/30 hover:bg-muted/50",
         )}
       >
         {!isCleanList && (
@@ -206,7 +206,7 @@ export function AiSuggestionModal({
     <div
       className={cn(
         selectionMode === "single"
-          ? "divide-y divide-border/60 overflow-hidden rounded-lg border border-border/60 bg-card"
+          ? "divide-y divide-border overflow-hidden rounded-lg border border-border bg-card"
           : "space-y-2.5 p-4 pb-8",
       )}
     >

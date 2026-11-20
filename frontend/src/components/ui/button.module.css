@@ -4,16 +4,14 @@
   --button-primary-foreground: #fff;
   --button-primary-hover: #303030;
   --button-primary-edge: var(--button-primary-surface);
-  --button-outline-edge: rgb(13 13 13 / 16%);
   --button-secondary-surface: rgb(13 13 13 / 8%);
-  --button-outline-shadow: 0 0 0 1px var(--button-outline-edge);
+  --button-outline-shadow: 0 0 0 1px var(--border);
 }
 
 :global(.dark) .button {
   --button-primary-surface: #ededed;
   --button-primary-foreground: #181818;
   --button-primary-hover: #d5d5d5;
-  --button-outline-edge: rgb(255 255 255 / 20%);
   --button-secondary-surface: rgb(255 255 255 / 8%);
 }
 
@@ -46,7 +44,7 @@
 
 .button.button:global(.button-outline) {
   border-radius: var(--control-radius);
-  background-color: transparent;
+  background-color: var(--card);
   box-shadow:
     var(--tw-inset-shadow, 0 0 #0000),
     var(--tw-inset-ring-shadow, 0 0 #0000),
@@ -73,8 +71,4 @@
   --button-primary-edge: var(--muted);
   background-color: var(--muted);
   color: var(--disabled-foreground);
-}
-
-.button.button:global(.button-outline):is(:hover, [aria-expanded="true"]):not(:disabled, [aria-disabled="true"]) {
-  background-color: var(--button-hover-surface);
 }

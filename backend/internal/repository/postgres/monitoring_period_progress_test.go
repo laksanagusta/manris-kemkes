@@ -34,6 +34,12 @@ func (db *periodAccessDB) QueryRow(_ context.Context, _ string, args ...any) pgx
 		if len(args) != 2 || args[1] != db.owner {
 			return pgx.ErrNoRows
 		}
+		if db.reads == 3 {
+			*dest[0].(*[]LinkedProfileDocument) = []LinkedProfileDocument{{
+				ID: db.owner, Kind: "workingPaper", Complete: true, ObservationCutoff: "2026-11-13",
+			}}
+			return nil
+		}
 		*dest[0].(**uuid.UUID) = nil
 		*dest[1].(*int) = 2027
 		*dest[2].(*int) = 1
@@ -51,10 +57,10 @@ func TestAnnualProfilePeriodProgressReadScope(t *testing.T) {
 		dbErr, wantErr error
 		reads          int
 	}{
-		{"own UPR", own, scope, nil, nil, 2},
-		{"UPR-T1 reads UPR-T2", child, scope, nil, nil, 2},
+		{"own UPR", own, scope, nil, nil, 3},
+		{"UPR-T1 reads UPR-T2", child, scope, nil, nil, 3},
 		{"outside scope", outside, scope, nil, ErrUPRNotFound, 1},
-		{"global reader", child, &entity.AccessScope{IsGlobal: true}, nil, nil, 2},
+		{"global reader", child, &entity.AccessScope{IsGlobal: true}, nil, nil, 3},
 		{"missing scope", child, nil, nil, ErrUPRNotFound, 0},
 		{"missing profile", child, scope, pgx.ErrNoRows, ErrUPRNotFound, 1},
 		{"database failure", child, scope, context.DeadlineExceeded, context.DeadlineExceeded, 1},
@@ -70,6 +76,9 @@ func TestAnnualProfilePeriodProgressReadScope(t *testing.T) {
 			}
 			if err == nil && got.Periods == nil {
 				t.Fatal("expected empty periods for an unconfigured profile")
+			}
+			if err == nil && (len(got.LinkedDocuments) != 1 || got.LinkedDocuments[0].Kind != "workingPaper" || !got.LinkedDocuments[0].Complete) {
+				t.Fatalf("expected linked historical working paper, got %+v", got.LinkedDocuments)
 			}
 			if err == nil && (got.Year != 2027 || got.Version != 1) {
 				t.Fatalf("unexpected annual profile identity: %+v", got)

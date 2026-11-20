@@ -100,7 +100,7 @@ export function CollectionLayoutExample() {
         </div>
       </CollectionFilterGrid>
       <CollectionTableCard>
-        <div className="divide-y divide-border/50">
+        <div className="divide-y divide-border">
           {["MR-001", "MR-002", "MR-003"].map((code) => (
             <div key={code} className="flex items-center justify-between px-4 py-3 text-sm">
               <span className="font-mono text-xs text-muted-foreground">{code}</span>

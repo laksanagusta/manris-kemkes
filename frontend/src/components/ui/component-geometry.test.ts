@@ -63,8 +63,8 @@ const contracts: Array<[string, string[]]> = [
   ["list-group.tsx", ["rounded-[12px]", "overflow-hidden"]],
   ["icon-tile.tsx", ["size-11", "rounded-lg", "size-14", "rounded-3xl"]],
   ["tabs.tsx", ["rounded-lg", "p-1"]],
-  ["dialog.tsx", ["rounded-[12px]", "max-h-[calc(100dvh-2rem)]", "overflow-y-auto", "no-scrollbar", "max-w-2xl", "bg-card", "p-5", "-mx-5", "-mb-5", "border-t border-border/70", "smooth-shadow-ring-xl shadow-black smooth-ring-neutral-300/30"]],
-  ["alert-dialog.tsx", ["rounded-[12px]", "max-h-[calc(100dvh-2rem)]", "overflow-y-auto", "no-scrollbar", "max-w-lg", "bg-card", "p-5", "-mx-5", "-mb-5", "border-t border-border/70", "smooth-shadow-ring-xl shadow-black smooth-ring-neutral-300/30"]],
+  ["dialog.tsx", ["rounded-[12px]", "max-h-[calc(100dvh-2rem)]", "overflow-y-auto", "no-scrollbar", "max-w-2xl", "bg-card", "p-5", "-mx-5", "-mb-5", "border-t border-border", "smooth-shadow-ring-xl shadow-black smooth-ring-neutral-300/30"]],
+  ["alert-dialog.tsx", ["rounded-[12px]", "max-h-[calc(100dvh-2rem)]", "overflow-y-auto", "no-scrollbar", "max-w-lg", "bg-card", "p-5", "-mx-5", "-mb-5", "border-t border-border", "smooth-shadow-ring-xl shadow-black smooth-ring-neutral-300/30"]],
   [
     "sheet.tsx",
     ["bg-card", "no-scrollbar", "duration-200 ease-(--ease-out)", "data-[side=bottom]:rounded-t-[12px]", "data-[side=bottom]:p-5"],

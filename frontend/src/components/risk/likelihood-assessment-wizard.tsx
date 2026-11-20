@@ -246,7 +246,7 @@ export function LikelihoodAssessmentWizard({
               <TooltipTrigger asChild>
                 <button
                   type="button"
-                  className="inline-flex size-5 items-center justify-center rounded-full border border-border/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                  className="inline-flex size-5 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                   aria-label="Petunjuk"
                 >
                   <Info className="size-3.5" />

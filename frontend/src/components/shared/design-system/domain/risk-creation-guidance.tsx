@@ -3,25 +3,19 @@
 import { AlertCircle, CheckCircle2, ClipboardList } from "@/components/shared/icons";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { formatRiskScore } from "@/lib/risk";
-import { riskPeriodLabel } from "@/lib/risk-creation";
 import { ActionButton } from "../actions/action-button";
 import { FormFrame, FormPanel } from "../layout/form-container";
 
-export function RiskCreationContext({ cycle, originalCycle, saveMessage, revisionVersion }: {
+export function RiskCreationContext({ saveMessage, revisionVersion }: {
   revisionVersion?: number;
-  cycle: string;
-  originalCycle?: string;
   saveMessage: string;
 }) {
   return (
-    <Alert variant="info" role="note" aria-label="Periode profil dan status draf" className="w-fit max-w-full rounded-lg px-2.5 py-2 text-xs leading-4 has-[>svg]:gap-x-2">
+    <Alert variant="info" role="note" aria-label="Status draf risiko" className="w-fit max-w-full rounded-lg px-2.5 py-2 text-xs leading-4 has-[>svg]:gap-x-2">
       <AlertCircle aria-hidden="true" className="size-3.5" />
-      <AlertTitle>Periode profil {riskPeriodLabel(cycle)}</AlertTitle>
+      <AlertTitle>Status draf risiko</AlertTitle>
       <AlertDescription className="flex flex-col gap-0.5 text-xs leading-4 [&_p:not(:last-child)]:mb-0">
         <p>{revisionVersion ? `Anda sedang mengedit draf versi v${revisionVersion}. Profil aktif tetap berlaku sampai revisi difinalisasi.` : "Risiko akan berlaku setelah finalisasi."}</p>
-        {originalCycle && originalCycle !== cycle ? (
-          <p>Draf berasal dari {riskPeriodLabel(originalCycle)}. Profil awal mengikuti triwulan finalisasi.</p>
-        ) : null}
         <p role="status" aria-live="polite" className="empty:sr-only">{saveMessage}</p>
       </AlertDescription>
     </Alert>
@@ -95,28 +89,15 @@ export function RiskFormReadiness<SectionId extends string>({ sections, onNaviga
   );
 }
 
-export type ProfileRevisionReview = {
-  version: number;
-  reason: string;
-  previousProbability: number;
-  previousImpact: number;
-  probability: number;
-  impact: number;
-};
-
-export function RiskFinalizationReview({ cycle, originalCycle, score, target, level, mitigationCount, revision }: {
-  revision?: ProfileRevisionReview;
-  cycle: string; originalCycle?: string; score: number; target: number; level: string; mitigationCount: number;
+export function RiskFinalizationReview({ score, target, level, mitigationCount }: {
+  score: number; target: number; level: string; mitigationCount: number;
 }) {
-  if (revision) return null;
   return <div className="space-y-3 text-sm">
     <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
-      <dt className="text-muted-foreground">Periode berlaku</dt><dd>{riskPeriodLabel(cycle)}</dd>
       <dt className="text-muted-foreground">Skor risiko</dt><dd>{formatRiskScore(score)} · {level}</dd>
       <dt className="text-muted-foreground">Target residual</dt><dd>{formatRiskScore(target)}</dd>
       <dt className="text-muted-foreground">Rencana penanganan</dt><dd>{mitigationCount}</dd>
     </dl>
-    {originalCycle && originalCycle !== cycle ? <p>Draf {riskPeriodLabel(originalCycle)} akan ditetapkan untuk {riskPeriodLabel(cycle)}.</p> : null}
-    <p className="text-muted-foreground">Risiko menjadi profil resmi untuk periode ini. Tugas laporan penanganan disiapkan sesuai rencana dan jadwal yang ditetapkan.</p>
+    <p className="text-muted-foreground">Risiko menjadi profil resmi setelah finalisasi. Tugas laporan penanganan disiapkan sesuai rencana dan jadwal yang ditetapkan.</p>
   </div>;
 }

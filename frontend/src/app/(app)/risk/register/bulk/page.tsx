@@ -95,7 +95,7 @@ type BatchResponse = {
 };
 
 const bulkImportSurfaceClassName =
-  "gap-3 rounded-lg border border-dashed border-border/70 bg-muted/[0.18] px-6 py-10 text-center";
+  "gap-3 rounded-lg border border-dashed border-border bg-muted/[0.18] px-6 py-10 text-center";
 
 function getPreviewStatus(preview: BulkRiskPreview) {
   if (preview.errors.length > 0) {
@@ -293,7 +293,7 @@ export default function BulkRiskRegisterPage() {
           </label>
 
           {sourceName ? (
-            <div className="rounded-lg border border-border/60 bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
+            <div className="rounded-lg border border-border bg-muted/20 px-4 py-3 text-sm text-muted-foreground">
               Sumber aktif:{" "}
               <span className="font-medium text-foreground">
                 {sourceName}

@@ -29,7 +29,7 @@ export const SimpulanCard = memo(function SimpulanCard({
 
   if (isInvalid) {
     return (
-      <div className="rounded-lg border border-dashed border-border/60 bg-muted/10 px-3 py-4">
+      <div className="rounded-lg border border-dashed border-border bg-muted/10 px-3 py-4">
         <p className="text-sm leading-6 text-muted-foreground">
           Pilih probabilitas dan dampak terlebih dahulu untuk melihat simpulan
           perubahan skor risiko.
@@ -103,7 +103,7 @@ export const SimpulanCard = memo(function SimpulanCard({
 
       <section
         aria-labelledby="monitoring-score-change"
-        className="border-t border-dashed border-border/70 pt-5"
+        className="border-t border-dashed border-border pt-5"
       >
         <h3
           id="monitoring-score-change"
@@ -120,7 +120,7 @@ export const SimpulanCard = memo(function SimpulanCard({
 
       <section
         aria-labelledby="monitoring-risk-evaluation"
-        className="border-t border-dashed border-border/70 pt-5"
+        className="border-t border-dashed border-border pt-5"
       >
         <h3
           id="monitoring-risk-evaluation"

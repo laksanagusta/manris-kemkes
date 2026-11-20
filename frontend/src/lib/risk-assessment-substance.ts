@@ -32,6 +32,13 @@ export interface RiskSubstanceDiff {
   changeType: "added" | "removed" | "modified";
 }
 
+export type RiskSubstanceSource = Omit<Partial<RiskSubstanceValues>, "cause" | "impactDesc" | "mitigations"> & {
+  cause?: string[] | string;
+  impactDesc?: string[] | string;
+  mitigations?: Pick<RiskMitigation, "action" | "owner">[];
+  mitigation?: RiskMitigation;
+};
+
 export const treatmentOptionLabels: Record<string, string> = {
   avoid: "Menghindari Risiko",
   transfer: "Berbagi Risiko",
@@ -185,12 +192,10 @@ function stringListsEqual(a: string[], b: string[]): boolean {
 }
 
 function normalizeSubstanceValues(
-  value: Partial<Risk> | Partial<RiskSubstanceValues> | null | undefined,
+  value: RiskSubstanceSource | null | undefined,
 ): RiskSubstanceValues {
-  const mitigations = normalizeMitigationList(
-    "mitigations" in (value ?? {}) ? (value as Partial<Risk>).mitigations : undefined,
-  );
-  const singleMitigation = (value as Partial<Risk> | undefined)?.mitigation;
+  const mitigations = normalizeMitigationList(value?.mitigations);
+  const singleMitigation = value?.mitigation;
 
   return {
     targetProbability: value?.targetProbability,
@@ -221,13 +226,8 @@ export function buildSubstanceDefaults(
 }
 
 export function diffRiskSubstance(
-  previous: Partial<Risk> | null | undefined,
-  candidate:
-    | Partial<Risk>
-    | Partial<RiskSubstanceValues>
-    | RiskSubstanceValues
-    | null
-    | undefined,
+  previous: RiskSubstanceSource | null | undefined,
+  candidate: RiskSubstanceSource | null | undefined,
 ): RiskSubstanceDiff[] {
   const previousValues = normalizeSubstanceValues(previous);
   const candidateValues = normalizeSubstanceValues(candidate);

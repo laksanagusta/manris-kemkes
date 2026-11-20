@@ -146,7 +146,7 @@ function CollapsibleCardBody({
 }: ComponentProps<typeof CardContent>) {
   return (
     <CardContent
-      className={cn("border-t border-border/60", className)}
+      className={cn("border-t border-border", className)}
       {...props}
     />
   );

@@ -93,7 +93,7 @@ const DrawerContent = React.forwardRef<
         <div className="relative flex h-full w-full grow flex-col overflow-hidden rounded-[12px] bg-card text-sm text-foreground smooth-shadow-ring-xl shadow-black smooth-ring-neutral-300/30">
           <DrawerPrimitive.Handle
             data-slot="drawer-handle"
-            className="mx-auto mt-4 hidden h-1.5 w-10 shrink-0 rounded-full bg-muted-foreground/30 group-data-[vaul-drawer-direction=bottom]/drawer-content:block"
+            className="mx-auto mt-4 hidden! h-1.5 w-10 shrink-0 rounded-full bg-muted-foreground/30 group-data-[vaul-drawer-direction=bottom]/drawer-content:block!"
           />
           {children}
           {showCloseButton ? (
@@ -121,7 +121,7 @@ function DrawerHeader({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="drawer-header"
       className={cn(
-        "flex flex-col gap-1 border-b border-border/70 px-5 py-5 pr-12",
+        "flex flex-col gap-1 border-b border-border px-5 py-5 pr-12",
         className
       )}
       {...props}
@@ -146,7 +146,7 @@ function DrawerFooter({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
       data-slot="drawer-footer"
-      className={cn("mt-auto border-t border-border/70 px-5 py-4", className)}
+      className={cn("mt-auto border-t border-border px-5 py-4", className)}
       {...props}
     />
   )

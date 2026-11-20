@@ -385,7 +385,7 @@ test("working paper creation follows the canonical form header and roster alignm
     /CollectionTableHead className="w-\[4%\]/,
   );
   assert.doesNotMatch(workingPaperCreate, /dipilih dari/);
-  assert.doesNotMatch(workingPaperCreate, /border-b border-border\/60 pb-4/);
+  assert.doesNotMatch(workingPaperCreate, /border-b border-border pb-4/);
   assert.doesNotMatch(workingPaperCreate, /min-w-\[1170px\]/);
 });
 
@@ -455,11 +455,11 @@ test("working paper progress uses the embedded collection table surface", () => 
   assert.doesNotMatch(workingPaperProgress, /<CollapsibleCard\.Body className=/);
   assert.match(
     workingPaperProgress,
-    /border-border\/80 transition-colors hover:bg-muted\/70/,
+    /border-border transition-colors hover:bg-muted\/70/,
   );
   assert.doesNotMatch(
     workingPaperProgress,
-    /rounded-lg border border-border\/60/,
+    /rounded-lg border border-border/,
   );
   assert.match(collectionTableSurface, /overflow-x-auto/);
   assert.match(collectionTableSurface, /viewportClassName/);
@@ -806,7 +806,7 @@ test("risk score selection uses the shared accessible heatmap picker", () => {
   assert.match(riskScoreHeatmapPicker, /inline-flex items-baseline tabular-nums/);
   assert.doesNotMatch(riskScoreHeatmapPicker, /bg-muted\/\[0\.18\]/);
   assert.equal(
-    (riskScoreHeatmapPicker.match(/rounded-lg border border-border\/60 bg-card px-3 py-2\.5/g) ?? [])
+    (riskScoreHeatmapPicker.match(/rounded-lg border border-border bg-card px-3 py-2\.5/g) ?? [])
       .length,
     1,
   );
@@ -817,12 +817,8 @@ test("risk score selection uses the shared accessible heatmap picker", () => {
   assert.doesNotMatch(riskScoreHeatmapPicker, /bg-muted px-2\.5 py-1 font-mono/);
 });
 
-test("risk property metadata labels the cycle as period", () => {
-  assert.match(
-    riskRegisterForm,
-    /<dt className="text-\[13px\] text-muted-foreground">Periode<\/dt>/,
-  );
-  assert.doesNotMatch(riskRegisterForm, />Periode pemantauan<\/dt>/);
+test("risk properties do not expose the legacy assessment cycle", () => {
+  assert.doesNotMatch(riskRegisterForm, /<PropertyLabel showIcon=\{false\}>Periode profil<\/PropertyLabel>/);
 });
 
 test("risk activity surfaces use catatan terminology", () => {
@@ -898,7 +894,7 @@ test("sidebar navigation uses normal inactive weight and medium active weight", 
 });
 
 test("dialog examples keep the header border removed", () => {
-  assert.doesNotMatch(dialogExample, /border-b border-border\/60/);
+  assert.doesNotMatch(dialogExample, /border-b border-border/);
 });
 
 test("shared button labels use medium weight", () => {

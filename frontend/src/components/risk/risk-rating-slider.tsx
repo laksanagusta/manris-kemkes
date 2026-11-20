@@ -75,7 +75,7 @@ export function RiskRatingSlider({
                   "relative z-20 h-10 rounded-lg border text-sm font-semibold transition-[left,transform,width,background-color,border-color,color,box-shadow] duration-200 motion-reduce:transition-none",
                   val === value
                     ? "border-transparent text-white shadow-sm"
-                    : "border-border/50 bg-muted/30 text-foreground hover:bg-muted/50",
+                    : "border-border bg-muted/30 text-foreground hover:bg-muted/50",
                   disabled && "cursor-not-allowed opacity-70",
                 )}
               >

@@ -12,6 +12,7 @@ import type {
   AnnualPickupRisk,
   AnnualProfileListVersion,
 } from "@/lib/api/upr-workflow";
+import type { ProfilePeriodWorkspace } from "@/lib/api/profile-periods";
 import type { MonitoringRule } from "@/lib/api/monitoring-rules";
 import { AnnualProfileExample } from "./annual-profile-example";
 
@@ -93,6 +94,31 @@ function ExampleHeaderActionSlot({ year }: { year?: number }) {
   ) : null;
 }
 
+const exampleRule2026: MonitoringRule = {
+  id: "example-rule-2026",
+  name: "Pemantauan semesteran 2026",
+  year: 2026,
+  frequency: "semester",
+  active: true,
+  periods: [
+    { id: "example-2026-h1", label: "Semester I", ordinal: 1, opensOn: "2026-01-01", closesOn: "2026-06-30" },
+    { id: "example-2026-h2", label: "Semester II", ordinal: 2, opensOn: "2026-07-01", closesOn: "2026-12-31" },
+  ],
+};
+function exampleWorkspace(rule: MonitoringRule, version = 1): ProfilePeriodWorkspace {
+  return {
+    year: rule.year,
+    version,
+    rule,
+    periods: rule.periods.map((period) => ({
+      ...period,
+      workingPaper: { status: "pending", completed: 0, total: 0 },
+      evaluation: { status: "pending", completed: 0, total: 0 },
+      monitorings: [],
+    })),
+  };
+}
+
 const exampleRules: MonitoringRule[] = [
   {
     id: "example-rule-2027",
@@ -112,6 +138,10 @@ const loadRules = async (search = ""): Promise<MonitoringRule[]> =>
 
 export function AnnualProfileCollectionExample() {
   const [versions, setVersions] = useState(initial);
+  const [periodProgress, setPeriodProgress] = useState<Record<string, ProfilePeriodWorkspace>>({
+    "example-2026-v1": exampleWorkspace(exampleRule2026),
+    "example-2025-v1": { year: 2025, version: 1, rule: null, periods: [] },
+  });
   const [pickedByVersion, setPickedByVersion] = useState<
     Record<string, AnnualPickupRisk[]>
   >({});
@@ -156,13 +186,14 @@ export function AnnualProfileCollectionExample() {
             retry={() => undefined}
             loadPickup={loadPickup}
             loadRules={loadRules}
+            periodProgress={periodProgress}
             openProfile={(year, id) => {
               const version = versions.find(
                 (item) => item.id === id && item.year === year,
               );
               if (version) setDetail({ version, risks: pickedByVersion[id] });
             }}
-            create={async (year, _source, ids) => {
+            create={async (year, _source, ids, ruleId) => {
               const version = {
                 id: `example-${year}-v1`,
                 year,
@@ -175,6 +206,8 @@ export function AnnualProfileCollectionExample() {
                 (item) => item.id && ids.includes(item.id),
               );
               setVersions((current) => [version, ...current]);
+              const rule = exampleRules.find((rule) => rule.id === ruleId);
+              if (rule) setPeriodProgress((current) => ({ ...current, [version.id]: exampleWorkspace(rule) }));
               setPickedByVersion((current) => ({
                 ...current,
                 [version.id]: risks,

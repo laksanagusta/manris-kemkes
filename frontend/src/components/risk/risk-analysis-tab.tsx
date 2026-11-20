@@ -40,9 +40,7 @@ import type { RiskVersionTimelineItem } from "@/types/risk";
 
 type AnalysisRow = {
   id: string;
-  label: string;
   versionNumber?: number;
-  period: string;
   createdAt: string;
   inherentScore: number;
   targetScore: number;
@@ -73,12 +71,6 @@ function formatShortDate(value: string) {
     month: "short",
     year: "numeric",
   });
-}
-
-function formatVersionLabel(version: RiskVersionTimelineItem) {
-  const cycle = version.assessmentCycle?.trim();
-  if (cycle) return cycle;
-  return formatShortDate(version.createdAt);
 }
 
 function getVersionInherentScore(version: RiskVersionTimelineItem) {
@@ -126,9 +118,7 @@ export function RiskAnalysisTab({
 
       return {
         id: version.id,
-        label: formatVersionLabel(version),
         versionNumber: version.versionNumber,
-        period: version.assessmentCycle || formatShortDate(version.createdAt),
         createdAt: version.createdAt,
         inherentScore,
         targetScore,
@@ -359,9 +349,6 @@ export function RiskAnalysisTab({
                         Versi
                       </TableHead>
                       <TableHead className="h-10 text-left align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
-                        Periode
-                      </TableHead>
-                      <TableHead className="h-10 text-left align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
                         Tanggal
                       </TableHead>
                       <TableHead className="h-10 text-left align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0 [&>[role=checkbox]]:translate-y-[2px]">
@@ -397,13 +384,6 @@ export function RiskAnalysisTab({
                           <span className="text-sm font-medium text-foreground">
                             {row.versionNumber ? `v${row.versionNumber}` : "-"}
                           </span>
-                        </TableCell>
-                        <TableCell className="align-middle whitespace-nowrap">
-                          <div className="flex min-w-0 items-center gap-2">
-                            <span className="truncate text-sm font-medium text-foreground">
-                              {row.label}
-                            </span>
-                          </div>
                         </TableCell>
                         <TableCell className="align-middle whitespace-nowrap">
                           <span data-date-time="">{formatShortDate(row.createdAt)}</span>

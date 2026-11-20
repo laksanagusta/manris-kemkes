@@ -89,7 +89,7 @@ export function TaskLanes({ job, onRetryTask }: { job: ProcessingJob; onRetryTas
       <div className="grid gap-2 md:grid-cols-2">
         {job.tasks.slice(0, 4).map((task) => <TaskRow key={task.id} task={task} onRetry={() => onRetryTask(task.id)} />)}
       </div>
-      <details open={detailsOpen} onToggle={(event) => setDetailsOpen(event.currentTarget.open)} className="mt-3 rounded-lg border border-dashed border-border/80 bg-muted/20 px-3 py-2">
+      <details open={detailsOpen} onToggle={(event) => setDetailsOpen(event.currentTarget.open)} className="mt-3 rounded-lg border border-dashed border-border bg-muted/20 px-3 py-2">
         <summary className="cursor-pointer list-none text-xs font-medium text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring/40">
           <span className="inline-flex items-center gap-2"><CircleDot className="size-3.5 text-muted-foreground" />Lihat detail pemrosesan</span>
         </summary>

@@ -158,7 +158,7 @@ test("uses Indonesian workflow labels and discoverable history actions", () => {
   assert.match(completedResults, />\s*Lihat\s*\n\s*<ChevronDown/);
   assert.match(completedResults, /variant="outline" size="sm" className="gap-2 border-0 border-shadow"/);
   assert.match(completedResults, /border-t border-dashed/);
-  assert.match(completedResults, /border-t border-border\/70 bg-table-header/);
+  assert.match(completedResults, /border-t border-border bg-table-header/);
   assert.match(completedResults, /grid-rows-\[0fr\]/);
   assert.match(completedResults, /grid-rows-\[1fr\]/);
   assert.match(completedResults, /transition-\[grid-template-rows\] duration-200 ease-\(--ease-out\)/);
@@ -211,9 +211,9 @@ test("keeps findings flat without a priority grouping or outer card wrapper", ()
   assert.match(completedResults, /job\.findings\.map/);
   assert.doesNotMatch(completedResults, /findingGroups|Prioritas tinggi|Prioritas sedang|Prioritas rendah|Ringkasan tingkat/);
   assert.match(completedResults, /className="space-y-4"/);
-  assert.match(completedResults, /rounded-lg border border-border\/80 bg-card p-4/);
-  assert.doesNotMatch(completedResults, /rounded-lg border border-border\/80 bg-background p-4/);
-  assert.doesNotMatch(completedResults, /className="rounded-lg border border-border\/80 bg-card p-4 sm:p-5"/);
+  assert.match(completedResults, /rounded-lg border border-border bg-card p-4/);
+  assert.doesNotMatch(completedResults, /rounded-lg border border-border bg-background p-4/);
+  assert.doesNotMatch(completedResults, /className="rounded-lg border border-border bg-card p-4 sm:p-5"/);
   assert.doesNotMatch(completedResults, /rounded-md border border-border bg-card/);
 });
 

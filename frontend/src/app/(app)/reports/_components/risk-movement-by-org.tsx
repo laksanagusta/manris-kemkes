@@ -152,7 +152,7 @@ export function RiskMovementByOrg({
                 </ChartContainer>
               </div>
             </div>
-            <div className="mt-4 flex shrink-0 items-center justify-center gap-5 border-t border-border/40 pt-4">
+            <div className="mt-4 flex shrink-0 items-center justify-center gap-5 border-t border-border pt-4">
               <div className="flex items-center gap-1.5">
                   <div
                     className="size-2.5 rounded-[3px]"

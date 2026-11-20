@@ -1103,7 +1103,7 @@ function MeetingIntelligenceWorkspaceContent({
                             ) : null}
                           </div>
 
-                          <div className="w-full border border-border/60 bg-muted/[0.16] p-4 lg:w-[320px]">
+                          <div className="w-full border border-border bg-muted/[0.16] p-4 lg:w-[320px]">
                             <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                               {suggestion.targetType === "existing" ? "Ringkasan perubahan" : "Isian awal draf"}
                             </p>
@@ -1149,7 +1149,7 @@ function MeetingIntelligenceWorkspaceContent({
                           </div>
                         </div>
 
-                        <div className="flex flex-col gap-2 border-t border-border/50 pt-4 sm:flex-row sm:items-center">
+                        <div className="flex flex-col gap-2 border-t border-border pt-4 sm:flex-row sm:items-center">
                           {suggestion.targetType === "existing" ? (
                             <Button
                               size="sm"
@@ -1228,7 +1228,7 @@ function MeetingIntelligenceWorkspaceContent({
                           ) : null}
 
                           {isLowConfidenceSuggestion(reviewSuggestion) ? (
-                            <div className="space-y-2 border-t border-border/60 pt-3">
+                            <div className="space-y-2 border-t border-border pt-3">
                               <p className="text-sm text-amber-700">
                                 Tingkat keyakinan masih rendah. Pilih target risiko yang benar sebelum perubahan diterapkan.
                               </p>
@@ -1251,7 +1251,7 @@ function MeetingIntelligenceWorkspaceContent({
                               </div>
                             </div>
                           ) : (
-                            <div className="flex flex-wrap items-center gap-2 border-t border-border/60 pt-3 text-sm text-muted-foreground">
+                            <div className="flex flex-wrap items-center gap-2 border-t border-border pt-3 text-sm text-muted-foreground">
                               <span className="font-medium text-foreground">
                                 {(targetRiskDetails?.code || reviewSuggestion.targetRiskCode || "Risk") +
                                   " • " +
@@ -1281,7 +1281,7 @@ function MeetingIntelligenceWorkspaceContent({
                               </p>
                             </ConfirmationConsequences>
                           ) : (
-                            <div className="border border-dashed border-border/60 bg-muted/[0.08] px-4 py-4 text-sm text-muted-foreground">
+                            <div className="border border-dashed border-border bg-muted/[0.08] px-4 py-4 text-sm text-muted-foreground">
                               {isLoadingRiskDetails ? "Memuat cuplikan risiko eksisting..." : "Detail target risiko akan tampil di sini setelah dipilih."}
                             </div>
                           )}
@@ -1312,7 +1312,7 @@ function MeetingIntelligenceWorkspaceContent({
                                       "block cursor-pointer border transition-colors",
                                       checked
                                         ? "border-primary/30 bg-primary/[0.03]"
-                                        : "border-border/60 bg-background hover:border-border"
+                                        : "border-border bg-background hover:border-border"
                                     )}
                                   >
                                     <div className="flex items-start gap-3 p-4">
@@ -1347,7 +1347,7 @@ function MeetingIntelligenceWorkspaceContent({
                                           </span>
                                         </div>
 
-                                        <div className="grid gap-px border border-border/60 bg-border/60 xl:grid-cols-2">
+                                        <div className="grid gap-px border border-border bg-border/60 xl:grid-cols-2">
                                           <div className="bg-background px-4 py-3">
                                             <p className="text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Sebelum</p>
                                             <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-foreground">
@@ -1523,7 +1523,7 @@ function MeetingIntelligenceWorkspaceContent({
                     align="start"
                     className="w-[var(--radix-popover-trigger-width)] overflow-hidden"
                   >
-                    <div className="relative border-b border-border/60 p-2">
+                    <div className="relative border-b border-border p-2">
                       <CollectionSearchField
                         autoFocus
                         placeholder="Cari kode atau judul risiko..."
