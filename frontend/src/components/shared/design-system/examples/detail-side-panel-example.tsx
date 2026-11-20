@@ -33,7 +33,7 @@ export function DetailSidePanelExample() {
           <h2 id="detail-panel-example-versions" className="text-sm font-semibold capitalize text-primary">Riwayat versi</h2>
           <div className="mt-4">
             <RiskVersionHistoryList versions={[
-              { id: "contoh-versi-2", versionNumber: 2, title: "Pembaruan rencana penanganan untuk koordinasi distribusi dan pemantauan lintas unit", changeReason: "Pembaruan penanganan", createdAt: "2026-11-08T04:35:00Z", assessmentCycle: "2026-H2", isCurrent: true },
+              { id: "contoh-versi-2", versionNumber: 2, title: "Gangguan distribusi logistik", changeReason: "Menyesuaikan jadwal penanganan untuk koordinasi distribusi lintas unit", createdAt: "2026-11-08T04:35:00Z", assessmentCycle: "2026-H2", isCurrent: true },
               { id: "contoh-versi-1", versionNumber: 1, title: "Identifikasi risiko awal", createdAt: "2026-11-07T09:03:00Z", assessmentCycle: "2026-H2", isCurrent: false },
             ]} onVersionSelect={(_, event) => event.preventDefault()} />
           </div>
