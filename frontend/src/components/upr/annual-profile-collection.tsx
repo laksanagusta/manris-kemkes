@@ -91,9 +91,10 @@ export function AnnualProfileCollection({
   const [deleteError, setDeleteError] = useState("");
   const addTrigger = useRef<HTMLButtonElement>(null);
   const profiles = groupAnnualProfiles(versions);
+  const ownVersions = versions.filter((version) => !version.organizationId || version.organizationId === organizationId);
   const disclosureId = useId();
   const isMobile = useIsMobile();
-  const [disclosure, setDisclosure] = useState<{ year: number | null; animate: boolean }>({ year: null, animate: false });
+  const [disclosure, setDisclosure] = useState<{ profileId: string | null; animate: boolean }>({ profileId: null, animate: false });
   const canAdd = Boolean(organization && !loading && !error);
   const add = useMemo(
     () => (
@@ -150,6 +151,7 @@ export function AnnualProfileCollection({
           <WorkflowTable
             columns={[
               "Tahun",
+              { label: "Unit", header: "Unit", className: "hidden md:table-cell" },
               "Status",
               { label: "Jumlah risiko", header: "Jumlah risiko", className: "hidden md:table-cell" },
               { label: "Terakhir diperbarui", header: "Terakhir diperbarui", className: "hidden md:table-cell" },
@@ -161,8 +163,12 @@ export function AnnualProfileCollection({
               const latest = draft ?? final;
               const processProfile = final ?? draft;
               if (!latest || !processProfile) return null;
-              const expanded = disclosure.year === year;
-              const detailsId = `${disclosureId}-${year}`;
+              const ownerId = latest.organizationId ?? organizationId;
+              const ownerName = latest.organizationName ?? organization;
+              const readOnly = ownerId !== organizationId;
+              const openLabel = draft && !readOnly ? "Lanjutkan draf" : "Buka profil";
+              const expanded = disclosure.profileId === processProfile.id;
+              const detailsId = `${disclosureId}-${processProfile.id}`;
               const progress = periodProgress[processProfile.id];
               const schedule = progress && "periods" in progress ? progress : undefined;
               const scheduleLabel =
@@ -174,7 +180,7 @@ export function AnnualProfileCollection({
                       ? "Dokumen tertaut"
                       : "Lihat jadwal";
               return (
-                <Fragment key={year}>
+                <Fragment key={processProfile.id}>
                   <TableRow>
                     <TableCell className="tabular-nums font-medium whitespace-normal">
                       <div className="space-y-1">
@@ -183,7 +189,7 @@ export function AnnualProfileCollection({
                             variant="link"
                             size="sm"
                             className="h-auto min-h-8 px-0 py-0 tabular-nums font-medium no-underline hover:no-underline"
-                            aria-label={`${draft ? "Lanjutkan draf" : "Buka profil"} ${year}`}
+                            aria-label={`${openLabel} ${year} · ${ownerName}`}
                             onClick={() => openProfile(year, latest.id)}
                           >
                             {year}
@@ -192,12 +198,13 @@ export function AnnualProfileCollection({
                           <Link
                             className="inline-flex min-h-8 items-center tabular-nums no-underline hover:no-underline hover:text-primary"
                             href={annualProfileHref(year, latest.id)}
-                            aria-label={`${draft ? "Lanjutkan draf" : "Buka profil"} ${year}`}
+                            aria-label={`${openLabel} ${year} · ${ownerName}`}
                           >
                             {year}
                           </Link>
                         )}
                         <div className="space-y-1 md:hidden">
+                          <p className="text-xs font-normal text-muted-foreground">{ownerName}</p>
                           <p className="text-xs font-normal text-muted-foreground">
                             {latest.riskCount} risiko
                             {draft &&
@@ -210,6 +217,7 @@ export function AnnualProfileCollection({
                         </div>
                       </div>
                     </TableCell>
+                    <TableCell className="hidden whitespace-normal md:table-cell">{ownerName}</TableCell>
                     <TableCell>
                       <div className="flex flex-wrap gap-1.5">
                         {final && (
@@ -239,8 +247,8 @@ export function AnnualProfileCollection({
                         size="sm"
                         aria-expanded={expanded}
                         aria-controls={detailsId}
-                        aria-label={`${scheduleLabel} profil ${year}`}
-                        onClick={(event) => setDisclosure({ year: expanded ? null : year, animate: event.detail > 0 })}
+                        aria-label={`${scheduleLabel} profil ${year} · ${ownerName}`}
+                        onClick={(event) => setDisclosure({ profileId: expanded ? null : processProfile.id, animate: event.detail > 0 })}
                         className="h-auto min-h-7 whitespace-normal"
                       >
                         {scheduleLabel}
@@ -249,7 +257,7 @@ export function AnnualProfileCollection({
                       </Button>
                     </TableCell>
                     <TableCell className="w-10 text-right">
-                      {draft && (
+                      {draft && !readOnly && (
                         <DropdownMenu modal={false}>
                           <DropdownMenuTrigger asChild>
                             <Button
@@ -278,7 +286,7 @@ export function AnnualProfileCollection({
                     </TableCell>
                   </TableRow>
                   <TableRow id={detailsId} className={periodStyles.detailRow} aria-hidden={!expanded}>
-                    <TableCell colSpan={isMobile ? 4 : 6} className={periodStyles.detailCell}>
+                    <TableCell colSpan={isMobile ? 4 : 7} className={periodStyles.detailCell}>
                       <div className={`motion-panel ${periodStyles.disclosure}`} data-open={expanded} data-animate={disclosure.animate || undefined}>
                         <div className={periodStyles.clip} inert={!expanded}>
                           <div className="bg-muted/30 p-3">
@@ -286,8 +294,9 @@ export function AnnualProfileCollection({
                               key={processProfile.id}
                               workspace={progress}
                               profileId={processProfile.id}
-                              organizationId={organizationId}
+                              organizationId={ownerId}
                               finalized={Boolean(processProfile.finalizedAt)}
+                              readOnly={readOnly}
                               retry={retryPeriodProgress}
                             />
                           </div>
@@ -304,7 +313,7 @@ export function AnnualProfileCollection({
       {adding && (
         <AnnualProfileInitiationDialog
           defaultYear={defaultYear}
-          versions={versions}
+          versions={ownVersions}
           loadPickup={loadPickup}
           loadRules={loadRules}
           create={async (year, source, ids, ruleId) => {

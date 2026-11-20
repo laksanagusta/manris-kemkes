@@ -16,7 +16,6 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { AnnualProfileContent } from "@/components/upr/annual-profile-content";
 import { WorkflowError, workflowError } from "@/components/upr/workflow-ui";
-import { canWriteInOrg } from "@/lib/auth-helpers";
 import { useAuth } from "@/contexts/auth-context";
 import {
   uprApi,
@@ -54,7 +53,7 @@ function AnnualProfileWorkspace() {
   const mutationLock = useRef(false);
   const organizationId = user?.organizationId;
   const context = `${organizationId}:${year}:${version}`;
-  const readOnly = !!data && (!data.organizationId || !canWriteInOrg(user, data.organizationId));
+  const readOnly = !data?.organizationId || data.organizationId !== organizationId;
   const fetching = loading || loadedContext !== context;
   const busy = fetching || pending || Boolean(refreshError);
   const returnTo = annualProfileHref(year, data?.selected?.id);
@@ -77,33 +76,39 @@ function AnnualProfileWorkspace() {
   useEffect(() => {
     if (!token || !organizationId || !validYear) return;
     let cancelled = false;
-    Promise.allSettled([
-      uprApi.profile(token, year, version),
-      uprApi.candidates(token, year),
-    ]).then(([profile, choices]) => {
-      if (cancelled) return;
-      if (profile.status === "fulfilled") {
-        setData(profile.value);
+    async function load(authToken: string) {
+      try {
+        const profile = await uprApi.profile(authToken, year, version);
+        if (cancelled) return;
+        setData(profile);
         setError("");
         setRefreshError("");
-      } else {
-        setData(null);
-        setError(workflowError(profile.reason));
-      }
-      if (choices.status === "fulfilled") {
-        setCandidates(choices.value);
-        setCandidateError("");
-      } else {
         setCandidates([]);
-        setCandidateError(workflowError(choices.reason));
+        setCandidateError("");
+        if (profile.organizationId === organizationId) {
+          try {
+            const choices = await uprApi.candidates(authToken, year);
+            if (!cancelled) setCandidates(choices);
+          } catch (cause) {
+            if (!cancelled) setCandidateError(workflowError(cause));
+          }
+        }
+      } catch (cause) {
+        if (cancelled) return;
+        setData(null);
+        setError(workflowError(cause));
+      } finally {
+        if (!cancelled) {
+          setLoadedContext(context);
+          setLoading(false);
+        }
       }
-      setLoadedContext(`${organizationId}:${year}:${version}`);
-      setLoading(false);
-    });
+    }
+    void load(token);
     return () => {
       cancelled = true;
     };
-  }, [token, organizationId, year, version, reload, validYear]);
+  }, [token, organizationId, year, version, reload, validYear, context]);
 
   const refresh = useCallback(
     async (id: string) => {
@@ -201,13 +206,13 @@ function AnnualProfileWorkspace() {
             readOnly={readOnly}
             profile={data}
             periodWorkspace={periodWorkspace}
-            onStartPeriodMonitoring={(member,period)=>{
+            onStartPeriodMonitoring={readOnly ? undefined : (member,period)=>{
               if(!periodWorkspace?.rule) return;
               setMonitoringDate(todayMonitoringDate());
               setMonitoringTarget({member,period});
             }}
             candidates={candidates}
-            organization={user?.orgName || "Unit akun Anda"}
+            organization={data.organizationName || (readOnly ? "Unit pemilik profil" : user?.orgName || "Unit akun Anda")}
             busy={pending || Boolean(refreshError)}
             candidateError={candidateError}
             returnTo={returnTo}
@@ -312,7 +317,7 @@ function AnnualProfileWorkspace() {
         description={`${monitoringTarget?.member.code ?? "Risiko"} · ${monitoringTarget?.period.label ?? "Periode"}.`}
         confirmLabel="Mulai pemantauan"
         onConfirm={async () => {
-          if (!token || !selectedProfileId || !monitoringTarget?.member.riskId || !monitoringDate) {
+          if (readOnly || !token || !selectedProfileId || !monitoringTarget?.member.riskId || !monitoringDate) {
             throw new Error("Data pemantauan belum tersedia.");
           }
           try {

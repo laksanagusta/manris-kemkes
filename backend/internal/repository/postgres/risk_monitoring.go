@@ -288,6 +288,14 @@ func (r *riskMonitoringRepository) List(ctx context.Context, filter repository.R
 		argIdx++
 	}
 
+	if filter.TransactionKind != "" {
+		clause := fmt.Sprintf(" AND rm.transaction_kind = $%d", argIdx)
+		countQuery += clause
+		dataQuery += clause
+		args = append(args, filter.TransactionKind)
+		argIdx++
+	}
+
 	if filter.AssessmentCycle != "" {
 		clause := fmt.Sprintf(" AND rm.assessment_cycle = $%d", argIdx)
 		countQuery += clause
