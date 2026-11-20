@@ -615,7 +615,7 @@ func (h *RiskHandler) CreateRiskBatch(c *fiber.Ctx) error {
 	if err := c.BodyParser(&req); err != nil {
 		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", fmt.Sprintf("body permintaan tidak valid: %v", err))
 	}
-	const maxBatchSize = 100
+	const maxBatchSize = 200
 	if len(req.Items) > maxBatchSize {
 		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", fmt.Sprintf("ukuran batch melebihi batas %d item", maxBatchSize))
 	}
