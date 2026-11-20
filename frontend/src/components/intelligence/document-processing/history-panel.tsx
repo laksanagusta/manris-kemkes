@@ -115,7 +115,7 @@ export function HistoryPanel({
                 key={job.id}
                 className={cn(
                   "group rounded-lg border p-2.5 transition-[background-color,border-color,box-shadow] duration-150",
-                  active ? "border-foreground/20 bg-card" : "border-transparent hover:border-border/70 hover:bg-card/70",
+                  active ? "border-foreground/20 bg-card" : "border-transparent hover:border-border hover:bg-card/70",
                 )}
               >
                 {editingJobId === job.id ? (

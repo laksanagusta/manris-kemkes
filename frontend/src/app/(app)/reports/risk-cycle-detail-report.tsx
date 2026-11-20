@@ -294,7 +294,7 @@ function MitigationDiffTable({ diffs }: { diffs: RiskMitigationDiff[] }) {
       {diffs.map((diff) => (
         <div
           key={`${diff.rowKey}-${diff.changeType}`}
-          className="rounded-lg border border-border/60 bg-muted/20 p-3"
+          className="rounded-lg border border-border bg-muted/20 p-3"
         >
           <div className="mb-3 flex flex-wrap items-center gap-2">
             <Badge
@@ -673,7 +673,7 @@ export function RiskCycleDetailReport({
         />
 
         {externalOrgName || externalMovement ? (
-          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border/60 bg-muted/15 px-4 py-3 text-xs text-muted-foreground">
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/15 px-4 py-3 text-xs text-muted-foreground">
             <span className="font-medium text-foreground">
               Filter drilldown aktif:
             </span>
@@ -689,7 +689,7 @@ export function RiskCycleDetailReport({
       </ReportFilterCard>
       <Card>
       {requiresScopeSelection ? (
-        <div className="mx-6 mt-0 rounded-lg border border-dashed border-border/50 bg-muted/20 px-4 py-5 text-center text-sm text-muted-foreground">
+        <div className="mx-6 mt-0 rounded-lg border border-dashed border-border bg-muted/20 px-4 py-5 text-center text-sm text-muted-foreground">
           Pilih grup atau unit untuk melihat laporan perubahan risiko.
         </div>
       ) : null}
@@ -732,7 +732,7 @@ export function RiskCycleDetailReport({
           <TableLoadingSkeleton message="Memuat laporan perubahan risiko…" />
         ) : (
           <div className="space-y-3">
-            <div className="rounded-lg border border-border/60 bg-muted/15 px-4 py-3 text-xs text-muted-foreground">
+            <div className="rounded-lg border border-border bg-muted/15 px-4 py-3 text-xs text-muted-foreground">
               Snapshot awal:{" "}
               <span className="font-semibold text-foreground">
                 {report?.summary.totalFrom ?? 0}

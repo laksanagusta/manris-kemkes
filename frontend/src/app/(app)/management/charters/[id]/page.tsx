@@ -1122,7 +1122,7 @@ export default function RiskCharterDetailPage() {
 
       <Sheet open={historyOpen} onOpenChange={setHistoryOpen}>
         <SheetContent className="sm:max-w-md" showCloseButton={false}>
-          <SheetHeader className="-mx-5 -mt-5 border-b border-border/70">
+          <SheetHeader className="-mx-5 -mt-5 border-b border-border">
             <SheetTitle>Riwayat versi</SheetTitle>
             <SheetDescription>
               Setiap versi tersimpan sebagai snapshot yang hanya dapat dibaca.
@@ -1154,7 +1154,7 @@ export default function RiskCharterDetailPage() {
               />
             )}
           </div>
-          <SheetFooter className="-mx-5 -mb-5 border-t border-border/70 px-5 py-4">
+          <SheetFooter className="-mx-5 -mb-5 border-t border-border px-5 py-4">
             <CollectionDialogCancel
               type="button"
               variant="outline"

@@ -627,7 +627,7 @@ export default function TMPMRDetailPage() {
               </div>
 
               <div className="grid gap-3">
-                <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                <div className="rounded-lg border border-border bg-muted/20 p-3">
                   <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                     Skor Rata-rata
                   </p>
@@ -636,7 +636,7 @@ export default function TMPMRDetailPage() {
                   </p>
                 </div>
 
-                <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                <div className="rounded-lg border border-border bg-muted/20 p-3">
                   <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                     Maturity Level
                   </p>
@@ -647,7 +647,7 @@ export default function TMPMRDetailPage() {
                   </div>
                 </div>
 
-                <div className="rounded-lg border border-border/50 bg-muted/20 p-3">
+                <div className="rounded-lg border border-border bg-muted/20 p-3">
                   <p className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
                     Kelengkapan Item
                   </p>
@@ -678,7 +678,7 @@ export default function TMPMRDetailPage() {
                 </div>
               </div>
 
-              <div className="space-y-2 border-t border-border/40 pt-4 text-xs text-muted-foreground">
+              <div className="space-y-2 border-t border-border pt-4 text-xs text-muted-foreground">
                 <p>Diperbarui: <span data-date-time="">{formatDateTime(assessment?.updatedAt)}</span></p>
                 <p>Dibuat: <span data-date-time="">{formatDateTime(assessment?.createdAt)}</span></p>
               </div>

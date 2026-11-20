@@ -241,7 +241,7 @@ export function UploadPanel({
 
       <IssueList issues={issues} />
 
-      <div className="flex flex-col gap-3 border-t border-border/70 pt-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-3 border-t border-border pt-4 sm:flex-row sm:items-center sm:justify-between">
         <p className="text-xs text-muted-foreground">
           {validDocuments.length ? "File ini akan diproses sebagai satu kumpulan dokumen." : "Tambahkan minimal satu file yang valid untuk melanjutkan."}
         </p>

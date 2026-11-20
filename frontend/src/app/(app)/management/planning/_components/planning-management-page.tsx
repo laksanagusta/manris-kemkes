@@ -366,7 +366,7 @@ function PlanningHierarchyRows({
           <Fragment key={node.key}>
             <TableRow
               className={cn(
-                "border-border/80 transition-colors hover:bg-muted/70",
+                "border-border transition-colors hover:bg-muted/70",
                 depth > 0 && "bg-zinc-50/30",
               )}
             >

@@ -4,35 +4,38 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import type { ProfilePeriodProgress } from '@/lib/api/profile-periods';
+import { cn } from "@/lib/utils";
 import { periodWindowState, type ProcessProgress } from '@/lib/profile-period-progress';
 
 const statusLabels = { pending: 'Pending', ongoing: 'Ongoing', done: 'Done' };
 
-function PeriodStatusAction({ progress, label, actionLabel, href, disabled, onStart }: {
+function PeriodStatusAction({ progress, label, actionLabel, actionContext, href, disabled, onStart, inline }: {
   progress: ProcessProgress;
   label?: string;
   actionLabel: string;
+  actionContext?: string;
+  inline?: boolean;
   href?: string;
   disabled?: boolean;
   onStart?: () => void;
 }) {
-  return <div className="flex flex-col items-start gap-1.5">
-    <div className="flex items-center gap-2">
+  return <div className={cn("flex gap-1.5", inline ? "flex-wrap items-center justify-between py-2" : "flex-col items-start")}>
+    <div className="flex flex-wrap items-center gap-2">
       {label && <span className="text-xs font-medium">{label}</span>}
       <Badge variant="outline" className={progress.status === 'done' ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300' : ''}>
         {statusLabels[progress.status]}
       </Badge>
     </div>
     {href ? (
-      <Button asChild variant="outline" size="xs"><Link href={href}>{actionLabel}</Link></Button>
+      <Button asChild variant="outline" size="xs"><Link href={href} aria-label={actionContext && `${actionLabel} · ${actionContext}`}>{inline ? actionLabel.split(" ")[0] : actionLabel}</Link></Button>
     ) : (
-      <Button type="button" variant="outline" size="xs" disabled={disabled || !onStart} onClick={onStart}>{actionLabel}</Button>
+      <Button type="button" variant="outline" size="xs" disabled={disabled || !onStart} onClick={onStart} aria-label={actionContext && `${actionLabel} · ${actionContext}`}>{inline ? actionLabel.split(" ")[0] : actionLabel}</Button>
     )}
   </div>;
 }
 
-export function ProfileDocumentPeriodCell({ period, profileId, organizationId, canCreate = true }: {
-  period: ProfilePeriodProgress; profileId: string; organizationId?: string; canCreate?: boolean;
+export function ProfileDocumentPeriodCell({ period, profileId, organizationId, canCreate = true, inline = false }: {
+  period: ProfilePeriodProgress; profileId: string; organizationId?: string; canCreate?: boolean; inline?: boolean;
 }) {
   const canStart = canCreate && periodWindowState(period) === 'open';
   const query = new URLSearchParams({ profile_version_id: profileId, monitoring_period_id: period.id });
@@ -41,14 +44,18 @@ export function ProfileDocumentPeriodCell({ period, profileId, organizationId, c
   const evalQuery = new URLSearchParams({ create: '1', profile_version_id: profileId, monitoring_period_id: period.id });
   const evalHref = period.evaluation.id ? `/evaluations/${period.evaluation.id}` : canStart ? `/evaluations?${evalQuery}` : undefined;
 
-  return <div className="flex min-w-40 flex-col items-start gap-3 py-1">
+  return <div className={inline ? "divide-y divide-border" : "flex min-w-40 flex-col items-start gap-3 py-1"}>
     <PeriodStatusAction
+      inline={inline}
+      actionContext={period.label}
       label="Kertas kerja"
       progress={period.workingPaper}
       href={wpHref}
       actionLabel={period.workingPaper.id ? period.workingPaper.status === 'done' ? 'Lihat kertas kerja' : 'Lanjutkan kertas kerja' : 'Mulai kertas kerja'}
     />
     <PeriodStatusAction
+      inline={inline}
+      actionContext={period.label}
       label="Evaluasi"
       progress={period.evaluation}
       href={evalHref}

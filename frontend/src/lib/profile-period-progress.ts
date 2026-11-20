@@ -19,12 +19,6 @@ export function periodWindowState(period: { opensOn: string; closesOn: string },
   return 'open';
 }
 
-export function periodColumns(groups: { label: string; ordinal: number }[][]): string[] {
-  const entries = new Map<string, number>();
-  for (const periods of groups) for (const period of periods) entries.set(period.label, Math.min(entries.get(period.label) ?? Infinity, period.ordinal));
-  return [...entries].sort(([a, ao], [b, bo]) => ao - bo || a.localeCompare(b, 'id')).map(([label]) => label);
-}
-
 export function periodObservationDate(rule: {year:number;frequency:'monthly'|'quarterly'|'semester'}, period:{ordinal:number}, today:string):string {
   const months = rule.frequency === 'monthly' ? 1 : rule.frequency === 'quarterly' ? 3 : 6;
   const end = new Date(Date.UTC(rule.year, period.ordinal * months, 0)).toISOString().slice(0,10);

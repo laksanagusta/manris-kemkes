@@ -49,7 +49,7 @@ export function OverviewTopRisksCard({
             <col className="w-[12%]" />
           </colgroup>
           <CollectionTableHeader>
-            <CollectionTableHeaderRow className="border-t border-border/60">
+            <CollectionTableHeaderRow className="border-t border-border">
               <CollectionTableHead>Kode risiko</CollectionTableHead>
               <CollectionTableHead className="">Risiko</CollectionTableHead>
               <CollectionTableHead>Kategori</CollectionTableHead>

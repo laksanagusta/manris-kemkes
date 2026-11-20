@@ -89,20 +89,9 @@ export function RiskFormReadiness<SectionId extends string>({ sections, onNaviga
   );
 }
 
-export type ProfileRevisionReview = {
-  version: number;
-  reason: string;
-  previousProbability: number;
-  previousImpact: number;
-  probability: number;
-  impact: number;
-};
-
-export function RiskFinalizationReview({ score, target, level, mitigationCount, revision }: {
-  revision?: ProfileRevisionReview;
+export function RiskFinalizationReview({ score, target, level, mitigationCount }: {
   score: number; target: number; level: string; mitigationCount: number;
 }) {
-  if (revision) return null;
   return <div className="space-y-3 text-sm">
     <dl className="grid grid-cols-2 gap-x-4 gap-y-2">
       <dt className="text-muted-foreground">Skor risiko</dt><dd>{formatRiskScore(score)} · {level}</dd>

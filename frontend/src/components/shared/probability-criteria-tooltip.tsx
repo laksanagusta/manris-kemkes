@@ -73,7 +73,7 @@ export function ProbabilityCriteriaTooltip({
           className="w-[min(92vw,44rem)] max-w-[44rem]"
         >
           <div className="max-h-[70vh] overflow-auto">
-            <div className="border-b border-border/60 px-4 py-3">
+            <div className="border-b border-border px-4 py-3">
               <p className="text-sm font-semibold">Kriteria Kemungkinan</p>
               <p className="mt-1 text-xs text-muted-foreground">
                 Panduan nilai probabilitas untuk penilaian risiko.

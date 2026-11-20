@@ -9,7 +9,7 @@ test("risk event linked-risk rows use an inset surface without a border", () => 
     source,
     /className="rounded-lg bg-card-subtle-surface px-3 py-2"/,
   );
-  assert.doesNotMatch(source, /rounded-lg border border-border\/70 bg-card-subtle-surface/);
+  assert.doesNotMatch(source, /rounded-lg border border-border bg-card-subtle-surface/);
 });
 
 test("risk event linked-risk label is medium and titles use 12px text", () => {

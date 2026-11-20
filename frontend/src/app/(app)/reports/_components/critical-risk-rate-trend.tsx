@@ -161,7 +161,7 @@ export function CriticalRiskRateTrend({
                 </ComposedChart>
               </ChartContainer>
             </div>
-            <div className="mt-3 flex shrink-0 items-center justify-center gap-4 border-t border-border/40 pt-3">
+            <div className="mt-3 flex shrink-0 items-center justify-center gap-4 border-t border-border pt-3">
               <div className="flex items-center gap-1.5">
                 <div
                   className="h-0.5 w-4 rounded-full"

@@ -161,9 +161,9 @@
   --workspace: #fafafa;
   --workspace-data: #726efb;
   --surface-radius: 10px;
-  --surface-outline: rgb(0 0 0 / 6%);
-  --control-outline: rgb(0 0 0 / 8%);
-  --control-outline-hover: var(--control-outline);
+  --surface-outline: var(--border);
+  --control-outline: var(--border);
+  --control-outline-hover: var(--border);
   --surface-lift-low: 0 2px 4px rgb(0 0 0 / 3%);
   --surface-shadow-low: var(--surface-lift-low), 0 0 0 1px var(--surface-outline);
   --surface-shadow-floating: 0 4px 12px rgb(0 0 0 / 8%), 0 0 0 1px var(--control-outline);
@@ -174,7 +174,7 @@
   --button-primary-surface: #181818;
   --button-primary-foreground: #fff;
   --button-primary-hover: #303030;
-  --button-outline-edge: rgb(13 13 13 / 16%);
+  --button-outline-edge: var(--border);
   --button-secondary-surface: rgb(13 13 13 / 8%);
   --button-outline-shadow: inset 0 0 0 1px var(--button-outline-edge);
   --notice-info-surface: #f6f8fe;
@@ -208,7 +208,7 @@
   --primary: var(--foreground);
   --primary-foreground: var(--card);
   --secondary: #f2f2f2;
-  --secondary-foreground: #666;
+  --secondary-foreground: #4d4d4d;
   --muted: #efefef;
   --muted-foreground: #6c6c6c;
   --tertiary-foreground: var(--muted-foreground);
@@ -216,17 +216,17 @@
   --disabled-foreground: #b9b9b9;
   --disabled-input-surface: #f4f4f6;
   --disabled-input-foreground: #30303a;
-  --disabled-input-border: #dedee4;
+  --disabled-input-border: var(--border);
   --card-subtle-surface: #eeeeee;
   --secondary-card-surface: #efefef;
   --sunken: #efefef;
   --table-header: #fbfbfb;
   --table-foreground: #313131;
-  --table-divider: #e8e8e8;
-  --table-frame-shadow: 0 0 0 1px #e3e3e3, 0 1px 2px rgb(0 0 0 / 5%);
+  --table-divider: var(--border);
+  --table-frame-shadow: 0 0 0 1px var(--border), 0 1px 2px rgb(0 0 0 / 5%);
   --table-checkbox-border: #929292;
   --table-selected: #efefef;
-  --table-header-foreground: #727272;
+  --table-header-foreground: var(--secondary-foreground);
   --table-sort-indicator: #a8a8a8;
   --table-footer: var(--card);
   --accent: #efefef;
@@ -234,8 +234,8 @@
   --active: #dddddd;
   --destructive: oklch(0.577 0.245 27.325);
   --border: #ebebeb;
-  --input: #ececec;
-  --separator: #f4f4f4;
+  --input: var(--border);
+  --separator: var(--border);
   --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.855 0.138 181.071);
   --chart-2: oklch(0.704 0.14 182.503);
@@ -295,9 +295,6 @@
   --workspace: var(--sidebar);
   --workspace-data: var(--color-violet-400);
   --button-hover-surface: var(--accent);
-  --surface-outline: rgb(255 255 255 / 8%);
-  --control-outline: var(--surface-outline);
-  --control-outline-hover: rgb(255 255 255 / 13%);
   --surface-lift-low: 0 0 transparent;
   --surface-shadow-low: 0 0 0 1px var(--surface-outline);
   --surface-shadow-floating: 0 0 0 1px var(--control-outline-hover);
@@ -306,7 +303,6 @@
   --button-primary-surface: #ededed;
   --button-primary-foreground: #181818;
   --button-primary-hover: #d5d5d5;
-  --button-outline-edge: rgb(255 255 255 / 20%);
   --button-secondary-surface: rgb(255 255 255 / 8%);
   --button-outline-shadow: inset 0 0 0 1px var(--button-outline-edge);
   --notice-info-surface: #142238;
@@ -339,9 +335,8 @@
   --table-frame-shadow: var(--surface-shadow-low);
   --table-checkbox-border: var(--ring);
   --table-footer: var(--card);
-  --table-divider: oklch(1 0 0 / 12%);
   --table-selected: oklch(0.3 0 0);
-  --table-header-foreground: var(--muted-foreground);
+  --table-header-foreground: var(--secondary-foreground);
   --table-sort-indicator: var(--muted-foreground);
   --card: oklch(0.205 0 0);
   --card-foreground: oklch(0.985 0 0);
@@ -358,17 +353,15 @@
   --disabled-foreground: oklch(0.556 0 0);
   --disabled-input-surface: var(--muted);
   --disabled-input-foreground: var(--foreground);
-  --disabled-input-border: var(--input);
+  --disabled-input-border: var(--border);
   --card-subtle-surface: oklch(0.23 0 0);
   --secondary-card-surface: oklch(0.23 0 0);
   --sunken: oklch(0.23 0 0);
-  --separator: oklch(1 0 0 / 10%);
   --active: oklch(0.32 0 0);
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 10%);
   --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.855 0.138 181.071);
   --chart-2: oklch(0.704 0.14 182.503);
@@ -382,7 +375,6 @@
   --sidebar-primary-foreground: oklch(0.205 0 0);
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
 }
 
@@ -1966,7 +1958,7 @@ body[data-scroll-locked] [data-component="monitoring-baseline-floating"] {
 
 /* White login fields paint their edge outside the control box. */
 :root [data-field-outline="outer"] {
-  --field-outline-edge: rgb(13 13 13 / 16%);
+  --field-outline-edge: var(--border);
   border-width: 0;
   background-clip: border-box;
   box-shadow:

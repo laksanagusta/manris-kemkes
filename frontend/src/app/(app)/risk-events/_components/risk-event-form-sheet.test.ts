@@ -29,7 +29,7 @@ test("risk event steps use separate content inside a stable modal shell", () => 
 test("review summary uses the stock card composition inside the modal", () => {
   const review = source.slice(source.indexOf('aria-labelledby="risk-event-review"'), source.indexOf("  return (\n    <RiskEventStepModal", source.indexOf('aria-labelledby="risk-event-review"')));
   assert.match(review, /<Card>\s*<CardContent>\s*<dl/);
-  assert.doesNotMatch(review, /rounded-lg bg-muted\/40|rounded-lg border border-border\/70/);
+  assert.doesNotMatch(review, /rounded-lg bg-muted\/40|rounded-lg border border-border/);
 });
 
 test("risk and additional details are separate steps in the stable modal", () => {

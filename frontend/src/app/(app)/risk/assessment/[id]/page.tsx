@@ -1795,7 +1795,7 @@ export default function AssessmentFormPage() {
                     </div>}
 
                     {substanceEditEnabled ? (
-                      <div className="mt-3 space-y-2 border-t border-dashed border-border/60 pt-3">
+                      <div className="mt-3 space-y-2 border-t border-dashed border-border pt-3">
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge
                             variant="secondary"
@@ -2068,7 +2068,7 @@ export default function AssessmentFormPage() {
             </div>
           ) : null}
           {riskApprovalCapabilityBehavior.showsApprovalLineEditor && (
-            <div className="space-y-2 border-t border-dashed border-border/70 pt-3 text-sm">
+            <div className="space-y-2 border-t border-dashed border-border pt-3 text-sm">
               <div>
                 <span className="font-medium text-foreground">Reviewer: </span>
                 <span className="text-muted-foreground">

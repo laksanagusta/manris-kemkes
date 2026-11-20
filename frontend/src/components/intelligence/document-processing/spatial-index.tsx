@@ -79,8 +79,8 @@ export function SpatialIndex({
   const indexedPages = job.pages.filter((page) => page.status !== "queued").length;
 
   return (
-    <section className="overflow-hidden rounded-lg border border-border/80 bg-state-surface" aria-labelledby="spatial-index-title">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 bg-card/75 px-4 py-3 backdrop-blur-sm">
+    <section className="overflow-hidden rounded-lg border border-border bg-state-surface" aria-labelledby="spatial-index-title">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border bg-card/75 px-4 py-3 backdrop-blur-sm">
         <div className="flex min-w-0 items-center gap-3">
           <div className="size-2 rounded-full bg-primary/70" />
           <div className="min-w-0">
@@ -91,7 +91,7 @@ export function SpatialIndex({
             <p className="mt-0.5 text-xs text-secondary-foreground">Peta dokumen dan halaman berdasarkan konteks kerja.</p>
           </div>
         </div>
-        <div className="flex items-center gap-1 rounded-lg border border-border/70 bg-card p-1" aria-label="Perbesaran indeks spasial">
+        <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1" aria-label="Perbesaran indeks spasial">
           <Button type="button" variant="ghost" size="icon-xs" aria-label="Perkecil zoom" title="Perkecil zoom" disabled={zoom <= 0.8} onClick={() => onZoomChange(Math.max(0.8, zoom - 0.1))}>
             <Minus className="size-3" />
           </Button>
@@ -156,7 +156,7 @@ export function SpatialIndex({
               })}
             </AnimatePresence>
           ) : (
-            <div className="flex min-h-56 items-center justify-center rounded-lg border border-dashed border-border/80 bg-card/50 text-sm text-muted-foreground">Menunggu halaman diindeks…</div>
+            <div className="flex min-h-56 items-center justify-center rounded-lg border border-dashed border-border bg-card/50 text-sm text-muted-foreground">Menunggu halaman diindeks…</div>
           )}
         </motion.div>
       </div>

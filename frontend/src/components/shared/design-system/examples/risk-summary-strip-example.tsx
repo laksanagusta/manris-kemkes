@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 export function RiskSummaryStripExample() {
   return (
       <Card className="flex flex-col">
-      <div className="flex items-center border-b border-border/60 px-4 py-6">
+      <div className="flex items-center border-b border-border px-4 py-6">
         <p className="text-[10px] font-mono font-semibold uppercase tracking-[0.15em] text-muted-foreground">
           Summary Strip
         </p>

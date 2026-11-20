@@ -17,7 +17,7 @@ export function DetailSidePanelExample() {
             <div className="flex items-center justify-between gap-4"><PropertyLabel showIcon={false}>Status</PropertyLabel><dd><Badge variant="secondary">Draf</Badge></dd></div>
           </PropertyList>
         </section>
-        <section className="border-t border-dashed border-border/70 pt-5" aria-labelledby="detail-panel-example-events">
+        <section className="border-t border-dashed border-border pt-5" aria-labelledby="detail-panel-example-events">
           <h2 id="detail-panel-example-events" className="text-sm font-semibold capitalize text-primary">Kejadian</h2>
           <ul className="mt-3 space-y-1"><li>
             <Link href="/risk-events" className="group -mx-2 block rounded-md px-2 py-2 outline-none transition-colors hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring/40">
@@ -29,7 +29,7 @@ export function DetailSidePanelExample() {
             </Link>
           </li></ul>
         </section>
-        <section className="border-t border-dashed border-border/70 pt-5" aria-labelledby="detail-panel-example-versions">
+        <section className="border-t border-dashed border-border pt-5" aria-labelledby="detail-panel-example-versions">
           <h2 id="detail-panel-example-versions" className="text-sm font-semibold capitalize text-primary">Riwayat versi</h2>
           <div className="mt-4">
             <RiskVersionHistoryList versions={[
@@ -38,7 +38,7 @@ export function DetailSidePanelExample() {
             ]} onVersionSelect={(_, event) => event.preventDefault()} />
           </div>
         </section>
-        <section className="border-t border-dashed border-border/70 pt-5" aria-labelledby="detail-panel-example-signatures">
+        <section className="border-t border-dashed border-border pt-5" aria-labelledby="detail-panel-example-signatures">
           <h2 id="detail-panel-example-signatures" className="text-sm font-semibold capitalize text-primary">Histori tanda tangan</h2>
         </section>
       </DetailSidePanel>

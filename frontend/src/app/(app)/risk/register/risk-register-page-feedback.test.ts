@@ -194,7 +194,7 @@ test("risk properties stay limited to status, code, and version", () => {
   assert.doesNotMatch(propertySection, /Kategori|Unit kerja|Sumber risiko|Tingkat kendali|Skor inheren/);
   assert.match(
     riskFormPage,
-    /<section\s+aria-labelledby="risk-side-treatment"\s+className="border-t border-dashed border-border\/70 pt-5"\s*>/,
+    /<section\s+aria-labelledby="risk-side-treatment"\s+className="border-t border-dashed border-border pt-5"\s*>/,
   );
 });
 
@@ -368,7 +368,7 @@ test("risk register row actions use the card shadow boundary", () => {
   assert.match(actionIconButton, /border-0 border-shadow bg-card/);
   assert.doesNotMatch(
     actionIconButton,
-    /border border-border\/60 bg-card shadow-none/,
+    /border border-border bg-card shadow-none/,
   );
 });
 

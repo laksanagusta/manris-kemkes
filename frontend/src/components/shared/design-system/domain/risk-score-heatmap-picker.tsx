@@ -78,7 +78,7 @@ export function RiskScorePickerTrigger({
       aria-describedby={ariaDescribedBy}
       aria-label={assessed ? `Pilih ${title.toLowerCase()} dari heatmap. Probabilitas ${probability}, dampak ${impact}, skor ${metrics.inherentScore}.` : `${title} belum dinilai. Pilih probabilitas dan dampak.`}
       className={cn(
-        "group self-start border border-border/60 bg-card text-left hover:border-foreground/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:hover:border-border/60 disabled:cursor-not-allowed disabled:opacity-60 data-[invalid]:border-destructive data-[invalid]:ring-2 data-[invalid]:ring-destructive/20",
+        "group self-start border border-border bg-card text-left hover:border-foreground/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40 disabled:hover:border-border disabled:cursor-not-allowed disabled:opacity-60 data-[invalid]:border-destructive data-[invalid]:ring-2 data-[invalid]:ring-destructive/20",
         presentation === "card"
           ? "flex min-h-64 w-full max-w-[280px] flex-col justify-between gap-8 overflow-hidden rounded-[24px] border-transparent bg-workspace p-5 text-foreground hover:border-transparent disabled:hover:border-transparent"
           : "flex min-h-11 w-fit max-w-full items-center justify-between gap-3 rounded-lg px-3 py-2.5 transition-[background-color,border-color] hover:bg-muted/20",
@@ -273,7 +273,7 @@ export function RiskScoreHeatmapModal({
               ))}
             </div>
 
-            <div className="mt-3 flex flex-wrap gap-x-3 gap-y-2 border-t border-border/40 pt-3">
+            <div className="mt-3 flex flex-wrap gap-x-3 gap-y-2 border-t border-border pt-3">
               {LEGEND_LEVELS.map((level) => (
                 <div key={level} className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
                   <span

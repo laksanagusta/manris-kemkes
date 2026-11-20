@@ -14,6 +14,8 @@ function RiskHeaderActions({ children }: { children: ReactNode }) {
 }
 
 import { RiskRevisionReasonCard } from "@/components/shared/design-system/domain/risk-revision-reason-card";
+import { RiskRevisionReviewDrawer } from "@/components/shared/design-system/domain/risk-revision-review-drawer";
+import { canSubmitRiskRevision, getRiskRevisionChanges, type RiskRevisionChange } from "@/lib/risk-revision-review";
 import { RiskWorkflowActions } from "@/components/shared/design-system/domain/risk-workflow-actions";
 import type { RiskOpenDrafts } from "@/types/risk";
 import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
@@ -756,7 +758,10 @@ export default function RiskInputPage() {
     null,
   );
   const [currentAssessment, setCurrentAssessment] = useState<RiskApiResponse["currentAssessment"]>();
-  const [revisionBaseline, setRevisionBaseline] = useState<{ probability: number; impact: number } | null>(null);
+  const [revisionBaseline, setRevisionBaseline] = useState<RiskApiResponse | null>(null);
+  const [revisionChanges, setRevisionChanges] = useState<RiskRevisionChange[] | null>(null);
+  const [revisionSubmitError, setRevisionSubmitError] = useState("");
+  const revisionReviewTriggerRef = useRef<HTMLButtonElement>(null);
   const [isProfileRevision, setIsProfileRevision] = useState(false);
   const [riskStatus, setRiskStatus] = useState<string>("draft");
   const [riskIsCurrent, setRiskIsCurrent] = useState(false);
@@ -1084,11 +1089,13 @@ export default function RiskInputPage() {
         );
         if (loadRequestId !== riskLoadRequestRef.current) return;
 
-        let baseline: { probability: number; impact: number } | null = null;
+        let baseline: RiskApiResponse | null = null;
         if (risk.reviewType === "revision" && risk.previousRiskId) {
-          const previous = await api.get<RiskApiResponse>(`/risks/${risk.previousRiskId}`, token ?? undefined);
+          baseline = await api.get<RiskApiResponse>(
+            `/risks/${risk.previousRiskId}`,
+            token ?? undefined,
+          ).catch(() => null);
           if (loadRequestId !== riskLoadRequestRef.current) return;
-          baseline = { probability: previous.currentAssessment?.probability ?? previous.probability ?? 0, impact: previous.currentAssessment?.impact ?? previous.impact ?? 0 };
         }
         setRevisionBaseline(baseline);
         setRiskId(risk.id);
@@ -2164,6 +2171,7 @@ export default function RiskInputPage() {
 
         if (!riskApprovalCapabilityBehavior.submitsForApproval) {
           allowNavigationRef.current = true;
+          if (isProfileRevision) setShowSubmitReviewConfirm(false);
           await loadRiskData(currentRiskId);
           toast.success(isProfileRevision ? "Revisi difinalisasi. Versi profil baru sudah aktif." : "Risiko berhasil disimpan dan difinalisasi!");
           router.push(`/risk/register/new?id=${currentRiskId}&saved=final&returnTo=${encodeURIComponent(returnTo)}`);
@@ -2182,6 +2190,7 @@ export default function RiskInputPage() {
             },
             token || undefined,
           );
+          if (isProfileRevision) setShowSubmitReviewConfirm(false);
           toast.success("Risiko berhasil disimpan dan diajukan untuk review!");
           router.push(returnTo);
         } catch {
@@ -2200,7 +2209,11 @@ export default function RiskInputPage() {
           ? err.message
           : "Gagal menyimpan risiko. Periksa koneksi dan coba lagi.";
       setSaveState("error");
-      toast.error(errorMessage);
+      if (isProfileRevision && submitTarget.current === "review") {
+        setRevisionSubmitError(errorMessage);
+      } else {
+        toast.error(errorMessage);
+      }
     } finally {
       leaveAfterSaveRef.current = false;
       setIsSubmitting(false);
@@ -2256,6 +2269,7 @@ export default function RiskInputPage() {
   };
 
   const onValidationError = (errors: FieldErrors<FormInput>) => {
+    setShowSubmitReviewConfirm(false);
     toast.error(
       "Ada form isian yang wajib diisi atau masih salah. Periksa kolom yang ditandai di bawah ini.",
     );
@@ -2307,12 +2321,24 @@ export default function RiskInputPage() {
       return;
     }
 
+    if (isProfileRevision) {
+      setRevisionChanges(revisionBaseline
+        ? getRiskRevisionChanges(revisionBaseline, buildPayload(normalizeFormValues(form.getValues()), "draft"))
+        : null);
+      setRevisionSubmitError("");
+    }
     setShowSubmitReviewConfirm(true);
   };
 
   const handleConfirmSubmitReview = () => {
+    if (isSubmitting) return;
+    if (isProfileRevision && !canSubmitRiskRevision(revisionChanges, annualChangeReason)) return;
     submitTarget.current = "review";
-    setShowSubmitReviewConfirm(false);
+    if (isProfileRevision) {
+      setRevisionSubmitError("");
+    } else {
+      setShowSubmitReviewConfirm(false);
+    }
     void handleSubmit(onSubmit, onValidationError)();
   };
 
@@ -2638,6 +2664,8 @@ export default function RiskInputPage() {
                     Simpan draf
                   </ActionButton>
                   <AccentButton
+                    ref={isProfileRevision ? revisionReviewTriggerRef : undefined}
+                    aria-haspopup={isProfileRevision ? "dialog" : undefined}
                     icon={
                       isSubmitting && submitTarget.current === "review" ? (
                         <Loader2 className="size-3.5 animate-spin" />
@@ -2652,7 +2680,7 @@ export default function RiskInputPage() {
                       isDraftSubmitting ? "pointer-events-none" : undefined
                     }
                   >
-                    {submitActionLabel}
+                    {isProfileRevision ? "Tinjau revisi" : submitActionLabel}
                   </AccentButton>
                 </>
               ) : null}
@@ -2674,13 +2702,6 @@ export default function RiskInputPage() {
           actionsPlacement="title"
 
         />
-
-        {!isRiskLocked ? (
-          <RiskCreationContext
-            saveMessage={saveMessage}
-            revisionVersion={isProfileRevision ? riskVersionNumber ?? undefined : undefined}
-          />
-        ) : null}
 
         {loadingVersionId && (
           <TextLoadingSkeleton
@@ -2714,7 +2735,11 @@ export default function RiskInputPage() {
           !isRiskLocked && "xl:grid-rows-[auto_1fr]",
         )}>
           {!isRiskLocked ? (
-            <div className="min-w-0 xl:col-start-2 xl:row-start-1">
+            <div className="min-w-0 space-y-6 xl:col-start-2 xl:row-start-1">
+              <RiskCreationContext
+                saveMessage={saveMessage}
+                revisionVersion={isProfileRevision ? riskVersionNumber ?? undefined : undefined}
+              />
               <RiskFormReadiness
                 sections={readinessSections}
                 onNavigate={scrollToSection}
@@ -3414,7 +3439,7 @@ export default function RiskInputPage() {
                     {!riskId && (
                     <section
                       aria-labelledby="risk-side-treatment"
-                      className="border-t border-dashed border-border/70 pt-5"
+                      className="border-t border-dashed border-border pt-5"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <h2
@@ -3438,7 +3463,7 @@ export default function RiskInputPage() {
 
                     <section
                       aria-labelledby="risk-side-events"
-                      className="border-t border-dashed border-border/70 pt-5"
+                      className="border-t border-dashed border-border pt-5"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <h2
@@ -3524,7 +3549,7 @@ export default function RiskInputPage() {
 
                     <section
                       aria-labelledby="risk-side-version-history"
-                      className="border-t border-dashed border-border/70 pt-5"
+                      className="border-t border-dashed border-border pt-5"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <h2
@@ -3559,7 +3584,7 @@ export default function RiskInputPage() {
                     </section>
                     <section
                       aria-labelledby="risk-side-log"
-                      className="border-t border-dashed border-border/70 pt-5"
+                      className="border-t border-dashed border-border pt-5"
                     >
                       {riskId ? (
                         <RiskLogTimeline
@@ -3860,58 +3885,72 @@ export default function RiskInputPage() {
           </AlertDialogContent>
         </AlertDialog>
 
-        <AlertDialog
-          open={showSubmitReviewConfirm}
-          onOpenChange={setShowSubmitReviewConfirm}
-        >
-          <AlertDialogContent>
-            <AlertDialogHeader style={isProfileRevision ? { display: "flex", alignItems: "center" } : undefined}>
-              <AlertDialogTitle className={isProfileRevision ? "w-full text-start" : undefined}>
+        {isProfileRevision ? (
+          <RiskRevisionReviewDrawer
+            open={showSubmitReviewConfirm}
+            onOpenChange={open => { if (!isSubmitting) setShowSubmitReviewConfirm(open); }}
+            onConfirm={handleConfirmSubmitReview}
+            onCloseAutoFocus={event => {
+              const trigger = revisionReviewTriggerRef.current;
+              if (!trigger || trigger.disabled) return;
+              event.preventDefault();
+              trigger.focus();
+            }}
+            riskCode={riskCode}
+            version={riskVersionNumber}
+            changes={revisionChanges}
+            reason={annualChangeReason}
+            onReasonChange={setAnnualChangeReason}
+            pending={isReviewSubmitting}
+            error={revisionSubmitError}
+            requiresApproval={riskApprovalCapabilityBehavior.submitsForApproval}
+          />
+        ) : (
+          <AlertDialog
+            open={showSubmitReviewConfirm}
+            onOpenChange={setShowSubmitReviewConfirm}
+          >
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>
+                  {riskApprovalCapabilityBehavior.usesDirectApprovalCopy
+                    ? "Finalisasi Risiko?"
+                    : "Ajukan Risiko untuk Review?"}
+                </AlertDialogTitle>
+                <AlertDialogDescription>Tinjau seluruh bagian sebelum melanjutkan.</AlertDialogDescription>
+              </AlertDialogHeader>
+              <ConfirmationConsequences>
                 {riskApprovalCapabilityBehavior.usesDirectApprovalCopy
-                  ? isProfileRevision ? "Finalisasi revisi profil?" : "Finalisasi Risiko?"
-                  : "Ajukan Risiko untuk Review?"}
-              </AlertDialogTitle>
-              {!isProfileRevision && <AlertDialogDescription>Tinjau seluruh bagian sebelum melanjutkan.</AlertDialogDescription>}
-            </AlertDialogHeader>
-            <ConfirmationConsequences variant={isProfileRevision ? "plain" : "default"}>
-              {riskApprovalCapabilityBehavior.usesDirectApprovalCopy
-                    ? isProfileRevision ? <>Apakah anda yakin ingin finalisasi revisi risiko <span className="font-semibold">{riskCode}</span>?</> : "Risiko akan menjadi profil resmi dan dikunci setelah finalisasi."
-                    : "Risiko akan disimpan lalu dikirim ke reviewer melalui alur persetujuan yang dipilih. Tinjau seluruh bagian sebelum melanjutkan."}
-            </ConfirmationConsequences>
-            <RiskFinalizationReview
-              score={nilai}
-              level={getRiskLevelLabel(level)}
-              target={targetNilai}
-              mitigationCount={mitigations.filter(item => item.action?.trim()).length}
-              revision={isProfileRevision && revisionBaseline ? {
-                version: riskVersionNumber ?? 1,
-                reason: annualChangeReason,
-                previousProbability: revisionBaseline.probability,
-                previousImpact: revisionBaseline.impact,
-                probability,
-                impact,
-              } : undefined}
-            />
-            <AlertDialogFooter>
-              <CollectionDialogCancel
-                onClick={() => setShowSubmitReviewConfirm(false)}
-                disabled={isSubmitting}
-              >
-                Kembali periksa
-              </CollectionDialogCancel>
-              <AlertDialogAction
-                variant="default"
-                size="default"
-                onClick={handleConfirmSubmitReview}
-                disabled={isSubmitting}
-              >
-                {riskApprovalCapabilityBehavior.usesDirectApprovalCopy
-                  ? "Finalisasi"
-                  : "Ajukan untuk review"}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+                  ? "Risiko akan menjadi profil resmi dan dikunci setelah finalisasi."
+                  : "Risiko akan disimpan lalu dikirim ke reviewer melalui alur persetujuan yang dipilih. Tinjau seluruh bagian sebelum melanjutkan."}
+              </ConfirmationConsequences>
+              <RiskFinalizationReview
+                score={nilai}
+                level={getRiskLevelLabel(level)}
+                target={targetNilai}
+                mitigationCount={mitigations.filter(item => item.action?.trim()).length}
+              />
+              <AlertDialogFooter>
+                <CollectionDialogCancel
+                  onClick={() => setShowSubmitReviewConfirm(false)}
+                  disabled={isSubmitting}
+                >
+                  Kembali periksa
+                </CollectionDialogCancel>
+                <AlertDialogAction
+                  variant="default"
+                  size="default"
+                  onClick={handleConfirmSubmitReview}
+                  disabled={isSubmitting}
+                >
+                  {riskApprovalCapabilityBehavior.usesDirectApprovalCopy
+                    ? "Finalisasi"
+                    : "Ajukan untuk review"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
 
         <AlertDialog open={Boolean(leaveHref)} onOpenChange={open => { if (!open && !isSubmitting) setLeaveHref(null); }}>
           <AlertDialogContent>

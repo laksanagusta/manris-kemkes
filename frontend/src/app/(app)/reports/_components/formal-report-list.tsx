@@ -96,7 +96,7 @@ export function FormalReportList({
 
   return (
     <Card className="">
-      <div className="flex items-center justify-between gap-3 border-b border-border/40 px-6 py-4">
+      <div className="flex items-center justify-between gap-3 border-b border-border px-6 py-4">
         <div className="space-y-1">
           <p className="text-xs text-secondary-foreground">
             Histori semua laporan Monitoring & Evaluasi yang sudah dibuat dari

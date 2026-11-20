@@ -542,7 +542,7 @@ export default function WorkingPaperDetailPage(props: {
 
                 <section
                   aria-labelledby="working-paper-monitoring-progress"
-                  className="border-t border-dashed border-border/70 pt-5"
+                  className="border-t border-dashed border-border pt-5"
                 >
                   <h2
                     id="working-paper-monitoring-progress"
@@ -624,7 +624,7 @@ export default function WorkingPaperDetailPage(props: {
 
                 <section
                   aria-labelledby="working-paper-signature-history"
-                  className="border-t border-dashed border-border/70 pt-5"
+                  className="border-t border-dashed border-border pt-5"
                 >
                   <h2
                     id="working-paper-signature-history"

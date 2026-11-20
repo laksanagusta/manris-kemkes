@@ -3,6 +3,7 @@ package postgres
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -27,11 +28,19 @@ type MonitoringPeriodProgress struct {
 	Evaluation   MonitoringActivityProgress     `json:"evaluation"`
 	Monitorings  []RiskMonitoringPeriodProgress `json:"monitorings"`
 }
+type LinkedProfileDocument struct {
+	ID                uuid.UUID `json:"id"`
+	Kind              string    `json:"kind"`
+	Complete          bool      `json:"complete"`
+	ObservationCutoff string    `json:"observationCutoff,omitempty"`
+}
+
 type ProfilePeriodProgress struct {
-	Year    int                        `json:"year"`
-	Version int                        `json:"version"`
-	Rule    *entity.MonitoringRule     `json:"rule"`
-	Periods []MonitoringPeriodProgress `json:"periods"`
+	Year            int                        `json:"year"`
+	Version         int                        `json:"version"`
+	Rule            *entity.MonitoringRule     `json:"rule"`
+	Periods         []MonitoringPeriodProgress `json:"periods"`
+	LinkedDocuments []LinkedProfileDocument    `json:"linkedDocuments,omitempty"`
 }
 
 func (s *UPRWorkflow) AnnualProfilePeriodProgress(ctx context.Context, scope *entity.AccessScope, profile uuid.UUID) (ProfilePeriodProgress, error) {
@@ -73,6 +82,23 @@ func annualProfilePeriodProgress(ctx context.Context, db riskQueryer, org, profi
 		return out, err
 	}
 	if ruleID == nil {
+		if err := db.QueryRow(ctx, `
+			SELECT COALESCE(jsonb_agg(
+				jsonb_strip_nulls(jsonb_build_object('id', id, 'kind', kind, 'complete', complete, 'observationCutoff', cutoff))
+				ORDER BY kind DESC, cutoff DESC NULLS LAST, id
+			), '[]'::jsonb)
+			FROM (
+				SELECT id, 'workingPaper' AS kind, status = 'completed' AS complete, observation_cutoff AS cutoff
+				FROM working_papers
+				WHERE profile_version_id = $1 AND org_id = $2 AND monitoring_period_id IS NULL AND status <> 'cancelled'
+				UNION ALL
+				SELECT id, 'evaluation', status = 'final', NULL::date
+				FROM evaluations
+				WHERE profile_version_id = $1 AND organization_id = $2 AND monitoring_period_id IS NULL
+			) AS documents
+		`, profile, org).Scan(&out.LinkedDocuments); err != nil {
+			return out, fmt.Errorf("read linked profile documents: %w", err)
+		}
 		return out, nil
 	}
 	rule := &entity.MonitoringRule{ID: *ruleID}

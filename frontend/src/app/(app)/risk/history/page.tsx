@@ -87,7 +87,7 @@ export default function RiskHistoryPage() {
 
       <div className="grid gap-6 lg:grid-cols-4">
         {/* Timeline Version Selector */}
-        <div className="lg:col-span-1 border-r border-border/50 pr-4">
+        <div className="lg:col-span-1 border-r border-border pr-4">
           <h3 className="text-xs font-semibold mb-4 uppercase tracking-wider text-muted-foreground">Timeline Snapshot</h3>
           <div className="space-y-3 relative before:absolute before:inset-0 before:ml-5 before:-translate-x-px md:before:mx-auto md:before:translate-x-0 before:h-full before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-border before:to-transparent">
             {versions.map((ver) => (

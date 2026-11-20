@@ -42,7 +42,7 @@ export function RiskNavHeader({ title, description, badge }: { title: string, de
         </p>
       </div>
 
-      <div className="flex gap-1 bg-muted/40 p-1 rounded-lg border border-border/50 backdrop-blur-sm self-start md:self-auto">
+      <div className="flex gap-1 bg-muted/40 p-1 rounded-lg border border-border backdrop-blur-sm self-start md:self-auto">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (

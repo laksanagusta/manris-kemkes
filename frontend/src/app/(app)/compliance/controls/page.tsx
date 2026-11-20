@@ -86,7 +86,7 @@ function ControlTestingRecords({ tests, readOnly }: {
   });
 
   return (
-    <div className="space-y-3 border-t border-border/30 px-4 pb-4 pt-3">
+    <div className="space-y-3 border-t border-border px-4 pb-4 pt-3">
       <div className="flex items-center justify-between gap-3">
         <h4 className="text-xs font-semibold">Testing Records</h4>
         {!readOnly && (

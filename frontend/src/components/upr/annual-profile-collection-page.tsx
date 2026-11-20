@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/auth-context";
-import { annualProfileHref } from "@/lib/annual-profile";
+import { annualProfileHref, groupAnnualProfiles } from "@/lib/annual-profile";
 import { ApiError } from "@/lib/api";
 import { uprApi, type AnnualProfileListVersion } from "@/lib/api/upr-workflow";
 import { businessYear } from "@/lib/business-clock";
@@ -22,6 +22,7 @@ export function AnnualProfileCollectionPage() {
   const [loadedScope, setLoadedScope] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [reload, setReload] = useState(0);
+  const [reloadProgress, setReloadProgress] = useState(0);
 
   useEffect(() => {
     if (!token || !organizationId) return;
@@ -49,12 +50,21 @@ export function AnnualProfileCollectionPage() {
   useEffect(() => {
     if (!token || !organizationId) return;
     let active = true;
-    Promise.all(versions.map(async version => {
-      try { return [version.id, await getProfilePeriodProgress(token, version.id)] as const; }
-      catch (error) { return [version.id, {error:workflowError(error)}] as const; }
-    })).then(entries => { if(active) setPeriodProgress({scope:organizationId,data:Object.fromEntries(entries)}); });
+    const profileIds = groupAnnualProfiles(versions).flatMap(({ final, draft }) => {
+      const profile = final ?? draft;
+      return profile ? [profile.id] : [];
+    });
+    Promise.all(profileIds.map(async (id) => {
+      try {
+        return [id, await getProfilePeriodProgress(token, id)] as const;
+      } catch (error) {
+        return [id, { error: workflowError(error) }] as const;
+      }
+    })).then((entries) => {
+      if (active) setPeriodProgress({ scope: organizationId, data: Object.fromEntries(entries) });
+    });
     return () => { active = false; };
-  }, [token, organizationId, versions]);
+  }, [token, organizationId, versions, reloadProgress]);
   const loadRules = useCallback((search = "", signal?: AbortSignal) => token ? listMonitoringRules(token, signal, false, { query: search, limit: 5 }) : Promise.reject(new Error("Sesi tidak tersedia.")), [token]);
   const loadPickup = useCallback(
     (year: number, source: string | null) => {
@@ -88,6 +98,7 @@ export function AnnualProfileCollectionPage() {
       loadRules={loadRules}
       organizationId={organizationId ?? undefined}
       periodProgress={periodProgress.scope === organizationId ? periodProgress.data : {}}
+      retryPeriodProgress={() => setReloadProgress((value) => value + 1)}
       openProfile={openProfile}
       create={async (year, source, ids, ruleId) => {
         if (!token) throw new Error("Sesi tidak tersedia. Muat ulang halaman.");

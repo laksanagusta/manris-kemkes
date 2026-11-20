@@ -407,7 +407,7 @@ export function ReviewSidePanel({
               );
             })}
           {onNavigateToLog && (
-            <div className="mt-3 flex justify-end border-t border-border/10 pt-3">
+            <div className="mt-3 flex justify-end border-t border-border pt-3">
               <Button
                 type="button"
                 variant="ghost"

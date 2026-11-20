@@ -74,7 +74,7 @@ export function FindingsReviewPanel({
           return (
             <article
               key={finding.id}
-              className="group overflow-hidden rounded-lg border border-border/80 bg-card p-4 transition-[border-color,box-shadow] duration-150 hover:border-foreground/20 hover:shadow-sm"
+              className="group overflow-hidden rounded-lg border border-border bg-card p-4 transition-[border-color,box-shadow] duration-150 hover:border-foreground/20 hover:shadow-sm"
             >
               <div className="w-full text-left">
                 <div className="flex items-start gap-3">
@@ -97,7 +97,7 @@ export function FindingsReviewPanel({
                 <p className="mt-2 text-xs text-muted-foreground">Belum tercantum: {finding.eventDraft.missingFields.join(", ")}.</p>
               ) : null}
               <FindingSourceDisclosure finding={finding} />
-              <footer className="-mx-4 -mb-4 mt-4 flex flex-wrap justify-end gap-2 border-t border-border/70 bg-table-header px-4 py-3">
+              <footer className="-mx-4 -mb-4 mt-4 flex flex-wrap justify-end gap-2 border-t border-border bg-table-header px-4 py-3">
                 {isRiskEvent && onUseRiskEvent ? (
                   <Button type="button" variant="outline" size="xs" disabled={isReported || job.status !== "completed"} onClick={() => onUseRiskEvent(finding)}>
                     {isReported ? "Sudah disimpan" : "Tinjau kejadian"}
@@ -147,7 +147,7 @@ function FindingSourceDisclosure({ finding }: { finding: Finding }) {
   const contentId = `finding-source-${finding.id}`;
 
   return (
-    <div className="mt-3 border-t border-dashed border-border/70 pt-3">
+    <div className="mt-3 border-t border-dashed border-border pt-3">
       <button
         type="button"
         aria-expanded={open}
