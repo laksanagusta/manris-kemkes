@@ -82,7 +82,7 @@ func TestRiskMonitoringsListReturnsMonitoringEnvelope(t *testing.T) {
 
 	req := httptest.NewRequest(
 		fiber.MethodGet,
-		"/risk-monitorings?q=layanan&assessment_cycle=2026-H1&status=draft&page=1&limit=10",
+		"/risk-monitorings?q=layanan&assessment_cycle=2026-H1&status=draft&transaction_kind=monitoring&page=1&limit=10",
 		nil,
 	)
 	resp, err := app.Test(req)
@@ -103,6 +103,9 @@ func TestRiskMonitoringsListReturnsMonitoringEnvelope(t *testing.T) {
 	}
 	if repoStub.filter.Status != "draft" {
 		t.Fatalf("expected status draft, got %q", repoStub.filter.Status)
+	}
+	if repoStub.filter.TransactionKind != "monitoring" {
+		t.Fatalf("expected transaction kind monitoring, got %q", repoStub.filter.TransactionKind)
 	}
 
 	var payload struct {

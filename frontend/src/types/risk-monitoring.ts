@@ -67,6 +67,7 @@ export interface RiskMonitoringListParams {
   q?: string;
   lifecycle?: "active" | "archived" | "all";
   status?: string;
+  transaction_kind?: RiskMonitoringDetail["transactionKind"];
   category?: string;
   assessment_cycle?: string;
   created_at?: string;

@@ -38,6 +38,7 @@ type RiskMonitoringListFilter struct {
 	AssessmentCycle string
 	CreatedAt       string
 	Status          string
+	TransactionKind string
 	Page            int
 	Limit           int
 	SortBy          string

@@ -33,15 +33,16 @@ export function getAnnualProfileRuleSelection(
 }
 
 export function groupAnnualProfiles(versions: AnnualProfileListVersion[]) {
-  const groups = new Map<number, AnnualProfileListVersion[]>();
+  const groups = new Map<string, AnnualProfileListVersion[]>();
   for (const version of versions) {
-    const group = groups.get(version.year) ?? [];
+    const key = `${version.organizationId ?? ""}:${version.year}`;
+    const group = groups.get(key) ?? [];
     group.push(version);
-    groups.set(version.year, group);
+    groups.set(key, group);
   }
-  return [...groups.entries()]
-    .sort(([a], [b]) => b - a)
-    .map(([year, versions]) => {
+  return [...groups.values()]
+    .sort(([a], [b]) => b.year - a.year || (a.organizationName ?? "").localeCompare(b.organizationName ?? "", "id"))
+    .map((versions) => {
       versions.sort((a, b) => b.version - a.version);
       const draft = versions.find((version) => !version.finalizedAt);
       const final = versions.find((version) => version.finalizedAt);
@@ -52,7 +53,7 @@ export function groupAnnualProfiles(versions: AnnualProfileListVersion[]) {
             : latest,
         versions[0].updatedAt,
       );
-      return { year, draft, final, updatedAt };
+      return { year: versions[0].year, draft, final, updatedAt };
     });
 }
 

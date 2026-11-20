@@ -74,11 +74,12 @@ type AnnualProfileCandidate struct {
 }
 
 type AnnualProfile struct {
-	OrganizationID uuid.UUID                `json:"organizationId"`
-	Versions       []AnnualProfileVersion   `json:"versions"`
-	Selected       *AnnualProfileVersion    `json:"selected"`
-	Members        []AnnualProfileMember    `json:"members"`
-	Objectives     []AnnualProfileObjective `json:"objectives"`
+	OrganizationID   uuid.UUID                `json:"organizationId"`
+	OrganizationName string                   `json:"organizationName"`
+	Versions         []AnnualProfileVersion   `json:"versions"`
+	Selected         *AnnualProfileVersion    `json:"selected"`
+	Members          []AnnualProfileMember    `json:"members"`
+	Objectives       []AnnualProfileObjective `json:"objectives"`
 }
 
 type AnnualMemberInput struct {
@@ -94,6 +95,9 @@ const annualVersionColumns = "monitoring_rule_id, id, version, finalized_at, fin
 
 func (s *UPRWorkflow) AnnualProfile(ctx context.Context, org uuid.UUID, year int, id uuid.UUID) (AnnualProfile, error) {
 	out := AnnualProfile{OrganizationID: org, Versions: []AnnualProfileVersion{}, Members: []AnnualProfileMember{}, Objectives: []AnnualProfileObjective{}}
+	if err := s.pool.QueryRow(ctx, `SELECT name FROM organizations WHERE id=$1`, org).Scan(&out.OrganizationName); err != nil {
+		return out, err
+	}
 	rows, err := s.pool.Query(ctx, `SELECT `+annualVersionColumns+` FROM annual_risk_profile_versions WHERE organization_id=$1 AND year=$2 ORDER BY version DESC`, org, year)
 	if err != nil {
 		return out, err

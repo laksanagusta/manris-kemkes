@@ -10,24 +10,44 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/timeutil"
 )
 
 const ErrAnnualProfileExists UPRWorkflowError = "Tahun ini sudah memiliki profil. Buka profil yang ada untuk melanjutkan."
 
 type AnnualProfileListVersion struct {
-	ID          uuid.UUID  `json:"id"`
-	Year        int        `json:"year"`
-	Version     int        `json:"version"`
-	FinalizedAt *time.Time `json:"finalizedAt"`
-	UpdatedAt   time.Time  `json:"updatedAt"`
-	RiskCount   int        `json:"riskCount"`
+	ID               uuid.UUID  `json:"id"`
+	Year             int        `json:"year"`
+	Version          int        `json:"version"`
+	FinalizedAt      *time.Time `json:"finalizedAt"`
+	UpdatedAt        time.Time  `json:"updatedAt"`
+	RiskCount        int        `json:"riskCount"`
+	OrganizationID   uuid.UUID  `json:"organizationId"`
+	OrganizationName string     `json:"organizationName"`
 }
 
-func (s *UPRWorkflow) AnnualProfileList(ctx context.Context, org uuid.UUID) ([]AnnualProfileListVersion, error) {
+func (s *UPRWorkflow) AnnualProfileList(ctx context.Context, scope *entity.AccessScope, org uuid.UUID, includeDescendants bool) ([]AnnualProfileListVersion, error) {
+	if scope == nil || !scope.CanRead(org) {
+		return nil, ErrUPRNotFound
+	}
+	orgIDs := []uuid.UUID{org}
+	if includeDescendants && scope.OrganizationID != nil && *scope.OrganizationID == org {
+		if scope.IsGlobal {
+			var err error
+			orgIDs, err = NewOrganizationRepository(s.pool).GetDescendants(ctx, org)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			orgIDs = scope.AccessibleOrgIDs
+		}
+	}
 	rows, err := s.pool.Query(ctx, `SELECT p.id,p.year,p.version,p.finalized_at,GREATEST(p.updated_at,p.finalized_at),
-		(SELECT count(*) FROM annual_risk_profile_members m WHERE m.profile_version_id=p.id)
-		FROM annual_risk_profile_versions p WHERE p.organization_id=$1 ORDER BY p.year DESC,p.version DESC`, org)
+		(SELECT count(*) FROM annual_risk_profile_members m WHERE m.profile_version_id=p.id),
+		p.organization_id,o.name
+		FROM annual_risk_profile_versions p JOIN organizations o ON o.id=p.organization_id
+		WHERE p.organization_id=ANY($1::uuid[]) ORDER BY p.year DESC,o.name,p.organization_id,p.version DESC`, orgIDs)
 	if err != nil {
 		return nil, fmt.Errorf("list annual profile versions: %w", err)
 	}

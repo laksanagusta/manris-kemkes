@@ -259,6 +259,7 @@ func (h *RiskHandler) ListRiskMonitorings(c *fiber.Ctx) error {
 		AssessmentCycle: strings.TrimSpace(c.Query("assessment_cycle", "")),
 		CreatedAt:       strings.TrimSpace(c.Query("created_at", "")),
 		Status:          strings.TrimSpace(c.Query("status", "all")),
+		TransactionKind: strings.TrimSpace(c.Query("transaction_kind")),
 		Page:            page,
 		Limit:           limit,
 		SortBy:          strings.TrimSpace(c.Query("sort_by", "")),

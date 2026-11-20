@@ -19,7 +19,9 @@ type uprActor struct {
 func RegisterUPRWorkflowRoutes(router fiber.Router, workflow *postgres.UPRWorkflow) {
 	registerMonitoringRuleRoutes(router, workflow)
 	router.Get("/annual-profiles", uprRoute(func(c *fiber.Ctx, a uprActor) error {
-		data, err := workflow.AnnualProfileList(c.Context(), a.org)
+		scope := middleware.GetAccessScope(c)
+		includeDescendants := c.Query("include_descendants") == "true" && c.Query("org_id") == ""
+		data, err := workflow.AnnualProfileList(c.Context(), scope, a.org, includeDescendants)
 		return uprData(c, data, err)
 	}))
 	router.Get("/annual-profiles/:year/pickup", uprRoute(func(c *fiber.Ctx, a uprActor) error {

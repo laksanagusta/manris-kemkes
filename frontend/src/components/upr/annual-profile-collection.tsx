@@ -88,6 +88,7 @@ export function AnnualProfileCollection({
   const [deleteError, setDeleteError] = useState("");
   const addTrigger = useRef<HTMLButtonElement>(null);
   const profiles = groupAnnualProfiles(versions);
+  const ownVersions = versions.filter((version) => !version.organizationId || version.organizationId === organizationId);
   const dynamicColumns = periodColumns(Object.values(periodProgress).flatMap(value => "periods" in value ? [value.periods] : []));
   const canAdd = Boolean(organization && !loading && !error);
   const add = useMemo(
@@ -145,20 +146,25 @@ export function AnnualProfileCollection({
         <WorkflowTable
           columns={[
             "Tahun",
+            "Unit",
             "Status",
             "Jumlah risiko",
             "Terakhir diperbarui",
             ...dynamicColumns,
             "Aksi",
           ]}
-          hiddenOnMobile={["Jumlah risiko", "Terakhir diperbarui"]}
+          hiddenOnMobile={["Unit", "Jumlah risiko", "Terakhir diperbarui"]}
         >
           {profiles.map(({ year, draft, final, updatedAt }) => {
             const latest = draft ?? final;
-            const processProfile = final ?? draft;
             if (!latest) return null;
+            const processProfile = final ?? latest;
+            const ownerId = latest.organizationId ?? organizationId;
+            const ownerName = latest.organizationName ?? organization;
+            const readOnly = ownerId !== organizationId;
+            const openLabel = draft && !readOnly ? "Lanjutkan draf" : "Buka profil";
             return (
-              <TableRow key={year}>
+              <TableRow key={`${ownerId ?? ""}:${year}`}>
                 <TableCell className="tabular-nums font-medium whitespace-normal">
                   <div className="space-y-1">
                     {embedded ? (
@@ -166,7 +172,7 @@ export function AnnualProfileCollection({
                         variant="link"
                         size="sm"
                         className="h-auto min-h-8 px-0 py-0 tabular-nums font-medium no-underline hover:no-underline"
-                        aria-label={`${draft ? "Lanjutkan draf" : "Buka profil"} ${year}`}
+                        aria-label={`${openLabel} ${year} · ${ownerName}`}
                         onClick={() => openProfile(year, latest.id)}
                       >
                         {year}
@@ -175,12 +181,13 @@ export function AnnualProfileCollection({
                       <Link
                         className="inline-flex min-h-8 items-center tabular-nums no-underline hover:no-underline hover:text-primary"
                         href={annualProfileHref(year, latest.id)}
-                        aria-label={`${draft ? "Lanjutkan draf" : "Buka profil"} ${year}`}
+                        aria-label={`${openLabel} ${year} · ${ownerName}`}
                       >
                         {year}
                       </Link>
                     )}
                     <div className="space-y-1 sm:hidden">
+                      <p className="text-xs font-normal text-muted-foreground">{ownerName}</p>
                       <p className="text-xs font-normal text-muted-foreground">
                         {latest.riskCount} risiko
                         {draft &&
@@ -193,6 +200,7 @@ export function AnnualProfileCollection({
                     </div>
                   </div>
                 </TableCell>
+                <TableCell className="hidden whitespace-normal sm:table-cell">{ownerName}</TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1.5">
                     {final && (
@@ -217,12 +225,12 @@ export function AnnualProfileCollection({
                   {workflowDate(updatedAt)}
                 </TableCell>
                 {dynamicColumns.map(label => {
-                  const workspace = processProfile ? periodProgress[processProfile.id] : undefined;
+                  const workspace = periodProgress[processProfile.id];
                   const period = workspace && "periods" in workspace ? workspace.periods.find(p => p.label === label) : undefined;
-                  return <TableCell key={label}>{period ? <ProfileDocumentPeriodCell period={period} profileId={processProfile!.id} organizationId={organizationId} canCreate={Boolean(processProfile?.finalizedAt)} /> : <span className="text-xs text-muted-foreground">{workspace && "error" in workspace ? "Progres gagal dimuat" : "—"}</span>}</TableCell>;
+                  return <TableCell key={label}>{period ? <ProfileDocumentPeriodCell period={period} profileId={processProfile.id} organizationId={ownerId} canCreate={Boolean(processProfile.finalizedAt)} readOnly={readOnly} /> : <span className="text-xs text-muted-foreground">{workspace && "error" in workspace ? "Progres gagal dimuat" : "—"}</span>}</TableCell>;
                 })}
                 <TableCell className="w-10 text-right">
-                  {draft && (
+                  {draft && !readOnly && (
                     <DropdownMenu modal={false}>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -257,7 +265,7 @@ export function AnnualProfileCollection({
       {adding && (
         <AnnualProfileInitiationDialog
           defaultYear={defaultYear}
-          versions={versions}
+          versions={ownVersions}
           loadPickup={loadPickup}
           loadRules={loadRules}
           create={async (year, source, ids, ruleId) => {

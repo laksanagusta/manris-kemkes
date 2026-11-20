@@ -50,6 +50,7 @@ export async function listRiskMonitorings(
     searchParams.set("lifecycle", params.lifecycle);
   }
   if (params?.status) searchParams.set("status", params.status);
+  if (params?.transaction_kind) searchParams.set("transaction_kind", params.transaction_kind);
   if (params?.category) searchParams.set("category", params.category);
   if (params?.assessment_cycle) {
     searchParams.set("assessment_cycle", params.assessment_cycle);

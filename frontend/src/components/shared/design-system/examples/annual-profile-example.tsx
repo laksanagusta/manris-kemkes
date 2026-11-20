@@ -73,11 +73,13 @@ export function AnnualProfileExample({
   sampleVersion,
   sampleVersions,
   pickup,
+  readOnly = false,
 }: {
   year: number;
   sampleVersion: AnnualProfileListVersion;
   sampleVersions: AnnualProfileListVersion[];
   pickup?: AnnualPickupRisk[];
+  readOnly?: boolean;
 }) {
   function membersFor(version: AnnualProfileListVersion): AnnualMember[] {
     return pickup && version.id === sampleVersion.id
@@ -246,7 +248,8 @@ export function AnnualProfileExample({
             periods: [],
           }}
           candidates={profileCandidates}
-          organization="UPR-T.II · Unit contoh"
+          organization={sampleVersion.organizationName ?? "UPR-T.II · Unit contoh"}
+          readOnly={readOnly}
           busy={false}
           candidateError={error}
           returnTo={`/risk/annual-profiles/${year}`}
