@@ -20,6 +20,12 @@ func (uc *UseCase) StartSigning(ctx context.Context, workingPaperID uuid.UUID, u
 				Message: "only draft working papers can be moved to signing",
 			}
 		}
+		if wp.SignerIdentityMismatch {
+			return &domainerrors.AppError{
+				Code:    "SIGNER_IDENTITY_MISMATCH",
+				Message: "Penandatangan pada draf tidak tersedia. Pilih penandatangan yang aktif pada Kertas Kerja baru.",
+			}
+		}
 		if blockers := workingPaperSigningBlockers(wp); len(blockers) > 0 {
 			return &domainerrors.AppError{
 				Code:    "MONITORING_INCOMPLETE",

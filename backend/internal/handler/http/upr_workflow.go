@@ -18,7 +18,7 @@ type uprActor struct {
 
 func RegisterUPRWorkflowRoutes(router fiber.Router, workflow *postgres.UPRWorkflow) {
 	registerMonitoringRuleRoutes(router, workflow)
-	router.Get("/annual-profiles", uprRoute(func(c *fiber.Ctx, a uprActor) error {
+	router.Get("/annual-profiles", uprScopedRoute(true, func(c *fiber.Ctx, a uprActor) error {
 		scope := middleware.GetAccessScope(c)
 		includeDescendants := c.Query("include_descendants") == "true" && c.Query("org_id") == ""
 		data, err := workflow.AnnualProfileList(c.Context(), scope, a.org, includeDescendants)
@@ -52,7 +52,7 @@ func RegisterUPRWorkflowRoutes(router fiber.Router, workflow *postgres.UPRWorkfl
 		id, err := workflow.InitiateAnnualProfile(c.Context(), a.org, a.user, year, input)
 		return uprData(c, fiber.Map{"id": id}, err)
 	}))
-	router.Get("/annual-profiles/:year", uprRoute(func(c *fiber.Ctx, a uprActor) error {
+	router.Get("/annual-profiles/:year", uprScopedRoute(true, func(c *fiber.Ctx, a uprActor) error {
 		year, err := uprYear(c)
 		if err != nil {
 			return err
@@ -97,6 +97,24 @@ func RegisterUPRWorkflowRoutes(router fiber.Router, workflow *postgres.UPRWorkfl
 			return invalidUPRID
 		}
 		return uprData(c, fiber.Map{}, workflow.RemoveAnnualMember(c.Context(), a.org, id, group))
+	}))
+	router.Post("/annual-profile-versions/:id/exclusions/:group", uprVersionRoute(func(c *fiber.Ctx, a uprActor, id uuid.UUID) error {
+		group, err := uuid.Parse(c.Params("group"))
+		if err != nil || group == uuid.Nil {
+			return invalidUPRID
+		}
+		var input postgres.AnnualMemberExclusionInput
+		if err := c.BodyParser(&input); err != nil {
+			return invalidUPRBody
+		}
+		return uprData(c, fiber.Map{}, workflow.ExcludeAnnualMember(c.Context(), a.org, a.user, id, group, input))
+	}))
+	router.Delete("/annual-profile-versions/:id/exclusions/:group", uprVersionRoute(func(c *fiber.Ctx, a uprActor, id uuid.UUID) error {
+		group, err := uuid.Parse(c.Params("group"))
+		if err != nil || group == uuid.Nil {
+			return invalidUPRID
+		}
+		return uprData(c, fiber.Map{}, workflow.CancelAnnualMemberExclusion(c.Context(), a.org, id, group))
 	}))
 	router.Post("/annual-profile-versions/:id/finalize", uprVersionRoute(func(c *fiber.Ctx, a uprActor, id uuid.UUID) error {
 		return uprData(c, fiber.Map{}, workflow.FinalizeAnnualProfile(c.Context(), a.org, a.user, id))
@@ -165,6 +183,13 @@ func RegisterUPRWorkflowRoutes(router fiber.Router, workflow *postgres.UPRWorkfl
 			return postgres.UPRWorkflowError("Pencarian dokumen tidak valid.")
 		}
 		scope := postgres.UPRSemesterInput{Year: year, Semester: semester}
+		if value := c.Query("profileId"); value != "" {
+			id, err := uuid.Parse(value)
+			if err != nil || id == uuid.Nil {
+				return postgres.UPRWorkflowError("Versi profil tidak valid.")
+			}
+			scope.ProfileID = &id
+		}
 		result, err := workflow.SearchReportDocuments(c.Context(), a.org, c.Query("kind"), scope, c.Query("q"), page)
 		return uprData(c, result, err)
 	}))
@@ -173,6 +198,7 @@ func RegisterUPRWorkflowRoutes(router fiber.Router, workflow *postgres.UPRWorkfl
 			OrganizationID *uuid.UUID  `json:"organizationId"`
 			Year           int         `json:"year"`
 			Semester       int         `json:"semester"`
+			ProfileID      *uuid.UUID  `json:"profileId"`
 			IDs            []uuid.UUID `json:"ids"`
 		}
 		if err := c.BodyParser(&body); err != nil {
@@ -186,7 +212,7 @@ func RegisterUPRWorkflowRoutes(router fiber.Router, workflow *postgres.UPRWorkfl
 			}
 			org = *body.OrganizationID
 		}
-		scope := postgres.UPRSemesterInput{Year: body.Year, Semester: body.Semester}
+		scope := postgres.UPRSemesterInput{Year: body.Year, Semester: body.Semester, ProfileID: body.ProfileID}
 		items, err := workflow.SelectedReportDocuments(c.Context(), org, scope, body.IDs)
 		return uprData(c, items, err)
 	}))
@@ -257,13 +283,23 @@ func uprYear(c *fiber.Ctx) (int, error) {
 }
 
 func uprRoute(action func(*fiber.Ctx, uprActor) error) fiber.Handler {
+	return uprScopedRoute(false, action)
+}
+
+func uprScopedRoute(allowGlobalRead bool, action func(*fiber.Ctx, uprActor) error) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		c.Set(fiber.HeaderCacheControl, "no-store")
 		scope := middleware.GetAccessScope(c)
-		if scope == nil || scope.OrganizationID == nil || *scope.OrganizationID == uuid.Nil || scope.UserID == uuid.Nil {
+		if scope == nil || scope.UserID == uuid.Nil {
 			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Akun harus terhubung ke organisasi."})
 		}
-		org := *scope.OrganizationID
+		var org uuid.UUID
+		if scope.OrganizationID != nil {
+			org = *scope.OrganizationID
+		}
+		if org == uuid.Nil && !(allowGlobalRead && c.Method() == fiber.MethodGet && scope.IsGlobal && canManageMonitoringRules(c)) {
+			return c.Status(fiber.StatusForbidden).JSON(fiber.Map{"error": "Akun harus terhubung ke organisasi."})
+		}
 		if c.Method() == fiber.MethodGet && c.Query("org_id") != "" {
 			requested, err := uuid.Parse(c.Query("org_id"))
 			if err != nil || requested == uuid.Nil {
@@ -298,13 +334,17 @@ func uprRoute(action func(*fiber.Ctx, uprActor) error) fiber.Handler {
 }
 
 func uprVersionRoute(action func(*fiber.Ctx, uprActor, uuid.UUID) error) fiber.Handler {
-	return uprRoute(func(c *fiber.Ctx, a uprActor) error {
+	return uprScopedRoute(false, uprVersionAction(action))
+}
+
+func uprVersionAction(action func(*fiber.Ctx, uprActor, uuid.UUID) error) func(*fiber.Ctx, uprActor) error {
+	return func(c *fiber.Ctx, a uprActor) error {
 		id, err := uuid.Parse(c.Params("id"))
 		if err != nil || id == uuid.Nil {
 			return invalidUPRID
 		}
 		return action(c, a, id)
-	})
+	}
 }
 
 func uprData(c *fiber.Ctx, data any, err error) error {

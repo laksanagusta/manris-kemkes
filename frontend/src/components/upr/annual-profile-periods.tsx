@@ -57,6 +57,11 @@ export function AnnualProfilePeriods({ workspace, profileId, organizationId, fin
                   <h3 className="flex flex-wrap items-baseline justify-between gap-x-2 text-xs font-medium">
                     {period.label}<span className="font-normal text-muted-foreground">{windowLabels[periodWindowState(period)]}</span>
                   </h3>
+                  {period.scopeLocked && (
+                    <p className="text-xs text-muted-foreground">
+                      {period.needsReview ? "Cakupan historis perlu ditinjau" : "Cakupan terkunci"}
+                    </p>
+                  )}
                   <ProfileDocumentPeriodCell period={period} profileId={profileId} organizationId={organizationId} canCreate={finalized && Boolean(organizationId)} readOnly={readOnly} inline />
                 </section>
               ))}

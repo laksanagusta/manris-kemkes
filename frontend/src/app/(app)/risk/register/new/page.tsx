@@ -56,7 +56,7 @@ import { listAllOrganizations } from "@/lib/api/organizations";
 import { filterToAccessibleOrgs } from "@/lib/organization";
 import { useAuth } from "@/contexts/auth-context";
 import { canWriteInOrg } from "@/lib/auth-helpers";
-import { useForm, Controller, type FieldErrors } from "react-hook-form";
+import { useForm, Controller, type DefaultValues, type FieldErrors } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { toast } from "sonner";
@@ -158,6 +158,7 @@ import {
   consumeDocumentIntelligencePrefill,
   DOCUMENT_INTELLIGENCE_PREFILL_PARAM,
 } from "@/lib/document-intelligence-prefill";
+import { getRiskRegisterReturnPath } from "@/lib/risk-register-return-path";
 import { markProcessingFindingHandled } from "@/lib/document-processing/storage";
 import { RiskEventFormDialog } from "@/app/(app)/risk-events/_components/risk-event-form-sheet";
 import {
@@ -165,6 +166,8 @@ import {
   type RiskWorkflowState,
 } from "@/components/risk/review-side-panel";
 import { OrderedUserSelectionTable } from "@/components/risk/ordered-user-selection-table";
+import { RiskOwnerField } from "@/components/risk/risk-owner-field";
+import { normalizeRiskSource, riskSourceOptions, riskSourceValues } from "@/lib/risk-source";
 import { RemoteUserPicker } from "@/components/risk/remote-user-picker";
 import {
   filterApproverOptions,
@@ -252,6 +255,8 @@ type RiskApiResponse = {
   description?: string;
   category?: RiskCategory | "" | null;
   organizationId?: string;
+  riskOwnerId?: string;
+  riskOwnerName?: string;
   roId?: string | null;
   code?: string;
   assessmentCycle?: string;
@@ -514,11 +519,12 @@ const mitigationSchema = z.object({
 const formSchema = z
   .object({
     title: z.string().min(3, "Judul risiko minimal 3 karakter"),
-    description: z.string().min(10, "Deskripsi minimal 10 karakter"),
+    description: z.string().default(""),
     category: z.enum(riskCategoryValues, {
       error: "Kategori risiko wajib dipilih",
     }),
     organizationId: z.string().optional(),
+    riskOwnerId: z.string().optional(),
     riskCode: z.string().optional(),
 
     causes: z
@@ -530,7 +536,7 @@ const formSchema = z
       )
       .min(1, "Minimal pilih/isi 1 sebab"),
 
-    riskSource: z.enum(["internal", "eksternal"]).default("internal"),
+    riskSource: z.enum(riskSourceValues).default("internal"),
     controllability: z.enum(["C", "UC"]).default("C"),
 
     impacts: z
@@ -606,7 +612,6 @@ const formSchema = z
 const draftSchema = z
   .object({
     title: z.string().min(3, "Judul risiko minimal 3 karakter"),
-    description: z.string().min(10, "Deskripsi minimal 10 karakter"),
     category: z.enum(riskCategoryValues, {
       error: "Kategori risiko wajib dipilih",
     }),
@@ -625,6 +630,7 @@ function normalizeFormValues(values: FormInput): FormValues {
       ? values.category
       : riskCategoryValues[0],
     organizationId: values.organizationId ?? "",
+    riskOwnerId: values.riskOwnerId ?? "",
     riskCode: values.riskCode ?? "",
     causes: values.causes ?? [],
     riskSource: values.riskSource ?? "internal",
@@ -722,11 +728,7 @@ export default function RiskInputPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const selectedRiskId = searchParams.get("id");
-  const requestedReturnTo = searchParams.get("returnTo");
-  const returnTo =
-    requestedReturnTo?.startsWith("/") && !requestedReturnTo.startsWith("//")
-      ? requestedReturnTo
-      : "/risk/register";
+  const returnTo = getRiskRegisterReturnPath(searchParams.get("returnTo"));
   const annualProfileReturn = /^\/risk\/annual-profiles(?:\/\d{4})?$/.test(returnTo.split("?")[0]);
   const returnLabel = annualProfileReturn
     ? "Kembali ke Profil Risiko Tahunan"
@@ -740,6 +742,9 @@ export default function RiskInputPage() {
     MEETING_INTELLIGENCE_PREFILL_PARAM,
   );
   const { token, user } = useAuth();
+  const [defaultRiskOwner] = useState(
+    () => user?.organizationId && user.status === "active" ? toUserPickerOption(user) : null,
+  );
   const riskApprovalCapabilityBehavior = useMemo(
     () => getRiskApprovalCapabilityBehavior(user?.capabilities),
     [user?.capabilities],
@@ -779,6 +784,7 @@ export default function RiskInputPage() {
     { id: string; name: string; uprLevel?: string }[]
   >([]);
   const [reviewerId, setReviewerId] = useState<string>("");
+  const [riskOwnerOption, setRiskOwnerOption] = useState<UserPickerOption | null>(defaultRiskOwner);
   const [reviewerOption, setReviewerOption] = useState<UserPickerOption | null>(
     null,
   );
@@ -824,33 +830,35 @@ export default function RiskInputPage() {
   const draftValidationAttemptedRef = useRef(false);
   const submitTarget = useRef<"draft" | "review">("draft");
 
+  const defaultValues = useMemo<DefaultValues<FormInput>>(() => ({
+    title: "",
+    description: "",
+    category: undefined,
+    organizationId: user?.organizationId ?? "",
+    riskOwnerId: defaultRiskOwner?.id ?? "",
+    roId: undefined,
+    riskCode: "",
+    causes: [],
+    impacts: [],
+    riskSource: "internal",
+    controllability: "C",
+    existingControl: "",
+    controlEffectiveness: "",
+    probability: 0,
+    impact: 0,
+    weight: 1.0,
+    riskPriority: 0,
+    riskAppetite: "dalam_batas",
+    treatmentOption: undefined,
+    nextReviewDate: "",
+    mitigations: [],
+    targetProbability: 0,
+    targetImpact: 0,
+    targetWeight: 1.0,
+  }), [defaultRiskOwner, user?.organizationId]);
   const form = useForm<FormInput, unknown, FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      title: "",
-      description: "",
-      category: undefined,
-      organizationId: "",
-      roId: undefined,
-      riskCode: "",
-      causes: [],
-      impacts: [],
-      riskSource: "internal",
-      controllability: "C",
-      existingControl: "",
-      controlEffectiveness: "",
-      probability: 0,
-      impact: 0,
-      weight: 1.0,
-      riskPriority: 0,
-      riskAppetite: "dalam_batas",
-      treatmentOption: undefined,
-      nextReviewDate: "",
-      mitigations: [],
-      targetProbability: 0,
-      targetImpact: 0,
-      targetWeight: 1.0,
-    },
+    defaultValues,
   });
 
   const {
@@ -1135,17 +1143,21 @@ export default function RiskInputPage() {
                 .map((line, index) => ({ id: `i-${index}`, text: line.trim() }))
             : [];
 
+        setRiskOwnerOption(risk.riskOwnerId ? {
+          id: risk.riskOwnerId,
+          name: risk.riskOwnerName || "Pemilik risiko tersimpan",
+        } : null);
+
         reset({
           title: risk.title || "",
           description: risk.description || "",
           category: isRiskCategory(risk.category) ? risk.category : undefined,
           organizationId: risk.organizationId || "",
+          riskOwnerId: risk.riskOwnerId || "",
           riskCode: risk.code || "",
           causes: loadedCauses,
           impacts: loadedImpacts,
-          riskSource: (risk.riskSource === "eksternal"
-            ? "eksternal"
-            : "internal") as "internal" | "eksternal",
+          riskSource: normalizeRiskSource(risk.riskSource),
           controllability: risk.controllability === "UC" ? "UC" : "C",
           existingControl: risk.existingControl || "",
           controlEffectiveness: risk.controlEffectiveness || "",
@@ -1299,6 +1311,7 @@ export default function RiskInputPage() {
           setRiskArchivedReason("");
           setOpenRiskDrafts(undefined);
           setMonitoringLookupStatus("idle");
+          setRiskOwnerOption(defaultRiskOwner);
           setReviewerId("");
           setReviewerOption(null);
           setApprovalLine([]);
@@ -1310,7 +1323,7 @@ export default function RiskInputPage() {
           setRiskEvents([]);
           setRiskEventsError("");
           setLoadingRiskEvents(false);
-          reset();
+          reset(defaultValues);
           toast.error("Risiko tidak ditemukan. Form baru dibuka.");
           return;
         }
@@ -1319,7 +1332,7 @@ export default function RiskInputPage() {
         toast.error("Gagal memuat data risiko. Silakan coba lagi.");
       }
     },
-    [loadLinkedRiskEvents, reset, token],
+    [defaultRiskOwner, defaultValues, loadLinkedRiskEvents, reset, token],
   );
 
   const reloadRiskData = useCallback(
@@ -1335,6 +1348,29 @@ export default function RiskInputPage() {
   );
 
   const currentOrganizationId = watch("organizationId");
+  const ownerOrganizationId = currentOrganizationId || (!riskId ? user?.organizationId : undefined);
+  const loadRiskOwnerOptions = useCallback(
+    async ({ q, page, limit }: { q: string; page: number; limit: number }) => {
+      if (!token || !ownerOrganizationId) return { options: [], total: 0, page, limit };
+
+      const result = await listUsers(token, {
+        q: q || undefined,
+        page,
+        limit,
+        status: "active",
+        organizationId: ownerOrganizationId,
+        sort_by: "name",
+        sort_order: "asc",
+      });
+      return {
+        options: result.data.map(toUserPickerOption),
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+      };
+    },
+    [ownerOrganizationId, token],
+  );
 
   useEffect(() => {
     if (!riskId && user?.organizationId && organizations.length > 0) {
@@ -1396,11 +1432,13 @@ export default function RiskInputPage() {
           try {
             setDocumentFindingId(documentPrefill.findingId ?? null);
             documentFindingHandledRef.current = false;
+            setRiskOwnerOption(defaultRiskOwner);
             reset({
               title: documentPrefill.title || "",
               description: documentPrefill.description || "",
               category: undefined,
               organizationId: user?.organizationId || "",
+              riskOwnerId: defaultRiskOwner?.id ?? "",
               riskCode: documentPrefill.riskCode || "",
               causes: documentPrefill.quote
                 ? [
@@ -1411,9 +1449,7 @@ export default function RiskInputPage() {
                   ]
                 : [],
               impacts: [],
-              riskSource:
-                (documentPrefill.source as "internal" | "eksternal") ||
-                "internal",
+              riskSource: normalizeRiskSource(documentPrefill.source),
               controllability: "C",
               existingControl: "",
               controlEffectiveness: "",
@@ -1492,11 +1528,13 @@ export default function RiskInputPage() {
       }
 
       try {
+        setRiskOwnerOption(defaultRiskOwner);
         reset({
           title: meetingPrefill.title || "",
           description: meetingPrefill.description || "",
           category: undefined,
           organizationId: user?.organizationId || "",
+          riskOwnerId: defaultRiskOwner?.id ?? "",
           riskCode: meetingPrefill.riskCode || "",
           causes: meetingPrefill.quote
             ? [
@@ -1507,8 +1545,7 @@ export default function RiskInputPage() {
               ]
             : [],
           impacts: [],
-          riskSource:
-            (meetingPrefill.source as "internal" | "eksternal") || "internal",
+          riskSource: normalizeRiskSource(meetingPrefill.source),
           controllability: "C",
           existingControl: "",
           controlEffectiveness: "",
@@ -1550,7 +1587,7 @@ export default function RiskInputPage() {
     };
 
     init();
-  }, [documentPrefillToken, meetingPrefillToken, reset, selectedRiskId, setValue, user]);
+  }, [defaultRiskOwner, documentPrefillToken, meetingPrefillToken, reset, selectedRiskId, user]);
 
   useEffect(() => {
     if (!selectedRiskId || !token) {
@@ -1636,12 +1673,11 @@ export default function RiskInputPage() {
         "Tentukan konteks risiko, penyebab utama, dan dampak yang paling relevan.",
       checks: [
         title.trim().length >= 3,
-        description.trim().length >= 10,
         isRiskCategory(category),
         causes.length > 0 && causes.every(cause => Boolean(cause.text.trim())),
         impacts.length > 0 && impacts.every(item => Boolean(item.text.trim())),
       ],
-      hint: "Lengkapi judul, deskripsi, sebab, dan dampak.",
+      hint: "Lengkapi judul, kategori, sebab, dan dampak.",
     },
     {
       id: "analisis",
@@ -1756,7 +1792,8 @@ export default function RiskInputPage() {
     riskStatus === "final" &&
     !riskArchivedAt &&
     canManageRisk;
-  const canStartMonitoring = canManageMonitoring && monitoringLookupStatus === "ready" && Boolean(openRiskDrafts) && !openRiskDrafts?.monitoringId && !openRiskDrafts?.revisionRiskId && !openRiskDrafts?.revisionMonitoringId;
+  const canStartMonitoring = canManageMonitoring && monitoringLookupStatus === "ready" && Boolean(openRiskDrafts) && !openRiskDrafts?.monitoringId &&
+    (Boolean(openRiskDrafts?.revisionBlockedPeriod) || (!openRiskDrafts?.revisionRiskId && !openRiskDrafts?.revisionMonitoringId));
 
   const scrollToSection = (sectionId: SectionId) => {
     setActiveDetailTab("overview");
@@ -1875,7 +1912,6 @@ export default function RiskInputPage() {
   > = {
     identifikasi: [
       { field: "title", message: "Judul risiko wajib diisi" },
-      { field: "description", message: "Deskripsi risiko wajib diisi" },
       { field: "category", message: "Kategori risiko wajib dipilih" },
       { field: "causes", message: "Minimal isi 1 sebab" },
       { field: "impacts", message: "Minimal isi 1 dampak" },
@@ -1913,7 +1949,6 @@ export default function RiskInputPage() {
 
   const finalizeSchemaFields: Array<keyof FormInput> = [
     "title",
-    "description",
     "category",
     "causes",
     "impacts",
@@ -2015,7 +2050,6 @@ export default function RiskInputPage() {
     } else if (draftValidationAttemptedRef.current) {
       const draftFields: Array<keyof FormInput> = [
         "title",
-        "description",
         "category",
         "organizationId",
       ];
@@ -2050,7 +2084,6 @@ export default function RiskInputPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     title,
-    description,
     category,
     causes,
     impacts,
@@ -2234,7 +2267,6 @@ export default function RiskInputPage() {
         const field = issue.path[0];
         if (
           field === "title" ||
-          field === "description" ||
           field === "category" ||
           field === "organizationId"
         ) {
@@ -2242,7 +2274,7 @@ export default function RiskInputPage() {
         }
       });
       toast.error(
-        "Lengkapi judul, deskripsi, dan kategori sebelum menyimpan draft.",
+        "Lengkapi judul dan kategori sebelum menyimpan draf.",
       );
       draftValidationAttemptedRef.current = true;
       setLeaveHref(null);
@@ -2323,7 +2355,10 @@ export default function RiskInputPage() {
 
     if (isProfileRevision) {
       setRevisionChanges(revisionBaseline
-        ? getRiskRevisionChanges(revisionBaseline, buildPayload(normalizeFormValues(form.getValues()), "draft"))
+        ? getRiskRevisionChanges(revisionBaseline, {
+            ...buildPayload(normalizeFormValues(form.getValues()), "draft"),
+            riskOwnerName: riskOwnerOption?.name,
+          })
         : null);
       setRevisionSubmitError("");
     }
@@ -2621,6 +2656,9 @@ export default function RiskInputPage() {
   const isSavedRiskView = Boolean(riskId || selectedRiskId);
   const hasContextReturnLink = returnTo !== "/risk/register";
   const showSaveActions = canManageRisk && (riskStatus === "draft" || !riskId);
+  const revisionBlockedPeriod = isProfileRevision && riskStatus === "draft"
+    ? openRiskDrafts?.revisionBlockedPeriod
+    : undefined;
   const hasHeaderActions = showSaveActions || Boolean(canManageMonitoring && token && riskId) || (!isSavedRiskView && hasContextReturnLink);
   let saveMessage = riskId
     ? "Draf tersimpan. Anda dapat melanjutkan pengisian."
@@ -2636,7 +2674,7 @@ export default function RiskInputPage() {
         <div className="flex flex-wrap items-center justify-end gap-2">
           {hasHeaderActions ? (
             <>
-              {!isSavedRiskView && hasContextReturnLink ? (
+              {!annualProfileReturn && !isSavedRiskView && hasContextReturnLink ? (
                 <ActionButton asChild variant="outline">
                   <Link href={returnTo}>{returnLabel}</Link>
                 </ActionButton>
@@ -2659,7 +2697,7 @@ export default function RiskInputPage() {
                     loading={isDraftSubmitting}
                     icon={<Save className="size-3.5" />}
                     onClick={() => handleSaveDraftHeaderRef.current()}
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || Boolean(revisionBlockedPeriod)}
                   >
                     Simpan draf
                   </ActionButton>
@@ -2675,7 +2713,7 @@ export default function RiskInputPage() {
                     }
                     onClick={() => openSubmitReviewConfirmHeaderRef.current()}
                     aria-disabled={isSubmitting || undefined}
-                    disabled={isReviewSubmitting}
+                    disabled={isReviewSubmitting || Boolean(revisionBlockedPeriod)}
                     className={
                       isDraftSubmitting ? "pointer-events-none" : undefined
                     }
@@ -2689,8 +2727,13 @@ export default function RiskInputPage() {
         </div>
       </RiskHeaderActions>
       <FormPage className="risk-form-filter-controls space-y-6">
+        {revisionBlockedPeriod && (
+          <p role="status" className="text-sm text-muted-foreground">
+            Selesaikan pemantauan {revisionBlockedPeriod}, Kertas Kerja, dan Evaluasi sebelum melanjutkan revisi risiko.
+          </p>
+        )}
         <CollectionPageHeader
-          eyebrow={isSavedRiskView && hasContextReturnLink ? (
+          eyebrow={isSavedRiskView && hasContextReturnLink && !annualProfileReturn ? (
             <Link href={returnTo} className="inline-flex min-h-8 items-center gap-2 rounded-sm text-sm text-muted-foreground hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
               <ArrowLeft aria-hidden="true" className="size-4" />
               {returnLabel}
@@ -2808,10 +2851,9 @@ export default function RiskInputPage() {
                         <FieldHeading>
                           <Label htmlFor="risk-description" className="text-sm leading-5 font-medium text-foreground">
                             Deskripsi Kejadian Risiko
-                            <span className="text-destructive ml-0.5">*</span>
                           </Label>
                           <FieldDescription id="risk-description-help" className="text-xs leading-4">
-                            Jelaskan proses yang terdampak dan kapan atau dalam kondisi apa kejadian bisa terjadi.
+                            Opsional. Jelaskan proses yang terdampak dan kondisi saat kejadian bisa terjadi.
                           </FieldDescription>
                         </FieldHeading>
                       </FieldContent>
@@ -2823,7 +2865,6 @@ export default function RiskInputPage() {
                             id="risk-description"
                             aria-describedby="risk-description-help"
                             {...field}
-                            aria-invalid={Boolean(errors.description)}
                             disabled={isRiskLocked}
                             className={cn(
                               "",
@@ -2832,11 +2873,23 @@ export default function RiskInputPage() {
                           />
                         )}
                       />
-                      <FormErrorMessage
-                        error={errors.description?.message}
-                        className="mt-0"
-                      />
                     </div>
+
+                    <RiskOwnerField
+                      key={ownerOrganizationId}
+                      hasOrganization={Boolean(ownerOrganizationId)}
+                      disabled={isRiskLocked || !token}
+                      value={riskOwnerOption}
+                      loadOptions={loadRiskOwnerOptions}
+                      onSelect={(option) => {
+                        setRiskOwnerOption(option);
+                        setValue("riskOwnerId", option.id, { shouldDirty: true });
+                      }}
+                      onClear={() => {
+                        setRiskOwnerOption(null);
+                        setValue("riskOwnerId", "", { shouldDirty: true });
+                      }}
+                    />
 
                     <div className="flex flex-col gap-2">
                       <Label className="text-sm font-medium text-foreground">
@@ -2908,7 +2961,7 @@ export default function RiskInputPage() {
 
                     <div className="grid gap-5 md:grid-cols-2">
                       <div className="flex flex-col gap-2">
-                      <Label className="text-sm font-medium text-foreground">
+                        <Label htmlFor="risk-source" className="text-sm font-medium text-foreground">
                           Sumber Risiko
                           <span className="text-destructive ml-0.5">*</span>
                         </Label>
@@ -2919,10 +2972,8 @@ export default function RiskInputPage() {
                             <PopoverSelectField
                               value={field.value}
                               onValueChange={field.onChange}
-                              options={[
-                                { value: "internal", label: "Internal" },
-                                { value: "eksternal", label: "Eksternal" },
-                              ]}
+                              id="risk-source"
+                              options={riskSourceOptions}
                               placeholder="Pilih sumber risiko"
                               disabled={isRiskLocked}
                               triggerClassName={lockedControlClass}
@@ -3959,7 +4010,7 @@ export default function RiskInputPage() {
               <AlertDialogDescription>Formulir memiliki perubahan yang belum tersimpan.</AlertDialogDescription>
             </AlertDialogHeader>
             <ConfirmationConsequences>
-              Simpan draf dan keluar untuk melanjutkan nanti, atau keluar tanpa menyimpan untuk membuang perubahan terakhir. Draf memerlukan judul, deskripsi, dan kategori.
+              Simpan draf dan keluar untuk melanjutkan nanti, atau keluar tanpa menyimpan untuk membuang perubahan terakhir. Draf memerlukan judul dan kategori.
             </ConfirmationConsequences>
             <AlertDialogFooter className="flex-wrap">
               <ActionButton disabled={isSubmitting} onClick={() => setLeaveHref(null)}>Tetap mengisi</ActionButton>

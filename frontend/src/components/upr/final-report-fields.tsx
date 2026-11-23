@@ -2,6 +2,7 @@
 
 import type { ReportDetail, ReportDocumentOption, SemesterSnapshot, WorkingPaperSnapshot, EvaluationSnapshot } from "@/lib/api/upr-workflow";
 import { ReportFields } from "./report-fields";
+import { ReportPeriodSources } from "./report-period-sources";
 
 export function FinalReportFields({ report }: { report: Pick<ReportDetail, "snapshot" | "period" | "title"> }) {
   const snapshot = report.snapshot as SemesterSnapshot;
@@ -32,6 +33,9 @@ export function FinalReportFields({ report }: { report: Pick<ReportDetail, "snap
       code: section.code || "",
       documentDate: paper?.observation_cutoff || evaluationContents?.reportDate || section.finalizedAt,
       finalizedAt: section.finalizedAt,
+      period: section.period,
+      profileId: section.profileId,
+      profileVersion: section.profileVersion,
     });
 
   }
@@ -48,9 +52,11 @@ export function FinalReportFields({ report }: { report: Pick<ReportDetail, "snap
           workingPaperIds: papers.map((item) => item.sourceId!),
           evaluationId: evaluation?.sourceId ?? null,
           reason: snapshot.reason,
+          applyHistoricalCorrections: !!snapshot.corrections?.length,
         }}
         documents={documents}
       />
+      <ReportPeriodSources snapshot={snapshot} />
     </div>
   );
 }

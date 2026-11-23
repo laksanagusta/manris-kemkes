@@ -4,9 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/manris/backend/internal/domain/entity"
 	domainerrors "github.com/manris/backend/internal/domain/errors"
@@ -25,6 +27,7 @@ func NewUserRepository(pool *pgxpool.Pool) repository.UserRepository {
 
 // Create inserts a new user
 func (r *userRepository) Create(ctx context.Context, user *entity.User) error {
+	user.NIP = strings.TrimSpace(user.NIP)
 	err := r.pool.QueryRow(ctx,
 		`INSERT INTO users (name, username, email, password_hash, role, organization_id, status, must_change_password, nip, jabatan, pangkat, phone_number, created_at, updated_at, last_logged_in)
 		 VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW(),NOW(),NOW())
@@ -33,7 +36,7 @@ func (r *userRepository) Create(ctx context.Context, user *entity.User) error {
 	).Scan(&user.ID, &user.CreatedAt, &user.UpdatedAt, &user.LastLoggedIn)
 
 	if err != nil {
-		return fmt.Errorf("create user: %w", err)
+		return fmt.Errorf("create user: %w", userIdentityWriteError(err))
 	}
 
 	return nil
@@ -73,6 +76,7 @@ func (r *userRepository) GetByUsername(ctx context.Context, username string) (*e
 
 // Update rejects stale snapshots to prevent administrative edits from overwriting a newer password.
 func (r *userRepository) Update(ctx context.Context, user *entity.User) error {
+	user.NIP = strings.TrimSpace(user.NIP)
 	err := r.pool.QueryRow(ctx,
 		`UPDATE users SET name=$2, username=$3, email=$4, password_hash=$5, role=$6, organization_id=$7, status=$8, must_change_password=$9, nip=$10, jabatan=$11, pangkat=$12, phone_number=$13, updated_at=clock_timestamp()
 		 WHERE id=$1 AND updated_at=$14
@@ -84,9 +88,22 @@ func (r *userRepository) Update(ctx context.Context, user *entity.User) error {
 		return domainerrors.ErrConflict
 	}
 	if err != nil {
-		return fmt.Errorf("update user: %w", err)
+		return fmt.Errorf("update user: %w", userIdentityWriteError(err))
 	}
 	return nil
+}
+
+func userIdentityWriteError(err error) error {
+	var databaseError *pgconn.PgError
+	if errors.As(err, &databaseError) && databaseError.Code == "23505" {
+		switch databaseError.ConstraintName {
+		case "users_nip_unique", "users_username_key":
+			return domainerrors.ErrNIPAlreadyExists
+		case "users_email_key":
+			return domainerrors.ErrEmailAlreadyExists
+		}
+	}
+	return err
 }
 
 func (r *userRepository) RecordLastLogin(ctx context.Context, id uuid.UUID) error {
@@ -103,6 +120,10 @@ func (r *userRepository) RecordLastLogin(ctx context.Context, id uuid.UUID) erro
 // Delete deletes a user
 func (r *userRepository) Delete(ctx context.Context, id uuid.UUID) error {
 	_, err := r.pool.Exec(ctx, `DELETE FROM users WHERE id = $1`, id)
+	var dbError *pgconn.PgError
+	if errors.As(err, &dbError) && dbError.Code == "23503" && dbError.ConstraintName == "risks_risk_owner_id_fkey" {
+		return domainerrors.ErrUserOwnsRisks
+	}
 	if err != nil {
 		return fmt.Errorf("delete user: %w", err)
 	}
@@ -140,6 +161,14 @@ func (r *userRepository) ListWithFilter(ctx context.Context, filter repository.U
 
 	var args []interface{}
 	argIdx := 1
+
+	if filter.AllowedOrgIDs != nil {
+		predicate := fmt.Sprintf(" AND u.organization_id = ANY($%d::uuid[])", argIdx)
+		countQuery += predicate
+		dataQuery += predicate
+		args = append(args, filter.AllowedOrgIDs)
+		argIdx++
+	}
 
 	if filter.Q != "" {
 		f := fmt.Sprintf(" AND (u.name ILIKE $%d OR u.username ILIKE $%d OR u.email ILIKE $%d)", argIdx, argIdx, argIdx)
@@ -198,15 +227,27 @@ func (r *userRepository) ListWithFilter(ctx context.Context, filter repository.U
 		users = append(users, &user)
 	}
 
+	if err := rows.Err(); err != nil {
+		return nil, 0, fmt.Errorf("list users rows: %w", err)
+	}
 	return users, total, nil
 }
 
 func (r *userRepository) GetByNIP(ctx context.Context, nip string) (*entity.User, error) {
+	nip = strings.TrimSpace(nip)
+	if nip == "" {
+		return nil, pgx.ErrNoRows
+	}
 	user := &entity.User{}
 	err := r.pool.QueryRow(ctx,
 		`SELECT u.id, u.name, u.username, u.email, u.password_hash, u.role, u.organization_id, COALESCE(o.name, '') as org_name, u.status, u.must_change_password, u.nip, u.jabatan, u.pangkat, u.phone_number, u.created_at, u.updated_at, u.last_logged_in, u.temporary_password_expires_at, u.email_verified_at IS NOT NULL
 		 FROM users u LEFT JOIN organizations o ON u.organization_id = o.id
-		 WHERE u.nip = $1`, nip,
+		 WHERE u.id = (
+		     SELECT (array_agg(id))[1]
+		     FROM users
+		     WHERE btrim(nip, E' \t\n\r\f\013') = $1 AND btrim(nip, E' \t\n\r\f\013') <> ''
+		     HAVING count(*) = 1
+		 )`, nip,
 	).Scan(&user.ID, &user.Name, &user.Username, &user.Email, &user.PasswordHash, &user.Role, &user.OrganizationID, &user.OrgName, &user.Status, &user.MustChangePassword, &user.NIP, &user.Jabatan, &user.Pangkat, &user.PhoneNumber, &user.CreatedAt, &user.UpdatedAt, &user.LastLoggedIn, &user.TemporaryPasswordExpiresAt, &user.EmailVerified)
 
 	if err != nil {

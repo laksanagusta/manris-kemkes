@@ -20,6 +20,7 @@ import { useSetHeaderActions } from "@/lib/header-actions-context";
 import { businessNow } from "@/lib/business-clock";
 import { ReportDocumentPicker, type ReportDocumentSelection } from "./report-document-picker";
 import { ReportFields } from "./report-fields";
+import { ReportPeriodSources } from "./report-period-sources";
 import { WorkflowError, workflowError } from "./workflow-ui";
 
 function newDraftInput(): ReportDraftInput {
@@ -40,7 +41,7 @@ async function loadEditor(token: string, id?: string) {
     ? [...input.workingPaperIds, ...(input.profileId ? [input.profileId] : []), ...(input.evaluationId ? [input.evaluationId] : [])]
     : [];
   const documents = input && ids.length
-    ? await uprApi.selectedReportDocuments(token, input.year, input.semester, ids, draft?.organizationId)
+    ? await uprApi.selectedReportDocuments(token, input.year, input.semester, ids, draft?.organizationId, input.profileId)
     : [];
   return { workspace, draft, documents };
 }
@@ -53,6 +54,7 @@ export function ReportDraftEditor({ draftId }: { draftId?: string }) {
   const [initialInput] = useState(newDraftInput);
   const [input, setInput] = useState(initialInput);
   const [preview, setPreview] = useState<SemesterSnapshot | null>(null);
+  const [needsScopeReason, setNeedsScopeReason] = useState(false);
   const [pending, setPending] = useState<"save" | "preview" | "send" | null>(null);
   const [error, setError] = useState("");
   const [loadError, setLoadError] = useState("");
@@ -63,6 +65,7 @@ export function ReportDraftEditor({ draftId }: { draftId?: string }) {
   const [documents, setDocuments] = useState<ReportDocumentOption[]>([]);
   const [removedUnavailableDocuments, setRemovedUnavailableDocuments] = useState(false);
   const pickerTrigger = useRef<HTMLButtonElement>(null);
+  const previewSummary = useRef<HTMLDivElement>(null);
   const setHeaderActions = useSetHeaderActions();
 
   useEffect(() => {
@@ -86,7 +89,7 @@ export function ReportDraftEditor({ draftId }: { draftId?: string }) {
         const evaluationId = available("evaluation", restored.evaluationId) ? restored.evaluationId : null;
         setRemovedUnavailableDocuments(profileId !== restored.profileId || evaluationId !== restored.evaluationId
           || workingPaperIds.length !== restored.workingPaperIds.length);
-        setInput({ ...restored, profileId, workingPaperIds, evaluationId, reason: profileId ? restored.reason : "" });
+        setInput({ ...restored, profileId, workingPaperIds, evaluationId, reason: profileId ? restored.reason : "", applyHistoricalCorrections: profileId ? restored.applyHistoricalCorrections : undefined });
       }
     }).catch((cause) => { if (active) setLoadError(workflowError(cause)); });
     return () => { active = false; };
@@ -96,6 +99,9 @@ export function ReportDraftEditor({ draftId }: { draftId?: string }) {
 
   function edit(patch: Partial<ReportDraftInput>) {
     if (readOnly) return;
+    if (("profileId" in patch && patch.profileId !== input.profileId)
+      || ("year" in patch && patch.year !== input.year)
+      || ("semester" in patch && patch.semester !== input.semester)) setNeedsScopeReason(false);
     setInput((current) => {
       const next = { ...current, ...patch };
       if (next.year !== current.year) next.profileId = null;
@@ -103,6 +109,7 @@ export function ReportDraftEditor({ draftId }: { draftId?: string }) {
         next.workingPaperIds = [];
         next.evaluationId = null;
         next.reason = "";
+        next.applyHistoricalCorrections = undefined;
       }
       return next;
     });
@@ -136,7 +143,8 @@ export function ReportDraftEditor({ draftId }: { draftId?: string }) {
     && input.workingPaperIds.every((id) => documents.some((item) => item.kind === "working_paper" && item.id === id))
     && documents.some((item) => item.kind === "evaluation" && item.id === input.evaluationId);
   const canPrepareSend = Boolean(
-    !readOnly && validYear && input.title.trim() && selectedProfile && (!needsReason || input.reason.trim())
+    !readOnly && validYear && input.title.trim() && selectedProfile
+      && (!(needsReason || needsScopeReason || input.applyHistoricalCorrections) || input.reason.trim())
       && hasDocuments && editor?.workspace.recipient,
   );
   const canSend = Boolean(preview?.reviewKey && canPrepareSend);
@@ -153,7 +161,7 @@ export function ReportDraftEditor({ draftId }: { draftId?: string }) {
       profileId,
       workingPaperIds: next.working_paper,
       evaluationId: next.evaluation[0] ?? null,
-      ...(profileId === input.profileId ? {} : { reason: "" }),
+      ...(profileId === input.profileId ? {} : { reason: "", applyHistoricalCorrections: undefined }),
     });
     closePicker();
   }
@@ -191,8 +199,14 @@ export function ReportDraftEditor({ draftId }: { draftId?: string }) {
     setError("");
     setPreview(null);
     try {
-      setPreview(await uprApi.previewReportDraft(token, input));
-      setConfirm(true);
+      const reviewed = await uprApi.previewReportDraft(token, input);
+      setPreview(reviewed);
+      setNeedsScopeReason(Boolean(reviewed.periods?.some((period) => period.needsReview)));
+      if (reviewed.periods?.length) {
+        requestAnimationFrame(() => previewSummary.current?.focus());
+      } else {
+        setConfirm(true);
+      }
     } catch (cause) {
       setError(workflowError(cause));
     } finally {
@@ -212,12 +226,12 @@ export function ReportDraftEditor({ draftId }: { draftId?: string }) {
       <AccentButton
         type="button" aria-busy={pending === "preview"}
         disabled={Boolean(pending) || !canPrepareSend}
-        onClick={() => void prepareSend()}
+        onClick={() => { if (canSend) setConfirm(true); else void prepareSend(); }}
       >
-        {pending === "preview" ? "Menyiapkan…" : "Kirim"}
+        {pending === "preview" ? "Menyiapkan…" : canSend ? "Kirim" : "Tinjau laporan"}
       </AccentButton>
     </>
-  ), [canPrepareSend, canSave, pending, prepareSend]);
+  ), [canPrepareSend, canSave, canSend, pending, prepareSend]);
 
   useEffect(() => {
     if (!editor || loadError || !token) return;
@@ -254,7 +268,7 @@ export function ReportDraftEditor({ draftId }: { draftId?: string }) {
         <>
           <form id="report-draft-form" className="grid gap-6" onSubmit={save} aria-busy={Boolean(pending)}>
             <ReportFields
-              input={input} documents={documents} readOnly={readOnly} busy={Boolean(pending)} needsReason={needsReason}
+              input={input} documents={documents} readOnly={readOnly} busy={Boolean(pending)} needsReason={needsReason} needsScopeReason={needsScopeReason}
               onChange={edit}
               onPick={(kind, trigger) => {
                 pickerTrigger.current = trigger;
@@ -262,12 +276,17 @@ export function ReportDraftEditor({ draftId }: { draftId?: string }) {
                 setPickerOpen(true);
               }}
               onRemove={(kind, id) => {
-                if (kind === "profile") edit({ profileId: null, reason: "" });
+                if (kind === "profile") edit({ profileId: null, reason: "", applyHistoricalCorrections: undefined, evaluationId: null, workingPaperIds: [] });
                 else if (kind === "evaluation") edit({ evaluationId: null });
                 else edit({ workingPaperIds: input.workingPaperIds.filter((item) => item !== id) });
               }}
             />
-            {removedUnavailableDocuments && <Alert variant="info" role="note"><AlertDescription>Dokumen yang tidak tersedia untuk tahun dan semester ini telah dilepas dari pilihan.</AlertDescription></Alert>}
+            {!!preview?.periods?.length && (
+              <div ref={previewSummary} tabIndex={-1} role="region" aria-label="Pratinjau sumber data per periode">
+                <ReportPeriodSources snapshot={preview} />
+              </div>
+            )}
+            {removedUnavailableDocuments && <Alert variant="info" role="note"><AlertDescription>Dokumen di luar versi profil atau semester laporan telah dilepas dari pilihan.</AlertDescription></Alert>}
             {!readOnly && !editor.workspace.recipient && <Alert variant="info" role="note"><AlertDescription>Atur tujuan UPR-T.I untuk organisasi Anda sebelum mengirim laporan.</AlertDescription></Alert>}
             {error && <WorkflowError message={error} />}
             {!hasDocuments && <p className="text-sm text-muted-foreground">Pilih minimal satu KK Selesai dan satu Evaluasi Final sebelum mengirim.</p>}

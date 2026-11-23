@@ -109,6 +109,12 @@ func TestUPRReportDraftSend(t *testing.T) {
 	if err != nil || len(preview.Supporting) != 2 || preview.ReviewKey == "" {
 		t.Fatalf("preview: %+v %v", preview, err)
 	}
+	automatic, err := workflow.PreviewSemester(ctx, org, saved.Input.UPRSemesterInput)
+	if err != nil || len(automatic.Supporting) != 3 ||
+		automatic.Supporting[1].SourceID == nil || *automatic.Supporting[1].SourceID != paper ||
+		automatic.Supporting[2].SourceID == nil || *automatic.Supporting[2].SourceID != evaluation {
+		t.Fatalf("legacy automatic sources: %+v %v", automatic.Supporting, err)
+	}
 	exec(`UPDATE evaluations SET problems='Revisi sebelum kirim' WHERE id=$1`, evaluation)
 	if _, err := workflow.SendReportDraft(ctx, org, actor, draft.ID, saved.Revision, preview.ReviewKey); err == nil {
 		t.Fatal("content changed after preview but was still sent")
@@ -173,9 +179,9 @@ func TestReportDocumentCalendarCoverage(t *testing.T) {
 		}
 	}
 	exec(`
-		CREATE TEMP TABLE annual_risk_profile_versions (id uuid, organization_id uuid, year int, version int, finalized_at timestamptz);
-		CREATE TEMP TABLE working_papers (id uuid, org_id uuid, title text, code text, observation_cutoff date, completed_at timestamptz, sequence_no int, assessment_cycle text, monitoring_period_id uuid, status text);
-		CREATE TEMP TABLE evaluations (id uuid, organization_id uuid, code text, report_date date, created_at timestamptz, finalized_at timestamptz, sequence_no int, period text, monitoring_period_id uuid, status text);
+		CREATE TEMP TABLE annual_risk_profile_versions (id uuid, organization_id uuid, year int, version int, finalized_at timestamptz, monitoring_rule_id uuid);
+		CREATE TEMP TABLE working_papers (id uuid, org_id uuid, title text, code text, observation_cutoff date, completed_at timestamptz, sequence_no int, assessment_cycle text, monitoring_period_id uuid, status text, profile_version_id uuid);
+		CREATE TEMP TABLE evaluations (id uuid, organization_id uuid, code text, report_date date, created_at timestamptz, finalized_at timestamptz, sequence_no int, period text, monitoring_period_id uuid, status text, profile_version_id uuid);
 		CREATE TEMP TABLE monitoring_rules (id uuid, year int, frequency text);
 		CREATE TEMP TABLE monitoring_rule_periods (id uuid, rule_id uuid, ordinal int, opens_on date, closes_on date);
 	`)
@@ -200,8 +206,8 @@ func TestReportDocumentCalendarCoverage(t *testing.T) {
 				exec("INSERT INTO monitoring_rules VALUES($1,$2,$3)", rule, tt.year, tt.frequency)
 				exec("INSERT INTO monitoring_rule_periods VALUES($1,$2,$3,'2028-01-01','2028-01-31')", period, rule, tt.ordinal)
 			}
-			exec(`INSERT INTO working_papers VALUES($1,$2,'Test','KK',$3,'2028-01-02',1,$4,$5,'completed')`, id, org, tt.observation, tt.legacyPeriod, period)
-			exec(`INSERT INTO evaluations VALUES($1,$2,'EV',$3,'2028-01-02','2028-01-02',1,$4,$5,'final')`, evaluation, org, tt.observation, tt.legacyPeriod, period)
+			exec(`INSERT INTO working_papers VALUES($1,$2,'Test','KK',$3,'2028-01-02',1,$4,$5,'completed',NULL)`, id, org, tt.observation, tt.legacyPeriod, period)
+			exec(`INSERT INTO evaluations VALUES($1,$2,'EV',$3,'2028-01-02','2028-01-02',1,$4,$5,'final',NULL)`, evaluation, org, tt.observation, tt.legacyPeriod, period)
 			for _, semester := range []int{1, 2} {
 				items, err := reportDocumentOptions(ctx, tx, org, "", UPRSemesterInput{Year: tt.year, Semester: semester}, nil, "", 0, 0)
 				want := 0

@@ -43,18 +43,20 @@ type AnnualProfileVersion struct {
 }
 
 type AnnualProfileMember struct {
-	GroupID       uuid.UUID       `json:"groupId"`
-	RiskID        *uuid.UUID      `json:"riskId"`
-	SourceRiskID  *uuid.UUID      `json:"sourceRiskId"`
-	ObjectiveID   *uuid.UUID      `json:"objectiveId"`
-	EffectiveFrom string          `json:"effectiveFrom"`
-	ChangeReason  string          `json:"changeReason"`
-	Baseline      json.RawMessage `json:"baseline"`
-	Code          string          `json:"code"`
-	Title         string          `json:"title"`
-	RiskStatus    string          `json:"riskStatus"`
-	Score         *int            `json:"score"`
-	CanRemove     bool            `json:"canRemove"`
+	GroupID              uuid.UUID       `json:"groupId"`
+	RiskID               *uuid.UUID      `json:"riskId"`
+	SourceRiskID         *uuid.UUID      `json:"sourceRiskId"`
+	ObjectiveID          *uuid.UUID      `json:"objectiveId"`
+	EffectiveFrom        string          `json:"effectiveFrom"`
+	ChangeReason         string          `json:"changeReason"`
+	Baseline             json.RawMessage `json:"baseline"`
+	Code                 string          `json:"code"`
+	Title                string          `json:"title"`
+	RiskStatus           string          `json:"riskStatus"`
+	Score                *int            `json:"score"`
+	CanRemove            bool            `json:"canRemove"`
+	HistoricalCorrection bool            `json:"historicalCorrection"`
+	FromPreviousVersion  bool            `json:"fromPreviousVersion"`
 }
 
 type AnnualProfileObjective struct {
@@ -76,26 +78,31 @@ type AnnualProfileCandidate struct {
 type AnnualProfile struct {
 	OrganizationID   uuid.UUID                `json:"organizationId"`
 	OrganizationName string                   `json:"organizationName"`
+	Code             string                   `json:"code"`
 	Versions         []AnnualProfileVersion   `json:"versions"`
 	Selected         *AnnualProfileVersion    `json:"selected"`
 	Members          []AnnualProfileMember    `json:"members"`
 	Objectives       []AnnualProfileObjective `json:"objectives"`
+	Exclusions       []AnnualMemberExclusion  `json:"exclusions"`
 }
 
 type AnnualMemberInput struct {
-	RiskID          uuid.UUID  `json:"riskId"`
-	ObjectiveID     *uuid.UUID `json:"objectiveId"`
-	EffectiveFrom   string     `json:"effectiveFrom"`
-	ChangeReason    string     `json:"changeReason"`
-	Reassess        bool       `json:"reassess"`
-	DeferAssessment bool       `json:"deferAssessment"`
+	RiskID               uuid.UUID  `json:"riskId"`
+	ObjectiveID          *uuid.UUID `json:"objectiveId"`
+	EffectiveFrom        string     `json:"effectiveFrom"`
+	ChangeReason         string     `json:"changeReason"`
+	Reassess             bool       `json:"reassess"`
+	DeferAssessment      bool       `json:"deferAssessment"`
+	HistoricalCorrection bool       `json:"historicalCorrection"`
 }
 
 const annualVersionColumns = "monitoring_rule_id, id, version, finalized_at, finalized_by"
 
 func (s *UPRWorkflow) AnnualProfile(ctx context.Context, org uuid.UUID, year int, id uuid.UUID) (AnnualProfile, error) {
 	out := AnnualProfile{OrganizationID: org, Versions: []AnnualProfileVersion{}, Members: []AnnualProfileMember{}, Objectives: []AnnualProfileObjective{}}
-	if err := s.pool.QueryRow(ctx, `SELECT name FROM organizations WHERE id=$1`, org).Scan(&out.OrganizationName); err != nil {
+	if err := s.pool.QueryRow(ctx, `SELECT o.name, COALESCE(c.code,'')
+		FROM organizations o LEFT JOIN annual_risk_profile_codes c ON c.organization_id=o.id AND c.year=$2
+		WHERE o.id=$1`, org, year).Scan(&out.OrganizationName, &out.Code); err != nil {
 		return out, err
 	}
 	rows, err := s.pool.Query(ctx, `SELECT `+annualVersionColumns+` FROM annual_risk_profile_versions WHERE organization_id=$1 AND year=$2 ORDER BY version DESC`, org, year)
@@ -119,15 +126,33 @@ func (s *UPRWorkflow) AnnualProfile(ctx context.Context, org uuid.UUID, year int
 		rows, err = s.pool.Query(ctx, `SELECT m.version_group_id,m.risk_id,m.source_risk_id,m.objective_id,m.effective_from::text,m.change_reason,m.baseline,
 			COALESCE(m.baseline->>'code',r.code,src.code,''),COALESCE(m.baseline->>'title',r.title,src.title,''),
 			COALESCE(r.status,''),COALESCE((m.baseline->>'score')::int,CASE WHEN r.status='final' THEN round(r.nilai)::int END),
-			p.finalized_at IS NULL AND previous.version_group_id IS NULL
+			p.finalized_at IS NULL,m.historical_correction,previous.version_group_id IS NOT NULL
 			FROM annual_risk_profile_members m LEFT JOIN risks r ON r.id=m.risk_id LEFT JOIN risks src ON src.id=m.source_risk_id
 			JOIN annual_risk_profile_versions p ON p.id=m.profile_version_id
 			LEFT JOIN annual_risk_profile_members previous ON previous.profile_version_id=p.previous_version_id AND previous.version_group_id=m.version_group_id
-			WHERE m.profile_version_id=$1 ORDER BY COALESCE(m.baseline->>'code',r.code,src.code,''),m.version_group_id`, out.Selected.ID)
+			WHERE m.profile_version_id=$1 AND NOT EXISTS (
+				SELECT 1 FROM annual_risk_profile_exclusions x
+				WHERE x.profile_version_id=m.profile_version_id AND x.version_group_id=m.version_group_id
+			) ORDER BY COALESCE(m.baseline->>'code',r.code,src.code,''),m.version_group_id`, out.Selected.ID)
 		if err != nil {
 			return out, err
 		}
 		out.Members, err = pgx.CollectRows(rows, pgx.RowToStructByPos[AnnualProfileMember])
+		if err != nil {
+			return out, err
+		}
+		rows, err = s.pool.Query(ctx, `SELECT x.version_group_id,
+			COALESCE(m.baseline->>'code',r.code,''),COALESCE(m.baseline->>'title',r.title,''),
+			x.effective_from::text,x.change_reason
+			FROM annual_risk_profile_exclusions x
+			JOIN annual_risk_profile_versions p ON p.id=x.profile_version_id
+			JOIN annual_risk_profile_members m ON m.profile_version_id=p.previous_version_id AND m.version_group_id=x.version_group_id
+			LEFT JOIN risks r ON r.id=m.risk_id
+			WHERE x.profile_version_id=$1 ORDER BY x.effective_from,x.version_group_id`, out.Selected.ID)
+		if err != nil {
+			return out, err
+		}
+		out.Exclusions, err = pgx.CollectRows(rows, pgx.RowToStructByPos[AnnualMemberExclusion])
 		if err != nil {
 			return out, err
 		}
@@ -225,14 +250,17 @@ func (s *UPRWorkflow) CreateAnnualDraft(ctx context.Context, org, actor uuid.UUI
 	if previous != uuid.Nil && finalizedAt == nil {
 		return previous, nil
 	}
+	if err := checkAnnualRevisionPeriod(ctx, tx, previous, "membuat draf revisi"); err != nil {
+		return uuid.Nil, err
+	}
 	err = tx.QueryRow(ctx, `INSERT INTO annual_risk_profile_versions(organization_id,year,version,previous_version_id,created_by,monitoring_rule_id) VALUES($1,$2,$3,NULLIF($4::uuid,$5::uuid),$6,(SELECT monitoring_rule_id FROM annual_risk_profile_versions WHERE id=$4)) RETURNING id`,
 		org, year, version+1, previous, uuid.Nil, actor).Scan(&id)
 	if err != nil {
 		return id, err
 	}
 	if previous != uuid.Nil {
-		_, err = tx.Exec(ctx, `INSERT INTO annual_risk_profile_members(profile_version_id,version_group_id,risk_id,source_risk_id,objective_id,effective_from,change_reason,baseline)
-			SELECT $1,version_group_id,risk_id,source_risk_id,objective_id,effective_from,change_reason,baseline FROM annual_risk_profile_members WHERE profile_version_id=$2`, id, previous)
+		_, err = tx.Exec(ctx, `INSERT INTO annual_risk_profile_members(profile_version_id,version_group_id,risk_id,source_risk_id,objective_id,effective_from,change_reason,baseline,historical_correction)
+			SELECT $1,version_group_id,risk_id,source_risk_id,objective_id,effective_from,change_reason,baseline,historical_correction FROM annual_risk_profile_members WHERE profile_version_id=$2`, id, previous)
 		if err != nil {
 			return id, err
 		}
@@ -259,6 +287,9 @@ func (s *UPRWorkflow) SaveAnnualMember(ctx context.Context, org, actor, profile 
 		return uuid.Nil, err
 	}
 	defer tx.Rollback(ctx)
+	if err := lockUPROrganization(ctx, tx, org); err != nil {
+		return uuid.Nil, err
+	}
 	year, err := lockAnnualDraft(ctx, tx, org, profile)
 	if err != nil {
 		return uuid.Nil, err
@@ -276,53 +307,37 @@ func (s *UPRWorkflow) SaveAnnualMember(ctx context.Context, org, actor, profile 
 	if err != nil {
 		return uuid.Nil, err
 	}
+	var activeExclusion bool
+	var latestExclusionDate *string
+	err = tx.QueryRow(ctx, `SELECT
+		COALESCE(bool_or(p.id=$1),false),
+		(max(x.effective_from) FILTER (WHERE p.finalized_at IS NOT NULL))::text
+		FROM annual_risk_profile_versions p
+		JOIN annual_risk_profile_exclusions x ON x.profile_version_id=p.id
+		WHERE p.organization_id=$2 AND p.year=$3 AND x.version_group_id=$4`,
+		profile, org, year, group).Scan(&activeExclusion, &latestExclusionDate)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	if activeExclusion {
+		return uuid.Nil, UPRWorkflowError("Batalkan pengeluaran risiko di draf sebelum mengubah keanggotaannya.")
+	}
 	if input.DeferAssessment {
-		if status != "final" || !current || input.Reassess {
+		if status != "final" || !current || input.Reassess || input.HistoricalCorrection {
 			return uuid.Nil, ErrUPRConflict
 		}
-		var locked uuid.UUID
-		err := tx.QueryRow(ctx, `SELECT id FROM risks WHERE id=$1 AND organization_id=$2
-			AND status='final' AND is_current AND archived_at IS NULL FOR SHARE`, input.RiskID, org).Scan(&locked)
-		if errors.Is(err, pgx.ErrNoRows) {
-			return uuid.Nil, ErrUPRConflict
-		}
+		riskID, err := saveAnnualPickup(ctx, tx, org, profile, group, input.RiskID, year, cycle, riskEffective, latestExclusionDate)
 		if err != nil {
 			return uuid.Nil, err
 		}
-		// Pickup only records membership. Historical assessments are completed
-		// from the profile detail, where correction dates and reasons are reviewed.
-		picked, err := annualPickupRows(ctx, tx, org, year, nil, []uuid.UUID{input.RiskID})
-		if err != nil {
-			return uuid.Nil, err
-		}
-		if len(picked) != 1 || picked[0].Unavailable != "" {
-			return uuid.Nil, ErrUPRConflict
-		}
-		var assessment *uuid.UUID
-		date := defaultAnnualMemberDate(year, timeutil.BusinessNow().In(timeutil.JakartaLocation()))
-		if strings.HasPrefix(cycle, strconv.Itoa(year)+"-") {
-			assessment = &input.RiskID
-			if riskEffective != nil && strings.HasPrefix(*riskEffective, strconv.Itoa(year)+"-") {
-				date = *riskEffective
-			}
-		}
-		added, err := tx.Exec(ctx, `INSERT INTO annual_risk_profile_members(profile_version_id,version_group_id,risk_id,source_risk_id,effective_from)
-			VALUES($1,$2,$3,$4,$5::date) ON CONFLICT(profile_version_id,version_group_id) DO NOTHING`, profile, group, assessment, input.RiskID, date)
-		if err != nil {
-			return uuid.Nil, err
-		}
-		if added.RowsAffected() > 0 {
-			if err := touchAnnualDraft(ctx, tx, profile); err != nil {
-				return uuid.Nil, err
-			}
-		}
-		return input.RiskID, tx.Commit(ctx)
+		return riskID, tx.Commit(ctx)
 	}
 	var oldID, source, oldObjective *uuid.UUID
 	var oldDate, oldReason string
+	var oldCorrection bool
 	var baseline json.RawMessage
-	err = tx.QueryRow(ctx, `SELECT risk_id,source_risk_id,objective_id,effective_from::text,change_reason,baseline FROM annual_risk_profile_members
-		WHERE profile_version_id=$1 AND version_group_id=$2`, profile, group).Scan(&oldID, &source, &oldObjective, &oldDate, &oldReason, &baseline)
+	err = tx.QueryRow(ctx, `SELECT risk_id,source_risk_id,objective_id,effective_from::text,change_reason,baseline,historical_correction FROM annual_risk_profile_members
+		WHERE profile_version_id=$1 AND version_group_id=$2`, profile, group).Scan(&oldID, &source, &oldObjective, &oldDate, &oldReason, &baseline, &oldCorrection)
 	existing := err == nil
 	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		return uuid.Nil, err
@@ -342,19 +357,31 @@ func (s *UPRWorkflow) SaveAnnualMember(ctx context.Context, org, actor, profile 
 		(oldObjective != nil && input.ObjectiveID != nil && *oldObjective == *input.ObjectiveID)
 	today := timeutil.BusinessNow().In(timeutil.JakartaLocation())
 	date := strings.TrimSpace(input.EffectiveFrom)
-	if date == "" {
+	automaticDate := date == ""
+	if automaticDate {
+		if input.HistoricalCorrection {
+			return uuid.Nil, UPRWorkflowError("Isi tanggal koreksi historis.")
+		}
 		switch {
-		case sameAssessment && sameObjective:
+		case sameAssessment && sameObjective && oldCorrection == input.HistoricalCorrection:
 			date = oldDate
-		case riskEffective != nil && strings.HasPrefix(*riskEffective, strconv.Itoa(year)+"-") && !input.Reassess:
-			date = *riskEffective
 		default:
 			date = defaultAnnualMemberDate(year, today)
+		}
+		if !existing && latestExclusionDate != nil && date <= *latestExclusionDate {
+			excludedOn, err := time.Parse(time.DateOnly, *latestExclusionDate)
+			if err != nil {
+				return uuid.Nil, err
+			}
+			date = excludedOn.AddDate(0, 0, 1).Format(time.DateOnly)
 		}
 	}
 	effective, err := time.Parse(time.DateOnly, date)
 	if err != nil || effective.Year() != year {
 		return uuid.Nil, UPRWorkflowError("Tanggal berlaku harus berada dalam tahun profil.")
+	}
+	if latestExclusionDate != nil && date <= *latestExclusionDate {
+		return uuid.Nil, UPRWorkflowError("Risiko hanya dapat dimasukkan kembali setelah tanggal berlaku pengeluarannya.")
 	}
 	reason := strings.TrimSpace(input.ChangeReason)
 	if reason == "" && sameAssessment && sameObjective && date == oldDate {
@@ -370,8 +397,23 @@ func (s *UPRWorkflow) SaveAnnualMember(ctx context.Context, org, actor, profile 
 		}
 	}
 	riskID := input.RiskID
-	if sameAssessment && sameObjective && date == oldDate && reason == oldReason {
+	if sameAssessment && sameObjective && date == oldDate && reason == oldReason && oldCorrection == input.HistoricalCorrection {
 		return riskID, nil
+	}
+	var lockedPeriod *string
+	if err = tx.QueryRow(ctx, frozenAnnualRevisionPeriodsSQL+`
+		SELECT (SELECT label FROM frozen_periods WHERE $2::date<=ends_on ORDER BY ordinal LIMIT 1)`, profile, date).Scan(&lockedPeriod); err != nil {
+		return uuid.Nil, fmt.Errorf("check locked period: %w", err)
+	}
+	if input.HistoricalCorrection {
+		if lockedPeriod == nil || reason == "" || input.Reassess {
+			return uuid.Nil, UPRWorkflowError("Koreksi historis memerlukan periode terkunci, penilaian final, dan alasan.")
+		}
+	} else if lockedPeriod != nil {
+		if automaticDate {
+			return uuid.Nil, UPRWorkflowError(fmt.Sprintf("Tanggal otomatis masuk cakupan %s yang sudah terkunci. Gunakan Koreksi historis untuk memperbaiki data periode tersebut.", *lockedPeriod))
+		}
+		return uuid.Nil, UPRWorkflowError(fmt.Sprintf("%s sudah terkunci. Pilih tanggal pada periode berikutnya atau centang Koreksi historis.", *lockedPeriod))
 	}
 	if input.Reassess {
 		if status != "final" || !current {
@@ -393,11 +435,11 @@ func (s *UPRWorkflow) SaveAnnualMember(ctx context.Context, org, actor, profile 
 	if !input.Reassess && !strings.HasPrefix(cycle, strconv.Itoa(year)+"-") && (status != "final" || !current) {
 		return uuid.Nil, UPRWorkflowError("Nilai ulang risiko untuk tahun profil sebelum menyimpannya.")
 	}
-	_, err = tx.Exec(ctx, `INSERT INTO annual_risk_profile_members(profile_version_id,version_group_id,risk_id,source_risk_id,objective_id,effective_from,change_reason)
-		VALUES($1,$2,$3,$4,$5,$6::date,$7)
+	_, err = tx.Exec(ctx, `INSERT INTO annual_risk_profile_members(profile_version_id,version_group_id,risk_id,source_risk_id,objective_id,effective_from,change_reason,historical_correction)
+		VALUES($1,$2,$3,$4,$5,$6::date,$7,$8)
 		ON CONFLICT(profile_version_id,version_group_id) DO UPDATE SET risk_id=EXCLUDED.risk_id,
 		source_risk_id=EXCLUDED.source_risk_id,objective_id=EXCLUDED.objective_id,effective_from=EXCLUDED.effective_from,
-		change_reason=EXCLUDED.change_reason,baseline=NULL`, profile, group, riskID, source, input.ObjectiveID, date, reason)
+		change_reason=EXCLUDED.change_reason,historical_correction=EXCLUDED.historical_correction,baseline=NULL`, profile, group, riskID, source, input.ObjectiveID, date, reason, input.HistoricalCorrection)
 	if err != nil {
 		return uuid.Nil, err
 	}
@@ -405,6 +447,65 @@ func (s *UPRWorkflow) SaveAnnualMember(ctx context.Context, org, actor, profile 
 		return uuid.Nil, err
 	}
 	return riskID, tx.Commit(ctx)
+}
+
+const frozenAnnualRevisionPeriodsSQL = `WITH frozen_periods AS (
+	SELECT period.id, period.label, period.ordinal, bounds.ends_on
+	FROM annual_risk_profile_versions p
+	JOIN monitoring_rule_periods period ON period.rule_id=p.monitoring_rule_id
+	CROSS JOIN LATERAL annual_monitoring_period_bounds(period.id) bounds
+	CROSS JOIN LATERAL annual_monitoring_period_freeze(p.id, period.id) frozen
+	WHERE p.id=$1 AND p.previous_version_id IS NOT NULL
+)`
+
+func saveAnnualPickup(ctx context.Context, tx pgx.Tx, org, profile, group, riskID uuid.UUID, year int, cycle string, riskEffective, latestExclusionDate *string) (uuid.UUID, error) {
+	var locked uuid.UUID
+	err := tx.QueryRow(ctx, `SELECT id FROM risks WHERE id=$1 AND organization_id=$2
+		AND status='final' AND is_current AND archived_at IS NULL FOR SHARE`, riskID, org).Scan(&locked)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return uuid.Nil, ErrUPRConflict
+	}
+	if err != nil {
+		return uuid.Nil, err
+	}
+	// Pickup only records membership. Historical assessments are completed
+	// from the profile detail, where correction dates and reasons are reviewed.
+	picked, err := annualPickupRows(ctx, tx, org, year, nil, []uuid.UUID{riskID})
+	if err != nil {
+		return uuid.Nil, err
+	}
+	if len(picked) != 1 || picked[0].Unavailable != "" {
+		return uuid.Nil, ErrUPRConflict
+	}
+	var assessment *uuid.UUID
+	date := defaultAnnualMemberDate(year, timeutil.BusinessNow().In(timeutil.JakartaLocation()))
+	if strings.HasPrefix(cycle, strconv.Itoa(year)+"-") {
+		assessment = &riskID
+		if riskEffective != nil && strings.HasPrefix(*riskEffective, strconv.Itoa(year)+"-") {
+			date = *riskEffective
+		}
+	}
+	if err := tx.QueryRow(ctx, frozenAnnualRevisionPeriodsSQL+`
+		SELECT GREATEST($2::date, max(ends_on) + 1, $3::date + 1)::text FROM frozen_periods`, profile, date, latestExclusionDate).Scan(&date); err != nil {
+		return uuid.Nil, fmt.Errorf("resolve pickup effective date: %w", err)
+	}
+	if !strings.HasPrefix(date, strconv.Itoa(year)+"-") {
+		if latestExclusionDate != nil {
+			return uuid.Nil, UPRWorkflowError("Tidak ada tanggal untuk memasukkan kembali risiko ini pada tahun profil.")
+		}
+		return uuid.Nil, UPRWorkflowError("Semua periode sudah terkunci. Gunakan koreksi historis untuk risiko yang terlewat.")
+	}
+	added, err := tx.Exec(ctx, `INSERT INTO annual_risk_profile_members(profile_version_id,version_group_id,risk_id,source_risk_id,effective_from)
+		VALUES($1,$2,$3,$4,$5::date) ON CONFLICT(profile_version_id,version_group_id) DO NOTHING`, profile, group, assessment, riskID, date)
+	if err != nil {
+		return uuid.Nil, err
+	}
+	if added.RowsAffected() > 0 {
+		if err := touchAnnualDraft(ctx, tx, profile); err != nil {
+			return uuid.Nil, err
+		}
+	}
+	return riskID, nil
 }
 
 func (s *UPRWorkflow) reserveAnnualAssessment(ctx context.Context, tx pgx.Tx, org, actor, sourceID, group uuid.UUID, year int, now time.Time, reason string) (uuid.UUID, error) {
@@ -470,7 +571,7 @@ func (s *UPRWorkflow) RemoveAnnualMember(ctx context.Context, org, profile, grou
 		return err
 	}
 	if prior {
-		return UPRWorkflowError("Risiko dari profil final sebelumnya tidak dapat dilepas dari draf revisi ini.")
+		return UPRWorkflowError("Catat alasan untuk mengeluarkan risiko dari profil final sebelumnya.")
 	}
 	removed, err := tx.Exec(ctx, `DELETE FROM annual_risk_profile_members WHERE profile_version_id=$1 AND version_group_id=$2`, profile, group)
 	if err != nil {
@@ -490,11 +591,67 @@ func (s *UPRWorkflow) FinalizeAnnualProfile(ctx context.Context, org, actor, pro
 		return err
 	}
 	defer tx.Rollback(ctx)
+	if err := lockUPROrganization(ctx, tx, org); err != nil {
+		return err
+	}
 	year, err := lockAnnualDraft(ctx, tx, org, profile)
 	if errors.Is(err, ErrUPRConflict) {
 		return nil
 	}
 	if err != nil {
+		return err
+	}
+	var previous *uuid.UUID
+	if err := tx.QueryRow(ctx, "SELECT previous_version_id FROM annual_risk_profile_versions WHERE id=$1", profile).Scan(&previous); err != nil {
+		return err
+	}
+	if previous != nil {
+		if err := checkAnnualRevisionPeriod(ctx, tx, *previous, "memfinalisasi revisi"); err != nil {
+			return err
+		}
+	}
+	var finalizedAt time.Time
+	if err := tx.QueryRow(ctx, `SELECT COALESCE(NULLIF(current_setting('manris.simulated_now', true), '')::timestamptz, clock_timestamp())`).Scan(&finalizedAt); err != nil {
+		return fmt.Errorf("read annual profile finalization time: %w", err)
+	}
+	finalizationDay := finalizedAt.In(timeutil.JakartaLocation())
+	// A draft prepared while monitoring was in progress may still carry a
+	// date inside the period that was subsequently completed and frozen.
+	if _, err := tx.Exec(ctx, frozenAnnualRevisionPeriodsSQL+`, completed_scope AS (
+		SELECT p.year, max(period.ends_on) AS ends_on
+		FROM annual_risk_profile_versions p
+		CROSS JOIN LATERAL annual_monitoring_revision_periods(p.id) completion
+		JOIN frozen_periods period ON period.id=completion.period_id
+		WHERE p.id=$1 AND NOT completion.blocks_revision
+		GROUP BY p.year
+	), next_date AS (
+		SELECT ends_on, GREATEST(ends_on + 1, $2::date) AS effective_from
+		FROM completed_scope WHERE GREATEST(ends_on + 1, $2::date) < make_date(year + 1, 1, 1)
+	)
+	UPDATE annual_risk_profile_members m SET effective_from=next_date.effective_from
+	FROM next_date WHERE m.profile_version_id=$1 AND m.baseline IS NULL
+		AND NOT m.historical_correction AND m.effective_from<=next_date.ends_on`,
+		profile, defaultAnnualMemberDate(year, finalizationDay)); err != nil {
+		return fmt.Errorf("advance revision changes past completed monitoring periods: %w", err)
+	}
+	exclusions, err := tx.Exec(ctx, `UPDATE annual_risk_profile_exclusions SET effective_from=$2::date WHERE profile_version_id=$1`,
+		profile, defaultAnnualMemberDate(year, finalizationDay))
+	if err != nil {
+		return err
+	}
+	if exclusions.RowsAffected() > 0 {
+		if finalizationDay.Year() > year {
+			return UPRWorkflowError("Tahun profil sudah berakhir. Batalkan usulan pengeluaran untuk melanjutkan finalisasi profil ini.")
+		}
+		if err := validateAnnualExclusions(ctx, tx, profile); err != nil {
+			return err
+		}
+	}
+	// Keep copied rows available for undo in the draft. The finalized version
+	// stores the active roster and a separate, dated record of each exclusion.
+	if _, err := tx.Exec(ctx, `DELETE FROM annual_risk_profile_members m USING annual_risk_profile_exclusions x
+		WHERE m.profile_version_id=$1 AND x.profile_version_id=m.profile_version_id
+		AND x.version_group_id=m.version_group_id`, profile); err != nil {
 		return err
 	}
 	var emptyConfigured bool
@@ -528,6 +685,36 @@ func (s *UPRWorkflow) FinalizeAnnualProfile(ctx context.Context, org, actor, pro
 	if invalid {
 		return UPRWorkflowError("Finalkan penilaian untuk setiap risiko dalam profil.")
 	}
+	var lockedPeriod *string
+	if err = tx.QueryRow(ctx, frozenAnnualRevisionPeriodsSQL+` SELECT (
+		SELECT label FROM frozen_periods period WHERE EXISTS (
+			SELECT 1 FROM annual_risk_profile_members m WHERE m.profile_version_id=$1
+			AND m.baseline IS NULL AND NOT m.historical_correction AND m.effective_from<=period.ends_on
+		) ORDER BY ordinal LIMIT 1)`, profile).Scan(&lockedPeriod); err != nil {
+		return fmt.Errorf("check locked periods at profile finalization: %w", err)
+	}
+	if lockedPeriod != nil {
+		return UPRWorkflowError(fmt.Sprintf("%s sudah terkunci. Sesuaikan tanggal berlaku perubahan atau tandai sebagai koreksi historis sebelum finalisasi.", *lockedPeriod))
+	}
+	var draftPeriod *string
+	if err = tx.QueryRow(ctx, `SELECT (
+		SELECT period.label FROM annual_risk_profile_versions p JOIN monitoring_rule_periods period ON period.rule_id=p.monitoring_rule_id
+		CROSS JOIN LATERAL annual_monitoring_period_bounds(period.id) bounds
+		LEFT JOIN LATERAL annual_monitoring_period_freeze(p.id, period.id) frozen ON true
+		WHERE p.id=$1 AND p.previous_version_id IS NOT NULL AND frozen.locked_at IS NULL
+		AND (EXISTS (SELECT 1 FROM annual_risk_profile_members m WHERE m.profile_version_id=p.id AND m.baseline IS NULL
+			AND m.effective_from<=bounds.ends_on)
+		  OR EXISTS (SELECT 1 FROM annual_risk_profile_exclusions x WHERE x.profile_version_id=p.id AND x.effective_from<=bounds.ends_on))
+		AND (EXISTS (SELECT 1 FROM working_papers wp JOIN annual_risk_profile_versions source ON source.id=wp.profile_version_id
+			WHERE source.organization_id=p.organization_id AND source.year=p.year AND wp.monitoring_period_id=period.id AND wp.status NOT IN ('cancelled','completed'))
+		  OR EXISTS (SELECT 1 FROM evaluations e JOIN annual_risk_profile_versions source ON source.id=e.profile_version_id
+			WHERE source.organization_id=p.organization_id AND source.year=p.year AND e.monitoring_period_id=period.id AND e.status<>'final'))
+		ORDER BY period.ordinal LIMIT 1)`, profile).Scan(&draftPeriod); err != nil {
+		return fmt.Errorf("check period documents at profile finalization: %w", err)
+	}
+	if draftPeriod != nil {
+		return UPRWorkflowError(fmt.Sprintf("KK atau Evaluasi %s sedang berjalan. Selesaikan dokumen atau sesuaikan perubahan profil.", *draftPeriod))
+	}
 	_, err = tx.Exec(ctx, annualObjectivesSQL+` UPDATE annual_risk_profile_members m SET baseline=to_jsonb(r) || jsonb_build_object(
 		'riskId',r.id,'code',COALESCE(r.code,''),'title',r.title,'category',r.category,'description',r.description,
 		'probability',r.probability,'impact',r.impact,'score',round(r.nilai)::int,'value',r.nilai,
@@ -545,8 +732,21 @@ func (s *UPRWorkflow) FinalizeAnnualProfile(ctx context.Context, org, actor, pro
 	if unfrozen {
 		return ErrUPRConflict
 	}
-	if _, err = tx.Exec(ctx, `UPDATE annual_risk_profile_versions SET finalized_at=$2,finalized_by=$3,updated_at=now() WHERE id=$1`, profile, timeutil.BusinessNow().UTC(), actor); err != nil {
+	if _, err = tx.Exec(ctx, `UPDATE annual_risk_profile_versions SET finalized_at=$2,finalized_by=$3,updated_at=now() WHERE id=$1`, profile, finalizedAt, actor); err != nil {
 		return err
 	}
 	return tx.Commit(ctx)
+}
+
+func checkAnnualRevisionPeriod(ctx context.Context, tx pgx.Tx, finalProfile uuid.UUID, action string) error {
+	var period string
+	err := tx.QueryRow(ctx, `SELECT label FROM annual_monitoring_revision_periods($1)
+		WHERE blocks_revision ORDER BY ordinal LIMIT 1`, finalProfile).Scan(&period)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("check unfinished monitoring periods: %w", err)
+	}
+	return UPRWorkflowError(fmt.Sprintf("Selesaikan pemantauan %s, Kertas Kerja, dan Evaluasi sebelum %s. Jika jendela sudah ditutup, minta penutupan administratif dari Super Admin.", period, action))
 }

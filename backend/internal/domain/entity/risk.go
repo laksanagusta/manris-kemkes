@@ -63,6 +63,7 @@ type Risk struct {
 	CreatedBy              *uuid.UUID             `json:"createdBy,omitempty"`
 	CreatedByName          string                 `json:"createdByName"`
 	RiskOwnerID            *uuid.UUID             `json:"riskOwnerId,omitempty"`
+	RiskOwnerName          string                 `json:"riskOwnerName,omitempty"`
 	ControlOwnerID         *uuid.UUID             `json:"controlOwnerId,omitempty"`
 	ObjectiveID            *uuid.UUID             `json:"objectiveId,omitempty"`
 	ROID                   *uuid.UUID             `json:"roId,omitempty"`
@@ -401,6 +402,8 @@ func GetRiskSourceDisplay(s string) string {
 		return "Internal"
 	case "eksternal":
 		return "Eksternal"
+	case "internal_eksternal":
+		return "External & Internal"
 	default:
 		return s
 	}

@@ -73,6 +73,41 @@ func TestRenderFormalMonitoringEvaluationReportOmitsGenericPageNumbers(t *testin
 	}
 }
 
+func TestRenderMonitoringEvaluationRecommendations(t *testing.T) {
+	const conclusion = "Risiko menetap tercatat."
+	const recommendation = "Lengkapi bukti mitigasi."
+	for _, tt := range []struct {
+		name  string
+		value string
+	}{
+		{name: "blank"},
+		{name: "whitespace", value: " \n\t "},
+		{name: "entered", value: recommendation},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			renderer := NewPDFReportRenderer().(*pdfReportRenderer)
+			pdf, err := renderer.RenderFormal(context.Background(), &entity.KMKFormalReportData{
+				MonitoringEvaluationReport: &entity.MonitoringEvaluationReportData{
+					MitigationConclusion: conclusion,
+					Recommendations:      tt.value,
+				},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			wantRecommendation := tt.value == recommendation
+			for _, value := range []string{"10. Saran Perbaikan", recommendation} {
+				if bytes.Contains(pdf, []byte(value)) != wantRecommendation {
+					t.Errorf("PDF contains %q = %v, want %v", value, !wantRecommendation, wantRecommendation)
+				}
+			}
+			if !bytes.Contains(pdf, []byte(conclusion)) || bytes.Contains(pdf, []byte("diharapkan tim kerja")) {
+				t.Error("PDF should keep the mitigation conclusion and omit the preset recommendation")
+			}
+		})
+	}
+}
+
 func TestMonitoringChecklistTableRowsUseAutomaticHeight(t *testing.T) {
 	rows := buildMonitoringChecklistTableRows([]string{"No", "Dokumen", "Ya", "Tidak", "Uraian Kondisi", "Keterangan"}, []entity.MonitoringEvaluationChecklistRow{
 		{

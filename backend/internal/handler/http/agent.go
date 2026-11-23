@@ -300,6 +300,10 @@ func agentHTTPError(c *fiber.Ctx, err error) error {
 		status, detail = fiber.StatusConflict, agent.ErrStale.Error()
 	case errors.Is(err, agent.ErrConflict):
 		status, detail = fiber.StatusConflict, agent.ErrConflict.Error()
+	case errors.Is(err, agent.ErrOwnerBusy):
+		status, detail = fiber.StatusTooManyRequests, agent.ErrOwnerBusy.Error()
+	case errors.Is(err, agent.ErrSensitiveInput):
+		status, detail = fiber.StatusUnprocessableEntity, agent.ErrSensitiveInput.Error()
 	case errors.Is(err, agent.ErrInvalidInput):
 		status, detail = fiber.StatusUnprocessableEntity, "Periksa isi permintaan dan kolom usulan, lalu coba lagi."
 	case errors.Is(err, agent.ErrUnavailable):

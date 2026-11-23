@@ -67,8 +67,8 @@ test("standalone export matches working paper profile table values, styles and w
   for (let col = 2; col <= 19; col += 1) {
     assert.equal(sheet.getColumn(col).width, source.getColumn(col).width);
     for (let r = 1; r <= 4; r += 1) {
-      assert.deepEqual(sheet.getCell(r, col).value, source.getCell(r + 12, col).value);
-      assert.deepEqual(sheet.getCell(r, col).style, source.getCell(r + 12, col).style);
+      assert.deepEqual(sheet.getCell(r, col).value, source.getCell(r + 10, col).value);
+      assert.deepEqual(sheet.getCell(r, col).style, source.getCell(r + 10, col).style);
     }
   }
 });

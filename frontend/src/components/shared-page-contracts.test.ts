@@ -104,14 +104,14 @@ const collectionTableSurface = readSource(
 const workingPaperStatusActions = readSource(
   "../app/(app)/risk/working-papers/[id]/working-paper-status-actions.tsx",
 );
-const workingPaperMonitoringTable = readSource(
-  "../app/(app)/risk/working-papers/[id]/working-paper-monitoring-table.tsx",
+const workingPaperMonitoringQueue = readSource(
+  "../components/shared/design-system/domain/working-paper-monitoring-queue.tsx",
+);
+const workingPaperDetailPanel = readSource(
+  "../components/shared/design-system/domain/working-paper-detail-panel.tsx",
 );
 const workingPaperSignatureTimeline = readSource(
-  "../app/(app)/risk/working-papers/[id]/working-paper-signature-timeline.tsx",
-);
-const workingPaperMonitoringTableModel = readSource(
-  "../lib/working-paper-monitoring-table.ts",
+  "../components/shared/design-system/domain/working-paper-signature-timeline.tsx",
 );
 const riskCategoryPieChart = readSource(
   "../app/(app)/overview/_components/risk-category-pie-chart.tsx",
@@ -313,7 +313,7 @@ test("working papers consumes the shared create dialog instead of a local duplic
 test("working paper desktop signing progress hides the redundant count", () => {
   assert.match(
     pages.workingPapers,
-    /<MonitoringTransactionProgress[\s\S]*?showCount=\{false\}[\s\S]*?ariaLabelOverride=\{`Progres TTE:/,
+    /<MonitoringTransactionProgress[\s\S]*?showCount=\{false\}[\s\S]*?ariaLabelOverride=\{`Progres Tanda Tangan:/,
   );
   assert.doesNotMatch(pages.workingPapers, /countLabel="TTE"/);
 });
@@ -389,64 +389,16 @@ test("working paper creation follows the canonical form header and roster alignm
   assert.doesNotMatch(workingPaperCreate, /min-w-\[1170px\]/);
 });
 
-test("working paper detail keeps the ledger wide and context in the right rail", () => {
-  assert.match(
-    workingPaperDetail,
-    /<CollectionPageHeader[\s\S]*title=\{data\.code \|\| "Detail KK Pemantauan dan Reviu"\}/,
-  );
-  assert.match(workingPaperDetail, /setHeaderActions\(\s*<AccentButton[^>]*>Unduh KK Pemantauan dan Reviu/);
-  assert.doesNotMatch(workingPaperDetail, /actionsPlacement="title"/);
-  assert.match(workingPaperDetail, /const headerActions = \(\s*<>/);
-  assert.match(workingPaperDetail, /<FormPage className="space-y-6 pb-0">/);
-  assert.match(
-    workingPaperDetail,
-    /<Badge\s+variant=\{isAllMonitoringFinal \? "default" : "outline"\}/,
-  );
-  assert.match(workingPaperDetail, /Risiko[\s\S]*Selesai Dipantau/);
-  assert.match(workingPaperDetail, /<AccentButton[\s\S]*Mulai Proses TTE/);
-  assert.match(workingPaperDetail, /<WorkingPaperStatusActions[\s\S]*onExport=\{handleExport\}/);
-  assert.doesNotMatch(workingPaperDetail, /<ActionButton[\s\S]*Ekspor Excel/);
-  assert.match(workingPaperStatusActions, /<Download className="size-3\.5" \/>/);
+test("working paper detail renders monitoring readiness once and keeps document context in the right rail", () => {
+  assert.match(workingPaperDetail, /headerData\.status === "completed"[\s\S]*setHeaderActions\([\s\S]*<ActionButton variant="outline" onClick=\{handleExport\}>Unduh<\/ActionButton>/);
+  assert.match(workingPaperDetail, /setHeaderActions\([\s\S]*<WorkingPaperStatusActions[\s\S]*onExport=\{handleExport\}/);
   assert.match(workingPaperStatusActions, /Ekspor Excel/);
-  assert.doesNotMatch(workingPaperStatusActions, /DropdownMenuLabel|Pilih tindakan/);
-  assert.doesNotMatch(workingPaperDetail, /<Button[\s>]/);
-  assert.doesNotMatch(workingPaperDetail, /AlertDialogTitle className=/);
-  assert.match(
-    workingPaperDetail,
-    /AlertDialogHeader>[\s\S]*AlertDialogTitle>[\s\S]*AlertDialogDescription>/,
-  );
-  assert.match(
-    workingPaperDetail,
-    /lg:grid-cols-\[minmax\(0,1fr\)_380px\]/,
-  );
-  assert.match(
-    workingPaperDetail,
-    /<CollectionTableCard>[\s\S]*<WorkingPaperMonitoringTable/,
-  );
-  assert.match(workingPaperMonitoringTable, /<Table className="w-full table-fixed">/);
-  assert.match(workingPaperMonitoringTable, /<CollectionTableHeader density="compact">/);
-  assert.match(workingPaperMonitoringTable, /<col className="w-\[33%\]" \/>/);
-  assert.doesNotMatch(workingPaperMonitoringTable, /min-w-\[/);
-  assert.match(
-    workingPaperDetail,
-    /<div className="min-w-0 space-y-4 lg:sticky lg:top-6 lg:self-start">[\s\S]*<Card className="gap-0 overflow-hidden rounded-lg bg-card p-0 transition-colors duration-300">[\s\S]*<CardContent className="px-5 py-5 text-sm">[\s\S]*className="space-y-4">[\s\S]*id="working-paper-monitoring-progress"[\s\S]*Progres Pemantauan[\s\S]*id="working-paper-signature-history"[\s\S]*Histori Tanda Tangan/,
-  );
-  assert.match(
-    workingPaperDetail,
-    /id="working-paper-summary-properties"[\s\S]*className="text-xs font-semibold uppercase tracking-\[0\.6px\] text-muted-foreground\/70"[\s\S]*Ringkasan dokumen/,
-  );
-  assert.match(
-    workingPaperDetail,
-    /<dl className="mt-3 space-y-3">[\s\S]*className="flex items-center justify-between gap-4"[\s\S]*<dt className="text-\[13px\] text-muted-foreground">\{label\}<\/dt>/,
-  );
-  assert.match(
-    workingPaperDetail,
-    /label === "Status"[\s\S]*<Badge variant=\{toBadgeVariant\(statusTone\[status\]\)\}>/,
-  );
-  assert.doesNotMatch(
-    workingPaperDetail,
-    /summaryItems\.map\(\(\{ icon: Icon/,
-  );
+  assert.match(workingPaperDetail, /<FormPage className="space-y-6 pb-8">/);
+  assert.match(workingPaperDetail, /lg:grid-cols-\[minmax\(0,1fr\)_380px\]/);
+  assert.match(workingPaperDetail, /<WorkingPaperMonitoringQueue[\s\S]*rows=\{queueRows\}[\s\S]*onStart=\{openMonitoringStart\}/);
+  assert.doesNotMatch(workingPaperDetail, /renderMonitoringBlocker|working-paper-monitoring-progress/);
+  assert.match(workingPaperDetail, /<WorkingPaperDetailPanel[\s\S]*timeline=\{viewModel.timeline\}[\s\S]*BoundProfilePeriodNotice/);
+  assert.match(workingPaperDetailPanel, /<DetailSidePanel>[\s\S]*Properti[\s\S]*<CollectionCode code=\{paper.code\}[\s\S]*Histori Tanda Tangan[\s\S]*<WorkingPaperSignatureTimeline/);
 });
 
 test("working paper progress uses the embedded collection table surface", () => {
@@ -465,16 +417,14 @@ test("working paper progress uses the embedded collection table surface", () => 
   assert.match(collectionTableSurface, /viewportClassName/);
 });
 
-test("working paper monitoring ledger uses semantic status badges", () => {
-  assert.match(
-    workingPaperMonitoringTable,
-    /<Badge\s+variant=\{toBadgeVariant\(getMonitoringStatusTone\(row\)\)\}/,
-  );
-  assert.doesNotMatch(workingPaperMonitoringTable, /CollectionStatusBadge/);
-  assert.doesNotMatch(workingPaperMonitoringTable, /Sumber v|Hasil v/);
-  assert.match(workingPaperMonitoringTableModel, /key: "version", label: "Versi"/);
-  assert.match(workingPaperMonitoringTable, /`v\$\{row\.versionNumber\}`/);
-  assert.match(workingPaperMonitoringTable, /row\.statusLabel/);
+test("working paper monitoring queue exposes ordered disclosures and progress", () => {
+  assert.match(workingPaperMonitoringQueue, /label: "Belum dimulai"[\s\S]*label: "Draf"[\s\S]*label: "Final"/);
+  assert.match(workingPaperMonitoringQueue, /aria-expanded=\{expanded\} aria-controls=\{groupId\}/);
+  assert.match(workingPaperMonitoringQueue, /<Progress value=\{percentage\} aria-label="Progres pemantauan"/);
+  assert.match(workingPaperMonitoringQueue, /<CollectionCode code=\{row\.code\} href=\{row\.riskHref\}/);
+  assert.match(workingPaperMonitoringQueue, /id=\{groupId\} className="motion-panel" data-open=\{expanded\} inert=\{!expanded\}/);
+  assert.match(workingPaperMonitoringQueue, /transition-transform duration-150 ease-out motion-reduce:transition-none/);
+  assert.match(globals, /@media \(prefers-reduced-motion: reduce\) \{ \.motion-panel \{ transition: none; \} \}/);
 });
 
 test("working paper signature timeline connectors reach the next marker", () => {

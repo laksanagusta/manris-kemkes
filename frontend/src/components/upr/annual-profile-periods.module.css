@@ -12,6 +12,16 @@
   border-block-end: 0;
 }
 
+.memberMonitoringTable [data-slot="table-body"] > :has(+ .detailRow:last-child[aria-hidden="true"]) > [data-slot="table-cell"] {
+  border-block-end: 0;
+}
+
+.memberMonitoringTable [data-slot="table-body"] > .detailRow > [data-slot="table-cell"] {
+  padding: 0;
+  border: 0;
+  white-space: normal;
+}
+
 .disclosure:not([data-animate]) {
   transition: none;
 }

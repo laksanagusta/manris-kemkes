@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"slices"
 	"time"
 
 	"github.com/google/uuid"
@@ -82,7 +83,9 @@ func (s *AgentStore) MutateClaim(ctx context.Context, claim *agent.Claim, fn fun
 	})
 }
 func (s *AgentStore) mutate(ctx context.Context, actor, cid uuid.UUID, claim *agent.Claim, fn func(*agent.Record, pgx.Tx) error) error {
-	tx, err := s.pool.BeginTx(ctx, pgx.TxOptions{})
+	// Admission must see the previous owner's committed projection after
+	// acquiring its advisory lock even if the session default differs.
+	tx, err := s.pool.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.ReadCommitted})
 	if err != nil {
 		return err
 	}
@@ -102,6 +105,7 @@ func (s *AgentStore) mutate(ctx context.Context, actor, cid uuid.UUID, claim *ag
 	if r.OwnerID != actor {
 		return agent.ErrNotFound
 	}
+	wasActive := hasActiveAgentRun(r.Runs)
 	if claim != nil {
 		var valid bool
 		err = tx.QueryRow(ctx, `SELECT worker_id=$2 AND generation=$3 AND lease_until>clock_timestamp() AND status IN ('queued','running') FROM agent_runs WHERE id=$1 FOR UPDATE`, claim.RunID, claim.WorkerID, claim.Generation).Scan(&valid)
@@ -114,6 +118,11 @@ func (s *AgentStore) mutate(ctx context.Context, actor, cid uuid.UUID, claim *ag
 	}
 	if err = fn(&r, tx); err != nil {
 		return err
+	}
+	if !wasActive && hasActiveAgentRun(r.Runs) {
+		if err = lockAgentRunAdmission(ctx, tx, actor); err != nil {
+			return err
+		}
 	}
 	// A slow checkpoint must not commit after its lease expired. The row remains
 	// locked, so a replacement claimant can only proceed after this transaction.
@@ -145,6 +154,33 @@ func (s *AgentStore) mutate(ctx context.Context, actor, cid uuid.UUID, claim *ag
 		}
 	}
 	return tx.Commit(ctx)
+}
+
+func hasActiveAgentRun(runs []agent.StoredRun) bool {
+	return slices.ContainsFunc(runs, func(run agent.StoredRun) bool {
+		return run.Run.Status == "queued" || run.Run.Status == "running"
+	})
+}
+
+func lockAgentRunAdmission(ctx context.Context, tx pgx.Tx, ownerID uuid.UUID) error {
+	// The conversation row lock does not serialize two submissions made in
+	// different conversations. Keep the owner lock through projection commit.
+	if _, err := tx.Exec(ctx, `SELECT pg_advisory_xact_lock(hashtextextended('manris.agent.owner:' || $1::text, 0))`, ownerID.String()); err != nil {
+		return err
+	}
+	var busy bool
+	err := tx.QueryRow(ctx, `SELECT EXISTS (
+		SELECT 1 FROM agent_runs WHERE owner_id=$1
+		  AND status IN ('queued','running','cancelled')
+		  AND (status <> 'cancelled' OR lease_until > clock_timestamp())
+	)`, ownerID).Scan(&busy)
+	if err != nil {
+		return err
+	}
+	if busy {
+		return agent.ErrOwnerBusy
+	}
+	return nil
 }
 func (s *AgentStore) Claim(ctx context.Context, workerID string, lease time.Duration) (*agent.Claim, error) {
 	var claim agent.Claim

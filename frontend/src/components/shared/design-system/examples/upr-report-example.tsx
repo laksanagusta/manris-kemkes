@@ -12,6 +12,20 @@ const snapshot: SemesterSnapshot = {
     finalizedBy: "example-actor",
   },
   reason: "Koreksi skor berdasarkan bukti per 30 Juni.",
+  periods: [
+    { id: "example-period-1", period: "2026-Q1", label: "Triwulan I", profileId: "example-profile-v1", profileVersion: 1 },
+    { id: "example-period-2", period: "2026-Q2", label: "Triwulan II", profileId: "example-profile-v1", profileVersion: 1 },
+  ],
+  corrections: [{
+    groupId: "example-risk",
+    riskId: "example-assessment-v2",
+    riskCode: "R-002",
+    period: "2026-Q2",
+    profileId: "example-profile-v2",
+    profileVersion: 2,
+    effectiveFrom: "2026-06-30",
+    reason: "Koreksi skor berdasarkan penilaian akhir Juni.",
+  }],
   risks: [
     {
       riskId: "example-assessment-v2",
@@ -58,6 +72,8 @@ const snapshot: SemesterSnapshot = {
       sourceId: "example-kk1",
       code: "KK-001",
       finalizedAt: "2026-04-05T03:00:00Z",
+      profileId: "example-profile-v1",
+      profileVersion: 1,
     },
     {
       kind: "working_paper",
@@ -65,6 +81,8 @@ const snapshot: SemesterSnapshot = {
       sourceId: "example-kk2",
       code: "KK-002",
       finalizedAt: "2026-07-02T03:00:00Z",
+      profileId: "example-profile-v1",
+      profileVersion: 1,
     },
     {
       kind: "evaluation",

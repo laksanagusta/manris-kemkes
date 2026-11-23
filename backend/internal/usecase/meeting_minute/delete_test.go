@@ -36,15 +36,15 @@ func (r *fakeDeleteMeetingMinuteRepo) Delete(_ context.Context, id uuid.UUID) er
 	return r.err
 }
 
-func (r *fakeDeleteMeetingMinuteRepo) ListByRiskID(context.Context, uuid.UUID) ([]entity.MeetingMinutesRisk, error) {
+func (r *fakeDeleteMeetingMinuteRepo) ListByRiskID(context.Context, uuid.UUID, []uuid.UUID) ([]entity.MeetingMinutesRisk, error) {
 	return nil, errors.New("not implemented")
 }
 
-func (r *fakeDeleteMeetingMinuteRepo) LinkRisks(context.Context, uuid.UUID, []uuid.UUID, uuid.UUID) error {
+func (r *fakeDeleteMeetingMinuteRepo) LinkRisks(context.Context, uuid.UUID, []uuid.UUID, *entity.AccessScope) error {
 	return errors.New("not implemented")
 }
 
-func (r *fakeDeleteMeetingMinuteRepo) UnlinkRisks(context.Context, uuid.UUID, []uuid.UUID) error {
+func (r *fakeDeleteMeetingMinuteRepo) UnlinkRisks(context.Context, uuid.UUID, []uuid.UUID, *entity.AccessScope) error {
 	return errors.New("not implemented")
 }
 

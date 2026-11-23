@@ -6,6 +6,8 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	domainerrors "github.com/manris/backend/internal/domain/errors"
+	"github.com/manris/backend/internal/middleware"
 	"github.com/manris/backend/internal/usecase/likelihoodassessment"
 )
 
@@ -38,7 +40,10 @@ func (h *LikelihoodAssessmentHandler) Upsert(c *fiber.Ctx) error {
 		})
 	}
 
-	output, err := h.upsertUC.Execute(c.Context(), input)
+	output, err := h.upsertUC.Execute(c.Context(), input, middleware.GetAccessScope(c))
+	if errors.Is(err, domainerrors.ErrForbidden) {
+		return handleError(c, err)
+	}
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
 			"error": err.Error(),
@@ -57,7 +62,10 @@ func (h *LikelihoodAssessmentHandler) GetByRiskID(c *fiber.Ctx) error {
 		})
 	}
 
-	assessment, err := h.getUC.Execute(c.Context(), riskID)
+	assessment, err := h.getUC.Execute(c.Context(), riskID, middleware.GetAccessScope(c))
+	if errors.Is(err, domainerrors.ErrForbidden) {
+		return handleError(c, err)
+	}
 	if err != nil {
 		if errors.Is(err, likelihoodassessment.ErrNotFound) {
 			return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
@@ -75,6 +83,10 @@ func (h *LikelihoodAssessmentHandler) GetByRiskID(c *fiber.Ctx) error {
 // ListByRiskIDs returns multiple likelihood assessments for a list of risk IDs.
 // Used for preloading assessments in bulk queries.
 func (h *LikelihoodAssessmentHandler) ListByRiskIDs(c *fiber.Ctx) error {
+	if middleware.GetAccessScope(c) == nil {
+		return handleError(c, domainerrors.ErrForbidden)
+	}
+
 	riskIDsParam := c.Query("riskIds")
 	if riskIDsParam == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
@@ -98,7 +110,7 @@ func (h *LikelihoodAssessmentHandler) ListByRiskIDs(c *fiber.Ctx) error {
 	// For now, fetch one by one — could optimize with IN clause if needed
 	assessments := make([]map[string]interface{}, 0, len(riskIDs))
 	for _, riskID := range riskIDs {
-		assessment, err := h.getUC.Execute(c.Context(), riskID)
+		assessment, err := h.getUC.Execute(c.Context(), riskID, middleware.GetAccessScope(c))
 		if err != nil {
 			if errors.Is(err, likelihoodassessment.ErrNotFound) {
 				continue // skip missing
@@ -108,17 +120,17 @@ func (h *LikelihoodAssessmentHandler) ListByRiskIDs(c *fiber.Ctx) error {
 			})
 		}
 		assessments = append(assessments, map[string]interface{}{
-			"riskId":              assessment.RiskID.String(),
-			"method":              assessment.Method,
-			"frequencyType":      assessment.FrequencyType,
+			"riskId":                   assessment.RiskID.String(),
+			"method":                   assessment.Method,
+			"frequencyType":            assessment.FrequencyType,
 			"selectedProbabilityLevel": assessment.SelectedProbabilityLevel,
-			"justification":       assessment.Justification,
-			"dataSource":          assessment.DataSource,
+			"justification":            assessment.Justification,
+			"dataSource":               assessment.DataSource,
 		})
 	}
 
 	return c.Status(fiber.StatusOK).JSON(fiber.Map{
-		"data": assessments,
+		"data":  assessments,
 		"total": len(assessments),
 	})
 }

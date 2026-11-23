@@ -27,7 +27,7 @@ func NewUnitProgressHandler(uc unitProgressExecutor, groups organizationGroupRep
 }
 
 func (h *UnitProgressHandler) Get(c *fiber.Ctx) error {
-	ids, err := resolveQuarterlyReportScope(c, h.groups)
+	ids, err := resolveRiskReportScope(c, h.groups)
 	if err != nil {
 		return handleError(c, err)
 	}
@@ -67,7 +67,7 @@ func (h *UnitProgressHandler) Get(c *fiber.Ctx) error {
 }
 
 func (h *UnitProgressHandler) Profiles(c *fiber.Ctx) error {
-	ids, err := resolveQuarterlyReportScope(c, h.groups)
+	ids, err := resolveRiskReportScope(c, h.groups)
 	if err != nil {
 		return handleError(c, err)
 	}

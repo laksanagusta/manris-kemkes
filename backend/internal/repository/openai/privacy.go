@@ -7,12 +7,12 @@ import (
 	sdk "github.com/sashabaranov/go-openai"
 )
 
-// createChatCompletion is the shared outbound boundary for all current AI features.
+// createChatCompletion is the outbound boundary for this repository's AI features.
 // Raw source fields are checked before prompt construction as well: formatting
 // must not obscure a classified header or a populated personal-data field.
 func (r *aiRepository) createChatCompletion(ctx context.Context, request sdk.ChatCompletionRequest) (sdk.ChatCompletionResponse, error) {
 	for _, message := range request.Messages {
-		if err := sensitivedata.ValidateAIInput(message.Content); err != nil {
+		if err := sensitivedata.ValidateAIPrompt(message.Content); err != nil {
 			return sdk.ChatCompletionResponse{}, err
 		}
 	}

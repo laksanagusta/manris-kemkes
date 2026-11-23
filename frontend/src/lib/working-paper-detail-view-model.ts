@@ -252,7 +252,8 @@ export function buildWorkingPaperDetailViewModel(
     nextSignatory,
     canStartSigning,
     canSign,
-    canCancel: workingPaper.status === "draft" || workingPaper.status === "signing",
+    canCancel: Boolean(currentUserId && workingPaper.created_by === currentUserId &&
+      (workingPaper.status === "draft" || workingPaper.status === "signing")),
     canDelete: workingPaper.status === "draft",
     canSkipTTE,
     tteSkipped,

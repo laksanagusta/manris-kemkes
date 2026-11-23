@@ -5,7 +5,7 @@ import { periodObservationDate, periodWindowState } from "@/lib/profile-period-p
 import { todayMonitoringDate } from "@/lib/monitoring-date";
 import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { useForm, useFieldArray, SubmitHandler } from "react-hook-form";
@@ -38,13 +38,13 @@ import {
   FieldErrorMessage,
   TableLoadingSkeleton,
   CollectionPageHeader,
-  CollectionSearchField,
   CollectionTableCard,
   CollectionTableHead,
   CollectionTableHeader,
   CollectionTableHeaderRow,
 } from "@/components/shared/design-system";
 import { OrderedUserSelectionTable } from "@/components/risk/ordered-user-selection-table";
+import { useSetHeaderActions } from "@/lib/header-actions-context";
 import Link from "next/link";
 import {
   Table,
@@ -105,6 +105,7 @@ const ROSTER_STATUS_TO_TONE = {
 } as const;
 
 export default function CreateWorkingPaperPage() {
+  const setHeaderActions = useSetHeaderActions();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { token, user } = useAuth();
@@ -144,7 +145,6 @@ export default function CreateWorkingPaperPage() {
   const [previewPeriodKey,setPreviewPeriodKey] = useState("");
   const [preview, setPreview] =
     useState<WorkingPaperRosterPreview | null>(null);
-  const [searchRisk, setSearchRisk] = useState("");
   const [showConfirm, setShowConfirm] = useState(false);
 
   const form = useForm<FormValues>({
@@ -225,18 +225,6 @@ export default function CreateWorkingPaperPage() {
     });
     return () => { active = false; };
   }, [token, organizationId, profileVersionId, observationCutoff, monitoringPeriodId, periodContext, periodContextKey, reloadCount]);
-
-  const filteredEntries = previewMatchesScope
-    ? preview.entries.filter(
-        (e) =>
-          e.title
-            .toLowerCase()
-            .includes(searchRisk.toLowerCase()) ||
-          e.code
-            .toLowerCase()
-            .includes(searchRisk.toLowerCase()),
-      )
-    : [];
 
   const loadSignatoryOptions = useCallback(
     async ({ q, page, limit }: { q: string; page: number; limit: number }) => {
@@ -321,6 +309,28 @@ export default function CreateWorkingPaperPage() {
   const handleConfirmOpen = handleSubmit(() => {
     if (canCreateDraft) setShowConfirm(true);
   });
+  const headerActions = useMemo(() => (
+    <AccentButton
+      type="submit"
+      form="working-paper-create-form"
+      disabled={isSubmitting || !canCreateDraft}
+      icon={
+        isSubmitting ? (
+          <Loader2 className="size-3.5 animate-spin" />
+        ) : (
+          <Save className="size-3.5" />
+        )
+      }
+    >
+      {isSubmitting ? "Menyimpan…" : "Buat draf KK Pemantauan dan Reviu"}
+    </AccentButton>
+  ), [canCreateDraft, isSubmitting]);
+
+  useEffect(() => {
+    if (!organizationId || !profileVersionId) return;
+    setHeaderActions(headerActions);
+    return () => setHeaderActions(null);
+  }, [headerActions, organizationId, profileVersionId, setHeaderActions]);
 
   const onSubmit: SubmitHandler<FormValues> = async (
     data: FormValues,
@@ -387,28 +397,11 @@ export default function CreateWorkingPaperPage() {
   return (
     <FormPage className="space-y-6 pb-0">
       <CollectionPageHeader
-        actionsPlacement="top"
         title="Buat KK Pemantauan dan Reviu Baru"
         eyebrow={
           <Badge variant="outline" className="">
             {unitName}{previewMatchesScope ? ` · ${preview.profileLabel} · Per ${preview.observationCutoff}` : ""}
           </Badge>
-        }
-        actions={
-          <AccentButton
-            type="button"
-            onClick={handleConfirmOpen}
-            disabled={isSubmitting || !canCreateDraft}
-            icon={
-              isSubmitting ? (
-                <Loader2 className="size-3.5 animate-spin" />
-              ) : (
-                <Save className="size-3.5" />
-              )
-            }
-          >
-            {isSubmitting ? "Menyimpan…" : "Buat draf KK Pemantauan dan Reviu"}
-          </AccentButton>
         }
       />
 
@@ -417,18 +410,7 @@ export default function CreateWorkingPaperPage() {
         onSubmit={handleConfirmOpen}
         className="space-y-6"
       >
-        <FormSection
-          title="Daftar Risiko"
-          action={
-            <CollectionSearchField
-              value={searchRisk}
-              onChange={(event) => setSearchRisk(event.target.value)}
-              placeholder="Cari judul atau kode risiko"
-              aria-label="Cari judul atau kode risiko"
-            />
-          }
-        >
-
+        <FormSection title="Daftar Risiko">
           {needsRosterRefresh && (
             <div role="status" className="flex flex-wrap items-center gap-3 rounded-lg bg-state-surface p-3 text-sm text-state-foreground">
               <p>Daftar risiko atau hasil Pemantauan berubah. Muat daftar terbaru sebelum membuat draf.</p>
@@ -459,11 +441,6 @@ export default function CreateWorkingPaperPage() {
               title="Profil belum berisi risiko"
               description="Pilih versi profil final yang memiliki anggota risiko."
             />
-          ) : filteredEntries.length === 0 ? (
-            <CollectionEmptyState
-              title="Risiko tidak ditemukan"
-              description="Ubah kata kunci pencarian untuk melihat risiko lain."
-            />
           ) : (
             <CollectionTableCard>
               <Table className="min-w-[880px] table-fixed">
@@ -475,19 +452,19 @@ export default function CreateWorkingPaperPage() {
                   <CollectionTableHead className="w-[18%] min-w-0 align-middle">
                     Kode
                   </CollectionTableHead>
+                  <CollectionTableHead className="w-[44%] min-w-0">
+                    Risiko
+                  </CollectionTableHead>
                   <CollectionTableHead className="w-[14%] min-w-0 whitespace-normal text-center">
                     Tanggal pengamatan
                   </CollectionTableHead>
-                  <CollectionTableHead className="w-[44%] min-w-0">
-                    Judul risiko
-                  </CollectionTableHead>
                   <CollectionTableHead className="w-[24%] min-w-0 whitespace-normal text-center">
-                    Status monitoring
+                    Status Pemantauan
                   </CollectionTableHead>
                 </CollectionTableHeaderRow>
               </CollectionTableHeader>
               <TableBody>
-                {filteredEntries.map((entry) => {
+                {preview.entries.map((entry) => {
 
                   return (
                     <TableRow
@@ -499,9 +476,6 @@ export default function CreateWorkingPaperPage() {
                           <CollectionCode code={entry.code} href={`/risk/register/${entry.sourceRiskId}`} />
                         </div>
                       </TableCell>
-                      <TableCell className="w-[14%] min-w-0 text-center">
-                        {entry.observedAt || "—"}
-                      </TableCell>
                       <TableCell className="w-[44%] min-w-0">
                         <span
                           className="block max-w-full truncate text-sm font-medium text-foreground"
@@ -509,6 +483,9 @@ export default function CreateWorkingPaperPage() {
                         >
                           {entry.title}
                         </span>
+                      </TableCell>
+                      <TableCell className="w-[14%] min-w-0 text-center">
+                        {entry.observedAt || "—"}
                       </TableCell>
                       <TableCell className="w-[24%] min-w-0 text-center">
                         <Badge variant={toBadgeVariant(
@@ -580,9 +557,10 @@ export default function CreateWorkingPaperPage() {
               <AlertDialogTitle>Buat draf KK Pemantauan dan Reviu</AlertDialogTitle>
               <AlertDialogDescription>Periksa profil, unit, dan tanggal batas pemantauan.</AlertDialogDescription>
             </AlertDialogHeader>
-            <ConfirmationConsequences>
-              Seluruh risiko dalam {preview?.profileLabel} akan disimpan untuk {unitName}, dengan tanggal batas {preview?.observationCutoff}.
-                  Pemantauan yang belum final dapat dilengkapi sebelum tanda tangan dimulai.
+            <ConfirmationConsequences variant="plain">
+              Draf KK untuk {unitName} memuat semua risiko {preview?.profileLabel}
+              hingga {preview?.observationCutoff}. Pemantauan belum final dapat
+              dilengkapi sebelum tanda tangan.
             </ConfirmationConsequences>
             <dl className="grid grid-cols-2 gap-4">
               <div>

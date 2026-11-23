@@ -119,7 +119,8 @@ func TestDatedReportingLatestFinalAndHistory(t *testing.T) {
 		t.Fatal(err)
 	}
 	var raw []byte
-	if err := tx.QueryRow(ctx, semesterRiskSnapshotSQL, org, 2026, 1, "2026-06-30", []string{"2026-Q1", "2026-Q2"}).Scan(&raw); err != nil {
+	var corrections []UPRReportCorrection
+	if err := tx.QueryRow(ctx, semesterRiskSnapshotSQL, org, 2026, 1, "2026-06-30", []string{"2026-Q1", "2026-Q2"}, false).Scan(&raw, &corrections); err != nil {
 		t.Fatal(err)
 	}
 	var semester []struct {

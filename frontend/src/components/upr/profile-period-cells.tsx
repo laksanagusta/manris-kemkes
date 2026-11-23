@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { periodWindowState, type ProcessProgress } from '@/lib/profile-period-progress';
 
 const statusLabels = { pending: 'Pending', ongoing: 'Ongoing', done: 'Done' };
+const windowLabels = { open: 'Terbuka', closed: 'Ditutup', upcoming: 'Akan datang' };
 
 function PeriodStatusAction({ progress, label, actionLabel, actionContext, href, disabled, onStart, inline, readOnly }: {
   progress: ProcessProgress;
@@ -67,22 +68,44 @@ export function ProfileDocumentPeriodCell({ period, profileId, organizationId, c
   </div>;
 }
 
-export function RiskMonitoringPeriodCell({ period, groupId, onStart, disabled, readOnly }: {
-  period: ProfilePeriodProgress; groupId: string; onStart?: () => void; disabled?: boolean; readOnly?: boolean;
+export function RiskMonitoringPeriodCell({ period, groupId, onStart, disabled, readOnly, profileFinalized }: {
+  period: ProfilePeriodProgress; groupId: string; onStart?: () => void; disabled?: boolean; readOnly?: boolean; profileFinalized: boolean;
 }) {
   const monitoring = period.monitorings.find(item => item.groupId === groupId);
-  if (monitoring?.applicable === false) return <p className="text-xs text-muted-foreground">Belum berlaku pada periode ini</p>;
+  if (!profileFinalized && !monitoring?.id) return null;
   const progress: ProcessProgress = monitoring ?? { status: 'pending', completed: 0, total: 0 };
   const href = progress.id ? `/risk/monitoring/${progress.id}` : undefined;
 
-  return <div className="min-w-40 py-1">
-    <PeriodStatusAction
-      progress={progress}
-      href={href}
-      actionLabel={href ? readOnly || progress.status === 'done' ? 'Lihat pemantauan' : 'Lanjutkan pemantauan' : 'Mulai pemantauan'}
-      disabled={disabled || periodWindowState(period) !== 'open'}
-      onStart={onStart}
-      readOnly={readOnly}
-    />
-  </div>;
+  const windowState = periodWindowState(period);
+
+  return (
+    <section aria-label={period.label} className="min-w-0 rounded-lg border border-border bg-card px-3 py-2">
+      <h3 className="flex flex-wrap items-baseline justify-between gap-x-2 text-xs font-medium">
+        {period.label}
+        <span className="font-normal text-muted-foreground">
+          {windowLabels[windowState]}
+        </span>
+      </h3>
+      {period.scopeLocked && (
+        <p className="text-xs text-muted-foreground">
+          {period.needsReview ? "Cakupan historis perlu ditinjau" : "Cakupan terkunci"}
+        </p>
+      )}
+      {monitoring?.applicable === false ? (
+        <p className="text-xs text-muted-foreground">Belum berlaku pada periode ini</p>
+      ) : (
+        <PeriodStatusAction
+          inline
+          progress={progress}
+          label="Pemantauan"
+          actionContext={period.label}
+          href={href}
+          actionLabel={href ? readOnly || progress.status === 'done' ? 'Lihat pemantauan' : 'Lanjutkan pemantauan' : 'Mulai pemantauan'}
+          disabled={disabled || windowState !== 'open'}
+          onStart={onStart}
+          readOnly={readOnly}
+        />
+      )}
+    </section>
+  );
 }

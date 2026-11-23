@@ -25,6 +25,7 @@ type AnnualProfileListVersion struct {
 	RiskCount        int        `json:"riskCount"`
 	OrganizationID   uuid.UUID  `json:"organizationId"`
 	OrganizationName string     `json:"organizationName"`
+	Code             string     `json:"code"`
 }
 
 func (s *UPRWorkflow) AnnualProfileList(ctx context.Context, scope *entity.AccessScope, org uuid.UUID, includeDescendants bool) ([]AnnualProfileListVersion, error) {
@@ -32,6 +33,7 @@ func (s *UPRWorkflow) AnnualProfileList(ctx context.Context, scope *entity.Acces
 		return nil, ErrUPRNotFound
 	}
 	orgIDs := []uuid.UUID{org}
+	global := org == uuid.Nil && scope.IsGlobal && entity.NormalizeRole(scope.Role) == entity.RoleSuperAdmin
 	if includeDescendants && scope.OrganizationID != nil && *scope.OrganizationID == org {
 		if scope.IsGlobal {
 			var err error
@@ -44,10 +46,14 @@ func (s *UPRWorkflow) AnnualProfileList(ctx context.Context, scope *entity.Acces
 		}
 	}
 	rows, err := s.pool.Query(ctx, `SELECT p.id,p.year,p.version,p.finalized_at,GREATEST(p.updated_at,p.finalized_at),
-		(SELECT count(*) FROM annual_risk_profile_members m WHERE m.profile_version_id=p.id),
-		p.organization_id,o.name
+		(SELECT count(*) FROM annual_risk_profile_members m
+		 LEFT JOIN annual_risk_profile_exclusions x USING (profile_version_id,version_group_id)
+		 WHERE m.profile_version_id=p.id AND x.version_group_id IS NULL),
+		p.organization_id,o.name,c.code
 		FROM annual_risk_profile_versions p JOIN organizations o ON o.id=p.organization_id
-		WHERE p.organization_id=ANY($1::uuid[]) ORDER BY p.year DESC,o.name,p.organization_id,p.version DESC`, orgIDs)
+		JOIN annual_risk_profile_codes c ON c.organization_id=p.organization_id AND c.year=p.year
+		WHERE ($2 OR p.organization_id=ANY($1::uuid[]))
+		ORDER BY p.year DESC,o.name,p.organization_id,p.version DESC`, orgIDs, global)
 	if err != nil {
 		return nil, fmt.Errorf("list annual profile versions: %w", err)
 	}
@@ -106,6 +112,7 @@ type AnnualPickupRisk struct {
 	AssessmentDate *string    `json:"assessmentDate"`
 	Category       string     `json:"category"`
 	Score          *int       `json:"score"`
+	TargetScore    *int       `json:"targetScore"`
 	Unavailable    string     `json:"unavailable"`
 }
 
@@ -149,7 +156,7 @@ func annualPickupRows(ctx context.Context, db riskQueryer, org uuid.UUID, year i
 		}
 	}
 	rows, err := db.Query(ctx, annualObjectivesSQL+`, active AS (
-		SELECT DISTINCT ON (r.version_group_id) r.id,r.version_group_id,r.code,r.title,r.assessment_cycle,r.nilai,r.effective_from,r.category,r.finalized_at
+		SELECT DISTINCT ON (r.version_group_id) r.id,r.version_group_id,r.code,r.title,r.assessment_cycle,r.nilai,r.target_nilai,r.effective_from,r.category,r.finalized_at
 		FROM risks r WHERE r.organization_id=$1 AND r.status='final' AND r.is_current AND r.archived_at IS NULL
 		ORDER BY r.version_group_id,r.version_number DESC,r.id DESC
 	), category_history AS (
@@ -164,6 +171,7 @@ func annualPickupRows(ctx context.Context, db riskQueryer, org uuid.UUID, year i
 	SELECT a.id,COALESCE(a.code,roster.baseline->>'code',''),
 		COALESCE(a.title,roster.baseline->>'title','Risiko tidak tersedia'),COALESCE(a.assessment_cycle,''),
 		CASE WHEN a.id IS NULL THEN (roster.baseline->>'score')::int ELSE round(a.nilai)::int END,
+		CASE WHEN a.id IS NULL THEN NULLIF(roster.baseline->>'targetScore','')::int ELSE round(a.target_nilai)::int END,
 		CASE WHEN a.id IS NULL THEN 'Diarsipkan atau tidak lagi aktif'
 		WHEN a.assessment_cycle ~ '^[0-9]{4}-Q[1-4]$' AND LEFT(a.assessment_cycle,4)>$2 THEN 'Penilaian berasal dari tahun yang lebih baru'
 		ELSE '' END,
@@ -182,7 +190,7 @@ func annualPickupRows(ctx context.Context, db riskQueryer, org uuid.UUID, year i
 	}
 	return pgx.CollectRows(rows, func(row pgx.CollectableRow) (annualPickupRow, error) {
 		var item annualPickupRow
-		err := row.Scan(&item.ID, &item.Code, &item.Title, &item.Period, &item.Score, &item.Unavailable,
+		err := row.Scan(&item.ID, &item.Code, &item.Title, &item.Period, &item.Score, &item.TargetScore, &item.Unavailable,
 			&item.GroupID, &item.ObjectiveID, &item.Effective, &item.AssessmentDate, &item.Category)
 		return item, err
 	})

@@ -3,6 +3,7 @@ package user
 import (
 	"context"
 	stderrors "errors"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -48,6 +49,7 @@ type CreateUserOutput struct {
 }
 
 func (uc *CreateUserUseCase) Execute(ctx context.Context, input CreateUserInput) (*CreateUserOutput, error) {
+	input.NIP = strings.TrimSpace(input.NIP)
 	normalizedRole := entity.NormalizeRole(input.Role)
 
 	// 1. Validate input
@@ -88,11 +90,17 @@ func (uc *CreateUserUseCase) Execute(ctx context.Context, input CreateUserInput)
 
 	// 3. Check if email already exists
 	existingUser, err := uc.lookupExistingUser(ctx, input.Email, "email")
+	if err != nil {
+		return nil, err
+	}
 	if existingUser != nil {
 		return nil, errors.ErrEmailAlreadyExists
 	}
 
 	existingUser, err = uc.lookupExistingUser(ctx, input.NIP, "nip")
+	if err != nil {
+		return nil, err
+	}
 	if existingUser != nil {
 		return nil, errors.ErrNIPAlreadyExists
 	}

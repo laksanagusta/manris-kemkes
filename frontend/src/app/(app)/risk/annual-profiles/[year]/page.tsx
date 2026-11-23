@@ -1,10 +1,11 @@
 "use client";
 
 import { DetailLoadingSkeleton, PageLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
-import { getProfilePeriodProgress, type ProfilePeriodWorkspace, type ProfilePeriodProgress } from "@/lib/api/profile-periods";
+import { approveProfilePeriodClosure, getProfilePeriodProgress, type ProfilePeriodWorkspace, type ProfilePeriodProgress } from "@/lib/api/profile-periods";
 import { startMonitoring } from "@/lib/api/risk-monitoring";
 import type { AnnualMember } from "@/lib/api/upr-workflow";
 import { todayMonitoringDate } from "@/lib/monitoring-date";
+import { periodObservationDate } from "@/lib/profile-period-progress";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
@@ -40,7 +41,6 @@ function AnnualProfileWorkspace() {
   const version = params.get("versi") ?? "";
   const [periodData,setPeriodData] = useState<{id:string;workspace?:ProfilePeriodWorkspace;error?:string}>({id:""});
   const [monitoringTarget,setMonitoringTarget] = useState<{member:AnnualMember;period:ProfilePeriodProgress} | null>(null);
-  const [monitoringDate,setMonitoringDate] = useState("");
   const [data, setData] = useState<AnnualProfile | null>(null);
   const [candidates, setCandidates] = useState<AnnualCandidate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,20 +52,16 @@ function AnnualProfileWorkspace() {
   const [loadedContext, setLoadedContext] = useState("");
   const mutationLock = useRef(false);
   const organizationId = user?.organizationId;
+  const isSuperAdmin = user?.role === "superadmin";
+  const canReadProfile = Boolean(organizationId || (isSuperAdmin && version));
   const context = `${organizationId}:${year}:${version}`;
   const readOnly = !data?.organizationId || data.organizationId !== organizationId;
   const fetching = loading || loadedContext !== context;
   const busy = fetching || pending || Boolean(refreshError);
   const returnTo = annualProfileHref(year, data?.selected?.id);
 
-  const selectedProfileId=data?.selected?.id;
-  useEffect(() => {
-    if(!token || !selectedProfileId) return;
-    let active=true;
-    getProfilePeriodProgress(token,selectedProfileId).then(workspace => {if(active) setPeriodData({id:selectedProfileId,workspace});}, cause => {if(active) setPeriodData({id:selectedProfileId,error:workflowError(cause)});});
-    return () => { active=false; };
-  },[token,selectedProfileId,reload]);
-  const periodWorkspace=periodData.id===selectedProfileId ? periodData.workspace : undefined;
+  const selectedProfileId = data?.selected?.id;
+  const periodWorkspace = periodData.id === selectedProfileId ? periodData.workspace : undefined;
 
   const selectVersion = (id: string) => {
     if (busy) return;
@@ -74,11 +70,22 @@ function AnnualProfileWorkspace() {
   };
 
   useEffect(() => {
-    if (!token || !organizationId || !validYear) return;
+    if (!token || !canReadProfile || !validYear) return;
     let cancelled = false;
     async function load(authToken: string) {
       try {
         const profile = await uprApi.profile(authToken, year, version);
+        const id = profile.selected?.id;
+        if (id) {
+          try {
+            const workspace = await getProfilePeriodProgress(authToken, id);
+            if (cancelled) return;
+            setPeriodData({ id, workspace });
+          } catch (cause) {
+            if (cancelled) return;
+            setPeriodData({ id, error: workflowError(cause) });
+          }
+        }
         if (cancelled) return;
         setData(profile);
         setError("");
@@ -108,15 +115,19 @@ function AnnualProfileWorkspace() {
     return () => {
       cancelled = true;
     };
-  }, [token, organizationId, year, version, reload, validYear, context]);
+  }, [token, organizationId, canReadProfile, year, version, reload, validYear, context]);
 
   const refresh = useCallback(
     async (id: string) => {
       if (!token) return;
-      const [profile, choices] = await Promise.allSettled([
+      const [profile, choices, periods] = await Promise.allSettled([
         uprApi.profile(token, year, id),
         uprApi.candidates(token, year),
+        getProfilePeriodProgress(token, id),
       ]);
+      setPeriodData(periods.status === "fulfilled"
+        ? { id, workspace: periods.value }
+        : { id, error: workflowError(periods.reason) });
       if (profile.status === "fulfilled") {
         setData(profile.value);
         setError("");
@@ -139,8 +150,9 @@ function AnnualProfileWorkspace() {
 
   async function mutate<T>(
     action: (authToken: string, profileId: string) => Promise<T>,
+    allowReadOnly = false,
   ): Promise<T> {
-    if (readOnly || !token || mutationLock.current || fetching || refreshError)
+    if ((readOnly && !(allowReadOnly && isSuperAdmin)) || !token || mutationLock.current || fetching || refreshError)
       throw new Error(
         "Muat ulang profil atau tunggu hingga proses sebelumnya selesai.",
       );
@@ -182,7 +194,7 @@ function AnnualProfileWorkspace() {
         <WorkflowError message="Tahun profil tidak valid." />
       ) : authLoading ? (
         <DetailLoadingSkeleton message="Memuat profil…" />
-      ) : !organizationId ? (
+      ) : !canReadProfile ? (
         <Alert>
           <AlertDescription>
             Akun harus terhubung ke organisasi untuk membuka profil tahunan.
@@ -206,9 +218,14 @@ function AnnualProfileWorkspace() {
             readOnly={readOnly}
             profile={data}
             periodWorkspace={periodWorkspace}
+            onApprovePeriodClosure={isSuperAdmin ? (periodId, reason) =>
+              mutate(async (authToken, profileId) => {
+                await approveProfilePeriodClosure(authToken, profileId, periodId, reason);
+                await refresh(profileId);
+                toast.success("Penutupan administratif disetujui.");
+              }, true) : undefined}
             onStartPeriodMonitoring={readOnly ? undefined : (member,period)=>{
               if(!periodWorkspace?.rule) return;
-              setMonitoringDate(todayMonitoringDate());
               setMonitoringTarget({member,period});
             }}
             candidates={candidates}
@@ -249,7 +266,6 @@ function AnnualProfileWorkspace() {
                     uprApi.saveMember(authToken, profileId, {
                       riskId: candidate.id,
                       objectiveId: null,
-                      effectiveFrom: "",
                       changeReason: "",
                       reassess: false,
                       deferAssessment: true,
@@ -278,13 +294,26 @@ function AnnualProfileWorkspace() {
                   );
               })
             }
-            onRemove={(member) =>
+            onRemove={(member, exclusion) =>
               mutate(async (authToken, profileId) => {
-                await uprApi.removeMember(authToken, profileId, member.groupId);
+                if (exclusion) {
+                  await uprApi.excludeMember(authToken, profileId, member.groupId, exclusion);
+                } else {
+                  await uprApi.removeMember(authToken, profileId, member.groupId);
+                }
                 await refresh(profileId);
                 toast.success(
-                  "Risiko dikeluarkan dari profil dan tetap tersimpan di Register.",
+                  exclusion
+                    ? "Pengeluaran risiko disimpan dalam draf revisi."
+                    : "Risiko dikeluarkan dari profil dan tetap tersimpan di Register.",
                 );
+              })
+            }
+            onCancelExclusion={(groupId) =>
+              mutate(async (authToken, profileId) => {
+                await uprApi.cancelMemberExclusion(authToken, profileId, groupId);
+                await refresh(profileId);
+                toast.success("Pengeluaran dibatalkan. Risiko kembali ke draf profil.");
               })
             }
             onFinalize={() =>
@@ -317,14 +346,15 @@ function AnnualProfileWorkspace() {
         description={`${monitoringTarget?.member.code ?? "Risiko"} · ${monitoringTarget?.period.label ?? "Periode"}.`}
         confirmLabel="Mulai pemantauan"
         onConfirm={async () => {
-          if (readOnly || !token || !selectedProfileId || !monitoringTarget?.member.riskId || !monitoringDate) {
+          if (readOnly || !token || !selectedProfileId || !periodWorkspace?.rule || !monitoringTarget?.member.riskId) {
             throw new Error("Data pemantauan belum tersedia.");
           }
+          const observedAt = periodObservationDate(periodWorkspace.rule, monitoringTarget.period, todayMonitoringDate());
           try {
             const result = await startMonitoring(
               token,
               monitoringTarget.member.riskId,
-              monitoringDate,
+              observedAt,
               {
                 profileVersionId: selectedProfileId,
                 monitoringPeriodId: monitoringTarget.period.id,
@@ -336,7 +366,7 @@ function AnnualProfileWorkspace() {
           }
         }}
       >
-        <span>Draf pemantauan akan dibuat, lalu formulir pemantauan akan dibuka.</span>
+        Draf pemantauan akan dibuat dan formulirnya langsung dibuka.
       </ActionConfirmationDialog>
     </PageStack>
   );

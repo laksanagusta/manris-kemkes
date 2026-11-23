@@ -28,12 +28,18 @@ func (r *riskRepository) StartProfileRevision(ctx context.Context, draft *entity
 	if legacyErr != nil && !errors.Is(legacyErr, pgx.ErrNoRows) {
 		return nil, false, legacyErr
 	}
+	if err := lockRiskRevisionOrganization(ctx, tx, *draft.PreviousRiskID); err != nil {
+		return nil, false, err
+	}
 	var current bool
 	if err = tx.QueryRow(ctx, `SELECT is_current AND status='final' AND archived_at IS NULL FROM risks WHERE id=$1 FOR UPDATE`, draft.PreviousRiskID).Scan(&current); err != nil {
 		return nil, false, err
 	}
 	if !current {
 		return nil, false, domainerrors.ErrSourceRiskNoLongerActive
+	}
+	if err := checkRiskRevisionPeriod(ctx, tx, draft.VersionGroupID); err != nil {
+		return nil, false, err
 	}
 	var existing uuid.UUID
 	err = tx.QueryRow(ctx, `SELECT id FROM risks WHERE version_group_id=$1 AND status='draft' AND previous_risk_id=$2 AND review_type='revision' ORDER BY created_at LIMIT 1`, draft.VersionGroupID, draft.PreviousRiskID).Scan(&existing)
@@ -87,6 +93,9 @@ func lockProfileRevision(ctx context.Context, q riskQueryer, risk *entity.Risk) 
 	if risk.ReviewType != "revision" || risk.PreviousRiskID == nil {
 		return false, nil
 	}
+	if err := lockRiskRevisionOrganization(ctx, q, *risk.PreviousRiskID); err != nil {
+		return false, err
+	}
 	var current bool
 	if err := q.QueryRow(ctx, `SELECT is_current AND status='final' AND archived_at IS NULL FROM risks WHERE id=$1 FOR UPDATE`, risk.PreviousRiskID).Scan(&current); err != nil {
 		return false, err
@@ -100,6 +109,9 @@ func lockProfileRevision(ctx context.Context, q riskQueryer, risk *entity.Risk) 
 	}
 	if !current {
 		return false, domainerrors.ErrSourceRiskNoLongerActive
+	}
+	if err := checkRiskRevisionPeriod(ctx, q, risk.VersionGroupID); err != nil {
+		return false, err
 	}
 	if risk.FinalizeRequested {
 		drafts, err := readRiskOpenDrafts(ctx, q, risk.VersionGroupID)

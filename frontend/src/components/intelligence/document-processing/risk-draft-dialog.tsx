@@ -96,15 +96,11 @@ export function RiskDraftDialog({
     () => ({
       title:
         title.trim().length < 3 ? "Judul risiko minimal 3 karakter" : "",
-      description:
-        description.trim().length < 10
-          ? "Deskripsi minimal 10 karakter"
-          : "",
       category: category ? "" : "Kategori risiko wajib dipilih",
     }),
-    [category, description, title],
+    [category, title],
   );
-  const hasErrors = Boolean(errors.title || errors.description || errors.category);
+  const hasErrors = Boolean(errors.title || errors.category);
 
   async function submitDraft(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -174,7 +170,7 @@ export function RiskDraftDialog({
           <DialogHeader>
             <DialogTitle className="text-base">Buat draf risiko</DialogTitle>
             <DialogDescription>
-              Tinjau tiga informasi minimum sebelum menyimpan risiko sebagai draft.
+              Periksa judul dan kategori sebelum menyimpan draf risiko.
             </DialogDescription>
           </DialogHeader>
 
@@ -206,20 +202,15 @@ export function RiskDraftDialog({
 
             <div className="space-y-2">
               <Label htmlFor="document-risk-draft-description">
-                Deskripsi <span className="text-destructive">*</span>
+                Deskripsi (opsional)
               </Label>
               <Textarea
                 id="document-risk-draft-description"
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
-                onBlur={() => setShowValidationErrors(true)}
-                aria-invalid={showValidationErrors && Boolean(errors.description)}
                 placeholder="Jelaskan kondisi risiko yang ditemukan."
                 className="resize-y"
               />
-              {showValidationErrors ? (
-                <FieldErrorMessage>{errors.description}</FieldErrorMessage>
-              ) : null}
             </div>
 
             <div className="space-y-2">

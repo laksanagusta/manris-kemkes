@@ -54,6 +54,11 @@ func TestProfileRevisionUsesRiskDraftAndRecordsOnlyChangedScores(t *testing.T) {
 				if _, err := repo.Finalize(ctx, m.ID, nil, f.actor, repository.MonitoringFinalizeReview{}); err != nil {
 					t.Fatal(err)
 				}
+				if _, err := tx.Exec(ctx, `UPDATE annual_monitoring_period_completion SET
+					approved_at='2026-08-01', approved_by=$2, approval_reason='Test closed period'
+					WHERE monitoring_period_id=$1`, f.period, f.actor); err != nil {
+					t.Fatal(err)
+				}
 			}
 			risks := &riskRepository{pool: tx}
 			start := riskuc.NewStartMonitoringUseCase(risks, nil, nil, nil, nil)
@@ -233,7 +238,7 @@ func TestProfileRevisionAndMonitoringCannotStartTogether(t *testing.T) {
 				if err := monitorings.Create(ctx, m); err != nil {
 					t.Fatal(err)
 				}
-				if _, err := start.StartRevision(ctx, input); !errors.Is(err, domainerrors.ErrRiskMonitoringInProgress) {
+				if _, err := start.StartRevision(ctx, input); !errors.Is(err, domainerrors.ErrRiskRevisionPeriodInProgress) {
 					t.Fatalf("expected monitoring conflict, got %v", err)
 				}
 				risk, err := risks.GetByID(ctx, f.risk.ID, input.OrgIDs)
@@ -246,8 +251,8 @@ func TestProfileRevisionAndMonitoringCannotStartTogether(t *testing.T) {
 				if err := monitorings.DeleteDraft(ctx, m.ID, input.OrgIDs); err != nil {
 					t.Fatal(err)
 				}
-				if _, err := start.StartRevision(ctx, input); err != nil {
-					t.Fatal("revision should unlock after monitoring cancellation", err)
+				if _, err := start.StartRevision(ctx, input); !errors.Is(err, domainerrors.ErrRiskRevisionPeriodInProgress) {
+					t.Fatalf("cancellation must preserve the started period lock: %v", err)
 				}
 			} else {
 				draft, err := start.StartRevision(ctx, input)
@@ -350,5 +355,93 @@ func TestProfileRevisionConcurrentMonitoringStart(t *testing.T) {
 		if success != 1 || conflicts != 1 {
 			t.Fatalf("successes=%d conflicts=%d", success, conflicts)
 		}
+	}
+}
+
+func TestRiskRevisionWaitsForItsMonitoringPeriod(t *testing.T) {
+	pool := configuredTestPool(t)
+	ctx := context.Background()
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback(ctx)
+	f := seedConfiguredFixture(t, ctx, tx)
+	second := *f.risk
+	second.ID = uuid.Nil
+	second.VersionGroupID = uuid.New()
+	second.Code = "REV-SCOPE-" + uuid.NewString()
+	outside := second
+	outside.VersionGroupID = uuid.New()
+	outside.Code = "REV-OUTSIDE-" + uuid.NewString()
+	risks := &riskRepository{pool: tx}
+	for _, risk := range []*entity.Risk{&second, &outside} {
+		if err := risks.Create(ctx, risk); err != nil {
+			t.Fatal(err)
+		}
+	}
+	exec := func(sql string, args ...any) {
+		t.Helper()
+		if _, err := tx.Exec(ctx, sql, args...); err != nil {
+			t.Fatal(err)
+		}
+	}
+	exec(`INSERT INTO annual_risk_profile_members(profile_version_id,version_group_id,risk_id,effective_from,baseline)
+		VALUES($1,$2,$3,'2026-01-01','{}')`, f.profile, second.VersionGroupID, second.ID)
+	monitorings := &riskMonitoringRepository{pool: tx}
+	start := riskuc.NewStartMonitoringUseCase(risks, monitorings, nil, nil, nil)
+	revise := func(id uuid.UUID) (*riskuc.StartProfileRevisionOutput, error) {
+		return start.StartRevision(ctx, riskuc.StartMonitoringInput{SourceRiskID: id, StartedBy: f.actor, OrgIDs: []uuid.UUID{f.org}, ChangeReason: "Koreksi pengendalian risiko"})
+	}
+	draft, err := revise(second.ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	firstMonitoring := fixtureMonitoring(f)
+	if err := monitorings.Create(ctx, firstMonitoring); err != nil {
+		t.Fatal(err)
+	}
+	assertBlocked := func(err error) {
+		t.Helper()
+		if !errors.Is(err, domainerrors.ErrRiskRevisionPeriodInProgress) {
+			t.Fatalf("expected unfinished period conflict, got %v", err)
+		}
+	}
+	_, err = revise(second.ID)
+	assertBlocked(err)
+	revision, err := risks.GetByID(ctx, draft.RiskID, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if revision.OpenDrafts.RevisionBlockedPeriod == nil || *revision.OpenDrafts.RevisionBlockedPeriod != "Semester I" {
+		t.Fatalf("expected blocking period on the draft: %+v", revision.OpenDrafts)
+	}
+	revision.Title = "Perubahan draf revisi"
+	assertBlocked(risks.Update(ctx, revision))
+	revision.Status = "final"
+	revision.FinalizeRequested = true
+	assertBlocked(risks.Update(ctx, revision))
+
+	exec(`UPDATE risk_monitorings SET status='final',draft_payload='{"observedScoreConfirmed":true}',finalized_at=now() WHERE id=$1`, firstMonitoring.ID)
+	_, err = revise(f.risk.ID)
+	assertBlocked(err)
+	if _, err := revise(outside.ID); err != nil {
+		t.Fatalf("risk outside the period roster should remain revisable: %v", err)
+	}
+	secondMonitoring := fixtureMonitoring(configuredFixture{actor: f.actor, profile: f.profile, period: f.period, risk: &second})
+	if err := monitorings.Create(ctx, secondMonitoring); err != nil {
+		t.Fatalf("existing revision must not block required monitoring: %v", err)
+	}
+	exec(`SELECT set_config('manris.simulated_now','2026-08-01T00:00:00+07',true)`)
+	exec(`UPDATE annual_monitoring_period_completion SET approved_at='2026-08-01', approved_by=$2,
+		approval_reason='Kelengkapan pemantauan dicatat.' WHERE monitoring_period_id=$1`, f.period, f.actor)
+	resumed, err := revise(second.ID)
+	if err != nil || resumed.RiskID != draft.RiskID {
+		t.Fatalf("administrative closure should release the same revision draft: %+v, %v", resumed, err)
+	}
+	effective := time.Date(2026, 8, 1, 0, 0, 0, 0, time.UTC)
+	revision.EffectiveFrom, revision.FinalizedAt, revision.FinalizedBy = &effective, &effective, &f.actor
+	if err := risks.Update(ctx, revision); err != nil {
+		t.Fatalf("administrative closure should allow finalization: %v", err)
 	}
 }

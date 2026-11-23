@@ -25,6 +25,8 @@ const (
 	monitoringBodyFontSize  = 10.5
 	monitoringTableFontSize = 9.2
 	monitoringTextIndent    = 7.0
+	monitoringListHanging   = 4.0
+	monitoringNestedIndent  = 16.0
 	monitoringCheckMark     = "4"
 )
 
@@ -159,25 +161,36 @@ func (r *pdfReportRenderer) addMonitoringMitigationSection(m core.Maroto, data *
 	}
 	m.AddRows(buildMonitoringMitigationTableRows(rows, data.MitigationSummary)...)
 	addMonitoringParagraph(m, "Kesimpulan :")
+	if conclusion := strings.TrimSpace(data.MitigationConclusion); conclusion != "" {
+		addMonitoringParagraph(m, conclusion)
+	}
 	for idx, item := range data.MitigationSummary {
 		if item.Total {
 			continue
 		}
-		addMonitoringParagraph(m, fmt.Sprintf("%d. %s", idx+1, item.LevelLabel))
-		addMonitoringIndentedParagraph(m, fmt.Sprintf("Hasil pemantauan dan evaluasi untuk %s sebagai berikut:", strings.ToLower(item.LevelLabel)), 10)
-		addMonitoringIndentedParagraph(m, fmt.Sprintf("a. Jumlah %s sebanyak %d risiko dengan rencana mitigasi sebanyak %d rencana.", strings.ToLower(item.LevelLabel), item.RiskCount, item.MitigationPlanCount), 16)
-		addMonitoringIndentedParagraph(m, fmt.Sprintf("b. Jumlah mitigasi risiko yang sudah dilaksanakan sebanyak %d mitigasi.", item.MitigationRealizationCount), 16)
-		addMonitoringIndentedParagraph(m, fmt.Sprintf("c. Hasil intervensi risiko menunjukkan risiko yang berhasil diturunkan sebanyak %d risiko, risiko yang menetap sebanyak %d risiko, dan risiko yang menunjukkan peningkatan sebanyak %d risiko.", item.DownCount, item.SameCount, item.UpCount), 16)
-		addMonitoringIndentedParagraph(m, fmt.Sprintf("d. Terdapat %d risiko baru yang belum dilakukan analisis risiko.", item.NewCount), 16)
+		level := strings.ToLower(item.LevelLabel)
+		addMonitoringListItem(m, fmt.Sprintf("%d.", idx+1), item.LevelLabel, monitoringTextIndent)
+		addMonitoringIndentedParagraph(m, fmt.Sprintf("Hasil pemantauan dan evaluasi untuk %s sebagai berikut:", level), monitoringTextIndent+monitoringListHanging)
+		items := []string{
+			fmt.Sprintf("Jumlah %s sebanyak %d risiko dengan rencana mitigasi sebanyak %d rencana.", level, item.RiskCount, item.MitigationPlanCount),
+			fmt.Sprintf("Jumlah mitigasi risiko yang sudah dilaksanakan sebanyak %d mitigasi.", item.MitigationRealizationCount),
+			fmt.Sprintf("Hasil intervensi risiko menunjukkan risiko yang berhasil diturunkan sebanyak %d risiko, risiko yang menetap sebanyak %d risiko, dan risiko yang menunjukkan peningkatan sebanyak %d risiko.", item.DownCount, item.SameCount, item.UpCount),
+			fmt.Sprintf("Terdapat %d risiko baru yang belum dilakukan analisis risiko.", item.NewCount),
+		}
+		for i, value := range items {
+			addMonitoringListItem(m, fmt.Sprintf("%c.", 'a'+i), value, monitoringNestedIndent)
+		}
 		m.AddRows(row.New(4))
 	}
 }
 
 func (r *pdfReportRenderer) addMonitoringClosing(m core.Maroto, data *entity.MonitoringEvaluationReportData) {
 	addMonitoringParagraph(m, "9. Permasalahan")
-	addMonitoringParagraph(m, "-")
-	addMonitoringParagraph(m, "10. Saran Perbaikan")
-	addMonitoringParagraph(m, defaultIfEmpty(data.MitigationConclusion, "Berdasarkan hasil pemantauan diatas, diharapkan tim kerja dapat memonitoring kembali risiko yang masih menetap dengan memperhatikan kembali pengendalian yang harus dilakukan."))
+	addMonitoringParagraph(m, defaultIfEmpty(strings.TrimSpace(data.Problems), "-"))
+	if recommendations := strings.TrimSpace(data.Recommendations); recommendations != "" {
+		addMonitoringParagraph(m, "10. Saran Perbaikan")
+		addMonitoringParagraph(m, recommendations)
+	}
 	addMonitoringParagraph(m, fmt.Sprintf("Kami menyampaikan terima kasih atas bantuan dan kerja sama dari seluruh pejabat/pegawai pada satuan kerja %s atas kesediannya memberikan data/dokumen yang diperlukan, sehingga kegiatan pemantauan dan evaluasi penerapan manajemen risiko ini dapat terlaksana.", defaultIfEmpty(data.OrganizationName, "")))
 	addMonitoringParagraph(m, "Demikian laporan hasil pemantauan dan evaluasi penerapan manajemen risiko ini disampaikan, atas perhatian dan kerjasamanya diucapkan terima kasih.")
 	m.AddRows(row.New(8))
@@ -308,7 +321,25 @@ func addMonitoringIndentedParagraph(m core.Maroto, value string, indent float64)
 		m.AddRows(row.New(5))
 		return
 	}
-	m.AddRows(text.NewAutoRow(value, props.Text{
+	for line := range strings.SplitSeq(strings.ReplaceAll(value, "\r\n", "\n"), "\n") {
+		if strings.TrimSpace(line) == "" {
+			m.AddRows(row.New(5))
+			continue
+		}
+		m.AddRows(text.NewAutoRow(line, monitoringParagraphStyle(indent)))
+	}
+	m.AddRows(row.New(1.8))
+}
+
+func addMonitoringListItem(m core.Maroto, marker, value string, indent float64) {
+	m.AddRows(row.New().Add(col.New(gridSize).Add(
+		text.New(marker, monitoringParagraphStyle(indent)),
+		text.New(value, monitoringParagraphStyle(indent+monitoringListHanging)),
+	)), row.New(1.8))
+}
+
+func monitoringParagraphStyle(indent float64) props.Text {
+	return props.Text{
 		Size:              monitoringBodyFontSize,
 		Align:             align.Left,
 		Family:            fontfamily.Arial,
@@ -317,8 +348,7 @@ func addMonitoringIndentedParagraph(m core.Maroto, value string, indent float64)
 		Right:             monitoringTextIndent,
 		VerticalPadding:   1.2,
 		BreakLineStrategy: breakline.EmptySpaceStrategy,
-	}))
-	m.AddRows(row.New(1.8))
+	}
 }
 
 func addMonitoringPair(m core.Maroto, label, value string) {
@@ -346,9 +376,9 @@ func addMonitoringPair(m core.Maroto, label, value string) {
 }
 
 func addMonitoringNumberedSection(m core.Maroto, number, title string, items []string) {
-	addMonitoringParagraph(m, number+" "+title)
+	addMonitoringListItem(m, number, title, monitoringTextIndent)
 	for idx, item := range items {
-		addMonitoringParagraph(m, fmt.Sprintf("%c. %s", 'a'+idx, item))
+		addMonitoringListItem(m, fmt.Sprintf("%c.", 'a'+idx), item, monitoringTextIndent+monitoringListHanging)
 	}
 }
 

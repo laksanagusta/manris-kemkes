@@ -1,7 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { normalizeRiskSource } from "./risk-source.ts";
 
 const payloadModule = await import(new URL("./risk-register-payload.ts", import.meta.url).href);
+
+test("editing a legacy risk preserves its combined or external source", () => {
+  for (const source of [" External & Internal ", "internal & external", "Eksternal & Internal", "Internal & Eksternal"]) {
+    assert.equal(normalizeRiskSource(source), "internal_eksternal");
+  }
+  assert.equal(normalizeRiskSource(" External "), "eksternal");
+});
 
 test("buildRiskRegisterPayload carries roId and omits objectiveId", () => {
   const { buildRiskRegisterPayload } = payloadModule as {
@@ -90,4 +98,27 @@ test("profile edits preserve mitigation identity, cost and execution schedule", 
  assert.equal(payload.mitigations[0].recurringInterval, "bulanan");
  assert.equal(payload.mitigations[0].reportDate, 25);
  assert.equal(payload.mitigations[0].targetCost, plan.targetCost);
+});
+
+test("the form payload saves the owner and combined source and can clear the owner", () => {
+  const risk = {
+    title: "Risiko distribusi",
+    description: "Pasokan terlambat",
+    organizationId: "unit-1",
+    riskSource: "internal_eksternal",
+    probability: 3,
+    impact: 3,
+    weight: 1,
+    riskPriority: 1,
+    targetProbability: 1,
+    targetImpact: 1,
+    targetWeight: 1,
+  };
+  const context = { assessmentCycle: "2026-Q4" };
+  const selected = payloadModule.buildRiskRegisterPayload({ ...risk, riskOwnerId: "user-1" }, "draft", context);
+  const cleared = payloadModule.buildRiskRegisterPayload({ ...risk, riskOwnerId: "" }, "draft", context);
+  assert.equal(selected.organizationId, "unit-1");
+  assert.equal(selected.riskOwnerId, "user-1");
+  assert.equal(selected.riskSource, "internal_eksternal");
+  assert.equal(cleared.riskOwnerId, "");
 });

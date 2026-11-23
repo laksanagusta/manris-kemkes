@@ -39,6 +39,9 @@ func ensureMonitoringReportTasks(ctx context.Context, q riskQueryer, m *entity.R
 
 // Start retries reopen the existing revision rather than creating parallel drafts.
 func (r *riskMonitoringRepository) GetOpenRevision(ctx context.Context, group uuid.UUID) (*entity.RiskMonitoring, error) {
+	if err := checkRiskRevisionPeriod(ctx, r.pool, group); err != nil {
+		return nil, err
+	}
 	return scanRiskMonitoring(r.pool.QueryRow(ctx, baseRiskMonitoringSelect()+` WHERE rm.version_group_id=$1 AND rm.transaction_kind='revision' AND rm.status='draft' LIMIT 1`, group))
 }
 

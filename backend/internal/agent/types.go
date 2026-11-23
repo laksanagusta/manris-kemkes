@@ -16,6 +16,8 @@ var (
 	ErrForbidden       = errors.New("Akses ke data ini tidak tersedia")
 	ErrInvalid         = errors.New("Permintaan tidak valid")
 	ErrConflict        = errors.New("Pekerjaan aktif atau revisi usulan telah berubah")
+	ErrOwnerBusy       = errors.New("Akun Anda masih memiliki pekerjaan Agent aktif. Tunggu hingga selesai atau hentikan pekerjaan tersebut")
+	ErrSensitiveInput  = errors.New("Permintaan Agent terindikasi memuat data sensitif. Hapus data tersebut dari pesan, lampiran, atau konteks sebelum mencoba lagi")
 	ErrStale           = errors.New("Data telah berubah. Tinjau usulan kembali")
 	ErrUnavailable     = errors.New("Agent belum tersedia. Periksa pengaturan AI")
 	ErrStorageNotReady = errors.New("Penyimpanan Agent belum siap. Jalankan migrasi database aplikasi")

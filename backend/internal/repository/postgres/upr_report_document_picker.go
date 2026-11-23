@@ -12,13 +12,15 @@ import (
 )
 
 type UPRReportDocumentOption struct {
-	ID           uuid.UUID  `json:"id"`
-	Kind         string     `json:"kind"`
-	Title        string     `json:"title"`
-	Code         string     `json:"code"`
-	DocumentDate *string    `json:"documentDate"`
-	FinalizedAt  *time.Time `json:"finalizedAt"`
-	Period       string     `json:"period,omitempty"`
+	ID             uuid.UUID  `json:"id"`
+	Kind           string     `json:"kind"`
+	Title          string     `json:"title"`
+	Code           string     `json:"code"`
+	DocumentDate   *string    `json:"documentDate"`
+	FinalizedAt    *time.Time `json:"finalizedAt"`
+	Period         string     `json:"period,omitempty"`
+	ProfileID      *uuid.UUID `json:"profileId,omitempty"`
+	ProfileVersion *int       `json:"profileVersion,omitempty"`
 }
 
 type UPRReportDocumentPage struct {
@@ -26,11 +28,23 @@ type UPRReportDocumentPage struct {
 	HasMore bool                      `json:"hasMore"`
 }
 
+func (option UPRReportDocumentOption) supportingSection() UPRSupportingSection {
+	return UPRSupportingSection{
+		Kind: option.Kind, Period: option.Period, SourceID: &option.ID, Code: &option.Code,
+		FinalizedAt: option.FinalizedAt, ProfileID: option.ProfileID, ProfileVersion: option.ProfileVersion,
+	}
+}
+
 const reportDocumentOptionsSQL = `
-	WITH sources AS (
+	WITH selected AS (
+		SELECT id,version,monitoring_rule_id
+		FROM annual_risk_profile_versions
+		WHERE id=$9::uuid AND organization_id=$1 AND year=$3 AND finalized_at IS NOT NULL
+	), sources AS (
 		SELECT p.id, 'profile' AS kind, format('Profil %s v%s',p.year,p.version) AS title,
 		       format('Versi %s',p.version) AS code, (p.finalized_at AT TIME ZONE 'Asia/Jakarta')::date AS document_date,
-		       p.finalized_at, p.version AS rank, '' AS legacy_period, NULL::uuid AS monitoring_period_id
+		       p.finalized_at, p.version AS rank, '' AS legacy_period, NULL::uuid AS monitoring_period_id,
+		       NULL::uuid AS profile_version_id
 		FROM annual_risk_profile_versions p
 		WHERE ($2='' OR $2='profile') AND p.organization_id=$1 AND p.year=$3 AND p.finalized_at IS NOT NULL
 		UNION ALL
@@ -38,28 +52,41 @@ const reportDocumentOptionsSQL = `
 		       COALESCE(w.observation_cutoff,(w.completed_at AT TIME ZONE 'Asia/Jakarta')::date),
 		       w.completed_at, w.sequence_no,
 		       COALESCE(NULLIF(w.assessment_cycle,''), to_char(w.observation_cutoff,'YYYY-"Q"Q')),
-		       w.monitoring_period_id
+		       w.monitoring_period_id,w.profile_version_id
 		FROM working_papers w
 		WHERE ($2='' OR $2='working_paper') AND w.org_id=$1 AND w.status='completed'
 		UNION ALL
 		SELECT e.id, 'evaluation', 'Evaluasi', e.code,
 		       COALESCE(e.report_date,(e.created_at AT TIME ZONE 'Asia/Jakarta')::date),
-		       e.finalized_at, e.sequence_no, e.period, e.monitoring_period_id
+		       e.finalized_at, e.sequence_no, e.period, e.monitoring_period_id,e.profile_version_id
 		FROM evaluations e
 		WHERE ($2='' OR $2='evaluation') AND e.organization_id=$1 AND e.status='final'
 	), documents AS (
 		SELECT s.*, CASE WHEN s.monitoring_period_id IS NULL THEN s.legacy_period
 			ELSE format('%s-%s%s',r.year,CASE r.frequency WHEN 'monthly' THEN 'M' WHEN 'quarterly' THEN 'Q' ELSE 'H' END,p.ordinal)
-		END AS period
+		END AS period,p.rule_id
 		FROM sources s
 		LEFT JOIN monitoring_rule_periods p ON p.id=s.monitoring_period_id
 		LEFT JOIN monitoring_rules r ON r.id=p.rule_id
 	)
-	SELECT id,kind,title,code,document_date::text,finalized_at,period FROM documents
-	WHERE ($4::uuid[] IS NULL OR id=ANY($4))
-	  AND (kind='profile' OR period=ANY($8::text[]))
-	  AND ($5='' OR concat_ws(' ',title,code,period,document_date::text) ILIKE '%' || $5 || '%')
-	ORDER BY document_date DESC NULLS LAST, rank DESC, id DESC
+	SELECT d.id,d.kind,d.title,d.code,d.document_date::text,d.finalized_at,d.period,d.profile_version_id,source.version
+	FROM documents d
+	LEFT JOIN annual_risk_profile_versions source ON source.id=d.profile_version_id
+	WHERE ($4::uuid[] IS NULL OR d.id=ANY($4))
+	  AND (d.kind='profile' OR d.period=ANY($8::text[]))
+	  AND (d.kind='profile' OR $9::uuid IS NULL OR EXISTS (
+		SELECT 1 FROM selected s
+		LEFT JOIN annual_risk_profile_versions anchor
+		  ON d.monitoring_period_id IS NOT NULL AND anchor.id=annual_monitoring_period_profile(s.id,d.monitoring_period_id)
+		LEFT JOIN LATERAL annual_monitoring_period_freeze(s.id,d.monitoring_period_id) frozen ON TRUE
+		WHERE (s.monitoring_rule_id IS NULL AND d.monitoring_period_id IS NULL
+		       AND (d.profile_version_id IS NULL OR (source.organization_id=$1 AND source.year=$3 AND source.version<=s.version AND source.finalized_at IS NOT NULL)))
+		   OR (d.rule_id=s.monitoring_rule_id AND source.organization_id=$1 AND source.year=$3
+		       AND source.monitoring_rule_id=s.monitoring_rule_id AND source.finalized_at IS NOT NULL
+		       AND source.version<=CASE WHEN frozen.needs_review THEN s.version ELSE anchor.version END)
+	  ))
+	  AND ($5='' OR concat_ws(' ',d.title,d.code,d.period,d.document_date::text) ILIKE '%' || $5 || '%')
+	ORDER BY d.document_date DESC NULLS LAST, d.rank DESC, d.id DESC
 	LIMIT NULLIF($6,0) OFFSET $7`
 
 func reportDocumentOptions(ctx context.Context, db riskQueryer, org uuid.UUID, kind string, scope UPRSemesterInput, ids []uuid.UUID, query string, limit, offset int) ([]UPRReportDocumentOption, error) {
@@ -73,7 +100,7 @@ func reportDocumentOptions(ctx context.Context, db riskQueryer, org uuid.UUID, k
 	}
 	// Search treats SQL pattern characters as literal input.
 	query = strings.NewReplacer(`\`, `\\`, "%", `\%`, "_", `\_`).Replace(strings.TrimSpace(query))
-	rows, err := db.Query(ctx, reportDocumentOptionsSQL, org, kind, scope.Year, ids, query, limit, offset, periods)
+	rows, err := db.Query(ctx, reportDocumentOptionsSQL, org, kind, scope.Year, ids, query, limit, offset, periods, scope.ProfileID)
 	if err != nil {
 		return nil, err
 	}

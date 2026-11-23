@@ -68,8 +68,12 @@ func TestConfiguredUnitProgressSeparatesRulePeriodsAndScope(t *testing.T) {
 	if len(rows) != 0 {
 		t.Fatal("foreign unit returned risks")
 	}
-	otherPeriod := uuid.New()
+	var otherPeriod uuid.UUID
+	if err := tx.QueryRow(ctx, `SELECT id FROM monitoring_rule_periods WHERE rule_id=$1 AND ordinal=2`, fixture.rule).Scan(&otherPeriod); err != nil {
+		t.Fatal(err)
+	}
 	period.MonitoringPeriodID = &otherPeriod
+	period.Start, period.End = period.Start.AddDate(0, 6, 0), period.End.AddDate(0, 6, 0)
 	rows, err = loadUnitProgressRisks(ctx, tx, period, []uuid.UUID{fixture.org})
 	if err != nil {
 		t.Fatal(err)

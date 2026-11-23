@@ -5,18 +5,12 @@ import { BoundProfilePeriodNotice } from "@/components/upr/bound-profile-period-
 
 import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import { useSetHeaderActions } from "@/lib/header-actions-context";
-import { businessNow } from "@/lib/business-clock";
-import { createDisplayDateFormatter } from "@/lib/display-date";
-import { PropertyList, PropertyLabel } from "@/components/shared/design-system/layout/property-list";
 
-import { DetailSidePanel } from "@/components/shared/design-system/layout/detail-side-panel";
-
-import { use, useCallback, useEffect, useState } from "react";
-import Link from "next/link";
+import { use, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/contexts/auth-context";
 import { toast } from "sonner";
-import type { WorkingPaper, WorkingPaperRiskLink, WorkingPaperStatus } from "@/types/working-paper";
+import type { WorkingPaper } from "@/types/working-paper";
 import {
   getWorkingPaper,
   startSigningWorkingPaper,
@@ -30,20 +24,14 @@ import { ProfilePeriodPicker, type ProfilePeriodSelection } from "@/components/u
 import { MonitoringDateField } from "@/components/shared/design-system/domain/monitoring-date-field";
 import { defaultMonitoringDate, isValidMonitoringDate, monitoringCycleForDate } from "@/lib/monitoring-date";
 import { buildWorkingPaperDetailViewModel } from "@/lib/working-paper-detail-view-model";
-import { WorkingPaperMonitoringTable } from "./working-paper-monitoring-table";
+import { buildWorkingPaperQueueRows } from "@/lib/working-paper-monitoring-queue";
+import { WorkingPaperMonitoringQueue } from "@/components/shared/design-system/domain/working-paper-monitoring-queue";
 import { WorkingPaperStatusActions } from "./working-paper-status-actions";
-import { WorkingPaperSignatureTimeline } from "./working-paper-signature-timeline";
+import { WorkingPaperDetailPanel } from "@/components/shared/design-system/domain/working-paper-detail-panel";
+import { WorkingPaperSigningReview } from "@/components/shared/design-system/domain/working-paper-signing-review";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
-import { ChartContainer } from "@/components/ui/chart";
-import { PolarAngleAxis, RadialBar, RadialBarChart } from "recharts";
-import {
-  AccentButton,
-  ActionButton,
-  CollectionPageHeader,
-  CollectionTableCard,
-} from "@/components/shared/design-system";
+import { AccentButton, ActionButton } from "@/components/shared/design-system";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -63,48 +51,7 @@ import {
   CollectionErrorState,
 } from "@/components/shared/design-system";
 
-import { cn } from "@/lib/utils";
-import { CheckCircle2, Pen } from "@/components/shared/icons";
-import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
-
-
-const dateFormatter = createDisplayDateFormatter("id-ID", {
-  year: "numeric",
-  month: "long",
-  day: "numeric",
-});
-
-const dateTimeFormatter = createDisplayDateFormatter("id-ID", {
-  year: "numeric",
-  month: "long",
-  day: "numeric",
-  hour: "2-digit",
-  minute: "2-digit",
-});
-
-const statusLabel: Record<WorkingPaperStatus, string> = {
-  draft: "Draf",
-  signing: "Proses Tanda Tangan",
-  completed: "Selesai",
-  cancelled: "Dibatalkan",
-};
-
-const statusTone = {
-  draft: "neutral",
-  signing: "progress",
-  completed: "success",
-  cancelled: "danger",
-} as const;
-
-function formatDate(value?: string) {
-  if (!value) return "-";
-  return dateFormatter.format(new Date(value));
-}
-
-function formatDateTime(value?: string) {
-  if (!value) return "-";
-  return dateTimeFormatter.format(new Date(value));
-}
+import { Pen } from "@/components/shared/icons";
 
 interface SigningBlocker {
   code: string;
@@ -155,6 +102,7 @@ export default function WorkingPaperDetailPage(props: {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const monitoringStartTrigger = useRef<HTMLButtonElement>(null);
   const [monitoringStartRiskId, setMonitoringStartRiskId] = useState<string | null>(null);
   const [monitoringObservedAt, setMonitoringObservedAt] = useState(() => defaultMonitoringDate());
   const [monitoringSelection, setMonitoringSelection] = useState<ProfilePeriodSelection | null>(null);
@@ -187,16 +135,56 @@ export default function WorkingPaperDetailPage(props: {
   }, [data]);
 
   const setHeaderActions = useSetHeaderActions();
-  const showDownloadInTopbar = !loading && !error && data?.id === id && data.status === "completed";
+  const headerData = !loading && !error && data?.id === id ? data : null;
 
   useEffect(() => {
-    if (!showDownloadInTopbar) return;
+    if (!headerData) {
+      setHeaderActions(null);
+      return;
+    }
 
+    if (headerData.status === "completed") {
+      setHeaderActions(
+        <div className="flex items-center gap-2">
+          <ActionButton variant="outline" onClick={handleExport}>Unduh</ActionButton>
+        </div>,
+      );
+      return () => setHeaderActions(null);
+    }
+
+    const headerViewModel = buildWorkingPaperDetailViewModel(headerData, user?.id);
     setHeaderActions(
-      <AccentButton onClick={handleExport}>Unduh KK Pemantauan dan Reviu</AccentButton>,
+      <div className="flex items-center gap-2">
+        <WorkingPaperStatusActions
+          canSkipTTE={headerViewModel.canSkipTTE}
+          canCancel={headerViewModel.canCancel}
+          canDelete={headerViewModel.canDelete}
+          onSkipTTE={() => setSkipDialogOpen(true)}
+          onCancel={() => setCancelDialogOpen(true)}
+          onDelete={() => setDeleteDialogOpen(true)}
+          onExport={handleExport}
+        />
+        {headerViewModel.canStartSigning && (
+          <AccentButton
+            disabled={!headerData.review_hash}
+            onClick={() => setStartSigningDialogOpen(true)}
+            icon={<Pen className="size-3.5" />}
+          >
+            Tinjau dan mulai TTE
+          </AccentButton>
+        )}
+        {headerViewModel.canSign && (
+          <AccentButton
+            onClick={() => setSignDialogOpen(true)}
+            icon={<Pen className="size-3.5" />}
+          >
+            Tanda Tangani
+          </AccentButton>
+        )}
+      </div>,
     );
     return () => setHeaderActions(null);
-  }, [handleExport, setHeaderActions, showDownloadInTopbar]);
+  }, [handleExport, headerData, setHeaderActions, user?.id]);
 
   const loadData = useCallback(async () => {
     try {
@@ -266,6 +254,7 @@ export default function WorkingPaperDetailPage(props: {
       router.push(`/risk/monitoring/${encodeURIComponent(result.monitoring.id)}?returnTo=${returnTo}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Pemantauan belum dapat dimulai.");
+    } finally {
       setStartingMonitoringId(null);
     }
   };
@@ -316,7 +305,7 @@ export default function WorkingPaperDetailPage(props: {
 
   if (error) {
     return (
-      <FormPage className="space-y-6 pb-0">
+      <FormPage className="space-y-6 pb-8">
         <FormHeader
           title="Detail KK Pemantauan dan Reviu belum tersedia"
         />
@@ -331,7 +320,7 @@ export default function WorkingPaperDetailPage(props: {
 
   if (!data) {
     return (
-      <FormPage className="space-y-6 pb-0">
+      <FormPage className="space-y-6 pb-8">
         <FormHeader
           title="KK Pemantauan dan Reviu tidak ditemukan"
         />
@@ -346,133 +335,31 @@ export default function WorkingPaperDetailPage(props: {
   const { status } = data;
   const viewModel = buildWorkingPaperDetailViewModel(data, user?.id);
 
-  const totalRiskCount = data.risks?.length || 0;
-  const finalizedMonitoringCount =
-    data.risks?.filter((link) => link.risk.monitoring?.status === "final")
-      .length || 0;
-  const finalizedMonitoringPercentage =
-    totalRiskCount > 0
-      ? Math.round((finalizedMonitoringCount / totalRiskCount) * 100)
-      : 0;
-  const isAllMonitoringFinal =
-    totalRiskCount > 0 && finalizedMonitoringCount === totalRiskCount;
-
-  const summaryItems = [
-    {
-      label: "Kode",
-      value: data.code || "-",
-    },
-    {
-      label: "Status",
-      value: statusLabel[status],
-    },
-    {
-      label: "Tanggal batas pengamatan",
-      value: data.observation_cutoff ? formatDate(data.observation_cutoff) : "Belum tercatat",
-    },
-    {
-      label: "Dibuat pada",
-      value: formatDate(data.created_at),
-    },
-    {
-      label:
-        status === "completed"
-          ? "Selesai pada"
-          : status === "cancelled"
-            ? "Dibatalkan pada"
-            : "Diperbarui pada",
-      value:
-        status === "completed"
-          ? formatDateTime(data.completed_at)
-          : status === "cancelled"
-            ? formatDateTime(data.cancelled_at)
-            : formatDateTime(data.updated_at),
-    },
-  ];
-
 
   const monitoringBlockers = status === "draft" || status === "signing" ? viewModel.monitoringBlockers : [];
-  const currentAction = viewModel.currentAction;
+  const currentAction = monitoringBlockers.length ? null : viewModel.currentAction;
+  const queueRows = buildWorkingPaperQueueRows(data, monitoringBlockers);
 
-  const renderMonitoringBlocker = (link: WorkingPaperRiskLink) => {
-    const monitoring = link.risk.monitoring;
-    const matchingMonitoring = data.profile_version_id || monitoring?.assessmentCycle === data.assessment_cycle ? monitoring : undefined;
-    const riskId = link.source_risk_id && link.source_risk_id !== "00000000-0000-0000-0000-000000000000" ? link.source_risk_id : link.risk_id;
-    const monitoringHref = matchingMonitoring?.id
-      ? `/risk/monitoring/${encodeURIComponent(matchingMonitoring.id)}?returnTo=${encodeURIComponent(`/risk/working-papers/${id}`)}`
-      : null;
-    const label = matchingMonitoring?.status === "draft" ? "Draf pemantauan" : "Belum dimulai";
-    return (
-      <li key={link.id} className="flex flex-wrap items-center justify-between gap-2 border-t border-border py-2">
-        <div className="min-w-0">
-          <p className="font-medium">{link.risk.code} · {link.risk.title}</p>
-          <p className="text-xs text-muted-foreground">{label}</p>
-        </div>
-        {monitoringHref ? (
-          <ActionButton asChild size="sm" variant="outline">
-            <Link href={monitoringHref}>Buka draf Pemantauan</Link>
-          </ActionButton>
-        ) : (
-          <ActionButton type="button" size="sm" variant="outline" onClick={() => {
-            setMonitoringObservedAt(data.observation_cutoff || defaultMonitoringDate(data.assessment_cycle));
-            setMonitoringSelection(data.profile_version_id && data.monitoring_period_id ? {
-              profileVersionId: data.profile_version_id,
-              monitoringPeriodId: data.monitoring_period_id,
-            } : null);
-            setMonitoringStartRiskId(riskId);
-          }} disabled={Boolean(startingMonitoringId)}>Mulai Pemantauan</ActionButton>
-        )}
-      </li>
-    );
-  };
-
-  const headerActions = (
-    <>
-      <WorkingPaperStatusActions
-        canSkipTTE={viewModel.canSkipTTE}
-        canCancel={viewModel.canCancel}
-        canDelete={viewModel.canDelete}
-        onSkipTTE={() => setSkipDialogOpen(true)}
-        onCancel={() => setCancelDialogOpen(true)}
-        onDelete={() => setDeleteDialogOpen(true)}
-        onExport={status === "completed" ? undefined : handleExport}
-      />
-      {viewModel.canStartSigning && (
-        <AccentButton
-          disabled={!data.review_hash}
-          onClick={() => setStartSigningDialogOpen(true)}
-          icon={<Pen className="size-3.5" />}
-        >
-          Tinjau dan mulai TTE
-        </AccentButton>
-      )}
-      {viewModel.canSign && (
-        <AccentButton
-          onClick={() => setSignDialogOpen(true)}
-          icon={<Pen className="size-3.5" />}
-        >
-          Tanda Tangani
-        </AccentButton>
-      )}
-    </>
-  );
+  function openMonitoringStart(riskId: string, trigger: HTMLButtonElement) {
+    if (!data) return;
+    monitoringStartTrigger.current = trigger;
+    setMonitoringObservedAt(data.observation_cutoff || defaultMonitoringDate(data.assessment_cycle));
+    setMonitoringSelection(data.profile_version_id && data.monitoring_period_id ? {
+      profileVersionId: data.profile_version_id,
+      monitoringPeriodId: data.monitoring_period_id,
+    } : null);
+    setMonitoringStartRiskId(riskId);
+  }
 
   return (
-    <FormPage className="space-y-6 pb-0">
-      <CollectionPageHeader
-        actionsPlacement="top"
-        title={data.code || "Detail KK Pemantauan dan Reviu"}
-        actions={status === "completed" ? undefined : headerActions}
-      />
-
+    <FormPage className="space-y-6 pb-8">
       {currentAction?.tone === "success" && (
-        <Alert variant="success" role="status">
-          <CheckCircle2 aria-hidden="true" />
-          <AlertTitle>{currentAction.title}</AlertTitle>
-          <AlertDescription>
-            {currentAction.description}
+        <Alert variant="success" role="status" className="gap-1">
+          <AlertTitle className="text-green-800 dark:text-green-400">{currentAction.title}</AlertTitle>
+          <AlertDescription className="space-y-1">
+            <span className="block">{currentAction.description}</span>
             {data.content_locked && (
-              <p className="mt-1">Isi dikunci saat TTE dimulai dan digunakan untuk tanda tangan serta unduhan.</p>
+              <span className="block">Isi dikunci saat TTE dimulai dan digunakan untuk tanda tangan serta unduhan.</span>
             )}
           </AlertDescription>
         </Alert>
@@ -488,158 +375,29 @@ export default function WorkingPaperDetailPage(props: {
                 <p className="mt-1 text-sm text-muted-foreground">Isi dikunci saat TTE dimulai dan digunakan untuk tanda tangan serta unduhan.</p>
               )}
             </div>
-            {monitoringBlockers.length > 0 && (
-              <ul className="pt-1 text-sm">{monitoringBlockers.map(renderMonitoringBlocker)}</ul>
-            )}
           </CardContent>
         </Card>
       )}
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="min-w-0 space-y-4">
-          <CollectionTableCard>
-            <WorkingPaperMonitoringTable links={data.risks ?? []} />
-          </CollectionTableCard>
+        <div className="min-w-0">
+          <WorkingPaperMonitoringQueue
+            rows={queueRows}
+            readiness={monitoringBlockers.length ? `${monitoringBlockers.length} risiko perlu finalisasi sebelum tanda tangan.` : undefined}
+            starting={Boolean(startingMonitoringId)}
+            onStart={openMonitoringStart}
+          />
         </div>
 
-        <div className="min-w-0 space-y-4 lg:sticky lg:top-6 lg:self-start">
-          <DetailSidePanel>
-                <section aria-labelledby="working-paper-summary-properties">
-                  <h2
-                    id="working-paper-summary-properties"
-                    className="text-sm font-semibold capitalize text-primary"
-                  >
-                    Properti
-                  </h2>
-                  <PropertyList>
-                    {summaryItems.map(({ label, value }) => (
-                      <div
-                        key={label}
-                        className="flex items-center justify-between gap-4"
-                      >
-                        <PropertyLabel>{label}</PropertyLabel>
-                        <dd
-                          className={cn(
-                            "max-w-[60%] break-words text-right text-foreground",
-                            (label === "Kode" || label.endsWith("pada")) && "font-mono tabular-nums",
-                          )}
-                        >
-                          {label === "Status" ? (
-                            <Badge variant={toBadgeVariant(statusTone[status])} className={getStatusBadgeClassName(statusTone[status])}>
-                              {value}
-                            </Badge>
-                          ) : (
-                            value
-                          )}
-                        </dd>
-                      </div>
-                    ))}
-                  </PropertyList>
-                  {data.monitoring_period_id && <div className="mt-3">
-                    <BoundProfilePeriodNotice token={token} profileId={data.profile_version_id} periodId={data.monitoring_period_id} />
-                  </div>}
-                </section>
-
-                <section
-                  aria-labelledby="working-paper-monitoring-progress"
-                  className="border-t border-dashed border-border pt-5"
-                >
-                  <h2
-                    id="working-paper-monitoring-progress"
-                    className="text-sm font-semibold capitalize text-primary"
-                  >
-                    Progres Pemantauan
-                  </h2>
-                  <div className="mt-3">
-                    {totalRiskCount > 0 ? (
-                      <div className="flex items-center gap-4">
-                        <div
-                          className="relative size-[88px] shrink-0"
-                          role="img"
-                          aria-label={`${finalizedMonitoringPercentage}% selesai dipantau, ${finalizedMonitoringCount} dari ${totalRiskCount} risiko`}
-                        >
-                          <ChartContainer
-                            config={{
-                              completion: {
-                                label: "Selesai dipantau",
-                                color: isAllMonitoringFinal
-                                  ? "var(--color-success)"
-                                  : "var(--primary)",
-                              },
-                            }}
-                            initialDimension={{ width: 88, height: 88 }}
-                            className="size-[88px] aspect-square"
-                            aria-hidden="true"
-                          >
-                            <RadialBarChart
-                              data={[
-                                {
-                                  name: "Selesai dipantau",
-                                  value: finalizedMonitoringPercentage,
-                                },
-                              ]}
-                              startAngle={90}
-                              endAngle={-270}
-                              innerRadius="78%"
-                              outerRadius="96%"
-                              margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
-                            >
-                              <PolarAngleAxis
-                                type="number"
-                                domain={[0, 100]}
-                                tick={false}
-                                axisLine={false}
-                              />
-                              <RadialBar
-                                dataKey="value"
-                                fill="var(--color-completion)"
-                                background={{ fill: "var(--muted)" }}
-                                cornerRadius={8}
-                              />
-                            </RadialBarChart>
-                          </ChartContainer>
-                          <span
-                            aria-hidden="true"
-                            className="pointer-events-none absolute inset-0 flex items-center justify-center text-sm font-semibold tabular-nums text-foreground"
-                          >
-                            {finalizedMonitoringPercentage}%
-                          </span>
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm leading-5 text-secondary-foreground">
-                            {finalizedMonitoringCount} dari {totalRiskCount} Risiko
-                            Selesai Dipantau
-                          </p>
-                        </div>
-                      </div>
-                    ) : (
-                      <CollectionEmptyState
-                        title="Belum ada risiko di dalam KK Pemantauan dan Reviu."
-                        description="Risiko yang ditambahkan ke KK Pemantauan dan Reviu akan muncul di sini."
-                        className="py-3"
-                      />
-                    )}
-                  </div>
-                </section>
-
-                <section
-                  aria-labelledby="working-paper-signature-history"
-                  className="border-t border-dashed border-border pt-5"
-                >
-                  <h2
-                    id="working-paper-signature-history"
-                    className="text-sm font-semibold capitalize text-primary"
-                  >
-                    Histori Tanda Tangan
-                  </h2>
-                  <div className="mt-3">
-                    <WorkingPaperSignatureTimeline
-                      timeline={viewModel.timeline}
-                    />
-                  </div>
-                </section>
-          </DetailSidePanel>
-        </div>
+        <aside aria-label="Rincian KK Pemantauan dan Reviu" className="min-w-0 lg:sticky lg:top-6 lg:self-start">
+          <WorkingPaperDetailPanel
+            paper={data}
+            timeline={viewModel.timeline}
+            periodDetails={data.monitoring_period_id && (
+              <BoundProfilePeriodNotice token={token} profileId={data.profile_version_id} periodId={data.monitoring_period_id} />
+            )}
+          />
+        </aside>
       </div>
 
       {/* Dialogs */}
@@ -654,23 +412,12 @@ export default function WorkingPaperDetailPage(props: {
             </AlertDialogTitle>
             <AlertDialogDescription>Periksa periode, risiko, dan urutan penandatangan.</AlertDialogDescription>
           </AlertDialogHeader>
-          <ConfirmationConsequences>
-            Setelah TTE dimulai, hasil Pemantauan dan isi KK Pemantauan dan Reviu dikunci untuk semua penandatangan.
-          </ConfirmationConsequences>
-          <div className="space-y-3 text-sm">
-            <dl className="grid grid-cols-2 gap-3">
-              <div><dt className="text-muted-foreground">{data.observation_cutoff ? "Tanggal batas pengamatan" : "Periode"}</dt><dd className="font-medium">{data.observation_cutoff ? formatDate(data.observation_cutoff) : data.assessment_cycle}</dd></div>
-              <div><dt className="text-muted-foreground">Risiko disertakan</dt><dd className="font-medium">{totalRiskCount}</dd></div>
-            </dl>
-            <div>
-              <p className="font-medium">Urutan penandatangan</p>
-              <ol className="mt-1 max-h-40 list-decimal space-y-1 overflow-y-auto ps-5">
-                {[...data.signatories].sort((a, b) => a.sequence_no - b.sequence_no).map((signatory) => (
-                  <li key={signatory.id}>{signatory.signer_name}</li>
-                ))}
-              </ol>
-            </div>
-          </div>
+          <WorkingPaperSigningReview
+            cutoff={data.observation_cutoff}
+            period={data.assessment_cycle}
+            riskCount={data.risks?.length ?? 0}
+            signatories={data.signatories}
+          />
           <AlertDialogFooter>
             <CollectionDialogCancel disabled={isSubmittingSignature} onClick={() => setStartSigningDialogOpen(false)}>
               Batal
@@ -686,7 +433,10 @@ export default function WorkingPaperDetailPage(props: {
       </AlertDialog>
 
       <AlertDialog open={Boolean(monitoringStartRiskId)} onOpenChange={(open) => { if (!open && !startingMonitoringId) setMonitoringStartRiskId(null); }}>
-        <AlertDialogContent>
+        <AlertDialogContent onCloseAutoFocus={(event) => {
+          event.preventDefault();
+          monitoringStartTrigger.current?.focus();
+        }}>
           <AlertDialogHeader>
             <AlertDialogTitle>Mulai pemantauan</AlertDialogTitle>
             <AlertDialogDescription>{data.observation_cutoff ? `Isi tanggal pengamatan paling lambat ${data.observation_cutoff}.` : `Isi tanggal pengamatan dalam periode ${data.assessment_cycle}.`}</AlertDialogDescription>
@@ -716,8 +466,8 @@ export default function WorkingPaperDetailPage(props: {
             </AlertDialogTitle>
             <AlertDialogDescription>Periksa dokumen sebelum mencatat tanda tangan.</AlertDialogDescription>
           </AlertDialogHeader>
-          <ConfirmationConsequences>
-            Identitas Anda akan dicatat sebagai penandatangan sah dokumen ini. Progres tanda tangan akan dilanjutkan sesuai urutan penandatangan.
+          <ConfirmationConsequences variant="plain">
+            Tanda tangan Anda dicatat sesuai urutan penandatangan.
           </ConfirmationConsequences>
           <AlertDialogFooter>
             <CollectionDialogCancel disabled={isSubmittingSignature} onClick={() => setSignDialogOpen(false)}>

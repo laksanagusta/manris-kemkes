@@ -8,6 +8,7 @@ import (
 	"net"
 	"strings"
 
+	"github.com/manris/backend/internal/service/sensitivedata"
 	openai "github.com/sashabaranov/go-openai"
 )
 
@@ -57,8 +58,14 @@ func (m *OpenAIModel) Complete(ctx context.Context, turns []Turn, defs []ToolDef
 	}
 	messages := make([]openai.ChatCompletionMessage, 0, len(turns))
 	for _, t := range turns {
+		if err := sensitivedata.ValidateAIPrompt(t.Content, t.ToolCallID); err != nil {
+			return Turn{}, ErrSensitiveInput
+		}
 		msg := openai.ChatCompletionMessage{Role: t.Role, Content: t.Content, ToolCallID: t.ToolCallID}
 		for _, call := range t.ToolCalls {
+			if err := sensitivedata.ValidateAIPrompt(call.ID, call.Name, string(call.Arguments)); err != nil {
+				return Turn{}, ErrSensitiveInput
+			}
 			msg.ToolCalls = append(msg.ToolCalls, openai.ToolCall{ID: call.ID, Type: openai.ToolTypeFunction, Function: openai.FunctionCall{Name: call.Name, Arguments: string(call.Arguments)}})
 		}
 		messages = append(messages, msg)
@@ -67,7 +74,7 @@ func (m *OpenAIModel) Complete(ctx context.Context, turns []Turn, defs []ToolDef
 	for _, d := range defs {
 		tools = append(tools, openai.Tool{Type: openai.ToolTypeFunction, Function: &openai.FunctionDefinition{Name: d.Name, Description: d.Description, Parameters: json.RawMessage(d.Parameters)}})
 	}
-	response, err := m.client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{Model: model, Messages: messages, Tools: tools, MaxCompletionTokens: 4000, ParallelToolCalls: false})
+	response, err := m.client.CreateChatCompletion(ctx, openai.ChatCompletionRequest{Model: model, Messages: messages, Tools: tools, MaxCompletionTokens: 4000, ParallelToolCalls: false, Store: false})
 	if err != nil {
 		logModelFailure(ctx, err)
 		return Turn{}, ErrUnavailable

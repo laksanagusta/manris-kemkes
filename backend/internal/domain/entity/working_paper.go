@@ -49,6 +49,10 @@ type WorkingPaper struct {
 	CancelledAt              *time.Time             `json:"cancelled_at,omitempty"`
 	TTESkipped               bool                   `json:"tte_skipped"`
 
+	// Internal signing-identity state is never accepted from or sent to clients.
+	SignerIdentitiesVerified bool `json:"-"`
+	SignerIdentityMismatch   bool `json:"-"`
+
 	// Joined data
 	Signatories []WorkingPaperSignatory `json:"signatories"`
 }
@@ -376,6 +380,10 @@ func (wp *WorkingPaper) Validate() error {
 
 // CanSign checks if the given user is the next signatory
 func (wp *WorkingPaper) CanSign(userID uuid.UUID) (bool, error) {
+	nextSig := wp.NextSignatory()
+	if userID == uuid.Nil || nextSig == nil || nextSig.UserID != userID {
+		return false, nil
+	}
 	if wp.Status != WorkingPaperStatusSigning {
 		return false, &errors.AppError{
 			Code:    "INVALID_STATUS",
@@ -383,15 +391,7 @@ func (wp *WorkingPaper) CanSign(userID uuid.UUID) (bool, error) {
 		}
 	}
 
-	nextSig := wp.NextSignatory()
-	if nextSig == nil {
-		return false, &errors.AppError{
-			Code:    "NO_PENDING_SIGNATORIES",
-			Message: "no pending signatories found",
-		}
-	}
-
-	return nextSig.UserID == userID, nil
+	return true, nil
 }
 
 // CanDelete checks if the working paper can be deleted (only draft status)
@@ -401,7 +401,7 @@ func (wp *WorkingPaper) CanDelete() bool {
 
 // CanCancel checks if the working paper can be cancelled
 func (wp *WorkingPaper) CanCancel() bool {
-	return wp.Status != WorkingPaperStatusCompleted
+	return wp.Status == WorkingPaperStatusDraft || wp.Status == WorkingPaperStatusSigning
 }
 
 // IsComplete checks if the working paper is completed

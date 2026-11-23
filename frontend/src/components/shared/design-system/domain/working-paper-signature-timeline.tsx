@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { CheckCircle2, Circle } from "@/components/shared/icons";
 import type { WorkingPaperTimelineItem } from "@/lib/working-paper-detail-view-model";
 import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
-import { IllustratedEmptyState } from "@/components/shared/design-system";
+import { IllustratedEmptyState } from "@/components/shared/design-system/feedback/illustrated-empty-state";
 
 const timelineStatusTone = {
   signed: "success",

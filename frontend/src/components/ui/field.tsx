@@ -90,7 +90,7 @@ function FieldContent({ className, ...props }: React.ComponentProps<"div">) {
     <div
       data-slot="field-content"
       className={cn(
-        "group/field-content flex min-w-0 flex-1 flex-col gap-0 leading-5",
+        "group/field-content flex min-w-0 flex-1 flex-col gap-0.5 leading-5",
         className
       )}
       {...props}
@@ -98,9 +98,9 @@ function FieldContent({ className, ...props }: React.ComponentProps<"div">) {
   )
 }
 
-/** Groups a field label and its instructions without extra spacing. */
+/** Keeps a field label and its instructions visually grouped. */
 function FieldHeading({ className, ...props }: React.ComponentProps<"div">) {
-  return <div data-slot="field-heading" className={cn("grid min-w-0 content-start gap-0", className)} {...props} />
+  return <div data-slot="field-heading" className={cn("grid min-w-0 content-start gap-0.5", className)} {...props} />
 }
 
 function FieldLabel({

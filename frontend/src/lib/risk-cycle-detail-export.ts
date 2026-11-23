@@ -561,10 +561,22 @@ function downloadBlob(blob: Blob, filename: string) {
   URL.revokeObjectURL(url);
 }
 
-export function exportRiskCycleDetailCSV(report: RiskCycleDetailedComparisonReport) {
+export function createRiskCycleDetailCSV(report: RiskCycleDetailedComparisonReport): string {
+  const formulaPrefix = /^[\s\u0000-\u001f\u007f-\u009f]*[=+\-@＝＋－＠]/u;
   const rows = buildFlatCSVRows(report);
+  for (const row of rows) {
+    for (const [column, value] of Object.entries(row)) {
+      if (typeof value === "string" && formulaPrefix.test(value)) {
+        row[column] = "'" + value;
+      }
+    }
+  }
   const worksheet = XLSX.utils.json_to_sheet(rows);
-  const csv = XLSX.utils.sheet_to_csv(worksheet);
+  return XLSX.utils.sheet_to_csv(worksheet);
+}
+
+export function exportRiskCycleDetailCSV(report: RiskCycleDetailedComparisonReport) {
+  const csv = createRiskCycleDetailCSV(report);
   downloadBlob(new Blob([csv], { type: "text/csv;charset=utf-8;" }), `${baseFilename(report)}.csv`);
 }
 

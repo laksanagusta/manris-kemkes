@@ -161,11 +161,9 @@ func (uc *StartMonitoringUseCase) Execute(ctx context.Context, input StartMonito
 	if _, ok := uc.riskRepo.(monitoringSourceResolver); !ok && !sourceRisk.CanBeReassessed() {
 		return nil, errors.ErrOnlyApprovedCurrentMonitored
 	}
-	if resolver, ok := uc.riskRepo.(monitoringSourceResolver); ok {
-		sourceRisk, err = resolver.ResolveMonitoringSource(ctx, sourceRisk.VersionGroupID, input.ObservedAt, input.OrgIDs)
-		if err != nil {
-			return nil, errors.ErrMonitoringBeforeRiskEffective
-		}
+	sourceRisk, err = resolveMonitoringSource(ctx, uc.riskRepo, sourceRisk, input.ProfileVersionID, input.MonitoringPeriodID, input.ObservedAt, input.OrgIDs)
+	if err != nil {
+		return nil, errors.ErrMonitoringBeforeRiskEffective
 	}
 	if err := validateObservationAfterSource(sourceRisk, input.ObservedAt); err != nil {
 		return nil, err
@@ -307,16 +305,14 @@ func (uc *UpdateMonitoringUseCase) Execute(ctx context.Context, input UpdateMoni
 	if err != nil {
 		return nil, err
 	}
-	if resolver, ok := uc.riskRepo.(monitoringSourceResolver); ok {
-		resolved, err := resolver.ResolveMonitoringSource(ctx, sourceRisk.VersionGroupID, observedAt, input.OrgIDs)
-		if err != nil {
-			return nil, errors.ErrMonitoringBeforeRiskEffective
-		}
-		if resolved.ID != sourceRisk.ID {
-			return nil, &errors.AppError{Code: "INVALID_INPUT", Message: "Tanggal ini memakai versi profil berbeda. Buat pemantauan baru untuk tanggal tersebut."}
-		}
-		sourceRisk = resolved
+	resolved, err := resolveMonitoringSource(ctx, uc.riskRepo, sourceRisk, monitoring.ProfileVersionID, monitoring.MonitoringPeriodID, observedAt, input.OrgIDs)
+	if err != nil {
+		return nil, errors.ErrMonitoringBeforeRiskEffective
 	}
+	if resolved.ID != sourceRisk.ID {
+		return nil, &errors.AppError{Code: "INVALID_INPUT", Message: "Tanggal ini memakai versi profil berbeda. Buat pemantauan baru untuk tanggal tersebut."}
+	}
+	sourceRisk = resolved
 	if err := validateObservationAfterSource(sourceRisk, observedAt); err != nil {
 		return nil, err
 	}

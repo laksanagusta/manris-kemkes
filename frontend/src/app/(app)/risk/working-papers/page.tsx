@@ -213,7 +213,7 @@ function WorkingPaperSigningProgress({
         status: signatory.status === "signed" ? "final" : "draft",
       }))}
       showCount={false}
-      ariaLabelOverride={`Progres TTE: ${signedCount} dari ${signatories.length} penandatangan sudah menandatangani.`}
+      ariaLabelOverride={`Progres Tanda Tangan: ${signedCount} dari ${signatories.length} penandatangan sudah menandatangani.`}
     />
   );
 }
@@ -253,7 +253,10 @@ export default function WorkingPapersPage() {
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [exportingPaperId, setExportingPaperId] = useState<string | null>(null);
 
-  const collectionSort = useRemoteCollectionSorting({"Judul": "title", "Tanggal batas pengamatan": "observation_cutoff", "Status": "status", "Jumlah risiko": "risk_count"}, () => setPage(1));
+  const collectionSort = useRemoteCollectionSorting(
+    { Judul: "title", Status: "status", "Jumlah risiko": "risk_count" },
+    () => setPage(1),
+  );
   const handleExport = useCallback(async (workingPaper: WorkingPaper) => {
     setExportingPaperId(workingPaper.id);
     try {
@@ -491,11 +494,10 @@ export default function WorkingPapersPage() {
               description="Ubah filter pencarian atau tab status untuk melihat data lain."
             />
           ) : (
-            <Table className="min-w-[1240px] table-fixed">
+            <Table className="min-w-[1116px] table-fixed">
               <colgroup>
                 <col style={{ width: 160 }} />
                 <col style={{ width: 360 }} />
-                <col style={{ width: 124 }} />
                 <col style={{ width: 112 }} />
                 <col style={{ width: 132 }} />
                 <col style={{ width: 204 }} />
@@ -503,25 +505,12 @@ export default function WorkingPapersPage() {
               </colgroup>
               <CollectionTableHeader density="compact">
                 <CollectionTableHeaderRow>
-                  <CollectionTableHead>Kode KK Pemantauan dan Reviu</CollectionTableHead>
-                  <CollectionTableHead className="">
-                    Judul
-                  </CollectionTableHead>
-                  <CollectionTableHead >
-                    Tanggal batas pengamatan
-                  </CollectionTableHead>
-                  <CollectionTableHead >
-                    Status
-                  </CollectionTableHead>
-                  <CollectionTableHead className="text-right">
-                    Jumlah risiko
-                  </CollectionTableHead>
-                  <CollectionTableHead >
-                    Progres TTE
-                  </CollectionTableHead>
-                  <CollectionTableHead >
-                    Dibuat
-                  </CollectionTableHead>
+                  <CollectionTableHead>Kode</CollectionTableHead>
+                  <CollectionTableHead>Judul</CollectionTableHead>
+                  <CollectionTableHead>Status</CollectionTableHead>
+                  <CollectionTableHead className="text-right">Jumlah risiko</CollectionTableHead>
+                  <CollectionTableHead>Progres Tanda Tangan</CollectionTableHead>
+                  <CollectionTableHead>Dibuat</CollectionTableHead>
                 </CollectionTableHeaderRow>
               </CollectionTableHeader>
               <TableBody>
@@ -546,11 +535,6 @@ export default function WorkingPapersPage() {
                           title={paper.title || "Tanpa Judul"}
                           href={`/risk/working-papers/${paper.id}`}
                         />
-                      </TableCell>
-                      <TableCell className="whitespace-nowrap align-middle">
-                        {paper.observation_cutoff
-                          ? formatWorkingPaperDate(paper.observation_cutoff, { dateStyle: "medium", timeZone: "Asia/Jakarta" })
-                          : "—"}
                       </TableCell>
                       <TableCell className="whitespace-nowrap align-middle">
                         <Badge variant={toBadgeVariant(statusTones[paper.status])}

@@ -14,30 +14,55 @@ import (
 )
 
 type UPRSemesterInput struct {
-	Year      int        `json:"year"`
-	Semester  int        `json:"semester"`
-	ProfileID *uuid.UUID `json:"profileId"`
-	Reason    string     `json:"reason"`
-	selection *UPRReportDraftInput
+	Year                       int        `json:"year"`
+	Semester                   int        `json:"semester"`
+	ProfileID                  *uuid.UUID `json:"profileId"`
+	Reason                     string     `json:"reason"`
+	ApplyHistoricalCorrections bool       `json:"applyHistoricalCorrections,omitempty"`
+	selection                  *UPRReportDraftInput
 }
 
 type UPRSemesterSnapshot struct {
-	ReviewKey  string                 `json:"reviewKey,omitempty"`
-	Title      string                 `json:"title,omitempty"`
-	Cutoff     string                 `json:"cutoff"`
-	Profile    *AnnualProfileVersion  `json:"profile"`
-	Reason     string                 `json:"reason"`
-	Risks      json.RawMessage        `json:"risks"`
-	Supporting []UPRSupportingSection `json:"supporting"`
+	ReviewKey   string                  `json:"reviewKey,omitempty"`
+	Title       string                  `json:"title,omitempty"`
+	Cutoff      string                  `json:"cutoff"`
+	Profile     *AnnualProfileVersion   `json:"profile"`
+	Reason      string                  `json:"reason"`
+	Risks       json.RawMessage         `json:"risks"`
+	Supporting  []UPRSupportingSection  `json:"supporting"`
+	Periods     []UPRReportPeriodSource `json:"periods,omitempty"`
+	Corrections []UPRReportCorrection   `json:"corrections,omitempty"`
+}
+
+type UPRReportPeriodSource struct {
+	ID             uuid.UUID `json:"id"`
+	Period         string    `json:"period"`
+	Label          string    `json:"label"`
+	ProfileID      uuid.UUID `json:"profileId"`
+	ProfileVersion int       `json:"profileVersion"`
+	NeedsReview    bool      `json:"needsReview,omitempty"`
+}
+
+type UPRReportCorrection struct {
+	GroupID        uuid.UUID `json:"groupId"`
+	RiskID         uuid.UUID `json:"riskId"`
+	RiskCode       string    `json:"riskCode"`
+	Period         string    `json:"period"`
+	ProfileID      uuid.UUID `json:"profileId"`
+	ProfileVersion int       `json:"profileVersion"`
+	EffectiveFrom  string    `json:"effectiveFrom"`
+	Reason         string    `json:"reason"`
 }
 
 type UPRSupportingSection struct {
-	Kind        string          `json:"kind"`
-	Period      string          `json:"period"`
-	SourceID    *uuid.UUID      `json:"sourceId"`
-	Code        *string         `json:"code"`
-	FinalizedAt *time.Time      `json:"finalizedAt"`
-	Contents    json.RawMessage `json:"contents,omitempty" db:"-"`
+	Kind           string          `json:"kind"`
+	Period         string          `json:"period"`
+	SourceID       *uuid.UUID      `json:"sourceId"`
+	Code           *string         `json:"code"`
+	FinalizedAt    *time.Time      `json:"finalizedAt"`
+	Contents       json.RawMessage `json:"contents,omitempty" db:"-"`
+	ProfileID      *uuid.UUID      `json:"profileId,omitempty"`
+	ProfileVersion *int            `json:"profileVersion,omitempty"`
 }
 
 func semesterPeriod(input UPRSemesterInput) (string, time.Time, []string, error) {
@@ -68,9 +93,15 @@ func buildSemester(ctx context.Context, tx pgx.Tx, org uuid.UUID, input UPRSemes
 	if err != nil {
 		return UPRSemesterSnapshot{}, err
 	}
-	out := UPRSemesterSnapshot{Cutoff: cutoff.AddDate(0, 0, -1).Format(time.DateOnly), Risks: json.RawMessage("[]"), Reason: strings.TrimSpace(input.Reason)}
+	out := UPRSemesterSnapshot{
+		Cutoff: cutoff.AddDate(0, 0, -1).Format(time.DateOnly), Risks: json.RawMessage("[]"),
+		Reason: strings.TrimSpace(input.Reason), Supporting: []UPRSupportingSection{},
+	}
 	if len([]rune(out.Reason)) > 2000 {
 		return out, UPRWorkflowError("Alasan koreksi maksimal 2.000 karakter.")
+	}
+	if input.ApplyHistoricalCorrections && (input.ProfileID == nil || out.Reason == "") {
+		return out, UPRWorkflowError("Pilih versi profil final dan isi alasan untuk menerapkan koreksi historis.")
 	}
 	var selected AnnualProfileVersion
 	query := `SELECT ` + annualVersionColumns + ` FROM annual_risk_profile_versions WHERE organization_id=$1 AND year=$2 AND finalized_at IS NOT NULL`
@@ -87,8 +118,23 @@ func buildSemester(ctx context.Context, tx pgx.Tx, org uuid.UUID, input UPRSemes
 	}
 	if err == nil {
 		out.Profile = &selected
-		if err = tx.QueryRow(ctx, semesterRiskSnapshotSQL, org, input.Year, selected.Version, out.Cutoff, quarters).Scan(&out.Risks); err != nil {
+		if err = tx.QueryRow(ctx, semesterRiskSnapshotSQL, org, input.Year, selected.Version, out.Cutoff, quarters, input.ApplyHistoricalCorrections).Scan(&out.Risks, &out.Corrections); err != nil {
 			return out, err
+		}
+		if input.ApplyHistoricalCorrections && len(out.Corrections) == 0 {
+			return out, UPRWorkflowError("Versi profil ini belum memiliki koreksi historis yang berlaku untuk periode laporan.")
+		}
+		if selected.MonitoringRuleID != nil {
+			rows, err := tx.Query(ctx, `WITH selected AS (SELECT id,monitoring_rule_id FROM annual_risk_profile_versions WHERE organization_id=$1 AND year=$2 AND version=$3), `+semesterConfiguredPeriodsSQL+`
+				SELECT p.id,p.period,p.label,anchor.id,anchor.version,p.needs_review FROM configured_periods p
+				JOIN annual_risk_profile_versions anchor ON anchor.id=p.anchor_id ORDER BY p.ordinal`, org, input.Year, selected.Version, out.Cutoff, quarters)
+			if err != nil {
+				return out, err
+			}
+			out.Periods, err = pgx.CollectRows(rows, pgx.RowToStructByPos[UPRReportPeriodSource])
+			if err != nil {
+				return out, err
+			}
 		}
 	}
 	if input.selection != nil {
@@ -97,15 +143,35 @@ func buildSemester(ctx context.Context, tx pgx.Tx, org uuid.UUID, input UPRSemes
 		if err != nil {
 			return out, err
 		}
+	} else if selected.MonitoringRuleID != nil {
+		scope := input
+		scope.ProfileID = &selected.ID
+		options, err := reportDocumentOptions(ctx, tx, org, "", scope, nil, "", 0, 0)
+		if err != nil {
+			return out, err
+		}
+		for _, option := range options {
+			if option.Kind != "profile" {
+				out.Supporting = append(out.Supporting, option.supportingSection())
+			}
+		}
 	} else {
-		rows, err := tx.Query(ctx, `SELECT 'working_paper',q.period,p.id,p.code,p.completed_at
+		rows, err := tx.Query(ctx, `SELECT 'working_paper',q.period,p.id,p.code,p.completed_at,p.profile_version_id,p.version
 			FROM unnest($2::text[]) WITH ORDINALITY q(period,position)
-			LEFT JOIN LATERAL (SELECT id,code,completed_at FROM working_papers WHERE org_id=$1
-				AND assessment_cycle=q.period AND status='completed' ORDER BY completed_at DESC NULLS LAST,id DESC LIMIT 1) p ON TRUE
+			LEFT JOIN LATERAL (
+				SELECT w.id,w.code,w.completed_at,w.profile_version_id,pv.version FROM working_papers w
+				LEFT JOIN annual_risk_profile_versions pv ON pv.id=w.profile_version_id
+				WHERE w.org_id=$1 AND w.assessment_cycle=q.period AND w.status='completed' AND w.monitoring_period_id IS NULL
+				  AND (w.profile_version_id IS NULL OR (pv.organization_id=$1 AND pv.year=$4 AND pv.version<=$5))
+				ORDER BY w.completed_at DESC NULLS LAST,w.id DESC LIMIT 1) p ON TRUE
 			UNION ALL
-			SELECT 'evaluation',$3,e.id,e.code,e.finalized_at FROM (SELECT 1) seed
-			LEFT JOIN LATERAL (SELECT id,code,finalized_at FROM evaluations WHERE organization_id=$1 AND status='final'
-				AND period IN ($3,($2::text[])[2]) ORDER BY finalized_at DESC NULLS LAST,id DESC LIMIT 1) e ON TRUE`, org, quarters, period)
+			SELECT 'evaluation',$3,e.id,e.code,e.finalized_at,e.profile_version_id,e.version FROM (SELECT 1) seed
+			LEFT JOIN LATERAL (
+				SELECT e.id,e.code,e.finalized_at,e.profile_version_id,pv.version FROM evaluations e
+				LEFT JOIN annual_risk_profile_versions pv ON pv.id=e.profile_version_id
+				WHERE e.organization_id=$1 AND e.status='final' AND e.period IN ($3,($2::text[])[2]) AND e.monitoring_period_id IS NULL
+				  AND (e.profile_version_id IS NULL OR (pv.organization_id=$1 AND pv.year=$4 AND pv.version<=$5))
+				ORDER BY e.finalized_at DESC NULLS LAST,e.id DESC LIMIT 1) e ON TRUE`, org, quarters, period, input.Year, selected.Version)
 		if err != nil {
 			return out, err
 		}
@@ -136,21 +202,93 @@ func buildSemester(ctx context.Context, tx pgx.Tx, org uuid.UUID, input UPRSemes
 	return out, err
 }
 
-// A later profile may contain changes effective on both sides of the cutoff.
-// Rank eligible members across its predecessors to retain the older baseline
-// for a risk whose latest change takes effect after this semester.
-const semesterRiskSnapshotSQL = `WITH members AS (
+const semesterConfiguredPeriodsSQL = `configured_periods AS (
+	SELECT p.id,p.label,p.ordinal,format('%s-%s%s',r.year,
+		CASE r.frequency WHEN 'monthly' THEN 'M' WHEN 'quarterly' THEN 'Q' ELSE 'H' END,p.ordinal) AS period,
+		annual_monitoring_period_profile(s.id,p.id) AS anchor_id, COALESCE(frozen.needs_review,false) AS needs_review,
+		bounds.ends_on AS period_end,
+		frozen.profile_version_id IS NOT NULL AS frozen
+	FROM selected s JOIN monitoring_rules r ON r.id=s.monitoring_rule_id
+	JOIN monitoring_rule_periods p ON p.rule_id=r.id
+	CROSS JOIN LATERAL annual_monitoring_period_bounds(p.id) bounds
+	LEFT JOIN LATERAL annual_monitoring_period_freeze(s.id,p.id) frozen ON TRUE
+	WHERE bounds.starts_on >= make_date(r.year,(RIGHT(($5::text[])[1],1)::int-1)*3+1,1)
+	  AND bounds.ends_on <= $4::date
+)`
+
+// Pick the latest period baseline for each risk and retain the exact sources
+// behind each observation, including observations from a predecessor profile.
+const semesterRiskSnapshotSQL = `WITH selected AS (
+	SELECT id,monitoring_rule_id FROM annual_risk_profile_versions
+	WHERE organization_id=$1 AND year=$2 AND version=$3 AND finalized_at IS NOT NULL
+), ` + semesterConfiguredPeriodsSQL + `, configured_members AS (
+	SELECT p.id AS period_id,p.period,p.ordinal,p.anchor_id,s.*
+	FROM selected v CROSS JOIN configured_periods p
+	CROSS JOIN LATERAL annual_monitoring_period_scope(v.id,p.id) s
+), corrections AS (
+	SELECT DISTINCT ON (p.id,m.version_group_id)
+		p.id AS period_id,p.period,p.ordinal,m.version_group_id,m.risk_id,m.profile_version_id,m.baseline,
+		m.effective_from,m.change_reason,m.objective_id,c.version
+	FROM configured_periods p
+	JOIN annual_risk_profile_versions anchor ON anchor.id=p.anchor_id
+	JOIN annual_risk_profile_versions c ON c.organization_id=$1 AND c.year=$2 AND c.version>anchor.version AND c.version<=$3
+	  AND c.finalized_at IS NOT NULL
+	JOIN annual_risk_profile_members m ON m.profile_version_id=c.id
+	WHERE $6::boolean AND p.frozen AND m.historical_correction AND m.effective_from<=p.period_end
+	  AND NOT EXISTS (
+		SELECT 1 FROM annual_risk_profile_members previous
+		WHERE previous.profile_version_id=c.previous_version_id AND previous.version_group_id=m.version_group_id
+		  AND previous.historical_correction AND previous.risk_id IS NOT DISTINCT FROM m.risk_id
+		  AND previous.objective_id IS NOT DISTINCT FROM m.objective_id AND previous.effective_from=m.effective_from
+		  AND previous.change_reason=m.change_reason AND previous.baseline IS NOT DISTINCT FROM m.baseline
+	  )
+	ORDER BY p.id,m.version_group_id,c.version DESC
+), report_members AS (
+	SELECT cm.version_group_id,cm.risk_id,cm.baseline,cm.effective_from,cm.change_reason,cm.objective_id,cm.profile_version_id,cm.ordinal
+	FROM configured_members cm
+	WHERE NOT EXISTS (SELECT 1 FROM corrections c WHERE c.period_id=cm.period_id AND c.version_group_id=cm.version_group_id)
+	UNION ALL
+	SELECT c.version_group_id,c.risk_id,c.baseline,c.effective_from,c.change_reason,c.objective_id,c.profile_version_id,c.ordinal
+	FROM corrections c
+), members AS (
+	SELECT DISTINCT ON (version_group_id) version_group_id,risk_id,baseline,effective_from,change_reason,
+		objective_id,profile_version_id AS profile_id,MIN(effective_from) OVER(PARTITION BY version_group_id) AS first_effective
+	FROM report_members ORDER BY version_group_id,ordinal DESC
+), legacy_members AS (
 	SELECT DISTINCT ON(m.version_group_id) m.version_group_id,m.risk_id,m.baseline,m.effective_from,m.change_reason,
-		m.objective_id,p.id AS profile_id,MIN(m.effective_from) OVER(PARTITION BY m.version_group_id) AS first_effective
-	FROM annual_risk_profile_members m JOIN annual_risk_profile_versions p ON p.id=m.profile_version_id
-	WHERE p.organization_id=$1 AND p.year=$2 AND p.version<=$3 AND p.finalized_at IS NOT NULL
-	AND m.effective_from<=$4::date
-	ORDER BY m.version_group_id,p.version DESC
+		m.objective_id,m.profile_version_id AS profile_id,MIN(m.effective_from) OVER(PARTITION BY m.version_group_id) AS first_effective
+	FROM selected s
+	CROSS JOIN LATERAL (
+		SELECT $4::date AS cutoff
+		UNION
+		SELECT x.effective_from-1 FROM annual_risk_profile_exclusions x
+		JOIN annual_risk_profile_versions p ON p.id=x.profile_version_id
+		WHERE p.organization_id=$1 AND p.year=$2 AND p.version<=$3 AND p.finalized_at IS NOT NULL
+		  AND x.effective_from<= $4::date
+		  AND x.effective_from> make_date($2,(RIGHT(($5::text[])[1],1)::int-1)*3+1,1)
+	) dates
+	CROSS JOIN LATERAL annual_monitoring_members_as_of(s.id,dates.cutoff) m
+	WHERE s.monitoring_rule_id IS NULL
+	ORDER BY m.version_group_id,dates.cutoff DESC
 ), report_range AS (
     SELECT make_date(LEFT(($5::text[])[1],4)::int,(RIGHT(($5::text[])[1],1)::int-1)*3+1,1) AS start_date,
            $4::date AS end_date
+), observations AS (
+	SELECT rm.*,COALESCE(cm.period,rm.assessment_cycle) AS report_period,source_profile.version AS profile_version
+	FROM risk_monitorings rm
+	JOIN risks source ON source.id=rm.source_risk_id
+	LEFT JOIN configured_members cm ON cm.period_id=rm.monitoring_period_id AND cm.version_group_id=rm.version_group_id
+	LEFT JOIN annual_risk_profile_versions anchor ON anchor.id=cm.anchor_id
+	LEFT JOIN annual_risk_profile_versions source_profile ON source_profile.id=rm.profile_version_id
+	CROSS JOIN selected s
+	WHERE source.organization_id=$1 AND rm.status='final' AND rm.transaction_kind='monitoring' AND rm.superseded_by_monitoring_id IS NULL
+	  AND (s.monitoring_rule_id IS NULL AND rm.monitoring_period_id IS NULL
+	       AND (rm.profile_version_id IS NULL OR (source_profile.organization_id=$1 AND source_profile.year=$2 AND source_profile.version<=$3 AND source_profile.finalized_at IS NOT NULL))
+	       AND EXISTS (SELECT 1 FROM annual_monitoring_members_as_of(s.id,rm.observed_at) m WHERE m.version_group_id=rm.version_group_id)
+	       OR s.monitoring_rule_id IS NOT NULL AND source_profile.organization_id=$1 AND source_profile.year=$2
+	       AND source_profile.monitoring_rule_id=s.monitoring_rule_id AND source_profile.finalized_at IS NOT NULL AND source_profile.version<=anchor.version)
 ), report_rows AS (
-	SELECT m.baseline || jsonb_build_object(
+	SELECT COALESCE(m.baseline,'{}'::jsonb) || jsonb_build_object(
 		'groupId',m.version_group_id,'profileId',m.profile_id,'objectiveId',m.objective_id,
 		'effectiveFrom',m.effective_from,'changeReason',m.change_reason,
 		'monitoring',COALESCE(obs.data,'[]'::jsonb),
@@ -158,7 +296,7 @@ const semesterRiskSnapshotSQL = `WITH members AS (
         'mitigationReports',COALESCE(mitigation_reports.data,'[]'::jsonb),
         'events',COALESCE(events.data,'[]'::jsonb)
 	) AS item
-	FROM members m CROSS JOIN report_range period
+	FROM (SELECT * FROM members UNION ALL SELECT * FROM legacy_members) m CROSS JOIN report_range period
     LEFT JOIN LATERAL (
         SELECT jsonb_agg(jsonb_build_object(
             'id',t.id,'action',plan.action,'notes',t.notes,
@@ -171,6 +309,11 @@ const semesterRiskSnapshotSQL = `WITH members AS (
           AND t.status='done' AND NULLIF(BTRIM(t.notes),'') IS NOT NULL
           AND (t.reported_at AT TIME ZONE 'Asia/Jakarta')::date
               BETWEEN GREATEST(period.start_date,m.first_effective) AND period.end_date
+          AND (
+            EXISTS (SELECT 1 FROM selected s WHERE s.monitoring_rule_id IS NULL)
+            OR EXISTS (SELECT 1 FROM observations o WHERE o.id=t.monitoring_id)
+            OR (t.monitoring_id IS NULL AND EXISTS (SELECT 1 FROM configured_members cm WHERE cm.risk_id=r.id))
+          )
     ) mitigation_reports ON TRUE
     LEFT JOIN LATERAL (
         SELECT jsonb_agg(jsonb_build_object(
@@ -192,21 +335,22 @@ const semesterRiskSnapshotSQL = `WITH members AS (
     ) events ON TRUE
 	LEFT JOIN LATERAL (
 		SELECT jsonb_agg(jsonb_build_object(
-			'id',a.id,'period',a.assessment_cycle,'score',round(a.observed_nilai)::int,
+			'id',a.id,'period',a.report_period,'score',round(a.observed_nilai)::int,
 			'value',a.observed_nilai,'level',a.observed_level,'conclusion',a.conclusion,
 			'mitigationProgress',a.mitigation_progress_summary,'mitigationCompletion',a.mitigation_completion_percent,
-			'sourceRiskId',a.source_risk_id,'observedAt',a.observed_at,'observedAtInferred',a.observed_at_inferred,'finalizedAt',a.finalized_at
+			'sourceRiskId',a.source_risk_id,'profileId',a.profile_version_id,'profileVersion',a.profile_version,
+			'monitoringPeriodId',a.monitoring_period_id,'observedAt',a.observed_at,'observedAtInferred',a.observed_at_inferred,'finalizedAt',a.finalized_at
 		) ORDER BY a.observed_at,a.finalized_at NULLS FIRST,a.id) AS data
-		FROM (
-			SELECT rm.*
-			FROM risk_monitorings rm JOIN risks source ON source.id=rm.source_risk_id
-			WHERE source.organization_id=$1 AND source.version_group_id=m.version_group_id
-			AND rm.status='final' AND rm.transaction_kind='monitoring' AND rm.superseded_by_monitoring_id IS NULL
-            AND rm.observed_at >= GREATEST(m.first_effective,period.start_date)
-            AND rm.observed_at <= period.end_date
-		) a
+		FROM observations a WHERE a.version_group_id=m.version_group_id
+		  AND a.observed_at BETWEEN period.start_date AND period.end_date
+		  AND (a.monitoring_period_id IS NOT NULL OR a.observed_at>=m.first_effective)
 	) obs ON TRUE
-) SELECT COALESCE(jsonb_agg(item ORDER BY item->>'code',item->>'groupId'),'[]'::jsonb) FROM report_rows`
+) SELECT
+	(SELECT COALESCE(jsonb_agg(item ORDER BY item->>'code',item->>'groupId'),'[]'::jsonb) FROM report_rows),
+	(SELECT COALESCE(jsonb_agg(jsonb_build_object(
+		'groupId',c.version_group_id,'riskId',c.risk_id,'riskCode',COALESCE(c.baseline->>'code',''),'period',c.period,
+		'profileId',c.profile_version_id,'profileVersion',c.version,'effectiveFrom',c.effective_from,'reason',c.change_reason
+	) ORDER BY c.ordinal,c.baseline->>'code',c.version_group_id),'[]'::jsonb) FROM corrections c)`
 
 func (s *UPRWorkflow) FinalizeSemester(ctx context.Context, org, actor uuid.UUID, input UPRSemesterInput) (uuid.UUID, error) {
 	period, cutoff, _, err := semesterPeriod(input)
@@ -237,6 +381,11 @@ func validateSemesterSnapshot(snapshot UPRSemesterSnapshot, cutoff time.Time) er
 	}
 	if !snapshot.Profile.FinalizedAt.Before(cutoff) && snapshot.Reason == "" {
 		return UPRWorkflowError("Isi alasan penggunaan versi profil yang difinalisasi setelah tanggal batas.")
+	}
+	for _, period := range snapshot.Periods {
+		if period.NeedsReview && snapshot.Reason == "" {
+			return UPRWorkflowError("Isi alasan penggunaan sumber historis untuk periode bertanda Perlu ditinjau.")
+		}
 	}
 	return nil
 }

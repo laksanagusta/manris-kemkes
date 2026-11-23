@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/google/uuid"
+	"github.com/manris/backend/internal/domain/entity"
 	"github.com/manris/backend/internal/domain/repository"
 )
 
@@ -18,18 +19,19 @@ func NewLinkRisksUseCase(mmRepo repository.MeetingMinuteRepository) *LinkRisksUs
 type LinkRisksInput struct {
 	MeetingID uuid.UUID
 	RiskIDs   []uuid.UUID
-	LinkedBy  uuid.UUID
+	Scope     *entity.AccessScope
 }
 
 func (uc *LinkRisksUseCase) Execute(ctx context.Context, input LinkRisksInput) error {
-	return uc.mmRepo.LinkRisks(ctx, input.MeetingID, input.RiskIDs, input.LinkedBy)
+	return uc.mmRepo.LinkRisks(ctx, input.MeetingID, input.RiskIDs, input.Scope)
 }
 
 type UnlinkRisksInput struct {
 	MeetingID uuid.UUID
 	RiskIDs   []uuid.UUID
+	Scope     *entity.AccessScope
 }
 
 func (uc *LinkRisksUseCase) Unlink(ctx context.Context, input UnlinkRisksInput) error {
-	return uc.mmRepo.UnlinkRisks(ctx, input.MeetingID, input.RiskIDs)
+	return uc.mmRepo.UnlinkRisks(ctx, input.MeetingID, input.RiskIDs, input.Scope)
 }

@@ -362,7 +362,6 @@ export async function createQuarterlyReportWorkbook(report: QuarterlyReport, for
         treatment_option: risk.treatmentOption,
         treatment_option_display: treatmentOptionLabels[risk.treatmentOption ?? ""] ?? risk.treatmentOption,
         mitigations: mitigations.map((item) => item.action),
-        mitigation_details: mitigations.map((item) => [item.action, item.owner && `PIC: ${item.owner}`].filter(Boolean).join("\n")),
         mitigation_due_dates: mitigations.map((item) => item.dueDate ?? ""),
         target_probability: risk.targetProbability,
         target_impact: risk.targetImpact,

@@ -79,12 +79,18 @@ test("buildWorkingPaperDetailViewModel highlights the current signer action", ()
   assert.equal(result.canStartSigning, false);
   assert.equal(result.canSign, true);
   assert.equal(result.canSkipTTE, false);
-  assert.equal(result.canCancel, true);
+  assert.equal(result.canCancel, false);
   assert.equal(result.canDelete, false);
   assert.equal(result.currentAction?.title, "Giliran Anda");
   assert.equal(result.currentAction?.buttonLabel, "Tanda tangani sekarang");
   assert.equal(result.timeline[0]?.label, "Giliran Anda");
   assert.match(result.timeline[0]?.description ?? "", /periksa isi dokumen/i);
+});
+
+test("buildWorkingPaperDetailViewModel allows the creator to cancel a working paper in signing", () => {
+  const result = buildWorkingPaperDetailViewModel(makeWorkingPaper(), "creator-1");
+
+  assert.equal(result.canCancel, true);
 });
 
 test("buildWorkingPaperDetailViewModel explains when another signer is active", () => {

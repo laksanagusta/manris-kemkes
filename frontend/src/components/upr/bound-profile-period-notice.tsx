@@ -29,10 +29,11 @@ export function useProfilePeriodWorkspace(token?: string | null, profileId?: str
   return loaded?.key === key ? loaded : null;
 }
 
-export function ProfilePeriodDetails({ loaded, periodId, showProfileVersion = false }: {
+export function ProfilePeriodDetails({ loaded, periodId, showProfileVersion = false, showSubmissionWindow = true }: {
   loaded: ReturnType<typeof useProfilePeriodWorkspace>;
   periodId?: string | null;
   showProfileVersion?: boolean;
+  showSubmissionWindow?: boolean;
 }) {
   if (!periodId && !showProfileVersion) return null;
   if (!loaded) return <p role="status" className="text-xs text-muted-foreground">Memuat periode profil…</p>;
@@ -45,7 +46,7 @@ export function ProfilePeriodDetails({ loaded, periodId, showProfileVersion = fa
     )}
     {period && <>
       <p className="font-medium text-foreground">{period.label} · {workspace.year || workspace.rule?.year}</p>
-      <p>Pengisian {workflowDate(period.opensOn)}–{workflowDate(period.closesOn)} WIB.</p>
+      {showSubmissionWindow && <p>Pengisian {workflowDate(period.opensOn)}–{workflowDate(period.closesOn)} WIB.</p>}
     </>}
   </div> : null;
 }

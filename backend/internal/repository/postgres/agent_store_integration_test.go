@@ -39,8 +39,13 @@ func agentTestDB(t *testing.T) (context.Context, *pgxpool.Pool, uuid.UUID) {
 		t.Fatal(err)
 	}
 	t.Cleanup(pool.Close)
+	return ctx, pool, insertAgentTestActor(t, ctx, pool)
+}
+
+func insertAgentTestActor(t *testing.T, ctx context.Context, pool *pgxpool.Pool) uuid.UUID {
+	t.Helper()
 	actor := uuid.New()
-	_, err = pool.Exec(ctx, `INSERT INTO users(id,name,username,email,password_hash,role,status) VALUES($1,'Agent test',$2,$3,'not-a-password','superadmin','active')`, actor, "agent_"+actor.String(), actor.String()+"@example.invalid")
+	_, err := pool.Exec(ctx, `INSERT INTO users(id,name,username,email,password_hash,role,status) VALUES($1,'Agent test',$2,$3,'not-a-password','superadmin','active')`, actor, "agent_"+actor.String(), actor.String()+"@example.invalid")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,10 +54,89 @@ func agentTestDB(t *testing.T) (context.Context, *pgxpool.Pool, uuid.UUID) {
 		defer c()
 		_, _ = pool.Exec(cleanupCtx, `DELETE FROM users WHERE id=$1`, actor)
 	})
-	return ctx, pool, actor
+	return actor
 }
 
 type integrationModel struct{ calls int }
+
+func TestAgentStoreLimitsActiveWorkPerAccount(t *testing.T) {
+	ctx, setupPool, actor := agentTestDB(t)
+	otherActor := insertAgentTestActor(t, ctx, setupPool)
+	cfg := setupPool.Config()
+	cfg.MaxConns = 2
+	pool, err := pgxpool.NewWithConfig(ctx, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer pool.Close()
+	store := NewAgentStore(pool)
+	service := agent.NewService(store, &integrationToolkit{pool: pool}, &integrationModel{})
+	createConversation := func(owner uuid.UUID) uuid.UUID {
+		t.Helper()
+		conv, err := service.CreateConversation(ctx, owner, "")
+		if err != nil {
+			t.Fatal(err)
+		}
+		return conv.ID
+	}
+	first := createConversation(actor)
+	second := createConversation(actor)
+	other := createConversation(otherActor)
+
+	input := agent.SendMessageInput{Content: "Tinjau laporan triwulan", IdempotencyKey: "review"}
+	type result struct {
+		conversationID uuid.UUID
+		run            agent.Run
+		err            error
+	}
+	submissions := make(chan result, 2)
+	start := make(chan struct{})
+	for _, cid := range []uuid.UUID{first, second} {
+		go func() {
+			submitter := agent.NewService(store, &integrationToolkit{pool: pool}, &integrationModel{})
+			<-start
+			run, err := submitter.SendMessage(ctx, actor, cid, input)
+			submissions <- result{cid, run, err}
+		}()
+	}
+	close(start)
+	accepted, denied := <-submissions, <-submissions
+	if accepted.err != nil {
+		accepted, denied = denied, accepted
+	}
+	if accepted.err != nil || !errors.Is(denied.err, agent.ErrOwnerBusy) {
+		t.Fatalf("expected one accepted and one owner quota rejection, got %v and %v", accepted.err, denied.err)
+	}
+	record, err := store.Read(ctx, actor, denied.conversationID)
+	if err != nil || len(record.Runs) != 0 || len(record.Messages) != 0 {
+		t.Fatalf("rejected submission changed conversation: %v", err)
+	}
+	retry, err := service.SendMessage(ctx, actor, accepted.conversationID, input)
+	if err != nil || retry.ID != accepted.run.ID {
+		t.Fatalf("expected idempotent replay at owner quota: %v", err)
+	}
+	if _, err = service.SendMessage(ctx, otherActor, other, input); err != nil {
+		t.Fatalf("independent account could not queue: %v", err)
+	}
+	claim, err := store.Claim(ctx, "quota-test", time.Minute)
+	if err != nil || claim == nil || claim.RunID != accepted.run.ID {
+		t.Fatalf("expected the accepted run to be leased: %+v, %v", claim, err)
+	}
+
+	if err = service.Cancel(ctx, actor, accepted.conversationID, accepted.run.ID); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = service.SendMessage(ctx, actor, denied.conversationID, input); !errors.Is(err, agent.ErrOwnerBusy) {
+		t.Fatalf("cancelled run with an active lease returned %v", err)
+	}
+	if _, err = pool.Exec(ctx, "UPDATE agent_runs SET lease_until = clock_timestamp() - interval '1 second' WHERE id = $1", claim.RunID); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err = service.SendMessage(ctx, actor, denied.conversationID, input); err != nil {
+		t.Fatalf("cancelled run did not release quota: %v", err)
+	}
+}
 
 func (m *integrationModel) Complete(context.Context, []agent.Turn, []agent.ToolDefinition) (agent.Turn, error) {
 	m.calls++

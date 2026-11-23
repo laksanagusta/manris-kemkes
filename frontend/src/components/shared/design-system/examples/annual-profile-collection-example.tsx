@@ -19,6 +19,7 @@ import { AnnualProfileExample } from "./annual-profile-example";
 const initial: AnnualProfileListVersion[] = [
   {
     id: "example-child-2026-v1",
+    code: "PRT-2026-0003",
     year: 2026,
     version: 1,
     finalizedAt: null,
@@ -29,6 +30,7 @@ const initial: AnnualProfileListVersion[] = [
   },
   {
     id: "example-2026-v2",
+    code: "PRT-2026-0002",
     year: 2026,
     version: 2,
     finalizedAt: null,
@@ -37,6 +39,7 @@ const initial: AnnualProfileListVersion[] = [
   },
   {
     id: "example-2026-v1",
+    code: "PRT-2026-0002",
     year: 2026,
     version: 1,
     finalizedAt: "2026-06-30T00:00:00Z",
@@ -45,6 +48,7 @@ const initial: AnnualProfileListVersion[] = [
   },
   {
     id: "example-2025-v1",
+    code: "PRT-2025-0001",
     year: 2025,
     version: 1,
     finalizedAt: "2025-12-01T00:00:00Z",
@@ -61,6 +65,7 @@ const register: AnnualPickupRisk[] = [
     assessmentDate: "2026-03-12",
     category: "operasional",
     score: 15,
+    targetScore: 8,
     unavailable: "",
   },
   {
@@ -71,6 +76,7 @@ const register: AnnualPickupRisk[] = [
     assessmentDate: "2026-08-20",
     category: "operasional",
     score: 12,
+    targetScore: 6,
     unavailable: "",
   },
 ];
@@ -82,6 +88,7 @@ const inactive: AnnualPickupRisk = {
   assessmentDate: null,
   category: "operasional",
   score: 8,
+  targetScore: 4,
   unavailable: "Diarsipkan atau tidak lagi aktif",
 };
 
@@ -208,6 +215,7 @@ export function AnnualProfileCollectionExample() {
             create={async (year, _source, ids, ruleId) => {
               const version = {
                 id: `example-${year}-v1`,
+                code: `PRT-${year}-0004`,
                 year,
                 version: 1,
                 finalizedAt: null,

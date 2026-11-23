@@ -2,11 +2,12 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/lib/api";
 import { getBreadcrumbItems, type BreadcrumbItem } from "@/lib/app-navigation";
+import { TopbarBackButton } from "@/components/shared/design-system/actions/topbar-back-button";
 import {
   Breadcrumb,
   BreadcrumbItem as BreadcrumbItemPrimitive,
@@ -118,7 +119,7 @@ function BreadcrumbLinkItem({ item }: { item: BreadcrumbItem }) {
   );
 }
 
-export function AppBreadcrumbs() {
+export function AppBreadcrumbs({ back }: { back?: ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { token } = useAuth();
@@ -167,31 +168,43 @@ export function AppBreadcrumbs() {
     searchParams,
     dynamicLabel,
   );
+  const requestedReturnTo = searchParams.get("returnTo");
+  const annualProfileReturnTo = pathname === "/risk/register/new" &&
+    requestedReturnTo?.startsWith("/") &&
+    !requestedReturnTo.startsWith("//") &&
+    /^\/risk\/annual-profiles(?:\/\d{4})?$/.test(requestedReturnTo.split("?")[0])
+    ? requestedReturnTo
+    : null;
 
   return (
-    <Breadcrumb className="max-w-[min(64vw,32rem)] overflow-hidden">
-      <BreadcrumbList className="flex-nowrap gap-1 overflow-hidden text-xs sm:text-sm">
-        {items.map((item, index) => {
-          const isLast = index === items.length - 1;
+    <div className="flex min-w-0 items-center gap-2">
+      {back ?? (annualProfileReturnTo ? (
+        <TopbarBackButton href={annualProfileReturnTo} label="Kembali ke Profil Risiko Tahunan" />
+      ) : null)}
+      <Breadcrumb className="min-w-0 max-w-[min(64vw,32rem)] overflow-hidden">
+        <BreadcrumbList className="flex-nowrap gap-1 overflow-hidden text-xs sm:text-sm">
+          {items.map((item, index) => {
+            const isLast = index === items.length - 1;
 
-          return (
-            <Fragment key={`${item.href ?? "current"}-${item.label}`}>
-              {index > 0 ? (
-                <BreadcrumbSeparator className="hidden text-muted-foreground/50 sm:block" />
-              ) : null}
-              <BreadcrumbItemPrimitive className={isLast ? "min-w-0" : "hidden sm:inline-flex"}>
-                {item.href && !isLast ? (
-                  <BreadcrumbLinkItem item={item} />
-                ) : (
-                  <BreadcrumbPage className="truncate font-medium text-foreground">
-                    {item.label}
-                  </BreadcrumbPage>
-                )}
-              </BreadcrumbItemPrimitive>
-            </Fragment>
-          );
-        })}
-      </BreadcrumbList>
-    </Breadcrumb>
+            return (
+              <Fragment key={`${item.href ?? "current"}-${item.label}`}>
+                {index > 0 ? (
+                  <BreadcrumbSeparator className="hidden text-muted-foreground/50 sm:block" />
+                ) : null}
+                <BreadcrumbItemPrimitive className={isLast ? "min-w-0" : "hidden sm:inline-flex"}>
+                  {item.href && !isLast ? (
+                    <BreadcrumbLinkItem item={item} />
+                  ) : (
+                    <BreadcrumbPage className="truncate font-medium text-foreground">
+                      {item.label}
+                    </BreadcrumbPage>
+                  )}
+                </BreadcrumbItemPrimitive>
+              </Fragment>
+            );
+          })}
+        </BreadcrumbList>
+      </Breadcrumb>
+    </div>
   );
 }

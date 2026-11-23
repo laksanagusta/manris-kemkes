@@ -2,11 +2,13 @@ package postgres_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
+	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/repository/postgres"
 	riskuc "github.com/manris/backend/internal/usecase/risk"
 )
@@ -79,5 +81,59 @@ func TestRiskGetByIDIncludesOngoingReassessmentFields(t *testing.T) {
 	}
 	if *got.DraftStatus != entity.RiskStatusDraft {
 		t.Fatalf("expected draftStatus %q, got %q", entity.RiskStatusDraft, *got.DraftStatus)
+	}
+}
+
+func TestRiskOwnerAndCombinedSourceRoundTrip(t *testing.T) {
+	pool := setupPool(t)
+	repo := postgres.NewRiskRepository(pool)
+	ctx := context.Background()
+	orgID := insertTestOrganization(t, pool, "Risk owner test unit")
+	ownerID := uuid.New()
+	const ownerName = "Pemilik Risiko Pengujian"
+	if _, err := pool.Exec(ctx, `INSERT INTO users (id, name, username, email, password_hash, role, organization_id)
+		VALUES ($1, $2, $3, $4, 'test-hash', 'unit', $5)`, ownerID, ownerName,
+		ownerID.String(), ownerID.String()+"@example.test", orgID); err != nil {
+		t.Fatalf("insert test owner: %v", err)
+	}
+	t.Cleanup(func() { _, _ = pool.Exec(ctx, "DELETE FROM users WHERE id = $1", ownerID) })
+
+	risk := &entity.Risk{
+		Code: "R-TEST-OWNER-" + uuid.NewString()[:8], Title: "Risiko distribusi",
+		Description: "Distribusi terlambat", Category: entity.RiskCategoryOperasional,
+		Status: entity.RiskStatusDraft, VersionGroupID: uuid.New(), VersionNumber: 1,
+		IsCurrent: true, IsCycleCurrent: true, OrganizationID: &orgID, RiskOwnerID: &ownerID,
+		RiskSource: "internal_eksternal", AssessmentCycle: "2026-Q4", Probability: 3, Impact: 3,
+	}
+	if err := repo.Create(ctx, risk); err != nil {
+		t.Fatalf("create risk: %v", err)
+	}
+	t.Cleanup(func() { _ = repo.Delete(ctx, risk.ID) })
+
+	stored, err := repo.GetByID(ctx, risk.ID, []uuid.UUID{orgID})
+	if err != nil {
+		t.Fatalf("get risk: %v", err)
+	}
+	if stored.RiskOwnerID == nil || *stored.RiskOwnerID != ownerID || stored.RiskOwnerName != ownerName || stored.RiskSource != "internal_eksternal" {
+		t.Fatalf("owner or source not returned by GetByID: %+v", stored)
+	}
+	users := postgres.NewUserRepository(pool)
+	if err := users.Delete(ctx, ownerID); !errors.Is(err, domainerrors.ErrUserOwnsRisks) {
+		t.Fatalf("delete assigned risk owner: expected conflict, got %v", err)
+	}
+
+	stored.RiskOwnerID = nil
+	if err := repo.Update(ctx, stored); err != nil {
+		t.Fatalf("update risk: %v", err)
+	}
+	stored, err = repo.GetByID(ctx, risk.ID, []uuid.UUID{orgID})
+	if err != nil {
+		t.Fatalf("get updated risk: %v", err)
+	}
+	if stored.RiskOwnerID != nil || stored.RiskOwnerName != "" || stored.RiskSource != "internal_eksternal" {
+		t.Fatalf("unexpected owner or source on updated risk: %+v", stored)
+	}
+	if err := users.Delete(ctx, ownerID); err != nil {
+		t.Fatalf("delete former owner after clearing the assignment: %v", err)
 	}
 }

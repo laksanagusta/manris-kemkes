@@ -52,6 +52,9 @@ func identityError(c *fiber.Ctx, err error) error {
 	case errors.Is(err, domainerrors.ErrConflict):
 		status = fiber.StatusConflict
 		detail = "ID aplikasi sudah digunakan"
+	case errors.Is(err, domainerrors.ErrNIPAlreadyExists), errors.Is(err, domainerrors.ErrEmailAlreadyExists):
+		status = fiber.StatusConflict
+		detail = err.Error()
 	case errors.Is(err, domainerrors.ErrNotFound):
 		status = fiber.StatusNotFound
 		detail = "Data tidak ditemukan"

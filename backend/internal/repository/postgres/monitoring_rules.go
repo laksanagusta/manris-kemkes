@@ -114,7 +114,7 @@ func (r *riskMonitoringRepository) ValidateMonitoringContext(ctx context.Context
 		return err
 	}
 	var valid bool
-	err := r.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM annual_risk_profile_members WHERE profile_version_id=$1 AND version_group_id=$2 AND effective_from<=$4::date) AND monitoring_observation_in_period($1,$3,$4::date)`, profile, source.VersionGroupID, period, date).Scan(&valid)
+	err := r.pool.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM annual_monitoring_members_as_of(annual_monitoring_period_profile($1,$3), $4::date) WHERE version_group_id=$2) AND monitoring_observation_in_period($1,$3,$4::date)`, profile, source.VersionGroupID, period, date).Scan(&valid)
 	if err != nil {
 		return err
 	}

@@ -1,8 +1,11 @@
 "use client";
 
-import { FieldHeading } from "@/components/ui/field";
+import { FieldDescription, FieldHeading } from "@/components/ui/field";
 import { useState } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { PopoverSelectField } from "@/components/shared/design-system";
 import {
   Dialog,
   DialogContent,
@@ -12,14 +15,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import type { ProfilePeriodProgress } from "@/lib/api/profile-periods";
 import { WorkflowError, workflowError } from "./workflow-ui";
 import type {
   AnnualCandidate,
@@ -32,6 +29,8 @@ export function AnnualMemberDialog({
   selection,
   objectives,
   year,
+  periods = [],
+  startCorrection = false,
   pending,
   close,
   save,
@@ -42,6 +41,8 @@ export function AnnualMemberDialog({
   };
   objectives: AnnualProfile["objectives"];
   year: number;
+  periods?: ProfilePeriodProgress[];
+  startCorrection?: boolean;
   pending: boolean;
   close: () => void;
   save: (input: AnnualMemberInput) => Promise<void>;
@@ -52,6 +53,10 @@ export function AnnualMemberDialog({
       ? (member?.objectiveId ?? "")
       : (candidate?.suggestedObjectiveId ?? ""),
   );
+  const [effectiveFrom, setEffectiveFrom] = useState(member?.effectiveFrom ?? "");
+  const [correction, setCorrection] = useState(startCorrection || Boolean(member?.historicalCorrection));
+  const firstPeriod = correction && effectiveFrom ? periods.find((period) =>
+    period.calendarEndsOn && effectiveFrom <= period.calendarEndsOn) : undefined;
   const [reason, setReason] = useState(member?.changeReason ?? "");
   const [error, setError] = useState("");
   const candidateIsNewer =
@@ -75,9 +80,11 @@ export function AnnualMemberDialog({
       <DialogContent showCloseButton={!pending}>
         <DialogHeader>
           <DialogTitle>
-            {member?.riskId
-              ? "Ubah sasaran"
-              : "Siapkan penilaian untuk profil"}
+            {startCorrection
+              ? "Tambah risiko sebagai koreksi"
+              : member?.riskId
+                ? "Penilaian ulang"
+                : "Siapkan penilaian untuk profil"}
           </DialogTitle>
           <DialogDescription>
             {member?.code ?? candidate?.code} ·{" "}
@@ -94,9 +101,10 @@ export function AnnualMemberDialog({
               await save({
                 riskId,
                 objectiveId: objectiveId || null,
-                effectiveFrom: "",
+                ...(correction ? { effectiveFrom } : {}),
                 changeReason: reason,
                 reassess: assessment === "reassess",
+                historicalCorrection: correction,
               });
               close();
             } catch (cause) {
@@ -118,27 +126,27 @@ export function AnnualMemberDialog({
             className="space-y-4"
           >
             <div className="space-y-2">
-              <Label htmlFor="annual-assessment">Asesmen</Label>
-              <Select value={assessment} onValueChange={setAssessment}>
-                <SelectTrigger id="annual-assessment" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {member?.riskId && (
-                    <SelectItem value="saved">
-                      Asesmen dalam draf profil
-                    </SelectItem>
-                  )}
-                  {canUseLatest && (
-                    <SelectItem value="latest">
-                      Gunakan versi terakhir
-                    </SelectItem>
-                  )}
-                  {canReassess && (
-                    <SelectItem value="reassess">Nilai ulang</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="annual-assessment">Penilaian</Label>
+              <PopoverSelectField
+                id="annual-assessment"
+                value={assessment}
+                onValueChange={(value) => {
+                  setAssessment(value);
+                  if (value === "reassess") setCorrection(false);
+                }}
+                placeholder="Pilih asesmen"
+                options={[
+                  ...(member?.riskId
+                    ? [{ value: "saved", label: "Asesmen dalam draf profil" }]
+                    : []),
+                  ...(canUseLatest
+                    ? [{ value: "latest", label: "Gunakan versi terakhir" }]
+                    : []),
+                  ...(canReassess && !startCorrection
+                    ? [{ value: "reassess", label: "Nilai ulang" }]
+                    : []),
+                ]}
+              />
             </div>
             <div className="space-y-2">
               <FieldHeading>
@@ -152,35 +160,71 @@ export function AnnualMemberDialog({
                   </p>
                 )}
               </FieldHeading>
-              <Select
+              <PopoverSelectField
+                id="annual-objective"
                 value={objectiveId || "unset"}
                 onValueChange={(value) =>
                   setObjective(value === "unset" ? "" : value)
                 }
-              >
-                <SelectTrigger id="annual-objective" className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unset">Pilih nanti</SelectItem>
-                  {objectives.map((objective) => (
-                    <SelectItem value={objective.id} key={objective.id}>
-                      {objective.title}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="Pilih sasaran"
+                options={[
+                  { value: "unset", label: "Pilih nanti" },
+                  ...objectives.map((objective) => ({
+                    value: objective.id,
+                    label: objective.title,
+                  })),
+                ]}
+              />
             </div>
+            {(startCorrection || correction || periods.some((period) => period.scopeLocked)) && assessment !== "reassess" && (
+              <div className="flex items-start gap-3">
+                <Checkbox
+                  id="annual-historical-correction"
+                  checked={correction}
+                  disabled={startCorrection}
+                  aria-describedby="annual-historical-correction-help"
+                  onCheckedChange={(checked) => setCorrection(checked === true)}
+                />
+                <FieldHeading>
+                  <Label htmlFor="annual-historical-correction">Koreksi historis</Label>
+                  <FieldDescription id="annual-historical-correction-help">
+                    Koreksi dapat disertakan pada versi laporan semester yang baru. Cakupan pemantauan dan dokumen periode tetap tersimpan.
+                  </FieldDescription>
+                </FieldHeading>
+              </div>
+            )}
+            {correction && (
+              <div className="space-y-2">
+                <Label htmlFor="annual-effective-from">Tanggal koreksi historis</Label>
+                <Input
+                  id="annual-effective-from"
+                  type="date"
+                  min={`${year}-01-01`}
+                  max={`${year}-12-31`}
+                  value={effectiveFrom}
+                  required
+                  aria-describedby={firstPeriod ? "annual-effective-period" : undefined}
+                  onChange={(event) => setEffectiveFrom(event.target.value)}
+                />
+                {firstPeriod && (
+                  <p id="annual-effective-period" className="text-xs text-muted-foreground">
+                    {firstPeriod.label}{firstPeriod.scopeLocked && " · Cakupan terkunci"}
+                  </p>
+                )}
+              </div>
+            )}
             <div className="space-y-2">
-              <Label htmlFor="annual-reason">
-                Alasan perubahan atau koreksi
-              </Label>
-              <p className="leading-4 text-sm text-muted-foreground">
-                Wajib diisi saat mengubah penilaian risiko yang sudah final.
-              </p>
+              <FieldHeading>
+                <Label htmlFor="annual-reason">Alasan perubahan atau koreksi</Label>
+                <FieldDescription id="annual-reason-help">
+                  Wajib diisi saat mengubah penilaian risiko yang sudah final.
+                </FieldDescription>
+              </FieldHeading>
               <Textarea
                 id="annual-reason"
+                aria-describedby="annual-reason-help"
                 maxLength={2000}
+                required={correction}
                 value={reason}
                 onChange={(event) => setReason(event.target.value)}
               />

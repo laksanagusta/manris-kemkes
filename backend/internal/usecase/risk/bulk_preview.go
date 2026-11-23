@@ -306,7 +306,10 @@ func parseBulkRiskRecords(filename string, content []byte) ([]map[string]string,
 		}
 		return rowsToBulkRiskRecords(rows), nil
 	default:
-		f, err := excelize.OpenReader(bytes.NewReader(content))
+		f, err := excelize.OpenReader(bytes.NewReader(content), excelize.Options{
+			UnzipSizeLimit:    64 << 20,
+			UnzipXMLSizeLimit: 4 << 20,
+		})
 		if err != nil {
 			return nil, apperrors.Wrap(err, "failed to parse spreadsheet")
 		}
@@ -554,8 +557,8 @@ func mapBulkRiskRecord(record map[string]string, rowNumber int, orgs []*entity.O
 	} else if !entity.IsValidRiskCategory(item.Category) {
 		errors = append(errors, "Kategori Risiko tidak valid. Gunakan "+bulkRiskCategoryChoices)
 	}
-	if rawRiskSource := getVal("SUMBER RISIKO"); rawRiskSource != "" && item.RiskSource != "internal" && item.RiskSource != "eksternal" {
-		errors = append(errors, "Kolom Sumber Risiko harus berisi Internal atau external.")
+	if rawRiskSource := getVal("SUMBER RISIKO"); rawRiskSource != "" && !isValidRiskSource(item.RiskSource) {
+		errors = append(errors, "Kolom Sumber Risiko harus berisi Internal, External, atau External & Internal.")
 	}
 	if item.Controllability == "" {
 		errors = append(errors, "Kolom C/UC harus berisi C atau UC.")

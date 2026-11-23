@@ -2,17 +2,12 @@ package http
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
-	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/service"
-	"github.com/manris/backend/internal/middleware"
 	reportuc "github.com/manris/backend/internal/usecase/report"
 )
 
@@ -31,43 +26,11 @@ func NewQuarterlyReportHandler(uc quarterlyReportExecutor, pdf service.Quarterly
 }
 
 func (h *QuarterlyReportHandler) load(c *fiber.Ctx) (*entity.QuarterlyReportData, error) {
-	ids, err := resolveQuarterlyReportScope(c, h.groupResolver)
+	ids, err := resolveRiskReportScope(c, h.groupResolver)
 	if err != nil {
 		return nil, err
 	}
 	return h.uc.Execute(c.Context(), reportuc.QuarterlyReportInput{ComparisonPeriodID: c.Query("compare_period"), ProfileID: c.Query("profile"), PeriodID: c.Query("period"), Cycle: c.Query("cycle"), ComparisonCycle: c.Query("compare_cycle"), OrgIDs: ids})
-}
-
-func resolveQuarterlyReportScope(c *fiber.Ctx, groups organizationGroupReportResolver) ([]uuid.UUID, error) {
-	scope := middleware.GetAccessScope(c)
-	if scope == nil {
-		return nil, domainerrors.ErrForbidden
-	}
-	// A blank comma-list must never become the unrestricted empty-ID sentinel.
-	if raw := c.Query("org_id"); raw != "" && strings.Trim(raw, ", \t\r\n") == "" {
-		return nil, domainerrors.ErrInvalidInput
-	}
-	ids, err := resolveReportOrgIDsFromQuery(c.Context(), scope, c.Query("org_id"), c.Query("organization_group_id"), groups)
-	if err != nil {
-		if errors.Is(err, domainerrors.ErrForbidden) {
-			return nil, err
-		}
-		return nil, domainerrors.Wrap(domainerrors.ErrInvalidInput, "filter organisasi tidak valid")
-	}
-	if c.Query("organization_group_id") != "" && len(ids) == 0 {
-		return nil, domainerrors.ErrInvalidInput
-	}
-	if !scope.IsGlobal && len(ids) == 0 {
-		return nil, domainerrors.ErrForbidden
-	}
-	if !scope.IsGlobal {
-		for _, id := range ids {
-			if !scope.CanRead(id) {
-				return nil, domainerrors.ErrForbidden
-			}
-		}
-	}
-	return ids, nil
 }
 
 func (h *QuarterlyReportHandler) Get(c *fiber.Ctx) error {

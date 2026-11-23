@@ -61,7 +61,6 @@ import {
 } from "@/components/shared/design-system";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   Table,
   TableBody,
@@ -307,7 +306,6 @@ function RiskRowActions({
   risk,
   isReadOnly,
   onContinueMonitoring,
-  onStartMonitoring,
   onArchive,
   onRestore,
   onDeleteDraft,
@@ -315,7 +313,6 @@ function RiskRowActions({
   risk: RiskListItem;
   isReadOnly: boolean;
   onContinueMonitoring?: () => void;
-  onStartMonitoring?: () => void;
   onArchive?: () => void;
   onRestore?: () => void;
   onDeleteDraft?: () => void;
@@ -333,12 +330,6 @@ function RiskRowActions({
           <DropdownMenuItem onClick={onContinueMonitoring}>
             <RefreshCcw className="size-3.5" />
             Lanjutkan Pemantauan
-          </DropdownMenuItem>
-        )}
-        {onStartMonitoring && (
-          <DropdownMenuItem onClick={onStartMonitoring}>
-            <RefreshCcw className="size-3.5" />
-            Mulai Pemantauan
           </DropdownMenuItem>
         )}
         {onArchive && (
@@ -500,7 +491,6 @@ export default function RiskRegisterPage() {
     setCategoryFilter(value);
     setPage(1);
   };
-  const [archiveNote, setArchiveNote] = useState("");
   const [riskToRestore, setRiskToRestore] = useState<RiskListItem | null>(null);
   const [riskToDeleteDraft, setRiskToDeleteDraft] =
     useState<RiskListItem | null>(null);
@@ -789,7 +779,6 @@ export default function RiskRegisterPage() {
     const closeMs = readMotionDuration(document.documentElement, "--modal-close-dur", 150);
     const timer = window.setTimeout(() => {
       setArchiveReason("");
-      setArchiveNote("");
       setArchiveReasonInvalid(false);
     }, reduced ? 0 : closeMs);
     return () => window.clearTimeout(timer);
@@ -819,7 +808,6 @@ export default function RiskRegisterPage() {
       (async () => {
         await archiveRisk(token, current.id, {
           reason: archiveReason.trim(),
-          note: archiveNote.trim() || undefined,
         });
         await refreshRegisterData(token);
       })(),
@@ -982,14 +970,9 @@ export default function RiskRegisterPage() {
             ? () => handleOpenConfirmDialog(risk)
             : undefined
         }
-        onStartMonitoring={
-          canReassess && risk.monitoringStatus !== "draft"
-            ? () => handleOpenConfirmDialog(risk)
-            : undefined
-        }
         onArchive={
           canArchive
-            ? () => { setArchiveReason(""); setArchiveNote(""); setArchiveReasonInvalid(false); setActionRisk(risk); setRiskToArchive(risk); }
+            ? () => { setArchiveReason(""); setArchiveReasonInvalid(false); setActionRisk(risk); setRiskToArchive(risk); }
             : undefined
         }
         onRestore={
@@ -1208,7 +1191,7 @@ export default function RiskRegisterPage() {
         <AlertDialogContent className="register-motion-dialog max-w-lg no-scrollbar">
           <AlertDialogHeader>
             <AlertDialogTitle>Konfirmasi Pemantauan</AlertDialogTitle>
-            <AlertDialogDescription>Periksa risiko sebelum memulai pemantauan.</AlertDialogDescription>
+            <AlertDialogDescription>Periksa risiko sebelum melanjutkan pemantauan.</AlertDialogDescription>
           </AlertDialogHeader>
           <ConfirmationConsequences>
             Draf pemantauan akan dibuat untuk tanggal pengamatan yang Anda isi. Rencana mitigasi sebelumnya akan disalin agar dapat ditinjau sebelum finalisasi.
@@ -1263,7 +1246,7 @@ export default function RiskRegisterPage() {
               onClick={handleCreateReassessment}
               disabled={!monitoringSelection || !isValidMonitoringDate(observedAt)}
             >
-              Mulai / lanjutkan pemantauan
+              Lanjutkan pemantauan
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1319,18 +1302,6 @@ export default function RiskRegisterPage() {
                   required
                 />
                 {archiveReasonInvalid && <p id="archive-reason-error" role="alert" className="text-sm text-destructive">Alasan arsip wajib diisi.</p>}
-              </div>
-              <div className="flex flex-col gap-2">
-                <Label className="text-sm" htmlFor="archive-note">
-                  Catatan tambahan
-                </Label>
-                <Textarea
-                  id="archive-note"
-                  value={archiveNote}
-                  onChange={(event) => setArchiveNote(event.target.value)}
-                  placeholder="Tambahkan konteks jika diperlukan"
-                  className=""
-                />
               </div>
             </div>
             <DialogFooter>

@@ -3,6 +3,7 @@
 import { FormLoadingSkeleton, PageLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { FieldHeading } from "@/components/ui/field";
 import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
+import { TopbarBackButton } from "@/components/shared/design-system/actions/topbar-back-button";
 import { canWriteInOrg } from "@/lib/auth-helpers";
 import { riskTransactionKind } from "@/lib/risk-transaction-kind";
 import { RiskTransactionBadge } from "@/components/shared/design-system/domain/risk-transaction-badge";
@@ -38,7 +39,7 @@ import { RiskSubstanceFields } from "@/components/risk/risk-substance-fields";
 import { Switch } from "@/components/ui/switch";
 
 import { useAuth } from "@/contexts/auth-context";
-import { useSetHeaderActions } from "@/lib/header-actions-context";
+import { useSetHeaderActions, useSetHeaderBack } from "@/lib/header-actions-context";
 import { api, ApiError } from "@/lib/api";
 import { getRiskDetail, updateRiskAssessment } from "@/lib/api/risk-assessment";
 import {
@@ -372,6 +373,10 @@ export default function AssessmentFormPage() {
   const backTarget = returnTarget?.href || (isMonitoringRoute
     ? "/risk/register"
     : "/risk/assessment");
+  const workingPaperReturnLabel = isMonitoringRoute && returnTarget?.href.startsWith("/risk/working-papers/")
+    ? returnTarget.label
+    : null;
+  const setHeaderBack = useSetHeaderBack();
   const monitoringListTarget = "/compliance/monitoring";
   const riskApprovalCapabilityBehavior = useMemo(
     () => getRiskApprovalCapabilityBehavior(user?.capabilities),
@@ -439,6 +444,17 @@ export default function AssessmentFormPage() {
   const hasUnsavedChanges = form.formState.isDirty || hasUnsavedProfileChanges || hasUnsavedPlans ||
     Boolean(monitoringDraft && observedAt !== monitoringObservationDate(monitoringDraft)) ||
     (isMonitoringRoute && scoreReviewed !== Boolean(monitoringDraft?.observedScoreConfirmed));
+
+  const handleReturn = useCallback(() => {
+    if (hasUnsavedChanges && draftRisk?.status === "draft") setExitHref(backTarget);
+    else router.push(backTarget);
+  }, [backTarget, draftRisk?.status, hasUnsavedChanges, router]);
+
+  useEffect(() => {
+    if (!workingPaperReturnLabel) return;
+    setHeaderBack(<TopbarBackButton label={workingPaperReturnLabel} disabled={isSaving} onClick={handleReturn} />);
+    return () => setHeaderBack(null);
+  }, [handleReturn, isSaving, setHeaderBack, workingPaperReturnLabel]);
 
   useEffect(() => {
     if (form.formState.submitCount === 0) {
@@ -1422,13 +1438,10 @@ export default function AssessmentFormPage() {
       <FormPage
         className="risk-form-filter-controls space-y-6"
       >
-      {isMonitoringRoute ? (returnTarget || saveError) && (
+      {isMonitoringRoute ? ((returnTarget && !workingPaperReturnLabel) || saveError) && (
         <div className="w-full min-w-0 space-y-3">
-          {returnTarget && (
-            <ActionButton variant="ghost" disabled={isSaving} onClick={() => {
-              if (hasUnsavedChanges && draftRisk.status === "draft") setExitHref(backTarget);
-              else router.push(backTarget);
-            }}>{returnTarget.label}</ActionButton>
+          {returnTarget && !workingPaperReturnLabel && (
+            <ActionButton variant="ghost" disabled={isSaving} onClick={handleReturn}>{returnTarget.label}</ActionButton>
           )}
           {saveError && <p role="alert" className="text-sm text-destructive">{saveError}</p>}
         </div>
@@ -1468,14 +1481,12 @@ export default function AssessmentFormPage() {
         />
       )}
       {isMonitoringRoute && !isRevision && monitoringDraft?.id && (
-        <DetailSidePanel>
-          <section aria-labelledby="monitoring-treatment-summary" className="min-w-0 space-y-3">
-            <h2 id="monitoring-treatment-summary" className="text-sm font-semibold text-primary">Laporan Penanganan</h2>
-            {monitoringDraft.status === "draft"
-              ? <MitigationStatusTable key={monitoringDraft.id} monitoringId={monitoringDraft.id} />
-              : <FinalMonitoringEvidence key={monitoringDraft.id} monitoringId={monitoringDraft.id} />}
-          </section>
-        </DetailSidePanel>
+        <section aria-labelledby="monitoring-treatment-summary" className="min-w-0 space-y-3">
+          <h2 id="monitoring-treatment-summary" className="text-sm font-medium text-secondary-foreground">Laporan Penanganan</h2>
+          {monitoringDraft.status === "draft"
+            ? <MitigationStatusTable key={monitoringDraft.id} monitoringId={monitoringDraft.id} />
+            : <FinalMonitoringEvidence key={monitoringDraft.id} monitoringId={monitoringDraft.id} />}
+        </section>
       )}
       <div className={cn(
         "grid w-full min-w-0 gap-6 xl:items-start",
@@ -1524,7 +1535,7 @@ export default function AssessmentFormPage() {
                     </div>
                   ) : null}
                 </PropertyList>
-                <ProfilePeriodDetails loaded={profilePeriodWorkspace} periodId={monitoringDraft?.monitoringPeriodId} showProfileVersion />
+                <ProfilePeriodDetails loaded={profilePeriodWorkspace} periodId={monitoringDraft?.monitoringPeriodId} showProfileVersion showSubmissionWindow={false} />
               </section>
             </DetailSidePanel>
           </aside>

@@ -67,6 +67,7 @@ type ListUsersWithFilterInput struct {
 	Status         string
 	Role           string
 	OrganizationID string
+	AllowedOrgIDs  []uuid.UUID
 }
 
 type ListUsersWithFilterOutput struct {
@@ -92,6 +93,7 @@ func (uc *ListUsersWithFilterUseCase) Execute(ctx context.Context, input ListUse
 		Status:         input.Status,
 		Role:           input.Role,
 		OrganizationID: input.OrganizationID,
+		AllowedOrgIDs:  input.AllowedOrgIDs,
 	})
 	if err != nil {
 		return nil, err

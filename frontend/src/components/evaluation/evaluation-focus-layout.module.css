@@ -1,0 +1,42 @@
+.indicator {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  border-radius: var(--control-radius);
+  background: var(--muted);
+  transition:
+    transform var(--page-slide-dur) var(--page-slide-ease),
+    width var(--page-slide-dur) var(--page-slide-ease),
+    height var(--page-slide-dur) var(--page-slide-ease);
+}
+
+/* Keep the active panel in normal flow. Use the shared Transitions.dev page
+   timing and distance for the entrance without retaining a second form. */
+.panel[data-direction] {
+  transition:
+    opacity var(--page-fade-dur) var(--page-fade-ease),
+    transform var(--page-slide-dur) var(--page-slide-ease);
+}
+
+.panel[data-direction="forward"] {
+  --evaluation-step-offset: var(--page-slide-distance);
+}
+
+.panel[data-direction="back"] {
+  --evaluation-step-offset: calc(var(--page-slide-distance) * -1);
+}
+
+@starting-style {
+  .panel[data-direction] {
+    opacity: 0;
+    transform: translateX(var(--evaluation-step-offset));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .indicator,
+  .panel[data-direction] {
+    transition: none;
+  }
+}

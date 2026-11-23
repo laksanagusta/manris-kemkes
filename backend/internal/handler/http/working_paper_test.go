@@ -143,7 +143,8 @@ func (r *handlerCreateWorkingPaperRepo) CountByOrgAndCycle(context.Context, uuid
 func (r *handlerCreateWorkingPaperRepo) PreviewPeriodRoster(context.Context, uuid.UUID, string) (*entity.WorkingPaperRosterPreview, error) {
 	return nil, nil
 }
-func (r *handlerCreateWorkingPaperRepo) CreateWithPeriodRoster(context.Context, *entity.WorkingPaper, string, []entity.WorkingPaperRosterDecision) error {
+func (r *handlerCreateWorkingPaperRepo) CreateWithPeriodRoster(_ context.Context, wp *entity.WorkingPaper, _ string, _ []entity.WorkingPaperRosterDecision) error {
+	r.created = wp
 	return nil
 }
 func (r *handlerCreateWorkingPaperRepo) ListSigningBlockers(context.Context, uuid.UUID) ([]entity.WorkingPaperSigningBlocker, error) {
@@ -176,6 +177,7 @@ func TestWorkingPaperCreatePassesFullAccessibleOrgScope(t *testing.T) {
 	body, err := json.Marshal(map[string]any{
 		"title":            "KK Semester I",
 		"assessment_cycle": "2026-Q2",
+		"organization_id":  orgTwo,
 		"roster_revision":  "rev-1",
 		"roster_decisions": []map[string]any{{
 			"version_group_id": riskRepo.risk.VersionGroupID.String(),
@@ -215,6 +217,12 @@ func TestWorkingPaperCreatePassesFullAccessibleOrgScope(t *testing.T) {
 	if resp.StatusCode != fiber.StatusCreated {
 		payload, _ := io.ReadAll(resp.Body)
 		t.Fatalf("expected status 201, got %d: %s", resp.StatusCode, payload)
+	}
+	if wpRepo.created == nil || wpRepo.created.OrgID != orgTwo {
+		t.Fatal("expected the authorized organization to be passed to the repository")
+	}
+	if signer := wpRepo.created.Signatories[0]; signer.SignerName != "" || signer.SignerPangkat != "" {
+		t.Fatal("expected signer attributes to be resolved by the repository")
 	}
 }
 

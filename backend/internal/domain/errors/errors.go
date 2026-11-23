@@ -139,6 +139,8 @@ var (
 	// ── Monitoring ──
 	ErrRiskMonitoringInProgress       = &AppError{Code: "RISK_MONITORING_IN_PROGRESS", Message: "Selesaikan atau batalkan draf pemantauan risiko ini terlebih dahulu.", Err: ErrConflict}
 	ErrRiskRevisionInProgress         = &AppError{Code: "RISK_REVISION_IN_PROGRESS", Message: "Selesaikan atau batalkan draf revisi risiko ini terlebih dahulu.", Err: ErrConflict}
+	ErrRiskRevisionPeriodInProgress   = &AppError{Code: "RISK_REVISION_PERIOD_IN_PROGRESS", Message: "Proses pemantauan periode ini belum selesai.", Err: ErrConflict}
+	ErrUserOwnsRisks                  = &AppError{Code: "USER_OWNS_RISKS", Message: "Akun masih tercatat sebagai pemilik risiko. Alihkan kepemilikan pada risiko yang bisa diedit atau nonaktifkan akun untuk mempertahankan riwayat.", Err: ErrConflict}
 	ErrRiskMonitoringFilterInvalid    = newValidationError("RISK_MONITORING_FILTER_INVALID", "Pilih periode triwulan dan status pemantauan yang valid.")
 	ErrMonitoringWindowClosed         = newValidationError("MONITORING_WINDOW_CLOSED", "Pemantauan terkunci. Pengisian hanya dibuka pada bulan pertama triwulan berikutnya, menggunakan waktu Jakarta.")
 	ErrMonitoringReviewChanged        = newStatusError("MONITORING_REVIEW_CHANGED", "Draf atau laporan penanganan berubah. Tinjau kembali sebelum finalisasi.")
@@ -185,7 +187,8 @@ var (
 	ErrModeRequired                = newValidationError("MODE_REQUIRED", "mode wajib diisi")
 	ErrControllabilityInvalid      = newValidationError("CONTROLLABILITY_INVALID", "controllability harus C atau UC")
 	ErrControlEffectivenessInvalid = newValidationError("CONTROL_EFFECTIVENESS_INVALID", "efektivitas kontrol harus Efektif atau Tidak Efektif")
-	ErrRiskSourceInvalid           = newValidationError("RISK_SOURCE_INVALID", "sumber risiko harus Internal atau Eksternal")
+	ErrRiskSourceInvalid           = newValidationError("RISK_SOURCE_INVALID", "pilih Internal, External, atau External & Internal sebagai sumber risiko")
+	ErrRiskOwnerInvalid            = newValidationError("RISK_OWNER_INVALID", "pemilik risiko harus pengguna aktif di unit pemilik risiko")
 	ErrTreatmentOptionInvalid      = newValidationError("TREATMENT_OPTION_INVALID", "opsi perlakuan harus Menghindari Risiko, Berbagi Risiko, Mitigasi, atau Menerima Risiko")
 	ErrSourceRiskOrgRequired       = newValidationError("SOURCE_RISK_ORG_REQUIRED", "risiko sumber harus memiliki organisasi")
 	ErrSourceRiskRequired          = newValidationError("SOURCE_RISK_REQUIRED", "risiko sumber wajib diisi")

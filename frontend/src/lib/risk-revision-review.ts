@@ -1,3 +1,4 @@
+import { normalizeRiskSource, riskSourceLabels } from "./risk-source";
 import { diffRiskSubstance, treatmentOptionLabels, type RiskSubstanceSource } from "./risk-assessment-substance";
 import { riskCategoryLabels } from "./risk";
 import type { RiskRegisterPayloadMitigation } from "./risk-register-payload";
@@ -6,6 +7,8 @@ type RevisionPlan = RiskRegisterPayloadMitigation & { ownerUserId?: string };
 
 type RevisionProfile = Omit<RiskSubstanceSource, "category" | "mitigations"> & {
   category?: string | null;
+  riskOwnerId?: string;
+  riskOwnerName?: string;
   probability?: number;
   impact?: number;
   currentAssessment?: { probability: number; impact: number };
@@ -27,7 +30,7 @@ export function canSubmitRiskRevision(changes: RiskRevisionChange[] | null, reas
 const valueLabels: Record<string, Record<string, string>> = {
   category: riskCategoryLabels,
   treatmentOption: treatmentOptionLabels,
-  riskSource: { internal: "Internal", eksternal: "Eksternal" },
+  riskSource: riskSourceLabels,
   controllability: { C: "Dapat dikendalikan", UC: "Tidak dapat dikendalikan" },
   controlEffectiveness: { efektif: "Efektif", tidak_efektif: "Tidak efektif" },
 };
@@ -70,7 +73,7 @@ function normalizeProfile(profile: RevisionProfile): RiskSubstanceSource {
   return {
     ...profile,
     category: profile.category ?? "",
-    riskSource: profile.riskSource === "eksternal" ? "eksternal" : "internal",
+    riskSource: normalizeRiskSource(profile.riskSource),
     controllability: profile.controllability === "UC" ? "UC" : "C",
     targetProbability: profile.targetProbability ?? 0,
     targetImpact: profile.targetImpact ?? 0,
@@ -85,6 +88,15 @@ export function getRiskRevisionChanges(previous: RevisionProfile, candidate: Rev
     { field: "impact", label: "Dampak penilaian", before: previous.currentAssessment?.impact ?? previous.impact ?? 0, after: candidate.impact ?? 0 },
     { field: "nextReviewDate", label: "Jadwal pelaksanaan", before: previous.nextReviewDate?.trim() ?? "", after: candidate.nextReviewDate?.trim() ?? "" },
   ].filter(({ before, after }) => before !== after);
+
+  if ((previous.riskOwnerId ?? "") !== (candidate.riskOwnerId ?? "")) {
+    additionalFields.push({
+      field: "riskOwnerId",
+      label: "Pemilik Risiko",
+      before: previous.riskOwnerName ?? "",
+      after: candidate.riskOwnerName ?? "",
+    });
+  }
 
   return [...changes, ...additionalFields].map(({ field, label, before, after }) => ({
     field,

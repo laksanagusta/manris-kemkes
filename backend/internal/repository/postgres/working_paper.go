@@ -12,6 +12,7 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/manris/backend/internal/domain/entity"
+	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
 )
 
@@ -131,9 +132,8 @@ const workingPaperObservationScopeSQL = `rm.superseded_by_monitoring_id IS NULL 
  (wp.profile_version_id IS NULL AND rm.assessment_cycle = wp.assessment_cycle)
  OR (wp.profile_version_id IS NOT NULL AND rm.observed_at<=wp.observation_cutoff
  AND (wp.monitoring_period_id IS NULL OR (rm.monitoring_period_id=wp.monitoring_period_id AND rm.monitoring_profile_id=wp.monitoring_profile_id)) AND EXISTS (
-   SELECT 1 FROM annual_risk_profile_members member
-   WHERE member.profile_version_id=wp.profile_version_id AND member.version_group_id=rm.version_group_id
-     AND rm.observed_at>=member.effective_from
+   SELECT 1 FROM annual_monitoring_members_as_of(wp.profile_version_id,rm.observed_at) member
+   WHERE member.version_group_id=rm.version_group_id
  )))`
 
 func workingPaperMonitoringExpr() string {
@@ -586,7 +586,78 @@ func (r *workingPaperRepository) loadWorkingPaperContent(ctx context.Context, q 
 	for _, sig := range sigs {
 		wp.Signatories = append(wp.Signatories, *sig)
 	}
-	return wp.RestoreSigningContent()
+	if err := wp.RestoreSigningContent(); err != nil {
+		return err
+	}
+	if wp.Status == entity.WorkingPaperStatusDraft {
+		return resolveWorkingPaperSigningIdentities(ctx, q, wp, true)
+	}
+	if wp.Status == entity.WorkingPaperStatusSigning && !wp.SignerIdentitiesVerified {
+		return resolveWorkingPaperSigningIdentities(ctx, q, wp, false)
+	}
+	return nil
+}
+
+// Resolve draft attributes from the directory. An old signing snapshot may
+// only be checked, since modifying it would invalidate the reviewed hash.
+func resolveWorkingPaperSigningIdentities(ctx context.Context, q workingPaperReader, wp *entity.WorkingPaper, refreshDraft bool) error {
+	if len(wp.Signatories) == 0 {
+		return nil
+	}
+	signatoryIDs := make([]uuid.UUID, len(wp.Signatories))
+	for i, signatory := range wp.Signatories {
+		signatoryIDs[i] = signatory.UserID
+	}
+	rows, err := q.Query(ctx, `
+		SELECT signer.id, signer.name, signer.nip, signer.jabatan, signer.pangkat
+		FROM users signer
+		JOIN users creator ON creator.id = $1
+		WHERE signer.id = ANY($2::uuid[]) AND signer.status = $3
+		  AND (creator.role = $4 OR signer.organization_id = creator.organization_id)
+	`, wp.CreatedBy, uuidArrayToStrings(signatoryIDs), entity.UserStatusActive, entity.RoleSuperAdmin)
+	if err != nil {
+		return fmt.Errorf("resolve working paper signatories: %w", err)
+	}
+	defer rows.Close()
+
+	type signingIdentity struct{ name, nip, jabatan, pangkat string }
+	identities := make(map[uuid.UUID]signingIdentity, len(wp.Signatories))
+	for rows.Next() {
+		var id uuid.UUID
+		var identity signingIdentity
+		if err := rows.Scan(&id, &identity.name, &identity.nip, &identity.jabatan, &identity.pangkat); err != nil {
+			return fmt.Errorf("read working paper signatory identity: %w", err)
+		}
+		identities[id] = identity
+	}
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("iterate working paper signatory identities: %w", err)
+	}
+
+	for i := range wp.Signatories {
+		sig := &wp.Signatories[i]
+		identity, found := identities[sig.UserID]
+		if refreshDraft {
+			sig.SignerName, sig.SignerNIP = identity.name, identity.nip
+			sig.SignerJabatan, sig.SignerPangkat = identity.jabatan, identity.pangkat
+		}
+		if !found || sig.SignerName != identity.name || sig.SignerNIP != identity.nip ||
+			sig.SignerJabatan != identity.jabatan || sig.SignerPangkat != identity.pangkat {
+			wp.SignerIdentityMismatch = true
+		}
+	}
+	wp.SignerIdentitiesVerified = !wp.SignerIdentityMismatch
+	return nil
+}
+
+func resolveNewWorkingPaperSignatories(ctx context.Context, q workingPaperReader, wp *entity.WorkingPaper) error {
+	if err := resolveWorkingPaperSigningIdentities(ctx, q, wp, true); err != nil {
+		return err
+	}
+	if wp.SignerIdentityMismatch {
+		return domainerrors.ErrInvalidInput
+	}
+	return nil
 }
 
 func (r *workingPaperRepository) updateWorkingPaper(ctx context.Context, execer workingPaperExecer, wp *entity.WorkingPaper) error {
@@ -698,6 +769,9 @@ func (r *workingPaperRepository) Create(ctx context.Context, wp *entity.WorkingP
 	}
 	defer tx.Rollback(ctx)
 
+	if err := resolveNewWorkingPaperSignatories(ctx, tx, wp); err != nil {
+		return err
+	}
 	if err := lockOrganizationForWorkingPaperSequence(ctx, tx, wp.OrgID); err != nil {
 		return err
 	}

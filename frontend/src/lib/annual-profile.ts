@@ -66,7 +66,7 @@ export function annualMemberReadiness(
       ready: true,
       assessment: true,
       objective: Boolean(member.baseline.objective),
-      label: "Siap",
+      label: "Final",
       tone: "success",
     };
   }
@@ -76,7 +76,7 @@ export function annualMemberReadiness(
       ready: false,
       assessment: false,
       objective,
-      label: "Penilaian belum ditentukan",
+      label: "Belum dinilai",
       tone: "warning",
     };
   }
@@ -85,7 +85,7 @@ export function annualMemberReadiness(
     ready: assessment,
     assessment,
     objective,
-    label: assessment ? "Siap" : "Penilaian belum final",
+    label: assessment ? "Final" : "Draf",
     tone: assessment ? "success" : "info",
   };
 }

@@ -52,6 +52,7 @@ type CreateMeetingMinuteInput struct {
 	OrganizationID *uuid.UUID
 	CreatedBy      uuid.UUID
 	RiskIDs        []uuid.UUID
+	Scope          *AccessScope
 }
 
 type MeetingMinuteWithRisks struct {

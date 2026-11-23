@@ -20,6 +20,7 @@ function getProfileRow(risk: WorkingPaperRiskData): ExportableRiskRow {
   const prev = risk.previous;
   const monitoringSource = risk.monitoring;
   const src = monitoringSource ? risk : (prev ?? risk);
+  const sourceActions = getMitigationActions(src.mitigations, src.mitigation_details);
   const profileRiskLevel = monitoringSource
     ? formatRiskLevelLabel(monitoringSource.sourceLevel)
     : src === prev
@@ -46,9 +47,8 @@ function getProfileRow(risk: WorkingPaperRiskData): ExportableRiskRow {
     risk_appetite_display: src === prev ? (prev.risk_appetite_display ?? prev.risk_appetite) : (risk.risk_appetite_display ?? risk.risk_appetite),
     treatment_option: src.treatment_option ?? risk.treatment_option,
     treatment_option_display: src === prev ? (prev.treatment_option_display ?? prev.treatment_option) : (risk.treatment_option_display ?? risk.treatment_option),
-    mitigations: src.mitigations ?? risk.mitigations,
+    mitigations: sourceActions.length > 0 ? sourceActions : getMitigationActions(risk.mitigations, risk.mitigation_details),
     mitigation_due_dates: src.mitigation_due_dates ?? risk.mitigation_due_dates,
-    mitigation_details: src.mitigation_details ?? risk.mitigation_details,
     // Target values — prefer previous snapshot and canonical target_nilai
     target_probability: src.target_probability ?? risk.target_probability,
     target_impact: src.target_impact ?? risk.target_impact,
@@ -58,20 +58,8 @@ function getProfileRow(risk: WorkingPaperRiskData): ExportableRiskRow {
   };
 }
 
-const HEADER_FILL: ExcelJS.FillPattern = {
-  type: "pattern",
-  pattern: "solid",
-  fgColor: { argb: "FFD9D9D9" },
-};
-
 const BASE_FONT_NAME = "Bookman Old Style";
-
-const HEADER_FONT: Partial<ExcelJS.Font> = {
-  name: BASE_FONT_NAME,
-  bold: true,
-  color: { argb: "FF000000" },
-  size: 11,
-};
+const HEADER_LINE_HEIGHT = 16;
 
 const DATA_FONT: Partial<ExcelJS.Font> = {
   name: BASE_FONT_NAME,
@@ -90,48 +78,18 @@ const WRAP_ALIGNMENT: Partial<ExcelJS.Alignment> = {
   wrapText: true,
 };
 
-type WorkingPaperSheetMetadata = {
-  objective: string;
-  target: string;
-  keyIndicator: string;
-  targetValue: string;
-  program: string;
-  activity: string;
-  riskOwnerUnit: string;
-  riskOwnerName: string;
-  riskManagementTeam: string;
-  assessmentDate: string;
-  riskPeriod: string;
-  riskUpdateDate: string;
+// Use sRGB versions of the 300 shades from the workbook's risk-level hues.
+const RISK_LEVEL_FILLS: Record<string, string> = {
+  sangat_tinggi: "FFFFA2A2",
+  tinggi: "FFFFB86A",
+  sedang: "FFFFDF20",
+  rendah: "FF8EC5FF",
+  sangat_rendah: "FF5EE9B5",
 };
 
-const DEFAULT_WORKING_PAPER_METADATA = {
-  objective:
-    "Terwujudnya Alat Angkut, Orang, Barang, dan Lingkungan yang bebas dari Penyakit Menular dan Faktor Risiko Kesehatan",
-  target:
-    "(1) Meningkatnya Pelayanan Kekarantinaan di Pintu Masuk Negara dan Wilayah\n\n(2) Meningkatnya Dukungan Manajemen dan Pelaksanaan Tugas Teknis Lainnya pada Program Penanggulangan Penyakit",
-  keyIndicator:
-    "(1) Pintu Masuk yang melaksanakan deteksi penyakit dan faktor risiko kesehatan berpotensi KLB/Wabah dengan Target 76%\n(2) Nilai Maturitas Manajemen Risiko dengan Target Nilai 4",
-  targetValue: "76% untuk indikator 1 dan Nilai 4 indikator 2",
-  program:
-    "Persentase Faktor Risiko Penyakit di Pintu Masuk Negara yang dikendalikan\nNilai Maturitas Sistem Pengendalian Intern Pemerintah Terintegrasi (SPIPT)",
-  activity:
-    "Pelaksanaan surveilans dan deteksi dini penyakit dan faktor risiko kesehatan berpotensi KLB/Wabah di pintu masuk sesuai standar",
-  riskManagementTeam:
-    "Para Ketua Tim Kerja 1,2,3,4, Bendahara Penerimaan, Bendahara Pengeluaran, dan TIM SKI",
-  riskUpdateDate: "-",
-} as const;
-
-// ── Risk level color map (matches app labels in src/lib/risk.ts) ──
-const RISK_LEVEL_COLORS: Record<
-  string,
-  { bg: string; font: string }
-> = {
-  sangat_tinggi: { bg: "FFEF4444", font: "FFFFFFFF" }, // red-500, white
-  tinggi:        { bg: "FFF97316", font: "FFFFFFFF" }, // orange-500, white
-  sedang:        { bg: "FFEAB308", font: "FF000000" }, // yellow-500, black
-  rendah:        { bg: "FF3B82F6", font: "FFFFFFFF" }, // blue-500, white
-  sangat_rendah: { bg: "FF10B981", font: "FFFFFFFF" }, // emerald-500, white
+const RISK_LEVEL_FONT: Partial<ExcelJS.Font> = {
+  ...DATA_FONT,
+  color: { argb: "FF000000" },
 };
 
 const RISK_LEVEL_LABELS: Record<string, string> = {
@@ -151,43 +109,10 @@ function formatRiskLevelLabel(value: string | undefined | null): string {
 function applyRiskLevelStyle(cell: ExcelJS.Cell, tingkatRisiko: string | undefined | null): void {
   if (!tingkatRisiko) return;
   const key = tingkatRisiko.trim().toLowerCase().replace(/\s+/g, "_");
-  const colors = RISK_LEVEL_COLORS[key];
-  if (!colors) return;
-  cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: colors.bg } };
-  cell.font = { ...DATA_FONT, color: { argb: colors.font } };
-}
-
-function applyNilaiStyle(cell: ExcelJS.Cell, nilai: number | string | undefined | null): void {
-  if (nilai === undefined || nilai === null || nilai === "") return;
-  const n = typeof nilai === "string" ? parseFloat(nilai) : nilai;
-  if (isNaN(n)) return;
-  let level: string;
-  if (n >= 20) level = "sangat_tinggi";
-  else if (n >= 15) level = "tinggi";
-  else if (n >= 10) level = "sedang";
-  else if (n >= 5) level = "rendah";
-  else level = "sangat_rendah";
-  applyRiskLevelStyle(cell, level);
-}
-
-function estimateRowHeight(worksheet: ExcelJS.Worksheet, rowNum: number, startCol: number, endCol: number): number {
-  const row = worksheet.getRow(rowNum);
-  let maxLines = 1;
-  for (let c = startCol; c <= endCol; c++) {
-    const val = row.getCell(c).value;
-    if (typeof val === "string") {
-      const colWidth = worksheet.getColumn(c).width ?? 10;
-      const charsPerLine = Math.max(colWidth * 1.2, 1);
-      const lines = val.split("\n");
-      let totalLines = 0;
-      for (const line of lines) {
-        totalLines += Math.max(1, Math.ceil(line.length / charsPerLine));
-      }
-      maxLines = Math.max(maxLines, totalLines);
-    }
+  cell.font = RISK_LEVEL_FONT;
+  if (Object.hasOwn(RISK_LEVEL_FILLS, key)) {
+    cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: RISK_LEVEL_FILLS[key] } };
   }
-  // ~15pt per line of text, minimum 50pt
-  return Math.max(50, maxLines * 15);
 }
 
 function joinArray(values: string[] | undefined | null): string {
@@ -195,12 +120,13 @@ function joinArray(values: string[] | undefined | null): string {
   return values.filter(Boolean).join("\n");
 }
 
-function formatMitigationNarrative(risk: ExportableRiskRow): string {
-  const detailBlocks = (risk.mitigation_details as string[] | undefined)?.filter(Boolean) ?? [];
-  if (detailBlocks.length > 0) {
-    return detailBlocks.join("\n\n");
-  }
-  return joinArray(risk.mitigations as string[] | undefined);
+function getMitigationActions(actions?: string[], legacyDetails?: string[]): string[] {
+  const actionLines = actions?.filter(Boolean) ?? [];
+  if (actionLines.length > 0) return actionLines;
+
+  return (legacyDetails ?? []).map((detail) =>
+    detail.replace(/^Aksi: /, "").replace(/ · Jenis: [^\r\n]*$/, ""),
+  ).filter(Boolean);
 }
 
 function safeStr(value: string | undefined | null): string {
@@ -252,74 +178,10 @@ function todayDateString(): string {
   return `${yyyy}${mm}${dd}`;
 }
 
-function formatLongDate(dateStr: string | undefined | null): string {
-  if (!dateStr) return "-";
-  try {
-    const date = new Date(dateStr);
-    if (Number.isNaN(date.getTime())) return dateStr;
-    return new Intl.DateTimeFormat("id-ID", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-      timeZone: "Asia/Jakarta",
-    }).format(date);
-  } catch {
-    return dateStr;
-  }
-}
-
-function getRiskPeriodLabel(assessmentCycle: string | undefined | null, createdAt: string | undefined | null): string {
-  const createdDate = createdAt ? new Date(createdAt) : null;
-  const createdValid = createdDate && !Number.isNaN(createdDate.getTime()) ? createdDate : null;
-  const match = (assessmentCycle ?? "").trim().match(/^(\d{4})-(Q[1-4]|H[12])$/i);
-  if (!match) return "-";
-
-  const year = Number(match[1]);
-  const period = match[2].toUpperCase();
-  const quarter = period === "H1" ? 2 : period === "H2" ? 4 : Number(period.slice(1));
-  const fallbackStartMonth = (quarter - 1) * 3;
-  const endMonth = fallbackStartMonth + 2;
-  const startMonth = createdValid && createdValid.getUTCFullYear() === year
-    ? Math.min(Math.max(createdValid.getUTCMonth(), fallbackStartMonth), endMonth)
-    : fallbackStartMonth;
-
-  const startLabel = new Intl.DateTimeFormat("id-ID", {
-    month: "long",
-    timeZone: "UTC",
-  }).format(new Date(Date.UTC(year, startMonth, 1)));
-  const endLabel = new Intl.DateTimeFormat("id-ID", {
-    month: "long",
-    timeZone: "UTC",
-  }).format(new Date(Date.UTC(year, endMonth, 1)));
-
-  return `${startLabel} s/d ${endLabel} ${year}`;
-}
-
-function buildSheetMetadata(workingPaper: WorkingPaper, risks: WorkingPaperRiskData[]): WorkingPaperSheetMetadata {
-  const primaryOrgName = risks.find((risk) => safeStr(risk.org_name).trim().length > 0)?.org_name
-    ?? "";
-  const riskOwnerName = primaryOrgName.toLowerCase().startsWith("kepala ")
-    ? primaryOrgName
-    : primaryOrgName
-      ? `Kepala ${primaryOrgName}`
-      : "Kepala";
-
-  return {
-    ...DEFAULT_WORKING_PAPER_METADATA,
-    riskOwnerUnit: primaryOrgName,
-    riskOwnerName,
-    assessmentDate: formatLongDate(workingPaper.created_at),
-    riskPeriod: workingPaper.observation_cutoff
-      ? `Per ${formatLongDate(workingPaper.observation_cutoff)}`
-      : getRiskPeriodLabel(workingPaper.assessment_cycle, workingPaper.created_at),
-  };
-}
-
 function applyWorkingPaperMetadataBlock(
   ws: ExcelJS.Worksheet,
   firstCol: number,
   lastCol: number,
-  metadata: WorkingPaperSheetMetadata,
 ): void {
   const titleRow = 2;
   ws.mergeCells(titleRow, firstCol + 4, titleRow, Math.min(lastCol, firstCol + 15));
@@ -345,72 +207,42 @@ function applyWorkingPaperMetadataBlock(
 
   const rows: Array<{
     row: number;
-    leftLabel?: string;
-    leftValue?: string;
-    rightLabel?: string;
-    rightValue?: string;
-    leftHeight?: number;
-    rightAlign?: Partial<ExcelJS.Alignment>;
+    leftLabel: string;
+    rightLabel: string;
   }> = [
     {
       row: 4,
       leftLabel: "Tujuan  * :",
-      leftValue: metadata.objective,
       rightLabel: "Unit Pemilik Risiko  * :",
-      rightValue: `${metadata.riskOwnerUnit} * :`,
-      leftHeight: 54,
-      rightAlign: centerValueAlign,
     },
     {
       row: 5,
       leftLabel: "Sasaran * :",
-      leftValue: metadata.target,
       rightLabel: "Nama Pemilik Risiko * :",
-      rightValue: `${metadata.riskOwnerName} * :`,
-      leftHeight: 60,
-      rightAlign: centerValueAlign,
+    },
+    {
+      row: 6,
+      leftLabel: "Indikator Kinerja Utama * :",
+      rightLabel: "Nama Tim Pengelola Risiko * :",
     },
     {
       row: 7,
-      leftLabel: "Indikator Kinerja Utama * :",
-      leftValue: metadata.keyIndicator,
-      rightLabel: "Nama Tim Pengelola Risiko * :",
-      rightValue: `${metadata.riskManagementTeam} * :`,
-      leftHeight: 60,
-      rightAlign: centerValueAlign,
+      leftLabel: "Target * :",
+      rightLabel: "Tgl Penilaian Risiko * :",
+    },
+    {
+      row: 8,
+      leftLabel: "Program * :",
+      rightLabel: "Periode Risiko * :",
     },
     {
       row: 9,
-      leftLabel: "Target * :",
-      leftValue: metadata.targetValue,
-      rightLabel: "Tgl Penilaian Risiko * :",
-      rightValue: `${metadata.assessmentDate} * :`,
-      rightAlign: centerValueAlign,
-    },
-    {
-      row: 10,
-      leftLabel: "Program * :",
-      leftValue: metadata.program,
-      rightLabel: "Periode Risiko * :",
-      rightValue: `${metadata.riskPeriod} * :`,
-      leftHeight: 48,
-      rightAlign: centerValueAlign,
-    },
-    {
-      row: 11,
       leftLabel: "Kegiatan * :",
-      leftValue: metadata.activity,
       rightLabel: "Tgl Update Risiko * :",
-      rightValue: `${metadata.riskUpdateDate} * :`,
-      leftHeight: 42,
-      rightAlign: centerValueAlign,
     },
   ];
 
-  rows.forEach(({ row, leftLabel, leftValue, rightLabel, rightValue, leftHeight, rightAlign }) => {
-    const rowRef = ws.getRow(row);
-    if (leftHeight) rowRef.height = leftHeight;
-
+  rows.forEach(({ row, leftLabel, rightLabel }) => {
     ws.mergeCells(row, leftLabelCol, row, leftLabelEndCol);
     const leftLabelCell = ws.getCell(row, leftLabelCol);
     leftLabelCell.value = leftLabel;
@@ -419,7 +251,6 @@ function applyWorkingPaperMetadataBlock(
 
     ws.mergeCells(row, leftValueStartCol, row, leftValueEndCol);
     const leftValueCell = ws.getCell(row, leftValueStartCol);
-    leftValueCell.value = leftValue;
     leftValueCell.font = valueFont;
     leftValueCell.alignment = leftValueAlign;
 
@@ -431,9 +262,8 @@ function applyWorkingPaperMetadataBlock(
 
     ws.mergeCells(row, rightValueStartCol, row, rightValueEndCol);
     const rightValueCell = ws.getCell(row, rightValueStartCol);
-    rightValueCell.value = rightValue;
     rightValueCell.font = valueFont;
-    rightValueCell.alignment = rightAlign ?? leftValueAlign;
+    rightValueCell.alignment = centerValueAlign;
   });
 }
 
@@ -448,10 +278,11 @@ function applyDataBorders(
   for (let r = startRow; r <= endRow; r++) {
     const row = worksheet.getRow(r);
     row.alignment = WRAP_ALIGNMENT;
-    row.font = DATA_FONT;
-    row.height = estimateRowHeight(worksheet, r, startCol, endCol);
+    // Leave the height automatic so Excel can fit wrapped data to the actual font.
     for (let c = startCol; c <= endCol; c++) {
-      row.getCell(c).border = THIN_BORDER;
+      const cell = row.getCell(c);
+      cell.font ??= DATA_FONT;
+      cell.border = THIN_BORDER;
     }
   }
 }
@@ -459,12 +290,13 @@ function applyDataBorders(
 // ── Column B offset constant ──
 // All 3 data sheets start data at column B (col 2). Column A is an empty margin.
 const DATA_START_COL = 2;
+const WORKING_PAPER_HEADER_ROW = 11;
 
 function buildProfilRisikoSheet(
   workbook: ExcelJS.Workbook,
   risks: ExportableRiskRow[],
   signatories: WorkingPaperSignatory[],
-  metadata?: WorkingPaperSheetMetadata,
+  includeWorkingPaperSections = false,
 ): void {
   const ws = workbook.addWorksheet("Profil Risiko");
 
@@ -500,7 +332,7 @@ function buildProfilRisikoSheet(
     ws.getColumn(FIRST_COL + index).width = width;
   });
 
-  if (metadata) applyWorkingPaperMetadataBlock(ws, FIRST_COL, LAST_COL, metadata);
+  if (includeWorkingPaperSections) applyWorkingPaperMetadataBlock(ws, FIRST_COL, LAST_COL);
 
   const H_FILL: ExcelJS.FillPattern = {
     type: "pattern",
@@ -518,13 +350,13 @@ function buildProfilRisikoSheet(
     cell.border = THIN_BORDER;
   }
 
-  // Working papers reserve rows 1–12 for metadata; standalone profiles start at row 1.
-  const HEADER_ROW_1 = metadata ? 13 : 1;
+  // Standalone profiles start at row 1.
+  const HEADER_ROW_1 = includeWorkingPaperSections ? WORKING_PAPER_HEADER_ROW : 1;
   const HEADER_ROW_2 = HEADER_ROW_1 + 1;
   const HEADER_ROW_3 = HEADER_ROW_1 + 2;
   const DATA_START_ROW = HEADER_ROW_1 + 3;
 
-  // ── Row 13: main headers ──
+  // ── main headers ──
   const row1 = ws.getRow(HEADER_ROW_1);
   const mainHeaders: (string | null)[] = [
     "NO",
@@ -543,9 +375,9 @@ function buildProfilRisikoSheet(
   mainHeaders.forEach((header, index) => {
     hCell(row1.getCell(FIRST_COL + index), header ?? undefined);
   });
-  row1.height = 32;
+  row1.height = HEADER_LINE_HEIGHT;
 
-  // ── Row 14: sub-headers (only under TARGET PENURUNAN RISIKO) ──
+  // ── sub-headers (only under TARGET PENURUNAN RISIKO) ──
   const row2 = ws.getRow(HEADER_ROW_2);
   for (let col = FIRST_COL; col <= FIRST_COL + 12; col++) {
     hCell(row2.getCell(col));
@@ -554,16 +386,17 @@ function buildProfilRisikoSheet(
   subHeaders.forEach((header, index) => {
     hCell(row2.getCell(FIRST_COL + 13 + index), header);
   });
-  row2.height = 24;
+  row2.height = HEADER_LINE_HEIGHT;
 
-  // ── Row 15: column numbers ──
+  // ── column numbers ──
   const row3 = ws.getRow(HEADER_ROW_3);
   for (let col = 0; col < COL_COUNT; col++) {
-    hCell(row3.getCell(FIRST_COL + col), col + 1);
+    const cell = row3.getCell(FIRST_COL + col);
+    hCell(cell, col + 1);
+    cell.font = DATA_FONT;
   }
-  row3.height = 20;
 
-  // Merges: A–M (cols 2-14) merge rows 13-14 vertically
+  // Merges: A–M (cols 2-14) merge the two header rows vertically
   for (let col = FIRST_COL; col <= FIRST_COL + 12; col++) {
     ws.mergeCells(HEADER_ROW_1, col, HEADER_ROW_2, col);
   }
@@ -589,7 +422,9 @@ function buildProfilRisikoSheet(
     dataRow.getCell(c + 9).value = safeNum(risk.prioritas_risiko);
     dataRow.getCell(c + 10).value = safeStr(risk.existing_control);
     setTextCell(dataRow.getCell(c + 11), risk.jadwal_pelaksanaan);
-    dataRow.getCell(c + 12).value = safeStr(risk.penanggung_jawab);
+    // Stored papers may include each owner's account role after the name.
+    dataRow.getCell(c + 12).value = safeStr(risk.penanggung_jawab)
+      .replace(/ \((?:superadmin|unit|reviewer|pimpinan)\)(?=,|$)/g, "");
     dataRow.getCell(c + 13).value = safeNum(risk.target_probability);
     dataRow.getCell(c + 14).value = safeNum(risk.target_impact);
     const targetNilai = risk.target_nilai ?? risk.target_score;
@@ -597,13 +432,13 @@ function buildProfilRisikoSheet(
     dataRow.getCell(c + 16).value = safeRoundedScore(targetNilai);
     dataRow.getCell(c + 17).value = safeStr(targetTR);
 
-    applyNilaiStyle(dataRow.getCell(c + 16), safeRoundedScore(targetNilai));
-    applyRiskLevelStyle(dataRow.getCell(c + 17), risk.target_tingkat_risiko);
+    applyRiskLevelStyle(dataRow.getCell(c + 8), tingkatRisiko);
+    applyRiskLevelStyle(dataRow.getCell(c + 17), targetTR);
   });
 
   const lastDataRow = DATA_START_ROW + risks.length - 1;
   applyDataBorders(ws, DATA_START_ROW, lastDataRow, FIRST_COL, LAST_COL);
-  if (metadata) {
+  if (includeWorkingPaperSections) {
     const lastSigRow = appendSignatureBlock(workbook, ws, signatories, FIRST_COL, LAST_COL, lastDataRow);
     appendPetunjukPengisian(ws, lastSigRow, FIRST_COL, LAST_COL);
   }
@@ -614,7 +449,7 @@ function buildPenilaianRisikoSheet(
   workbook: ExcelJS.Workbook,
   risks: ExportableRiskRow[],
   signatories: WorkingPaperSignatory[],
-  metadata?: WorkingPaperSheetMetadata,
+  includeWorkingPaperSections = false,
   sheetName = "KK Penilaian Risiko",
 ): void {
   const ws = workbook.addWorksheet(sheetName);
@@ -657,7 +492,7 @@ function buildPenilaianRisikoSheet(
     ws.getColumn(FIRST_COL + index).width = width;
   });
 
-  if (metadata) applyWorkingPaperMetadataBlock(ws, FIRST_COL, LAST_COL, metadata);
+  if (includeWorkingPaperSections) applyWorkingPaperMetadataBlock(ws, FIRST_COL, LAST_COL);
 
   const H_FILL: ExcelJS.FillPattern = {
     type: "pattern",
@@ -675,14 +510,14 @@ function buildPenilaianRisikoSheet(
     cell.border = THIN_BORDER;
   }
 
-  const HEADER_ROW_1 = metadata ? 13 : 1;
+  const HEADER_ROW_1 = includeWorkingPaperSections ? WORKING_PAPER_HEADER_ROW : 1;
   const HEADER_ROW_2 = HEADER_ROW_1 + 1;
   const HEADER_ROW_3 = HEADER_ROW_1 + 2;
   const HEADER_ROW_4 = HEADER_ROW_1 + 3;
   const DATA_START_ROW = HEADER_ROW_1 + 4;
   const C = FIRST_COL; // shorthand
 
-  // ── Row 13: top-level group headers ──
+  // ── top-level group headers ──
   const row1 = ws.getRow(HEADER_ROW_1);
   hCell(row1.getCell(C), "NO");
   hCell(row1.getCell(C + 1), "IDENTIFIKASI RISIKO");
@@ -695,16 +530,16 @@ function buildPenilaianRisikoSheet(
   for (let i = 18; i <= 19; i++) hCell(row1.getCell(C + i));
   hCell(row1.getCell(C + 20), "TARGET PENURUNAN TINGKAT RISIKO");
   for (let i = 21; i <= 24; i++) hCell(row1.getCell(C + i));
-  row1.height = 28;
+  row1.height = HEADER_LINE_HEIGHT;
 
-  ws.mergeCells(HEADER_ROW_1, C, HEADER_ROW_3, C);           // NO spans rows 13-15
+  ws.mergeCells(HEADER_ROW_1, C, HEADER_ROW_3, C);           // NO spans all header rows
   ws.mergeCells(HEADER_ROW_1, C + 1, HEADER_ROW_1, C + 6);   // IDENTIFIKASI RISIKO
   ws.mergeCells(HEADER_ROW_1, C + 7, HEADER_ROW_1, C + 14);  // ANALISIS RISIKO
   ws.mergeCells(HEADER_ROW_1, C + 15, HEADER_ROW_1, C + 16); // EVALUASI RISIKO
   ws.mergeCells(HEADER_ROW_1, C + 17, HEADER_ROW_1, C + 19); // RPR
   ws.mergeCells(HEADER_ROW_1, C + 20, HEADER_ROW_1, C + 24); // TARGET PENURUNAN
 
-  // ── Row 14: sub-headers ──
+  // ── sub-headers ──
   const row2 = ws.getRow(HEADER_ROW_2);
   const subHeaders: [number, string][] = [
     [1, "RISIKO"], [2, "KODE RISIKO"], [3, "SEBAB"],
@@ -717,27 +552,27 @@ function buildPenilaianRisikoSheet(
   ];
   for (let i = 0; i < COL_COUNT; i++) hCell(row2.getCell(C + i));
   subHeaders.forEach(([offset, label]) => { row2.getCell(C + offset).value = label; });
-  row2.height = 28;
+  row2.height = HEADER_LINE_HEIGHT;
 
-  // Vertical merges for row 14-15 (sub-headers except PENGENDALIAN YANG ADA)
+  // Vertical merges for the second and third header rows (sub-headers except PENGENDALIAN YANG ADA)
   const verticalMergeOffsets = [1,2,3,4,5,6, 10,11,12,13,14, 15,16, 17,18,19, 20,21,22,23,24];
   verticalMergeOffsets.forEach((offset) => { ws.mergeCells(HEADER_ROW_2, C + offset, HEADER_ROW_3, C + offset); });
   ws.mergeCells(HEADER_ROW_2, C + 7, HEADER_ROW_2, C + 9); // PENGENDALIAN YANG ADA spans 3 cols
 
-  // ── Row 15: sub-sub-headers (only under PENGENDALIAN YANG ADA) ──
+  // ── sub-sub-headers (only under PENGENDALIAN YANG ADA) ──
   const row3 = ws.getRow(HEADER_ROW_3);
   for (let i = 0; i < COL_COUNT; i++) hCell(row3.getCell(C + i));
   row3.getCell(C + 7).value = "URAIAN";
   row3.getCell(C + 8).value = "EFEKTIF";
   row3.getCell(C + 9).value = "TIDAK EFEKTIF";
-  row3.height = 24;
 
-  // ── Row 16: column numbers ──
+  // ── column numbers ──
   const row4 = ws.getRow(HEADER_ROW_4);
   for (let i = 0; i < COL_COUNT; i++) {
-    hCell(row4.getCell(C + i), i + 1);
+    const cell = row4.getCell(C + i);
+    hCell(cell, i + 1);
+    cell.font = DATA_FONT;
   }
-  row4.height = 20;
 
   // ── Data rows ──
   risks.forEach((risk, index) => {
@@ -767,7 +602,7 @@ function buildPenilaianRisikoSheet(
     dataRow.getCell(C + 15).value = safeNum(risk.prioritas_risiko);
     dataRow.getCell(C + 16).value = safeStr(riskAppetite);
     dataRow.getCell(C + 17).value = safeStr(treatmentOption);
-    dataRow.getCell(C + 18).value = formatMitigationNarrative(risk);
+    dataRow.getCell(C + 18).value = joinArray(risk.mitigations);
     dataRow.getCell(C + 19).value = (risk.mitigation_due_dates ?? []).filter(Boolean).map((d: string) => formatDate(d)).join(", ");
     dataRow.getCell(C + 20).value = safeNum(risk.target_probability);
     dataRow.getCell(C + 21).value = safeNum(risk.target_impact);
@@ -776,13 +611,13 @@ function buildPenilaianRisikoSheet(
     dataRow.getCell(C + 23).value = safeRoundedScore(targetNilai);
     dataRow.getCell(C + 24).value = safeStr(targetTR);
 
-    applyNilaiStyle(dataRow.getCell(C + 23), safeRoundedScore(targetNilai));
-    applyRiskLevelStyle(dataRow.getCell(C + 24), risk.target_tingkat_risiko);
+    applyRiskLevelStyle(dataRow.getCell(C + 14), tingkatRisiko);
+    applyRiskLevelStyle(dataRow.getCell(C + 24), targetTR);
   });
 
   const lastDataRow = DATA_START_ROW + risks.length - 1;
   applyDataBorders(ws, DATA_START_ROW, lastDataRow, FIRST_COL, LAST_COL);
-  if (metadata) {
+  if (includeWorkingPaperSections) {
     const lastSigRow = appendSignatureBlock(workbook, ws, signatories, FIRST_COL, LAST_COL, lastDataRow);
     appendPetunjukPengisian(ws, lastSigRow, FIRST_COL, LAST_COL);
   }
@@ -795,14 +630,13 @@ export function addRiskAssessmentWorksheet(
   risks: readonly Partial<WorkingPaperRiskData>[],
   sheetName = "Risiko",
 ): void {
-  buildPenilaianRisikoSheet(workbook, [...risks], [], undefined, sheetName);
+  buildPenilaianRisikoSheet(workbook, [...risks], [], false, sheetName);
 }
 
 function buildPemantauanReviuSheet(
   workbook: ExcelJS.Workbook,
   risks: WorkingPaperRiskData[],
   signatories: WorkingPaperSignatory[],
-  metadata: WorkingPaperSheetMetadata,
 ): void {
   const ws = workbook.addWorksheet("KK Pemantauan Reviu");
 
@@ -830,13 +664,14 @@ function buildPemantauanReviuSheet(
     10,  // 14 BOBOT (monitoring)
     10,  // 15 NILAI (monitoring)
     18,  // 16 TINGKAT RISIKO (monitoring)
+    12,  // 17 SIMPULAN
   ];
 
   columnWidths.forEach((width, index) => {
     ws.getColumn(FIRST_COL + index).width = width;
   });
 
-  applyWorkingPaperMetadataBlock(ws, FIRST_COL, LAST_COL, metadata);
+  applyWorkingPaperMetadataBlock(ws, FIRST_COL, LAST_COL);
 
   const H_FILL: ExcelJS.FillPattern = {
     type: "pattern",
@@ -854,16 +689,16 @@ function buildPemantauanReviuSheet(
     cell.border = THIN_BORDER;
   }
 
-  const HEADER_ROW_1 = 13;
-  const HEADER_ROW_2 = 14;
-  const HEADER_ROW_3 = 15;
-  const DATA_START_ROW = 16;
+  const HEADER_ROW_1 = WORKING_PAPER_HEADER_ROW;
+  const HEADER_ROW_2 = HEADER_ROW_1 + 1;
+  const HEADER_ROW_3 = HEADER_ROW_1 + 2;
+  const DATA_START_ROW = HEADER_ROW_1 + 3;
 
-  // ── Row 13: main group headers ──
+  // ── main group headers ──
   const row1 = ws.getRow(HEADER_ROW_1);
   for (let i = 0; i < COL_COUNT; i++) hCell(row1.getCell(C + i));
 
-  // Single column headers (cols 1-11 span rows 13-14)
+  // Single column headers (cols 1-11 span both header rows)
   const singleHeaders = [
     [0, "NO"],
     [1, "RISIKO"],
@@ -884,16 +719,16 @@ function buildPemantauanReviuSheet(
   // Group headers
   row1.getCell(C + 11).value = "HASIL PEMANTAUAN";
   row1.getCell(C + 16).value = "SIMPULAN";
-  row1.height = 32;
+  row1.height = HEADER_LINE_HEIGHT;
 
-  // Merges for row 13
-  // NO through JADWAL PELAKSANAAN (cols 1-11) span rows 13-14
+  // Merges for the first header row
+  // NO through JADWAL PELAKSANAAN (cols 1-11) span both header rows
   for (let offset = 0; offset <= 10; offset++) {
     ws.mergeCells(HEADER_ROW_1, C + offset, HEADER_ROW_2, C + offset);
   }
   // HASIL PEMANTAUAN (cols 12-16)
   ws.mergeCells(HEADER_ROW_1, C + 11, HEADER_ROW_1, C + 15);
-  // ── Row 14: sub-headers ──
+  // ── sub-headers ──
   const row2 = ws.getRow(HEADER_ROW_2);
   for (let i = 0; i < COL_COUNT; i++) hCell(row2.getCell(C + i));
 
@@ -903,14 +738,15 @@ function buildPemantauanReviuSheet(
     row2.getCell(C + 11 + index).value = header;
   });
 
-  row2.height = 28;
+  row2.height = HEADER_LINE_HEIGHT;
 
-  // ── Row 15: column numbers ──
+  // ── column numbers ──
   const row3 = ws.getRow(HEADER_ROW_3);
   for (let i = 0; i < COL_COUNT; i++) {
-    hCell(row3.getCell(C + i), i + 1);
+    const cell = row3.getCell(C + i);
+    hCell(cell, i + 1);
+    cell.font = DATA_FONT;
   }
-  row3.height = 20;
 
   // ── Data rows ──
   risks.forEach((risk, index) => {
@@ -940,17 +776,16 @@ function buildPemantauanReviuSheet(
 
     // Monitoring data (cols 12-16)
     const monNilai = risk.monitoring_inherent_score ?? risk.monitoring_nilai;
+    const monLevel = risk.monitoring_tingkat_risiko_display ?? risk.monitoring_tingkat_risiko;
     dataRow.getCell(C + 11).value = safeNum(risk.monitoring_p);
     dataRow.getCell(C + 12).value = safeNum(risk.monitoring_d);
     dataRow.getCell(C + 13).value = safeNum(risk.monitoring_bobot);
     dataRow.getCell(C + 14).value = safeRoundedScore(monNilai);
-    dataRow.getCell(C + 15).value = safeStr(risk.monitoring_tingkat_risiko_display ?? risk.monitoring_tingkat_risiko);
+    dataRow.getCell(C + 15).value = safeStr(monLevel);
 
     // Apply risk level colors
-    applyNilaiStyle(dataRow.getCell(C + 6), safeRoundedScore(prevNilai));
     applyRiskLevelStyle(dataRow.getCell(C + 7), prevLevel);
-    applyNilaiStyle(dataRow.getCell(C + 14), safeRoundedScore(monNilai));
-    applyRiskLevelStyle(dataRow.getCell(C + 15), risk.monitoring_tingkat_risiko);
+    applyRiskLevelStyle(dataRow.getCell(C + 15), monLevel);
   });
 
   const lastDataRow = DATA_START_ROW + risks.length - 1;
@@ -966,98 +801,6 @@ function stripBase64Prefix(base64: string): string {
     return base64.slice(prefix.length);
   }
   return base64;
-}
-
-function buildTandaTanganSheet(
-  workbook: ExcelJS.Workbook,
-  workingPaper: WorkingPaper,
-): void {
-  const ws = workbook.addWorksheet("Tanda Tangan");
-  const signatories = workingPaper.signatories;
-
-  ws.mergeCells("A1:H1");
-  const hashCell = ws.getCell("A1");
-  hashCell.value = `Document Hash: ${workingPaper.document_hash ?? "-"}`;
-  hashCell.font = { name: BASE_FONT_NAME, bold: true, size: 11 };
-  hashCell.alignment = { vertical: "middle" };
-  ws.getRow(1).height = 24;
-
-  const headerColumns = [
-    { header: "Urutan", width: 9 },
-    { header: "Nama", width: 24 },
-    { header: "NIP", width: 22 },
-    { header: "Jabatan", width: 28 },
-    { header: "Pangkat", width: 24 },
-    { header: "Status", width: 14 },
-    { header: "Tanggal Tanda Tangan", width: 24 },
-    { header: "QR Code", width: 18 },
-  ];
-
-  headerColumns.forEach((col, index) => {
-    ws.getColumn(index + 1).width = col.width;
-  });
-
-  // Row 3 = signatory table header (row 2 is a spacer)
-  const headerRowNum = 3;
-  const headerRow = ws.getRow(headerRowNum);
-  headerColumns.forEach((col, index) => {
-    const cell = headerRow.getCell(index + 1);
-    cell.value = col.header;
-    cell.fill = HEADER_FILL;
-    cell.font = HEADER_FONT;
-    cell.border = THIN_BORDER;
-    cell.alignment = { vertical: "middle", horizontal: "center", wrapText: true };
-  });
-  headerRow.height = 28;
-
-  const colCount = headerColumns.length;
-  const qrImages: Array<{ imageId: number; row: number; col: number }> = [];
-
-  signatories.forEach((sig: WorkingPaperSignatory, index: number) => {
-    const dataRowNum = headerRowNum + 1 + index;
-    const row = ws.getRow(dataRowNum);
-
-    row.getCell(1).value = sig.sequence_no;
-    row.getCell(2).value = sig.signer_name;
-    row.getCell(3).value = safeStr(sig.signer_nip);
-    row.getCell(4).value = safeStr(sig.signer_jabatan);
-    row.getCell(5).value = sig.signer_pangkat;
-    row.getCell(6).value = workingPaper.tte_skipped ? "(Dilewati)" : sig.status === "signed" ? "Ditandatangani" : "Menunggu";
-    row.getCell(7).value = formatDate(sig.signed_at);
-    row.getCell(8).value = "";
-
-    for (let c = 1; c <= colCount; c++) {
-      const cell = row.getCell(c);
-      cell.border = THIN_BORDER;
-      cell.alignment = WRAP_ALIGNMENT;
-    }
-
-    if (!workingPaper.tte_skipped && sig.status === "signed" && sig.qr_code_png) {
-      row.height = 80;
-      const imageId = workbook.addImage({
-        base64: stripBase64Prefix(sig.qr_code_png),
-        extension: "png",
-      });
-      // ExcelJS addImage uses 0-based col/row; dataRowNum is 1-based so subtract 1
-      qrImages.push({ imageId, row: dataRowNum - 1, col: colCount - 1 });
-    }
-  });
-
-  qrImages.forEach(({ imageId, row, col }) => {
-    ws.addImage(imageId, {
-      tl: { col, row },
-      ext: { width: 100, height: 100 },
-    });
-  });
-
-  const footerRowNum = headerRowNum + 1 + signatories.length + 1;
-  ws.mergeCells(`A${footerRowNum}:H${footerRowNum}`);
-  const footerCell = ws.getCell(`A${footerRowNum}`);
-  footerCell.value = workingPaper.tte_skipped
-    ? "Kertas kerja ini selesai tanpa tanda tangan elektronik (TTE dilewati)"
-    : "Dokumen ini ditandatangani secara elektronik melalui Manrisk";
-  footerCell.font = { name: BASE_FONT_NAME, italic: true, size: 10, color: { argb: "FF666666" } };
-  footerCell.alignment = { horizontal: "center", vertical: "middle" };
 }
 
 const PETUNJUK_PENGISIAN_ITEMS: string[] = [
@@ -1112,6 +855,36 @@ function appendPetunjukPengisian(
   });
 }
 
+function centeredSignatureImageAnchor(
+  startCol: number,
+  row: number,
+  columnWidths: readonly number[],
+  imageSizePx: number,
+): ExcelJS.IAnchor {
+  const pixelsPerColumnWidthUnit = 8;
+  const emusPerPixel = 9525;
+  const widthsPx = columnWidths.map((width) => width * pixelsPerColumnWidthUnit);
+  const blockWidthPx = widthsPx.reduce((total, width) => total + width, 0);
+  let leftOffsetPx = Math.max(0, (blockWidthPx - imageSizePx) / 2);
+  let column = 0;
+  while (column < widthsPx.length - 1 && leftOffsetPx >= widthsPx[column]) {
+    leftOffsetPx -= widthsPx[column];
+    column++;
+  }
+
+  const nativeCol = startCol - 1 + column;
+  const nativeRow = row - 1;
+  // Excel's drawing anchor stores offsets in EMUs.
+  return {
+    col: nativeCol,
+    row: nativeRow,
+    nativeCol,
+    nativeColOff: Math.round(leftOffsetPx * emusPerPixel),
+    nativeRow,
+    nativeRowOff: 0,
+  };
+}
+
 /**
  * Append signature block below data.
  * startCol/endCol are 1-based column numbers defining the data range.
@@ -1127,92 +900,66 @@ function appendSignatureBlock(
   if (signatories.length === 0) return afterRow;
 
   const sorted = [...signatories].sort((a, b) => a.sequence_no - b.sequence_no);
-  const n = sorted.length;
   const sigFont: Partial<ExcelJS.Font> = { name: BASE_FONT_NAME, size: 11 };
-  const centerAlign: Partial<ExcelJS.Alignment> = { horizontal: "center", vertical: "middle", wrapText: true };
+  const sigAlignment: Partial<ExcelJS.Alignment> = {
+    horizontal: "center",
+    vertical: "middle",
+    shrinkToFit: true,
+  };
+  const qrSizePx = 75;
+  const rowsPerBand = 8;
+  const firstSignatureRow = afterRow + 3;
+  const columnWidths = Array.from(
+    { length: endCol - startCol + 1 },
+    (_, offset) => ws.getColumn(startCol + offset).width ?? ws.properties.defaultColWidth ?? 8.43,
+  );
+  const layouts = buildWorkingPaperSignatureLayout(startCol, columnWidths, sorted.length);
 
-  const jabatanRow = afterRow + 3;
-  const namaRow = jabatanRow + 4;
-  const nipRow = namaRow + 1;
+  for (const [index, sig] of sorted.entries()) {
+    const { startCol: signerCol, endCol: signerEndCol, band } = layouts[index];
+    const roleRow = firstSignatureRow + band * rowsPerBand;
+    const qrRow = roleRow + 2;
+    const nameRow = roleRow + 4;
+    const nipRow = roleRow + 5;
 
-  const QR_SIZE = 75;
-  const GAP_ROW_HEIGHT = 28;
-  const GAP_ROW_COUNT = 3;
-  const PT_TO_PX = 1.333;
-  const DEFAULT_COL_WIDTH = 8.43;
-  const PX_PER_CHAR = 7.5;
-  const gapHeightPx = GAP_ROW_COUNT * GAP_ROW_HEIGHT * PT_TO_PX;
-
-  for (let r = jabatanRow + 1; r <= jabatanRow + GAP_ROW_COUNT; r++) {
-    ws.getRow(r).height = GAP_ROW_HEIGHT;
-  }
-
-  const columnWidths = new Map<number, number>();
-  for (let c = 1; c <= endCol; c++) {
-    columnWidths.set(c, ws.getColumn(c).width ?? DEFAULT_COL_WIDTH);
-  }
-  const signatureLayout = buildWorkingPaperSignatureLayout({
-    startCol,
-    endCol,
-    signatureCount: n,
-    columnWidths,
-    qrSizePx: QR_SIZE,
-    pxPerColumnWidthUnit: PX_PER_CHAR,
-  });
-
-  sorted.forEach((sig, index) => {
-    const layout = signatureLayout[index];
-    const sigStartCol = layout.textStartCol;
-    const sigEndCol = layout.textEndCol;
-
-    if (sigEndCol > sigStartCol) {
-      ws.mergeCells(jabatanRow, sigStartCol, jabatanRow, sigEndCol);
-      ws.mergeCells(namaRow, sigStartCol, namaRow, sigEndCol);
-      ws.mergeCells(nipRow, sigStartCol, nipRow, sigEndCol);
+    const details = [
+      { row: roleRow, value: sig.signer_jabatan, font: sigFont },
+      { row: nameRow, value: sig.signer_name, font: { ...sigFont, underline: true } },
+      { row: nipRow, value: `NIP. ${sig.signer_nip ?? ""}`, font: sigFont },
+    ];
+    for (const { row, value, font } of details) {
+      if (signerEndCol > signerCol) ws.mergeCells(row, signerCol, row, signerEndCol);
+      const cell = ws.getCell(row, signerCol);
+      cell.value = value;
+      cell.font = font;
+      cell.alignment = sigAlignment;
     }
-
-    const jabatanCell = ws.getRow(jabatanRow).getCell(sigStartCol);
-    jabatanCell.value = sig.signer_jabatan;
-    jabatanCell.font = sigFont;
-    jabatanCell.alignment = centerAlign;
-
-    const namaCell = ws.getRow(namaRow).getCell(sigStartCol);
-    namaCell.value = sig.signer_name;
-    namaCell.font = { ...sigFont, underline: true };
-    namaCell.alignment = centerAlign;
-
-    const nipCell = ws.getRow(nipRow).getCell(sigStartCol);
-    nipCell.value = `NIP. ${sig.signer_nip ?? ""}`;
-    nipCell.font = sigFont;
-    nipCell.alignment = centerAlign;
 
     if (sig.status === "signed" && sig.qr_code_png) {
       const imageId = workbook.addImage({
         base64: stripBase64Prefix(sig.qr_code_png),
         extension: "png",
       });
-
-      // Vertical center: native 0-based row in gap between jabatan and nama
-      const nativeRow = jabatanRow;
-      const verticalOffsetPx = (gapHeightPx - QR_SIZE) / 2;
-      const nativeRowOff = Math.round((verticalOffsetPx / PT_TO_PX) * 10000);
-      const anchorColumnWidth = ws.getColumn(layout.qrTopLeft.nativeCol + 1).width ?? DEFAULT_COL_WIDTH;
-      const imageCol = layout.qrTopLeft.nativeCol +
-        (layout.qrTopLeft.nativeColOff / (anchorColumnWidth * 10000));
-      const imageRow = nativeRow + (nativeRowOff / (GAP_ROW_HEIGHT * 10000));
-
       ws.addImage(imageId, {
-        tl: { col: imageCol, row: imageRow },
-        ext: { width: QR_SIZE, height: QR_SIZE },
+        tl: centeredSignatureImageAnchor(
+          signerCol,
+          qrRow,
+          columnWidths.slice(signerCol - startCol, signerEndCol - startCol + 1),
+          qrSizePx,
+        ),
+        ext: { width: qrSizePx, height: qrSizePx },
         editAs: "oneCell",
       });
     }
-  });
+  }
 
-  ws.getRow(namaRow).height = 20;
-  ws.getRow(nipRow).height = 20;
-
-  return nipRow;
+  const lastSignatureRow = firstSignatureRow + layouts[layouts.length - 1].band * rowsPerBand;
+  for (let row = firstSignatureRow; row <= lastSignatureRow; row += rowsPerBand) {
+    ws.getRow(row + 1).height = 8;
+    ws.getRow(row + 2).height = qrSizePx * 72 / 96;
+    ws.getRow(row + 3).height = 8;
+  }
+  return lastSignatureRow + 5;
 }
 
 function downloadBlob(blob: Blob, filename: string): void {
@@ -1243,12 +990,10 @@ export async function createWorkingPaperWorkbookBuffer(workingPaper: WorkingPape
   const risks = getWorkingPaperRiskRows(workingPaper);
   const profileRows = risks.map(r => getProfileRow(r));
   const signatories = workingPaper.signatories;
-  const metadata = buildSheetMetadata(workingPaper, risks);
 
-  buildProfilRisikoSheet(workbook, profileRows, signatories, metadata);
-  buildPenilaianRisikoSheet(workbook, profileRows, signatories, metadata);
-  buildPemantauanReviuSheet(workbook, risks, signatories, metadata);
-  buildTandaTanganSheet(workbook, workingPaper);
+  buildProfilRisikoSheet(workbook, profileRows, signatories, true);
+  buildPenilaianRisikoSheet(workbook, profileRows, signatories, true);
+  buildPemantauanReviuSheet(workbook, risks, signatories);
 
   return workbook.xlsx.writeBuffer();
 }

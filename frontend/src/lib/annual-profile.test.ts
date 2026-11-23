@@ -157,7 +157,7 @@ test("readiness requires a final linked assessment while objectives remain optio
       { ...member, objectiveId: null, riskStatus: "draft" },
       objectives,
     ).label,
-    "Penilaian belum final",
+    "Draf",
   );
 });
 

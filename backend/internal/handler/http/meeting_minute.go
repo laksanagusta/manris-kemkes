@@ -7,6 +7,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
+	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/middleware"
 	mmuc "github.com/manris/backend/internal/usecase/meeting_minute"
 )
@@ -71,7 +72,7 @@ func (h *MeetingMinuteHandler) Create(c *fiber.Ctx) error {
 	if orgID == nil {
 		orgID = scope.OrganizationID
 	}
-	if orgID != nil && !scope.CanWrite(*orgID) {
+	if !scope.IsGlobal && (orgID == nil || !scope.CanWrite(*orgID)) {
 		return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", "tidak dapat membuat notulen rapat untuk organisasi ini")
 	}
 
@@ -90,6 +91,7 @@ func (h *MeetingMinuteHandler) Create(c *fiber.Ctx) error {
 		OrganizationID: orgID,
 		CreatedBy:      userID,
 		RiskIDs:        req.RiskIDs,
+		Scope:          scope,
 	})
 	if err != nil {
 		return handleError(c, err)
@@ -110,9 +112,9 @@ func (h *MeetingMinuteHandler) Get(c *fiber.Ctx) error {
 	}
 
 	scope := middleware.GetAccessScope(c)
-	var orgIDs []uuid.UUID
-	if scope != nil && !scope.IsGlobal {
-		orgIDs = scope.AccessibleOrgIDs
+	orgIDs, err := resolveReadableOrgIDs(scope, "")
+	if err != nil {
+		return handleError(c, err)
 	}
 
 	result, err := h.getUC.Execute(c.Context(), mmuc.GetInput{ID: id}, orgIDs)
@@ -125,10 +127,14 @@ func (h *MeetingMinuteHandler) Get(c *fiber.Ctx) error {
 
 func (h *MeetingMinuteHandler) List(c *fiber.Ctx) error {
 	scope := middleware.GetAccessScope(c)
-	var orgIDs []uuid.UUID
-	if scope != nil && !scope.IsGlobal {
-		orgIDs = append([]uuid.UUID{}, scope.AccessibleOrgIDs...)
+	readableOrgIDs, err := resolveReadableOrgIDs(scope, "")
+	if err != nil {
+		return handleError(c, err)
 	}
+	if scope.IsGlobal {
+		readableOrgIDs = nil
+	}
+	orgIDs := readableOrgIDs
 
 	if orgIDStr := c.Query("organizationId"); orgIDStr != "" {
 		orgID, err := uuid.Parse(orgIDStr)
@@ -171,6 +177,7 @@ func (h *MeetingMinuteHandler) List(c *fiber.Ctx) error {
 			return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID risiko tidak valid")
 		}
 		input.RiskID = &riskID
+		input.RiskOrgIDs = readableOrgIDs
 	}
 
 	input.CreatedAt = strings.TrimSpace(c.Query("created_at", ""))
@@ -229,9 +236,9 @@ func (h *MeetingMinuteHandler) Delete(c *fiber.Ctx) error {
 		return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", "cakupan akses tidak tersedia")
 	}
 
-	var orgIDs []uuid.UUID
-	if !scope.IsGlobal {
-		orgIDs = scope.AccessibleOrgIDs
+	orgIDs, err := resolveReadableOrgIDs(scope, "")
+	if err != nil {
+		return handleError(c, err)
 	}
 
 	mm, err := h.getUC.Execute(c.Context(), mmuc.GetInput{ID: id}, orgIDs)
@@ -239,7 +246,7 @@ func (h *MeetingMinuteHandler) Delete(c *fiber.Ctx) error {
 		return handleError(c, err)
 	}
 
-	if mm.OrganizationID != nil && !scope.CanWrite(*mm.OrganizationID) {
+	if !scope.IsGlobal && (mm.OrganizationID == nil || !scope.CanWrite(*mm.OrganizationID)) {
 		return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", "tidak dapat menghapus notulen rapat untuk organisasi ini")
 	}
 
@@ -274,34 +281,15 @@ func (h *MeetingMinuteHandler) LinkRisks(c *fiber.Ctx) error {
 		return sendProblemDetails(c, fiber.StatusBadRequest, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "minimal satu ID risiko wajib diisi")
 	}
 
-	userID, ok := c.Locals("userId").(uuid.UUID)
-	if !ok {
-		return sendProblemDetails(c, fiber.StatusUnauthorized, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "ID pengguna tidak ditemukan dalam konteks")
-	}
-
 	scope := middleware.GetAccessScope(c)
 	if scope == nil {
-		return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", "cakupan akses tidak tersedia")
-	}
-
-	var orgIDs []uuid.UUID
-	if !scope.IsGlobal {
-		orgIDs = scope.AccessibleOrgIDs
-	}
-
-	mm, err := h.getUC.Execute(c.Context(), mmuc.GetInput{ID: meetingID}, orgIDs)
-	if err != nil {
-		return handleError(c, err)
-	}
-
-	if mm.OrganizationID != nil && !scope.CanWrite(*mm.OrganizationID) {
-		return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", "tidak dapat mengubah notulen rapat untuk organisasi ini")
+		return handleError(c, domainerrors.ErrForbidden)
 	}
 
 	err = h.linkUC.Execute(c.Context(), mmuc.LinkRisksInput{
 		MeetingID: meetingID,
 		RiskIDs:   req.RiskIDs,
-		LinkedBy:  userID,
+		Scope:     scope,
 	})
 	if err != nil {
 		return handleError(c, err)
@@ -343,23 +331,10 @@ func (h *MeetingMinuteHandler) UnlinkRisks(c *fiber.Ctx) error {
 		return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", "cakupan akses tidak tersedia")
 	}
 
-	var orgIDs []uuid.UUID
-	if !scope.IsGlobal {
-		orgIDs = scope.AccessibleOrgIDs
-	}
-
-	mm, err := h.getUC.Execute(c.Context(), mmuc.GetInput{ID: meetingID}, orgIDs)
-	if err != nil {
-		return handleError(c, err)
-	}
-
-	if mm.OrganizationID != nil && !scope.CanWrite(*mm.OrganizationID) {
-		return sendProblemDetails(c, fiber.StatusForbidden, "Terlarang", "https://api.manris.com/errors/forbidden", "tidak dapat mengubah notulen rapat untuk organisasi ini")
-	}
-
 	err = h.linkUC.Unlink(c.Context(), mmuc.UnlinkRisksInput{
 		MeetingID: meetingID,
 		RiskIDs:   req.RiskIDs,
+		Scope:     scope,
 	})
 	if err != nil {
 		return handleError(c, err)

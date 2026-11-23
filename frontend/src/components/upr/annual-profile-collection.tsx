@@ -44,6 +44,7 @@ import { WorkflowError, WorkflowTable, workflowDate, workflowError } from "./wor
 
 export function AnnualProfileCollection({
   organization,
+  readAll = false,
   versions,
   defaultYear,
   loading,
@@ -60,6 +61,7 @@ export function AnnualProfileCollection({
   embedded = false,
 }: {
   organization: string;
+  readAll?: boolean;
   versions: AnnualProfileListVersion[];
   defaultYear: number;
   loading?: boolean;
@@ -133,7 +135,7 @@ export function AnnualProfileCollection({
       )}
       {loading ? (
         <TableLoadingSkeleton message="Memuat daftar profil…" />
-      ) : !organization ? (
+      ) : !organization && !readAll ? (
         <Alert>
           <AlertDescription>
             Akun harus terhubung ke organisasi untuk membuka profil tahunan.
@@ -144,18 +146,19 @@ export function AnnualProfileCollection({
       ) : profiles.length === 0 ? (
         <CollectionEmptyState
           title="Belum ada profil risiko tahunan"
-          description="Pilih tahun dan risiko awal untuk mulai menyusun profil unit."
+          description={readAll ? undefined : "Pilih tahun dan risiko awal untuk mulai menyusun profil unit."}
         />
       ) : (
         <div className={periodStyles.collection}>
           <WorkflowTable
             columns={[
-              "Tahun",
+              { label: "Kode profil", header: "Kode profil", className: "whitespace-nowrap" },
+              { label: "Tahun", header: "Tahun", className: "whitespace-nowrap" },
               { label: "Unit", header: "Unit", className: "hidden md:table-cell" },
               "Status",
               { label: "Jumlah risiko", header: "Jumlah risiko", className: "hidden md:table-cell" },
               { label: "Terakhir diperbarui", header: "Terakhir diperbarui", className: "hidden md:table-cell" },
-              "Jadwal pemantauan",
+              "Pemantauan",
               "Aksi",
             ]}
           >
@@ -184,24 +187,28 @@ export function AnnualProfileCollection({
                   <TableRow>
                     <TableCell className="tabular-nums font-medium whitespace-normal">
                       <div className="space-y-1">
-                        {embedded ? (
-                          <Button
-                            variant="link"
-                            size="sm"
-                            className="h-auto min-h-8 px-0 py-0 tabular-nums font-medium no-underline hover:no-underline"
-                            aria-label={`${openLabel} ${year} · ${ownerName}`}
-                            onClick={() => openProfile(year, latest.id)}
-                          >
-                            {year}
-                          </Button>
+                        {latest.code ? (
+                          embedded ? (
+                            <Button
+                              variant="link"
+                              size="sm"
+                              className="h-auto min-h-8 px-0 py-0 text-xs font-medium tabular-nums text-muted-foreground no-underline hover:text-primary hover:no-underline"
+                              aria-label={`${openLabel} ${latest.code} · ${year} · ${ownerName}`}
+                              onClick={() => openProfile(year, latest.id)}
+                            >
+                              {latest.code}
+                            </Button>
+                          ) : (
+                            <Link
+                              className="inline-flex min-h-8 items-center rounded-sm text-xs font-medium tabular-nums text-muted-foreground no-underline hover:text-primary hover:no-underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                              href={annualProfileHref(year, latest.id)}
+                              aria-label={`${openLabel} ${latest.code} · ${year} · ${ownerName}`}
+                            >
+                              {latest.code}
+                            </Link>
+                          )
                         ) : (
-                          <Link
-                            className="inline-flex min-h-8 items-center tabular-nums no-underline hover:no-underline hover:text-primary"
-                            href={annualProfileHref(year, latest.id)}
-                            aria-label={`${openLabel} ${year} · ${ownerName}`}
-                          >
-                            {year}
-                          </Link>
+                          <span className="text-xs font-normal text-muted-foreground">—</span>
                         )}
                         <div className="space-y-1 md:hidden">
                           <p className="text-xs font-normal text-muted-foreground">{ownerName}</p>
@@ -216,6 +223,29 @@ export function AnnualProfileCollection({
                           </p>
                         </div>
                       </div>
+                    </TableCell>
+                    <TableCell className="whitespace-nowrap tabular-nums font-medium">
+                      {latest.code ? (
+                        year
+                      ) : embedded ? (
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="h-auto min-h-8 px-0 py-0 tabular-nums font-medium no-underline hover:no-underline"
+                          aria-label={`${openLabel} ${year} · ${ownerName}`}
+                          onClick={() => openProfile(year, latest.id)}
+                        >
+                          {year}
+                        </Button>
+                      ) : (
+                        <Link
+                          className="inline-flex min-h-8 items-center rounded-sm tabular-nums no-underline hover:no-underline hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          href={annualProfileHref(year, latest.id)}
+                          aria-label={`${openLabel} ${year} · ${ownerName}`}
+                        >
+                          {year}
+                        </Link>
+                      )}
                     </TableCell>
                     <TableCell className="hidden whitespace-normal md:table-cell">{ownerName}</TableCell>
                     <TableCell>
@@ -286,7 +316,7 @@ export function AnnualProfileCollection({
                     </TableCell>
                   </TableRow>
                   <TableRow id={detailsId} className={periodStyles.detailRow} aria-hidden={!expanded}>
-                    <TableCell colSpan={isMobile ? 4 : 7} className={periodStyles.detailCell}>
+                    <TableCell colSpan={isMobile ? 5 : 8} className={periodStyles.detailCell}>
                       <div className={`motion-panel ${periodStyles.disclosure}`} data-open={expanded} data-animate={disclosure.animate || undefined}>
                         <div className={periodStyles.clip} inert={!expanded}>
                           <div className="bg-muted/30 p-3">
@@ -343,10 +373,10 @@ export function AnnualProfileCollection({
             <DialogTitle>Hapus draf profil secara permanen?</DialogTitle>
             <DialogDescription>Periksa versi draf profil yang akan dihapus.</DialogDescription>
           </DialogHeader>
-          <ConfirmationConsequences>
-            Profil {deleting?.year} · Versi {deleting?.version}. Data dan
-              keanggotaan draf ini akan dihapus. Risiko di Register dan versi
-              final sebelumnya tetap tersimpan.
+          <ConfirmationConsequences variant="plain">
+            Profil {deleting?.year} · Versi {deleting?.version}. Data draf ini
+            akan dihapus. Risiko di Register dan versi final profil sebelumnya
+            tetap tersimpan.
           </ConfirmationConsequences>
           {deleteError && <WorkflowError message={deleteError} />}
           <DialogFooter>

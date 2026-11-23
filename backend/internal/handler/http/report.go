@@ -7,7 +7,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/service"
-	"github.com/manris/backend/internal/middleware"
 	reportuc "github.com/manris/backend/internal/usecase/report"
 )
 
@@ -32,14 +31,13 @@ func (h *ReportHandler) GenerateRiskPDF(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "parameter kueri cycle wajib diisi")
 	}
 
-	scope := middleware.GetAccessScope(c)
-	orgIDs, err := resolveReportOrgIDsFromQuery(c.Context(), scope, c.Query("org_id"), c.Query("organization_group_id"), h.groupResolver)
+	orgIDs, err := resolveRiskReportScope(c, h.groupResolver)
 	if err != nil {
 		if errors.Is(err, domainerrors.ErrForbidden) {
 			return sendProblemDetails(c, 403, "Terlarang", "https://api.manris.com/errors/forbidden", "organisasi tidak dapat diakses")
 		}
 		if errors.Is(err, domainerrors.ErrInvalidInput) {
-			return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "organization_id dan organization_group_id tidak dapat digunakan bersamaan")
+			return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "filter organisasi tidak valid")
 		}
 		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID organisasi tidak valid")
 	}

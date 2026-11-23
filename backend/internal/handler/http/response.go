@@ -44,8 +44,14 @@ func handleError(c *fiber.Ctx, err error) error {
 	if handled, result := monitoringRuleDatabaseProblem(c, err); handled {
 		return result
 	}
+	if stderrors.Is(err, errors.ErrUserOwnsRisks) {
+		return sendProblemDetails(c, fiber.StatusConflict, "Akun masih menjadi pemilik risiko", "https://api.manris.com/errors/user-owns-risks", err.Error())
+	}
 	if stderrors.Is(err, errors.ErrRiskMonitoringInProgress) || stderrors.Is(err, errors.ErrRiskRevisionInProgress) {
 		return sendProblemDetails(c, fiber.StatusConflict, "Masih ada draf risiko", "https://api.manris.com/errors/risk-workflow-in-progress", err.Error())
+	}
+	if stderrors.Is(err, errors.ErrRiskRevisionPeriodInProgress) {
+		return sendProblemDetails(c, fiber.StatusConflict, "Pemantauan belum selesai", "https://api.manris.com/errors/risk-revision-period-in-progress", err.Error())
 	}
 	if stderrors.Is(err, errors.ErrMonitoringReviewChanged) {
 		return sendProblemDetails(c, fiber.StatusConflict, "Tinjauan perlu diperbarui", "https://api.manris.com/errors/monitoring-review-changed", err.Error())

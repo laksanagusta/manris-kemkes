@@ -120,6 +120,8 @@ type MonitoringEvaluationReportData struct {
 	ResultConclusion         string
 	MitigationSummary        []MonitoringEvaluationMitigationSummaryRow
 	MitigationConclusion     string
+	Problems                 string
+	Recommendations          string
 }
 
 type MonitoringEvaluationChecklistRow struct {

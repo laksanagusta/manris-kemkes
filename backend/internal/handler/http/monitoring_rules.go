@@ -81,10 +81,34 @@ func registerMonitoringRuleRoutes(router fiber.Router, workflow *postgres.UPRWor
 		}
 		return c.SendStatus(fiber.StatusNoContent)
 	})
-	router.Get("/annual-profile-versions/:id/period-progress", uprVersionRoute(func(c *fiber.Ctx, _ uprActor, id uuid.UUID) error {
+	router.Get("/annual-profile-versions/:id/period-progress", uprScopedRoute(true, uprVersionAction(func(c *fiber.Ctx, _ uprActor, id uuid.UUID) error {
 		data, err := workflow.AnnualProfilePeriodProgress(c.Context(), middleware.GetAccessScope(c), id)
 		return uprData(c, data, err)
-	}))
+	})))
+	router.Post("/annual-profile-versions/:id/periods/:period/administrative-closure", func(c *fiber.Ctx) error {
+		if !canManageMonitoringRules(c) {
+			return c.SendStatus(fiber.StatusForbidden)
+		}
+		profile, profileErr := uuid.Parse(c.Params("id"))
+		period, periodErr := uuid.Parse(c.Params("period"))
+		if profileErr != nil || periodErr != nil || profile == uuid.Nil || period == uuid.Nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": invalidUPRID.Error()})
+		}
+		var input struct {
+			Reason string `json:"reason"`
+		}
+		if err := c.BodyParser(&input); err != nil {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": invalidUPRBody.Error()})
+		}
+		err := workflow.ApproveAnnualMonitoringPeriodClosure(c.Context(), middleware.GetAccessScope(c), profile, period, input.Reason)
+		if errors.Is(err, postgres.ErrUPRNotFound) {
+			return c.SendStatus(fiber.StatusNotFound)
+		}
+		if err != nil {
+			return monitoringRuleWriteError(c, err)
+		}
+		return uprData(c, fiber.Map{}, nil)
+	})
 }
 
 func canManageMonitoringRules(c *fiber.Ctx) bool {
