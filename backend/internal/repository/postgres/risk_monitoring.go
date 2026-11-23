@@ -45,7 +45,17 @@ func (r *riskMonitoringRepository) Create(ctx context.Context, monitoring *entit
 		if err := lockRiskWorkflow(ctx, tx, monitoring.VersionGroupID); err != nil {
 			return err
 		}
-		if err := checkMonitoringDraftStart(ctx, tx, monitoring.VersionGroupID, monitoring.TransactionKind); err != nil {
+		if monitoring.MonitoringPeriodID != nil || monitoring.TransactionKind == "revision" {
+			if err := lockRiskRevisionOrganization(ctx, tx, monitoring.SourceRiskID); err != nil {
+				return err
+			}
+		}
+		if monitoring.TransactionKind == "revision" {
+			if err := checkRiskRevisionPeriod(ctx, tx, monitoring.VersionGroupID); err != nil {
+				return err
+			}
+		}
+		if err := checkMonitoringDraftStart(ctx, tx, monitoring); err != nil {
 			return err
 		}
 	}
@@ -115,7 +125,7 @@ func insertRiskMonitoring(
 			profile_change_summary, change_reason, started_by, started_at, observed_at, observed_at_inferred,profile_version_id,monitoring_period_id,transaction_kind,finalized_at,finalized_by
 		)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29,$30,$31,$32)
-		RETURNING id, started_at, created_at, updated_at`,
+		RETURNING id, started_at, created_at, updated_at, profile_version_id`,
 		monitoring.SourceRiskID,
 		monitoring.VersionGroupID,
 		monitoring.ResultRiskID,
@@ -143,7 +153,7 @@ func insertRiskMonitoring(
 		monitoring.StartedAt,
 		monitoring.ObservedAt,
 		monitoring.ObservedAtInferred, monitoring.ProfileVersionID, monitoring.MonitoringPeriodID, monitoring.TransactionKind, monitoring.FinalizedAt, monitoring.FinalizedBy,
-	).Scan(&monitoring.ID, &monitoring.StartedAt, &monitoring.CreatedAt, &monitoring.UpdatedAt)
+	).Scan(&monitoring.ID, &monitoring.StartedAt, &monitoring.CreatedAt, &monitoring.UpdatedAt, &monitoring.ProfileVersionID)
 	if err != nil {
 		return fmt.Errorf("create risk monitoring: %w", err)
 	}
@@ -382,13 +392,38 @@ func (r *riskMonitoringRepository) List(ctx context.Context, filter repository.R
 }
 
 func (r *riskMonitoringRepository) UpdateDraft(ctx context.Context, monitoring *entity.RiskMonitoring) error {
+	if monitoring.TransactionKind != "revision" {
+		return updateMonitoringDraft(ctx, r.pool, monitoring)
+	}
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	var id uuid.UUID
+	if err := tx.QueryRow(ctx, "SELECT id FROM risk_monitorings WHERE id=$1 FOR UPDATE", monitoring.ID).Scan(&id); err != nil {
+		return err
+	}
+	if err := lockRiskRevisionOrganization(ctx, tx, monitoring.SourceRiskID); err != nil {
+		return err
+	}
+	if err := checkRiskRevisionPeriod(ctx, tx, monitoring.VersionGroupID); err != nil {
+		return err
+	}
+	if err := updateMonitoringDraft(ctx, tx, monitoring); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+func updateMonitoringDraft(ctx context.Context, q riskQueryer, monitoring *entity.RiskMonitoring) error {
 	monitoring.NormalizeNilaiForStorage()
 	profileChanges, err := json.Marshal(monitoring.ProfileChangeSummary)
 	if err != nil {
 		return fmt.Errorf("marshal profile changes: %w", err)
 	}
 	draftPayload := mustJSON(monitoring.DraftPayloadSnapshot())
-	err = r.pool.QueryRow(ctx, `
+	err = q.QueryRow(ctx, `
 		UPDATE risk_monitorings
 		SET mode = $2,
 		    observed_probability = $3,
@@ -510,6 +545,14 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 	if monitoring.Status != entity.RiskMonitoringStatusDraft {
 		return nil, domainerrors.ErrMonitoringNotFinalizable
 	}
+	if monitoring.TransactionKind == "revision" {
+		if err := lockRiskRevisionOrganization(ctx, tx, monitoring.SourceRiskID); err != nil {
+			return nil, err
+		}
+		if err := checkRiskRevisionPeriod(ctx, tx, monitoring.VersionGroupID); err != nil {
+			return nil, err
+		}
+	}
 
 	if !review.DraftUpdatedAt.IsZero() && !monitoring.UpdatedAt.Equal(review.DraftUpdatedAt) {
 		return nil, domainerrors.ErrMonitoringReviewChanged
@@ -558,9 +601,16 @@ func (r *riskMonitoringRepository) Finalize(ctx context.Context, monitoringID uu
 		return nil, err
 	}
 	var expectedSourceID uuid.UUID
-	if err := tx.QueryRow(ctx, `SELECT id FROM risks WHERE version_group_id=$1 AND status='final' AND (archived_at IS NULL OR archived_reason='superseded by periodic reassessment') AND superseded_by_risk_id IS NULL
+	if monitoring.ProfileVersionID != nil && monitoring.MonitoringPeriodID != nil {
+		err = tx.QueryRow(ctx, `SELECT risk_id FROM annual_monitoring_members_as_of(
+			annual_monitoring_period_profile($1,$2), $3::date) WHERE version_group_id=$4`,
+			monitoring.ProfileVersionID, monitoring.MonitoringPeriodID, monitoring.ObservedAt, monitoring.VersionGroupID).Scan(&expectedSourceID)
+	} else {
+		err = tx.QueryRow(ctx, `SELECT id FROM risks WHERE version_group_id=$1 AND status='final' AND (archived_at IS NULL OR archived_reason='superseded by periodic reassessment') AND superseded_by_risk_id IS NULL
 	 AND COALESCE(effective_from,(finalized_at AT TIME ZONE 'Asia/Jakarta')::date,(created_at AT TIME ZONE 'Asia/Jakarta')::date)<=$2::date
-	 ORDER BY COALESCE(effective_from,(finalized_at AT TIME ZONE 'Asia/Jakarta')::date,(created_at AT TIME ZONE 'Asia/Jakarta')::date) DESC,finalized_at DESC NULLS LAST,version_number DESC,id DESC LIMIT 1`, monitoring.VersionGroupID, monitoring.ObservedAt).Scan(&expectedSourceID); err != nil {
+	 ORDER BY COALESCE(effective_from,(finalized_at AT TIME ZONE 'Asia/Jakarta')::date,(created_at AT TIME ZONE 'Asia/Jakarta')::date) DESC,finalized_at DESC NULLS LAST,version_number DESC,id DESC LIMIT 1`, monitoring.VersionGroupID, monitoring.ObservedAt).Scan(&expectedSourceID)
+	}
+	if err != nil {
 		return nil, domainerrors.ErrMonitoringBeforeRiskEffective
 	}
 	if expectedSourceID != source.ID {
@@ -839,7 +889,7 @@ func getRiskByIDWithQueryer(ctx context.Context, q riskMonitoringQueryer, id uui
 	var draftApprovalLineRaw []byte
 	var roID uuid.NullUUID
 	query := `
-		SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.objective_id, r.ro_id, r.likelihood_assessment_id, r.impact_criteria_id, COALESCE(r.impact_justification, '') as impact_justification,
+		SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.risk_owner_id, r.objective_id, r.ro_id, r.likelihood_assessment_id, r.impact_criteria_id, COALESCE(r.impact_justification, '') as impact_justification,
 		       r.cause, r.risk_source, r.controllability, r.impact_description,
 		       r.existing_control, r.control_effectiveness, r.probability, r.impact, r.weight, r.nilai, ROUND(COALESCE(r.nilai, 0))::int,
 		       r.risk_priority, r.risk_appetite, r.treatment_option,
@@ -849,13 +899,14 @@ func getRiskByIDWithQueryer(ctx context.Context, q riskMonitoringQueryer, id uui
 		       COALESCE(r.draft_approval_line, '[]'::jsonb),
 		       r.created_at, r.updated_at,
 		       COALESCE(o.name, '') as org_name,
-		       COALESCE(u.name, '') as created_by_name,
+		       COALESCE(u.name, '') as created_by_name, COALESCE(owner.name, '') as risk_owner_name,
 		       draft.id as draft_id,
 		       draft.status as draft_status,
 		       CASE WHEN draft.id IS NOT NULL THEN true ELSE false END as has_ongoing
 		FROM risks r
 		LEFT JOIN organizations o ON r.organization_id = o.id
 		LEFT JOIN users u ON r.created_by = u.id
+		LEFT JOIN users owner ON r.risk_owner_id = owner.id
 		LEFT JOIN LATERAL (
 			SELECT d.id, d.status
 			FROM risks d
@@ -868,7 +919,7 @@ func getRiskByIDWithQueryer(ctx context.Context, q riskMonitoringQueryer, id uui
 		) draft ON true
 		WHERE r.id = $1`
 	if err := q.QueryRow(ctx, query, id).Scan(
-		&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.IsCycleCurrent, &risk.VersionNumber, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy, &risk.ObjectiveID, &roID, &risk.LikelihoodAssessmentID, &risk.ImpactCriteriaID, &risk.ImpactJustification,
+		&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.IsCycleCurrent, &risk.VersionNumber, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy, &risk.RiskOwnerID, &risk.ObjectiveID, &roID, &risk.LikelihoodAssessmentID, &risk.ImpactCriteriaID, &risk.ImpactJustification,
 		&risk.Cause, &risk.RiskSource, &risk.Controllability, &risk.ImpactDesc,
 		&risk.ExistingControl, &risk.ControlEffectiveness, &risk.Probability, &risk.Impact, &risk.Weight, &risk.Nilai, &risk.InherentScore,
 		&risk.RiskPriority, &risk.RiskAppetite, &risk.TreatmentOption,
@@ -877,7 +928,7 @@ func getRiskByIDWithQueryer(ctx context.Context, q riskMonitoringQueryer, id uui
 		&risk.NextReviewDate, &risk.ReviewScheduleText, &risk.AssessmentCycle, &risk.ReviewType, &risk.ChangeReason, &risk.ReviewSummary, &risk.ReviewStartedAt, &risk.ReviewSubmittedAt, &risk.ReviewApprovedAt,
 		&draftApprovalLineRaw,
 		&risk.CreatedAt, &risk.UpdatedAt,
-		&risk.OrgName, &risk.CreatedByName,
+		&risk.OrgName, &risk.CreatedByName, &risk.RiskOwnerName,
 		&risk.DraftID, &risk.DraftStatus, &risk.HasOngoing,
 	); err != nil {
 		return nil, err

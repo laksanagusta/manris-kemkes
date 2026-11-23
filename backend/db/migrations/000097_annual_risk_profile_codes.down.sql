@@ -1,0 +1,4 @@
+ALTER TABLE annual_risk_profile_versions DROP CONSTRAINT annual_risk_profile_versions_code_fkey;
+DROP TRIGGER ensure_annual_risk_profile_code ON annual_risk_profile_versions;
+DROP FUNCTION ensure_annual_risk_profile_code();
+DROP TABLE annual_risk_profile_codes;

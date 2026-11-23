@@ -103,7 +103,10 @@ func extractPDF(content []byte) (string, error) {
 }
 
 func extractXLSX(content []byte) (string, error) {
-	f, err := excelize.OpenReader(bytes.NewReader(content))
+	f, err := excelize.OpenReader(bytes.NewReader(content), excelize.Options{
+		UnzipSizeLimit:    64 << 20,
+		UnzipXMLSizeLimit: 4 << 20,
+	})
 	if err != nil {
 		return "", errors.Wrap(err, "failed to read spreadsheet")
 	}

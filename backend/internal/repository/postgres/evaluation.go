@@ -606,13 +606,13 @@ func insertEvaluation(ctx context.Context, q evaluationExecer, evaluation *entit
 		) VALUES (
 			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26
 		)
-		RETURNING created_at, updated_at
+		RETURNING created_at, updated_at, profile_version_id
 	`, evaluation.ID, evaluation.OrganizationID, evaluation.SequenceNo, evaluation.Code, evaluation.Period, evaluation.TemplateID, evaluation.Status,
 		evaluation.ReportNumber, reportDate, evaluation.AssignmentLetterNumber, assignmentLetterDate,
 		evaluation.MonitoringDateRange, evaluation.UnitCode, evaluation.UnitLocation, evaluation.UnitAddress,
 		evaluation.UnitEselonI, evaluation.UnitLeaderName, evaluation.TeamCoordinator, evaluation.TeamLead,
 		evaluation.TeamMembers, evaluation.Problems, evaluation.Recommendations, evaluation.CreatedBy, evaluation.FinalizedAt, evaluation.ProfileVersionID, evaluation.MonitoringPeriodID,
-	).Scan(&evaluation.CreatedAt, &evaluation.UpdatedAt); err != nil {
+	).Scan(&evaluation.CreatedAt, &evaluation.UpdatedAt, &evaluation.ProfileVersionID); err != nil {
 		return fmt.Errorf("create evaluation: %w", err)
 	}
 	return nil

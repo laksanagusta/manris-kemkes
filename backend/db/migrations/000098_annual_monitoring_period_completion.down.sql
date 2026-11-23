@@ -1,0 +1,4 @@
+DROP FUNCTION annual_monitoring_revision_periods(uuid);
+DROP TRIGGER annual_monitoring_period_started ON risk_monitorings;
+DROP FUNCTION record_annual_monitoring_period_start();
+DROP TABLE annual_monitoring_period_completion;

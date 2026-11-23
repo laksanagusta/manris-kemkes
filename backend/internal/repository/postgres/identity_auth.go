@@ -154,7 +154,7 @@ func NewIdentityDirectory(pool *pgxpool.Pool) identity.Directory {
 func (r *identityDirectory) UpdateProfile(ctx context.Context, id uuid.UUID, p domain.ProfileUpdate) error {
 	tag, err := r.pool.Exec(ctx, `UPDATE users SET name=$2,email=$3,nip=$4,jabatan=$5,pangkat=$6,updated_at=NOW() WHERE id=$1 AND status='active' AND NOT must_change_password`, id, p.Name, p.Email, p.NIP, p.Jabatan, p.Pangkat)
 	if err != nil {
-		return err
+		return userIdentityWriteError(err)
 	}
 	if tag.RowsAffected() == 0 {
 		return domainerrors.ErrUnauthorized

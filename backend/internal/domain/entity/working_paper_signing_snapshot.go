@@ -20,6 +20,8 @@ type workingPaperSigningContent struct {
 	CreatedAt       time.Time               `json:"created_at"`
 	Risks           []WorkingPaperRiskLink  `json:"risks"`
 	Signatories     []WorkingPaperSignatory `json:"signatories"`
+
+	SignerIdentitiesVerified bool `json:"signer_identities_verified,omitempty"`
 }
 
 func (wp *WorkingPaper) signingContent() ([]byte, error) {
@@ -34,6 +36,7 @@ func (wp *WorkingPaper) signingContent() ([]byte, error) {
 		ID: wp.ID, OrgID: wp.OrgID, Code: wp.Code, Title: wp.Title,
 		AssessmentCycle: wp.AssessmentCycle, CreatedAt: wp.CreatedAt,
 		Risks: wp.Risks, Signatories: signatories,
+		SignerIdentitiesVerified: wp.SignerIdentitiesVerified,
 	})
 }
 
@@ -106,6 +109,7 @@ func (wp *WorkingPaper) RestoreSigningContent() error {
 	wp.CreatedAt = content.CreatedAt
 	wp.Risks = content.Risks
 	wp.Signatories = content.Signatories
+	wp.SignerIdentitiesVerified = content.SignerIdentitiesVerified
 	wp.ContentLocked = true
 	return nil
 }

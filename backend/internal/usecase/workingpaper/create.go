@@ -12,12 +12,8 @@ import (
 )
 
 type CreateSignatoryInput struct {
-	UserID        uuid.UUID
-	SequenceNo    int
-	SignerName    string
-	SignerNIP     string
-	SignerJabatan string
-	SignerPangkat string
+	UserID     uuid.UUID
+	SequenceNo int
 }
 
 type CreateWorkingPaperInput struct {
@@ -38,10 +34,14 @@ func (uc *UseCase) Create(ctx context.Context, input CreateWorkingPaperInput) (*
 	if len(input.Signatories) == 0 {
 		return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "at least one signatory is required"}
 	}
+	if input.OrganizationID == uuid.Nil {
+		return nil, domainerrors.ErrInvalidInput
+	}
+	if !input.IsGlobal && !containsOrgID(input.AccessibleOrgIDs, input.OrganizationID) {
+		return nil, domainerrors.ErrForbidden
+	}
 	if input.ProfileVersionID != nil {
-		if input.OrganizationID == uuid.Nil || *input.ProfileVersionID == uuid.Nil ||
-			(!input.IsGlobal && !containsOrgID(input.AccessibleOrgIDs, input.OrganizationID)) ||
-			input.ObservationCutoff == "" || input.RosterRevision == "" {
+		if *input.ProfileVersionID == uuid.Nil || input.ObservationCutoff == "" || input.RosterRevision == "" {
 			return nil, &domainerrors.AppError{Code: "INVALID_INPUT", Message: "Pilih dan tinjau profil final dari unit kerja yang dapat diakses."}
 		}
 	} else {
@@ -82,10 +82,6 @@ func (uc *UseCase) Create(ctx context.Context, input CreateWorkingPaperInput) (*
 			WorkingPaperID: wp.ID,
 			UserID:         s.UserID,
 			SequenceNo:     s.SequenceNo,
-			SignerName:     s.SignerName,
-			SignerNIP:      s.SignerNIP,
-			SignerJabatan:  s.SignerJabatan,
-			SignerPangkat:  s.SignerPangkat,
 			Status:         "pending",
 		})
 	}

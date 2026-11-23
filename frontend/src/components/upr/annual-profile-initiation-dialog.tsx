@@ -4,9 +4,12 @@ import { createDisplayDateFormatter } from "@/lib/display-date";
 import { riskCategoryLabels } from "@/lib/risk";
 import { SearchableDropdownPicker } from "@/components/shared/searchable-dropdown-picker";
 import { FieldHeading } from "@/components/ui/field";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { AlertTriangle } from "@/components/shared/icons";
-import { CollectionSearchField } from "@/components/shared/design-system";
+import {
+  CollectionSearchField,
+  PopoverSelectField,
+} from "@/components/shared/design-system";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -84,6 +87,10 @@ export function AnnualProfileInitiationDialog({
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const submitLock = useRef(false);
+  const [modalContentElement, setModalContentElement] = useState<HTMLDivElement | null>(null);
+  const [modalBodyElement, setModalBodyElement] = useState<HTMLDivElement | null>(null);
+  const [modalBodyContentElement, setModalBodyContentElement] = useState<HTMLDivElement | null>(null);
+  const modalHeightRef = useRef<number | null>(null);
   const { selectedRule } = getAnnualProfileRuleSelection(
     [...(rulesResult?.rules ?? []), ...(chosenRule ? [chosenRule] : [])],
     defaultYear,
@@ -157,6 +164,82 @@ export function AnnualProfileInitiationDialog({
     };
   }, [canLoad, loadPickup, requestKey, sourceProfileId, year]);
 
+  useLayoutEffect(() => {
+    const modal = modalContentElement;
+    const body = modalBodyElement;
+    const bodyContent = modalBodyContentElement;
+    if (!modal || !body || !bodyContent) return;
+
+    let frame = 0;
+    let scheduled = false;
+
+    const measureAndAnimate = () => {
+      scheduled = false;
+      if (!modal.isConnected) return;
+
+      const previousHeight = modal.offsetHeight || modalHeightRef.current || 0;
+      const previousInlineHeight = modal.style.height;
+      const previousInlineMaxHeight = modal.style.maxHeight;
+      const previousInlineTransition = modal.style.transition;
+      const previousBodyFlex = body.style.flex;
+      const previousBodyHeight = body.style.height;
+      const previousBodyMaxHeight = body.style.maxHeight;
+      const previousBodyOverflow = body.style.overflow;
+      const computedMaxHeight = Number.parseFloat(getComputedStyle(modal).maxHeight);
+      const rootFontSize = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+      const viewportMaxHeight = Math.min(window.innerHeight * 0.9, 52 * rootFontSize);
+      const maxHeight = Number.isFinite(computedMaxHeight) ? computedMaxHeight : viewportMaxHeight;
+
+      modal.style.transition = "none";
+      modal.style.height = "auto";
+      modal.style.maxHeight = "none";
+      body.style.flex = "none";
+      body.style.height = "auto";
+      body.style.maxHeight = "none";
+      body.style.overflow = "visible";
+
+      const naturalHeight = modal.offsetHeight;
+      const targetHeight = Math.min(naturalHeight, maxHeight);
+
+      body.style.flex = previousBodyFlex;
+      body.style.height = previousBodyHeight;
+      body.style.maxHeight = previousBodyMaxHeight;
+      body.style.overflow = previousBodyOverflow;
+      modal.style.height = previousInlineHeight;
+      modal.style.maxHeight = previousInlineMaxHeight;
+      modal.style.transition = previousInlineTransition;
+
+      if (!targetHeight) return;
+      if (modalHeightRef.current === null || Math.abs(targetHeight - previousHeight) < 1) {
+        modal.style.height = `${targetHeight}px`;
+        modalHeightRef.current = targetHeight;
+        return;
+      }
+
+      modal.style.height = `${previousHeight}px`;
+      void modal.offsetHeight;
+      modal.style.height = `${targetHeight}px`;
+      modalHeightRef.current = targetHeight;
+    };
+
+    const scheduleMeasure = () => {
+      if (scheduled) return;
+      scheduled = true;
+      frame = window.requestAnimationFrame(measureAndAnimate);
+    };
+
+    scheduleMeasure();
+    const observer = new ResizeObserver(scheduleMeasure);
+    observer.observe(bodyContent);
+    window.addEventListener("resize", scheduleMeasure);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", scheduleMeasure);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, [modalBodyContentElement, modalBodyElement, modalContentElement]);
+
   function resetSelection() {
     setSearch("");
     setSelected([]);
@@ -193,6 +276,8 @@ export function AnnualProfileInitiationDialog({
       }}
     >
       <DialogContent
+        ref={setModalContentElement}
+        data-dynamic-height="true"
         className="flex max-h-[min(90dvh,52rem)] flex-col gap-4 overflow-hidden [--dialog-width:var(--container-5xl)]"
         showCloseButton={!pending}
         onCloseAutoFocus={(event) => {
@@ -200,7 +285,7 @@ export function AnnualProfileInitiationDialog({
           restoreFocus();
         }}
       >
-        <DialogHeader className="shrink-0 pr-10">
+        <DialogHeader className="shrink-0 px-1 pr-10">
           <DialogTitle>Tambah profil risiko tahunan</DialogTitle>
           <DialogDescription>
             Pilih rules pemantauan dan risiko awal. Setelah draf dibuat, selesaikan
@@ -208,288 +293,298 @@ export function AnnualProfileInitiationDialog({
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={submit} className="flex min-h-0 flex-1 flex-col gap-4">
-          <div className="min-h-0 space-y-6 overflow-y-auto px-1 py-1">
-            <div className="grid w-full gap-6">
-              {loadRules && (
+          <div
+            ref={setModalBodyElement}
+            data-slot="modal-body"
+            className="min-h-0 overflow-y-auto px-1 py-1"
+          >
+            <div ref={setModalBodyContentElement} className="space-y-6">
+              <div className="grid w-full gap-6">
+                {loadRules && (
+                  <div className="w-full space-y-2">
+                    <FieldHeading>
+                      <Label htmlFor="initiate-profile-rule">Rules pemantauan</Label>
+                      {rulesResult && !rulesResult.error && (
+                        <p id="initiate-profile-rule-help" className="text-xs leading-4 text-muted-foreground">
+                          {(rulesResult?.rules.length ?? 0)
+                            ? "Jadwal ini berlaku untuk pemantauan, kertas kerja, dan evaluasi profil."
+                            : "Belum ada rules pemantauan aktif. Superadmin perlu membuatnya di Pengaturan."}
+                        </p>
+                      )}
+                    </FieldHeading>
+                    <SearchableDropdownPicker<MonitoringRule>
+                      id="initiate-profile-rule"
+                      title="Rules pemantauan"
+                      description="Cari rules aktif berdasarkan nama atau tahun. Menampilkan lima rules terbaru."
+                      placeholder="Pilih rules pemantauan"
+                      value={selectedRule?.id ?? ""}
+                      selectedOption={selectedRule}
+                      options={ruleResults?.rules ?? []}
+                      getOptionValue={rule => rule.id}
+                      renderValue={rule => `${rule.year} · ${rule.name}`}
+                      renderOption={rule => `${rule.year} · ${rule.name}`}
+                      onSelect={rule => {
+                        setChosenRule(rule);
+                        setRuleId(rule.id);
+                        if (rule.year !== year) { setSourceId(""); resetSelection(); }
+                      }}
+                      open={ruleOpen}
+                      onOpenChange={open => { setRuleOpen(open); if (!open) setRuleSearch(""); }}
+                      search={ruleSearch}
+                      onSearchChange={value => { setRuleSearch(value); setRuleResults(null); }}
+                      searchPlaceholder="Cari nama atau tahun…"
+                      emptyMessage="Tidak ada rules yang cocok."
+                      loading={!ruleResults}
+                      errorMessage={ruleResults?.error}
+                      disabled={pending || !rulesResult || Boolean(rulesResult.error)}
+                      focusSearchOnOpen
+                    />
+                    {!rulesResult ? (
+                      <p role="status" className="text-xs text-muted-foreground">Memuat rules…</p>
+                    ) : rulesResult.error ? (
+                      <WorkflowError message={rulesResult.error} retry={() => { setRulesResult(null); setRulesRetry((n) => n + 1); }} />
+                    ) : null}
+                  </div>
+                )}
                 <div className="w-full space-y-2">
                   <FieldHeading>
-                    <Label htmlFor="initiate-profile-rule">Rules pemantauan</Label>
-                    {rulesResult && !rulesResult.error && (
-                      <p id="initiate-profile-rule-help" className="text-xs leading-4 text-muted-foreground">
-                        {(rulesResult?.rules.length ?? 0)
-                          ? "Jadwal ini berlaku untuk pemantauan, kertas kerja, dan evaluasi profil."
-                          : "Belum ada rules pemantauan aktif. Superadmin perlu membuatnya di Pengaturan."}
+                    <Label htmlFor="initiate-profile-year">Tahun profil</Label>
+                  </FieldHeading>
+                  <Input
+                    id="initiate-profile-year"
+                    value={validYear ? String(year) : ""}
+                    placeholder={loadRules ? "Mengikuti rules pemantauan" : undefined}
+                    disabled
+                    className="tabular-nums"
+                  />
+                  {existing && (
+                    <Alert
+                      role="note"
+                      className="mt-4! rounded-lg border-amber-200 bg-amber-50 px-2 py-1.5 text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100"
+                    >
+                      <AlertTriangle
+                        aria-hidden="true"
+                        className="size-3.5 text-amber-700 dark:text-amber-300"
+                      />
+                      <AlertDescription className="text-xs leading-4 text-amber-900 dark:text-amber-100">
+                        {existing.draft
+                          ? `Tahun ${year} sudah punya draf versi ${existing.draft.version}.`
+                          : `Tahun ${year} sudah punya profil final. Buka detail untuk membuat revisi.`}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                </div>
+                {validYear && !existing && (
+                  <div className="space-y-2">
+                    <Label htmlFor="initiate-profile-source">Sumber risiko</Label>
+                    <PopoverSelectField
+                      id="initiate-profile-source"
+                      value={mode}
+                      placeholder="Pilih sumber risiko"
+                      options={[
+                        { value: "register", label: "Risiko aktif di Register" },
+                        { value: "profile", label: "Ambil dari profil final" },
+                      ]}
+                      disabled={pending}
+                      onValueChange={(value) => {
+                        setMode(value);
+                        setSourceId("");
+                        resetSelection();
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+              {!existing && validYear && mode === "profile" && (
+                <div className="space-y-2">
+                  <FieldHeading>
+                    <Label htmlFor="initiate-source-version">Profil sumber</Label>
+                    {!sources.length && (
+                      <p className="leading-4 text-sm text-muted-foreground">
+                        Belum ada profil final sebelum {year}. Gunakan risiko aktif
+                        di Register.
                       </p>
                     )}
                   </FieldHeading>
-                  <SearchableDropdownPicker<MonitoringRule>
-                    id="initiate-profile-rule"
-                    title="Rules pemantauan"
-                    description="Cari rules aktif berdasarkan nama atau tahun. Menampilkan lima rules terbaru."
-                    placeholder="Pilih rules pemantauan"
-                    value={selectedRule?.id ?? ""}
-                    selectedOption={selectedRule}
-                    options={ruleResults?.rules ?? []}
-                    getOptionValue={rule => rule.id}
-                    renderValue={rule => `${rule.year} · ${rule.name}`}
-                    renderOption={rule => `${rule.year} · ${rule.name}`}
-                    onSelect={rule => {
-                      setChosenRule(rule);
-                      setRuleId(rule.id);
-                      if (rule.year !== year) { setSourceId(""); resetSelection(); }
-                    }}
-                    open={ruleOpen}
-                    onOpenChange={open => { setRuleOpen(open); if (!open) setRuleSearch(""); }}
-                    search={ruleSearch}
-                    onSearchChange={value => { setRuleSearch(value); setRuleResults(null); }}
-                    searchPlaceholder="Cari nama atau tahun…"
-                    emptyMessage="Tidak ada rules yang cocok."
-                    loading={!ruleResults}
-                    errorMessage={ruleResults?.error}
-                    disabled={pending || !rulesResult || Boolean(rulesResult.error)}
-                    focusSearchOnOpen
-                  />
-                  {!rulesResult ? (
-                    <p role="status" className="text-xs text-muted-foreground">Memuat rules…</p>
-                  ) : rulesResult.error ? (
-                    <WorkflowError message={rulesResult.error} retry={() => { setRulesResult(null); setRulesRetry((n) => n + 1); }} />
-                  ) : null}
-                </div>
-              )}
-              <div className="w-full space-y-2">
-                <FieldHeading>
-                  <Label htmlFor="initiate-profile-year">Tahun profil</Label>
-                </FieldHeading>
-                <Input
-                  id="initiate-profile-year"
-                  value={validYear ? String(year) : ""}
-                  placeholder={loadRules ? "Mengikuti rules pemantauan" : undefined}
-                  readOnly
-                  disabled={pending}
-                  className="tabular-nums"
-                />
-                {existing && (
-                  <Alert
-                    role="note"
-                    className="mt-4! rounded-lg border-amber-200 bg-amber-50 px-2 py-1.5 text-amber-950 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100"
-                  >
-                    <AlertTriangle
-                      aria-hidden="true"
-                      className="size-3.5 text-amber-700 dark:text-amber-300"
-                    />
-                    <AlertDescription className="text-xs leading-4 text-amber-900 dark:text-amber-100">
-                      {existing.draft
-                        ? `Tahun ${year} sudah punya draf versi ${existing.draft.version}.`
-                        : `Tahun ${year} sudah punya profil final. Buka detail untuk membuat revisi.`}
-                    </AlertDescription>
-                  </Alert>
-                )}
-              </div>
-              {validYear && !existing && (
-                <div className="space-y-2">
-                  <Label htmlFor="initiate-profile-source">Sumber risiko</Label>
                   <Select
-                    value={mode}
-                    disabled={pending}
+                    value={sourceId}
+                    disabled={pending || !sources.length}
                     onValueChange={(value) => {
-                      setMode(value);
-                      setSourceId("");
+                      setSourceId(value);
                       resetSelection();
                     }}
                   >
                     <SelectTrigger
-                      id="initiate-profile-source"
+                      id="initiate-source-version"
                       className="w-full"
                     >
-                      <SelectValue />
+                      <SelectValue placeholder="Pilih tahun dan versi profil" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="register">
-                        Risiko aktif di Register
-                      </SelectItem>
-                      <SelectItem value="profile">
-                        Ambil dari profil final
-                      </SelectItem>
+                      {sources.map((version) => (
+                        <SelectItem key={version.id} value={version.id}>
+                          {version.year} · Versi {version.version} Final
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
               )}
-            </div>
-            {!existing && validYear && mode === "profile" && (
-              <div className="space-y-2">
-                <FieldHeading>
-                  <Label htmlFor="initiate-source-version">Profil sumber</Label>
-                  {!sources.length && (
-                    <p className="leading-4 text-sm text-muted-foreground">
-                      Belum ada profil final sebelum {year}. Gunakan risiko aktif
-                      di Register.
-                    </p>
-                  )}
-                </FieldHeading>
-                <Select
-                  value={sourceId}
-                  disabled={pending || !sources.length}
-                  onValueChange={(value) => {
-                    setSourceId(value);
-                    resetSelection();
-                  }}
-                >
-                  <SelectTrigger
-                    id="initiate-source-version"
-                    className="w-full"
-                  >
-                    <SelectValue placeholder="Pilih tahun dan versi profil" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {sources.map((version) => (
-                      <SelectItem key={version.id} value={version.id}>
-                        {version.year} · Versi {version.version} Final
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-            {canLoad && !preview && (
-              <p role="status" className="text-sm text-muted-foreground">
-                Memuat daftar risiko…
-              </p>
-            )}
-            {preview?.error && (
-              <WorkflowError
-                message={preview.error}
-                retry={() => setRetry((value) => value + 1)}
-              />
-            )}
-            {preview && !preview.error && (
-              <div className="space-y-3">
-                <CollectionSearchField
-                  aria-label="Cari risiko untuk profil"
-                  placeholder="Cari kode atau nama risiko"
-                  value={search}
-                  disabled={pending}
-                  onChange={(event) => setSearch(event.target.value)}
+              {canLoad && !preview && (
+                <p role="status" className="text-sm text-muted-foreground">
+                  Memuat daftar risiko…
+                </p>
+              )}
+              {preview?.error && (
+                <WorkflowError
+                  message={preview.error}
+                  retry={() => setRetry((value) => value + 1)}
                 />
-                {available.length > 0 ? (
-                  <WorkflowTable
-                    columns={[
-                      {
-                        label: "Pilih semua risiko",
-                        className: "w-12 min-w-12 max-w-12 px-0 text-center",
-                        header: (
-                          <Checkbox
-                            aria-label="Pilih semua risiko yang tersedia"
-                            title="Pilih semua risiko yang tersedia"
-                            checked={
-                              picked.length === eligible.length &&
-                              eligible.length > 0
-                                ? true
-                                : picked.length > 0
-                                  ? "indeterminate"
-                                  : false
-                            }
-                            disabled={pending || eligible.length === 0}
-                            onCheckedChange={(checked) =>
-                              setSelected(
-                                checked === true
-                                  ? eligible.map((item) => item.id)
-                                  : [],
-                              )
-                            }
-                          />
-                        ),
-                      },
-                      "Risiko",
-                      "Penilaian terakhir",
-                      "Kategori",
-                    ]}
-                    hiddenOnMobile={["Penilaian terakhir", "Kategori"]}
-                  >
-                    {visible.map((risk, index) => {
-                      const id = risk.id;
-                      const date = risk.assessmentDate ? new Date(risk.assessmentDate) : null;
-                      const assessment = date && !Number.isNaN(date.getTime())
-                        ? assessmentDateFormatter.format(date)
-                        : "—";
-                      const category = riskCategoryLabels[risk.category as keyof typeof riskCategoryLabels] || risk.category || "—";
-                      return (
-                        <TableRow
-                          key={id ?? `${risk.code}:${risk.title}:${index}`}
-                        >
-                          <TableCell className="w-12 min-w-12 max-w-12 px-0 text-center">
-                            {id && !risk.unavailable && (
-                              <Checkbox
-                                className="mx-auto"
-                                aria-label={`Pilih ${risk.code} ${risk.title}`}
-                                checked={selectedIds.has(id)}
-                                disabled={pending}
-                                onCheckedChange={(checked) =>
-                                  setSelected((current) =>
-                                    checked === true
-                                      ? [...current, id]
-                                      : current.filter((item) => item !== id),
-                                  )
-                                }
-                              />
-                            )}
-                          </TableCell>
-                          <TableCell className="ps-0 whitespace-normal sm:min-w-40">
-                            <span className="text-xs text-muted-foreground">
-                              {risk.code}
-                            </span>
-                            <p className="font-medium">{risk.title}</p>
-                            <div className="mt-1 space-y-0.5 text-xs text-muted-foreground sm:hidden">
-                              {assessment && (
-                                <p className="tabular-nums">{assessment}</p>
+              )}
+              {preview && !preview.error && (
+                <div className="space-y-3">
+                  <CollectionSearchField
+                    aria-label="Cari risiko untuk profil"
+                    placeholder="Cari kode atau nama risiko"
+                    value={search}
+                    disabled={pending}
+                    className="placeholder:text-tertiary-foreground"
+                    onChange={(event) => setSearch(event.target.value)}
+                  />
+                  {available.length > 0 ? (
+                    <WorkflowTable
+                      columns={[
+                        {
+                          label: "Pilih semua risiko",
+                          className: "w-12 min-w-12 max-w-12 px-0 text-center",
+                          header: (
+                            <Checkbox
+                              aria-label="Pilih semua risiko yang tersedia"
+                              title="Pilih semua risiko yang tersedia"
+                              checked={
+                                picked.length === eligible.length &&
+                                eligible.length > 0
+                                  ? true
+                                  : picked.length > 0
+                                    ? "indeterminate"
+                                    : false
+                              }
+                              disabled={pending || eligible.length === 0}
+                              onCheckedChange={(checked) =>
+                                setSelected(
+                                  checked === true
+                                    ? eligible.map((item) => item.id)
+                                    : [],
+                                )
+                              }
+                            />
+                          ),
+                        },
+                        "Risiko",
+                        "Penilaian terakhir",
+                        "Kategori",
+                        "Skor",
+                        "Target",
+                      ]}
+                      hiddenOnMobile={["Penilaian terakhir", "Kategori", "Skor", "Target"]}
+                    >
+                      {visible.map((risk, index) => {
+                        const id = risk.id;
+                        const date = risk.assessmentDate ? new Date(risk.assessmentDate) : null;
+                        const assessment = date && !Number.isNaN(date.getTime())
+                          ? assessmentDateFormatter.format(date)
+                          : "—";
+                        const category = riskCategoryLabels[risk.category as keyof typeof riskCategoryLabels] || risk.category || "—";
+                        const targetScore = risk.targetScore && risk.targetScore > 0
+                          ? risk.targetScore
+                          : "—";
+                        return (
+                          <TableRow
+                            key={id ?? `${risk.code}:${risk.title}:${index}`}
+                          >
+                            <TableCell className="w-12 min-w-12 max-w-12 px-0 text-center">
+                              {id && !risk.unavailable && (
+                                <Checkbox
+                                  className="mx-auto"
+                                  aria-label={`Pilih ${risk.code} ${risk.title}`}
+                                  checked={selectedIds.has(id)}
+                                  disabled={pending}
+                                  onCheckedChange={(checked) =>
+                                    setSelected((current) =>
+                                      checked === true
+                                        ? [...current, id]
+                                        : current.filter((item) => item !== id),
+                                    )
+                                  }
+                                />
                               )}
-                              <p>{category}</p>
-                            </div>
-                            {risk.unavailable && <p className="mt-1 text-xs text-muted-foreground">{risk.unavailable}</p>}
-                          </TableCell>
-                          <TableCell className="hidden tabular-nums sm:table-cell">
-                            <time dateTime={risk.assessmentDate ?? undefined}>{assessment}</time>
-                          </TableCell>
-                          <TableCell className="hidden min-w-36 whitespace-normal sm:table-cell">
-                            {category}
+                            </TableCell>
+                            <TableCell className="ps-0 whitespace-normal sm:min-w-40">
+                              <span className="text-xs text-muted-foreground">
+                                {risk.code}
+                              </span>
+                              <p className="font-medium">{risk.title}</p>
+                              <div className="mt-1 space-y-0.5 text-xs text-muted-foreground sm:hidden">
+                                {assessment && (
+                                  <p className="tabular-nums">{assessment}</p>
+                                )}
+                                <p>{category}</p>
+                                <p className="tabular-nums">Skor: {risk.score ?? "—"}</p>
+                                <p className="tabular-nums">Target: {targetScore}</p>
+                              </div>
+                              {risk.unavailable && <p className="mt-1 text-xs text-muted-foreground">{risk.unavailable}</p>}
+                            </TableCell>
+                            <TableCell className="hidden tabular-nums sm:table-cell">
+                              <time dateTime={risk.assessmentDate ?? undefined}>{assessment}</time>
+                            </TableCell>
+                            <TableCell className="hidden min-w-36 whitespace-normal sm:table-cell">
+                              {category}
+                            </TableCell>
+                            <TableCell className="hidden tabular-nums sm:table-cell">
+                              {risk.score ?? "—"}
+                            </TableCell>
+                            <TableCell className="hidden tabular-nums sm:table-cell">
+                              {targetScore}
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                      {!visible.length && (
+                        <TableRow>
+                          <TableCell
+                            colSpan={6}
+                            className="py-6 text-center text-muted-foreground"
+                          >
+                            Tidak ada risiko yang cocok dengan pencarian.
                           </TableCell>
                         </TableRow>
-                      );
-                    })}
-                    {!visible.length && (
-                      <TableRow>
-                        <TableCell
-                          colSpan={4}
-                          className="py-6 text-center text-muted-foreground"
-                        >
-                          Tidak ada risiko yang cocok dengan pencarian.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </WorkflowTable>
-                ) : (
-                  <p className="text-sm text-muted-foreground">
-                    {source
-                      ? "Profil sumber ini tidak memuat risiko."
-                      : "Belum ada risiko final aktif di Register."}
-                  </p>
-                )}
-              </div>
-            )}
-            {error && (
-              <WorkflowError
-                message={error}
-                retry={
-                  !existing
-                    ? () => {
-                        setError("");
-                        setRetry((value) => value + 1);
-                      }
-                    : undefined
-                }
-              />
-            )}
+                      )}
+                    </WorkflowTable>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      {source
+                        ? "Profil sumber ini tidak memuat risiko."
+                        : "Belum ada risiko final aktif di Register."}
+                    </p>
+                  )}
+                </div>
+              )}
+              {error && (
+                <WorkflowError
+                  message={error}
+                  retry={
+                    !existing
+                      ? () => {
+                          setError("");
+                          setRetry((value) => value + 1);
+                        }
+                      : undefined
+                  }
+                />
+              )}
+            </div>
           </div>
-          <DialogFooter className="shrink-0 border-t pt-4 sm:items-center">
+          <DialogFooter className="shrink-0 border-t px-1 pt-4 sm:items-center">
             {canLoad && preview && !preview.error && (
               <span
                 role="status"

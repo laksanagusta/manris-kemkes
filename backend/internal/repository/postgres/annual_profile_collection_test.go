@@ -3,6 +3,7 @@ package postgres_test
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/google/uuid"
@@ -40,9 +41,13 @@ func TestAnnualProfileListIncludesReadableDescendantsWithoutGrantingWrites(t *te
 	if err != nil || len(visible) != 2 || visible[0].ID != ids[1] || visible[1].ID != ids[0] {
 		t.Fatalf("list for parent: %+v, %v", visible, err)
 	}
+	if !strings.HasPrefix(own[0].Code, "PRT-2026-") || !strings.HasPrefix(visible[0].Code, "PRT-2026-") ||
+		visible[0].Code == own[0].Code || visible[1].Code != own[0].Code {
+		t.Fatalf("profile codes must distinguish units and match across lists: own %+v, visible %+v", own, visible)
+	}
 	profile, err := workflow.AnnualProfileForScope(ctx, scope, parent, 2026, ids[1])
 	if err != nil || profile.Selected == nil || profile.Selected.ID != ids[1] ||
-		profile.OrganizationID != child || profile.OrganizationName != "Annual profile child" {
+		profile.OrganizationID != child || profile.OrganizationName != "Annual profile child" || profile.Code != visible[0].Code {
 		t.Fatalf("read descendant profile: %+v, %v", profile, err)
 	}
 	if _, err := workflow.AnnualProfileForScope(ctx, scope, parent, 2026, ids[2]); !errors.Is(err, postgres.ErrUPRNotFound) {
@@ -53,5 +58,22 @@ func TestAnnualProfileListIncludesReadableDescendantsWithoutGrantingWrites(t *te
 	}
 	if err := workflow.FinalizeAnnualProfile(ctx, parent, actor, ids[1]); !errors.Is(err, postgres.ErrUPRNotFound) {
 		t.Fatalf("parent finalize: %v", err)
+	}
+	if err := workflow.FinalizeAnnualProfile(ctx, parent, actor, ids[0]); err != nil {
+		t.Fatal(err)
+	}
+	revision, err := workflow.CreateAnnualDraft(ctx, parent, actor, 2026)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := workflow.DeleteAnnualDraft(ctx, parent, revision); err != nil {
+			t.Errorf("clean up revision: %v", err)
+		}
+	})
+	versions, err := workflow.AnnualProfileList(ctx, scope, parent, false)
+	if err != nil || len(versions) != 2 || versions[0].ID != revision ||
+		versions[0].Code != own[0].Code || versions[1].Code != own[0].Code {
+		t.Fatalf("revision must retain the code of the final profile: %+v, %v", versions, err)
 	}
 }

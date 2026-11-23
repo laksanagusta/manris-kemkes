@@ -2,16 +2,19 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/manris/backend/internal/domain/entity"
+	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
 )
 
 type likelihoodAssessmentRepository struct {
-	pool *pgxpool.Pool
+	pool repositoryDB
 }
 
 func NewLikelihoodAssessmentRepository(pool *pgxpool.Pool) repository.LikelihoodAssessmentRepository {
@@ -48,7 +51,7 @@ func (r *likelihoodAssessmentRepository) Create(ctx context.Context, assessment 
 	return nil
 }
 
-func (r *likelihoodAssessmentRepository) GetByRiskID(ctx context.Context, riskID uuid.UUID) (*entity.LikelihoodAssessment, error) {
+func (r *likelihoodAssessmentRepository) GetByRiskID(ctx context.Context, riskID uuid.UUID, scope *entity.AccessScope) (*entity.LikelihoodAssessment, error) {
 	query := `
 		SELECT id, risk_id, method, frequency_type, observation_period_months,
 			event_count, population_count, calculated_probability,
@@ -56,10 +59,14 @@ func (r *likelihoodAssessmentRepository) GetByRiskID(ctx context.Context, riskID
 			created_at, updated_at
 		FROM likelihood_assessments
 		WHERE risk_id = $1
+		  AND EXISTS (
+		    SELECT 1 FROM risks
+		    WHERE id = $1 AND ($2::boolean OR organization_id = ANY($3::uuid[]))
+		  )
 	`
 
 	a := &entity.LikelihoodAssessment{}
-	err := r.pool.QueryRow(ctx, query, riskID).Scan(
+	err := r.pool.QueryRow(ctx, query, riskID, scope.IsGlobal, scope.AccessibleOrgIDs).Scan(
 		&a.ID,
 		&a.RiskID,
 		&a.Method,
@@ -81,15 +88,18 @@ func (r *likelihoodAssessmentRepository) GetByRiskID(ctx context.Context, riskID
 	return a, nil
 }
 
-func (r *likelihoodAssessmentRepository) UpsertByRiskID(ctx context.Context, assessment *entity.LikelihoodAssessment) error {
+func (r *likelihoodAssessmentRepository) UpsertByRiskID(ctx context.Context, assessment *entity.LikelihoodAssessment, scope *entity.AccessScope) error {
 	query := `
 		INSERT INTO likelihood_assessments (
 			risk_id, method, frequency_type, observation_period_months,
 			event_count, population_count, calculated_probability,
 			selected_probability_level, justification, data_source
-		) VALUES (
-			$1,$2,$3,$4,$5,$6,$7,$8,$9,$10
 		)
+		SELECT $1::uuid, $2::text, $3::text, $4::integer, $5::integer,
+		       $6::integer, $7::numeric, $8::integer, $9::text, $10::text
+		FROM risks
+		WHERE id = $1 AND ($11::boolean OR organization_id = $12::uuid)
+		FOR SHARE
 		ON CONFLICT (risk_id) DO UPDATE SET
 			method = EXCLUDED.method,
 			frequency_type = EXCLUDED.frequency_type,
@@ -115,7 +125,12 @@ func (r *likelihoodAssessmentRepository) UpsertByRiskID(ctx context.Context, ass
 		assessment.SelectedProbabilityLevel,
 		assessment.Justification,
 		assessment.DataSource,
+		scope.IsGlobal,
+		scope.OrganizationID,
 	).Scan(&assessment.ID, &assessment.CreatedAt, &assessment.UpdatedAt); err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domainerrors.ErrForbidden
+		}
 		return fmt.Errorf("upsert likelihood assessment: %w", err)
 	}
 

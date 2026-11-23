@@ -535,10 +535,10 @@ func TestWorkingPaperSigningSnapshotStaysFixedThroughSignatures(t *testing.T) {
 	repo := NewWorkingPaperRepository(pool)
 	uc := workingpaper.NewWorkingPaperUseCase(repo, nil, nil)
 	orgID := insertWorkingPaperTestOrganization(t, pool, "Working Paper Signing Snapshot")
-	firstSigner := insertWorkingPaperTestUser(t, pool, orgID, "wp-snapshot-first")
-	secondSigner := insertWorkingPaperTestUser(t, pool, orgID, "wp-snapshot-second")
+	firstSigner := insertWorkingPaperTestUser(t, pool, orgID, "wp-snapshot-first-"+uuid.NewString())
+	secondSigner := insertWorkingPaperTestUser(t, pool, orgID, "wp-snapshot-second-"+uuid.NewString())
 	risk := &entity.Risk{
-		Code: "R-SNAPSHOT", Title: "Risiko yang ditinjau", Description: "Risiko uji salinan TTE",
+		Code: "R-SNAPSHOT-" + uuid.NewString(), Title: "Risiko yang ditinjau", Description: "Risiko uji salinan TTE",
 		Category: entity.RiskCategoryOperasional, Status: entity.RiskStatusFinal,
 		VersionGroupID: uuid.New(), OrganizationID: &orgID, CreatedBy: &firstSigner,
 		IsCurrent: true, IsCycleCurrent: true, VersionNumber: 1, AssessmentCycle: "2026-Q1",
@@ -574,7 +574,12 @@ func TestWorkingPaperSigningSnapshotStaysFixedThroughSignatures(t *testing.T) {
 	if err != nil || review.ReviewHash == "" {
 		t.Fatalf("load review: %v", err)
 	}
-	if _, err := pool.Exec(ctx, `UPDATE risk_monitorings SET mitigation_progress_summary = 'Dua tindakan selesai.' WHERE id = $1`, monitoring.ID); err != nil {
+	for _, signer := range review.Signatories {
+		if signer.SignerName != "Test User" {
+			t.Fatalf("expected the reviewed signer name from the account directory, got %q", signer.SignerName)
+		}
+	}
+	if _, err := pool.Exec(ctx, `UPDATE users SET name = 'Nama direktori sebelum TTE' WHERE id = $1`, firstSigner); err != nil {
 		t.Fatal(err)
 	}
 	_, err = uc.StartSigning(ctx, paper.ID, firstSigner, review.ReviewHash)
@@ -591,10 +596,10 @@ func TestWorkingPaperSigningSnapshotStaysFixedThroughSignatures(t *testing.T) {
 		t.Fatalf("expected review hash to be frozen at start: %v", err)
 	}
 
-	if _, err := pool.Exec(ctx, `UPDATE risk_monitorings SET mitigation_progress_summary = 'Diubah setelah TTE.' WHERE id = $1`, monitoring.ID); err != nil {
+	if _, err := pool.Exec(ctx, `UPDATE working_paper_signatories SET signer_name = 'Nama baru' WHERE working_paper_id = $1 AND user_id = $2`, paper.ID, firstSigner); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := pool.Exec(ctx, `UPDATE working_paper_signatories SET signer_name = 'Nama baru' WHERE working_paper_id = $1 AND user_id = $2`, paper.ID, firstSigner); err != nil {
+	if _, err := pool.Exec(ctx, `UPDATE users SET name = 'Nama profil baru' WHERE id = $1`, firstSigner); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := uc.Sign(ctx, paper.ID, firstSigner); err != nil {
@@ -610,7 +615,7 @@ func TestWorkingPaperSigningSnapshotStaysFixedThroughSignatures(t *testing.T) {
 	if completed.Status != entity.WorkingPaperStatusCompleted || completed.DocumentHash != review.ReviewHash || !completed.ContentLocked {
 		t.Fatal("expected completed paper to retain the locked hash")
 	}
-	if got := completed.Risks[0].Risk.Monitoring.MitigationProgressSummary; got != "Dua tindakan selesai." {
+	if got := completed.Risks[0].Risk.Monitoring.MitigationProgressSummary; got != "Satu tindakan selesai." {
 		t.Fatalf("expected export and detail to retain reviewed monitoring, got %q", got)
 	}
 	for i, signatory := range completed.Signatories {

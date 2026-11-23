@@ -46,12 +46,8 @@ type workingPaperRosterDecision struct {
 }
 
 type createSignatoryRequest struct {
-	UserID        uuid.UUID `json:"user_id"`
-	SequenceNo    int       `json:"sequence_no"`
-	SignerName    string    `json:"signer_name"`
-	SignerNIP     string    `json:"signer_nip"`
-	SignerJabatan string    `json:"signer_jabatan"`
-	SignerPangkat string    `json:"signer_pangkat"`
+	UserID     uuid.UUID `json:"user_id"`
+	SequenceNo int       `json:"sequence_no"`
 }
 
 // Create handles POST /working-papers.
@@ -82,12 +78,8 @@ func (h *WorkingPaperHandler) Create(c *fiber.Ctx) error {
 	signatories := make([]workingpaper.CreateSignatoryInput, len(req.Signatories))
 	for i, s := range req.Signatories {
 		signatories[i] = workingpaper.CreateSignatoryInput{
-			UserID:        s.UserID,
-			SequenceNo:    s.SequenceNo,
-			SignerName:    s.SignerName,
-			SignerNIP:     s.SignerNIP,
-			SignerJabatan: s.SignerJabatan,
-			SignerPangkat: s.SignerPangkat,
+			UserID:     s.UserID,
+			SequenceNo: s.SequenceNo,
 		}
 	}
 
@@ -316,12 +308,12 @@ func (h *WorkingPaperHandler) Cancel(c *fiber.Ctx) error {
 		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID kertas kerja tidak valid")
 	}
 
-	userID, ok := c.Locals("userId").(uuid.UUID)
-	if !ok {
+	scope := middleware.GetAccessScope(c)
+	if scope == nil || scope.UserID == uuid.Nil {
 		return sendProblemDetails(c, 401, "Tidak Sah", "https://api.manris.com/errors/unauthorized", "tidak sah")
 	}
 
-	if err := h.uc.Cancel(c.Context(), id, userID); err != nil {
+	if err := h.uc.Cancel(c.Context(), id, scope); err != nil {
 		return handleWPError(c, err)
 	}
 
@@ -428,7 +420,7 @@ func handleWPError(c *fiber.Ctx, err error) error {
 			return sendProblemDetails(c, fiber.StatusConflict, "Daftar risiko berubah", "https://api.manris.com/errors/working-paper-roster-stale", appErr.Message)
 		case "SEMESTER_CONFLICT":
 			return sendProblemDetails(c, fiber.StatusConflict, "Kertas Kerja sudah ada", "https://api.manris.com/errors/working-paper-period-conflict", appErr.Message)
-		case "INVALID_STATUS", "MONITORING_CONFLICT":
+		case "INVALID_STATUS", "MONITORING_CONFLICT", "SIGNER_IDENTITY_MISMATCH":
 			return sendProblemDetails(c, fiber.StatusConflict, "Konflik", "https://api.manris.com/errors/conflict", appErr.Message)
 		case "MONITORING_INCOMPLETE":
 			return sendProblemDetailsWithDetails(

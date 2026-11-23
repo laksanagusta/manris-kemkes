@@ -17,7 +17,7 @@ func publicError(err error) error {
 	if err == nil {
 		return nil
 	}
-	for _, e := range []error{ErrNotFound, ErrForbidden, ErrInvalid, ErrConflict, ErrStale, ErrUnavailable, ErrStorageNotReady, ErrLeaseLost, context.Canceled, context.DeadlineExceeded} {
+	for _, e := range []error{ErrNotFound, ErrForbidden, ErrInvalid, ErrConflict, ErrOwnerBusy, ErrSensitiveInput, ErrStale, ErrUnavailable, ErrStorageNotReady, ErrLeaseLost, context.Canceled, context.DeadlineExceeded} {
 		if errors.Is(err, e) {
 			return e
 		}

@@ -17,6 +17,8 @@ export function AnnualProfileCollectionPage() {
   const { token, user, loading: authLoading } = useAuth();
   const router = useRouter();
   const organizationId = user?.organizationId;
+  const readAll = user?.role === "superadmin" && !organizationId;
+  const accessKey = organizationId ?? (readAll ? user.id : null);
   const [periodProgress, setPeriodProgress] = useState<{scope:string; data:Record<string,ProfilePeriodWorkspace | {error:string}>}>({scope:"",data:{}});
   const [versions, setVersions] = useState<AnnualProfileListVersion[]>([]);
   const [loadedScope, setLoadedScope] = useState<string | null>(null);
@@ -25,30 +27,30 @@ export function AnnualProfileCollectionPage() {
   const [reloadProgress, setReloadProgress] = useState(0);
 
   useEffect(() => {
-    if (!token || !organizationId) return;
+    if (!token || !accessKey) return;
     let cancelled = false;
     uprApi.profiles(token, { includeDescendants: true }).then(
       (rows) => {
         if (!cancelled) {
           setVersions(rows);
           setError("");
-          setLoadedScope(organizationId);
+          setLoadedScope(accessKey);
         }
       },
       (cause) => {
         if (!cancelled) {
           setError(workflowError(cause));
-          setLoadedScope(organizationId);
+          setLoadedScope(accessKey);
         }
       },
     );
     return () => {
       cancelled = true;
     };
-  }, [token, organizationId, reload]);
+  }, [token, accessKey, reload]);
 
   useEffect(() => {
-    if (!token || !organizationId) return;
+    if (!token || !accessKey) return;
     let active = true;
     const profileIds = groupAnnualProfiles(versions).flatMap(({ final, draft }) => {
       const profile = final ?? draft;
@@ -61,10 +63,10 @@ export function AnnualProfileCollectionPage() {
         return [id, { error: workflowError(error) }] as const;
       }
     })).then((entries) => {
-      if (active) setPeriodProgress({ scope: organizationId, data: Object.fromEntries(entries) });
+      if (active) setPeriodProgress({ scope: accessKey, data: Object.fromEntries(entries) });
     });
     return () => { active = false; };
-  }, [token, organizationId, versions, reloadProgress]);
+  }, [token, accessKey, versions, reloadProgress]);
   const loadRules = useCallback((search = "", signal?: AbortSignal) => token ? listMonitoringRules(token, signal, false, { query: search, limit: 5 }) : Promise.reject(new Error("Sesi tidak tersedia.")), [token]);
   const loadPickup = useCallback(
     (year: number, source: string | null) => {
@@ -81,13 +83,14 @@ export function AnnualProfileCollectionPage() {
     router.push(annualProfileHref(year, version));
   return (
     <AnnualProfileCollection
-      key={organizationId ?? "no-org"}
+      key={accessKey ?? "no-org"}
       organization={organizationId ? user?.orgName || "Unit akun Anda" : ""}
-      versions={loadedScope === organizationId ? versions : []}
+      readAll={readAll}
+      versions={loadedScope === accessKey ? versions : []}
       defaultYear={businessYear()}
       loading={
         authLoading ||
-        Boolean(token && organizationId && loadedScope !== organizationId)
+        Boolean(token && accessKey && loadedScope !== accessKey)
       }
       error={error}
       retry={() => {
@@ -97,7 +100,7 @@ export function AnnualProfileCollectionPage() {
       loadPickup={loadPickup}
       loadRules={loadRules}
       organizationId={organizationId ?? undefined}
-      periodProgress={periodProgress.scope === organizationId ? periodProgress.data : {}}
+      periodProgress={periodProgress.scope === accessKey ? periodProgress.data : {}}
       retryPeriodProgress={() => setReloadProgress((value) => value + 1)}
       openProfile={openProfile}
       create={async (year, source, ids, ruleId) => {

@@ -252,20 +252,37 @@ func (r *fakeCreateMonitoringRepo) UpdateTaskMonitoringIDs(context.Context, uuid
 
 func TestCreateAllowsExcludedRiskWithoutReason(t *testing.T) {
 	uc := NewWorkingPaperUseCase(&fakeCreateWorkingPaperRepo{}, nil, nil)
+	orgID := uuid.New()
 	_, err := uc.Create(context.Background(), CreateWorkingPaperInput{
-		AssessmentCycle: "2026-Q1",
-		OrganizationID:  uuid.New(),
-		CreatedByUserID: uuid.New(),
+		AssessmentCycle:  "2026-Q1",
+		OrganizationID:   orgID,
+		AccessibleOrgIDs: []uuid.UUID{orgID},
+		CreatedByUserID:  uuid.New(),
 		Decisions: []entity.WorkingPaperRosterDecision{
 			{VersionGroupID: uuid.New(), Included: false, ExclusionReason: ""},
 			{VersionGroupID: uuid.New(), Included: true},
 		},
 		Signatories: []CreateSignatoryInput{{
-			UserID: uuid.New(), SequenceNo: 1, SignerName: "Rina", SignerPangkat: "Pembina Tk. I (IV/b)",
+			UserID: uuid.New(), SequenceNo: 1,
 		}},
 	})
 	if err != nil {
 		t.Fatalf("expected excluded risk without reason to be accepted: %v", err)
+	}
+}
+
+func TestCreateRequiresOrganizationInScopeForLegacyRoster(t *testing.T) {
+	uc := NewWorkingPaperUseCase(&fakeCreateWorkingPaperRepo{}, nil, nil)
+	_, err := uc.Create(context.Background(), CreateWorkingPaperInput{
+		AssessmentCycle:  "2026-Q1",
+		OrganizationID:   uuid.New(),
+		AccessibleOrgIDs: []uuid.UUID{uuid.New()},
+		CreatedByUserID:  uuid.New(),
+		Decisions:        []entity.WorkingPaperRosterDecision{{VersionGroupID: uuid.New(), Included: true}},
+		Signatories:      []CreateSignatoryInput{{UserID: uuid.New(), SequenceNo: 1}},
+	})
+	if !domainerrors.IsForbidden(err) {
+		t.Fatalf("expected legacy roster creation outside organization scope to be forbidden, got %v", err)
 	}
 }
 
@@ -274,12 +291,13 @@ func TestCreateRejectsEmptyIncludedRoster(t *testing.T) {
 	_, err := uc.Create(context.Background(), CreateWorkingPaperInput{
 		AssessmentCycle: "2026-H1",
 		OrganizationID:  uuid.New(),
+		IsGlobal:        true,
 		CreatedByUserID: uuid.New(),
 		Decisions: []entity.WorkingPaperRosterDecision{
 			{VersionGroupID: uuid.New(), Included: false, ExclusionReason: "Risiko ditutup"},
 		},
 		Signatories: []CreateSignatoryInput{{
-			UserID: uuid.New(), SequenceNo: 1, SignerName: "Rina", SignerPangkat: "Pembina Tk. I (IV/b)",
+			UserID: uuid.New(), SequenceNo: 1,
 		}},
 	})
 	if err == nil {
@@ -292,10 +310,11 @@ func TestCreateRejectsEmptyDecisions(t *testing.T) {
 	_, err := uc.Create(context.Background(), CreateWorkingPaperInput{
 		AssessmentCycle: "2026-H1",
 		OrganizationID:  uuid.New(),
+		IsGlobal:        true,
 		CreatedByUserID: uuid.New(),
 		Decisions:       []entity.WorkingPaperRosterDecision{},
 		Signatories: []CreateSignatoryInput{{
-			UserID: uuid.New(), SequenceNo: 1, SignerName: "Rina", SignerPangkat: "Pembina Tk. I (IV/b)",
+			UserID: uuid.New(), SequenceNo: 1,
 		}},
 	})
 	if err == nil {
@@ -324,12 +343,13 @@ func TestCreateRejectsInvalidSemesterFormat(t *testing.T) {
 	_, err := uc.Create(context.Background(), CreateWorkingPaperInput{
 		AssessmentCycle: "invalid",
 		OrganizationID:  uuid.New(),
+		IsGlobal:        true,
 		CreatedByUserID: uuid.New(),
 		Decisions: []entity.WorkingPaperRosterDecision{
 			{VersionGroupID: uuid.New(), Included: true},
 		},
 		Signatories: []CreateSignatoryInput{{
-			UserID: uuid.New(), SequenceNo: 1, SignerName: "Rina", SignerPangkat: "Pembina Tk. I (IV/b)",
+			UserID: uuid.New(), SequenceNo: 1,
 		}},
 	})
 	if err == nil {

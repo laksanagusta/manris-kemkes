@@ -253,10 +253,10 @@ func main() {
 
 	// Organizations (Clean Architecture)
 	protected.Get("/organizations", cleanOrgHandler.List)
-	protected.Post("/organizations", cleanOrgHandler.Create)
+	protected.Post("/organizations", middleware.RoleGuard("superadmin"), cleanOrgHandler.Create)
 	protected.Get("/organizations/:id", cleanOrgHandler.Get)
-	protected.Put("/organizations/:id", cleanOrgHandler.Update)
-	protected.Delete("/organizations/:id", cleanOrgHandler.Delete)
+	protected.Put("/organizations/:id", middleware.RoleGuard("superadmin"), cleanOrgHandler.Update)
+	protected.Delete("/organizations/:id", middleware.RoleGuard("superadmin"), cleanOrgHandler.Delete)
 	protected.Get("/organization-groups", cleanOrgGroupHandler.List)
 	protected.Post("/organization-groups", cleanOrgGroupHandler.Create)
 	protected.Get("/organization-groups/:id", cleanOrgGroupHandler.Get)
@@ -425,7 +425,7 @@ func main() {
 	protected.Put("/mitigation-tasks/:id/report", cleanMitigationTaskHandler.SubmitReport)
 	protected.Get("/risk-monitorings/:id/tasks", cleanMitigationTaskHandler.ListByMonitoring)
 	protected.Get("/risk-monitorings/:id/validate-finalize", cleanMitigationTaskHandler.ValidateFinalize)
-	protected.Post("/mitigation-tasks/generate", cleanMitigationTaskHandler.TriggerGenerate)
+	protected.Post("/mitigation-tasks/generate", middleware.RoleGuard("superadmin"), cleanMitigationTaskHandler.TriggerGenerate)
 
 	// Communication Logs
 	protected.Get("/risks/:riskId/communication-logs", cleanCommLogHandler.List)

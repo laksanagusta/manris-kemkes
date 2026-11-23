@@ -24,6 +24,7 @@ test("the final result shows the captured reason without an evidence URL or a co
   }));
 
   assert.ok(html.includes(reason));
-  assert.match(html, /Belum dilaksanakan · Dilaporkan/);
+  assert.match(html, /Belum dilaksanakan<\/span>.*Dilaporkan/);
+  assert.match(html, /Tanpa lampiran/);
   assert.doesNotMatch(html, /<details\b|Buka bukti/);
 });

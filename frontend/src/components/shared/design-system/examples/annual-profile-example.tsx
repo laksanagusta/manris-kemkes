@@ -11,6 +11,7 @@ import type {
   AnnualProfile,
   AnnualProfileListVersion,
 } from "@/lib/api/upr-workflow";
+import { todayMonitoringDate } from "@/lib/monitoring-date";
 
 const objectives = [
   { id: "example-objective", title: "Validasi data tepat waktu" },
@@ -125,6 +126,7 @@ export function AnnualProfileExample({
       finalizedBy: version.finalizedAt ? "example-actor" : null,
     }));
     return {
+      code: sampleVersion.code,
       selected:
         versions.find((version) => version.id === sampleVersion.id) ?? null,
       versions,
@@ -137,7 +139,8 @@ export function AnnualProfileExample({
   const [generation, setGeneration] = useState(0);
   const [message, setMessage] = useState("");
   const [partialFailure, setPartialFailure] = useState(false);
-  const snapshots = useRef<Record<string, AnnualMember[]>>({});
+  const snapshots = useRef<Record<string, Pick<AnnualProfile, "members" | "exclusions">>>({});
+  const excludedMembers = useRef(new Map<string, AnnualMember>());
   const profileCandidates = [
     ...candidates,
     ...(pickup ?? []).map(
@@ -163,6 +166,7 @@ export function AnnualProfileExample({
           variant="outline"
           size="sm"
           onClick={() => {
+            snapshots.current = {};
             setProfile(initialProfile());
             setError("");
             setGeneration((value) => value + 1);
@@ -255,21 +259,27 @@ export function AnnualProfileExample({
           returnTo={`/risk/annual-profiles/${year}`}
           onRetryCandidates={() => setError("")}
           onSelectVersion={(id) => {
-            if (profile.selected)
-              snapshots.current[profile.selected.id] = profile.members;
+            if (profile.selected) {
+              snapshots.current[profile.selected.id] = {
+                members: profile.members,
+                exclusions: profile.exclusions,
+              };
+            }
             const sample = sampleVersions.find((version) => version.id === id);
             setProfile((current) => ({
               ...current,
               selected: current.versions.find((item) => item.id === id) ?? null,
-              members:
-                snapshots.current[id] ??
-                (sample ? membersFor(sample) : current.members),
+              ...(snapshots.current[id] ?? { members: sample ? membersFor(sample) : [], exclusions: [] }),
             }));
           }}
           onDraft={async () => {
             setProfile((current) => {
-              if (current.selected)
-                snapshots.current[current.selected.id] = current.members;
+              if (current.selected) {
+                snapshots.current[current.selected.id] = {
+                  members: current.members,
+                  exclusions: current.exclusions,
+                };
+              }
               const number =
                 Math.max(...current.versions.map((item) => item.version)) + 1;
               const version = {
@@ -282,9 +292,11 @@ export function AnnualProfileExample({
                 ...current,
                 selected: version,
                 versions: [version, ...current.versions],
+                exclusions: [],
                 members: current.members.map((member) => ({
                   ...member,
-                  canRemove: false,
+                  canRemove: true,
+                  fromPreviousVersion: true,
                 })),
               };
             });
@@ -328,6 +340,10 @@ export function AnnualProfileExample({
             };
           }}
           onSave={async (input) => {
+            const today = todayMonitoringDate();
+            const profileDate = today.startsWith(`${year}-`)
+              ? today
+              : today < `${year}-01-01` ? `${year}-01-01` : `${year}-12-31`;
             setProfile((current) => ({
               ...current,
               members: current.members.map((member) =>
@@ -337,7 +353,11 @@ export function AnnualProfileExample({
                       ...member,
                       riskId: input.riskId,
                       objectiveId: input.objectiveId,
-                      effectiveFrom: input.effectiveFrom,
+                      effectiveFrom: input.effectiveFrom ??
+                        (input.reassess || member.riskId !== input.riskId || member.objectiveId !== input.objectiveId
+                          ? profileDate
+                          : member.effectiveFrom),
+                      historicalCorrection: input.historicalCorrection,
                       changeReason: input.changeReason,
                       baseline: null,
                       riskStatus: input.reassess ? "draft" : member.riskStatus,
@@ -346,12 +366,33 @@ export function AnnualProfileExample({
               ),
             }));
           }}
-          onRemove={async (member) => {
+          onRemove={async (member, exclusion) => {
+            if (exclusion) excludedMembers.current.set(`${profile.selected?.id}:${member.groupId}`, member);
             setProfile((current) => ({
               ...current,
               members: current.members.filter(
                 (item) => item.groupId !== member.groupId,
               ),
+              exclusions: exclusion
+                ? [...(current.exclusions ?? []), {
+                    ...exclusion,
+                    effectiveFrom: null,
+                    groupId: member.groupId,
+                    code: member.code,
+                    title: member.title,
+                  }]
+                : current.exclusions,
+            }));
+          }}
+          onCancelExclusion={async (groupId) => {
+            const key = `${profile.selected?.id}:${groupId}`;
+            const member = excludedMembers.current.get(key);
+            if (!member) throw new Error("Risiko yang dikeluarkan tidak ditemukan.");
+            excludedMembers.current.delete(key);
+            setProfile((current) => ({
+              ...current,
+              members: [...current.members, member].sort((a, b) => a.code.localeCompare(b.code)),
+              exclusions: current.exclusions?.filter((item) => item.groupId !== groupId),
             }));
           }}
           onFinalize={async () => {
@@ -364,6 +405,12 @@ export function AnnualProfileExample({
               return {
                 ...current,
                 selected,
+                exclusions: current.exclusions?.map((item) => ({
+                  ...item,
+                  effectiveFrom: selected.finalizedAt.slice(0, 10) < `${year}-01-01`
+                    ? `${year}-01-01`
+                    : selected.finalizedAt.slice(0, 10),
+                })),
                 versions: current.versions.map((item) =>
                   item.id === selected.id ? selected : item,
                 ),
@@ -396,9 +443,10 @@ export function AnnualProfileExample({
                 ...current,
                 versions,
                 selected,
-                members: selected
-                  ? snapshots.current[selected.id] ?? (sample ? membersFor(sample) : [])
-                  : [],
+                ...(selected && snapshots.current[selected.id] || {
+                  members: sample ? membersFor(sample) : [],
+                  exclusions: [],
+                }),
               };
             });
             setMessage(

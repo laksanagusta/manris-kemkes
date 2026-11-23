@@ -139,7 +139,7 @@ export const documentationArticles: DocumentationArticle[] = [
       ], image: { src: "/documentation/screens/ekstraksi-sop.png", alt: "Hasil ekstraksi risiko dari dokumen dengan temuan kandidat risiko, nilai keyakinan, sumber, dan tindakan Buat draf risiko", caption: "Contoh hasil ekstraksi dari satu dokumen. Temuan, tingkat risiko, dan nilai keyakinan bergantung pada dokumen; verifikasi kutipan sumber sebelum membuat draf.", width: 3420, height: 1904 } },
       { id: "buat-risiko", title: "Mulai pencatatan risiko", steps: [
         { title: "Buka Risiko lalu pilih Risiko Baru", detail: "Form baru dimulai sebagai draf dan menampilkan tindakan Simpan draft serta Finalisasi." },
-        { title: "Jelaskan peristiwa yang berisiko", detail: "Isi nama atau pernyataan risiko, deskripsi kejadian, kategori, sebab, sumber, tingkat kendali, serta dampak." },
+        { title: "Jelaskan peristiwa yang berisiko", detail: "Isi nama atau pernyataan risiko, kategori, sebab, sumber, tingkat kendali, serta dampak. Tambahkan deskripsi kejadian bila diperlukan." },
         { title: "Simpan draf bila masih perlu ditinjau", detail: "Pilih Simpan draft. Anda dapat kembali melengkapi profil selama statusnya Draf." },
       ], image: { src: "/documentation/screens/register-risiko-form.png", alt: "Form Tambah Risiko dengan bagian identifikasi dan properti", caption: "Form risiko baru dimulai sebagai draf. Periksa nilai awal sebelum menyimpan atau memfinalisasi.", width: 3420, height: 1904 } },
       { id: "analisis-risiko", title: "Lengkapi analisis dan evaluasi", steps: [
@@ -149,7 +149,8 @@ export const documentationArticles: DocumentationArticle[] = [
         { title: "Tentukan target penurunan", detail: "Target awal juga terisi otomatis. Sesuaikan target dengan hasil yang realistis setelah penanganan." },
       ] },
       { id: "kolom-risiko", title: "Arti kolom utama", fields: [
-        { name: "Sumber risiko", description: "Menunjukkan sumber Internal atau Eksternal." },
+        { name: "Pemilik risiko", description: "Pada formulir baru, akun aktif pembuat risiko di unit tersebut otomatis terpilih. Anda dapat memilih pengguna aktif lain di unit yang sama atau mengosongkan kolom ini." },
+        { name: "Sumber risiko", description: "Pilih Internal, External, atau External & Internal jika keduanya berlaku." },
         { name: "Tingkat kendali", description: "Menjelaskan apakah faktor pemicu berada dalam kendali organisasi." },
         { name: "Probabilitas dan dampak", description: "Dua nilai asesmen yang membentuk skor risiko pada heatmap." },
         { name: "Pilihan penanganan", description: "Tindakan yang dipilih terhadap risiko, misalnya Mitigasi." },

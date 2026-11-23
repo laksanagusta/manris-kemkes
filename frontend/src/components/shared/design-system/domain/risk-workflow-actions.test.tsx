@@ -35,3 +35,15 @@ test("loading, lookup failure and missing backend state never enable a new workf
  }
  assert.match(render(undefined,"error"),/Periksa draf lagi/);
 });
+
+test("an unfinished period blocks new and existing revisions while monitoring stays available", () => {
+  const period = { revisionBlockedPeriod: "Semester I" };
+  const start = render(period);
+  assert.match(start, /<button[^>]*disabled=""[^>]*>Revisi<\/button>/);
+  assert.match(start, /Selesaikan pemantauan Semester I, Kertas Kerja, dan Evaluasi/);
+
+  const resume = render({ ...period, revisionRiskId: "revision-1" });
+  assert.match(resume, /<button[^>]*disabled=""[^>]*>Lanjutkan revisi<\/button>/);
+  assert.doesNotMatch(resume, /href="\/risk\/register\/new\?id=revision-1"/);
+  assert.doesNotMatch(resume, /<button[^>]*disabled=""[^>]*>Pantau<\/button>/);
+});

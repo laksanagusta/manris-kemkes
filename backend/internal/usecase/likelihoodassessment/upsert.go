@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/manris/backend/internal/domain/entity"
+	domainerrors "github.com/manris/backend/internal/domain/errors"
 	"github.com/manris/backend/internal/domain/repository"
 )
 
@@ -32,11 +33,15 @@ type UpsertInput struct {
 type UpsertOutput struct {
 	ID                       uuid.UUID `json:"id"`
 	CalculatedProbability    *float64  `json:"calculatedProbability,omitempty"`
-	SelectedProbabilityLevel int      `json:"selectedProbabilityLevel"`
-	RecommendedLevel         int      `json:"recommendedLevel"`
+	SelectedProbabilityLevel int       `json:"selectedProbabilityLevel"`
+	RecommendedLevel         int       `json:"recommendedLevel"`
 }
 
-func (uc *UpsertUseCase) Execute(ctx context.Context, input UpsertInput) (*UpsertOutput, error) {
+func (uc *UpsertUseCase) Execute(ctx context.Context, input UpsertInput, scope *entity.AccessScope) (*UpsertOutput, error) {
+	if scope == nil || (!scope.IsGlobal && (scope.OrganizationID == nil || *scope.OrganizationID == uuid.Nil)) {
+		return nil, domainerrors.ErrForbidden
+	}
+
 	// Calculate recommended probability level using domain function
 	eventCount := 0
 	if input.EventCount != nil {
@@ -78,7 +83,7 @@ func (uc *UpsertUseCase) Execute(ctx context.Context, input UpsertInput) (*Upser
 		return nil, fmt.Errorf("validasi gagal: %w", err)
 	}
 
-	if err := uc.repo.UpsertByRiskID(ctx, &assessment); err != nil {
+	if err := uc.repo.UpsertByRiskID(ctx, &assessment, scope); err != nil {
 		return nil, err
 	}
 

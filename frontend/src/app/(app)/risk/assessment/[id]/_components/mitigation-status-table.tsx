@@ -40,9 +40,6 @@ export function MitigationStatusTable({ monitoringId }: { monitoringId: string }
     return () => window.removeEventListener("focus", reload);
   }, []);
   return (
-    <>
-      <p className="text-xs text-muted-foreground">Lengkapi laporan setiap tindakan sebelum finalisasi pemantauan, termasuk alasan bila belum dilaksanakan.</p>
-      <MitigationProgressTab key={`${monitoringId}:${refresh}`} riskId="" monitoringId={monitoringId} token={token || ""} showTaskList allowInMonitoring />
-    </>
+    <MitigationProgressTab key={`${monitoringId}:${refresh}`} riskId="" monitoringId={monitoringId} token={token || ""} showTaskList allowInMonitoring />
   );
 }

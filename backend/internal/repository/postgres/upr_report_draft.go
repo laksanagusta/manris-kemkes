@@ -191,13 +191,10 @@ func selectedReportSources(ctx context.Context, db riskQueryer, org uuid.UUID, i
 			if key.kind == "profile" {
 				return nil, UPRWorkflowError("Pilih versi profil final untuk UPR dan tahun ini.")
 			}
-			return nil, UPRWorkflowError("Pilih KK Selesai dan Evaluasi Final dari unit Anda yang sesuai dengan tahun dan semester laporan.")
+			return nil, UPRWorkflowError("Pilih KK Selesai dan Evaluasi Final sesuai unit, versi profil, dan semester laporan.")
 		}
 		if key.kind != "profile" {
-			sources = append(sources, UPRSupportingSection{
-				Kind: option.Kind, Period: option.Period, SourceID: &option.ID,
-				Code: &option.Code, FinalizedAt: option.FinalizedAt,
-			})
+			sources = append(sources, option.supportingSection())
 		}
 	}
 	return sources, nil

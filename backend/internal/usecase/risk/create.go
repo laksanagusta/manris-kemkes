@@ -40,6 +40,7 @@ type CreateRiskInput struct {
 	Category       string     `json:"category"`
 	Status         string     `json:"status"`
 	OrganizationID *uuid.UUID `json:"organizationId"`
+	RiskOwnerID    *string    `json:"riskOwnerId"`
 	CreatedBy      *uuid.UUID `json:"-"`
 
 	Cause           []string `json:"cause"`
@@ -116,6 +117,14 @@ func (uc *CreateRiskUseCase) Execute(ctx context.Context, input CreateRiskInput)
 			return nil, errors.ErrOrganizationNotFound
 		}
 	}
+	ownerID, err := resolveRiskOwner(ctx, uc.userRepo, input.RiskOwnerID, input.OrganizationID, nil)
+	if err != nil {
+		return nil, err
+	}
+	input.RiskSource = normalizeRiskSource(input.RiskSource)
+	if !isValidRiskSource(input.RiskSource) {
+		return nil, errors.ErrRiskSourceInvalid
+	}
 
 	// 4. Generate risk code
 	nextCode, err := uc.riskRepo.NextRiskCode(ctx)
@@ -152,6 +161,7 @@ func (uc *CreateRiskUseCase) Execute(ctx context.Context, input CreateRiskInput)
 		IsCycleCurrent: true,
 		VersionNumber:  1,
 		OrganizationID: input.OrganizationID,
+		RiskOwnerID:    ownerID,
 		CreatedBy:      input.CreatedBy,
 
 		// Section 1

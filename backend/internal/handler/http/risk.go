@@ -1282,7 +1282,7 @@ func (h *RiskHandler) GetMeetingMinutes(c *fiber.Ctx) error {
 		return handleError(c, err)
 	}
 
-	minutes, err := h.mmRepo.ListByRiskID(c.Context(), riskID)
+	minutes, err := h.mmRepo.ListByRiskID(c.Context(), riskID, orgIDs)
 	if err != nil {
 		return handleError(c, err)
 	}

@@ -1,5 +1,6 @@
 "use client";
 
+import { riskSourceOptions } from "@/lib/risk-source";
 import { FieldHeading } from "@/components/ui/field";
 import { useCallback, useMemo } from "react";
 
@@ -25,7 +26,6 @@ import type {
   Controllability,
   MitigationType,
   RiskMitigation,
-  RiskSource,
   TreatmentOption,
 } from "@/types/risk";
 
@@ -38,10 +38,6 @@ const riskCategoryOptions = [
   { value: "operasional", label: "Operasional" },
 ] as const;
 
-const riskSourceOptions: Array<{ value: RiskSource | string; label: string }> = [
-  { value: "internal", label: "Internal" },
-  { value: "eksternal", label: "Eksternal" },
-];
 
 const controllabilityOptions: Array<{ value: Controllability | string; label: string }> = [
   { value: "C", label: "Controllable" },

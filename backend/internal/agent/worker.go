@@ -74,6 +74,9 @@ func (s *Service) runNext(ctx context.Context, workerID string) (bool, error) {
 			}
 			run.Run.Status = "failed"
 			run.Run.Error = "Pekerjaan belum dapat diselesaikan. Kirim permintaan baru untuk mencoba kembali."
+			if errors.Is(err, ErrSensitiveInput) {
+				run.Run.Error = ErrSensitiveInput.Error()
+			}
 			now := time.Now().UTC()
 			run.Run.FinishedAt = &now
 			addEvent(run, "Pekerjaan gagal diselesaikan", "failed")

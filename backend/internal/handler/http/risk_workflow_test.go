@@ -16,6 +16,7 @@ func TestRiskWorkflowConflictResponse(t *testing.T) {
 		err  error
 	}{
 		{"revision", domainerrors.ErrRiskRevisionInProgress}, {"monitoring", domainerrors.ErrRiskMonitoringInProgress},
+		{"period", domainerrors.ErrRiskRevisionPeriodInProgress},
 	} {
 		t.Run(blocked.name, func(t *testing.T) {
 			app := fiber.New()

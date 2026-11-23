@@ -53,6 +53,7 @@ type UpdateRiskInput struct {
 	Category       string     `json:"category"`
 	Status         string     `json:"status"`
 	OrganizationID *uuid.UUID `json:"organizationId"`
+	RiskOwnerID    *string    `json:"riskOwnerId"`
 
 	Cause           []string `json:"cause"`
 	RiskSource      string   `json:"riskSource"`
@@ -148,6 +149,20 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 			return nil, errors.ErrOrganizationNotFound
 		}
 	}
+	currentOwnerID := existingRisk.RiskOwnerID
+	if !uuidPtrEqual(input.OrganizationID, existingRisk.OrganizationID) {
+		currentOwnerID = nil
+	}
+	ownerID, err := resolveRiskOwner(ctx, uc.userRepo, input.RiskOwnerID, input.OrganizationID, currentOwnerID)
+	if err != nil {
+		return nil, err
+	}
+	source := normalizeRiskSource(input.RiskSource)
+	if isValidRiskSource(source) {
+		input.RiskSource = source
+	} else if input.RiskSource != existingRisk.RiskSource {
+		return nil, errors.ErrRiskSourceInvalid
+	}
 
 	// 5. Validate mitigations
 	input.Mitigations = pruneEmptyMitigations(input.Mitigations)
@@ -170,6 +185,7 @@ func (uc *UpdateRiskUseCase) Execute(ctx context.Context, input UpdateRiskInput,
 	existingRisk.Category = input.Category
 	existingRisk.Status = input.Status
 	existingRisk.OrganizationID = input.OrganizationID
+	existingRisk.RiskOwnerID = ownerID
 	if input.AssessmentCycle == "" {
 		input.AssessmentCycle = existingRisk.AssessmentCycle
 		if input.AssessmentCycle == "" {

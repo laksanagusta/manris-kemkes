@@ -10,9 +10,9 @@ import (
 )
 
 type scopeListMMRepo struct {
-	capturedOrgIDs []uuid.UUID
+	capturedOrgIDs  []uuid.UUID
 	capturedOptions repository.ListMeetingMinutesOptions
-	items          []entity.MeetingMinute
+	items           []entity.MeetingMinute
 }
 
 func (r *scopeListMMRepo) Create(context.Context, entity.CreateMeetingMinuteInput) (*entity.MeetingMinute, error) {
@@ -69,15 +69,15 @@ func (r *scopeListMMRepo) ListAuthors(context.Context, []uuid.UUID) ([]repositor
 	return nil, nil
 }
 
-func (r *scopeListMMRepo) ListByRiskID(context.Context, uuid.UUID) ([]entity.MeetingMinutesRisk, error) {
+func (r *scopeListMMRepo) ListByRiskID(context.Context, uuid.UUID, []uuid.UUID) ([]entity.MeetingMinutesRisk, error) {
 	return nil, nil
 }
 
-func (r *scopeListMMRepo) LinkRisks(context.Context, uuid.UUID, []uuid.UUID, uuid.UUID) error {
+func (r *scopeListMMRepo) LinkRisks(context.Context, uuid.UUID, []uuid.UUID, *entity.AccessScope) error {
 	return nil
 }
 
-func (r *scopeListMMRepo) UnlinkRisks(context.Context, uuid.UUID, []uuid.UUID) error {
+func (r *scopeListMMRepo) UnlinkRisks(context.Context, uuid.UUID, []uuid.UUID, *entity.AccessScope) error {
 	return nil
 }
 

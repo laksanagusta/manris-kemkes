@@ -3,7 +3,7 @@ import test from "node:test";
 
 import type { RiskCycleDetailedComparisonReport } from "@/types/risk";
 // @ts-ignore -- Node test runner needs explicit .ts specifiers for direct execution.
-import { classifyRiskCycleDetailMovement, createRiskCycleDetailWorkbookBuffer } from "./risk-cycle-detail-export";
+import { classifyRiskCycleDetailMovement, createRiskCycleDetailCSV, createRiskCycleDetailWorkbookBuffer } from "./risk-cycle-detail-export";
 
 const sampleReport: RiskCycleDetailedComparisonReport = {
   summary: {
@@ -137,4 +137,16 @@ test("createRiskCycleDetailWorkbookBuffer persists top-bottom comparison trend, 
   const summarySheet = workbook.getWorksheet("Summary");
   assert.ok(summarySheet?.autoFilter);
   assert.equal(summarySheet?.views[0]?.state, "frozen");
+});
+
+
+test("CSV comparison exports formula-like text as a literal cell", () => {
+  const report = structuredClone(sampleReport);
+  report.items[0].title = "=1+1";
+  report.items[0].changeReason = "  +2";
+  report.items[0].reviewSummary = "Ringkasan, tetap utuh";
+  const csv = createRiskCycleDetailCSV(report);
+  assert.ok(csv.includes("'=1+1"));
+  assert.ok(csv.includes("'  +2"));
+  assert.ok(csv.includes('"Ringkasan, tetap utuh"'));
 });

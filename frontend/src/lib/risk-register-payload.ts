@@ -23,6 +23,7 @@ export type RiskRegisterPayloadData = {
   description: string;
   category?: string;
   organizationId?: string;
+  riskOwnerId?: string;
   roId?: string;
   causes?: Array<{ text: string }>;
   impacts?: Array<{ text: string }>;
@@ -74,6 +75,7 @@ export function buildRiskRegisterPayload(
     category: data.category,
     status,
     organizationId: orgId,
+    riskOwnerId: data.riskOwnerId,
     draftApprovalLine: [
       ...(context.reviewerId
         ? [

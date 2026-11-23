@@ -29,6 +29,7 @@ interface SearchableDropdownPickerProps<T> {
   renderValue: (option: T) => ReactNode;
   renderOption: (option: T) => ReactNode;
   onSelect: (option: T) => void;
+  clearSelection?: { label: string; onSelect: () => void };
   open: boolean;
   onOpenChange: (open: boolean) => void;
   search: string;
@@ -60,6 +61,7 @@ export function SearchableDropdownPicker<T>({
   renderValue,
   renderOption,
   onSelect,
+  clearSelection,
   open,
   onOpenChange,
   search,
@@ -201,6 +203,14 @@ export function SearchableDropdownPicker<T>({
               {loadingMore ? <Loader2 className="size-4 animate-spin" /> : null}
               {loadingMore ? "Memuat..." : "Muat lagi"}
             </DropdownMenuItem>
+          ) : null}
+          {selectedOption && clearSelection ? (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onSelect={clearSelection.onSelect}>
+                {clearSelection.label}
+              </DropdownMenuItem>
+            </>
           ) : null}
         </DropdownMenuContent>
       </div>

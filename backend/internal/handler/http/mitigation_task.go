@@ -3,7 +3,6 @@ package http
 import (
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -236,20 +235,17 @@ func (h *MitigationTaskHandler) SubmitReport(c *fiber.Ctx) error {
 
 // TriggerGenerate handles POST /api/v1/mitigation-tasks/generate (admin/cron trigger)
 func (h *MitigationTaskHandler) TriggerGenerate(c *fiber.Ctx) error {
-	dateStr := c.Query("date")
 	now := timeutil.BusinessNow()
-	if dateStr != "" {
-		if parsedTime, err := time.Parse("2006-01-02", dateStr); err == nil {
-			now = parsedTime
-		}
-	}
 
 	created, err := h.generateTasksUC.Execute(c.Context(), now)
 	if err != nil {
 		return handleError(c, err)
 	}
 
-	marked, _ := h.markOverdueUC.Execute(c.Context(), now)
+	marked, err := h.markOverdueUC.Execute(c.Context(), now)
+	if err != nil {
+		return handleError(c, err)
+	}
 
 	return c.JSON(fiber.Map{
 		"data": fiber.Map{

@@ -127,3 +127,36 @@ func TestMonitoringRuleSearchRejectsInvalidLimits(t *testing.T) {
 		})
 	}
 }
+
+func TestAdministrativeClosureAuthorizationWithoutHomeOrganization(t *testing.T) {
+	for _, tc := range []struct {
+		role string
+		want int
+	}{
+		{"superadmin", fiber.StatusBadRequest},
+		{"super_admin", fiber.StatusBadRequest},
+		{"unit", fiber.StatusForbidden},
+		{"reviewer", fiber.StatusForbidden},
+		{"", fiber.StatusForbidden},
+	} {
+		t.Run(tc.role, func(t *testing.T) {
+			app := fiber.New()
+			app.Use(func(c *fiber.Ctx) error {
+				if tc.role != "" {
+					c.Locals("accessScope", &entity.AccessScope{UserID: uuid.New(), Role: tc.role, IsGlobal: true})
+				}
+				return c.Next()
+			})
+			registerMonitoringRuleRoutes(app, postgres.NewUPRWorkflow(nil))
+			request := httptest.NewRequest("POST", "/annual-profile-versions/bad/periods/bad/administrative-closure", nil)
+			response, err := app.Test(request)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer response.Body.Close()
+			if response.StatusCode != tc.want {
+				t.Fatalf("status=%d, want %d", response.StatusCode, tc.want)
+			}
+		})
+	}
+}

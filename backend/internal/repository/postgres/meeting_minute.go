@@ -3,10 +3,12 @@ package postgres
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/manris/backend/internal/domain/entity"
 	domainerrors "github.com/manris/backend/internal/domain/errors"
@@ -22,13 +24,26 @@ func NewMeetingMinuteRepository(pool *pgxpool.Pool) repository.MeetingMinuteRepo
 }
 
 func (r *meetingMinuteRepository) Create(ctx context.Context, input entity.CreateMeetingMinuteInput) (*entity.MeetingMinute, error) {
+	if input.Scope == nil || input.Scope.UserID == uuid.Nil || input.CreatedBy != input.Scope.UserID ||
+		(!input.Scope.IsGlobal && (input.OrganizationID == nil || !input.Scope.CanWrite(*input.OrganizationID))) {
+		return nil, domainerrors.ErrForbidden
+	}
 	actionItemsJSON, err := json.Marshal(input.ActionItems)
 	if err != nil {
 		return nil, fmt.Errorf("marshal action items: %w", err)
 	}
 
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback(ctx)
+
+	if err := authorizeMeetingMinuteRisks(ctx, tx, input.RiskIDs, input.Scope); err != nil {
+		return nil, err
+	}
 	mm := &entity.MeetingMinute{}
-	err = r.pool.QueryRow(ctx,
+	err = tx.QueryRow(ctx,
 		`INSERT INTO meeting_minutes (title, date, participants, agenda, summary, key_points, decisions, open_issues, action_items, next_check_in, transcript, organization_id, created_by)
 		 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
 		 RETURNING id, created_at, updated_at`,
@@ -52,16 +67,11 @@ func (r *meetingMinuteRepository) Create(ctx context.Context, input entity.Creat
 	mm.OrganizationID = input.OrganizationID
 	mm.CreatedBy = input.CreatedBy
 
-	if len(input.RiskIDs) > 0 {
-		for _, riskID := range input.RiskIDs {
-			_, err := r.pool.Exec(ctx,
-				`INSERT INTO meeting_minutes_risks (meeting_id, risk_id, linked_by) VALUES ($1, $2, $3)`,
-				mm.ID, riskID, input.CreatedBy,
-			)
-			if err != nil {
-				return nil, fmt.Errorf("link risk %s: %w", riskID, err)
-			}
-		}
+	if err := insertMeetingMinuteLinks(ctx, tx, mm.ID, input.RiskIDs, input.CreatedBy); err != nil {
+		return nil, err
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return nil, err
 	}
 
 	err = r.pool.QueryRow(ctx,
@@ -110,8 +120,9 @@ func (r *meetingMinuteRepository) GetByID(ctx context.Context, id uuid.UUID, org
 		 LEFT JOIN users u ON mmr.linked_by = u.id
 		 LEFT JOIN risks r ON mmr.risk_id = r.id
 		 WHERE mmr.meeting_id = $1
+		   AND ($2::boolean OR r.organization_id = ANY($3::uuid[]))
 		 ORDER BY mmr.linked_at DESC`,
-		id,
+		id, len(orgIDs) == 0, orgIDs,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("get meeting minute risks: %w", err)
@@ -150,9 +161,14 @@ func (r *meetingMinuteRepository) List(ctx context.Context, opts repository.List
 		argIdx++
 	}
 	if opts.RiskID != nil {
-		whereClause += fmt.Sprintf(" AND EXISTS (SELECT 1 FROM meeting_minutes_risks mmr WHERE mmr.meeting_id = mm.id AND mmr.risk_id = $%d)", argIdx)
-		args = append(args, *opts.RiskID)
-		argIdx++
+		whereClause += fmt.Sprintf(` AND EXISTS (
+			SELECT 1 FROM meeting_minutes_risks mmr
+			JOIN risks linked_risk ON linked_risk.id = mmr.risk_id
+			WHERE mmr.meeting_id = mm.id AND mmr.risk_id = $%d
+			  AND ($%d::boolean OR linked_risk.organization_id = ANY($%d::uuid[]))
+		)`, argIdx, argIdx+1, argIdx+2)
+		args = append(args, *opts.RiskID, opts.RiskOrgIDs == nil, opts.RiskOrgIDs)
+		argIdx += 3
 	}
 	if opts.CreatedAt != "" {
 		whereClause += fmt.Sprintf(" AND mm.created_at::date = $%d::date", argIdx)
@@ -280,7 +296,7 @@ func (r *meetingMinuteRepository) Delete(ctx context.Context, id uuid.UUID) erro
 	return nil
 }
 
-func (r *meetingMinuteRepository) ListByRiskID(ctx context.Context, riskID uuid.UUID) ([]entity.MeetingMinutesRisk, error) {
+func (r *meetingMinuteRepository) ListByRiskID(ctx context.Context, riskID uuid.UUID, orgIDs []uuid.UUID) ([]entity.MeetingMinutesRisk, error) {
 	rows, err := r.pool.Query(ctx,
 		`SELECT mmr.id, mmr.meeting_id, mmr.risk_id, mmr.linked_by, mmr.linked_at,
 		        COALESCE(u.name, '') as linked_by_name,
@@ -289,9 +305,13 @@ func (r *meetingMinuteRepository) ListByRiskID(ctx context.Context, riskID uuid.
 		 FROM meeting_minutes_risks mmr
 		 LEFT JOIN users u ON mmr.linked_by = u.id
 		 LEFT JOIN risks r ON mmr.risk_id = r.id
+		 JOIN meeting_minutes mm ON mm.id = mmr.meeting_id
 		 WHERE mmr.risk_id = $1
+		   AND ($2::boolean OR (
+		     mm.organization_id = ANY($3::uuid[]) AND r.organization_id = ANY($3::uuid[])
+		   ))
 		 ORDER BY mmr.linked_at DESC`,
-		riskID,
+		riskID, len(orgIDs) == 0, orgIDs,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("list meeting minutes by risk id: %w", err)
@@ -310,30 +330,84 @@ func (r *meetingMinuteRepository) ListByRiskID(ctx context.Context, riskID uuid.
 	return results, nil
 }
 
-func (r *meetingMinuteRepository) LinkRisks(ctx context.Context, meetingID uuid.UUID, riskIDs []uuid.UUID, linkedBy uuid.UUID) error {
-	for _, riskID := range riskIDs {
-		_, err := r.pool.Exec(ctx,
-			`INSERT INTO meeting_minutes_risks (meeting_id, risk_id, linked_by) 
-			 VALUES ($1, $2, $3)
-			 ON CONFLICT (meeting_id, risk_id) DO NOTHING`,
-			meetingID, riskID, linkedBy,
-		)
-		if err != nil {
-			return fmt.Errorf("link risk %s to meeting %s: %w", riskID, meetingID, err)
-		}
+func authorizeMeetingMinuteRisks(ctx context.Context, tx pgx.Tx, riskIDs []uuid.UUID, scope *entity.AccessScope) error {
+	if len(riskIDs) == 0 {
+		return nil
+	}
+	rows, err := tx.Query(ctx, `
+		SELECT id FROM risks
+		WHERE id = ANY($1::uuid[])
+		  AND ($2::boolean OR organization_id = ANY($3::uuid[]))
+		ORDER BY id FOR SHARE`, riskIDs, scope.IsGlobal, scope.AccessibleOrgIDs)
+	if err != nil {
+		return err
+	}
+
+	found, err := pgx.CollectRows(rows, pgx.RowTo[uuid.UUID])
+	if err != nil {
+		return err
+	}
+	unique := make(map[uuid.UUID]struct{}, len(riskIDs))
+	for _, id := range riskIDs {
+		unique[id] = struct{}{}
+	}
+	if len(found) != len(unique) {
+		return domainerrors.ErrForbidden
 	}
 	return nil
 }
 
-func (r *meetingMinuteRepository) UnlinkRisks(ctx context.Context, meetingID uuid.UUID, riskIDs []uuid.UUID) error {
-	for _, riskID := range riskIDs {
-		_, err := r.pool.Exec(ctx,
-			`DELETE FROM meeting_minutes_risks WHERE meeting_id = $1 AND risk_id = $2`,
-			meetingID, riskID,
-		)
-		if err != nil {
-			return fmt.Errorf("unlink risk %s from meeting %s: %w", riskID, meetingID, err)
-		}
+func (r *meetingMinuteRepository) mutateLinks(ctx context.Context, meetingID uuid.UUID, riskIDs []uuid.UUID, scope *entity.AccessScope, mutate func(pgx.Tx) error) error {
+	if scope == nil || scope.UserID == uuid.Nil {
+		return domainerrors.ErrForbidden
 	}
-	return nil
+	tx, err := r.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+
+	var id uuid.UUID
+	err = tx.QueryRow(ctx, `
+		SELECT id FROM meeting_minutes
+		WHERE id = $1 AND ($2::boolean OR organization_id = $3::uuid)
+		FOR UPDATE`, meetingID, scope.IsGlobal, scope.OrganizationID).Scan(&id)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return domainerrors.ErrNotFound
+	}
+	if err != nil {
+		return err
+	}
+	if err := authorizeMeetingMinuteRisks(ctx, tx, riskIDs, scope); err != nil {
+		return err
+	}
+	if err := mutate(tx); err != nil {
+		return err
+	}
+	return tx.Commit(ctx)
+}
+
+func insertMeetingMinuteLinks(ctx context.Context, tx pgx.Tx, meetingID uuid.UUID, riskIDs []uuid.UUID, actorID uuid.UUID) error {
+	if len(riskIDs) == 0 {
+		return nil
+	}
+	_, err := tx.Exec(ctx, `
+		INSERT INTO meeting_minutes_risks (meeting_id, risk_id, linked_by)
+		SELECT $1, risk_id, $3 FROM unnest($2::uuid[]) AS selected(risk_id)
+		ON CONFLICT (meeting_id, risk_id) DO NOTHING`, meetingID, riskIDs, actorID)
+	return err
+}
+
+func (r *meetingMinuteRepository) LinkRisks(ctx context.Context, meetingID uuid.UUID, riskIDs []uuid.UUID, scope *entity.AccessScope) error {
+	return r.mutateLinks(ctx, meetingID, riskIDs, scope, func(tx pgx.Tx) error {
+		return insertMeetingMinuteLinks(ctx, tx, meetingID, riskIDs, scope.UserID)
+	})
+}
+
+func (r *meetingMinuteRepository) UnlinkRisks(ctx context.Context, meetingID uuid.UUID, riskIDs []uuid.UUID, scope *entity.AccessScope) error {
+	return r.mutateLinks(ctx, meetingID, riskIDs, scope, func(tx pgx.Tx) error {
+		_, err := tx.Exec(ctx, `
+			DELETE FROM meeting_minutes_risks WHERE meeting_id = $1 AND risk_id = ANY($2::uuid[])`, meetingID, riskIDs)
+		return err
+	})
 }

@@ -111,11 +111,26 @@ func loadUnitProgressRisks(ctx context.Context, q riskQueryer, period repository
 	return items, rows.Err()
 }
 
+// The latest profile supplies the lookup context, and the period anchor caps
+// document versions. A legacy or unbound document has no configured cap.
+const configuredUnitProgressDocumentFilter = `
+ AND ($5::uuid IS NULL OR EXISTS (
+  SELECT 1 FROM LATERAL (
+   SELECT p.id FROM annual_risk_profile_versions p
+   WHERE p.organization_id=source.organization_id AND p.year=source.year
+     AND p.monitoring_rule_id=source.monitoring_rule_id AND p.finalized_at IS NOT NULL
+   ORDER BY p.version DESC LIMIT 1
+  ) latest
+  JOIN annual_risk_profile_versions cap ON cap.id=annual_monitoring_period_profile(latest.id,$5)
+  WHERE source.version<=cap.version
+ ))`
+
 func loadUnitProgressPapers(ctx context.Context, q riskQueryer, period repository.QuarterlyReportPeriod, orgIDs []uuid.UUID) ([]entity.UnitProgressWorkingPaper, error) {
 	rows, err := q.Query(ctx, `
 		SELECT wp.id, wp.org_id, wp.code, wp.title, wp.status, wp.updated_at, wp.tte_skipped,
 		       s.signed, s.total, COALESCE(s.next_signer, '')
 		FROM working_papers wp
+		LEFT JOIN annual_risk_profile_versions source ON source.id=wp.profile_version_id
 		CROSS JOIN LATERAL (
 			SELECT COUNT(*) FILTER (WHERE status = 'signed') AS signed, COUNT(*) AS total,
 			       MAX(signer_name) FILTER (WHERE wp.status = 'signing' AND status = 'pending'
@@ -123,6 +138,7 @@ func loadUnitProgressPapers(ctx context.Context, q riskQueryer, period repositor
 			FROM working_paper_signatories WHERE working_paper_id = wp.id
 		) s
 		WHERE (($3::int = 0 AND wp.assessment_cycle = $1) OR ($3 > 0 AND (wp.profile_version_id IN (SELECT id FROM annual_risk_profile_versions WHERE year=$3 AND monitoring_rule_id IS NOT DISTINCT FROM $4::uuid) OR ($4::uuid IS NULL AND wp.profile_version_id IS NULL AND EXISTS (SELECT 1 FROM annual_risk_profile_versions p WHERE p.organization_id=wp.org_id AND p.year=$3 AND p.monitoring_rule_id IS NULL AND p.finalized_at IS NOT NULL))) AND (($5::uuid IS NULL AND wp.assessment_cycle=$1) OR wp.monitoring_period_id=$5))) AND (cardinality($2::uuid[]) = 0 OR wp.org_id = ANY($2::uuid[]))
+		`+configuredUnitProgressDocumentFilter+`
 		ORDER BY (wp.status = 'cancelled'), wp.updated_at DESC, wp.id`,
 		period.Cycle, uuidArrayToStrings(orgIDs), period.ProfileYear, period.RuleID, period.MonitoringPeriodID)
 	if err != nil {
@@ -147,7 +163,9 @@ func loadUnitProgressEvaluations(ctx context.Context, q riskQueryer, period repo
 	rows, err := q.Query(ctx, `
 		SELECT e.id, e.organization_id, e.code, COALESCE(t.name, ''), e.status, e.updated_at
 		FROM evaluations e LEFT JOIN evaluation_templates t ON t.id = e.template_id
+		LEFT JOIN annual_risk_profile_versions source ON source.id=e.profile_version_id
 		WHERE (($3::int = 0 AND e.period = $1) OR ($3 > 0 AND (e.profile_version_id IN (SELECT id FROM annual_risk_profile_versions WHERE year=$3 AND monitoring_rule_id IS NOT DISTINCT FROM $4::uuid) OR ($4::uuid IS NULL AND e.profile_version_id IS NULL AND EXISTS (SELECT 1 FROM annual_risk_profile_versions p WHERE p.organization_id=e.organization_id AND p.year=$3 AND p.monitoring_rule_id IS NULL AND p.finalized_at IS NOT NULL))) AND (($5::uuid IS NULL AND e.period=$1) OR e.monitoring_period_id=$5))) AND (cardinality($2::uuid[]) = 0 OR e.organization_id = ANY($2::uuid[]))
+		`+configuredUnitProgressDocumentFilter+`
 		ORDER BY t.name, e.updated_at DESC, e.id`, period.Cycle, uuidArrayToStrings(orgIDs), period.ProfileYear, period.RuleID, period.MonitoringPeriodID)
 	if err != nil {
 		return nil, fmt.Errorf("load unit progress evaluations: %w", err)

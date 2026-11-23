@@ -549,7 +549,7 @@ func TestBulkRiskSpreadsheetUseCase_Preview_InvalidControlledFieldsCauseErrors(t
 	}
 	errors := strings.Join(result.Items[0].Errors, " | ")
 	for _, expected := range []string{
-		"Kolom Sumber Risiko harus berisi Internal atau external.",
+		"Kolom Sumber Risiko harus berisi Internal, External, atau External & Internal.",
 		"Kolom C/UC harus berisi C atau UC.",
 		"Kolom Pilihan Penanganan harus berisi Menghindari Risiko, Berbagi Risiko, Mitigasi, atau Menerima Risiko.",
 		"Kolom Efektivitas Pengendalian harus berisi Efektif atau Tidak Efektif.",

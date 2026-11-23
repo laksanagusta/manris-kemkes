@@ -126,9 +126,11 @@ var _ service.FormalReportPDFRenderer = (*exportPDFRendererStub)(nil)
 func TestBuildMonitoringEvaluationDataUsesEvaluationRows(t *testing.T) {
 	org := &entity.Organization{ID: uuid.New(), Name: "Balai Contoh"}
 	evaluation := &entity.Evaluation{
-		Period:       "2026-H1",
-		Status:       entity.EvaluationStatusDraft,
-		ReportNumber: "MR/01",
+		Period:          "2026-H1",
+		Status:          entity.EvaluationStatusDraft,
+		ReportNumber:    "MR/01",
+		Problems:        "Bukti belum tersedia",
+		Recommendations: "Lengkapi bukti mitigasi",
 		Sections: []entity.EvaluationSection{
 			{
 				SectionKey: "document_completeness",
@@ -187,6 +189,9 @@ func TestBuildMonitoringEvaluationDataUsesEvaluationRows(t *testing.T) {
 	}
 	if data.DocumentConclusion != "Dokumen lengkap" || data.InfrastructureConclusion != "Infrastruktur cukup" || data.ResultConclusion != "Hasil efektif" || data.MitigationConclusion != "Risiko perlu dipantau" {
 		t.Fatalf("unexpected conclusions: %#v", data)
+	}
+	if data.Problems != evaluation.Problems || data.Recommendations != evaluation.Recommendations {
+		t.Fatalf("closing fields = %q, %q, want values from evaluation", data.Problems, data.Recommendations)
 	}
 	if len(data.MitigationSummary) == 0 || data.MitigationSummary[0].RiskCount != 1 {
 		t.Fatalf("unexpected mitigation summary: %#v", data.MitigationSummary)

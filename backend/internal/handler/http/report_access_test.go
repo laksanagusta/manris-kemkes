@@ -240,3 +240,35 @@ func TestGenerateRiskPDFAllowsOrganizationGroupSelection(t *testing.T) {
 		t.Fatalf("expected group member scope [%s], got %v", member, riskRepo.lastOrgIDs)
 	}
 }
+
+func TestGenerateRiskPDFRejectsUnusableGroupScope(t *testing.T) {
+	own := uuid.New()
+	for _, tc := range []struct {
+		name string
+		ids  []uuid.UUID
+		want int
+	}{
+		{name: "empty", want: fiber.StatusBadRequest},
+		{name: "outside current access", ids: []uuid.UUID{uuid.New()}, want: fiber.StatusForbidden},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			handler := NewReportHandler(nil, nil, reportOrgGroupResolverStub{orgIDs: tc.ids})
+			app := fiber.New()
+			app.Get("/reports/risk-pdf", func(c *fiber.Ctx) error {
+				c.Locals("accessScope", &entity.AccessScope{
+					OrganizationID: &own, AccessibleOrgIDs: []uuid.UUID{own},
+				})
+				return c.Next()
+			}, handler.GenerateRiskPDF)
+			req := httptest.NewRequest(fiber.MethodGet, "/reports/risk-pdf?cycle=2026-H1&organization_group_id="+uuid.NewString(), nil)
+			res, err := app.Test(req)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer res.Body.Close()
+			if res.StatusCode != tc.want {
+				t.Fatalf("status = %d, want %d", res.StatusCode, tc.want)
+			}
+		})
+	}
+}

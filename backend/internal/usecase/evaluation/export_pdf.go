@@ -130,6 +130,8 @@ func buildMonitoringEvaluationData(evaluation *entity.Evaluation, org *entity.Or
 		UnitEselonI:            evaluation.UnitEselonI,
 		UnitLeaderName:         evaluation.UnitLeaderName,
 		MitigationSummary:      buildMonitoringMitigationSummary(risks),
+		Problems:               evaluation.Problems,
+		Recommendations:        evaluation.Recommendations,
 	}
 	if org != nil {
 		data.OrganizationName = org.Name

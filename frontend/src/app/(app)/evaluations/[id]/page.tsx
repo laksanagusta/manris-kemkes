@@ -3,12 +3,12 @@
 import { FormLoadingSkeleton, PageLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import { EvaluationAnswerField } from "@/components/evaluation/evaluation-answer-field";
 import { FieldErrorMessage } from "@/components/shared/design-system/fields/field-error-message";
-import { BoundProfilePeriodNotice } from "@/components/upr/bound-profile-period-notice";
 
 import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import { useSetHeaderActions } from "@/lib/header-actions-context";
 import { createDisplayDateFormatter } from "@/lib/display-date";
-import { EvaluationItemLayout, EvaluationConclusion, EvaluationDetailLayout, EvaluationOverview } from "@/components/evaluation/evaluation-form-layout";
+import { EvaluationItemLayout, EvaluationConclusion } from "@/components/evaluation/evaluation-form-layout";
+import { EvaluationFocusLayout, type EvaluationStep } from "@/components/evaluation/evaluation-focus-layout";
 import { PropertyList, PropertyLabel } from "@/components/shared/design-system/layout/property-list";
 
 
@@ -58,8 +58,6 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { FormPage } from "@/components/shared/form-shell";
 import {
-  FormContainer,
-  FormGroup,
   ActionButton,
   AccentButton,
   CollectionPageHeader,
@@ -189,6 +187,13 @@ function updateItemField(
   return items.map((item, index) => (index === itemIndex ? { ...item, ...patch } : item));
 }
 
+const sectionLabels: Readonly<Record<string, string>> = {
+  document_completeness: "Dokumen pendukung",
+  infrastructure_adequacy: "Infrastruktur MR",
+  implementation_result: "Hasil pelaksanaan",
+  mitigation_monitoring: "Format mitigasi",
+};
+
 export default function EvaluationDetailPage() {
   const params = useParams<{ id: string }>();
   const evaluationId = params?.id;
@@ -200,6 +205,8 @@ export default function EvaluationDetailPage() {
     "save" | "finalize" | "reopen" | "download" | null
   >(null);
   const [validationAttempted, setValidationAttempted] = useState(false);
+  const [activeSectionIndex, setActiveSectionIndex] = useState(0);
+  const [focusRequest, setFocusRequest] = useState<{ itemId: string } | null>(null);
   const [showFinalizeConfirm, setShowFinalizeConfirm] = useState(false);
 
   useEffect(() => {
@@ -216,6 +223,8 @@ export default function EvaluationDetailPage() {
       .then(([item, orgs]) => {
         setEvaluation(cloneEvaluation(item));
         setOrganizations(orgs);
+        setActiveSectionIndex(0);
+        setValidationAttempted(false);
       })
       .catch((error) => {
         console.error(error);
@@ -251,6 +260,19 @@ export default function EvaluationDetailPage() {
   const patchEvaluation = useCallback((patch: Partial<Evaluation>) => {
     setEvaluation((current) => (current ? { ...current, ...patch } : current));
   }, []);
+
+  function changeItem(sectionIndex: number, itemIndex: number, patch: Partial<EvaluationItem>) {
+    setEvaluation((current) => {
+      const items = current?.sections[sectionIndex]?.items;
+      if (!current || !items?.[itemIndex]) return current;
+      return {
+        ...current,
+        sections: updateSectionField(current.sections, sectionIndex, {
+          items: updateItemField(items, itemIndex, patch),
+        }),
+      };
+    });
+  }
 
   useEffect(() => {
     if (!editable || !evaluation || organizations.length === 0) {
@@ -306,17 +328,24 @@ export default function EvaluationDetailPage() {
     const { unansweredItemIds, message } = validateEvaluationFinalization(evaluation);
     if (!message) return true;
     toast.error(message);
-    requestAnimationFrame(() => {
-      // Reapply the attribute so shared MotionFeedback can replay on repeated attempts.
-      unansweredItemIds.forEach((id) => {
-        document.getElementById(`evaluation-answer-${id}`)?.setAttribute("aria-invalid", "true");
-      });
-      const first = document.getElementById(`evaluation-answer-${unansweredItemIds[0]}`);
-      first?.focus({ preventScroll: true });
-      first?.scrollIntoView({ block: "center", behavior: "instant" });
-    });
+    const firstId = unansweredItemIds[0];
+    if (firstId) {
+      const sectionIndex = evaluation.sections.findIndex((section) =>
+        section.items?.some((item) => item.id === firstId),
+      );
+      if (sectionIndex >= 0) setActiveSectionIndex(sectionIndex);
+      setFocusRequest({ itemId: firstId });
+    }
     return false;
   }, [evaluation]);
+
+  useEffect(() => {
+    if (!focusRequest) return;
+    const field = document.getElementById(`evaluation-answer-${focusRequest.itemId}`);
+    field?.setAttribute("aria-invalid", "true");
+    field?.focus({ preventScroll: true });
+    field?.scrollIntoView({ block: "center", behavior: "instant" });
+  }, [focusRequest]);
 
   const requestFinalize = useCallback(() => {
     if (editable && validateFinalization()) setShowFinalizeConfirm(true);
@@ -499,9 +528,26 @@ export default function EvaluationDetailPage() {
 
   const orgName =
     organizationNameById.get(evaluation.organizationId) ?? evaluation.organizationId;
+  const sectionSteps: EvaluationStep[] = evaluationSections.map((section) => {
+    const items = section.items ?? [];
+    const answered = items.filter((item) => item.answer === "yes" || item.answer === "no").length;
+    return {
+      id: section.id,
+      label: sectionLabels[section.sectionKey] ?? section.title,
+      title: section.title,
+      progress: items.length > 0 ? `${answered}/${items.length}` : undefined,
+    };
+  });
+  if (!sectionSteps.length) {
+    sectionSteps.push({ id: "hasil-evaluasi", label: "Hasil evaluasi", title: "Hasil Pemantauan dan Evaluasi" });
+  }
+  const steps = [...sectionSteps, { id: "permasalahan-saran", label: "Permasalahan dan saran", title: "Permasalahan dan saran" }];
+  const currentIndex = Math.min(activeSectionIndex, steps.length - 1);
+  const section = evaluationSections[currentIndex];
+  const isReportStep = currentIndex === steps.length - 1;
 
   return (
-    <FormPage className="space-y-6">
+    <FormPage className="mx-auto max-w-4xl space-y-5">
       <CollectionPageHeader
         showTitle
         title={evaluation.code ? `Evaluasi ${evaluation.code}` : "Evaluasi"}
@@ -540,215 +586,116 @@ export default function EvaluationDetailPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      <BoundProfilePeriodNotice token={token} profileId={evaluation.profileVersionId} periodId={evaluation.monitoringPeriodId} />
-      <EvaluationDetailLayout
+      <FieldErrorMessage>{finalizationErrors?.message}</FieldErrorMessage>
+      <EvaluationFocusLayout
+        steps={steps}
+        activeIndex={currentIndex}
+        onStepChange={setActiveSectionIndex}
+        status={<Badge variant={statusTones[evaluation.status]}>{formatStatus(evaluation.status)}</Badge>}
+        organization={orgName}
+        answered={answeredItems}
+        total={totalItems}
         details={
-          <EvaluationOverview
-            organization={orgName}
-            status={<Badge variant={statusTones[evaluation.status]}>{formatStatus(evaluation.status)}</Badge>}
-            answered={answeredItems}
-            total={totalItems}
-          >
-            <PropertyList>
-              {[
-                { label: "Dibuat", value: formatDateTime(evaluation.createdAt), isDate: true },
-                { label: "Diperbarui", value: formatDateTime(evaluation.updatedAt), isDate: true },
-                ...(evaluation.finalizedAt ? [{ label: "Finalisasi", value: formatDateTime(evaluation.finalizedAt), isDate: true }] : []),
-                { label: "Template", value: evaluation.templateName || evaluation.templateId },
-              ].map(({ label, value, isDate }) => (
-                <div key={label} className="grid grid-cols-[minmax(0,0.44fr)_minmax(0,0.56fr)] items-start gap-4">
-                  <PropertyLabel showIcon={false}>{label}</PropertyLabel>
-                  <dd className="min-w-0 wrap-anywhere text-sm text-foreground">
-                    <span data-date-time={isDate ? "" : undefined}>{value}</span>
-                  </dd>
-                </div>
-              ))}
-            </PropertyList>
-          </EvaluationOverview>
+          <PropertyList>
+            {[
+              { label: "Dibuat", value: formatDateTime(evaluation.createdAt), isDate: true },
+              { label: "Diperbarui", value: formatDateTime(evaluation.updatedAt), isDate: true },
+              ...(evaluation.finalizedAt ? [{ label: "Finalisasi", value: formatDateTime(evaluation.finalizedAt), isDate: true }] : []),
+              { label: "Template", value: evaluation.templateName || evaluation.templateId },
+            ].map(({ label, value, isDate }) => (
+              <div key={label} className="grid grid-cols-[minmax(0,0.44fr)_minmax(0,0.56fr)] items-start gap-4">
+                <PropertyLabel showIcon={false}>{label}</PropertyLabel>
+                <dd className="min-w-0 wrap-anywhere text-sm text-foreground">
+                  <span data-date-time={isDate ? "" : undefined}>{value}</span>
+                </dd>
+              </div>
+            ))}
+          </PropertyList>
         }
       >
-        <FormContainer
-          id="hasil-evaluasi"
-          title="Hasil Pemantauan dan Evaluasi"
-        >
-          <FieldErrorMessage>{finalizationErrors?.message}</FieldErrorMessage>
-          {evaluationSections.length === 0 ? (
-            <FormGroup>
-              <IllustratedEmptyState
-                title="Belum ada bagian evaluasi"
-                description="Bagian evaluasi belum tersedia untuk penilaian ini."
-              />
-            </FormGroup>
-          ) : null}
-
-          {evaluationSections.map((section, sectionIndex) => {
-            const sectionItems = section.items ?? [];
-            const answeredSectionItems = sectionItems.filter(
-              (item) => item.answer === "yes" || item.answer === "no",
-            ).length;
-
-            return (
-              <FormGroup key={section.id} className="space-y-6">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0 space-y-1">
-                    <h3 className="text-base font-semibold text-foreground">
-                      {section.title}
-                    </h3>
-                    {section.description ? (
-                      <p className="max-w-prose text-sm leading-relaxed text-secondary-foreground">
-                        {section.description}
-                      </p>
-                    ) : null}
-                  </div>
-                  <span className="shrink-0 text-sm tabular-nums text-muted-foreground">
-                    {answeredSectionItems} / {sectionItems.length} terisi
-                  </span>
-                </div>
-
-                <div className="space-y-8">
-                  {sectionItems.map((item, itemIndex) => (
-                    <EvaluationItemLayout
-                      key={item.id}
-                      itemNo={item.itemNo}
-                      label={item.label}
-                      description={item.description}
+        {section ? (
+          <>
+            {section.description && (
+              <p className="max-w-prose text-sm leading-relaxed text-secondary-foreground">
+                {section.description}
+              </p>
+            )}
+            <div className="space-y-8">
+              {(section.items ?? []).map((item, itemIndex) => (
+                <EvaluationItemLayout
+                  key={item.id}
+                  itemNo={item.itemNo}
+                  label={item.label}
+                  description={item.description}
+                  promptId={`evaluation-prompt-${item.id}`}
+                  answer={
+                    <EvaluationAnswerField
+                      id={`evaluation-answer-${item.id}`}
                       promptId={`evaluation-prompt-${item.id}`}
-                      answer={
-                        <EvaluationAnswerField
-                          id={`evaluation-answer-${item.id}`}
-                          promptId={`evaluation-prompt-${item.id}`}
-                          invalid={finalizationErrors?.unansweredItemIds.includes(item.id)}
-                          value={item.answer}
-                          onValueChange={(value) => {
-                            setEvaluation((current) =>
-                              current
-                                ? {
-                                    ...current,
-                                    sections: updateSectionField(
-                                      current.sections,
-                                      sectionIndex,
-                                      {
-                                        items: updateItemField(
-                                          current.sections[sectionIndex].items,
-                                          itemIndex,
-                                          {
-                                            answer: value,
-                                          },
-                                        ),
-                                      },
-                                    ),
-                                  }
-                                : current,
-                            );
-                          }}
-                          disabled={!editable}
-                        />
-                      }
-                    >
-                      <div className="space-y-2">
-                        <Label htmlFor={`evaluation-condition-${item.id}`} className="text-sm font-normal text-foreground">
-                          Uraian kondisi
-                        </Label>
-                        <Textarea
-                          id={`evaluation-condition-${item.id}`}
-                          value={item.condition}
-                          onChange={(event) => {
-                            setEvaluation((current) =>
-                              current
-                                ? {
-                                    ...current,
-                                    sections: updateSectionField(
-                                      current.sections,
-                                      sectionIndex,
-                                      {
-                                        items: updateItemField(
-                                          current.sections[sectionIndex].items,
-                                          itemIndex,
-                                          { condition: event.target.value },
-                                        ),
-                                      },
-                                    ),
-                                  }
-                                : current,
-                            );
-                          }}
-                          disabled={!editable}
-                          className="min-h-28 resize-y leading-relaxed"
-                          placeholder="Uraikan kondisi aktual yang ditemukan"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor={`evaluation-analysis-${item.id}`} className="text-sm font-normal text-foreground">
-                          Keterangan
-                        </Label>
-                        <Textarea
-                          id={`evaluation-analysis-${item.id}`}
-                          value={item.analysis}
-                          onChange={(event) => {
-                            setEvaluation((current) =>
-                              current
-                                ? {
-                                    ...current,
-                                    sections: updateSectionField(
-                                      current.sections,
-                                      sectionIndex,
-                                      {
-                                        items: updateItemField(
-                                          current.sections[sectionIndex].items,
-                                          itemIndex,
-                                          { analysis: event.target.value },
-                                        ),
-                                      },
-                                    ),
-                                  }
-                                : current,
-                            );
-                          }}
-                          disabled={!editable}
-                          className="min-h-28 resize-y leading-relaxed"
-                          placeholder="Tuliskan keterangan singkat yang relevan"
-                        />
-                      </div>
-                    </EvaluationItemLayout>
-                  ))}
-                </div>
-
-                <EvaluationConclusion>
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <Label htmlFor={`evaluation-conclusion-${section.id}`} className="text-sm font-medium text-foreground">
-                      Kesimpulan bagian
+                      invalid={finalizationErrors?.unansweredItemIds.includes(item.id)}
+                      value={item.answer}
+                      onValueChange={(value) => changeItem(currentIndex, itemIndex, { answer: value })}
+                      disabled={!editable}
+                    />
+                  }
+                >
+                  <div className="space-y-2">
+                    <Label htmlFor={`evaluation-condition-${item.id}`} className="text-sm font-normal text-foreground">
+                      Uraian kondisi
                     </Label>
+                    <Textarea
+                      id={`evaluation-condition-${item.id}`}
+                      value={item.condition}
+                      onChange={(event) => changeItem(currentIndex, itemIndex, { condition: event.target.value })}
+                      disabled={!editable}
+                      className="min-h-28 resize-y leading-relaxed"
+                      placeholder="Uraikan kondisi aktual yang ditemukan"
+                    />
                   </div>
-                  <Textarea
-                    id={`evaluation-conclusion-${section.id}`}
-                    value={section.conclusion}
-                    onChange={(event) => {
-                      setEvaluation((current) =>
-                        current
-                          ? {
-                              ...current,
-                              sections: updateSectionField(current.sections, sectionIndex, {
-                                conclusion: event.target.value,
-                              }),
-                            }
-                          : current,
-                      );
-                    }}
-                    disabled={!editable}
-                    className="min-h-28 resize-y leading-relaxed"
-                    placeholder="Ringkas hasil evaluasi dan hal yang perlu ditindaklanjuti"
-                  />
-                </EvaluationConclusion>
-              </FormGroup>
-            );
-          })}
-        </FormContainer>
+                  <div className="space-y-2">
+                    <Label htmlFor={`evaluation-analysis-${item.id}`} className="text-sm font-normal text-foreground">
+                      Keterangan
+                    </Label>
+                    <Textarea
+                      id={`evaluation-analysis-${item.id}`}
+                      value={item.analysis}
+                      onChange={(event) => changeItem(currentIndex, itemIndex, { analysis: event.target.value })}
+                      disabled={!editable}
+                      className="min-h-28 resize-y leading-relaxed"
+                      placeholder="Tuliskan keterangan singkat yang relevan"
+                    />
+                  </div>
+                </EvaluationItemLayout>
+              ))}
+            </div>
 
-        <FormContainer
-          id="permasalahan-saran"
-          title="Permasalahan dan saran"
-        >
-          <FormGroup className="[&_[data-slot=label]]:font-normal">
+            <EvaluationConclusion>
+              <Label htmlFor={`evaluation-conclusion-${section.id}`} className="text-sm font-medium text-foreground">
+                Kesimpulan bagian
+              </Label>
+              <Textarea
+                id={`evaluation-conclusion-${section.id}`}
+                value={section.conclusion}
+                onChange={(event) => {
+                  setEvaluation((current) =>
+                    current
+                      ? {
+                          ...current,
+                          sections: updateSectionField(current.sections, currentIndex, {
+                            conclusion: event.target.value,
+                          }),
+                        }
+                      : current,
+                  );
+                }}
+                disabled={!editable}
+                className="min-h-28 resize-y leading-relaxed"
+                placeholder="Ringkas hasil evaluasi dan hal yang perlu ditindaklanjuti"
+              />
+            </EvaluationConclusion>
+          </>
+        ) : isReportStep ? (
+          <div className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="evaluation-problems" className="text-sm font-normal text-foreground">
                 Permasalahan
@@ -762,8 +709,6 @@ export default function EvaluationDetailPage() {
                 placeholder="Tuliskan hambatan utama yang perlu ditindaklanjuti"
               />
             </div>
-          </FormGroup>
-          <FormGroup className="[&_[data-slot=label]]:font-normal">
             <div className="space-y-2">
               <Label htmlFor="evaluation-recommendations" className="text-sm font-normal text-foreground">
                 Saran perbaikan
@@ -779,9 +724,14 @@ export default function EvaluationDetailPage() {
                 placeholder="Tuliskan rekomendasi yang paling relevan dan praktis"
               />
             </div>
-          </FormGroup>
-        </FormContainer>
-      </EvaluationDetailLayout>
+          </div>
+        ) : (
+          <IllustratedEmptyState
+            title="Belum ada bagian evaluasi"
+            description="Bagian evaluasi belum tersedia untuk penilaian ini."
+          />
+        )}
+      </EvaluationFocusLayout>
     </FormPage>
   );
 }

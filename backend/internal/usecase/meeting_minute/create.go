@@ -37,6 +37,7 @@ type CreateInput struct {
 	OrganizationID *uuid.UUID
 	CreatedBy      uuid.UUID
 	RiskIDs        []uuid.UUID
+	Scope          *entity.AccessScope
 }
 
 type CreateOutput struct {
@@ -75,6 +76,7 @@ func (uc *CreateMeetingMinuteUseCase) Execute(ctx context.Context, input CreateI
 		OrganizationID: input.OrganizationID,
 		CreatedBy:      input.CreatedBy,
 		RiskIDs:        input.RiskIDs,
+		Scope:          input.Scope,
 	})
 	if err != nil {
 		return nil, err

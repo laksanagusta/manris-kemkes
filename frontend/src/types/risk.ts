@@ -2,6 +2,7 @@ export interface RiskOpenDrafts {
   monitoringId?: string;
   revisionRiskId?: string;
   revisionMonitoringId?: string;
+  revisionBlockedPeriod?: string;
 }
 
 export type Controllability = "C" | "UC";
@@ -11,7 +12,7 @@ export type RecurringInterval = "harian" | "mingguan" | "bulanan" | "triwulan" |
 export type TreatmentOption = "" | "menghindari" | "berbagi" | "mitigasi" | "menerima";
 export type RiskStatus = "draft" | "final";
 export type RiskCategory = "" | "kebijakan" | "reputasi" | "fraud_korupsi" | "legal" | "kepatuhan" | "operasional";
-export type RiskSource = "" | "internal" | "eksternal";
+export type RiskSource = "" | import("@/lib/risk-source").SelectedRiskSource;
 export type RiskAppetite = "" | "dalam_batas" | "di_atas_batas";
 
 export type DraftApprovalLineMember = {

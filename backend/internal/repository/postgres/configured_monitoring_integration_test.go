@@ -228,6 +228,9 @@ func TestConfiguredMonitoringDuplicateRace(t *testing.T) {
 		if _, err := tx.Exec(ctx, `DELETE FROM users WHERE id=$1`, f.actor); err != nil {
 			t.Fatal(err)
 		}
+		if _, err := tx.Exec(ctx, `DELETE FROM annual_monitoring_period_completion WHERE organization_id=$1`, f.org); err != nil {
+			t.Fatal(err)
+		}
 		if _, err := tx.Exec(ctx, `DELETE FROM organizations WHERE id=$1`, f.org); err != nil {
 			t.Fatal(err)
 		}

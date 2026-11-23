@@ -318,22 +318,39 @@ func rosterPreviewQuery() string {
 }
 
 const profileRosterQuery = `
+ WITH selected AS (
+  SELECT p.* FROM annual_risk_profile_versions p
+  WHERE p.organization_id=$1 AND p.id=$2 AND p.finalized_at IS NOT NULL
+ ), members AS (
+  SELECT m.version_group_id,m.risk_id,m.baseline,m.effective_from
+  FROM selected p CROSS JOIN LATERAL annual_monitoring_members_as_of(p.id,$3::date) m
+  WHERE p.monitoring_rule_id IS NULL
+  UNION ALL
+  SELECT m.version_group_id,m.risk_id,m.baseline,m.effective_from
+  FROM annual_monitoring_members_as_of(annual_monitoring_period_profile($2,$4), $3::date) m
+ ), period_profile AS (
+  SELECT version FROM annual_risk_profile_versions WHERE id=annual_monitoring_period_profile($2,$4)
+ )
  SELECT m.version_group_id, COALESCE(m.baseline->>'code',r.code,''), COALESCE(m.baseline->>'title',r.title,''),
         r.id,r.version_number,rm.id,rm.assessment_cycle,rm.status,result.id,result.version_number,COALESCE(rm.observed_at::text,'')
- FROM annual_risk_profile_members m
- JOIN annual_risk_profile_versions p ON p.id=m.profile_version_id
+ FROM members m
+ CROSS JOIN selected p
  JOIN risks r ON r.id=m.risk_id AND r.organization_id=p.organization_id
  LEFT JOIN LATERAL (
    SELECT rm.id,rm.assessment_cycle,rm.status,rm.result_risk_id,rm.observed_at
    FROM risk_monitorings rm
-   WHERE rm.version_group_id=m.version_group_id AND rm.observed_at BETWEEN m.effective_from AND $3::date
+   WHERE rm.version_group_id=m.version_group_id
      AND rm.transaction_kind='monitoring' AND rm.status IN ('draft','final') AND rm.superseded_by_monitoring_id IS NULL
-     AND (p.monitoring_rule_id IS NULL OR (rm.profile_version_id IN (SELECT ap.id FROM annual_risk_profile_versions ap WHERE ap.organization_id=p.organization_id AND ap.year=p.year) AND rm.monitoring_period_id=$4::uuid))
+     AND ((p.monitoring_rule_id IS NULL AND rm.observed_at BETWEEN m.effective_from AND $3::date)
+          OR (rm.monitoring_period_id=$4 AND rm.observed_at <= $3::date AND EXISTS (
+            SELECT 1 FROM annual_risk_profile_versions source CROSS JOIN period_profile cap
+            WHERE source.id=rm.profile_version_id AND source.organization_id=p.organization_id
+              AND source.year=p.year AND source.version<=cap.version
+          )))
    ORDER BY (rm.status='final') DESC,rm.observed_at DESC,rm.finalized_at DESC NULLS LAST,rm.id DESC
    LIMIT 1
  ) rm ON TRUE
  LEFT JOIN risks result ON result.id=rm.result_risk_id
- WHERE p.organization_id=$1 AND p.id=$2 AND p.finalized_at IS NOT NULL AND (p.monitoring_rule_id IS NULL OR m.effective_from<=$3::date)
  ORDER BY r.code,m.version_group_id`
 
 func (r *workingPaperRepository) CreateWithPeriodRoster(ctx context.Context, wp *entity.WorkingPaper, revision string, decisions []entity.WorkingPaperRosterDecision) error {
@@ -343,6 +360,9 @@ func (r *workingPaperRepository) CreateWithPeriodRoster(ctx context.Context, wp 
 	}
 	defer tx.Rollback(ctx)
 
+	if err := resolveNewWorkingPaperSignatories(ctx, tx, wp); err != nil {
+		return err
+	}
 	_, err = tx.Exec(ctx, `SELECT 1 FROM organizations WHERE id = $1 FOR UPDATE`, wp.OrgID)
 	if err != nil {
 		return fmt.Errorf("lock organization: %w", err)
@@ -453,10 +473,10 @@ func (r *workingPaperRepository) CreateWithPeriodRoster(ctx context.Context, wp 
 	if err := tx.QueryRow(ctx, `
 		INSERT INTO working_papers (id, code, sequence_no, title, org_id, status, assessment_cycle, document_hash, current_signatory_sequence, tte_skipped, created_by, created_at, updated_at, profile_version_id, observation_cutoff,monitoring_period_id)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)
-		RETURNING created_at
+		RETURNING created_at, profile_version_id
 	`, wp.ID, wp.Code, wp.SequenceNo, wp.Title, wp.OrgID, wp.Status, wp.AssessmentCycle,
 		wp.DocumentHash, wp.CurrentSignatorySequence, wp.TTESkipped, wp.CreatedBy, wp.CreatedAt, wp.UpdatedAt, wp.ProfileVersionID, nullableCutoff(wp.ObservationCutoff), wp.MonitoringPeriodID,
-	).Scan(&wp.CreatedAt); err != nil {
+	).Scan(&wp.CreatedAt, &wp.ProfileVersionID); err != nil {
 		return fmt.Errorf("insert working paper: %w", err)
 	}
 

@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -153,9 +154,23 @@ func loadQuarterlyTasks(ctx context.Context, q riskQueryer, cycle string, start,
 	 LEFT JOIN risk_monitorings rm ON rm.id = t.monitoring_id
 	 LEFT JOIN users u ON u.id = t.reported_by
 	 WHERE (cardinality($4::uuid[]) = 0 OR r.organization_id = ANY($4::uuid[]))
-	   AND r.superseded_by_risk_id IS NULL
+	   AND ($7::uuid IS NOT NULL OR r.superseded_by_risk_id IS NULL)
 	   AND $1::text <> ''
  AND (($5::int=0 AND t.period_end >= $2::date AND t.period_end < $3::date) OR ($5>0 AND (rm.profile_version_id IN (SELECT id FROM annual_risk_profile_versions WHERE year=$5 AND monitoring_rule_id IS NOT DISTINCT FROM $6::uuid) OR ($6::uuid IS NULL AND rm.profile_version_id IS NULL AND EXISTS (SELECT 1 FROM annual_risk_profile_members member JOIN annual_risk_profile_versions p ON p.id=member.profile_version_id WHERE member.version_group_id=r.version_group_id AND p.organization_id=r.organization_id AND p.year=$5 AND p.monitoring_rule_id IS NULL AND p.finalized_at IS NOT NULL))) AND (($7::uuid IS NULL AND t.period_end >= $2::date AND t.period_end < $3::date) OR rm.monitoring_period_id=$7)))
+       AND ($7::uuid IS NULL OR EXISTS (
+        SELECT 1 FROM annual_risk_profile_versions source
+        CROSS JOIN LATERAL (
+          SELECT latest.id FROM annual_risk_profile_versions latest
+          WHERE latest.organization_id=source.organization_id AND latest.year=source.year
+            AND latest.monitoring_rule_id=source.monitoring_rule_id AND latest.finalized_at IS NOT NULL
+          ORDER BY latest.version DESC LIMIT 1
+        ) latest
+        JOIN annual_risk_profile_versions cap ON cap.id=annual_monitoring_period_profile(latest.id,$7)
+        CROSS JOIN LATERAL annual_monitoring_period_scope(latest.id,$7) member
+        WHERE source.id=rm.profile_version_id AND source.version<=cap.version
+          AND member.version_group_id=rm.version_group_id
+          AND member.effective_from < $3::date
+       ))
        AND (rm.id IS NULL OR (rm.status <> 'superseded' AND rm.superseded_by_monitoring_id IS NULL))
 	 ORDER BY t.due_date, t.id`, cycle, start.Format("2006-01-02"), end.Format("2006-01-02"), uuidArrayToStrings(orgIDs), profile.ProfileYear, profile.RuleID, profile.MonitoringPeriodID)
 	if err != nil {
@@ -261,13 +276,38 @@ func loadQuarterlyEvents(ctx context.Context, q riskQueryer, start, end time.Tim
 	return items, links.Err()
 }
 
+const configuredQuarterlyRiskSnapshotCTE = quarterlyLifecycleCTE + `,
+ selected_profiles AS (
+  SELECT DISTINCT ON (organization_id) id,organization_id
+  FROM annual_risk_profile_versions
+  WHERE year=$4 AND monitoring_rule_id=$5::uuid AND finalized_at IS NOT NULL
+  ORDER BY organization_id,version DESC
+ ), period_scope AS (
+  SELECT member.risk_id,member.baseline,profile.organization_id,cap.version AS version_cap
+  FROM selected_profiles profile
+  CROSS JOIN LATERAL annual_monitoring_period_scope(profile.id,$6) member
+  JOIN annual_risk_profile_versions cap ON cap.id=annual_monitoring_period_profile(profile.id,$6)
+  WHERE member.effective_from < ($3::timestamptz AT TIME ZONE 'Asia/Jakarta')::date
+ ), risk_snapshots AS (
+  SELECT snapshot.*,scope.version_cap,
+         CASE WHEN jsonb_typeof(scope.baseline->'mitigations')='array' THEN scope.baseline->'mitigations' END AS frozen_mitigations
+  FROM period_scope scope JOIN risks r ON r.id=scope.risk_id AND r.organization_id=scope.organization_id
+  CROSS JOIN LATERAL jsonb_populate_record(r,scope.baseline) snapshot
+ ) `
+
 func loadQuarterlyRisks(ctx context.Context, q riskQueryer, cycle string, start, end time.Time, orgIDs []uuid.UUID, profiles ...repository.QuarterlyReportPeriod) ([]*entity.QuarterlyReportRisk, *time.Time, error) {
 	cte := riskPeriodSnapshotCTE
 	var profile repository.QuarterlyReportPeriod
 	if len(profiles) > 0 {
 		profile = profiles[0]
 	}
-	if profile.ProfileYear > 0 {
+	monitoringVersionFilter := ""
+	frozenMitigationsColumn := "NULL::jsonb"
+	if profile.MonitoringPeriodID != nil {
+		cte = configuredQuarterlyRiskSnapshotCTE
+		monitoringVersionFilter = " AND p.organization_id=r.organization_id AND p.version<=r.version_cap"
+		frozenMitigationsColumn = "r.frozen_mitigations"
+	} else if profile.ProfileYear > 0 {
 		cte = quarterlyLifecycleCTE + `, period_cutoff AS (SELECT LEAST($3::timestamptz, ` + businessNowSQL + `) AS cutoff) ` + riskPeriodSnapshotBodyCTE
 	}
 	query := cte + `SELECT r.id, r.code, r.title, r.description, r.category, r.status, r.version_group_id, r.previous_risk_id, r.is_current, r.is_cycle_current, r.version_number, r.archived_at, r.archived_reason, r.organization_id, r.created_by, r.objective_id, r.ro_id, r.likelihood_assessment_id, r.impact_criteria_id, COALESCE(r.impact_justification, '') as impact_justification,
@@ -288,7 +328,8 @@ func loadQuarterlyRisks(ctx context.Context, q riskQueryer, cycle string, start,
 		        monitoring.observed_nilai,
 		        monitoring.observed_level, monitoring.finalized_at, monitoring.observed_at::text, monitoring.observed_at_inferred,
 	        GREATEST(r.updated_at, monitoring.updated_at),
-	        (COALESCE(lifecycle.archived_at >= $2 AND lifecycle.archived_at < LEAST($3::timestamptz, ` + businessNowSQL + `), FALSE) OR EXISTS (SELECT 1 FROM lifecycle_events e WHERE e.version_group_id = r.version_group_id AND e.action = 'archive' AND e.created_at >= $2 AND e.created_at < LEAST($3::timestamptz, ` + businessNowSQL + `)))
+	        (COALESCE(lifecycle.archived_at >= $2 AND lifecycle.archived_at < LEAST($3::timestamptz, ` + businessNowSQL + `), FALSE) OR EXISTS (SELECT 1 FROM lifecycle_events e WHERE e.version_group_id = r.version_group_id AND e.action = 'archive' AND e.created_at >= $2 AND e.created_at < LEAST($3::timestamptz, ` + businessNowSQL + `))),
+	        ` + frozenMitigationsColumn + `
 	 FROM risk_snapshots r
 	 LEFT JOIN lifecycle ON lifecycle.version_group_id = r.version_group_id
 	 LEFT JOIN organizations o ON r.organization_id = o.id
@@ -307,13 +348,14 @@ func loadQuarterlyRisks(ctx context.Context, q riskQueryer, cycle string, start,
 		   AND rm.observed_at < ($3::timestamptz AT TIME ZONE 'Asia/Jakarta')::date
 		   AND rm.status = 'final'
            AND rm.superseded_by_monitoring_id IS NULL
-           AND ($4::int=0 OR (rm.monitoring_period_id=$6::uuid AND EXISTS (SELECT 1 FROM annual_risk_profile_versions p WHERE p.id=rm.profile_version_id AND p.year=$4 AND p.monitoring_rule_id=$5::uuid)))
+           AND ($4::int=0 OR (rm.monitoring_period_id=$6::uuid AND EXISTS (SELECT 1 FROM annual_risk_profile_versions p WHERE p.id=rm.profile_version_id AND p.year=$4 AND p.monitoring_rule_id=$5::uuid` + monitoringVersionFilter + `)))
 		   AND rm.transaction_kind = 'monitoring'
 		 ORDER BY rm.observed_at DESC, rm.finalized_at DESC NULLS LAST, rm.id DESC
 		 LIMIT 1
 	 ) monitoring ON TRUE
-	 WHERE ($4::int=0 OR EXISTS (
- SELECT 1 FROM annual_risk_profile_versions p JOIN annual_risk_profile_members member ON member.profile_version_id=p.id
+	 WHERE ($6::uuid IS NOT NULL OR $4::int=0 OR EXISTS (
+ SELECT 1 FROM annual_risk_profile_versions p
+ CROSS JOIN LATERAL annual_monitoring_members_as_of(p.id,($3::timestamptz AT TIME ZONE 'Asia/Jakarta')::date-1) member
  WHERE p.organization_id=r.organization_id AND p.year=$4 AND p.monitoring_rule_id=$5::uuid AND p.finalized_at IS NOT NULL
  AND member.version_group_id=r.version_group_id AND member.effective_from < ($3::timestamptz AT TIME ZONE 'Asia/Jakarta')::date
  AND NOT EXISTS (SELECT 1 FROM annual_risk_profile_versions newer WHERE newer.organization_id=p.organization_id AND newer.year=p.year AND newer.monitoring_rule_id=p.monitoring_rule_id AND newer.finalized_at IS NOT NULL AND newer.version>p.version)
@@ -335,11 +377,13 @@ func loadQuarterlyRisks(ctx context.Context, q riskQueryer, cycle string, start,
 	var dataUpdatedAt *time.Time
 	riskByID := make(map[uuid.UUID]*entity.Risk)
 	riskIDs := make([]uuid.UUID, 0)
+	frozenMitigations := make(map[uuid.UUID]json.RawMessage)
 	for rows.Next() {
 		risk := &entity.Risk{}
 		var archivedInPeriod bool
 		var sourceUpdatedAt time.Time
 		var roID uuid.NullUUID
+		var mitigationSnapshot json.RawMessage
 		if err := rows.Scan(
 			&risk.ID, &risk.Code, &risk.Title, &risk.Description, &risk.Category, &risk.Status, &risk.VersionGroupID, &risk.PreviousRiskID, &risk.IsCurrent, &risk.IsCycleCurrent, &risk.VersionNumber, &risk.ArchivedAt, &risk.ArchivedReason, &risk.OrganizationID, &risk.CreatedBy, &risk.ObjectiveID, &roID, &risk.LikelihoodAssessmentID, &risk.ImpactCriteriaID, &risk.ImpactJustification,
 			&risk.Cause, &risk.RiskSource, &risk.Controllability, &risk.ImpactDesc,
@@ -352,7 +396,7 @@ func loadQuarterlyRisks(ctx context.Context, q riskQueryer, cycle string, start,
 			&risk.MonitoringAssessmentCycle, &risk.MonitoringMode,
 			&risk.MonitoringObservedProbability, &risk.MonitoringObservedImpact,
 			&risk.MonitoringObservedWeight, &risk.MonitoringObservedNilai,
-			&risk.MonitoringObservedLevel, &risk.LastMonitoredAt, &risk.MonitoringObservedAt, &risk.MonitoringObservedAtInferred, &sourceUpdatedAt, &archivedInPeriod,
+			&risk.MonitoringObservedLevel, &risk.LastMonitoredAt, &risk.MonitoringObservedAt, &risk.MonitoringObservedAtInferred, &sourceUpdatedAt, &archivedInPeriod, &mitigationSnapshot,
 		); err != nil {
 			return nil, nil, fmt.Errorf("scan cycle snapshot risk: %w", err)
 		}
@@ -364,21 +408,35 @@ func loadQuarterlyRisks(ctx context.Context, q riskQueryer, cycle string, start,
 		dataUpdatedAt = latestQuarterlyUpdate(dataUpdatedAt, sourceUpdatedAt)
 		risks = append(risks, &entity.QuarterlyReportRisk{Risk: risk, ArchivedInPeriod: archivedInPeriod})
 		riskByID[risk.ID] = risk
-		riskIDs = append(riskIDs, risk.ID)
+		if len(mitigationSnapshot) == 0 {
+			riskIDs = append(riskIDs, risk.ID)
+		} else {
+			frozenMitigations[risk.ID] = mitigationSnapshot
+		}
 	}
 	if rows.Err() != nil {
 		return nil, nil, fmt.Errorf("iterate cycle snapshot risks: %w", rows.Err())
 	}
-	if len(riskIDs) == 0 {
+	if len(risks) == 0 {
 		return risks, dataUpdatedAt, nil
 	}
 
+	frozenPlans, err := json.Marshal(frozenMitigations)
+	if err != nil {
+		return nil, nil, fmt.Errorf("encode frozen mitigation plans: %w", err)
+	}
 	mitigationRows, err := q.Query(ctx,
-		`SELECT id, risk_id, action, owner, owner_user_id, due_date::text, frequency, recurring_interval, report_day, report_date, COALESCE(execution_schedule_text, ''), target_cost, sort_order, created_at,
+		`WITH plans AS (
+		  SELECT * FROM mitigations WHERE risk_id = ANY($1)
+		  UNION ALL
+		  SELECT plan.*
+		  FROM jsonb_each($2::jsonb) snapshot
+		  CROSS JOIN LATERAL jsonb_populate_recordset(NULL::mitigations,snapshot.value) plan
+		)
+		SELECT id, risk_id, action, owner, owner_user_id, due_date::text, frequency, recurring_interval, report_day, report_date, COALESCE(execution_schedule_text, ''), target_cost, sort_order, created_at,
 		        mitigation_type
-		 FROM mitigations
-		 WHERE risk_id = ANY($1)
-		 ORDER BY risk_id, sort_order, created_at`, riskIDs)
+		 FROM plans
+		 ORDER BY risk_id, sort_order, created_at`, riskIDs, frozenPlans)
 	if err != nil {
 		return nil, nil, fmt.Errorf("load cycle snapshot mitigations: %w", err)
 	}

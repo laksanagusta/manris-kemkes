@@ -5,6 +5,10 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"github.com/manris/backend/internal/domain/entity"
+	domainerrors "github.com/manris/backend/internal/domain/errors"
+	identitydomain "github.com/manris/backend/internal/identity/domain"
+	"github.com/manris/backend/internal/middleware"
 	useruc "github.com/manris/backend/internal/usecase/user"
 )
 
@@ -89,6 +93,10 @@ func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 
 // GetUser handles GET /api/users/:id
 func (h *UserHandler) GetUser(c *fiber.Ctx) error {
+	scope := middleware.GetAccessScope(c)
+	if scope == nil {
+		return handleError(c, domainerrors.ErrUnauthorized)
+	}
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "ID pengguna tidak valid")
@@ -97,6 +105,12 @@ func (h *UserHandler) GetUser(c *fiber.Ctx) error {
 	user, err := h.getUC.Execute(c.Context(), id)
 	if err != nil {
 		return handleError(c, err)
+	}
+	if user == nil || (!scope.IsGlobal && (user.OrganizationID == nil || !scope.CanRead(*user.OrganizationID))) {
+		return handleError(c, domainerrors.ErrNotFound)
+	}
+	if !scope.IsGlobal {
+		return c.JSON(fiber.Map{"data": pickerDirectoryUser(user)})
 	}
 
 	return c.JSON(fiber.Map{"data": user})
@@ -171,6 +185,10 @@ func (h *UserHandler) RejectRegistration(c *fiber.Ctx) error {
 
 // ListUsers handles GET /api/users
 func (h *UserHandler) ListUsers(c *fiber.Ctx) error {
+	scope := middleware.GetAccessScope(c)
+	if scope == nil {
+		return handleError(c, domainerrors.ErrUnauthorized)
+	}
 	page, _ := strconv.Atoi(c.Query("page", "1"))
 	limit, _ := strconv.Atoi(c.Query("limit", "10"))
 	q := c.Query("q")
@@ -178,10 +196,17 @@ func (h *UserHandler) ListUsers(c *fiber.Ctx) error {
 	role := c.Query("role")
 	organizationId := c.Query("organizationId")
 
-	// Validate organizationId if provided
+	var allowedOrgIDs []uuid.UUID
+	if !scope.IsGlobal {
+		allowedOrgIDs = append([]uuid.UUID{}, scope.AccessibleOrgIDs...)
+	}
 	if organizationId != "" {
-		if _, err := uuid.Parse(organizationId); err != nil {
+		organizationID, err := uuid.Parse(organizationId)
+		if err != nil {
 			return sendProblemDetails(c, 400, "Permintaan Tidak Valid", "https://api.manris.com/errors/bad-request", "format ID organisasi tidak valid")
+		}
+		if !scope.CanRead(organizationID) {
+			return handleError(c, domainerrors.ErrForbidden)
 		}
 	}
 
@@ -193,10 +218,26 @@ func (h *UserHandler) ListUsers(c *fiber.Ctx) error {
 		Status:         status,
 		Role:           role,
 		OrganizationID: organizationId,
+		AllowedOrgIDs:  allowedOrgIDs,
 	})
 	if err != nil {
 		return handleError(c, err)
 	}
 
-	return c.JSON(result)
+	if scope.IsGlobal {
+		return c.JSON(result)
+	}
+	users := make([]*identitydomain.DirectoryUser, 0, len(result.Data))
+	for _, user := range result.Data {
+		users = append(users, pickerDirectoryUser(user))
+	}
+	return c.JSON(&identitydomain.DirectoryPage{
+		Data: users, Total: result.Total, Page: result.Page, Limit: result.Limit,
+	})
+}
+
+func pickerDirectoryUser(user *entity.User) *identitydomain.DirectoryUser {
+	result := identitydomain.DirectoryUserFrom(user)
+	result.PhoneNumber = ""
+	return result
 }

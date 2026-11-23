@@ -1,0 +1,1 @@
+DROP INDEX agent_runs_active_owner_idx;

@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/manris/backend/internal/service/sensitivedata"
 )
 
 type Service struct {
@@ -168,6 +169,9 @@ func (s *Service) SendMessage(ctx context.Context, actor, cid uuid.UUID, in Send
 	}
 	if err := s.IsReady(); err != nil {
 		return Run{}, err
+	}
+	if err := sensitivedata.ValidateAIPrompt(in.Content); err != nil {
+		return Run{}, ErrSensitiveInput
 	}
 	if ready, ok := s.model.(interface{ ReadyContext(context.Context) error }); ok {
 		if err := ready.ReadyContext(ctx); err != nil {

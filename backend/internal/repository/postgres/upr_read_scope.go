@@ -19,7 +19,7 @@ func (s *UPRWorkflow) AnnualProfileForScope(ctx context.Context, scope *entity.A
 			return AnnualProfile{}, err
 		}
 	}
-	if scope == nil || !scope.CanRead(org) {
+	if org == uuid.Nil || scope == nil || !scope.CanRead(org) {
 		return AnnualProfile{}, ErrUPRNotFound
 	}
 	return s.AnnualProfile(ctx, org, year, id)

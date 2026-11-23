@@ -85,3 +85,19 @@ func findMonitoringForContext(ctx context.Context, repo monitoringTransactionRep
 	}
 	return findOpenMonitoringDraft(ctx, repo, group, cycle)
 }
+
+// resolveMonitoringSource uses the configured roster when a period is selected.
+// The Register resolver remains the source for undated legacy contexts.
+func resolveMonitoringSource(ctx context.Context, repo monitoringRiskRepository, source *entity.Risk, profile, period *uuid.UUID, date string, orgIDs []uuid.UUID) (*entity.Risk, error) {
+	if profile != nil && period != nil {
+		if configured, ok := repo.(interface {
+			ResolveConfiguredMonitoringSource(context.Context, uuid.UUID, uuid.UUID, uuid.UUID, string, []uuid.UUID) (*entity.Risk, error)
+		}); ok {
+			return configured.ResolveConfiguredMonitoringSource(ctx, *profile, *period, source.VersionGroupID, date, orgIDs)
+		}
+	}
+	if resolver, ok := repo.(monitoringSourceResolver); ok {
+		return resolver.ResolveMonitoringSource(ctx, source.VersionGroupID, date, orgIDs)
+	}
+	return source, nil
+}

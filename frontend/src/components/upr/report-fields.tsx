@@ -6,6 +6,7 @@ import { Trash2 } from "@/components/shared/icons";
 import { ActionButton, FormContainer, FormGroup } from "@/components/shared/design-system";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import type { ReportDraftInput, ReportDocumentOption, ReportDocumentKind } from "@/lib/api/upr-workflow";
@@ -13,13 +14,14 @@ import { reportDocumentKinds } from "./report-document-picker";
 import { periodLabel, workflowDate } from "./workflow-ui";
 
 export function ReportFields({
-  input, documents, readOnly = false, busy = false, needsReason = false, onChange, onPick, onRemove,
+  input, documents, readOnly = false, busy = false, needsReason = false, needsScopeReason = false, onChange, onPick, onRemove,
 }: {
   input: ReportDraftInput;
   documents: ReportDocumentOption[];
   readOnly?: boolean;
   busy?: boolean;
   needsReason?: boolean;
+  needsScopeReason?: boolean;
   onChange?: (patch: Partial<ReportDraftInput>) => void;
   onPick?: (kind: ReportDocumentKind, trigger: HTMLButtonElement) => void;
   onRemove?: (kind: ReportDocumentKind, id: string) => void;
@@ -66,9 +68,11 @@ export function ReportFields({
               <FormGroup className="grid gap-2">
                 {selection[kind].length === 0 ? (
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="text-sm text-muted-foreground">Belum dipilih</p>
+                    <p className="text-sm text-muted-foreground">
+                      {!readOnly && kind !== "profile" && !input.profileId ? "Pilih profil risiko terlebih dahulu." : "Belum dipilih"}
+                    </p>
                     {!readOnly && (
-                      <ActionButton type="button" disabled={busy || !validYear}
+                      <ActionButton type="button" disabled={busy || !validYear || (kind !== "profile" && !input.profileId)}
                         onClick={(event) => onPick?.(kind, event.currentTarget)}
                       >Pilih {reportDocumentKinds[kind]}</ActionButton>
                     )}
@@ -81,7 +85,8 @@ export function ReportFields({
                         <>
                           <p className="wrap-anywhere text-sm">{document.title}</p>
                           <p className="text-xs text-muted-foreground">
-                            {document.code} · {document.period ? `${periodLabel(document.period)} · ` : ""}{workflowDate(document.documentDate)}
+                            {document.code} · {document.period ? `${periodLabel(document.period)} · ` : ""}
+                            {document.profileVersion ? `Profil v${document.profileVersion} · ` : ""}{workflowDate(document.documentDate)}
                           </p>
                         </>
                       ) : <p className="text-sm text-muted-foreground">Dokumen tidak tersedia</p>;
@@ -110,11 +115,19 @@ export function ReportFields({
               </FormGroup>
             </FormContainer>
           ))}
-          {(needsReason || (readOnly && input.reason)) && (
+          {!readOnly && input.profileId && (
+            <div className="flex items-center gap-2">
+              <Checkbox id="report-historical-corrections" checked={input.applyHistoricalCorrections === true} disabled={busy}
+                onCheckedChange={(value) => onChange?.({ applyHistoricalCorrections: value === true })} />
+              <Label htmlFor="report-historical-corrections">Sertakan koreksi historis profil</Label>
+            </div>
+          )}
+          {(needsReason || needsScopeReason || input.applyHistoricalCorrections || (readOnly && input.reason)) && (
             <div className="grid gap-2">
               <FieldHeading>
-                <Label htmlFor="report-reason">Alasan memilih versi profil</Label>
-                {!readOnly && <p className="leading-4 text-sm text-muted-foreground">Profil ini difinalisasi setelah tanggal batas data.</p>}
+                <Label htmlFor="report-reason">{input.applyHistoricalCorrections ? "Alasan koreksi historis" : "Alasan memilih versi profil"}</Label>
+                {!readOnly && needsReason && <p className="leading-4 text-sm text-muted-foreground">Profil ini difinalisasi setelah tanggal batas data.</p>}
+                {!readOnly && needsScopeReason && <p className="leading-4 text-sm text-muted-foreground">Jelaskan dasar pemilihan sumber untuk periode bertanda Perlu ditinjau.</p>}
               </FieldHeading>
               <Textarea id="report-reason" maxLength={2000} value={input.reason} disabled={disabled}
                 onChange={(event) => onChange?.({ reason: event.target.value })} />

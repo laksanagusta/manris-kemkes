@@ -33,6 +33,7 @@ type RemoteUserPickerResult = {
 
 interface RemoteUserPickerProps {
   title: string;
+  triggerId?: string;
   description: string;
   placeholder: string;
   searchPlaceholder?: string;
@@ -40,6 +41,7 @@ interface RemoteUserPickerProps {
   disabled?: boolean;
   value: UserPickerOption | null;
   onSelect: (option: UserPickerOption) => void;
+  clearSelection?: { label: string; onSelect: () => void };
   presentation?: "default" | "assignee";
   loadOptions: (params: {
     q: string;
@@ -52,6 +54,7 @@ interface RemoteUserPickerProps {
 
 export function RemoteUserPicker({
   title,
+  triggerId,
   description,
   placeholder,
   searchPlaceholder,
@@ -59,6 +62,7 @@ export function RemoteUserPicker({
   disabled,
   value,
   onSelect,
+  clearSelection,
   presentation = "default",
   loadOptions,
   className,
@@ -256,6 +260,7 @@ export function RemoteUserPicker({
   if (isAssignee) {
     return (
       <SearchableDropdownPicker
+        id={triggerId}
         title={title}
         description={description}
         placeholder={placeholder}
@@ -284,11 +289,12 @@ export function RemoteUserPicker({
           </>
         )}
         onSelect={onSelect}
+        clearSelection={clearSelection}
         open={open}
         onOpenChange={handleOpenChange}
         search={query}
         onSearchChange={setQuery}
-        searchPlaceholder="Assign to…"
+        searchPlaceholder={searchPlaceholder ?? "Assign to…"}
         emptyMessage={emptyMessage}
         disabled={disabled}
         loading={isLoading}
@@ -310,6 +316,7 @@ export function RemoteUserPicker({
       >
         <PopoverTrigger asChild>
           <button
+            id={triggerId}
             type="button"
             disabled={disabled}
             aria-label={iconOnly ? `${title}: ${value?.name ?? placeholder}` : undefined}

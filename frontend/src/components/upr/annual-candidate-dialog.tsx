@@ -38,6 +38,8 @@ export function AnnualCandidateDialog({
   restoreFocus,
   createHref,
   onAdd,
+  onCorrect,
+  nextPeriodLabel,
 }: {
   year: number;
   candidates: AnnualCandidate[];
@@ -48,6 +50,8 @@ export function AnnualCandidateDialog({
   close: () => void;
   restoreFocus: () => void;
   createHref: string;
+  onCorrect?: (candidate: AnnualCandidate) => void;
+  nextPeriodLabel?: string;
   onAdd: (
     candidates: AnnualCandidate[],
     date: string,
@@ -159,7 +163,7 @@ export function AnnualCandidateDialog({
                 className="max-sm:text-base"
               />
               <CommandList
-                className="max-h-[min(42dvh,20rem)] px-2"
+                className="mt-2 max-h-[min(42dvh,20rem)] px-2"
                 aria-label="Hasil pencarian risiko"
               >
                 {!error &&
@@ -173,7 +177,7 @@ export function AnnualCandidateDialog({
                         aria-label={`${candidate.code} ${candidate.title}, ${annualCandidateSource(candidate, year)}, skor ${candidate.score}${checked ? ", sudah dipilih" : ""}`}
                         disabled={pending}
                         onSelect={() => toggle(candidate.id)}
-                        className="mb-1 min-h-16 items-start gap-3 rounded-lg px-3 py-2.5 last:mb-0 data-selected:bg-transparent! data-selected:text-foreground data-selected:ring-1 data-selected:ring-inset data-selected:ring-ring/40 [&>svg:last-child]:hidden"
+                        className="mb-1 min-h-16 items-start gap-3 rounded-lg border border-border px-3 py-2.5 last:mb-0 data-selected:bg-transparent! data-selected:text-foreground data-selected:ring-1 data-selected:ring-inset data-selected:ring-ring/40 [&>svg:last-child]:hidden"
                       >
                         <span
                           aria-hidden="true"
@@ -220,7 +224,14 @@ export function AnnualCandidateDialog({
             {saveError && <WorkflowError message={saveError} />}
           </div>
         )}
-        <DialogFooter className="border-t px-4 py-3 sm:items-center">
+        {onCorrect && (
+          <p className="px-4 py-2 text-xs text-muted-foreground">
+            {nextPeriodLabel
+              ? `Penambahan biasa paling awal berlaku pada ${nextPeriodLabel}.`
+              : "Semua periode terkunci. Pilih satu risiko untuk menambahkan koreksi."}
+          </p>
+        )}
+        <DialogFooter className="border-t px-4 py-3 sm:flex-wrap sm:items-center">
           <span
             role="status"
             className="text-sm text-muted-foreground sm:mr-auto"
@@ -233,11 +244,16 @@ export function AnnualCandidateDialog({
               <Link href={createHref}>Buat risiko baru</Link>
             </Button>
           )}
+          {onCorrect && picked.length === 1 && (
+            <Button variant="outline" disabled={pending} onClick={() => onCorrect(picked[0])}>
+              Tambah sebagai koreksi
+            </Button>
+          )}
           <Button variant="outline" disabled={pending} onClick={close}>
             Batal
           </Button>
           <Button
-            disabled={pending || !picked.length || Boolean(error)}
+            disabled={pending || !picked.length || Boolean(error) || Boolean(onCorrect && !nextPeriodLabel)}
             onClick={() => void submit()}
           >
             {pending

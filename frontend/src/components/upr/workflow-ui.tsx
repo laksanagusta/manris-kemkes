@@ -17,10 +17,12 @@ export function WorkflowTable({
   columns,
   children,
   hiddenOnMobile = [],
+  headerClassName,
 }: {
   columns: (string | { label: string; header: ReactNode; className?: string })[];
   children: ReactNode;
   hiddenOnMobile?: string[];
+  headerClassName?: string;
 }) {
   return (
     <CollectionTableCard>
@@ -36,6 +38,7 @@ export function WorkflowTable({
                   key={`${label}-${index}`}
                   className={cn(
                     hiddenOnMobile.includes(label) && "hidden sm:table-cell",
+                    headerClassName,
                     typeof column !== "string" && column.className,
                   )}
                 >

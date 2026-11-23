@@ -23,6 +23,9 @@ func TestModelResolvesCurrentConfigurationAndPreservesFunctionTurns(t *testing.T
 		if r.Model != "configured-agent" || len(r.Messages) != 3 || r.Messages[2].ToolCallID != "call-1" || r.MaxCompletionTokens <= 0 {
 			t.Fatalf("incorrect request %+v", r)
 		}
+		if r.Store {
+			t.Fatal("provider-side stored completion enabled")
+		}
 		encoded, err := json.Marshal(r.Tools[0])
 		if err != nil || !strings.Contains(string(encoded), `"parameters":{"type":"object"}`) {
 			t.Fatalf("schema was not an object %s", encoded)
@@ -48,6 +51,54 @@ func TestModelProviderDetailsAreNotExposed(t *testing.T) {
 	}
 	if err := NewOpenAIModel(nil, nil).Ready(); err != ErrUnavailable {
 		t.Fatal("nil client accepted")
+	}
+}
+
+func TestModelChecksSensitiveFieldsBeforeProvider(t *testing.T) {
+	model := &OpenAIModel{
+		client: chatClientFunc(func(context.Context, openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error) {
+			t.Fatal("private text reached the provider client")
+			return openai.ChatCompletionResponse{}, nil
+		}),
+		resolve: func(context.Context) (string, error) { return "configured-agent", nil },
+	}
+	for _, test := range []struct {
+		name string
+		turn Turn
+	}{
+		{"message", Turn{Role: "user", Content: "Kontak: analyst@example.invalid"}},
+		{"context", Turn{Role: "user", Content: `Konteks organisasi: {"contact":"analyst\u0040example.invalid"}`}},
+		{"tool result", Turn{Role: "tool", Content: `{"content":"{\"contact\":\"analyst\\u0040example.invalid\"}"}`}},
+		{"tool arguments", Turn{Role: "assistant", ToolCalls: []ToolCall{
+			{ID: "call-1", Name: "read", Arguments: json.RawMessage(`{"query":"analyst\u0040example.invalid"}`)},
+		}}},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if _, err := model.Complete(context.Background(), []Turn{test.turn}, nil); !errors.Is(err, ErrSensitiveInput) {
+				t.Fatalf("expected an input privacy error, got %v", err)
+			}
+		})
+	}
+}
+
+func TestModelAllowsOrdinaryAgentContext(t *testing.T) {
+	turns, _, err := initialContext(&Record{Messages: []StoredMessage{{Message: Message{
+		Role: "user", Content: "Tinjau tingkat risiko kuartal ini",
+	}}}}, Checkpoint{Skills: []string{"risks", "reports"}}, `{"organizationId":"ba8cccb5-dc9e-4129-a7a3-d70801dc4794","currentCycle":"2026-Q1"}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+	model := &OpenAIModel{
+		client: chatClientFunc(func(_ context.Context, req openai.ChatCompletionRequest) (openai.ChatCompletionResponse, error) {
+			if len(req.Messages) != len(turns) {
+				t.Fatalf("expected %d messages, got %d", len(turns), len(req.Messages))
+			}
+			return openai.ChatCompletionResponse{Choices: []openai.ChatCompletionChoice{{Message: openai.ChatCompletionMessage{Content: "Peninjauan selesai"}}}}, nil
+		}),
+		resolve: func(context.Context) (string, error) { return "configured-agent", nil },
+	}
+	if _, err := model.Complete(context.Background(), turns, nil); err != nil {
+		t.Fatalf("ordinary business context rejected: %v", err)
 	}
 }
 func TestUnconfiguredDynamicModelDoesNotQueueWork(t *testing.T) {

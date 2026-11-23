@@ -42,14 +42,15 @@ export function ReportDocumentPicker({
     error: string;
   } | null>(null);
   const term = query.trim();
-  const requestKey = JSON.stringify([kind, year, semester, term, page, retry]);
+  const profileId = selection.profile[0];
+  const requestKey = JSON.stringify([kind, year, semester, term, page, retry, profileId]);
   const current = result?.key === requestKey ? result : null;
   const items = current?.items ?? [];
 
   useEffect(() => {
     const controller = new AbortController();
     const timeout = window.setTimeout(() => {
-      void uprApi.searchReportDocuments(token, kind, year, semester, term, page, controller.signal).then((data) => {
+      void uprApi.searchReportDocuments(token, kind, year, semester, term, page, controller.signal, profileId).then((data) => {
         if (!controller.signal.aborted) setResult({ ...data, key: requestKey, error: "" });
       }).catch((cause) => {
         if (!controller.signal.aborted) {
@@ -61,10 +62,14 @@ export function ReportDocumentPicker({
       window.clearTimeout(timeout);
       controller.abort();
     };
-  }, [kind, page, requestKey, semester, term, token, year]);
+  }, [kind, page, profileId, requestKey, semester, term, token, year]);
 
   function select(item: ReportDocumentOption, checked: boolean) {
     setChosen((options) => ({ ...options, [item.id]: item }));
+    if (kind === "profile" && item.id !== profileId) {
+      setSelection({ profile: [item.id], working_paper: [], evaluation: [] });
+      return;
+    }
     setSelection((previous) => ({
       ...previous,
       [kind]: kind === "working_paper"
@@ -87,7 +92,8 @@ export function ReportDocumentPicker({
         <Label htmlFor={id} className="flex min-w-0 flex-1 cursor-pointer flex-col items-start gap-1">
           <span className="wrap-anywhere">{item.title}</span>
           <span className="text-xs font-normal text-muted-foreground">
-            {item.code} · {item.period ? `${periodLabel(item.period)} · ` : ""}{workflowDate(item.documentDate)}
+            {item.code} · {item.period ? `${periodLabel(item.period)} · ` : ""}
+            {item.profileVersion ? `Profil v${item.profileVersion} · ` : ""}{workflowDate(item.documentDate)}
           </span>
         </Label>
       </div>
@@ -109,8 +115,8 @@ export function ReportDocumentPicker({
         }}>
           <TabsList aria-label="Jenis dokumen" className="max-w-full flex-wrap justify-start group-data-horizontal/tabs:h-auto">
             <TabsTrigger value="profile">Profil risiko</TabsTrigger>
-            <TabsTrigger value="working_paper">KK Pemantauan</TabsTrigger>
-            <TabsTrigger value="evaluation">Evaluasi</TabsTrigger>
+            <TabsTrigger value="working_paper" disabled={!profileId}>KK Pemantauan</TabsTrigger>
+            <TabsTrigger value="evaluation" disabled={!profileId}>Evaluasi</TabsTrigger>
           </TabsList>
         </Tabs>
         <CollectionSearchField

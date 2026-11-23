@@ -189,7 +189,7 @@ func validateBatchItem(item CreateRiskBatchItemInput) error {
 	if !entity.IsValidRiskCategory(item.Category) {
 		return apperrors.Wrap(apperrors.ErrInvalidRiskCategory, "invalid risk category")
 	}
-	if item.RiskSource != "" && item.RiskSource != "internal" && item.RiskSource != "eksternal" {
+	if !isValidRiskSource(item.RiskSource) {
 		return apperrors.Wrap(apperrors.ErrInvalidInput, "risk source must be Internal or external")
 	}
 	if item.Controllability != "" && item.Controllability != "C" && item.Controllability != "UC" {

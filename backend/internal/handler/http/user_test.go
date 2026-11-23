@@ -26,6 +26,8 @@ type handlerUserRepo struct {
 	byLookup    map[string]*entity.User
 	byNIP       map[string]*entity.User
 	byID        map[uuid.UUID]*entity.User
+	listed      []*entity.User
+	listFilter  *repository.UserListFilter
 }
 
 func (s *handlerUserRepo) Create(_ context.Context, user *entity.User) error {
@@ -66,8 +68,9 @@ func (s *handlerUserRepo) Delete(_ context.Context, id uuid.UUID) error {
 	return nil
 }
 func (s *handlerUserRepo) List(_ context.Context) ([]*entity.User, error) { return nil, nil }
-func (s *handlerUserRepo) ListWithFilter(_ context.Context, _ repository.UserListFilter) ([]*entity.User, int, error) {
-	return nil, 0, nil
+func (s *handlerUserRepo) ListWithFilter(_ context.Context, filter repository.UserListFilter) ([]*entity.User, int, error) {
+	s.listFilter = &filter
+	return s.listed, len(s.listed), nil
 }
 func (s *handlerUserRepo) GetByUsername(_ context.Context, username string) (*entity.User, error) {
 	if s.byLookup == nil {
@@ -80,6 +83,57 @@ func (s *handlerUserRepo) GetByNIP(_ context.Context, nip string) (*entity.User,
 		return nil, nil
 	}
 	return s.byNIP[nip], nil
+}
+
+func TestUserHandlerDirectoryUsesSessionScope(t *testing.T) {
+	ownOrg, otherOrg := uuid.New(), uuid.New()
+	ownUser, otherUser := uuid.New(), uuid.New()
+	listed := &entity.User{ID: ownUser, Name: "Example User", OrganizationID: &ownOrg, PhoneNumber: "555-0100"}
+	repo := &handlerUserRepo{
+		byID: map[uuid.UUID]*entity.User{
+			ownUser: listed, otherUser: {ID: otherUser, OrganizationID: &otherOrg},
+		},
+		listed: []*entity.User{listed},
+	}
+	handler := NewUserHandler(nil, useruc.NewGetUserUseCase(repo), nil, nil, nil, useruc.NewListUsersWithFilterUseCase(repo), nil, nil)
+	app := fiber.New()
+	app.Use(func(c *fiber.Ctx) error {
+		c.Locals(middleware.AccessScopeKey, &entity.AccessScope{OrganizationID: &ownOrg, AccessibleOrgIDs: []uuid.UUID{ownOrg}})
+		return c.Next()
+	})
+	app.Get("/users", handler.ListUsers)
+	app.Get("/users/:id", handler.GetUser)
+
+	for _, tc := range []struct {
+		path string
+		code int
+	}{
+		{"/users", fiber.StatusOK},
+		{"/users/" + ownUser.String(), fiber.StatusOK},
+		{"/users?organizationId=" + otherOrg.String(), fiber.StatusForbidden},
+		{"/users/" + otherUser.String(), fiber.StatusNotFound},
+	} {
+		t.Run(tc.path, func(t *testing.T) {
+			resp, err := app.Test(httptest.NewRequest(fiber.MethodGet, tc.path, nil))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer resp.Body.Close()
+			if resp.StatusCode != tc.code {
+				t.Fatalf("status = %d, want %d", resp.StatusCode, tc.code)
+			}
+			content, err := io.ReadAll(resp.Body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if tc.code == fiber.StatusOK && (bytes.Contains(content, []byte("phoneNumber")) || bytes.Contains(content, []byte("lastLoggedIn"))) {
+				t.Fatal("directory projection returned administrative attributes")
+			}
+		})
+	}
+	if repo.listFilter == nil || len(repo.listFilter.AllowedOrgIDs) != 1 || repo.listFilter.AllowedOrgIDs[0] != ownOrg {
+		t.Fatal("directory query did not receive the session's organization scope")
+	}
 }
 
 type handlerOrgRepo struct {

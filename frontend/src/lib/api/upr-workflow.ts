@@ -12,6 +12,7 @@ export type AnnualProfileListVersion = Pick<
   "id" | "version" | "finalizedAt"
 > & {
   year: number;
+  code?: string;
   updatedAt: string;
   riskCount: number;
   organizationId?: string;
@@ -26,6 +27,7 @@ export type AnnualPickupRisk = {
   assessmentDate: string | null;
   category: string;
   score: number | null;
+  targetScore: number | null;
   unavailable: string;
 };
 
@@ -51,12 +53,25 @@ export type AnnualMember = {
   objectiveId: string | null;
   effectiveFrom: string;
   changeReason: string;
+  historicalCorrection?: boolean;
   baseline: Baseline | null;
   code: string;
   title: string;
   riskStatus: string;
   score: number | null;
   canRemove: boolean;
+  fromPreviousVersion?: boolean;
+};
+
+export type AnnualMemberExclusionInput = {
+  changeReason: string;
+};
+
+export type AnnualMemberExclusion = AnnualMemberExclusionInput & {
+  effectiveFrom: string | null;
+  groupId: string;
+  code: string;
+  title: string;
 };
 
 export type AnnualCandidate = {
@@ -75,21 +90,24 @@ export type AnnualCandidate = {
 };
 
 export type AnnualProfile = {
+  code?: string;
   organizationId?: string;
   organizationName?: string;
   versions: AnnualVersion[];
   selected: AnnualVersion | null;
   members: AnnualMember[];
+  exclusions?: AnnualMemberExclusion[];
   objectives: { id: string; title: string }[];
 };
 
 export type AnnualMemberInput = {
   riskId: string;
   objectiveId: string | null;
-  effectiveFrom: string;
+  effectiveFrom?: string;
   changeReason: string;
   reassess: boolean;
   deferAssessment?: boolean;
+  historicalCorrection?: boolean;
 };
 
 export type ReportKind = "semester" | "working_paper" | "evaluation";
@@ -173,6 +191,7 @@ export type SemesterInput = {
   semester: number;
   profileId: string | null;
   reason: string;
+  applyHistoricalCorrections?: boolean;
 };
 
 export type SemesterMonitoringObservation = {
@@ -181,6 +200,9 @@ export type SemesterMonitoringObservation = {
   observedAt?: string;
   observedAtInferred?: boolean;
   finalizedAt?: string;
+  profileId?: string | null;
+  profileVersion?: number | null;
+  monitoringPeriodId?: string | null;
   score: number | null;
   conclusion: string;
   mitigationProgress: string;
@@ -205,6 +227,8 @@ export type ReportDocumentOption = {
   documentDate: string | null;
   finalizedAt: string | null;
   period?: string;
+  profileId?: string;
+  profileVersion?: number;
 };
 
 export type ReportDraft = {
@@ -221,12 +245,32 @@ export type SemesterSnapshot = {
   cutoff: string;
   profile: AnnualVersion | null;
   reason: string;
+  periods?: {
+    id: string;
+    period: string;
+    label: string;
+    profileId: string;
+    profileVersion: number;
+    needsReview?: boolean;
+  }[];
+  corrections?: {
+    groupId: string;
+    riskId: string;
+    riskCode: string;
+    period: string;
+    profileId: string;
+    profileVersion: number;
+    effectiveFrom: string;
+    reason: string;
+  }[];
   supporting: {
     kind: ReportKind;
     period: string;
     sourceId: string | null;
     code: string | null;
     finalizedAt: string | null;
+    profileId?: string;
+    profileVersion?: number;
     contents?: EvaluationSnapshot | WorkingPaperSnapshot;
   }[];
   risks: (Baseline & {
@@ -353,6 +397,10 @@ export const uprApi = {
       undefined,
       token,
     ),
+  excludeMember: (token: string, profile: string, group: string, input: AnnualMemberExclusionInput) =>
+    api.post(`/annual-profile-versions/${profile}/exclusions/${group}`, input, token),
+  cancelMemberExclusion: (token: string, profile: string, group: string) =>
+    api.delete(`/annual-profile-versions/${profile}/exclusions/${group}`, undefined, token),
   finalizeProfile: (token: string, profile: string) =>
     api.post(`/annual-profile-versions/${profile}/finalize`, {}, token),
   deleteDraft: (token: string, profile: string) =>
@@ -374,14 +422,15 @@ export const uprApi = {
     if (query.sortOrder) params.set("sort_order", query.sortOrder);
     return api.get<ReportCollectionPage>(`/upr-reports?${params}`, token, { signal });
   },
-  searchReportDocuments: (token: string, kind: ReportDocumentKind, year: number, semester: number, query: string, page: number, signal: AbortSignal) => {
+  searchReportDocuments: (token: string, kind: ReportDocumentKind, year: number, semester: number, query: string, page: number, signal: AbortSignal, profileId?: string) => {
     const params = new URLSearchParams({ kind, year: String(year), semester: String(semester), q: query, page: String(page) });
+    if (profileId) params.set("profileId", profileId);
     return api.get<{ items: ReportDocumentOption[]; hasMore: boolean }>(
       `/upr-report-drafts/documents?${params}`, token, { signal },
     );
   },
-  selectedReportDocuments: (token: string, year: number, semester: number, ids: string[], organizationId?: string) =>
-    api.post<ReportDocumentOption[]>("/upr-report-drafts/documents/selected", { year, semester, ids, organizationId }, token),
+  selectedReportDocuments: (token: string, year: number, semester: number, ids: string[], organizationId?: string, profileId?: string | null) =>
+    api.post<ReportDocumentOption[]>("/upr-report-drafts/documents/selected", { year, semester, ids, organizationId, profileId }, token),
   reportDraft: (token: string, id: string) =>
     api.get<ReportDraft>(`/upr-report-drafts/${id}`, token),
   createReportDraft: (token: string, input: ReportDraftInput) =>

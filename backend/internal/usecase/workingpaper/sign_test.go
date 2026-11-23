@@ -245,6 +245,7 @@ func TestPeriodRosterBlocksSigningWhenEveryMonitoringIsMissing(t *testing.T) {
 			SourceMode: "roster",
 			Risk:       entity.WorkingPaperRiskData{Code: "R-001", Status: entity.RiskStatusFinal},
 		}},
+		Signatories: []entity.WorkingPaperSignatory{{UserID: actorID, SequenceNo: 1, Status: "pending"}},
 	}
 	repo := &stubSignWorkingPaperRepo{wp: paper}
 	uc := NewWorkingPaperUseCase(repo, nil, nil)
@@ -262,9 +263,32 @@ func TestPeriodRosterBlocksSigningWhenEveryMonitoringIsMissing(t *testing.T) {
 	_, err = uc.SkipTTE(ctx, paper.ID, actorID)
 	assertBlocked(err)
 	paper.Status = entity.WorkingPaperStatusSigning
+	_, err = uc.Sign(ctx, paper.ID, uuid.New())
+	if !domainerrors.IsForbidden(err) {
+		t.Fatalf("expected unassigned actor to receive a generic authorization error, got %v", err)
+	}
 	_, err = uc.Sign(ctx, paper.ID, actorID)
 	assertBlocked(err)
 	if repo.updated != nil {
 		t.Fatal("a blocked operation must not write the working paper")
+	}
+}
+
+func TestSignRejectsLegacyIdentityMismatch(t *testing.T) {
+	signerID := uuid.New()
+	paper := &entity.WorkingPaper{
+		ID:                     uuid.New(),
+		Status:                 entity.WorkingPaperStatusSigning,
+		SignerIdentityMismatch: true,
+		Signatories: []entity.WorkingPaperSignatory{{
+			ID: uuid.New(), UserID: signerID, SequenceNo: 1, Status: "pending",
+		}},
+	}
+	repo := &stubSignWorkingPaperRepo{wp: paper}
+	uc := NewWorkingPaperUseCase(repo, nil, nil)
+	_, err := uc.Sign(context.Background(), paper.ID, signerID)
+	var appErr *domainerrors.AppError
+	if !errors.As(err, &appErr) || appErr.Code != "SIGNER_IDENTITY_MISMATCH" || repo.updated != nil {
+		t.Fatalf("expected unverifiable identity to block signing without a write, got %v", err)
 	}
 }

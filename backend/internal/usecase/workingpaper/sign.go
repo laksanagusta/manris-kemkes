@@ -50,6 +50,20 @@ func workingPaperSigningBlockers(wp *entity.WorkingPaper) []entity.WorkingPaperS
 
 func (uc *UseCase) Sign(ctx context.Context, workingPaperID uuid.UUID, signerUserID uuid.UUID) (*entity.WorkingPaper, error) {
 	wp, err := uc.wpRepo.MutateByIDForUpdate(ctx, workingPaperID, func(wp *entity.WorkingPaper) error {
+		canSign, err := wp.CanSign(signerUserID)
+		if err != nil {
+			return err
+		}
+		if !canSign {
+			return domainerrors.ErrForbidden
+		}
+		if wp.SignerIdentityMismatch {
+			return &domainerrors.AppError{
+				Code:    "SIGNER_IDENTITY_MISMATCH",
+				Message: "Identitas penandatangan pada dokumen lama tidak dapat diverifikasi. Buat ulang Kertas Kerja untuk menandatangani.",
+			}
+		}
+
 		if blockers := workingPaperSigningBlockers(wp); len(blockers) > 0 {
 			return &domainerrors.AppError{
 				Code:    "MONITORING_INCOMPLETE",
@@ -64,16 +78,7 @@ func (uc *UseCase) Sign(ctx context.Context, workingPaperID uuid.UUID, signerUse
 			}
 		}
 
-		canSign, err := wp.CanSign(signerUserID)
-		if err != nil {
-			return err
-		}
-		if !canSign {
-			return &domainerrors.AppError{Code: "FORBIDDEN", Message: "not your turn to sign"}
-		}
-
 		nextSig := wp.NextSignatory()
-
 		if wp.DocumentHash == "" {
 			wp.DocumentHash = wp.ComputeHash()
 		}

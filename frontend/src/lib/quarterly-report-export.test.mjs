@@ -65,7 +65,7 @@ test("Risiko matches the working-paper 25-column assessment table and preserves 
   const report = { cycle: "2026-Q4", comparisonCycle: "2026-Q3", generatedAt: "2026-11-01", warnings: [], organizations: [{ id: "u1", name: "Unit A" }], risks: [risk], previousRisks: [], tasks: [], events: [] };
   const row = { ...risk, bobot: 1, tingkat_risiko: "tinggi", tingkat_risiko_display: "Tinggi", prioritas_risiko: 2,
     cause: risk.cause, risk_source: "internal", impact_desc: risk.impactDesc, existing_control: risk.existingControl, control_effectiveness: "efektif",
-    treatment_option_display: "Mitigasi", mitigation_details: ["Evaluasi\nPIC: Tim A"], mitigation_due_dates: ["2026-12-01"],
+    treatment_option_display: "Mitigasi", mitigations: ["Evaluasi"], mitigation_due_dates: ["2026-12-01"],
     target_probability: 2, target_impact: 3, target_bobot: 1, target_nilai: 6.4, target_tingkat_risiko: "rendah", target_tingkat_risiko_display: "Rendah" };
   const { default: ExcelJS } = await import("exceljs");
   const reference = new ExcelJS.Workbook();
@@ -77,12 +77,13 @@ test("Risiko matches the working-paper 25-column assessment table and preserves 
   assert.equal(sheet.rowCount, 5);
   assert.equal(sheet.getCell("O5").value, 16);
   assert.equal(sheet.getCell("Y5").value, 6);
+  assert.equal(sheet.getCell("T5").value, "Evaluasi");
   assert.equal(sheet.getCell("Z4").value, 25);
   assert.equal(sheet.views[0].ySplit, 4);
   for (let col = 1; col <= 26; col++) {
     assert.equal(sheet.getColumn(col).width, source.getColumn(col).width);
     for (let r = 1; r <= 5; r++) {
-      const actual = sheet.getCell(r, col), expected = source.getCell(r + 12, col);
+      const actual = sheet.getCell(r, col), expected = source.getCell(r + 10, col);
       assert.deepEqual(actual.value, expected.value, `${actual.address} value`);
       assert.deepEqual(actual.style, expected.style, `${actual.address} style`);
       assert.equal(actual.isMerged, expected.isMerged, `${actual.address} merge`);

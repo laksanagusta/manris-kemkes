@@ -8,8 +8,19 @@ func normalizeRiskSource(value string) string {
 		return "internal"
 	case "external", "eksternal":
 		return "eksternal"
+	case "external & internal", "internal & external", "eksternal & internal", "internal & eksternal":
+		return "internal_eksternal"
 	default:
 		return strings.TrimSpace(strings.ToLower(value))
+	}
+}
+
+func isValidRiskSource(value string) bool {
+	switch value {
+	case "", "internal", "eksternal", "internal_eksternal":
+		return true
+	default:
+		return false
 	}
 }
 

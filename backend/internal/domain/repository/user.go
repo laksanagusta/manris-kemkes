@@ -17,6 +17,9 @@ type UserListFilter struct {
 	Status         string // active, inactive, pending_activation
 	Role           string // superadmin, unit, reviewer, pimpinan
 	OrganizationID string
+	// A nil scope is reserved for global directory access. An empty non-nil
+	// scope must select no users.
+	AllowedOrgIDs []uuid.UUID
 }
 
 // UserRepository defines the interface for user data access
