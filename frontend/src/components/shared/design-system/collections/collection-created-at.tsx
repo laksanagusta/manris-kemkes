@@ -8,5 +8,5 @@ export function CreatedAtHead() {
 }
 export function CreatedAtCell({ record }: { record: unknown }) {
   const value = collectionCreatedAt(record);
-  return <TableCell className="whitespace-nowrap text-foreground">{value ? <time className="tabular-nums" style={{ fontFamily: "var(--font-inter), sans-serif" }} dateTime={value}>{createDisplayDateFormatter("id-ID", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Jakarta" }).format(new Date(value))}</time> : "—"}</TableCell>;
+  return <TableCell className="whitespace-nowrap text-foreground">{value ? <time className="tabular-nums" dateTime={value}>{createDisplayDateFormatter("id-ID", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Jakarta" }).format(new Date(value))}</time> : "—"}</TableCell>;
 }

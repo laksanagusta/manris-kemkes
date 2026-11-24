@@ -86,7 +86,7 @@ export default function ChangePasswordPage() {
   }
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-background">
+    <div className="relative flex min-h-svh items-center justify-center overflow-hidden bg-background px-4 py-8 sm:py-12">
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -left-[40%] -top-[40%] h-[80%] w-[80%] rounded-full bg-primary/5 blur-3xl animate-[pulse_8s_ease-in-out_infinite]" />
         <div className="absolute -bottom-[30%] -right-[30%] h-[70%] w-[70%] rounded-full bg-muted-foreground/5 blur-3xl animate-[pulse_10s_ease-in-out_infinite_2s]" />
@@ -102,7 +102,7 @@ export default function ChangePasswordPage() {
         }}
       />
 
-      <div className="relative z-10 w-full max-w-md px-4 animate-fade-in">
+      <div className="relative z-10 w-full max-w-md animate-fade-in">
         <div className="mb-8 text-center">
           <ManriskMark size={44} className="mx-auto" />
           <h1 className="text-xl font-semibold">MANRISK</h1>

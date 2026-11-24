@@ -305,7 +305,7 @@ export default function WorkingPaperDetailPage(props: {
 
   if (error) {
     return (
-      <FormPage className="space-y-6 pb-8">
+      <FormPage>
         <FormHeader
           title="Detail KK Pemantauan dan Reviu belum tersedia"
         />
@@ -320,7 +320,7 @@ export default function WorkingPaperDetailPage(props: {
 
   if (!data) {
     return (
-      <FormPage className="space-y-6 pb-8">
+      <FormPage>
         <FormHeader
           title="KK Pemantauan dan Reviu tidak ditemukan"
         />
@@ -352,7 +352,7 @@ export default function WorkingPaperDetailPage(props: {
   }
 
   return (
-    <FormPage className="space-y-6 pb-8">
+    <FormPage>
       {currentAction?.tone === "success" && (
         <Alert variant="success" role="status" className="gap-1">
           <AlertTitle className="text-green-800 dark:text-green-400">{currentAction.title}</AlertTitle>

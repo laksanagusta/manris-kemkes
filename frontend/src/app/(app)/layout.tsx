@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import styles from "@/components/app-shell.module.css";
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { PageLoadingSkeleton, TableLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
@@ -22,7 +23,7 @@ function AppRouteFallback() {
           <div aria-hidden="true" className="hidden min-h-14 items-center border-b border-border px-5 md:flex">
             <Skeleton className="h-4 w-28" />
           </div>
-          <div className="px-4 pb-8 pt-5 md:px-5">
+          <div className={`${styles.bottomInset} px-4 pt-5 md:px-5`}>
             <PageLoadingSkeleton><TableLoadingSkeleton message="Memuat ruang kerja…" /></PageLoadingSkeleton>
           </div>
         </div>

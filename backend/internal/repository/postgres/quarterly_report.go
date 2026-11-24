@@ -163,6 +163,7 @@ func loadQuarterlyTasks(ctx context.Context, q riskQueryer, cycle string, start,
           SELECT latest.id FROM annual_risk_profile_versions latest
           WHERE latest.organization_id=source.organization_id AND latest.year=source.year
             AND latest.monitoring_rule_id=source.monitoring_rule_id AND latest.finalized_at IS NOT NULL
+            AND ($8::uuid IS NULL OR latest.id=$8)
           ORDER BY latest.version DESC LIMIT 1
         ) latest
         JOIN annual_risk_profile_versions cap ON cap.id=annual_monitoring_period_profile(latest.id,$7)
@@ -172,7 +173,7 @@ func loadQuarterlyTasks(ctx context.Context, q riskQueryer, cycle string, start,
           AND member.effective_from < $3::date
        ))
        AND (rm.id IS NULL OR (rm.status <> 'superseded' AND rm.superseded_by_monitoring_id IS NULL))
-	 ORDER BY t.due_date, t.id`, cycle, start.Format("2006-01-02"), end.Format("2006-01-02"), uuidArrayToStrings(orgIDs), profile.ProfileYear, profile.RuleID, profile.MonitoringPeriodID)
+	 ORDER BY t.due_date, t.id`, cycle, start.Format("2006-01-02"), end.Format("2006-01-02"), uuidArrayToStrings(orgIDs), profile.ProfileYear, profile.RuleID, profile.MonitoringPeriodID, profile.AnnualProfileVersionID)
 	if err != nil {
 		return nil, fmt.Errorf("load quarterly mitigation tasks: %w", err)
 	}
@@ -281,6 +282,7 @@ const configuredQuarterlyRiskSnapshotCTE = quarterlyLifecycleCTE + `,
   SELECT DISTINCT ON (organization_id) id,organization_id
   FROM annual_risk_profile_versions
   WHERE year=$4 AND monitoring_rule_id=$5::uuid AND finalized_at IS NOT NULL
+    AND ($7::uuid IS NULL OR id=$7)
   ORDER BY organization_id,version DESC
  ), period_scope AS (
   SELECT member.risk_id,member.baseline,profile.organization_id,cap.version AS version_cap
@@ -361,6 +363,9 @@ func loadQuarterlyRisks(ctx context.Context, q riskQueryer, cycle string, start,
  AND NOT EXISTS (SELECT 1 FROM annual_risk_profile_versions newer WHERE newer.organization_id=p.organization_id AND newer.year=p.year AND newer.monitoring_rule_id=p.monitoring_rule_id AND newer.finalized_at IS NOT NULL AND newer.version>p.version)
  ))`
 	args := []interface{}{cycle, start, end, profile.ProfileYear, profile.RuleID, profile.MonitoringPeriodID}
+	if profile.MonitoringPeriodID != nil {
+		args = append(args, profile.AnnualProfileVersionID)
+	}
 	if len(orgIDs) > 0 {
 		query += fmt.Sprintf(" AND r.organization_id = ANY($%d)", len(args)+1)
 		args = append(args, uuidArrayToStrings(orgIDs))

@@ -16,14 +16,14 @@ export function TypographyExample() {
         <div className="space-y-4">
           <p className="text-page-title tracking-normal">Judul halaman</p>
           <p className="text-section-title tracking-[-0.015em]">Judul bagian</p>
-          <p className="text-sm leading-snug text-muted-foreground">Teks pendukung dan label kontrol memakai Inter 14 px.</p>
+          <p className="text-sm leading-snug text-muted-foreground">Teks pendukung dan label kontrol memakai Geist 14 px.</p>
           <div>
             <p className="text-table-label text-table-header-foreground">Label kolom</p>
             <p className="mt-1 text-sm font-medium tabular-nums">1.234,56</p>
           </div>
           <div>
             <p className="text-table-label text-table-header-foreground">Tanggal dan waktu</p>
-            <time className="mt-1 block text-sm tabular-nums" style={{ fontFamily: "var(--font-inter), sans-serif" }} dateTime="2026-01-07T08:05:03+07:00">
+            <time className="mt-1 block text-sm tabular-nums" dateTime="2026-01-07T08:05:03+07:00">
               {formatDisplayDate(new Date("2026-01-07T08:05:03+07:00"), {
                 year: "numeric", month: "short", day: "2-digit",
                 hour: "2-digit", minute: "2-digit", second: "2-digit", timeZone: "Asia/Jakarta",

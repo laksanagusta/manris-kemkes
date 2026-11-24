@@ -80,7 +80,7 @@ export function WorkingPaperSignaturePrototype({ initialVariant }: { initialVari
   const Variant = variants[current];
 
   return (
-    <FormPage className="space-y-6 pb-24">
+    <FormPage>
       <header className="space-y-1">
         <Link href={source} className="inline-flex items-center gap-1.5 rounded-sm text-xs text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-ring">
           <ArrowLeft aria-hidden="true" className="size-3.5" />

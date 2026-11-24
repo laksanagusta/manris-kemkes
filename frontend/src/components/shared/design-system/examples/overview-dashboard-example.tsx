@@ -13,7 +13,7 @@ import {
 } from "@/components/shared/design-system";
 import { RiskCountTrendChart } from "@/app/(app)/overview/_components/risk-count-trend-chart";
 import { RiskCategoryPieChart } from "@/app/(app)/overview/_components/risk-category-pie-chart";
-import { WorkspaceMetrics } from "../layout/workspace-metrics";
+import { OverviewDashboardLayout } from "../layout/overview-dashboard-layout";
 import { ArrowExpand } from "@/components/shared/icons";
 import { Button } from "@/components/ui/button";
 
@@ -144,66 +144,96 @@ function RiskCompositionExample() {
 export function OverviewDashboardExample() {
   return (
     <div className="space-y-5 lg:space-y-6">
-      <WorkspaceMetrics items={[
-        { label: "Total risiko", value: 37 },
-        { label: "Periode berjalan", value: "2026-Q3" },
-      ]} />
-      <section aria-label="Profil risiko" className="space-y-4 border-t border-border pt-6">
-        <h3 className="text-section-title tracking-[-0.015em]">Profil risiko</h3>
-        <div className="grid items-stretch gap-4 xl:grid-cols-2">
-          <RiskCountTrendChart risks={trendRisks} currentCycle="2026-Q3" currentTotal={37} />
+      <OverviewDashboardLayout
+        trend={<RiskCountTrendChart risks={trendRisks} currentCycle="2026-Q3" currentTotal={37} />}
+        composition={<RiskCompositionExample />}
+        categories={
           <RiskCategoryPieChart data={[
             { label: "Operasional", count: 27, sangatRendah: 3, rendah: 7, sedang: 8, tinggi: 5, ekstrem: 4 },
             { label: "Kepatuhan", count: 10, sangatRendah: 0, rendah: 3, sedang: 2, tinggi: 3, ekstrem: 2 },
           ]} />
-        </div>
-      </section>
-
-      <h3 className="border-t border-border pt-6 text-section-title tracking-[-0.015em]">Tingkat risiko</h3>
-      <section
-        aria-label="Komposisi risiko dan peta risiko saat ini"
-        className="grid items-stretch gap-4 pb-4 xl:grid-cols-2"
-      >
-        <div className="flex min-w-0 [&>*]:w-full">
-          <RiskCompositionExample />
-        </div>
-        <Dialog>
-          <StandardCard
-            title="Peta Risiko Saat Ini"
-            className="h-full"
-            contentClassName="flex flex-1 flex-col"
-            action={
-              <DialogTrigger asChild>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="icon-sm"
-                  aria-label="Buka perbandingan heatmap multi-fase"
+        }
+        heatmap={
+          <Dialog>
+            <StandardCard
+              title="Peta Risiko Saat Ini"
+              className="h-full"
+              contentClassName="flex flex-1 flex-col"
+              action={
+                <DialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon-sm"
+                    aria-label="Buka perbandingan heatmap multi-fase"
+                  >
+                    <ArrowExpand aria-hidden="true" />
+                  </Button>
+                </DialogTrigger>
+              }
+            >
+              <div className="flex flex-1 flex-col justify-center">
+                <div className="mx-auto grid w-full max-w-[17rem] grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2">
+                  <span className="rotate-180 text-xs text-muted-foreground [writing-mode:vertical-rl]">
+                    Probabilitas
+                  </span>
+                  <RiskHeatmapGrid
+                    matrix={fixtureMatrix()}
+                    label="Contoh peta risiko kuartal berjalan"
+                    className="w-full"
+                  />
+                  <span aria-hidden="true" />
+                  <span className="text-center text-xs text-muted-foreground">
+                    Dampak
+                  </span>
+                </div>
+                <div
+                  role="list"
+                  aria-label="Legenda level risiko"
+                  className="mt-5 flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground"
                 >
-                  <ArrowExpand aria-hidden="true" />
-                </Button>
-              </DialogTrigger>
-            }
-          >
-            <div className="flex flex-1 flex-col justify-center">
-              <div className="mx-auto grid w-full max-w-[17rem] grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3 gap-y-2">
-                <span className="rotate-180 text-xs text-muted-foreground [writing-mode:vertical-rl]">
-                  Probabilitas
-                </span>
-                <RiskHeatmapGrid
-                  matrix={fixtureMatrix()}
-                  label="Contoh peta risiko kuartal berjalan"
-                  className="w-full"
-                />
-                <span aria-hidden="true" />
-                <span className="text-center text-xs text-muted-foreground">
-                  Dampak
-                </span>
+                  {[
+                    ["Sangat Rendah", "heatmap-sangat-rendah"],
+                    ["Rendah", "heatmap-rendah"],
+                    ["Sedang", "heatmap-sedang"],
+                    ["Tinggi", "heatmap-tinggi"],
+                    ["Sangat Tinggi", "heatmap-sangat-tinggi"],
+                  ].map(([label, className]) => (
+                    <span key={label} role="listitem" className="inline-flex items-center gap-1.5">
+                      <span aria-hidden="true" className={`size-2.5 rounded-sm ${className}`} />
+                      {label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </StandardCard>
+            <DialogContent className="max-h-[90dvh] min-w-0 overflow-y-auto sm:max-w-[min(96vw,1480px)]">
+              <DialogHeader className="pe-10">
+                <DialogTitle>Perbandingan Heatmap Multi-Fase</DialogTitle>
+                <DialogDescription>
+                  Bandingkan distribusi risiko dari skor awal, setiap kuartal, hingga target skor.
+                </DialogDescription>
+              </DialogHeader>
+              <div role="region" aria-label="Perbandingan enam fase; geser mendatar untuk melihat fase berikutnya" tabIndex={0} className="min-w-0 overflow-x-auto pb-2">
+                <div className="grid min-w-[1360px] grid-cols-6 gap-4">
+                  {["Skor Awal", "Kuartal 1", "Kuartal 2", "Kuartal 3", "Kuartal 4", "Target Skor"].map((label) => (
+                    <div key={label} className="min-w-0 space-y-3 text-center">
+                      <p className="text-sm font-medium text-foreground">
+                        {label}
+                      </p>
+                      <RiskHeatmapGrid
+                        matrix={fixtureMatrix()}
+                        label={`Contoh heatmap ${label}`}
+                        className="mx-auto w-full max-w-56"
+                      />
+                    </div>
+                  ))}
+                </div>
               </div>
               <div
                 role="list"
                 aria-label="Legenda level risiko"
-                className="mt-5 flex flex-wrap justify-center gap-x-4 gap-y-2 text-xs text-muted-foreground"
+                className="flex flex-wrap justify-center gap-x-5 gap-y-2 border-t border-border pt-4 text-xs text-muted-foreground"
               >
                 {[
                   ["Sangat Rendah", "heatmap-sangat-rendah"],
@@ -218,52 +248,10 @@ export function OverviewDashboardExample() {
                   </span>
                 ))}
               </div>
-            </div>
-          </StandardCard>
-          <DialogContent className="max-h-[90dvh] min-w-0 overflow-y-auto sm:max-w-[min(96vw,1480px)]">
-            <DialogHeader className="pe-10">
-              <DialogTitle>Perbandingan Heatmap Multi-Fase</DialogTitle>
-              <DialogDescription>
-                Bandingkan distribusi risiko dari skor awal, setiap kuartal, hingga target skor.
-              </DialogDescription>
-            </DialogHeader>
-            <div role="region" aria-label="Perbandingan enam fase; geser mendatar untuk melihat fase berikutnya" tabIndex={0} className="min-w-0 overflow-x-auto pb-2">
-              <div className="grid min-w-[1360px] grid-cols-6 gap-4">
-                {["Skor Awal", "Kuartal 1", "Kuartal 2", "Kuartal 3", "Kuartal 4", "Target Skor"].map((label) => (
-                  <div key={label} className="min-w-0 space-y-3 text-center">
-                    <p className="text-sm font-medium text-foreground">
-                      {label}
-                    </p>
-                    <RiskHeatmapGrid
-                      matrix={fixtureMatrix()}
-                      label={`Contoh heatmap ${label}`}
-                      className="mx-auto w-full max-w-56"
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
-            <div
-              role="list"
-              aria-label="Legenda level risiko"
-              className="flex flex-wrap justify-center gap-x-5 gap-y-2 border-t border-border pt-4 text-xs text-muted-foreground"
-            >
-              {[
-                ["Sangat Rendah", "heatmap-sangat-rendah"],
-                ["Rendah", "heatmap-rendah"],
-                ["Sedang", "heatmap-sedang"],
-                ["Tinggi", "heatmap-tinggi"],
-                ["Sangat Tinggi", "heatmap-sangat-tinggi"],
-              ].map(([label, className]) => (
-                <span key={label} role="listitem" className="inline-flex items-center gap-1.5">
-                  <span aria-hidden="true" className={`size-2.5 rounded-sm ${className}`} />
-                  {label}
-                </span>
-              ))}
-            </div>
-          </DialogContent>
-        </Dialog>
-      </section>
+            </DialogContent>
+          </Dialog>
+        }
+      />
       <section aria-label="Spesimen kartu KPI" className="space-y-4 border-t border-border pt-6">
         <h3 className="text-base font-medium">Kartu KPI</h3>
         <MetricGrid className="gap-3">

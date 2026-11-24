@@ -3,11 +3,16 @@
   width: min(100%, 17.5rem);
 }
 
+.filters.growSearch :global([data-slot="collection-search"]) {
+  flex: 1 1 12rem;
+  width: auto;
+}
+
 .filters :global([data-slot="collection-search"]) :global([role="searchbox"]),
 .filters :global([data-slot="table-filter-actions"]) > :global([data-slot="button"]),
 .toolbar:has(> :global([data-slot="collection-toolbar-leading"]) .filters)
   > :global([data-slot="collection-toolbar-actions"]) > :global([data-slot="button"]) {
-  height: 2rem;
+  height: var(--collection-toolbar-control-height, 2rem);
 }
 
 .filters :global([data-slot="collection-search"]) :global([role="searchbox"]):not(:focus-visible, :disabled, [aria-invalid="true"]) {

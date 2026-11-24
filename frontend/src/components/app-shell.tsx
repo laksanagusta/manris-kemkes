@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SettingsProvider } from "@/components/settings/settings-provider";
+import styles from "./app-shell.module.css";
 import { AppSidebar } from "@/components/app-sidebar";
 import { AppHeader } from "@/components/app-header";
 import { AppBreadcrumbs } from "@/components/app-breadcrumbs";
@@ -67,7 +68,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <SettingsProvider>
       <TooltipProvider delayDuration={200}>
         <SidebarProvider>
-          <div data-app-shell="" className="relative flex h-dvh w-full overflow-hidden bg-(--app-shell-canvas) [--sidebar-width:260px] lg:[--sidebar-width:300px]">
+          <div data-app-shell="" className="relative flex h-dvh w-full overflow-hidden bg-(--app-shell-canvas) [--sidebar-width:var(--app-sidebar-width)]">
             <AppSidebar inboxBadge={hasFullSession ? inboxCount : 0} />
             <div data-app-shell-pane="" className="flex min-w-0 flex-1 flex-col md:p-2">
               <SidebarInset className="min-h-0 min-w-0 overflow-hidden bg-workspace text-pretty [--workspace-gutter:--spacing(4)] md:rounded-(--surface-radius) md:shadow-(--surface-shadow-low) md:[--workspace-gutter:--spacing(5)]">
@@ -87,9 +88,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                   )}
                 </div>
                 <SidebarTrigger aria-label="Buka navigasi" className="ms-(--workspace-gutter) mt-5 size-11 shrink-0 md:hidden" />
-                <div ref={bodyRef} data-app-shell-body="" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain scroll-pt-6 px-(--workspace-gutter) pb-8 pt-3 md:pt-5">
+                <div ref={bodyRef} data-app-shell-body="" className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden overflow-y-auto overscroll-y-contain scroll-pb-8 scroll-pt-6 px-(--workspace-gutter) pt-3 md:pt-5">
                   <AppHeader />
-                  <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col">{children}</div>
+                  <div data-app-shell-content="" className={`${styles.content} ${styles.bottomInset} flex min-h-0 w-full min-w-0 flex-col`}>
+                    {children}
+                  </div>
                 </div>
               </SidebarInset>
               {showAgent && (

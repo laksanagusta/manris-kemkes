@@ -83,8 +83,7 @@ func classifyQuarterlyTask(task *entity.QuarterlyReportTask, cycle string, gener
 		return quarterlyTaskPending
 	}
 	item := task.MitigationTask
-	noteLength := len([]byte(strings.TrimSpace(item.Notes)))
-	if item.Status == entity.MitigationTaskStatusDone && item.ReportedAt != nil && !item.ReportedAt.IsZero() && noteLength >= 10 && noteLength <= 1000 {
+	if item.HasValidReport() {
 		return quarterlyTaskReported
 	}
 	if item.Status == entity.MitigationTaskStatusNotReported {

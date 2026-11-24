@@ -3,16 +3,17 @@
 import { Download } from "@/components/shared/icons";
 import { ActionButton } from "./action-button";
 
-export function RiskExportButton({ loading = false, disabled = false, onClick }: {
+export function RiskExportButton({ loading = false, disabled = false, showIcon = true, onClick }: {
   loading?: boolean;
   disabled?: boolean;
+  showIcon?: boolean;
   onClick: () => void;
 }) {
   return (
     <ActionButton
       type="button"
       variant="outline"
-      icon={<Download className="size-3.5" />}
+      icon={showIcon ? <Download className="size-3.5" /> : undefined}
       loading={loading}
       disabled={loading || disabled}
       onClick={onClick}

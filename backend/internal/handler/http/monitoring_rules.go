@@ -2,6 +2,7 @@ package http
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -81,8 +82,28 @@ func registerMonitoringRuleRoutes(router fiber.Router, workflow *postgres.UPRWor
 		}
 		return c.SendStatus(fiber.StatusNoContent)
 	})
+	router.Get("/reports/monitoring-rule-progress", uprScopedRoute(true, func(c *fiber.Ctx, _ uprActor) error {
+		data, err := workflow.MonitoringRuleProgressOptions(c.Context(), middleware.GetAccessScope(c))
+		return uprData(c, data, err)
+	}))
+	router.Get("/reports/monitoring-rule-progress/:id", uprScopedRoute(true, uprVersionAction(func(c *fiber.Ctx, _ uprActor, id uuid.UUID) error {
+		var unitIDs []uuid.UUID
+		if units := c.Query("units"); units != "" {
+			var err error
+			unitIDs, err = parseUUIDs(strings.Split(units, ","))
+			if err != nil {
+				return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{"error": "Pilihan unit tidak valid."})
+			}
+		}
+		data, err := workflow.MonitoringRuleProgressReport(c.Context(), middleware.GetAccessScope(c), id, unitIDs, c.QueryBool("export"))
+		return uprData(c, data, err)
+	})))
 	router.Get("/annual-profile-versions/:id/period-progress", uprScopedRoute(true, uprVersionAction(func(c *fiber.Ctx, _ uprActor, id uuid.UUID) error {
 		data, err := workflow.AnnualProfilePeriodProgress(c.Context(), middleware.GetAccessScope(c), id)
+		return uprData(c, data, err)
+	})))
+	router.Get("/annual-profile-versions/:id/progress-report", uprScopedRoute(true, uprVersionAction(func(c *fiber.Ctx, _ uprActor, id uuid.UUID) error {
+		data, err := workflow.AnnualProfileProgressReport(c.Context(), middleware.GetAccessScope(c), id, c.QueryBool("export"))
 		return uprData(c, data, err)
 	})))
 	router.Post("/annual-profile-versions/:id/periods/:period/administrative-closure", func(c *fiber.Ctx) error {

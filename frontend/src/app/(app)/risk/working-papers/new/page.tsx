@@ -377,7 +377,7 @@ export default function CreateWorkingPaperPage() {
 
   if (!organizationId || !profileVersionId) {
     return (
-      <FormPage className="space-y-6 pb-0">
+      <FormPage>
       <CollectionPageHeader
         title="Buat KK Pemantauan dan Reviu Baru"
         />
@@ -395,7 +395,7 @@ export default function CreateWorkingPaperPage() {
     : organizationName?.id === organizationId ? organizationName.name : "Unit terpilih";
 
   return (
-    <FormPage className="space-y-6 pb-0">
+    <FormPage>
       <CollectionPageHeader
         title="Buat KK Pemantauan dan Reviu Baru"
         eyebrow={

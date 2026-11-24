@@ -1,0 +1,3 @@
+.table > :global([data-slot="table-body"]) > :global([data-slot="table-row"]) {
+  height: 3rem;
+}

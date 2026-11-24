@@ -120,7 +120,7 @@ export function AnnualProfileCollection({
   }, [embedded, headerAction, setHeaderActions]);
 
   return (
-    <PageStack>
+    <PageStack className={embedded ? undefined : "md:space-y-0"}>
       {embedded ? (
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-muted-foreground">{organization}</p>
@@ -130,7 +130,7 @@ export function AnnualProfileCollection({
         <CollectionPageHeader
           title="Profil Risiko Tahunan"
           showTitle
-          titleClassName="md:sr-only"
+          className="md:sr-only"
         />
       )}
       {loading ? (
@@ -192,7 +192,7 @@ export function AnnualProfileCollection({
                             <Button
                               variant="link"
                               size="sm"
-                              className="h-auto min-h-8 px-0 py-0 text-xs font-medium tabular-nums text-muted-foreground no-underline hover:text-primary hover:no-underline"
+                              className="h-auto min-h-8 px-0 py-0 text-sm font-normal tabular-nums text-muted-foreground no-underline hover:text-primary hover:no-underline"
                               aria-label={`${openLabel} ${latest.code} · ${year} · ${ownerName}`}
                               onClick={() => openProfile(year, latest.id)}
                             >
@@ -200,7 +200,7 @@ export function AnnualProfileCollection({
                             </Button>
                           ) : (
                             <Link
-                              className="inline-flex min-h-8 items-center rounded-sm text-xs font-medium tabular-nums text-muted-foreground no-underline hover:text-primary hover:no-underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                              className="inline-flex min-h-8 items-center rounded-sm text-sm font-normal tabular-nums text-muted-foreground no-underline hover:text-primary hover:no-underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                               href={annualProfileHref(year, latest.id)}
                               aria-label={`${openLabel} ${latest.code} · ${year} · ${ownerName}`}
                             >
@@ -212,7 +212,7 @@ export function AnnualProfileCollection({
                         )}
                         <div className="space-y-1 md:hidden">
                           <p className="text-xs font-normal text-muted-foreground">{ownerName}</p>
-                          <p className="text-xs font-normal text-muted-foreground">
+                          <p className="text-sm font-normal text-muted-foreground">
                             {latest.riskCount} risiko
                             {draft &&
                               final &&
@@ -263,7 +263,7 @@ export function AnnualProfileCollection({
                     <TableCell className="hidden tabular-nums md:table-cell">
                       {latest.riskCount}
                       {draft && final && (
-                        <span className="ml-1 text-xs text-muted-foreground">
+                        <span className="ml-1 text-sm font-normal text-muted-foreground">
                           di draf · {final.riskCount} di final
                         </span>
                       )}

@@ -45,25 +45,7 @@
 }
 
 .sidebar-navigation-scroll > [data-slot="scroll-area-scrollbar"] {
-  z-index: 2;
-}
-
-.sidebar-navigation-scroll > [data-slot="scroll-area-scrollbar"][data-orientation="vertical"]
-  > [data-slot="scroll-area-thumb"] {
-  background: transparent;
-}
-
-.sidebar-navigation-scroll > [data-slot="scroll-area-scrollbar"][data-orientation="vertical"]
-  > [data-slot="scroll-area-thumb"]::before {
-  content: "";
-  position: absolute;
-  inset-block: 0;
-  inset-inline: 0;
-  width: 4px;
-  margin-inline: auto;
-  border-radius: inherit;
-  background: color-mix(in srgb, var(--sidebar-foreground) 48%, var(--sidebar));
-  pointer-events: none;
+  display: none;
 }
 
 @theme inline {
@@ -108,10 +90,10 @@
   --color-sidebar-ring: var(--sidebar-ring);
   --color-workspace: var(--workspace);
   --color-workspace-data: var(--workspace-data);
-  --font-sans: var(--font-inter);
-  --font-heading: var(--font-inter);
-  --font-display: var(--font-inter);
-  --font-logo: var(--font-inter);
+  --font-sans: var(--font-geist-sans);
+  --font-heading: var(--font-geist-sans);
+  --font-display: var(--font-geist-sans);
+  --font-logo: var(--font-geist-sans);
   --text-page-title: 1.75rem;
   --text-page-title--line-height: 1.2;
   --text-page-title--font-weight: 500;
@@ -158,6 +140,7 @@
 }
 
 :root {
+  --app-sidebar-width: 280px;
   --workspace: #fafafa;
   --workspace-data: #726efb;
   --surface-radius: 10px;
@@ -220,7 +203,7 @@
   --card-subtle-surface: #eeeeee;
   --secondary-card-surface: #efefef;
   --sunken: #efefef;
-  --table-header: #fbfbfb;
+  --table-header: var(--card);
   --table-foreground: #313131;
   --table-divider: var(--border);
   --table-frame-shadow: 0 0 0 1px var(--border), 0 1px 2px rgb(0 0 0 / 5%);
@@ -330,7 +313,6 @@
   --badge-cyan-foreground: #8ed9dd;
   --background: var(--sidebar);
   --foreground: oklch(0.985 0 0);
-  --table-header: var(--card-subtle-surface);
   --table-foreground: var(--foreground);
   --table-frame-shadow: var(--surface-shadow-low);
   --table-checkbox-border: var(--ring);
@@ -425,7 +407,7 @@
   * { @apply border-border outline-ring/50; }
   body { @apply bg-background text-foreground; }
   html {
-    @apply font-sans;
+    font-family: var(--font-geist-sans), sans-serif;
   }
 }
 
@@ -513,7 +495,7 @@
 time,
 [data-date-time],
 input:is([type="date"], [type="time"], [type="datetime-local"]) {
-  font-family: var(--font-inter), sans-serif;
+  font-family: var(--font-geist-sans), sans-serif;
   font-variant-numeric: tabular-nums;
 }
 
@@ -542,10 +524,17 @@ input:is([type="date"], [type="time"], [type="datetime-local"]) {
 
 [data-collection-sort-icon] {
   color: var(--table-sort-indicator);
+  visibility: hidden;
 }
 
-[data-slot="table-head"][aria-sort] [data-collection-sort-icon] {
+[data-slot="table-head"]:hover [data-collection-sort-icon],
+[data-collection-sort-button]:focus-visible [data-collection-sort-icon] {
+  visibility: visible;
+}
+
+[data-slot="table-head"]:is([aria-sort="ascending"], [aria-sort="descending"]) [data-collection-sort-icon] {
   color: var(--foreground);
+  visibility: visible;
 }
 
 [data-slot="table-body"] > [data-slot="table-row"] {

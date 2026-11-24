@@ -75,8 +75,12 @@ export function CollectionSortLabel({ label, active, direction, onClick }: {
     >
       <span>{label}</span>
       <svg aria-hidden="true" data-collection-sort-icon="" className="size-3 shrink-0" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3.5 4.5 6 2l2.5 2.5" opacity={active && direction === "desc" ? 0.35 : 1} />
-        <path d="M3.5 7.5 6 10l2.5-2.5" opacity={active && direction === "asc" ? 0.35 : 1} />
+        {!active || direction === "asc" ? (
+          <path d="M3.5 4.5 6 2l2.5 2.5" transform={active ? "translate(0 2.75)" : undefined} />
+        ) : null}
+        {!active || direction === "desc" ? (
+          <path d="M3.5 7.5 6 10l2.5-2.5" transform={active ? "translate(0 -2.75)" : undefined} />
+        ) : null}
       </svg>
     </button>
   );

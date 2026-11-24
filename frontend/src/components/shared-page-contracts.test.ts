@@ -393,7 +393,7 @@ test("working paper detail renders monitoring readiness once and keeps document 
   assert.match(workingPaperDetail, /headerData\.status === "completed"[\s\S]*setHeaderActions\([\s\S]*<ActionButton variant="outline" onClick=\{handleExport\}>Unduh<\/ActionButton>/);
   assert.match(workingPaperDetail, /setHeaderActions\([\s\S]*<WorkingPaperStatusActions[\s\S]*onExport=\{handleExport\}/);
   assert.match(workingPaperStatusActions, /Ekspor Excel/);
-  assert.match(workingPaperDetail, /<FormPage className="space-y-6 pb-8">/);
+  assert.match(workingPaperDetail, /<FormPage>/);
   assert.match(workingPaperDetail, /lg:grid-cols-\[minmax\(0,1fr\)_380px\]/);
   assert.match(workingPaperDetail, /<WorkingPaperMonitoringQueue[\s\S]*rows=\{queueRows\}[\s\S]*onStart=\{openMonitoringStart\}/);
   assert.doesNotMatch(workingPaperDetail, /renderMonitoringBlocker|working-paper-monitoring-progress/);

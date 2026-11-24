@@ -6,6 +6,9 @@ const read = (path: string) =>
   readFileSync(new URL(path, import.meta.url), "utf8");
 
 const overviewPage = read("../app/(app)/overview/page.tsx");
+const overviewLayout = read(
+  "./shared/design-system/layout/overview-dashboard-layout.tsx",
+);
 const catalogue = read(
   "./shared/design-system/examples/overview-dashboard-example.tsx",
 );
@@ -28,17 +31,13 @@ const appHeader = read("./app-header.tsx");
 const designSystemPage = read("../app/(app)/design-system/page.tsx");
 const designDocument = read("../../../DESIGN.md");
 
-test("overview follows the approved narrative order", () => {
-  const trend = overviewPage.indexOf('data-dashboard-section="trend"');
-  const composition = overviewPage.indexOf(
-    'data-dashboard-section="composition"',
-  );
-
+test("overview shows all four widgets directly", () => {
   assert.doesNotMatch(overviewPage, /data-dashboard-section="kpis"/);
   assert.doesNotMatch(overviewPage, /<MetricGrid[\s>]/);
   assert.doesNotMatch(overviewPage, /<DashboardKpiCard[\s>]/);
-  assert.ok(trend >= 0);
-  assert.ok(composition > trend);
+  assert.match(overviewLayout, /\{trend\}[\s\S]*\{heatmap\}[\s\S]*\{composition\}[\s\S]*\{categories\}/);
+  assert.doesNotMatch(overviewLayout, /Collapsible|<details/);
+  assert.doesNotMatch(overviewPage, /WorkspaceMetrics|showSubtitle/);
   assert.match(overviewPage, /currentTotal=\{totalRisks\}/);
   assert.doesNotMatch(overviewPage, /Total Risiko|Risiko Tinggi & Sangat Tinggi|Penanganan Overdue|Risk Exposure/);
   assert.doesNotMatch(overviewPage, /data-dashboard-section="multi-phase"/);
@@ -91,7 +90,7 @@ test("overview and catalogue use the same dashboard primitives", () => {
   assert.match(catalogue, /size="icon-sm"[\s\S]*aria-label="Buka perbandingan heatmap multi-fase"/);
   assert.doesNotMatch(catalogue, /\n\s*Bandingkan\n/);
   assert.match(
-    overviewPage,
+    overviewLayout,
     /xl:grid-cols-2/,
   );
 });
@@ -142,14 +141,14 @@ test("dashboard composition uses quarterly snapshots and five semantic risk leve
 });
 
 test("narrative overview is documented in both design-system surfaces", () => {
-  assert.match(designSystemPage, /Narrative Overview/);
+  assert.match(catalogue, /<OverviewDashboardLayout[\s>]/);
   assert.match(
     designSystemPage,
-    /tren jumlah risiko dengan total saat ini di bawah header kartu, distribusi kategori saat ini, komposisi tingkat risiko lintas empat kuartal, lalu heatmap kuartal berjalan/i,
+    /Dashboard langsung menampilkan empat widget/i,
   );
   assert.match(
     designDocument,
-    /overview orders the total-risk trend \(current total below its header\), current risk-category distribution, four-quarter risk-level composition, and current heatmap/i,
+    /Dashboard displays four widgets directly/i,
   );
   assert.match(
     designDocument,

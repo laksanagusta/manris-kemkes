@@ -4,6 +4,7 @@ import test from "node:test";
 
 const styles = readFileSync(new URL("../app/globals.css", import.meta.url), "utf8");
 const shell = readFileSync(new URL("./app-shell.tsx", import.meta.url), "utf8");
+const shellLayout = readFileSync(new URL("./app-shell.module.css", import.meta.url), "utf8");
 const pageStack = readFileSync(new URL("./shared/design-system/layout/page-stack.tsx", import.meta.url), "utf8");
 const formPage = readFileSync(new URL("./shared/form-shell.tsx", import.meta.url), "utf8");
 const sidebar = readFileSync(new URL("./app-sidebar.tsx", import.meta.url), "utf8");
@@ -66,11 +67,14 @@ test("desktop sidebar fills the viewport and keeps only the trailing divider", (
 test("authenticated pages share the design-system main-content wrapper", () => {
   assert.match(
     shell,
-    /<div className="w-full min-w-0 pb-8">\s*\{children\}\s*<\/div>/,
+    /<div data-app-shell-content="" className=\{[^>]*styles\.content[^>]*styles\.bottomInset[^>]*>\s*\{children\}\s*<\/div>/,
   );
-  assert.match(designSystemPage, /<PageStack>/);
+  assert.match(shellLayout, /\.bottomInset\s*\{\s*padding-block-end: max\(calc\(var\(--spacing\) \* 8\), env\(safe-area-inset-bottom\)\)/);
+  assert.match(shellLayout, /\.content\s*\{\s*flex: 1 0 auto;/);
+  assert.match(shellLayout, /\.content:has\(> :global\(\.agent-panel-active\)\)\s*\{\s*flex: 1 1 0%;\s*padding-block-end: 0;/);
+  assert.match(designSystemPage, /<h2[^>]*>Jarak halaman<\/h2>/);
   assert.match(pageStack, /"w-full min-w-0 space-y-6 motion-safe:animate-fade-in"/);
-  assert.match(formPage, /"w-full min-w-0 animate-fade-in space-y-6 pb-20/);
+  assert.match(formPage, /"w-full min-w-0 animate-fade-in space-y-6 \[&>header\]:\[margin-block-end:0\]!/);
   assert.doesNotMatch(
     designSystemPage,
     /mx-auto max-w-\[1200px\][^\"]*py-8/,

@@ -234,7 +234,7 @@ export default function BulkRiskRegisterPage() {
   };
 
   return (
-    <FormPage className="pb-10">
+    <FormPage>
       <FormHeader
         title="Import Risiko"
         actions={
