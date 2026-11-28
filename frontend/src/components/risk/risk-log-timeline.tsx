@@ -303,7 +303,7 @@ export function RiskLogTimeline({
   return (
     <>
       <div className="flex items-center justify-between gap-3">
-        <h2 id="risk-side-log" className="text-sm font-semibold capitalize text-primary">Catatan</h2>
+        <h2 id="risk-side-log" className="text-sm font-medium capitalize text-secondary-foreground">Catatan</h2>
       </div>
       <div className="mt-3">
         {loading ? <div role="status" className="flex items-center gap-2 py-2 text-sm text-muted-foreground"><Loader2 className="size-3.5 animate-spin" />Memuat catatan...</div>

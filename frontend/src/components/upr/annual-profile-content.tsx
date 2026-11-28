@@ -353,6 +353,26 @@ export function AnnualProfileContent({
 
   return (
     <div className="space-y-3" aria-busy={busy}>
+      {draft && latestFinal && (
+        <Alert variant="info" className="flex items-center gap-3">
+          <AlertCircle aria-hidden="true" className="shrink-0 translate-y-0" />
+          <AlertDescription className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-2 leading-5">
+            <span className="min-w-0 flex-1">
+              Revisi ini masih draf. Versi {latestFinal.version} adalah profil
+              final terakhir, difinalisasi{" "}
+              {workflowDate(latestFinal.finalizedAt)}.
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={busy}
+              onClick={() => onSelectVersion(latestFinal.id)}
+            >
+              Lihat versi final
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
       {selected && (
         <Card role="region" aria-label="Ringkasan profil">
           <CardContent>
@@ -483,26 +503,6 @@ export function AnnualProfileContent({
           </DialogContent>
         )}
       </Dialog>
-      {draft && latestFinal && (
-        <Alert variant="info" className="flex items-center gap-3">
-          <AlertCircle aria-hidden="true" className="shrink-0 translate-y-0" />
-          <AlertDescription className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-2 leading-5">
-            <span className="min-w-0 flex-1">
-              Revisi ini masih draf. Versi {latestFinal.version} adalah profil
-              final terakhir, difinalisasi{" "}
-              {workflowDate(latestFinal.finalizedAt)}.
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={busy}
-              onClick={() => onSelectVersion(latestFinal.id)}
-            >
-              Lihat versi final
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
       {!selected ? (
         <CollectionEmptyState
           title={`Belum ada profil ${year}`}

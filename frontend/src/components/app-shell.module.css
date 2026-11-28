@@ -2,6 +2,13 @@
   padding-block-end: max(calc(var(--spacing) * 8), env(safe-area-inset-bottom));
 }
 
+<<<<<<< HEAD
+=======
+:global([data-risk-detail-tabs-slot]:empty) {
+  display: none;
+}
+
+>>>>>>> 623b7d77638910f1cb7e476927b0fbc568935826
 .content {
   flex: 1 0 auto;
 }

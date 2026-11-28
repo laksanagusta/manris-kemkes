@@ -8,6 +8,25 @@ const ActionsCtx = createContext<Actions>(null);
 const SetActionsCtx = createContext<(a: Actions) => void>(() => {});
 const HeaderBackCtx = createContext<ReactNode>(null);
 const SetHeaderBackCtx = createContext<(back: ReactNode) => void>(() => {});
+const HeaderTabPortalTargetCtx = createContext<HTMLElement | null>(null);
+
+export function HeaderTabPortalTargetProvider({
+  target,
+  children,
+}: {
+  target: HTMLElement | null;
+  children: ReactNode;
+}) {
+  return (
+    <HeaderTabPortalTargetCtx.Provider value={target}>
+      {children}
+    </HeaderTabPortalTargetCtx.Provider>
+  );
+}
+
+export function useHeaderTabPortalTarget() {
+  return useContext(HeaderTabPortalTargetCtx);
+}
 
 export function HeaderActionsProvider({ children }: { children: ReactNode }) {
   const [actions, setActions] = useState<Actions>(null);

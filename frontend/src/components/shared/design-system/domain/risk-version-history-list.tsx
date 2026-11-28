@@ -5,7 +5,7 @@ import { formatDisplayDate } from "@/lib/display-date";
 import type { RiskVersionTimelineItem } from "@/types/risk";
 
 type VersionHistoryEntry = Pick<RiskVersionTimelineItem,
-  "id" | "versionNumber" | "title" | "createdAt" | "assessmentCycle" | "changeReason" | "isCurrent"
+  "id" | "versionNumber" | "createdAt" | "assessmentCycle" | "changeReason" | "isCurrent"
 >;
 
 export function RiskVersionHistoryList({ versions, onVersionSelect }: {
@@ -18,8 +18,8 @@ export function RiskVersionHistoryList({ versions, onVersionSelect }: {
         const date = new Date(version.createdAt);
         const validDate = Number.isFinite(date.getTime());
         const label = version.versionNumber ? `Versi ${version.versionNumber}` : "Versi";
-        const fallbackTitle = version.title === "-" ? "" : version.title;
-        const title = version.changeReason?.trim() || fallbackTitle;
+        const reason = version.changeReason?.trim();
+        const entryLabel = reason ? `${label} · ${reason}` : label;
         return (
           <li key={version.id} data-version-history-item className={styles.item}>
             {index < versions.length - 1 && (
@@ -42,7 +42,7 @@ export function RiskVersionHistoryList({ versions, onVersionSelect }: {
               className="group/version grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3 rounded-sm text-sm leading-5 outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
               <span className="wrap-anywhere font-normal text-secondary-foreground underline-offset-4 group-hover/version:underline">
-                {title ? `${label} · ${title}` : label}
+                {entryLabel}
               </span>
               <time dateTime={validDate ? date.toISOString() : undefined} className="whitespace-nowrap text-end text-muted-foreground">
                 {validDate ? formatDisplayDate(date, {

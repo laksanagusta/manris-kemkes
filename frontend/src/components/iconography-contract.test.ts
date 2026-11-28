@@ -15,39 +15,24 @@ function collectSourceFiles(directory: string): string[] {
   });
 }
 
-test("library icons stay in the shared layer and chevrons stay on Lucide", () => {
+test("Reicon components stay in the shared icon layer", () => {
   const files = collectSourceFiles(sourceRoot);
   const iconLayer = path.join(sourceRoot, "shared/icons.tsx");
-  const directHugeiconsImports = files.filter((file) =>
-    /@hugeicons\/(react|core-free-icons)/.test(readFileSync(file, "utf8")),
-  );
   const iconLayerSource = readFileSync(iconLayer, "utf8");
-  const directLucideImports = files.filter(
+  const directReiconImports = files.filter(
     (file) =>
-      file !== iconLayer &&
       !file.endsWith(".test.ts") &&
-      /from ["']lucide-react["']/.test(readFileSync(file, "utf8")),
+      /from ["']reicon-react["']/.test(readFileSync(file, "utf8")),
   );
-  const lucideExports = [...iconLayerSource.matchAll(/export \{([^{}]*?)\} from "lucide-react"/g)]
-    .flatMap((match) => match[1].split(","))
-    .map((name) => name.trim())
-    .filter(Boolean)
-    .sort();
+  const legacyIconImports = files.filter(
+    (file) =>
+      !file.endsWith(".test.ts") &&
+      /from ["'](?:@hugeicons\/(?:react|core-free-icons)|lucide-react)["']/.test(
+        readFileSync(file, "utf8"),
+      ),
+  );
 
-  assert.deepEqual(directHugeiconsImports, [iconLayer]);
-  assert.deepEqual(directLucideImports, []);
-  assert.deepEqual(
-    lucideExports,
-    [
-      "ChevronDown",
-      "ChevronDownIcon",
-      "ChevronLeft",
-      "ChevronLeftIcon",
-      "ChevronRight",
-      "ChevronRightIcon",
-      "ChevronsUpDown",
-      "ChevronUp",
-      "ChevronUpIcon",
-    ].sort(),
-  );
+  assert.deepEqual(directReiconImports, [iconLayer]);
+  assert.deepEqual(legacyIconImports, []);
+  assert.match(iconLayerSource, /from "reicon-react"/);
 });

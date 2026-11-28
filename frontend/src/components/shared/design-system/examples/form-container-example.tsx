@@ -15,7 +15,7 @@ export function FormContainerExample() {
   return (
     <FormContainer
       title="Pengaturan pelaporan"
-      description="Layer kedua memakai token card-subtle-surface (#eeeeee pada mode terang)."
+      description="Lapisan kedua memakai token card-subtle-surface (#fafaf9 pada tema terang)."
       className="w-full max-w-[55rem]"
     >
       <FormGroup>

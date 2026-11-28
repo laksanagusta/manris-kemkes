@@ -6,7 +6,6 @@ import type { ProfilePeriodWorkspace } from "@/lib/api/profile-periods";
 import { AnnualProfilePeriods } from "./annual-profile-periods";
 import periodStyles from "./annual-profile-periods.module.css";
 import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
-import Link from "next/link";
 import { Fragment, useEffect, useId, useMemo, useRef, useState } from "react";
 import { ChevronDown, MoreHorizontal, Plus, Trash2 } from "@/components/shared/icons";
 import {
@@ -14,6 +13,7 @@ import {
   CollectionPageHeader,
   PageStack,
 } from "@/components/shared/design-system";
+import { CollectionCode } from "@/components/shared/design-system/collections/collection-code";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -185,9 +185,10 @@ export function AnnualProfileCollection({
               return (
                 <Fragment key={processProfile.id}>
                   <TableRow>
-                    <TableCell className="tabular-nums font-medium whitespace-normal">
+                    <TableCell className="tabular-nums whitespace-normal">
                       <div className="space-y-1">
                         {latest.code ? (
+<<<<<<< HEAD
                           embedded ? (
                             <Button
                               variant="link"
@@ -207,6 +208,15 @@ export function AnnualProfileCollection({
                               {latest.code}
                             </Link>
                           )
+=======
+                          <CollectionCode
+                            code={latest.code}
+                            href={embedded ? undefined : annualProfileHref(year, latest.id)}
+                            onOpen={embedded ? () => openProfile(year, latest.id) : undefined}
+                            linkClassName="inline-flex h-auto min-h-8 items-center rounded-sm px-0 py-0 text-sm font-normal tabular-nums text-primary no-underline hover:opacity-80 hover:no-underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                            linkLabel={`${openLabel} ${latest.code} · ${year} · ${ownerName}`}
+                          />
+>>>>>>> 623b7d77638910f1cb7e476927b0fbc568935826
                         ) : (
                           <span className="text-xs font-normal text-muted-foreground">—</span>
                         )}
@@ -224,14 +234,14 @@ export function AnnualProfileCollection({
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell className="whitespace-nowrap tabular-nums font-medium">
+                    <TableCell className="whitespace-nowrap tabular-nums font-normal">
                       {latest.code ? (
                         year
                       ) : embedded ? (
                         <Button
                           variant="link"
                           size="sm"
-                          className="h-auto min-h-8 px-0 py-0 tabular-nums font-medium no-underline hover:no-underline"
+                          className="h-auto min-h-8 px-0 py-0 tabular-nums font-normal no-underline hover:no-underline"
                           aria-label={`${openLabel} ${year} · ${ownerName}`}
                           onClick={() => openProfile(year, latest.id)}
                         >
@@ -239,7 +249,7 @@ export function AnnualProfileCollection({
                         </Button>
                       ) : (
                         <Link
-                          className="inline-flex min-h-8 items-center rounded-sm tabular-nums no-underline hover:no-underline hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                          className="inline-flex min-h-8 items-center rounded-sm tabular-nums font-normal no-underline hover:no-underline hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                           href={annualProfileHref(year, latest.id)}
                           aria-label={`${openLabel} ${year} · ${ownerName}`}
                         >

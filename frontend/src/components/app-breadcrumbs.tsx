@@ -182,7 +182,7 @@ export function AppBreadcrumbs({ back }: { back?: ReactNode }) {
         <TopbarBackButton href={annualProfileReturnTo} label="Kembali ke Profil Risiko Tahunan" />
       ) : null)}
       <Breadcrumb className="min-w-0 max-w-[min(64vw,32rem)] overflow-hidden">
-        <BreadcrumbList className="flex-nowrap gap-1 overflow-hidden text-xs sm:text-sm">
+        <BreadcrumbList className="flex-nowrap gap-1 overflow-hidden text-sm font-semibold">
           {items.map((item, index) => {
             const isLast = index === items.length - 1;
 
@@ -195,7 +195,7 @@ export function AppBreadcrumbs({ back }: { back?: ReactNode }) {
                   {item.href && !isLast ? (
                     <BreadcrumbLinkItem item={item} />
                   ) : (
-                    <BreadcrumbPage className="truncate font-medium text-foreground">
+                    <BreadcrumbPage className="truncate font-semibold text-foreground">
                       {item.label}
                     </BreadcrumbPage>
                   )}

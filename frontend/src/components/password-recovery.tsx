@@ -47,7 +47,7 @@ function RecoveryCard({ title, description, footer, children }: {
 function CredentialInput(props: ComponentProps<typeof Input>) {
   return (
     <Input {...props} data-field-outline="outer" data-autofill-surface="white"
-      className="h-11 rounded-control bg-white text-neutral-900 placeholder:text-neutral-500 dark:bg-white" />
+      className="h-11 rounded-control bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500" />
   );
 }
 

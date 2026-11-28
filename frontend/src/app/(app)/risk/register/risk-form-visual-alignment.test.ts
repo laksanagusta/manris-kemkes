@@ -51,10 +51,10 @@ for (const [name, source] of [
         "evaluasi",
         "penanganan",
         "target",
-        "approval-line",
       ]) {
-        assert.match(source, new RegExp(`<FormContainer\\s+id="${sectionId}"`));
+        assert.match(source, new RegExp(`<RiskArchiveSection\\s+id="${sectionId}"`));
       }
+      assert.match(source, /<RiskArchiveSection\s+id=\{approvalSection\.id\}/);
     } else {
       assert.match(source, /<FormHeader/);
       assert.match(source, /<CollapsibleCard\.Root/);
@@ -64,14 +64,17 @@ for (const [name, source] of [
   });
 
   if (name === "registration") {
-    test(`${name} uses grouped panels for risk sections`, () => {
+    test(`${name} uses archive sections with shared readiness metadata`, () => {
       const identification = source.slice(
-        source.indexOf('id="identifikasi"'),
-        source.indexOf('id="analisis"'),
+        source.indexOf('<RiskArchiveSection id="identifikasi">'),
+        source.indexOf('<RiskArchiveSection id="analisis">'),
       );
-      assert.match(identification, /title="Identifikasi Risiko"/);
-      assert.match(identification, /description=\{sectionStatuses\[0\]\.description\}/);
       assert.equal(identification.match(/<FormGroup\b/g)?.length, 2);
+      assert.match(
+        source,
+        /id: "identifikasi",\s*step: "1",\s*title: "Identifikasi Risiko",\s*description:/,
+      );
+      assert.match(source, /const archiveSections = \[\s*\.\.\.readinessSections\.map\(\(\{ id, title, description, done \}\)/);
       assert.doesNotMatch(source, /Accordion/);
     });
   }
