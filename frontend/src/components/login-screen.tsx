@@ -88,7 +88,7 @@ export default function LoginScreen() {
                   name="nip"
                   data-field-outline="outer"
                   data-autofill-surface="white"
-                  className="h-11 rounded-control bg-white text-neutral-900 placeholder:text-neutral-500 dark:bg-white"
+                  className="h-11 rounded-control bg-white dark:bg-white dark:text-neutral-900 dark:placeholder:text-neutral-500"
                   placeholder="Masukkan NIP"
                   autoComplete="username"
                   inputMode="numeric"
@@ -101,13 +101,13 @@ export default function LoginScreen() {
                 <FieldLabel htmlFor="password">
                   Password
                 </FieldLabel>
-                <InputGroup data-field-outline="outer" className="h-11 rounded-control bg-white text-neutral-900 dark:bg-white">
+                <InputGroup data-field-outline="outer" className="h-11 rounded-control bg-white dark:bg-white dark:text-neutral-900">
                   <InputGroupInput
                     id="password"
                     name="password"
                     type={showPassword ? "text" : "password"}
                     data-autofill-surface="white"
-                    className="h-auto self-stretch bg-transparent text-neutral-900 placeholder:text-neutral-500 dark:bg-transparent"
+                    className="h-auto self-stretch bg-transparent dark:bg-transparent dark:text-neutral-900 dark:placeholder:text-neutral-500"
                     placeholder="Masukkan password"
                     autoComplete="current-password"
                     required
@@ -120,7 +120,7 @@ export default function LoginScreen() {
                       aria-pressed={showPassword}
                       onClick={() => setShowPassword((value) => !value)}
                       size="icon-xs"
-                      className="h-10 w-10 text-neutral-500 hover:bg-transparent! dark:hover:bg-transparent! hover:text-inherit! dark:hover:text-inherit!"
+                      className="h-10 w-10 text-muted-foreground hover:bg-transparent! dark:text-neutral-500 dark:hover:bg-transparent! hover:text-inherit! dark:hover:text-inherit!"
                     >
                       {showPassword ? <EyeOff aria-hidden="true" /> : <Eye aria-hidden="true" />}
                     </InputGroupButton>

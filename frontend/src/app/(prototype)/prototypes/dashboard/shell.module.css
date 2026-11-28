@@ -1,0 +1,4 @@
+/* The prototype supplies its own page heading inside the shared shell. */
+.shell :global([data-app-shell-body]) > div:first-child:has(+ div [data-dashboard-prototype]) {
+  display: none;
+}

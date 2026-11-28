@@ -1,56 +1,25 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
-import { defaultUnitProgressPeriod, unitProgressPeriods, type UnitProgressProfile } from "@/lib/unit-progress-filters";
-import { todayMonitoringDate } from "@/lib/monitoring-date";
-import { useSetHeaderActions } from "@/lib/header-actions-context";
-import { ReportViewTabs } from "@/components/report/report-view-tabs";
-import { api } from "@/lib/api";
+
 import { useAuth } from "@/contexts/auth-context";
-import {
-  listAllOrganizations,
-  type OrganizationListItem,
-} from "@/lib/api/organizations";
-import {
-  listOrganizationGroups,
-  type OrganizationGroupListItem,
-} from "@/lib/api/organization-groups";
-import {
-  buildSelectableReportOrganizations,
-  buildSelectableReportOrganizationGroups,
-  needsExplicitReportOrgSelection,
-} from "@/lib/report-scope";
-import {
-  resolveDefaultReportsFilterScope,
-  type ReportsFilterScope,
-} from "@/lib/reports-filter-sheet";
-import {
-  completedReportCycle,
-  currentReportCycle,
-} from "@/lib/quarterly-report";
-import type {
-  QuarterlyReport,
-} from "@/types/quarterly-report";
+import { useSetHeaderActions } from "@/lib/header-actions-context";
+import { api } from "@/lib/api";
+import type { AnnualProfileProgressReport, MonitoringRuleProgressOption } from "@/lib/annual-profile-progress-report";
 import type { QuarterlyReportExcelFormat } from "@/lib/quarterly-report-export";
 import { reportErrorMessage } from "@/lib/report-feedback";
-import { parseReportPreferences } from "@/lib/report-preferences";
-import { resolveReportUrlFilters } from "@/lib/report-url-filters";
-import { ReportFilterPanel } from "@/components/report/report-filter-panel";
-import { QuarterlyReportDashboard } from "@/components/report/quarterly-report-dashboard";
-import { RiskSummarySkeleton } from "@/components/report/risk-summary-skeleton";
+import { AnnualProfileProgressCharts } from "@/components/report/annual-profile-progress-charts";
+import { AnnualProfileProgressSkeleton } from "@/components/report/annual-profile-progress-skeleton";
+import { ReportMonitoringRulePicker } from "@/components/report/report-monitoring-rule-picker";
+import { ReportUnitScope } from "@/components/report/report-unit-scope";
+import { ReportOptionsMenu } from "@/components/report/report-options-menu";
 import { PageStack, ReportEmptyState } from "@/components/shared/design-system";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Tabs, TabsContent } from "@/components/shared/animated-tabs";
-import { RiskConditionCharts } from "@/components/shared/design-system/domain/risk-condition-charts";
 
-const EMPTY_SCOPE: ReportsFilterScope = {
-  organizationId: "",
-  organizationGroupId: "",
-  organizationIds: [],
-};
 function ReportFeedback({ title, message, onRetry, actionLabel = "Coba lagi" }: {
   title: string;
   message: string;
@@ -68,267 +37,153 @@ function ReportFeedback({ title, message, onRetry, actionLabel = "Coba lagi" }: 
   );
 }
 
+const progressListPath = "/reports/monitoring-rule-progress";
+function progressPath(id: string, units: string, includeExport = false) {
+  const query = new URLSearchParams();
+  if (units) query.set("units", units);
+  if (includeExport) query.set("export", "true");
+  return `${progressListPath}/${encodeURIComponent(id)}${query.size ? `?${query}` : ""}`;
+}
+
 export default function ReportsPage() {
-  return <Suspense fallback={<RiskSummarySkeleton />}><ReportsContent /></Suspense>;
+  return <Suspense fallback={<AnnualProfileProgressSkeleton />}><ReportsContent /></Suspense>;
 }
 
 function ReportsContent() {
-  const { token, user } = useAuth();
+  const { token } = useAuth();
   const search = useSearchParams();
   const setHeaderActions = useSetHeaderActions();
-  const [headerTabHost, setHeaderTabHost] = useState<HTMLDivElement | null>(null);
+  const [headerHost, setHeaderHost] = useState<HTMLDivElement | null>(null);
   useEffect(() => {
-    setHeaderActions(<div ref={setHeaderTabHost} />);
+    setHeaderActions(<div ref={setHeaderHost} />);
     return () => setHeaderActions(null);
   }, [setHeaderActions]);
-  const tab = search.get("tab") === "perbandingan" ? "perbandingan" : "ringkasan";
-  const reportParams = new URLSearchParams(search.toString());
-  reportParams.delete("tab");
-  const reportSearch = reportParams.toString();
-  const [cycle, setCycle] = useState(completedReportCycle);
-  const [comparisonOverride, setComparisonOverride] = useState<string>();
-  const [organizations, setOrganizations] = useState<OrganizationListItem[]>(
-    [],
-  );
-  const [groups, setGroups] = useState<OrganizationGroupListItem[]>([]);
-  const [scope, setScope] = useState<ReportsFilterScope>(EMPTY_SCOPE);
-  const preferencesKey = user ? `manris-report-filters:${user.id}:${user.organizationId ?? "global"}` : "";
-  const restoreKey = token && user ? `${token}:${preferencesKey}:${reportSearch}` : "";
-  const [restoredFor, setRestoredFor] = useState("");
-  const [linkError, setLinkError] = useState<string | null>(null);
-  const [urlOverrides, setUrlOverrides] = useState(false);
-  const [metadataReady, setMetadataReady] = useState(false);
-  const [metadataError, setMetadataError] = useState<string | null>(null);
-  const [reportData, setReport] = useState<QuarterlyReport | null>(null);
-  const [loadedQuery, setLoadedQuery] = useState("");
-  const [reportError, setReportError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [retry, setRetry] = useState(0);
+
+  const [ruleList, setRuleList] = useState<{ token: string; rules?: MonitoringRuleProgressOption[]; error?: string }>();
+  const [ruleRetry, setRuleRetry] = useState(0);
+  const [reportResult, setReportResult] = useState<{ key: string; report?: AnnualProfileProgressReport; error?: string }>();
+  const [reportRetry, setReportRetry] = useState(0);
   const [exporting, setExporting] = useState(false);
-  const [metadataRetry, setMetadataRetry] = useState(0);
-  const needsSelection =
-    scope.organizationIds.length === 0 &&
-    (needsExplicitReportOrgSelection(user) || Boolean(scope.organizationGroupId));
+  const list = ruleList?.token === token ? ruleList : undefined;
+  const rules = list?.rules;
+  const defaultRule = rules?.[0];
+  const requestedId = search.get("rule");
+  const selected = requestedId ? rules?.find((rule) => rule.id === requestedId) : defaultRule;
+  const units = search.get("units") ?? "";
+  const selectedUnitIds = units ? units.split(",") : [];
+  const invalidUnits = selectedUnitIds.some((id) => !selected?.organizations.some((unit) => unit.id === id));
+  const reportKey = `${token}:${selected?.id}:${units}:${reportRetry}`;
+  const result = reportResult?.key === reportKey ? reportResult : undefined;
+  const report = result?.report;
 
   useEffect(() => {
-    if (!token || !user) return;
-    let cancelled = false;
-    setMetadataReady(false);
-    setMetadataError(null);
-    setReport(null);
-    const fetchGroups = async () => {
-      const result: OrganizationGroupListItem[] = [];
-      for (let page = 1; ; page++) {
-        const response = await listOrganizationGroups(token, {
-          ownerOrganizationId: user.isGlobal
-            ? undefined
-            : (user.organizationId ?? undefined),
-          includeMembers: true,
-          limit: 100,
-          page,
-        });
-        result.push(...response.data);
-        if (!response.data.length || result.length >= response.total)
-          return result;
-      }
-    };
-    Promise.all([listAllOrganizations(token), fetchGroups()])
-      .then(([items, allGroups]) => {
-        if (cancelled) return;
-        const allowed = buildSelectableReportOrganizations(user, items);
-        setOrganizations(allowed);
-        const allowedGroups = buildSelectableReportOrganizationGroups(user, allGroups);
-        setGroups(allowedGroups);
-        let preferences = null;
-        try { preferences = parseReportPreferences(localStorage.getItem(preferencesKey), currentReportCycle(), allowed, allowedGroups); } catch { /* Storage may be unavailable. Keep the default filters. */ }
-        const requested = resolveReportUrlFilters(reportSearch, currentReportCycle(), allowed, preferences ?? { cycle: completedReportCycle(), scope: resolveDefaultReportsFilterScope(user, allowed) });
-        setCycle(requested.filters.cycle);
-        setScope(requested.filters.scope);
-        setLinkError(requested.error);
-        setUrlOverrides(requested.hasFilters);
-        setRestoredFor(restoreKey);
-        setMetadataReady(true);
-      })
-      .catch((error: unknown) => {
-        if (!cancelled) {
-          setMetadataError(
-            reportErrorMessage(error, "Unit dan grup belum dapat dimuat. Coba lagi."),
-          );
-          setLoading(false);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [token, user, metadataRetry, preferencesKey, restoreKey, reportSearch]);
+    if (!token) return;
+    const request = new AbortController();
+    api.get<MonitoringRuleProgressOption[]>(progressListPath, token, { signal: request.signal }).then((rules) => {
+      if (!request.signal.aborted) setRuleList({ token, rules });
+    }).catch((error: unknown) => {
+      if (!request.signal.aborted) setRuleList({ token, error: reportErrorMessage(error, "Daftar rules belum dapat dimuat.") });
+    });
+    return () => request.abort();
+  }, [token, ruleRetry]);
 
+  const selectedId = selected?.id;
   useEffect(() => {
-    if (!metadataReady || !user || restoredFor !== restoreKey || urlOverrides || linkError) return;
-    try { localStorage.setItem(preferencesKey, JSON.stringify({ cycle, scope })); } catch { /* Reporting still works when storage is unavailable. */ }
-  }, [metadataReady, user, restoredFor, restoreKey, preferencesKey, cycle, scope, urlOverrides, linkError]);
+    if (!token || !selectedId || invalidUnits) return;
+    const request = new AbortController();
+    api.get<AnnualProfileProgressReport>(progressPath(selectedId, units), token, { signal: request.signal }).then((report) => {
+      if (!request.signal.aborted) setReportResult({ key: reportKey, report });
+    }).catch((error: unknown) => {
+      if (!request.signal.aborted) setReportResult({ key: reportKey, error: reportErrorMessage(error, "Progres unit belum dapat dimuat.") });
+    });
+    return () => request.abort();
+  }, [token, selectedId, units, invalidUnits, reportKey]);
 
-  const [profileResult, setProfileResult] = useState<{ key: string; rows?: UnitProgressProfile[]; error?: string }>();
-  const [profileSelection, setProfileSelection] = useState<{ profile: string; period: string }>();
-  const profileScopeQuery = new URLSearchParams(scope.organizationIds.length ? { org_id: scope.organizationIds.join(",") } : {}).toString();
-  const profileKey = `${token}:${profileScopeQuery}:${metadataRetry}:${retry}`;
-  const profileState = profileResult?.key === profileKey ? profileResult : undefined;
-  const profiles = profileState?.rows ?? [];
-  const selectedProfile = profiles.find(item => item.id === profileSelection?.profile) ?? profiles[0];
-  const periods = selectedProfile ? unitProgressPeriods(selectedProfile) : [];
-  const periodId = periods.find(item => item.value === profileSelection?.period)?.value
-    ?? (selectedProfile ? defaultUnitProgressPeriod(selectedProfile, todayMonitoringDate()) : "");
-  const summaryReady = Boolean(profileState?.rows && selectedProfile && periodId);
-  useEffect(() => {
-    if (!token || !metadataReady || needsSelection) return;
-    let active = true;
-    api.get<UnitProgressProfile[]>(`/reports/unit-progress/profiles?${profileScopeQuery}`, token)
-      .then(rows => { if (active) setProfileResult({ key: profileKey, rows }); })
-      .catch((cause: unknown) => { if (active) setProfileResult({ key: profileKey, error: reportErrorMessage(cause, "Rules profil belum dapat dimuat.") }); });
-    return () => { active = false; };
-  }, [token, profileKey, profileScopeQuery, metadataReady, needsSelection]);
+  function selectRule(rule?: MonitoringRuleProgressOption) {
+    const url = new URL(window.location.href);
+    url.search = "";
+    if (rule) url.searchParams.set("rule", rule.id);
+    window.history.replaceState(null, "", url);
+  }
 
-  const comparisonPeriodId = periods.find(item => item.value === comparisonOverride)?.value
-    ?? periods[Math.max(0, periods.findIndex(item => item.value === periodId) - 1)]?.value ?? "";
-  const selectedComparison = tab === "perbandingan" ? comparisonPeriodId : undefined;
-  const query = useMemo(() => {
-    const params = new URLSearchParams({ profile: selectedProfile?.id ?? "", period: periodId });
-    if (scope.organizationIds.length)
-      params.set("org_id", scope.organizationIds.join(","));
-    if (selectedComparison) params.set("compare_period", selectedComparison);
-    return params.toString();
-  }, [scope.organizationIds, selectedComparison, selectedProfile?.id, periodId]);
-  const report = restoredFor === restoreKey && !linkError && loadedQuery === query ? reportData : null;
-  useEffect(() => {
-    if (!token || !metadataReady || restoredFor !== restoreKey || needsSelection || linkError || !summaryReady) {
-      setReport(null);
-      return;
-    }
-    let cancelled = false;
-    setLoading(true);
-    setReportError(null);
-    setReport(null);
-    api
-      .get<QuarterlyReport>(`/reports/quarterly?${query}`, token)
-      .then((data) => {
-        if (!cancelled) {
-          setReport(data);
-          setLoadedQuery(query);
-        }
-      })
-      .catch((error: unknown) => {
-        if (!cancelled)
-          setReportError(
-            reportErrorMessage(error, "Laporan belum dapat dimuat. Coba lagi; filter tetap tersimpan."),
-          );
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [token, metadataReady, restoredFor, restoreKey, needsSelection, linkError, query, retry, summaryReady]);
+  function selectUnits(ids: string[]) {
+    const url = new URL(window.location.href);
+    if (ids.length) url.searchParams.set("units", ids.toSorted().join(","));
+    else url.searchParams.delete("units");
+    window.history.replaceState(null, "", url);
+  }
 
-  async function exportExcel(format: QuarterlyReportExcelFormat = "assessment") {
-    if (!report || !token || loading || exporting || needsSelection || linkError) return;
-    const snapshot = report;
+  async function exportExcel(format: QuarterlyReportExcelFormat) {
+    if (!token || !selectedId || !report?.periods.length || exporting) return;
     setExporting(true);
     try {
-      const freshReport = await api.get<QuarterlyReport>(`/reports/quarterly?${query}`, token);
-      if (freshReport.snapshotHash !== snapshot.snapshotHash || freshReport.dataUpdatedAt !== snapshot.dataUpdatedAt) {
-        throw new Error("Data laporan berubah. Muat ulang data lalu coba ekspor kembali.");
+      const fresh = await api.get<AnnualProfileProgressReport>(progressPath(selectedId, units, true), token);
+      if (
+        JSON.stringify(fresh.periods) !== JSON.stringify(report.periods) ||
+        JSON.stringify(fresh.baseline) !== JSON.stringify(report.baseline) ||
+        JSON.stringify(fresh.organizations) !== JSON.stringify(report.organizations)
+      ) {
+        setReportResult({ key: reportKey, report: fresh });
+        throw new Error("Data laporan berubah. Grafik telah diperbarui. Coba ekspor kembali.");
       }
+      if (!fresh.latest) throw new Error("Belum ada periode pemantauan yang dapat diekspor.");
       const { downloadQuarterlyReportExcel } = await import("@/lib/quarterly-report-export");
-      await downloadQuarterlyReportExcel(freshReport, format);
+      await downloadQuarterlyReportExcel(fresh.latest, format);
       toast.success(format === "data" ? "Data laporan Excel berhasil diunduh." : "Laporan lengkap Excel berhasil diunduh.");
     } catch (error: unknown) {
-      toast.error(reportErrorMessage(error, "Ekspor Excel gagal. Coba lagi atau muat ulang data."));
+      toast.error(reportErrorMessage(error, "Ekspor Excel gagal. Coba lagi."));
     } finally {
       setExporting(false);
     }
   }
 
   return (
-    <PageStack>
-      <Tabs value={tab} onValueChange={(value) => {
-        const url = new URL(window.location.href);
-        if (value === "perbandingan") url.searchParams.set("tab", value);
-        else url.searchParams.delete("tab");
-        window.history.replaceState(null, "", url);
-      }} className="gap-4">
-        <ReportViewTabs target={headerTabHost} />
-        <ReportFilterPanel
-          profile={{
-            value: selectedProfile?.id ?? "",
-            options: profiles.map(({ id, label }) => ({ value: id, label })),
-            onChange: (profile) => { setComparisonOverride(undefined); setLinkError(null); setUrlOverrides(false); const next = profiles.find(item => item.id === profile); setProfileSelection({ profile, period: next ? defaultUnitProgressPeriod(next, todayMonitoringDate()) : "" }); },
-            period: periodId, periods,
-            onPeriodChange: (period) => { setLinkError(null); setUrlOverrides(false); if (selectedProfile) setProfileSelection({ profile: selectedProfile.id, period }); },
-          }}
-          cycle={cycle}
-          onCycleChange={(value) => { setCycle(value); setLinkError(null); setUrlOverrides(false); }}
-          comparison={tab === "perbandingan" ? { cycle: comparisonPeriodId, onChange: setComparisonOverride } : undefined}
-          scope={scope}
-          defaultScope={resolveDefaultReportsFilterScope(user, organizations)}
-          requireUnit={Boolean(user && !user.isGlobal)}
-          onScopeChange={(value) => { setScope(value); setLinkError(null); setUrlOverrides(false); }}
-          organizations={organizations}
-          groups={groups}
-          scopeSummary={
-            !metadataReady
-              ? metadataError ? "Pilihan unit belum tersedia" : "Memuat pilihan unit..."
-              : scope.organizationIds.length
-                ? `${scope.organizationIds.length} unit dipilih`
-                : scope.organizationGroupId
-                  ? "Pilih minimal satu unit dari grup ini."
-                  : needsExplicitReportOrgSelection(user)
-                    ? "Pilih unit untuk menampilkan laporan."
-                    : "Semua unit yang dapat diakses"
-          }
-          scopeReady={metadataReady}
-          loading={loading}
+    <PageStack className="space-y-4">
+      {headerHost && createPortal(
+        <ReportOptionsMenu
+          disabled={!defaultRule}
           exporting={exporting}
-          canExport={Boolean(report) && summaryReady && !needsSelection && !linkError}
-          onExportExcel={() => void exportExcel()}
+          canExport={Boolean(report?.periods.length)}
+          onExportExcel={() => void exportExcel("assessment")}
           onExportDataExcel={() => void exportExcel("data")}
-          onReload={() => setRetry((value) => value + 1)}
-          onReset={() => {
-            setLinkError(null);
-            setUrlOverrides(false);
-            setProfileSelection(undefined);
-            setCycle(completedReportCycle());
-            setComparisonOverride(undefined);
-            setScope(resolveDefaultReportsFilterScope(user, organizations));
-          }}
-        />
-        <TabsContent value={tab} className="min-w-0">
-          {metadataError ? (
-            <ReportFeedback title="Unit dan grup gagal dimuat" message={metadataError} onRetry={() => setMetadataRetry(value => value + 1)} />
-          ) : profileState?.error ? (
-            <ReportFeedback title="Rules profil gagal dimuat" message={profileState.error} onRetry={() => setRetry(value => value + 1)} />
-          ) : profileState?.rows && !summaryReady ? (
-            <ReportEmptyState title="Profil atau periode belum tersedia" description="Atur rules profil beserta periodenya untuk menampilkan ringkasan risiko." />
-          ) : linkError ? (
-            <ReportFeedback title="Filter tautan tidak dapat digunakan" message={linkError} actionLabel="Gunakan filter di atas" onRetry={() => { setLinkError(null); setUrlOverrides(false); }} />
-          ) : needsSelection && metadataReady ? (
-            <ReportEmptyState
-              title="Pilih unit laporan"
-              description="Pilih satu atau beberapa unit di filter untuk menampilkan laporan."
-            />
-          ) : reportError ? (
-            <ReportFeedback title={tab === "perbandingan" ? "Perbandingan gagal dimuat" : "Laporan gagal dimuat"} message={reportError} onRetry={() => setRetry(value => value + 1)} />
-          ) : loading || !metadataReady || !summaryReady ? (
-            <RiskSummarySkeleton comparison={tab === "perbandingan"} />
-          ) : report && tab === "perbandingan" ? (
-            <RiskConditionCharts report={report} activeProfiles={report.risks} previousProfiles={report.previousRisks} />
-          ) : report ? (
-            <QuarterlyReportDashboard
-              key={`${report.cycle}:${report.snapshotHash}`}
-              report={report}
-            />
-          ) : null}
-        </TabsContent>
-      </Tabs>
+          onReset={() => selectRule()}
+        />,
+        headerHost,
+      )}
+      {rules && rules.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <ReportMonitoringRulePicker rules={rules} selected={selected} onSelect={selectRule} disabled={exporting} />
+          {selected && <ReportUnitScope key={selected.id} organizations={selected.organizations} selectedIds={selectedUnitIds}
+            onApply={selectUnits} disabled={exporting} />}
+        </div>
+      )}
+      {list?.error ? (
+        <ReportFeedback title="Rules Pemantauan gagal dimuat" message={list.error} onRetry={() => {
+          setRuleList(undefined);
+          setRuleRetry((value) => value + 1);
+        }} />
+      ) : !rules ? (
+        <AnnualProfileProgressSkeleton />
+      ) : !rules.length ? (
+        <ReportEmptyState title="Belum ada rules dengan profil Final" description="Unit akan tercakup setelah Profil Risiko Tahunan yang memakai rules tersebut difinalisasi." />
+      ) : !selected ? (
+        <ReportFeedback title="Rules Pemantauan tidak tersedia" message="Rules dari tautan tidak mencakup profil Final yang dapat diakses."
+          actionLabel="Gunakan rules awal" onRetry={() => selectRule()} />
+      ) : invalidUnits ? (
+        <ReportFeedback title="Unit pilihan tidak tersedia" message="Pilih unit yang memiliki profil Final untuk rules ini."
+          actionLabel="Gunakan semua unit" onRetry={() => selectUnits([])} />
+      ) : result?.error ? (
+        <ReportFeedback title="Progres unit gagal dimuat" message={result.error} onRetry={() => setReportRetry((value) => value + 1)} />
+      ) : !report ? (
+        <AnnualProfileProgressSkeleton />
+      ) : !report.baseline.length && !report.periods.length ? (
+        <ReportEmptyState title="Belum ada data risiko untuk rules ini" description="Ubah pilihan unit atau rules untuk melihat baseline dan hasil pemantauan." />
+      ) : (
+        <>
+          {!report.periods.length && <p className="text-sm text-muted-foreground">Belum ada hasil pemantauan Final atau laporan mitigasi pada unit yang tercakup.</p>}
+          <AnnualProfileProgressCharts report={report} />
+        </>
+      )}
     </PageStack>
   );
 }

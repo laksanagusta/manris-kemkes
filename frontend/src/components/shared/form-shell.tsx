@@ -31,7 +31,7 @@ export function FormPage({ children, className }: FormPageProps) {
     <div
       data-motion-page
       className={cn(
-        "w-full min-w-0 animate-fade-in space-y-6 pb-20 [&>header+*]:!mt-0",
+        "w-full min-w-0 animate-fade-in space-y-6 [&>header]:[margin-block-end:0]!",
         className,
       )}
     >
@@ -60,7 +60,7 @@ export function FormHeader({
       showTitle={showTitle}
       actions={actions}
       actionsPlacement={actionsPlacement}
-      className="pb-6"
+      className="pb-6 empty:pb-0"
     />
   );
 }

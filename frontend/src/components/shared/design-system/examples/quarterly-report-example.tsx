@@ -1,15 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { Tabs, TabsContent } from "@/components/shared/animated-tabs";
-import { RiskConditionCharts } from "../domain/risk-condition-charts";
-import { ReportViewTabs } from "@/components/report/report-view-tabs";
 import { toast } from "sonner";
 import type { QuarterlyReportExcelFormat } from "@/lib/quarterly-report-export";
-import { ReportFilterPanel } from "@/components/report/report-filter-panel";
-import type { ReportsFilterScope } from "@/lib/reports-filter-sheet";
-import type { OrganizationGroupListItem } from "@/lib/api/organization-groups";
-import { QuarterlyReportDashboard } from "@/components/report/quarterly-report-dashboard";
+import { ReportOptionsMenu } from "@/components/report/report-options-menu";
+import { AnnualProfileProgressCharts } from "@/components/report/annual-profile-progress-charts";
+import { ReportMonitoringRulePicker } from "@/components/report/report-monitoring-rule-picker";
+import { ReportUnitScope } from "@/components/report/report-unit-scope";
+import type { AnnualProfileProgressReport, MonitoringRuleProgressOption } from "@/lib/annual-profile-progress-report";
 import type {
   QuarterlyReport,
   QuarterlyRisk,
@@ -109,49 +107,41 @@ const report: QuarterlyReport = {
     },
   ],
 };
-const exampleOrganizations = report.organizations.map((unit) => ({
-  ...unit,
-  createdAt: report.generatedAt,
-}));
-const exampleGroups: OrganizationGroupListItem[] = [{
-  id: "example-report-group",
-  name: "Direktorat program",
-  description: "",
-  ownerOrganizationId: "example-unit-a",
-  ownerOrganizationName: "Direktorat A",
-  memberCount: 2,
-  members: report.organizations.slice(0, 2),
-  createdAt: report.generatedAt,
-  updatedAt: report.generatedAt,
-}];
-const exampleScope: ReportsFilterScope = {
-  organizationId: "",
-  organizationGroupId: "",
-  organizationIds: report.organizations.map((unit) => unit.id),
-};
+const rules: MonitoringRuleProgressOption[] = [
+  { id: "quarterly", name: "Manajemen Risiko Triwulanan", year: 2026, organizations: report.organizations.slice(0, 2) },
+  { id: "earlier-quarterly", name: "Manajemen Risiko Triwulanan (arsip)", year: 2026, organizations: report.organizations.slice(1, 2) },
+];
 
 export function QuarterlyReportExample() {
-  const [tab, setTab] = useState("ringkasan");
-  const [headerTabHost, setHeaderTabHost] = useState<HTMLDivElement | null>(null);
-  const [comparisonOverride, setComparisonOverride] = useState<string>();
-  const [cycle, setCycle] = useState(report.cycle);
-  const [profile, setProfile] = useState("quarterly");
-  const [period, setPeriod] = useState("2026-Q2");
-  const profilePeriods = profile === "semester" ? ["2026-H1", "2026-H2"] : ["2026-Q1", "2026-Q2", "2026-Q3", "2026-Q4"];
-  const [scope, setScope] = useState(exampleScope);
+  const [selected, setSelected] = useState(rules[0]);
   const [exporting, setExporting] = useState(false);
-  const selected = (organizationId: string) => !scope.organizationIds.length || scope.organizationIds.includes(organizationId);
-  const summaryCycle = period;
-  const comparisonCycle = profilePeriods.includes(comparisonOverride ?? "") ? comparisonOverride! : profilePeriods[Math.max(0, profilePeriods.indexOf(period) - 1)] ?? period;
-  const scopedReport = { ...report, cycle: summaryCycle, comparisonCycle,
-    organizations: report.organizations.filter(unit => selected(unit.id)),
-    risks: risks.filter(risk => selected(risk.organizationId)),
-    previousRisks: report.previousRisks.filter(risk => selected(risk.organizationId)),
-    tasks: report.tasks.filter(task => selected(task.organizationId)),
-    events: report.events.filter(event => selected(event.organizationId)),
+  const [selectedUnits, setSelectedUnits] = useState<string[]>([]);
+  const unitIds = selectedUnits.length ? selectedUnits : selected.organizations.map(({ id }) => id);
+  function selectRule(rule: MonitoringRuleProgressOption) {
+    setSelected(rule);
+    setSelectedUnits([]);
+  }
+  const scopedReport: QuarterlyReport = {
+    ...report,
+    organizations: report.organizations.filter((unit) => unitIds.includes(unit.id)),
+    risks: risks.filter((risk) => unitIds.includes(risk.organizationId)),
+    previousRisks: report.previousRisks.filter((risk) => unitIds.includes(risk.organizationId)),
+    tasks: report.tasks.filter((task) => unitIds.includes(task.organizationId)),
+    events: report.events.filter((event) => unitIds.includes(event.organizationId ?? "")),
   };
+  const baseline = scopedReport.risks.map((risk) => ({
+    groupId: risk.versionGroupId ?? risk.id, score: risk.nilai ?? null, weight: 1.8, target: risk.targetNilai ?? null,
+  }));
+  const progress: AnnualProfileProgressReport = {
+    organizations: scopedReport.organizations,
+    baseline,
+    periods: [
+      { id: "q1", label: "Triwulan I", risks: baseline.map((risk, index) => ({ ...risk, score: index === 0 ? 12 : 10, weight: 1.6 })), totalRisks: baseline.length, reportedTasks: unitIds.length, totalTasks: unitIds.length * 2 },
+      { id: "q2", label: "Triwulan II", risks: baseline.map((risk, index) => ({ ...risk, score: index === 0 ? 7.2 : 11, weight: 1.5 })), totalRisks: baseline.length, reportedTasks: unitIds.length + Number(unitIds.includes("example-unit-a")), totalTasks: unitIds.length * 2 },
+    ],
+  };
+
   async function exportExcel(format: QuarterlyReportExcelFormat = "assessment") {
-    if (exporting) return;
     setExporting(true);
     try {
       const { downloadQuarterlyReportExcel } = await import("@/lib/quarterly-report-export");
@@ -159,59 +149,29 @@ export function QuarterlyReportExample() {
       toast.success("Contoh laporan Excel berhasil diunduh.");
     } catch {
       toast.error("Contoh laporan belum dapat diunduh.");
-    } finally { setExporting(false); }
+    } finally {
+      setExporting(false);
+    }
   }
 
   return (
-    <div className="space-y-6">
-      <p className="text-xs text-muted-foreground">
-        Contoh memakai komponen produksi dengan data ilustrasi. Filter mengubah periode dan cakupan contoh.
-      </p>
-      <Tabs value={tab} onValueChange={setTab} className="gap-4">
-        <div className="flex min-h-14 flex-wrap items-center gap-2 border-b border-border py-2">
-          <span className="text-xs text-muted-foreground">Laporan Risiko</span>
-          <div ref={setHeaderTabHost} className="ms-auto" />
-        </div>
-        <ReportViewTabs target={headerTabHost} />
-        <ReportFilterPanel
-          profile={{
-            value: profile,
-            options: [{ value: "quarterly", label: "Profil 2026 · Triwulan" }, { value: "semester", label: "Profil 2026 · Semester" }],
-            onChange: (value) => { setComparisonOverride(undefined); setProfile(value); setPeriod(value === "semester" ? "2026-H1" : "2026-Q2"); },
-            period, periods: profilePeriods.map(value => ({ value, label: value })), onPeriodChange: setPeriod,
-          }}
-          cycle={cycle}
-          onCycleChange={setCycle}
-          comparison={tab === "perbandingan" ? { cycle: comparisonCycle, onChange: setComparisonOverride } : undefined}
-          scope={scope}
-          defaultScope={exampleScope}
-          onScopeChange={setScope}
-          organizations={exampleOrganizations}
-          groups={exampleGroups}
-          scopeSummary={scope.organizationIds.length
-            ? `${scope.organizationIds.length} unit dipilih`
-            : scope.organizationGroupId ? "Pilih minimal satu unit dari grup ini." : "Semua unit contoh"}
-          scopeReady
-          loading={false}
+    <div className="space-y-4">
+      <div className="flex min-h-14 flex-wrap items-center justify-between gap-2 border-b border-border py-2">
+        <span className="text-xs text-muted-foreground">Laporan Risiko</span>
+        <ReportOptionsMenu
+          disabled={false}
           exporting={exporting}
-          canExport={!scope.organizationGroupId || scope.organizationIds.length > 0}
+          canExport
           onExportExcel={() => void exportExcel()}
           onExportDataExcel={() => void exportExcel("data")}
-          onReload={() => toast.info("Contoh memakai data ilustrasi tetap.")}
-          onReset={() => {
-            setProfile("quarterly"); setPeriod("2026-Q2");
-            setCycle(report.cycle);
-            setComparisonOverride(undefined);
-            setScope(exampleScope);
-          }}
+          onReset={() => selectRule(rules[0])}
         />
-        <TabsContent value="ringkasan">
-          <QuarterlyReportDashboard illustrative report={scopedReport} />
-        </TabsContent>
-        <TabsContent value="perbandingan">
-          <RiskConditionCharts report={scopedReport} activeProfiles={scopedReport.risks} previousProfiles={scopedReport.previousRisks} />
-        </TabsContent>
-      </Tabs>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <ReportMonitoringRulePicker rules={rules} selected={selected} onSelect={selectRule} disabled={exporting} />
+        <ReportUnitScope organizations={selected.organizations} selectedIds={selectedUnits} onApply={setSelectedUnits} disabled={exporting} />
+      </div>
+      <AnnualProfileProgressCharts report={progress} />
     </div>
   );
 }

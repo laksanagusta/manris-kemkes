@@ -6,11 +6,8 @@ import { RiskCountTrendChart } from "./_components/risk-count-trend-chart";
 import { RiskCategoryPieChart } from "./_components/risk-category-pie-chart";
 import { RiskCompositionTrendChart } from "./_components/risk-composition-trend-chart";
 import { CurrentRiskHeatmap } from "./_components/current-risk-heatmap";
-import {
-  PageStack,
-  WorkspaceMetrics,
-  CollectionPageHeader,
-} from "@/components/shared/design-system";
+import { PageStack } from "@/components/shared/design-system";
+import { OverviewDashboardLayout } from "@/components/shared/design-system/layout/overview-dashboard-layout";
 import type {
   DashboardRiskCategoryItem,
   Risk,
@@ -135,72 +132,45 @@ export default function DashboardPage() {
     setReloadKey((value) => value + 1);
   };
   return (
-    <PageStack className="space-y-5 lg:space-y-6">
-      <CollectionPageHeader
-        title="Dashboard"
-        subtitle="Pantau profil risiko dan perubahannya dari kuartal ke kuartal."
-        showTitle
-        titleClassName="md:sr-only"
-        showSubtitle
-        actionsPlacement="title"
-        actions={<WorkspaceMetrics items={[
-          { label: "Total risiko", value: totalRisks ?? "—" },
-          { label: "Periode berjalan", value: currentCycle },
-        ]} />}
-      />
-
-      <div className="space-y-4 border-t border-border pt-6 lg:pt-8">
-        <h2 className="text-section-title tracking-[-0.015em]">Profil risiko</h2>
-        <section
-          data-dashboard-section="trend"
-          aria-label="Tren dan distribusi risiko"
-          className="grid items-stretch gap-4 xl:grid-cols-2"
-        >
-          <div className="flex min-w-0 [&>*]:w-full">
-            <RiskCountTrendChart
-              risks={trendRisks}
-              currentCycle={currentCycle}
-              currentTotal={totalRisks}
-              loading={trendLoading}
-              error={trendError}
-              onRetry={retryDashboard}
-            />
-          </div>
-          <div className="flex min-w-0 [&>*]:w-full">
-            <RiskCategoryPieChart
-              data={riskCategoryData}
-              loading={riskCategoryLoading}
-              error={riskCategoryError}
-              onRetry={retryDashboard}
-            />
-          </div>
-        </section>
-      </div>
-
-      <div className="space-y-4 border-t border-border pt-6 lg:pt-8">
-        <h2 className="text-section-title tracking-[-0.015em]">Tingkat risiko</h2>
-        <section
-          data-dashboard-section="composition"
-          aria-label="Komposisi risiko dan peta risiko saat ini"
-          className="grid items-start gap-4 pb-4 xl:grid-cols-2 xl:items-stretch"
-        >
-          <div className="flex min-w-0 [&>*]:w-full">
-            <RiskCompositionTrendChart
-              risks={trendRisks}
-              currentCycle={currentCycle}
-              loading={trendLoading}
-              error={trendError}
-              onRetry={retryDashboard}
-            />
-          </div>
+    <PageStack>
+      <h1 className="sr-only">Dashboard</h1>
+      <OverviewDashboardLayout
+        trend={
+          <RiskCountTrendChart
+            risks={trendRisks}
+            currentCycle={currentCycle}
+            currentTotal={totalRisks}
+            loading={trendLoading}
+            error={trendError}
+            onRetry={retryDashboard}
+          />
+        }
+        heatmap={
           <CurrentRiskHeatmap
             matrix={currentHeatmapMatrix}
             loading={trendLoading}
             error={trendError}
             onRetry={retryDashboard}
           />
-        </section>
-      </div>
+        }
+        composition={
+          <RiskCompositionTrendChart
+            risks={trendRisks}
+            currentCycle={currentCycle}
+            loading={trendLoading}
+            error={trendError}
+            onRetry={retryDashboard}
+          />
+        }
+        categories={
+          <RiskCategoryPieChart
+            data={riskCategoryData}
+            loading={riskCategoryLoading}
+            error={riskCategoryError}
+            onRetry={retryDashboard}
+          />
+        }
+      />
     </PageStack>
   );
 }

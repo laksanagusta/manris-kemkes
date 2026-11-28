@@ -5,9 +5,12 @@ import { toast } from "sonner";
 import { Copy } from "@/components/shared/icons";
 import { Button } from "@/components/ui/button";
 
-export function CollectionCode({ code, href }: {
+export function CollectionCode({ code, href, onOpen, linkClassName, linkLabel }: {
   code?: string | number | null;
   href?: string;
+  onOpen?: () => void;
+  linkClassName?: string;
+  linkLabel?: string;
 }) {
   const value = code == null ? "" : String(code);
   if (!value.trim() || value === "-" || value === "—") return "—";
@@ -15,9 +18,26 @@ export function CollectionCode({ code, href }: {
   return (
     <span className="inline-flex w-max items-center gap-1.5 whitespace-nowrap">
       {href ? (
-        <Link href={href} title={value} className="shrink-0 rounded-sm font-medium whitespace-nowrap no-underline hover:text-primary focus-visible:outline-2 focus-visible:outline-ring">
+        <Link
+          href={href}
+          title={value}
+          aria-label={linkLabel}
+          className={linkClassName ?? "shrink-0 rounded-sm font-medium whitespace-nowrap no-underline hover:text-primary focus-visible:outline-2 focus-visible:outline-ring"}
+        >
           {value}
         </Link>
+      ) : onOpen ? (
+        <Button
+          type="button"
+          variant="link"
+          size="sm"
+          title={value}
+          aria-label={linkLabel}
+          className={linkClassName}
+          onClick={onOpen}
+        >
+          {value}
+        </Button>
       ) : (
         <span title={value} className="shrink-0 whitespace-nowrap">{value}</span>
       )}

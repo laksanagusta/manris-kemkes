@@ -31,7 +31,7 @@ export function SidebarMotionExample() {
     <div className="space-y-4 rounded-(--surface-radius) bg-card p-6 shadow-black">
       <SidebarProvider open={!collapsed} className="min-h-0 w-full">
         <div
-          className="group flex h-64 w-[260px] max-w-full flex-col overflow-hidden rounded-(--surface-radius) border border-border bg-sidebar data-[collapsible=icon]:w-12"
+          className="group flex h-64 w-(--app-sidebar-width) max-w-full flex-col overflow-hidden rounded-(--surface-radius) border border-border bg-sidebar data-[collapsible=icon]:w-12"
           data-collapsible={collapsed ? "icon" : undefined}
         >
           <SidebarBrandHeader collapsed={collapsed} onToggle={() => setCollapsed((value) => !value)} />

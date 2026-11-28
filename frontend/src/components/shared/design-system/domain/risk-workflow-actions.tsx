@@ -7,13 +7,14 @@ import type { StartRiskRevisionResponse } from "@/lib/api/risk-monitoring";
 import { RiskRevisionAction } from "./risk-revision-action";
 import { ActionHint } from "../actions/action-hint";
 
-export function RiskWorkflowActions({ token, riskId, drafts, status, disabled, monitoringPending, onStartMonitoring, onRevisionStarted, onRetry }: {
+export function RiskWorkflowActions({ token, riskId, drafts, status, disabled, monitoringPending, showMonitoringAction = true, onStartMonitoring, onRevisionStarted, onRetry }: {
   token: string;
   riskId: string;
   drafts?: RiskOpenDrafts;
   status: "idle" | "loading" | "ready" | "error";
   disabled?: boolean;
   monitoringPending?: boolean;
+  showMonitoringAction?: boolean;
   onStartMonitoring: () => void;
   onRevisionStarted: (result: StartRiskRevisionResponse) => void;
   onRetry: () => void;
@@ -33,15 +34,17 @@ export function RiskWorkflowActions({ token, riskId, drafts, status, disabled, m
   const monitoringDisabled = disabled || monitoringPending || unavailable || monitoringBlocked;
 
   return <>
-    <ActionHint reason={monitoringReason}>
-    {drafts?.monitoringId && !monitoringDisabled ? (
-      <Button variant="outline" asChild><Link href={`/risk/monitoring/${encodeURIComponent(drafts.monitoringId)}`}>Lanjutkan pemantauan</Link></Button>
-    ) : (
-      <Button variant="outline" onClick={onStartMonitoring} disabled={monitoringDisabled} title={monitoringReason} aria-busy={monitoringPending || undefined}>
-        {monitoringPending ? "Menyiapkan…" : drafts?.monitoringId ? "Lanjutkan pemantauan" : "Pantau"}
-      </Button>
+    {showMonitoringAction && (
+      <ActionHint reason={monitoringReason}>
+        {drafts?.monitoringId && !monitoringDisabled ? (
+          <Button variant="outline" asChild><Link href={`/risk/monitoring/${encodeURIComponent(drafts.monitoringId)}`}>Lanjutkan pemantauan</Link></Button>
+        ) : (
+          <Button variant="outline" onClick={onStartMonitoring} disabled={monitoringDisabled} title={monitoringReason} aria-busy={monitoringPending || undefined}>
+            {monitoringPending ? "Menyiapkan…" : drafts?.monitoringId ? "Lanjutkan pemantauan" : "Pantau"}
+          </Button>
+        )}
+      </ActionHint>
     )}
-    </ActionHint>
     <ActionHint reason={revisionReason}>
     <RiskRevisionAction token={token} riskId={riskId} draftHref={revisionHref} disabled={disabled || monitoringPending || unavailable || revisionBlocked} disabledReason={revisionReason} onStarted={onRevisionStarted} onConflict={onRetry} />
     </ActionHint>

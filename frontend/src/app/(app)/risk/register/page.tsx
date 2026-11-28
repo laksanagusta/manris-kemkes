@@ -1,6 +1,8 @@
 "use client";
 import { useOrganizationFilter } from "@/hooks/use-organization-filter";
 import type { TableFilterField } from "@/components/shared/design-system/collections/dynamic-table-filter-state";
+import { riskRegisterActionsWidth, riskRegisterColumns } from "@/components/shared/design-system/domain/risk-register-columns";
+import riskTableStyles from "@/components/shared/design-system/domain/risk-register-table.module.css";
 import { ConfirmationConsequences } from "@/components/shared/design-system/actions/confirmation-consequences";
 import { businessNow } from "@/lib/business-clock";
 import { MonitoringDateField } from "@/components/shared/design-system/domain/monitoring-date-field";
@@ -121,9 +123,7 @@ import {
   RiskCategoryIndicator,
 } from "@/components/shared/design-system";
 import {
-  Plus,
   Trash2,
-  Upload,
   Archive,
   RefreshCcw,
   RotateCcw,
@@ -131,18 +131,6 @@ import {
 
 
 import { readMotionDuration } from "@/lib/motion-timing";
-
-const riskColumns = [
-  { id: "code", label: "Kode risiko", width: 156, locked: true },
-  { id: "risk", label: "Risiko", width: 400, locked: true },
-  { id: "category", label: "Kategori", width: 160 },
-  { id: "organization", label: "Nama Organisasi", width: 180 },
-  { id: "score", label: "Skor", width: 88, className: "text-left" },
-  { id: "status", label: "Status", width: 112 },
-  { id: "created", label: "Dibuat", width: 208 },
-] as const;
-
-const riskActionsWidth = 60;
 
 const registerStatusTone: Record<string, StatusTone> = {
   draft: "neutral",
@@ -212,10 +200,12 @@ function RiskRegisterFilterToolbar({
 }: RiskRegisterFilterToolbarProps) {
   return (
     <DynamicTableFilters
+      growSearch
+      triggerLabel="Filter"
+      showTriggerIcon={false}
       columns={columns}
       search={
         <CollectionSearchField
-          className="placeholder:text-tertiary-foreground"
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder={searchPlaceholder}
@@ -382,10 +372,10 @@ export default function RiskRegisterPage() {
   const searchParams = useSearchParams();
   const { token, user } = useAuth();
   const { visible: visibleColumns, picker: columnPicker } = useCollectionColumns(
-    riskColumns,
+    riskRegisterColumns,
     user?.id ? `manris:risk-register:columns:${user.id}` : undefined,
   );
-  const tableMinWidth = visibleColumns.reduce((width, column) => width + column.width, riskActionsWidth);
+  const tableMinWidth = visibleColumns.reduce((width, column) => width + column.width, riskRegisterActionsWidth);
   const [isPending, startTransition] = useTransition();
   const isApplyingSearchParamsRef = useRef(false);
   const [risks, setRisks] = useState<RiskListItem[]>([]);
@@ -1003,7 +993,7 @@ export default function RiskRegisterPage() {
     />
   );
   return (
-    <PageStack data-register-motion data-busy={loading || isPending}>
+    <PageStack className={riskTableStyles.register} data-register-motion data-busy={loading || isPending}>
       <CollectionPageHeader title="Risiko" />
       <div className="space-y-4">
         <CollectionToolbar
@@ -1011,7 +1001,7 @@ export default function RiskRegisterPage() {
           leading={
             <RiskRegisterFilterToolbar
               organizationField={organizationFilter.field}
-              columns={<CollectionColumnPicker {...columnPicker} />}
+              columns={<CollectionColumnPicker {...columnPicker} showIcons={false} />}
               search={search}
               onSearchChange={handleRegisterSearchChange}
               searchPlaceholder="Cari risiko..."
@@ -1042,14 +1032,14 @@ export default function RiskRegisterPage() {
           actions={
             <>
               <RiskExportButton
+                showIcon={false}
                 loading={exporting}
                 disabled={loading || !!error || registerTotal === 0 || isPending || search !== deferredSearch || assessmentCycleFilter !== deferredAssessmentCycleFilter}
                 onClick={() => void handleExport()}
               />
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <ActionButton data-slot="button" variant="outline" className="gap-2">
-                    <Upload className="size-3.5" strokeWidth={2.5} />
+                  <ActionButton data-slot="button" variant="outline">
                     Import Risiko
                   </ActionButton>
                 </DropdownMenuTrigger>
@@ -1065,31 +1055,25 @@ export default function RiskRegisterPage() {
                 </DropdownMenuContent>
               </DropdownMenu>
               <AccentButton asChild>
-                <Link href="/risk/register/new">
-                  <Plus className="size-3.5" strokeWidth={2.5} />
-                  Risiko Baru
-                </Link>
+                <Link href="/risk/register/new">Risiko Baru</Link>
               </AccentButton>
             </>
           }
         />
         <CollectionTableCard sorting={tableSorting} stickyActions>
-            <Table className="table-fixed" style={{ minWidth: tableMinWidth }}>
+            <Table className={`table-fixed ${riskTableStyles.table}`} style={{ minWidth: tableMinWidth }}>
               <colgroup>
                 {visibleColumns.map((column) => (
-                  <col key={column.id} style={{ width: column.width }} />
+                  <col key={column.id} style={column.id === "risk" ? undefined : { width: column.width }} />
                 ))}
-                <col style={{ width: riskActionsWidth }} />
+                <col style={{ width: riskRegisterActionsWidth }} />
               </colgroup>
               <CollectionTableHeader>
                 <CollectionTableHeaderRow>
                   {visibleColumns.map((column) => column.id === "created" ? (
                     <CreatedAtHead key={column.id} />
                   ) : (
-                    <CollectionTableHead
-                      key={column.id}
-                      className={"className" in column ? column.className : undefined}
-                    >
+                    <CollectionTableHead key={column.id} className="text-start">
                       {column.label}
                     </CollectionTableHead>
                   ))}
@@ -1128,12 +1112,13 @@ export default function RiskRegisterPage() {
                 ) : (
                   risks.map((risk) => {
                     const { statusText, riskScore, riskLevel, tone } = getRegisterRiskDisplay(risk);
-                    const cells: Record<(typeof riskColumns)[number]["id"], ReactNode> = {
+                    const cells: Record<(typeof riskRegisterColumns)[number]["id"], ReactNode> = {
                       risk: (
                         <TableCell>
                           <RiskTableIdentity
                             title={risk.title || "Risiko tanpa judul"}
                             href={`/risk/register/${risk.id}`}
+                            wrap
                           />
                         </TableCell>
                       ),
@@ -1144,12 +1129,12 @@ export default function RiskRegisterPage() {
                         </TableCell>
                       ),
                       organization: (
-                        <TableCell>
+                        <TableCell className="whitespace-normal wrap-anywhere">
                           {risk.orgName?.trim() || "—"}
                         </TableCell>
                       ),
                       score: (
-                        <TableCell className="text-left">
+                        <TableCell className="text-start">
                           <RiskTableScore score={formatMonitoringNilai(riskScore)} level={riskLevel} />
                         </TableCell>
                       ),

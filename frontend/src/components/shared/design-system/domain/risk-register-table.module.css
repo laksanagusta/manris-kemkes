@@ -1,0 +1,44 @@
+.table > :global([data-slot="table-body"]) > :global([data-slot="table-row"]) {
+  height: 3rem;
+}
+
+.register :global([data-slot="collection-search"] input)::placeholder {
+  color: var(--secondary-foreground);
+  opacity: 1;
+}
+
+.register :global([data-slot="collection-search"] input:placeholder-shown + button) {
+  visibility: hidden;
+}
+
+.register :global([data-collection-pagination] [data-pagination-label]) {
+  color: var(--secondary-foreground);
+}
+
+.register :global([data-collection-pagination] > p[data-pagination-label]) {
+  font-variant-numeric: tabular-nums;
+}
+
+.register :global([data-collection-pagination] button[aria-current="page"]:disabled) {
+  background-color: var(--muted);
+  color: var(--foreground);
+  font-weight: 600;
+  opacity: 1;
+}
+
+@media (pointer: coarse) {
+  .register .table :global(td[data-collection-action]) {
+    padding: 0;
+    text-align: center;
+  }
+
+  .register .table :global(td[data-collection-action] > .flex) {
+    justify-content: center;
+  }
+
+  .register .table :global(td[data-collection-action] button),
+  .register :global([data-collection-pagination] button) {
+    min-width: 2.75rem;
+    min-height: 2.75rem;
+  }
+}

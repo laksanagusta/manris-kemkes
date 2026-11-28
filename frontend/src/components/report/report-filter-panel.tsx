@@ -1,12 +1,7 @@
 "use client";
 
 import type { Dispatch, SetStateAction } from "react";
-import { FileSpreadsheet, Loader2, MoreHorizontal, RefreshCw, RotateCcw } from "@/components/shared/icons";
 import { DynamicTableFilters, type TableFilterField } from "@/components/shared/design-system/collections/dynamic-table-filters";
-import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import type { OrganizationListItem } from "@/lib/api/organizations";
 import type { OrganizationGroupListItem } from "@/lib/api/organization-groups";
 import type { ReportsFilterScope } from "@/lib/reports-filter-sheet";
@@ -31,23 +26,14 @@ interface ReportFilterPanelProps {
   organizations: OrganizationListItem[];
   groups: OrganizationGroupListItem[];
   scopeSummary: string;
-  scopeReady: boolean;
-  loading: boolean;
-  exporting?: boolean;
-  canExport?: boolean;
-  onExportExcel?: () => void;
-  onExportDataExcel?: () => void;
-  onReload: () => void;
-  onReset: () => void;
+  disabled: boolean;
 }
 
 export function ReportFilterPanel({
   cycle, onCycleChange, comparison, profile,
   scope, defaultScope, requireUnit = false, onScopeChange, organizations, groups, scopeSummary,
-  scopeReady, loading, exporting = false, canExport, onExportExcel, onExportDataExcel, onReload, onReset,
+  disabled,
 }: ReportFilterPanelProps) {
-  const disabled = !scopeReady || exporting;
-
   const periodOptions = reportQuarterOptions();
   const unitsForGroup = (id: string) => {
     const group = groups.find((item) => item.id === id);
@@ -96,35 +82,7 @@ export function ReportFilterPanel({
 
   return (
     <div className="min-w-0">
-      <DynamicTableFilters fields={fields} disabled={disabled} columns={
-        <div className="flex shrink-0 items-center gap-2">
-          <Button type="button" variant="outline" size="icon" aria-label="Muat ulang" title="Muat ulang" disabled={disabled || loading} aria-busy={loading} onClick={onReload}>
-            <RefreshCw aria-hidden="true" className={loading ? "animate-spin motion-reduce:animate-none" : undefined} />
-          </Button>
-          {onExportExcel && onExportDataExcel ? <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="icon" aria-label="Opsi laporan" title="Opsi laporan" disabled={disabled}>
-                {exporting ? <Loader2 className="animate-spin" /> : <MoreHorizontal />}
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-60">
-              <DropdownMenuItem disabled={!canExport || loading || exporting} onSelect={onExportExcel}>
-                {exporting ? <Loader2 className="animate-spin" /> : <FileSpreadsheet />}Laporan lengkap Excel
-              </DropdownMenuItem>
-              <DropdownMenuItem disabled={!canExport || loading || exporting} onSelect={onExportDataExcel}>
-                <FileSpreadsheet />Data laporan Excel
-              </DropdownMenuItem>
-              <DropdownMenuItem onSelect={onReset}>
-                <RotateCcw />Atur ulang filter
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu> : (
-            <Button type="button" variant="outline" size="icon" aria-label="Atur ulang filter" title="Atur ulang filter" disabled={disabled} onClick={onReset}>
-              <RotateCcw aria-hidden="true" />
-            </Button>
-          )}
-        </div>
-      } />
+      <DynamicTableFilters fields={fields} disabled={disabled} />
       <p className="sr-only" aria-live="polite">{scopeSummary}</p>
     </div>
   );

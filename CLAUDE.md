@@ -93,7 +93,7 @@ frontend/
 - **State Management**: React Context API
 - **Form Handling**: React Hook Form + Zod validation
 - **Charts**: Recharts
-- **Icons**: Lucide React
+- **Icons**: Reicon React (`reicon-react`)
 - **Styling**: TailwindCSS v4 with CSS animations
 
 ### Database
@@ -136,7 +136,7 @@ github.com/joho/godotenv             // Environment variables
   "react-hook-form": "^7.71.2",
   "zod": "^4.3.6",
   "recharts": "^3.8.0",
-  "lucide-react": "^0.577.0"
+  "reicon-react": "^1.2.6"
 }
 ```
 

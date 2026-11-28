@@ -27,63 +27,66 @@ export function RiskFormReadiness<SectionId extends string>({ sections, onNaviga
   onNavigate: (id: SectionId) => void;
 }) {
   const completed = sections.filter(section => section.done).length;
+  const heading = (
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-2.5">
+      <h2 className="flex items-center gap-2 text-sm font-medium">
+        <ClipboardList aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+        Kelengkapan risiko
+      </h2>
+      <p role="status" className="text-xs tabular-nums text-muted-foreground">
+        <span aria-hidden="true">{completed} / {sections.length}</span>
+        <span className="sr-only">{completed} dari {sections.length} bagian siap difinalisasi</span>
+      </p>
+    </div>
+  );
+  const rows = (
+    <ul className="space-y-0.5 p-2">
+      {sections.map(section => (
+        <li key={section.id}>
+          <ActionButton
+            type="button"
+            variant="ghost"
+            className="h-auto min-h-8 w-full justify-start whitespace-normal text-start"
+            onClick={() => onNavigate(section.id)}
+          >
+            {section.done ? (
+              <CheckCircle2 aria-hidden="true" className="size-4 shrink-0 text-(--badge-green-foreground)" />
+            ) : (
+              <svg aria-hidden="true" className="size-4 shrink-0" viewBox="0 0 16 16" fill="none">
+                <circle cx="8" cy="8" r="6" strokeWidth="1.5" className="stroke-border" />
+                {section.progress > 0 ? (
+                  <circle
+                    cx="8"
+                    cy="8"
+                    r="6"
+                    pathLength="100"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeDasharray={100}
+                    strokeDashoffset={100 - section.progress}
+                    transform="rotate(-90 8 8)"
+                    className="stroke-workspace-data motion-safe:transition-[stroke-dashoffset]"
+                  />
+                ) : null}
+              </svg>
+            )}
+            <span className="min-w-0 break-words">
+              {section.title}
+              <span className="sr-only">
+                {section.done ? ". Lengkap." : `. Belum lengkap. ${section.progress}% lengkap. ${section.hint}`}
+              </span>
+            </span>
+          </ActionButton>
+        </li>
+      ))}
+    </ul>
+  );
 
   return (
     <nav aria-label="Kelengkapan risiko">
       <FormFrame className="space-y-1">
-        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 py-2.5">
-          <h2 className="flex items-center gap-2 text-sm font-medium">
-            <ClipboardList aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
-            Kelengkapan risiko
-          </h2>
-          <p role="status" className="text-xs tabular-nums text-muted-foreground">
-            <span aria-hidden="true">{completed} / {sections.length}</span>
-            <span className="sr-only">{completed} dari {sections.length} bagian siap difinalisasi</span>
-          </p>
-        </div>
-
-        <FormPanel>
-          <ul className="space-y-0.5 p-2">
-            {sections.map(section => (
-              <li key={section.id}>
-                <ActionButton
-                  type="button"
-                  variant="ghost"
-                  className="h-auto min-h-8 w-full justify-start whitespace-normal text-start"
-                  onClick={() => onNavigate(section.id)}
-                >
-                  {section.done ? (
-                    <CheckCircle2 aria-hidden="true" className="size-4 shrink-0 text-(--badge-green-foreground)" />
-                  ) : (
-                    <svg aria-hidden="true" className="size-4 shrink-0" viewBox="0 0 16 16" fill="none">
-                      <circle cx="8" cy="8" r="6" strokeWidth="1.5" className="stroke-border" />
-                      {section.progress > 0 ? (
-                        <circle
-                          cx="8"
-                          cy="8"
-                          r="6"
-                          pathLength="100"
-                          strokeWidth="2"
-                          strokeLinecap="round"
-                          strokeDasharray={100}
-                          strokeDashoffset={100 - section.progress}
-                          transform="rotate(-90 8 8)"
-                          className="stroke-workspace-data motion-safe:transition-[stroke-dashoffset]"
-                        />
-                      ) : null}
-                    </svg>
-                  )}
-                  <span className="min-w-0 break-words">
-                    {section.title}
-                    <span className="sr-only">
-                      {section.done ? ". Lengkap." : `. Belum lengkap. ${section.progress}% lengkap. ${section.hint}`}
-                    </span>
-                  </span>
-                </ActionButton>
-              </li>
-            ))}
-          </ul>
-        </FormPanel>
+        {heading}
+        <FormPanel>{rows}</FormPanel>
       </FormFrame>
     </nav>
   );

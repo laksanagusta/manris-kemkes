@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Agentation } from "agentation";
-import { Inter } from "next/font/google";
+import { Geist } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/contexts/auth-context";
 import { AppToaster } from "@/components/app-toaster";
@@ -11,10 +11,9 @@ import "./table-hover.css";
 import { cn } from "@/lib/utils";
 import { SITE_URL } from "@/lib/site";
 
-const inter = Inter({
+const geist = Geist({
   subsets: ["latin"],
-  axes: ["opsz"],
-  variable: "--font-inter",
+  variable: "--font-geist-sans",
   display: "swap",
 });
 
@@ -40,7 +39,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html suppressHydrationWarning lang="id" className={cn("font-sans", inter.variable)}>
+    <html suppressHydrationWarning lang="id" className={cn("font-sans", geist.variable)}>
       <body className="bg-background antialiased">
         <ThemeProvider>
           <AuthProvider>

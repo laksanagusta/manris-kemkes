@@ -1,6 +1,7 @@
 package entity
 
 import (
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -54,4 +55,11 @@ type MitigationTask struct {
 	MitigationOwner  string `json:"mitigationOwner,omitempty"`
 	RiskCode         string `json:"riskCode,omitempty"`
 	RiskTitle        string `json:"riskTitle,omitempty"`
+}
+
+// HasValidReport identifies submitted mitigation progress for reporting metrics.
+func (t *MitigationTask) HasValidReport() bool {
+	noteLength := len(strings.TrimSpace(t.Notes))
+	return t.Status == MitigationTaskStatusDone && t.ReportedAt != nil &&
+		!t.ReportedAt.IsZero() && noteLength >= 10 && noteLength <= 1000
 }

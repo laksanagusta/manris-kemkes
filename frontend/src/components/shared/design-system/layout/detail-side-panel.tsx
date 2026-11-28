@@ -2,7 +2,14 @@ import type { ReactNode } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 
 /** Shared inset and section rhythm for risk and working-paper detail rails. */
-export function DetailSidePanel({ children }: { children: ReactNode }) {
+export function DetailSidePanel({ children, unframed = false }: {
+  children: ReactNode;
+  unframed?: boolean;
+}) {
+  if (unframed) {
+    return <div data-detail-side-panel="" className="space-y-4">{children}</div>;
+  }
+
   return (
     <Card data-detail-side-panel="" className="overflow-hidden transition-colors duration-300">
       <CardContent>

@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useHeaderTabPortalTarget } from "@/lib/header-actions-context";
 
 export function RiskDetailTabs({
   enabled,
@@ -10,8 +12,10 @@ export function RiskDetailTabs({
   treatment,
   value: controlledValue,
   onValueChange,
+  portalToTopbar = false,
 }: {
   enabled: boolean;
+  portalToTopbar?: boolean;
   value?: string;
   onValueChange?: (value: string) => void;
   overview: ReactNode;
@@ -19,8 +23,18 @@ export function RiskDetailTabs({
   treatment: ReactNode;
 }) {
   const [localValue, setLocalValue] = useState("overview");
+  const topbarTarget = useHeaderTabPortalTarget();
   const value = controlledValue ?? localValue;
   const setValue = onValueChange ?? setLocalValue;
+
+  const tabsList = (
+    <TabsList data-risk-detail-segments="" data-active-tab={value} aria-label="Bagian detail risiko">
+      <TabsTrigger value="overview">Ringkasan</TabsTrigger>
+      <TabsTrigger value="treatment">Penanganan</TabsTrigger>
+      <TabsTrigger value="monitoring">Pemantauan</TabsTrigger>
+    </TabsList>
+  );
+
   return (
     <Tabs
       value={enabled ? value : "overview"}
@@ -28,11 +42,9 @@ export function RiskDetailTabs({
       className="min-w-0 gap-6"
     >
       {enabled && (
-        <TabsList data-risk-detail-segments="" data-active-tab={value} aria-label="Bagian detail risiko">
-          <TabsTrigger value="overview">Ringkasan</TabsTrigger>
-          <TabsTrigger value="treatment">Penanganan</TabsTrigger>
-          <TabsTrigger value="monitoring">Pemantauan</TabsTrigger>
-        </TabsList>
+        portalToTopbar
+          ? topbarTarget ? createPortal(tabsList, topbarTarget) : null
+          : tabsList
       )}
       <TabsContent
         value="overview"

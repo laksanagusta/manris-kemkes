@@ -3,26 +3,52 @@
 import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Lock } from '@/components/shared/icons';
 import type { ProfilePeriodProgress } from '@/lib/api/profile-periods';
 import { cn } from "@/lib/utils";
 import { periodWindowState, type ProcessProgress } from '@/lib/profile-period-progress';
 
 const statusLabels = { pending: 'Pending', ongoing: 'Ongoing', done: 'Done' };
-const windowLabels = { open: 'Terbuka', closed: 'Ditutup', upcoming: 'Akan datang' };
+const windowLabels = { open: 'Terbuka', closed: 'Ditutup', upcoming: 'Belum dibuka' };
 
-function PeriodStatusAction({ progress, label, actionLabel, actionContext, href, disabled, onStart, inline, readOnly }: {
+export function ProfilePeriodCardHeader({ period }: { period: ProfilePeriodProgress }) {
+  const windowState = periodWindowState(period);
+
+  return (
+    <div className="border-b border-border px-3 py-2.5">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+        <h3 className="inline-flex items-center gap-1.5 text-sm font-medium text-foreground">
+          {period.label}
+          {period.scopeLocked && !period.needsReview && (
+            <span className="inline-flex shrink-0 items-center" title="Cakupan terkunci">
+              <Lock aria-hidden="true" className="size-4 text-muted-foreground" />
+              <span className="sr-only">Cakupan terkunci</span>
+            </span>
+          )}
+        </h3>
+        <span className="text-xs text-muted-foreground">{windowLabels[windowState]}</span>
+      </div>
+      {period.scopeLocked && period.needsReview && (
+        <p className="mt-1 text-xs text-muted-foreground">Cakupan historis perlu ditinjau</p>
+      )}
+    </div>
+  );
+}
+
+function PeriodStatusAction({ progress, label, actionLabel, actionContext, href, disabled, onStart, inline, readOnly, cardRow }: {
   progress: ProcessProgress;
   label?: string;
   actionLabel: string;
   actionContext?: string;
   inline?: boolean;
   readOnly?: boolean;
+  cardRow?: boolean;
   href?: string;
   disabled?: boolean;
   onStart?: () => void;
 }) {
-  return <div className={cn("flex gap-1.5", inline ? "flex-wrap items-center justify-between py-2" : "flex-col items-start")}>
-    <div className="flex flex-wrap items-center gap-2">
+  return <div className={cn("flex gap-1.5", inline ? "flex-wrap items-center justify-between py-2" : "flex-col items-start", cardRow && "min-h-10 gap-x-3 px-3")}>
+    <div className={cn("flex flex-wrap items-center gap-2", cardRow && "grow justify-between")}>
       {label && <span className="text-xs font-medium">{label}</span>}
       <Badge variant="outline" className={progress.status === 'done' ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300' : ''}>
         {statusLabels[progress.status]}
@@ -49,6 +75,7 @@ export function ProfileDocumentPeriodCell({ period, profileId, organizationId, c
   return <div className={inline ? "divide-y divide-border" : "flex min-w-40 flex-col items-start gap-3 py-1"}>
     <PeriodStatusAction
       inline={inline}
+      cardRow={inline}
       actionContext={period.label}
       label="Kertas kerja"
       progress={period.workingPaper}
@@ -58,6 +85,7 @@ export function ProfileDocumentPeriodCell({ period, profileId, organizationId, c
     />
     <PeriodStatusAction
       inline={inline}
+      cardRow={inline}
       actionContext={period.label}
       label="Evaluasi"
       progress={period.evaluation}
@@ -79,23 +107,14 @@ export function RiskMonitoringPeriodCell({ period, groupId, onStart, disabled, r
   const windowState = periodWindowState(period);
 
   return (
-    <section aria-label={period.label} className="min-w-0 rounded-lg border border-border bg-card px-3 py-2">
-      <h3 className="flex flex-wrap items-baseline justify-between gap-x-2 text-xs font-medium">
-        {period.label}
-        <span className="font-normal text-muted-foreground">
-          {windowLabels[windowState]}
-        </span>
-      </h3>
-      {period.scopeLocked && (
-        <p className="text-xs text-muted-foreground">
-          {period.needsReview ? "Cakupan historis perlu ditinjau" : "Cakupan terkunci"}
-        </p>
-      )}
+    <section aria-label={period.label} className="min-w-0 rounded-lg border border-border bg-card">
+      <ProfilePeriodCardHeader period={period} />
       {monitoring?.applicable === false ? (
-        <p className="text-xs text-muted-foreground">Belum berlaku pada periode ini</p>
+        <p className="flex min-h-10 items-center px-3 py-2 text-xs text-muted-foreground">Belum berlaku pada periode ini</p>
       ) : (
         <PeriodStatusAction
           inline
+          cardRow
           progress={progress}
           label="Pemantauan"
           actionContext={period.label}

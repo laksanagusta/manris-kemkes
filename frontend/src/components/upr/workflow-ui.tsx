@@ -84,8 +84,8 @@ export function workflowError(error: unknown) {
 export function workflowDate(value: string | null) {
   if (!value) return "—";
   return createDisplayDateFormatter("id-ID", {
-    day: "numeric",
-    month: "long",
+    day: "2-digit",
+    month: "short",
     year: "numeric",
     timeZone: "Asia/Jakarta",
   }).format(new Date(value));

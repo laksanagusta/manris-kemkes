@@ -1,5 +1,5 @@
 :root:not(.dark) {
-  --table-hover: #f7f7f7;
+  --table-hover: var(--button-hover-surface);
 }
 
 :root.dark {

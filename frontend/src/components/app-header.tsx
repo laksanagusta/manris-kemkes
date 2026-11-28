@@ -33,7 +33,7 @@ export function AppHeader() {
   }
 
   return (
-    <div className="w-full">
+    <div className="w-full shrink-0">
       <CollectionPageHeader
         title={title}
         subtitle={subtitle}

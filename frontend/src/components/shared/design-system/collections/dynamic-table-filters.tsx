@@ -95,12 +95,14 @@ function FilterChip({ field, disabled, open, onOpenChange, onRemove }: FilterChi
   );
 }
 
-export function DynamicTableFilters({ search, columns, fields: configuredFields, organizationFilterVisible, className, triggerLabel, disabled = false }: {
+export function DynamicTableFilters({ search, columns, fields: configuredFields, organizationFilterVisible, className, triggerLabel, showTriggerIcon = true, growSearch = false, disabled = false }: {
   organizationFilterVisible?: boolean;
   disabled?: boolean;
   search?: ReactNode;
   columns?: ReactNode;
   triggerLabel?: string;
+  showTriggerIcon?: boolean;
+  growSearch?: boolean;
   fields: readonly TableFilterField[];
   className?: string;
 }) {
@@ -133,8 +135,8 @@ export function DynamicTableFilters({ search, columns, fields: configuredFields,
   };
 
   return (
-    <div data-slot="dynamic-table-filters" className={cn("flex min-w-0 flex-1 flex-col gap-2", styles.filters, className)}>
-      <div className="flex min-w-0 flex-wrap items-center gap-2">
+    <div data-slot="dynamic-table-filters" className={cn("flex min-w-0 flex-1 flex-col gap-2", styles.filters, growSearch && styles.growSearch, className)}>
+      {(search || columns || available.length > 0) && <div className="flex min-w-0 flex-wrap items-center gap-2">
         {search}
         <div data-slot="table-filter-actions" className="flex shrink-0 items-center gap-2">
           {columns}
@@ -142,7 +144,7 @@ export function DynamicTableFilters({ search, columns, fields: configuredFields,
             <Popover open={pickerOpen && !disabled} onOpenChange={(open) => { setPickerOpen(open); if (open) setPickerQuery(""); }}>
               <PopoverTrigger asChild>
                 <Button data-slot="button" ref={filterButton} type="button" variant="outline" size={triggerLabel ? "default" : "icon"} disabled={disabled} aria-label="Tambah filter" title="Tambah filter">
-                  {triggerLabel ? <><Plus aria-hidden="true" className="size-4" />{triggerLabel}</> : <Filter aria-hidden="true" className="size-4" />}
+                  {triggerLabel ? <>{showTriggerIcon && <Plus aria-hidden="true" className="size-4" />}{triggerLabel}</> : <Filter aria-hidden="true" className="size-4" />}
                 </Button>
               </PopoverTrigger>
               <PopoverContent aria-label="Pilih field filter" align="start" sideOffset={6} className={filterPopoverClassName} onCloseAutoFocus={(event) => { if (pendingId) event.preventDefault(); }}>
@@ -158,7 +160,7 @@ export function DynamicTableFilters({ search, columns, fields: configuredFields,
             </Popover>
           )}
         </div>
-      </div>
+      </div>}
       {visible.length > 0 && <div className="flex min-w-0 flex-wrap items-center gap-2" aria-label="Filter tabel aktif">
         {visible.map((field) => <FilterChip key={field.id} field={field} disabled={disabled} open={openId === field.id} onOpenChange={(open) => { setOpenId(open ? field.id : null); if (!open) { if (pendingId === field.id) filterButton.current?.focus(); setPendingId(null); } }} onRemove={() => remove(field)} />)}
         {removable.length > 0 && <Button type="button" variant="ghost" size="sm" className="text-muted-foreground" disabled={disabled} onClick={() => {

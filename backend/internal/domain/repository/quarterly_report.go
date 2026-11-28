@@ -17,9 +17,10 @@ type QuarterlyReportRepository interface {
 }
 
 type QuarterlyReportPeriod struct {
-	ProfileYear        int
-	RuleID             *uuid.UUID
-	MonitoringPeriodID *uuid.UUID
-	Cycle              string
-	Start, End         time.Time
+	ProfileYear            int
+	RuleID                 *uuid.UUID
+	MonitoringPeriodID     *uuid.UUID
+	AnnualProfileVersionID *uuid.UUID
+	Cycle                  string
+	Start, End             time.Time
 }

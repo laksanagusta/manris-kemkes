@@ -310,10 +310,10 @@ test("working papers consumes the shared create dialog instead of a local duplic
   );
 });
 
-test("working paper desktop signing progress hides the redundant count", () => {
+test("working paper desktop signing progress uses shared ordered tiles", () => {
   assert.match(
     pages.workingPapers,
-    /<MonitoringTransactionProgress[\s\S]*?showCount=\{false\}[\s\S]*?ariaLabelOverride=\{`Progres Tanda Tangan:/,
+    /<WorkingPaperSigningProgress\s+signatories=\{paper\.signatories\}/,
   );
   assert.doesNotMatch(pages.workingPapers, /countLabel="TTE"/);
 });
@@ -393,7 +393,7 @@ test("working paper detail renders monitoring readiness once and keeps document 
   assert.match(workingPaperDetail, /headerData\.status === "completed"[\s\S]*setHeaderActions\([\s\S]*<ActionButton variant="outline" onClick=\{handleExport\}>Unduh<\/ActionButton>/);
   assert.match(workingPaperDetail, /setHeaderActions\([\s\S]*<WorkingPaperStatusActions[\s\S]*onExport=\{handleExport\}/);
   assert.match(workingPaperStatusActions, /Ekspor Excel/);
-  assert.match(workingPaperDetail, /<FormPage className="space-y-6 pb-8">/);
+  assert.match(workingPaperDetail, /<FormPage>/);
   assert.match(workingPaperDetail, /lg:grid-cols-\[minmax\(0,1fr\)_380px\]/);
   assert.match(workingPaperDetail, /<WorkingPaperMonitoringQueue[\s\S]*rows=\{queueRows\}[\s\S]*onStart=\{openMonitoringStart\}/);
   assert.doesNotMatch(workingPaperDetail, /renderMonitoringBlocker|working-paper-monitoring-progress/);
@@ -475,7 +475,7 @@ test("the design-system catalogue documents shared page and collection layout pr
   assert.match(designSystemDocument, /[Cc]ompact status badges/);
   assert.match(designSystemDocument, /MitigationProgressForm/);
   assert.match(designSystemDocument, /MitigationProgressDialog/);
-  assert.match(designSystemDocument, /All application icons use Hugeicons/);
+  assert.match(designSystemDocument, /Application icons use Reicon/);
   assert.match(designSystemDocument, /Sidebar icon motion/);
 });
 

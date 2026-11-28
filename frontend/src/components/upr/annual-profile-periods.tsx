@@ -2,11 +2,9 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { ProfilePeriodWorkspace } from "@/lib/api/profile-periods";
-import { periodWindowState } from "@/lib/profile-period-progress";
-import { ProfileDocumentPeriodCell } from "./profile-period-cells";
+import { ProfileDocumentPeriodCell, ProfilePeriodCardHeader } from "./profile-period-cells";
 import { workflowDate, WorkflowError } from "./workflow-ui";
 
-const windowLabels = { open: "Terbuka", closed: "Ditutup", upcoming: "Akan datang" };
 const documentLabels = { workingPaper: "Kertas kerja", evaluation: "Evaluasi" };
 
 export function AnnualProfilePeriods({ workspace, profileId, organizationId, finalized, readOnly, retry }: {
@@ -51,17 +49,10 @@ export function AnnualProfilePeriods({ workspace, profileId, organizationId, fin
               ) : null}
             </div>
           ) : workspace.periods.length ? (
-            <div className="grid gap-2 [grid-template-columns:repeat(auto-fit,minmax(min(100%,200px),1fr))]">
+            <div className="grid gap-3 [grid-template-columns:repeat(auto-fit,minmax(min(100%,248px),1fr))]">
               {workspace.periods.map((period) => (
-                <section key={period.id} aria-label={period.label} className="min-w-0 rounded-lg border border-border bg-card px-3 py-2">
-                  <h3 className="flex flex-wrap items-baseline justify-between gap-x-2 text-xs font-medium">
-                    {period.label}<span className="font-normal text-muted-foreground">{windowLabels[periodWindowState(period)]}</span>
-                  </h3>
-                  {period.scopeLocked && (
-                    <p className="text-xs text-muted-foreground">
-                      {period.needsReview ? "Cakupan historis perlu ditinjau" : "Cakupan terkunci"}
-                    </p>
-                  )}
+                <section key={period.id} aria-label={period.label} className="min-w-0 rounded-lg border border-border bg-card">
+                  <ProfilePeriodCardHeader period={period} />
                   <ProfileDocumentPeriodCell period={period} profileId={profileId} organizationId={organizationId} canCreate={finalized && Boolean(organizationId)} readOnly={readOnly} inline />
                 </section>
               ))}

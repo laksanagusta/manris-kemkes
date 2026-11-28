@@ -2,6 +2,8 @@
 import { CollectionColumnPicker, useCollectionColumns } from "../collections/collection-column-picker";
 import { CreatedAtHead, CreatedAtCell } from "../collections/collection-created-at";
 import { useCollectionSorting } from "../collections/collection-sorting";
+import { riskRegisterActionsWidth, riskRegisterColumns } from "../domain/risk-register-columns";
+import riskTableStyles from "../domain/risk-register-table.module.css";
 
 import { useState } from "react";
 import { formatRiskScore, getRiskLevelFromNilai } from "@/lib/risk";
@@ -27,7 +29,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 
 const rows = [
-  { createdAt: "2026-10-01T09:00:00Z", id: "R-001", title: "Kegagalan pengiriman notifikasi otomatis sinyal kewaspadaan dini penyakit", status: "Aktif", score: 20, monitoring: { q1: "final", q2: "final", q3: "final", q4: "final" }, unit: "Surveilans", category: "Operasional" },
+  { createdAt: "2026-10-01T09:00:00Z", id: "R-001", title: "Kegagalan pengiriman notifikasi otomatis sinyal kewaspadaan dini penyakit", status: "Aktif", score: 14, monitoring: { q1: "final", q2: "final", q3: "final", q4: "final" }, unit: "Direktorat Surveilans dan Karantina Kesehatan", category: "Operasional" },
   { createdAt: "2026-10-02T09:00:00Z", id: "R-002", title: "Ketersediaan logistik", status: "Draf", score: 12, monitoring: { q1: "final", q2: "draft" }, unit: "Logistik", category: "Operasional" },
   { createdAt: "2026-10-03T09:00:00Z", id: "R-003", title: "Kapasitas layanan", status: "Aktif", score: 15, monitoring: { q1: "final", q2: "final", q3: "final" }, unit: "Pelayanan", category: "Strategis" },
   { createdAt: "2026-10-04T09:00:00Z", id: "R-004", title: "Ketepatan data program", status: "Aktif", score: 10, monitoring: { q1: "final", q2: "final" }, unit: "Surveilans", category: "Kepatuhan" },
@@ -35,22 +37,12 @@ const rows = [
   { createdAt: "2026-10-06T09:00:00Z", id: "R-006", title: "Ketersediaan tenaga", status: "Draf", score: 6, monitoring: {}, unit: "Pelayanan", category: "Strategis" },
 ];
 
-const exampleColumns = [
-  { id: "title", label: "Risiko", width: 400, locked: true },
-  { id: "status", label: "Status", width: 112 },
-  { id: "score", label: "Skor", width: 88 },
-  { id: "category", label: "Kategori", width: 160 },
-  { id: "unit", label: "Nama Organisasi", width: 180 },
-  { id: "createdAt", label: "Dibuat", width: 208 },
-] as const;
-
-const codeWidth = 156;
+const [codeColumn, ...exampleColumns] = riskRegisterColumns;
 const selectionWidth = 40;
-const actionsWidth = 52;
 
 export function TableExample() {
   const { visible: columns, picker } = useCollectionColumns(exampleColumns);
-  const tableMinWidth = columns.reduce((width, column) => width + column.width, codeWidth + selectionWidth + actionsWidth);
+  const tableMinWidth = columns.reduce((width, column) => width + column.width, codeColumn.width + selectionWidth + riskRegisterActionsWidth);
   const [status, setStatus] = useState("Semua");
   const [search, setSearch] = useState("");
   const [hasChildren, setHasChildren] = useState(true);
@@ -66,13 +58,16 @@ export function TableExample() {
   const someSelected = visible.some((row) => selected.includes(row.id));
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${riskTableStyles.register}`}>
       <label className="flex items-center gap-2 text-sm"><Checkbox checked={hasChildren} onCheckedChange={(checked) => { setHasChildren(checked === true); setOrganization("all"); setPage(1); }} />Organisasi memiliki child</label>
       <CollectionToolbar
         leading={
           <DynamicTableFilters
+            growSearch
+            triggerLabel="Filter"
+            showTriggerIcon={false}
             organizationFilterVisible={hasChildren}
-            columns={<CollectionColumnPicker {...picker} />}
+            columns={<CollectionColumnPicker {...picker} showIcons={false} />}
             search={<CollectionSearchField value={search} onChange={(event) => setSearch(event.target.value)} aria-label="Cari risiko contoh" placeholder="Cari risiko..." />}
             fields={[
               {
@@ -95,25 +90,25 @@ export function TableExample() {
 
       />
       <CollectionTableCard sorting={collectionSort.controls} stickyActions>
-        <Table aria-label="Tabel referensi risiko" className="table-fixed" style={{ minWidth: tableMinWidth }}>
+        <Table aria-label="Tabel referensi risiko" className={`table-fixed ${riskTableStyles.table}`} style={{ minWidth: tableMinWidth }}>
           <colgroup>
-            <col style={{ width: codeWidth }} />
+            <col style={{ width: codeColumn.width }} />
             <col style={{ width: selectionWidth }} />
             {columns.map((column) => (
-              <col key={column.id} style={{ width: column.width }} />
+              <col key={column.id} style={column.id === "risk" ? undefined : { width: column.width }} />
             ))}
-            <col style={{ width: actionsWidth }} />
+            <col style={{ width: riskRegisterActionsWidth }} />
           </colgroup>
           <CollectionTableHeader>
             <CollectionTableHeaderRow>
-              <CollectionTableHead>Kode risiko</CollectionTableHead>
+              <CollectionTableHead className="text-start">{codeColumn.label}</CollectionTableHead>
               <CollectionTableHead className="px-0 text-center">
                 <Checkbox aria-label="Pilih semua risiko contoh" checked={allSelected ? true : someSelected ? "indeterminate" : false}
                   disabled={!visible.length} onCheckedChange={(checked) => setSelected(checked ? visible.map((row) => row.id) : [])} />
               </CollectionTableHead>
-              {columns.map(({ id, label }) => id === "createdAt"
+              {columns.map(({ id, label }) => id === "created"
                 ? <CreatedAtHead key={id} />
-                : <CollectionTableHead key={id}>{label}</CollectionTableHead>
+                : <CollectionTableHead key={id} className="text-start">{label}</CollectionTableHead>
               )}
               <CollectionTableHead data-collection-action=""><span className="sr-only">Aksi</span></CollectionTableHead>
             </CollectionTableHeaderRow>
@@ -126,14 +121,14 @@ export function TableExample() {
                 <TableCell className="px-0 text-center"><Checkbox aria-label={`Pilih ${row.title}`} checked={selected.includes(row.id)}
                   onCheckedChange={(checked) => setSelected((current) => checked ? [...current, row.id] : current.filter((id) => id !== row.id))} /></TableCell>
                 {columns.map(({ id }) => {
-                  if (id === "title") return <TableCell key={id} id={`table-example-${row.id}`}><RiskTableIdentity title={row.title} /></TableCell>;
+                  if (id === "risk") return <TableCell key={id} id={`table-example-${row.id}`}><RiskTableIdentity title={row.title} wrap /></TableCell>;
                   if (id === "category") return <TableCell key={id}><RiskCategoryIndicator showDot={false} category={row.category} /></TableCell>;
-                  if (id === "score") return <TableCell key={id} className="text-left"><RiskTableScore score={formatRiskScore(row.score)} level={getRiskLevelFromNilai(row.score)} /></TableCell>;
-                  if (id === "createdAt") return <CreatedAtCell key={id} record={row} />;
+                  if (id === "score") return <TableCell key={id} className="text-start"><RiskTableScore score={formatRiskScore(row.score)} level={getRiskLevelFromNilai(row.score)} /></TableCell>;
+                  if (id === "created") return <CreatedAtCell key={id} record={row} />;
                   if (id === "status") {
                     return <TableCell key={id}><Badge variant="secondary" className={row.status === "Aktif" ? "bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300" : row.status === "Draf" ? "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300" : ""}>{row.status}</Badge></TableCell>;
                   }
-                  return <TableCell key={id}>{row[id]}</TableCell>;
+                  return <TableCell key={id} className="whitespace-normal wrap-anywhere">{row.unit}</TableCell>;
                 })}
                 <TableCell data-collection-action="" className="text-center">
                   <DropdownMenu>

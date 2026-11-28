@@ -125,10 +125,11 @@ function SortableColumn({ column, index, onToggle }: {
   );
 }
 
-export function CollectionColumnPicker({ columns, onToggle, onMove }: {
+export function CollectionColumnPicker({ columns, onToggle, onMove, showIcons = true }: {
   columns: readonly PickerColumn[];
   onToggle: (id: string, visible: boolean) => void;
   onMove: (from: number, to: number) => void;
+  showIcons?: boolean;
 }) {
   const titleId = useId();
 
@@ -136,9 +137,9 @@ export function CollectionColumnPicker({ columns, onToggle, onMove }: {
     <Popover>
       <PopoverTrigger asChild>
         <Button data-slot="button" type="button" variant="outline" className="group">
-          <Settings2 aria-hidden="true" />
+          {showIcons && <Settings2 aria-hidden="true" />}
           Kolom
-          <ChevronDown aria-hidden="true" className="text-muted-foreground group-aria-expanded:rotate-180" />
+          {showIcons && <ChevronDown aria-hidden="true" className="text-muted-foreground group-aria-expanded:rotate-180" />}
         </Button>
       </PopoverTrigger>
       <PopoverContent align="start" sideOffset={6} aria-labelledby={titleId}

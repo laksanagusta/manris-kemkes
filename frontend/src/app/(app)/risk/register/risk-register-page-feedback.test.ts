@@ -263,15 +263,16 @@ test("risk form uses concise finalization copy and medium-weight field labels", 
   assert.match(riskFormPage, /\[&_\[data-slot=label\]\]:font-medium/);
 });
 
-test("risk form section headings use the shared form container", () => {
-  const sections = riskFormPage.match(/<FormContainer\s+[\s\S]*?className="scroll-mt-28"/g) ?? [];
+test("risk form section headings use the shared archive cards and index", () => {
+  const sections = riskFormPage.match(/<RiskArchiveSection\s+[^>]*>/g) ?? [];
 
   assert.equal(sections.length, 6);
   for (const section of sections) {
-    assert.match(section, /title="/);
-    assert.match(section, /description=/);
+    assert.doesNotMatch(section, /title=/);
+    assert.doesNotMatch(section, /description=/);
   }
-  assert.match(sections[0], /title="Identifikasi Risiko"/);
+  assert.match(sections[0], /id="identifikasi"/);
+  assert.match(riskFormPage, /<RiskArchiveStack[\s\S]*?onSelect=\{setActiveArchiveSection\}/);
 });
 
 test("risk evaluation metadata keeps values concise, normal, and muted", () => {
@@ -387,7 +388,7 @@ test("active register surfaces use shared design-system components", () => {
   assert.equal(page.match(/<CollectionPagination/g)?.length, 1);
   assert.doesNotMatch(page, /RegisterTabsList|RegisterTableCard|RegisterPagination|<Tabs/);
   assert.match(page, /<CollectionSearchField/);
-  assert.match(page, /<CollectionSearchField[\s\S]*?className="placeholder:text-tertiary-foreground"/);
+  assert.match(page, /<PageStack className=\{riskTableStyles\.register\}/);
   assert.match(page, /<DynamicTableFilters/);
   assert.match(page, /from "@\/components\/ui\/badge"/);
   assert.match(page, /<CollectionDialogCancel/);

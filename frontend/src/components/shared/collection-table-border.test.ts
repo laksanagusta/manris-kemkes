@@ -11,7 +11,7 @@ const catalog = readFileSync(new URL("../../app/(app)/design-system/page.tsx", i
 
 test("shared tables use the Wonder header and body geometry", () => {
   assert.match(styles, /\[data-slot="table"\] \{[^}]*font-size: var\(--text-sm\);/);
-  assert.match(styles, /--table-header: #fbfbfb;/);
+  assert.deepEqual([...styles.matchAll(/--table-header: ([^;]+);/g)].map((match) => match[1]), ["var(--card)"]);
   assert.match(styles, /\[data-slot="table-head"\] \{[^}]*height: 2\.75rem;/);
   assert.doesNotMatch(styles, /\[data-slot="table-head"\] \{[^}]*text-transform:/);
   assert.match(styles, /\[data-slot="table-body"\] > \[data-slot="table-row"\] \{[^}]*height: 2\.75rem;/);

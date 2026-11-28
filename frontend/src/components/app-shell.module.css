@@ -1,0 +1,17 @@
+.bottomInset {
+  padding-block-end: max(calc(var(--spacing) * 8), env(safe-area-inset-bottom));
+}
+
+:global([data-risk-detail-tabs-slot]:empty) {
+  display: none;
+}
+
+.content {
+  flex: 1 0 auto;
+}
+
+/* Let active conversations size their own message scroller and composer. */
+.content:has(> :global(.agent-panel-active)) {
+  flex: 1 1 0%;
+  padding-block-end: 0;
+}

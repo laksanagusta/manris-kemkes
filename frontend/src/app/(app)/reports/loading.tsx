@@ -1,5 +1,5 @@
-import { RiskSummarySkeleton } from "@/components/report/risk-summary-skeleton";
+import { AnnualProfileProgressSkeleton } from "@/components/report/annual-profile-progress-skeleton";
 
 export default function Loading() {
-  return <RiskSummarySkeleton />;
+  return <AnnualProfileProgressSkeleton />;
 }
