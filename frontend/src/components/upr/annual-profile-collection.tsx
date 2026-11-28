@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { TableLoadingSkeleton } from "@/components/shared/design-system/feedback/loading-skeleton";
 import type { MonitoringRule } from "@/lib/api/monitoring-rules";
 import type { ProfilePeriodWorkspace } from "@/lib/api/profile-periods";
