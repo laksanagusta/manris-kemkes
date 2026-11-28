@@ -188,27 +188,6 @@ export function AnnualProfileCollection({
                     <TableCell className="tabular-nums whitespace-normal">
                       <div className="space-y-1">
                         {latest.code ? (
-<<<<<<< HEAD
-                          embedded ? (
-                            <Button
-                              variant="link"
-                              size="sm"
-                              className="h-auto min-h-8 px-0 py-0 text-sm font-normal tabular-nums text-muted-foreground no-underline hover:text-primary hover:no-underline"
-                              aria-label={`${openLabel} ${latest.code} · ${year} · ${ownerName}`}
-                              onClick={() => openProfile(year, latest.id)}
-                            >
-                              {latest.code}
-                            </Button>
-                          ) : (
-                            <Link
-                              className="inline-flex min-h-8 items-center rounded-sm text-sm font-normal tabular-nums text-muted-foreground no-underline hover:text-primary hover:no-underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                              href={annualProfileHref(year, latest.id)}
-                              aria-label={`${openLabel} ${latest.code} · ${year} · ${ownerName}`}
-                            >
-                              {latest.code}
-                            </Link>
-                          )
-=======
                           <CollectionCode
                             code={latest.code}
                             href={embedded ? undefined : annualProfileHref(year, latest.id)}
@@ -216,7 +195,6 @@ export function AnnualProfileCollection({
                             linkClassName="inline-flex h-auto min-h-8 items-center rounded-sm px-0 py-0 text-sm font-normal tabular-nums text-primary no-underline hover:opacity-80 hover:no-underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                             linkLabel={`${openLabel} ${latest.code} · ${year} · ${ownerName}`}
                           />
->>>>>>> 623b7d77638910f1cb7e476927b0fbc568935826
                         ) : (
                           <span className="text-xs font-normal text-muted-foreground">—</span>
                         )}

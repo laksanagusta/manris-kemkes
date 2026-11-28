@@ -16,13 +16,9 @@ export function TypographyExample() {
         <div className="space-y-4">
           <p className="text-page-title tracking-normal">Judul halaman</p>
           <p className="text-section-title tracking-[-0.015em]">Judul bagian</p>
-<<<<<<< HEAD
-          <p className="text-sm leading-snug text-muted-foreground">Teks pendukung dan label kontrol memakai Geist 14 px.</p>
-=======
           <p className="text-sm text-secondary-foreground">Label kontrol</p>
           <p className="text-sm leading-snug text-muted-foreground">Teks pendukung dan label kontrol memakai Geist 14 px.</p>
           <p className="text-sm text-tertiary-foreground">Diperbarui 2 hari lalu</p>
->>>>>>> 623b7d77638910f1cb7e476927b0fbc568935826
           <div>
             <p className="text-table-label text-table-header-foreground">Label kolom</p>
             <p className="mt-1 text-sm font-medium tabular-nums">1.234,56</p>

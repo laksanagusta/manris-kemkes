@@ -1,8 +1,6 @@
 .table > :global([data-slot="table-body"]) > :global([data-slot="table-row"]) {
   height: 3rem;
 }
-<<<<<<< HEAD
-=======
 
 .register :global([data-slot="collection-search"] input)::placeholder {
   color: var(--secondary-foreground);
@@ -44,4 +42,3 @@
     min-height: 2.75rem;
   }
 }
->>>>>>> 623b7d77638910f1cb7e476927b0fbc568935826

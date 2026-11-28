@@ -997,7 +997,6 @@ export default function RiskRegisterPage() {
       <CollectionPageHeader title="Risiko" />
       <div className="space-y-4">
         <CollectionToolbar
-          className="[--collection-toolbar-control-height:36px]"
           wrapActions
           leading={
             <RiskRegisterFilterToolbar

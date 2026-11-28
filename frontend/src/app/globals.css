@@ -140,10 +140,6 @@
 }
 
 :root {
-<<<<<<< HEAD
-  --app-sidebar-width: 280px;
-  --workspace: #fafafa;
-=======
   --stone-50: #fafaf9;
   --stone-100: #f5f5f4;
   --stone-200: #efedec;
@@ -153,7 +149,6 @@
   --stone-900: #1c1917;
   --app-sidebar-width: 280px;
   --workspace: var(--card);
->>>>>>> 623b7d77638910f1cb7e476927b0fbc568935826
   --workspace-data: #726efb;
   --surface-radius: 10px;
   --surface-outline: var(--border);
@@ -213,19 +208,11 @@
   --disabled-input-surface: var(--stone-100);
   --disabled-input-foreground: var(--foreground);
   --disabled-input-border: var(--border);
-<<<<<<< HEAD
-  --card-subtle-surface: #eeeeee;
-  --secondary-card-surface: #efefef;
-  --sunken: #efefef;
-  --table-header: var(--card);
-  --table-foreground: #313131;
-=======
   --card-subtle-surface: var(--stone-50);
   --secondary-card-surface: var(--stone-100);
   --sunken: var(--secondary-card-surface);
   --table-header: var(--card);
   --table-foreground: var(--foreground);
->>>>>>> 623b7d77638910f1cb7e476927b0fbc568935826
   --table-divider: var(--border);
   --table-frame-shadow: 0 0 0 1px var(--border), 0 1px 2px rgb(0 0 0 / 5%);
   --table-checkbox-border: #929292;
@@ -336,10 +323,7 @@
   --badge-cyan-foreground: #8ed9dd;
   --background: var(--sidebar);
   --foreground: oklch(0.985 0 0);
-<<<<<<< HEAD
-=======
   --white-field-autofill-foreground: #202020;
->>>>>>> 623b7d77638910f1cb7e476927b0fbc568935826
   --table-foreground: var(--foreground);
   --table-frame-shadow: var(--surface-shadow-low);
   --table-checkbox-border: var(--ring);

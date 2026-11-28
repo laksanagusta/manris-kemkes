@@ -80,18 +80,7 @@ export function CollectionSortLabel({ label, active, direction, onClick }: {
       aria-label={`Urutkan ${label} ${next.direction === "desc" ? "menurun" : "menaik"}`}
     >
       <span>{label}</span>
-<<<<<<< HEAD
-      <svg aria-hidden="true" data-collection-sort-icon="" className="size-3 shrink-0" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1" strokeLinecap="round" strokeLinejoin="round">
-        {!active || direction === "asc" ? (
-          <path d="M3.5 4.5 6 2l2.5 2.5" transform={active ? "translate(0 2.75)" : undefined} />
-        ) : null}
-        {!active || direction === "desc" ? (
-          <path d="M3.5 7.5 6 10l2.5-2.5" transform={active ? "translate(0 -2.75)" : undefined} />
-        ) : null}
-      </svg>
-=======
       <SortIcon aria-hidden="true" data-collection-sort-icon="" className="size-3 shrink-0" />
->>>>>>> 623b7d77638910f1cb7e476927b0fbc568935826
     </button>
   );
 }

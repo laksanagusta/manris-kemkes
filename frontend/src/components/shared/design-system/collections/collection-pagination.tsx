@@ -44,11 +44,7 @@ export function CollectionPagination({
 
   return (
     <Container data-collection-pagination="" className={`flex min-w-0 flex-col items-stretch gap-3 text-sm md:flex-row md:flex-wrap md:items-center md:justify-between ${standalone ? "bg-transparent" : "bg-table-footer px-5 py-3"}`}>
-<<<<<<< HEAD
-      <p className="text-tertiary-foreground">
-=======
       <p data-pagination-label="" className="text-tertiary-foreground">
->>>>>>> 623b7d77638910f1cb7e476927b0fbc568935826
         Menampilkan {total === 0 ? 0 : (page - 1) * pageSize + 1} sampai{" "}
         {Math.min(page * pageSize, total)} dari {total} {itemLabel}
       </p>
@@ -87,11 +83,7 @@ export function CollectionPagination({
           </Button>
         </div>
         <div className="flex items-center gap-3">
-<<<<<<< HEAD
-          <span className="text-tertiary-foreground">Items per page</span>
-=======
           <span data-pagination-label="" className="text-tertiary-foreground">Items per page</span>
->>>>>>> 623b7d77638910f1cb7e476927b0fbc568935826
           <Select
             value={pageSize.toString()}
             onValueChange={(value) => onPageSizeChange(Number(value))}
