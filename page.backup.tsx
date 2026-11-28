@@ -51,7 +51,7 @@ import {
   ChevronUp,
   ChevronDown,
   Trash2,
-} from "lucide-react";
+} from "@/components/shared/icons";
 
 import {
   getRiskLevelFromNilai,

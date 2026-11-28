@@ -30,6 +30,7 @@ import { createDisplayDateFormatter, formatDisplayDate } from "@/lib/display-dat
 import { PropertyList, PropertyLabel } from "@/components/shared/design-system/layout/property-list";
 
 import { DetailSidePanel } from "@/components/shared/design-system/layout/detail-side-panel";
+import { RiskArchiveStack, RiskArchiveSection } from "@/components/shared/design-system/domain/risk-archive-form";
 import { RiskDetailTabs } from "@/components/risk/risk-detail-tabs";
 import { RiskMonitoringList } from "@/components/risk/risk-monitoring-list";
 
@@ -121,7 +122,6 @@ import { EditableList } from "@/components/shared/editable-list";
 import { EditableInsetItems } from "@/components/shared/editable-inset-items";
 import { FormPage } from "@/components/shared/form-shell";
 import {
-  FormContainer,
   FormGroup,
   ActionButton,
   ActionIconButton,
@@ -181,7 +181,7 @@ import {
 import {
   currentAssessmentCycle,
 } from "@/lib/risk-cycle-options";
-import { RiskCreationContext, RiskFormReadiness, RiskFinalizationReview } from "@/components/shared/design-system/domain/risk-creation-guidance";
+import { RiskCreationContext, RiskFinalizationReview } from "@/components/shared/design-system/domain/risk-creation-guidance";
 import { hasRiskScore, riskFinalizationCycle } from "@/lib/risk-creation";
 import { buildRiskRegisterPayload } from "@/lib/risk-register-payload";
 
@@ -422,6 +422,12 @@ type SectionStatus = {
   description: string;
   checks: boolean[];
   hint: string;
+};
+
+const approvalSection = {
+  id: "approval-line" as const,
+  title: "Alur Persetujuan",
+  description: "Susun reviewer dan rantai persetujuan pimpinan",
 };
 
 const SIDE_PANEL_PREVIEW_LIMIT = 5;
@@ -756,6 +762,20 @@ export default function RiskInputPage() {
     const tab = searchParams.get("tab");
     return tab === "monitoring" || tab === "treatment" ? tab : "overview";
   });
+  const [activeArchiveSection, setActiveArchiveSection] = useState<SectionId | typeof approvalSection.id | "">("identifikasi");
+  useEffect(() => {
+    const selectLinkedSection = () => {
+      const id = window.location.hash.slice(1);
+      if (id === "identifikasi" || id === "analisis" || id === "evaluasi" ||
+        id === "penanganan" || id === "target" ||
+        (id === approvalSection.id && riskApprovalCapabilityBehavior.showsApprovalLineEditor)) {
+        setActiveArchiveSection(id);
+      }
+    };
+    selectLinkedSection();
+    window.addEventListener("hashchange", selectLinkedSection);
+    return () => window.removeEventListener("hashchange", selectLinkedSection);
+  }, [riskApprovalCapabilityBehavior.showsApprovalLineEditor]);
   const [detailMitigationFilter,setDetailMitigationFilter] = useState("all");
   const treatmentPanelRef = useRef<HTMLDivElement>(null);
   const [loadingVersionId, setLoadingVersionId] = useState<string | null>(initialRequestedRiskId);
@@ -1739,6 +1759,22 @@ export default function RiskInputPage() {
       progress: done ? 100 : Math.round((checks.filter(Boolean).length / checks.length) * 100),
     };
   });
+  const archiveSections = [
+    ...readinessSections.map(({ id, title, description, done }) => ({
+      id,
+      title,
+      description,
+      complete: done,
+    })),
+    ...(riskApprovalCapabilityBehavior.showsApprovalLineEditor
+      ? [{
+          ...approvalSection,
+          complete:
+            (!riskApprovalCapabilityBehavior.requiresReviewerSelection || Boolean(reviewerId)) &&
+            (!riskApprovalCapabilityBehavior.requiresApprovalLineSelection || isApprovalLineReady),
+        }]
+      : []),
+  ];
   const missingSections = readinessSections.filter(section => !section.done);
   const lockedControlClass =
     "disabled:pointer-events-none disabled:cursor-not-allowed disabled:!bg-disabled-input-surface disabled:!text-disabled-foreground disabled:!opacity-100";
@@ -1751,6 +1787,7 @@ export default function RiskInputPage() {
     if (isRiskLocked || !hasUnsavedWork) return;
     allowNavigationRef.current = false;
     const currentHref = window.location.href;
+    const currentUrl = new URL(currentHref);
     const currentHistoryState = window.history.state;
     const unload = (event: BeforeUnloadEvent) => {
       if (allowNavigationRef.current) return;
@@ -1768,7 +1805,10 @@ export default function RiskInputPage() {
       if (!isSubmitting) setLeaveHref(destination.href);
     };
     const traverse = (event: PopStateEvent) => {
-      if (allowNavigationRef.current || window.location.href === currentHref) return;
+      if (
+        allowNavigationRef.current ||
+        (window.location.pathname === currentUrl.pathname && window.location.search === currentUrl.search)
+      ) return;
       const destination = window.location.href;
       // Restore this form before Next handles traversal, then use the same
       // save/discard decision as a normal link. Preserve Next's history state.
@@ -1795,8 +1835,9 @@ export default function RiskInputPage() {
   const canStartMonitoring = canManageMonitoring && monitoringLookupStatus === "ready" && Boolean(openRiskDrafts) && !openRiskDrafts?.monitoringId &&
     (Boolean(openRiskDrafts?.revisionBlockedPeriod) || (!openRiskDrafts?.revisionRiskId && !openRiskDrafts?.revisionMonitoringId));
 
-  const scrollToSection = (sectionId: SectionId) => {
+  const scrollToSection = (sectionId: SectionId | typeof approvalSection.id) => {
     setActiveDetailTab("overview");
+    setActiveArchiveSection(sectionId);
     if (typeof document === "undefined") return;
     setTimeout(() => {
       const element = document.getElementById(sectionId);
@@ -2325,6 +2366,7 @@ export default function RiskInputPage() {
       !reviewerId
     ) {
       toast.error("Pilih Reviewer terlebih dahulu.");
+      scrollToSection(approvalSection.id);
       return;
     }
 
@@ -2335,6 +2377,7 @@ export default function RiskInputPage() {
       toast.error(
         "Lengkapi setiap baris penyetuju atau hapus baris yang masih kosong.",
       );
+      scrollToSection(approvalSection.id);
       return;
     }
 
@@ -2684,6 +2727,7 @@ export default function RiskInputPage() {
                 riskId={riskId}
                 drafts={openRiskDrafts}
                 status={monitoringLookupStatus}
+                showMonitoringAction={false}
                 disabled={isSubmitting}
                 monitoringPending={isStartingMonitoring}
                 onStartMonitoring={handleOpenMonitoringDialog}
@@ -2770,37 +2814,33 @@ export default function RiskInputPage() {
 
         <RiskDetailTabs
           enabled={Boolean(riskId)}
+          portalToTopbar
           value={activeDetailTab}
           onValueChange={setActiveDetailTab}
           overview={
         <div className={cn(
-          "grid w-full min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_420px] xl:items-start",
+          "grid w-full min-w-0 gap-6 xl:grid-cols-[minmax(0,1fr)_360px] xl:items-start",
           !isRiskLocked && "xl:grid-rows-[auto_1fr]",
         )}>
           {!isRiskLocked ? (
-            <div className="min-w-0 space-y-6 xl:col-start-2 xl:row-start-1">
+            <div className="min-w-0 xl:col-start-2 xl:row-start-1">
               <RiskCreationContext
                 saveMessage={saveMessage}
                 revisionVersion={isProfileRevision ? riskVersionNumber ?? undefined : undefined}
-              />
-              <RiskFormReadiness
-                sections={readinessSections}
-                onNavigate={scrollToSection}
               />
             </div>
           ) : null}
           <div className={cn("min-w-0 xl:col-start-1 xl:row-start-1", !isRiskLocked && "xl:row-span-2")}>
             <form
               onSubmit={(e) => e.preventDefault()}
-              className="min-w-0 w-full [&_[data-slot=label]]:font-medium"
+              className="min-w-0 w-full space-y-6 [&_[data-slot=label]]:font-medium"
             >
-              <div className="space-y-6">
-                <FormContainer
-                  id="identifikasi"
-                  title="Identifikasi Risiko"
-                  description={sectionStatuses[0].description}
-                  className="scroll-mt-28"
-                >
+              <RiskArchiveStack
+                sections={archiveSections}
+                active={activeArchiveSection}
+                onSelect={setActiveArchiveSection}
+              >
+                <RiskArchiveSection id="identifikasi">
                   <FormGroup className="space-y-5">
                     <div className="flex flex-col gap-2">
                       <div className="flex items-start justify-between gap-2">
@@ -3056,14 +3096,9 @@ export default function RiskInputPage() {
                       <FormErrorMessage error={errors.impacts?.message} />
                     </div>
                   </FormGroup>
-                </FormContainer>
+                </RiskArchiveSection>
 
-                <FormContainer
-                  id="analisis"
-                  title="Analisis Risiko"
-                  description={sectionStatuses[1].description}
-                  className="scroll-mt-28"
-                >
+                <RiskArchiveSection id="analisis">
                   <FormGroup className="space-y-5">
                     <div className="flex flex-col gap-2">
                       <FieldContent>
@@ -3169,14 +3204,9 @@ export default function RiskInputPage() {
                       />
                     </div>
                   </FormGroup>
-                </FormContainer>
+                </RiskArchiveSection>
 
-                <FormContainer
-                  id="evaluasi"
-                  title="Evaluasi Risiko"
-                  description={sectionStatuses[2].description}
-                  className="scroll-mt-28"
-                >
+                <RiskArchiveSection id="evaluasi">
                   <FormGroup className="space-y-5">
                     <div className="grid gap-5 text-sm font-normal text-muted-foreground md:grid-cols-2">
                       <div className="flex flex-col gap-2">
@@ -3234,14 +3264,9 @@ export default function RiskInputPage() {
                       />
                     </div>
                   </FormGroup>
-                </FormContainer>
+                </RiskArchiveSection>
 
-                <FormContainer
-                  id="penanganan"
-                  title="Rencana Penanganan"
-                  description={sectionStatuses[3].description}
-                  className="scroll-mt-28"
-                >
+                <RiskArchiveSection id="penanganan">
                   <FormGroup className="space-y-5">
                     <div className="space-y-3">
                       <Controller
@@ -3328,14 +3353,9 @@ export default function RiskInputPage() {
                       />
                     </div>
                   </FormGroup>
-                </FormContainer>
+                </RiskArchiveSection>
 
-                <FormContainer
-                  id="target"
-                  title="Target Penurunan"
-                  description={sectionStatuses[4].description}
-                  className="scroll-mt-28"
-                >
+                <RiskArchiveSection id="target">
                   <FormGroup className="space-y-5">
                     <div className="flex flex-col gap-2">
                       <FieldContent>
@@ -3364,15 +3384,10 @@ export default function RiskInputPage() {
                       />
                     </div>
                   </FormGroup>
-                </FormContainer>
+                </RiskArchiveSection>
 
                 {riskApprovalCapabilityBehavior.showsApprovalLineEditor && (
-                  <FormContainer
-                    id="approval-line"
-                    title="Alur Persetujuan"
-                    description="Susun reviewer dan rantai persetujuan pimpinan"
-                    className="scroll-mt-28"
-                  >
+                  <RiskArchiveSection id={approvalSection.id}>
                     <FormGroup className="space-y-5">
                       <div className="space-y-3">
                         <div className="flex flex-col gap-2">
@@ -3436,28 +3451,28 @@ export default function RiskInputPage() {
                         />
                       </div>
                     </FormGroup>
-                  </FormContainer>
+                  </RiskArchiveSection>
                 )}
-                {(annualProfileReturn || isProfileRevision) && !isRiskLocked && (riskVersionNumber ?? 0) > 1 && (
-                  <RiskRevisionReasonCard
-                    id="annual-risk-change-reason"
-                    label={isProfileRevision ? "Alasan revisi" : "Alasan perubahan asesmen"}
-                    value={annualChangeReason}
-                    onChange={setAnnualChangeReason}
-                    required={isProfileRevision}
-                  />
-                )}
-              </div>
+              </RiskArchiveStack>
+              {(annualProfileReturn || isProfileRevision) && !isRiskLocked && (riskVersionNumber ?? 0) > 1 && (
+                <RiskRevisionReasonCard
+                  id="annual-risk-change-reason"
+                  label={isProfileRevision ? "Alasan revisi" : "Alasan perubahan asesmen"}
+                  value={annualChangeReason}
+                  onChange={setAnnualChangeReason}
+                  required={isProfileRevision}
+                />
+              )}
             </form>
           </div>
 
           <aside className={cn("min-w-0 self-start xl:col-start-2", isRiskLocked ? "xl:row-start-1" : "xl:row-start-2")}>
             <div className="space-y-6 xl:sticky xl:top-6">
-              <DetailSidePanel>
+              <DetailSidePanel unframed={isRiskLocked}>
                     <section aria-labelledby="risk-side-properties">
                       <h2
                         id="risk-side-properties"
-                        className="text-sm font-semibold capitalize text-primary"
+                        className="text-sm font-medium capitalize text-secondary-foreground"
                       >
                         Properti
                       </h2>
@@ -3490,12 +3505,12 @@ export default function RiskInputPage() {
                     {!riskId && (
                     <section
                       aria-labelledby="risk-side-treatment"
-                      className="border-t border-dashed border-border pt-5"
+                      className="border-t border-border pt-5"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <h2
                           id="risk-side-treatment"
-                          className="text-sm font-semibold capitalize text-primary"
+                          className="text-sm font-medium capitalize text-secondary-foreground"
                         >
                           Penanganan
                         </h2>
@@ -3514,12 +3529,12 @@ export default function RiskInputPage() {
 
                     <section
                       aria-labelledby="risk-side-events"
-                      className="border-t border-dashed border-border pt-5"
+                      className="border-t border-border pt-5"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <h2
                           id="risk-side-events"
-                          className="text-sm font-semibold capitalize text-primary"
+                          className="text-sm font-medium capitalize text-secondary-foreground"
                         >
                           Kejadian
                         </h2>
@@ -3600,12 +3615,12 @@ export default function RiskInputPage() {
 
                     <section
                       aria-labelledby="risk-side-version-history"
-                      className="border-t border-dashed border-border pt-5"
+                      className="border-t border-border pt-5"
                     >
                       <div className="flex items-center justify-between gap-3">
                         <h2
                           id="risk-side-version-history"
-                          className="text-sm font-semibold capitalize text-primary"
+                          className="text-sm font-medium capitalize text-secondary-foreground"
                         >
                           Riwayat versi
                         </h2>
@@ -3635,7 +3650,7 @@ export default function RiskInputPage() {
                     </section>
                     <section
                       aria-labelledby="risk-side-log"
-                      className="border-t border-dashed border-border pt-5"
+                      className="border-t border-border pt-5"
                     >
                       {riskId ? (
                         <RiskLogTimeline
@@ -3648,7 +3663,7 @@ export default function RiskInputPage() {
                         <>
                           <h2
                             id="risk-side-log"
-                            className="text-sm font-semibold capitalize text-primary"
+                            className="text-sm font-medium capitalize text-secondary-foreground"
                           >
                             Catatan
                           </h2>

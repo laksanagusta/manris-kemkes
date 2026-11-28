@@ -1,21 +1,9 @@
 .button {
   border-radius: var(--control-radius);
-  --button-primary-surface: #181818;
-  --button-primary-foreground: #fff;
-  --button-primary-hover: #303030;
   --button-primary-edge: var(--button-primary-surface);
-  --button-secondary-surface: rgb(13 13 13 / 8%);
-  --button-outline-shadow: 0 0 0 1px var(--border);
+  --button-outline-shadow: 0 0 0 1px var(--button-outline-edge);
 }
 
-:global(.dark) .button {
-  --button-primary-surface: #ededed;
-  --button-primary-foreground: #181818;
-  --button-primary-hover: #d5d5d5;
-  --button-secondary-surface: rgb(255 255 255 / 8%);
-}
-
-/* Shared Button treatment follows the Wonder API keys reference. */
 .button.button:global(.button-primary),
 .button.button:global(.button-outline),
 .button.button:global(.button-secondary) {
@@ -64,7 +52,7 @@
 
 .button.button:global(.button-secondary) {
   background-color: var(--button-secondary-surface);
-  color: var(--foreground);
+  color: var(--button-secondary-foreground);
 }
 
 .button.button:global(.button-primary):is(:disabled, [aria-disabled="true"]) {

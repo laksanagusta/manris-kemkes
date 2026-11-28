@@ -58,10 +58,9 @@ export function TableExample() {
   const someSelected = visible.some((row) => selected.includes(row.id));
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${riskTableStyles.register}`}>
       <label className="flex items-center gap-2 text-sm"><Checkbox checked={hasChildren} onCheckedChange={(checked) => { setHasChildren(checked === true); setOrganization("all"); setPage(1); }} />Organisasi memiliki child</label>
       <CollectionToolbar
-        className="[--collection-toolbar-control-height:36px]"
         leading={
           <DynamicTableFilters
             growSearch

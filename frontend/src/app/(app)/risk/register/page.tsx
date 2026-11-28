@@ -206,7 +206,6 @@ function RiskRegisterFilterToolbar({
       columns={columns}
       search={
         <CollectionSearchField
-          className="placeholder:text-tertiary-foreground"
           value={search}
           onChange={(event) => onSearchChange(event.target.value)}
           placeholder={searchPlaceholder}
@@ -994,11 +993,10 @@ export default function RiskRegisterPage() {
     />
   );
   return (
-    <PageStack data-register-motion data-busy={loading || isPending}>
+    <PageStack className={riskTableStyles.register} data-register-motion data-busy={loading || isPending}>
       <CollectionPageHeader title="Risiko" />
       <div className="space-y-4">
         <CollectionToolbar
-          className="[--collection-toolbar-control-height:36px]"
           wrapActions
           leading={
             <RiskRegisterFilterToolbar

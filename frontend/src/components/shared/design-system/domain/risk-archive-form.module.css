@@ -1,0 +1,262 @@
+.archive {
+  --archive-lip: 40px;
+  --archive-step: 18px;
+  --archive-top-radius: 6px;
+  --archive-label-width: 15rem;
+  --archive-hover-lift: 8px;
+  --archive-ease-out: cubic-bezier(.22, 1, .36, 1);
+  --archive-motion: 240ms var(--archive-ease-out);
+  min-width: 0;
+  isolation: isolate;
+}
+
+.item {
+  position: relative;
+  --archive-tab-inset: clamp(12px, 10%, 88px);
+}
+
+.tabLink {
+  position: relative;
+  display: block;
+  width: 100%;
+  min-height: calc(var(--archive-lip) + var(--archive-step));
+  --archive-tab-lift: 0px;
+  color: var(--secondary-foreground);
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .5px;
+  line-height: 1rem;
+  text-align: center;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.item:last-child .tabLink {
+  min-height: calc(var(--archive-lip) + var(--archive-step) + var(--archive-end-space, 0px));
+}
+
+.item:last-child[data-state="closed"] .tabLink {
+  --archive-end-space: var(--archive-lip);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .item:last-child .tabLink {
+    transition: min-height var(--archive-motion);
+  }
+}
+
+.paper {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.paper::before {
+  position: absolute;
+  inset: calc(var(--archive-lip) + var(--archive-top-radius) - var(--archive-tab-lift)) 0 calc(-1 * var(--archive-lip));
+  border-inline: 1px solid var(--border);
+  background: var(--card);
+  content: "";
+}
+
+.item + .item .paper::after {
+  position: absolute;
+  inset: 0 0 auto;
+  height: calc(var(--archive-lip) + var(--archive-top-radius));
+  border-inline: 1px solid var(--border);
+  content: "";
+}
+
+.item:last-child .paper::before,
+.item[data-state="open"] .paper::before {
+  inset-block-end: -1px;
+}
+
+.item:last-child[data-state="closed"] .paper::before {
+  border-block-end: 1px solid var(--border);
+  border-end-start-radius: .75rem;
+  border-end-end-radius: .75rem;
+}
+
+.tabFace {
+  position: absolute;
+  inset: var(--archive-lip) 0 auto;
+  z-index: 1;
+  display: grid;
+  grid-template-rows: var(--archive-lip);
+  transform: translateY(calc(-100% - var(--archive-tab-lift)));
+  pointer-events: none;
+}
+
+.tabEdge {
+  position: absolute;
+  inset: 0 0 calc(-1 * var(--archive-top-radius));
+  filter: drop-shadow(0 -1px 1.5px rgb(0 0 0 / 4%));
+  clip-path: inset(-5px -5px 0);
+}
+
+.tabEdge::before {
+  position: absolute;
+  inset: calc(var(--archive-lip) - 1px) 0 0;
+  border: 1px solid var(--border);
+  border-block-end: 0;
+  border-start-start-radius: var(--archive-top-radius);
+  border-start-end-radius: var(--archive-top-radius);
+  background: var(--card);
+  content: "";
+}
+
+.tabShape {
+  position: absolute;
+  inset-inline-start: var(--archive-tab-inset);
+  width: min(var(--archive-label-width), calc(100% - 2 * var(--archive-tab-inset)));
+  height: var(--archive-lip);
+  overflow: visible;
+  fill: var(--card);
+  stroke: var(--border);
+  stroke-width: 1px;
+}
+
+.item:nth-child(even) .tabShape {
+  inset-inline: auto var(--archive-tab-inset);
+}
+
+.tabText {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: min(var(--archive-label-width), calc(100% - 2 * var(--archive-tab-inset)));
+  margin-inline-start: var(--archive-tab-inset);
+  padding: .125rem 1.5rem 0;
+}
+
+.tabTitleLine {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  gap: .5rem;
+}
+
+.tabTitle {
+  font-size: 11px;
+  line-height: 14px;
+}
+
+.completionDot {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 1rem;
+  height: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--card);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 6%);
+}
+
+.completionDot::after {
+  width: .625rem;
+  height: .625rem;
+  border-radius: 50%;
+  background: var(--border);
+  content: "";
+  transition: background-color 160ms var(--archive-ease-out);
+}
+
+.completionDot[data-complete="true"]::after {
+  background: var(--badge-green-foreground);
+}
+
+.item:nth-child(even) .tabText {
+  justify-self: end;
+  margin-inline: 0 var(--archive-tab-inset);
+}
+
+.tabLink:focus-visible {
+  --archive-tab-lift: var(--archive-hover-lift);
+}
+
+.item:first-child .tabLink:focus-visible {
+  --archive-tab-lift: 12px;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .tabLink:hover {
+    --archive-tab-lift: var(--archive-hover-lift);
+  }
+
+  .item:first-child .tabLink:hover {
+    --archive-tab-lift: 12px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .tabFace {
+    transition: transform 160ms var(--archive-ease-out);
+  }
+  .paper::before {
+    transition: inset-block-start 160ms var(--archive-ease-out);
+  }
+}
+
+.tabLink:focus-visible {
+  --archive-tab-lift: var(--archive-hover-lift);
+  outline: none;
+}
+
+.tabLink:focus-visible .tabText {
+  outline: 2px solid var(--ring);
+  outline-offset: -4px;
+  border-radius: 1rem;
+}
+
+.sheet {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 0;
+  overflow: clip;
+  background: var(--card);
+  transition: height var(--archive-motion);
+}
+
+.item[data-state="open"] .sheet {
+  height: var(--archive-panel-height, auto);
+}
+
+/* The lower panel is clipped from its top edge in either direction. */
+.archive[data-direction="down"] .item[data-state="closed"] .sheet,
+.archive[data-direction="up"] .item[data-state="open"] .sheet {
+  justify-content: flex-end;
+}
+
+.panel {
+  flex: none;
+  border-inline: 1px solid var(--border);
+  border-radius: 0;
+  background: var(--card);
+}
+
+.item:last-child .panel {
+  border-block-end: 1px solid var(--border);
+  border-end-start-radius: .75rem;
+  border-end-end-radius: .75rem;
+}
+
+@media (max-width: 40rem) {
+  .archive {
+    --archive-step: 10px;
+  }
+
+  .item {
+    --archive-tab-inset: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet,
+  .completionDot::after {
+    transition: none;
+  }
+}

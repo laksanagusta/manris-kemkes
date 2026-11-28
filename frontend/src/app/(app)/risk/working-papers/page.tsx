@@ -22,6 +22,7 @@ import {
 } from "@/lib/api/working-papers";
 import type { WorkingPaper, WorkingPaperStatus } from "@/types/working-paper";
 import { getStatusBadgeClassName, toBadgeVariant } from "@/lib/badge-variant";
+import { WorkingPaperSigningProgress } from "@/components/shared/design-system/domain/working-paper-signing-progress";
 import { WorkingPaperProgressCollapsible } from "./_components/working-paper-progress-collapsible";
 
 import {
@@ -45,7 +46,6 @@ import {
   CollectionTableHeader,
   CollectionTableHeaderRow,
   CollectionToolbar,
-  MonitoringTransactionProgress,
 } from "@/components/shared/design-system";
 import {
   AccentButton,
@@ -191,31 +191,6 @@ function useDebouncedValue<T>(value: T, delay: number) {
   }, [delay, value]);
 
   return debouncedValue;
-}
-
-function WorkingPaperSigningProgress({
-  signatories,
-}: {
-  signatories: WorkingPaper["signatories"];
-}) {
-  if (signatories.length === 0) {
-    return <span className="text-sm text-muted-foreground">-</span>;
-  }
-
-  const signedCount = signatories.filter(
-    (signatory) => signatory.status === "signed",
-  ).length;
-
-  return (
-    <MonitoringTransactionProgress
-      items={signatories.map((signatory) => ({
-        label: signatory.signer_name || `Penandatangan ${signatory.sequence_no}`,
-        status: signatory.status === "signed" ? "final" : "draft",
-      }))}
-      showCount={false}
-      ariaLabelOverride={`Progres Tanda Tangan: ${signedCount} dari ${signatories.length} penandatangan sudah menandatangani.`}
-    />
-  );
 }
 
 export default function WorkingPapersPage() {

@@ -69,10 +69,10 @@ export function SidebarBrandHeader({
           href="/overview"
           className={cn(
             "font-logo flex min-w-0 items-center gap-2 rounded-md font-semibold lowercase tracking-[-0.4px] text-foreground outline-hidden focus-visible:ring-2 focus-visible:ring-ring",
-            mobile ? "text-lg leading-6" : "text-2xl leading-7",
+            mobile ? "text-lg leading-6" : "text-xl leading-6",
           )}
         >
-          <ManriskMark size={mobile ? 20 : 24} />
+          <ManriskMark size={20} />
           <span className="truncate">Manrisk</span>
         </Link>
       )}

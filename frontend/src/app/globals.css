@@ -140,8 +140,15 @@
 }
 
 :root {
+  --stone-50: #fafaf9;
+  --stone-100: #f5f5f4;
+  --stone-200: #efedec;
+  --stone-400: #a8a29f;
+  --stone-500: #78716c;
+  --stone-700: #44403c;
+  --stone-900: #1c1917;
   --app-sidebar-width: 280px;
-  --workspace: #fafafa;
+  --workspace: var(--card);
   --workspace-data: #726efb;
   --surface-radius: 10px;
   --surface-outline: var(--border);
@@ -152,22 +159,23 @@
   --surface-shadow-floating: 0 4px 12px rgb(0 0 0 / 8%), 0 0 0 1px var(--control-outline);
   --surface-shadow-modal: 0 0 0 1px var(--control-outline), 0 6px 32px rgb(0 0 0 / 7%);
   --dialog-shadow: 0 0 0 1px var(--control-outline), 0 4px 16px rgb(0 0 0 / 5%);
-  --search-outline-shadow: 0 0 0 1px var(--button-outline-edge);
-  --button-hover-surface: #f7f7f7;
+  --search-outline-shadow: 0 0 0 1px var(--input);
+  --button-hover-surface: var(--stone-50);
   --button-primary-surface: #181818;
   --button-primary-foreground: #fff;
   --button-primary-hover: #303030;
-  --button-outline-edge: var(--border);
-  --button-secondary-surface: rgb(13 13 13 / 8%);
+  --button-outline-edge: var(--input);
+  --button-secondary-surface: #f2f2f2;
+  --button-secondary-foreground: var(--secondary-foreground);
   --button-outline-shadow: inset 0 0 0 1px var(--button-outline-edge);
   --notice-info-surface: #f6f8fe;
   --notice-info-border: #dbe5ff;
   --notice-info-foreground: #2066e8;
   /* Shared borderless badge palette; foregrounds retain readable text contrast. */
-  --badge-neutral-surface: #efeff1;
-  --badge-neutral-foreground: #62626c;
-  --badge-green-surface: #e5f4ed;
-  --badge-green-foreground: #127d4d;
+  --badge-neutral-surface: var(--stone-100);
+  --badge-neutral-foreground: var(--stone-500);
+  --badge-green-surface: #e6f4ed;
+  --badge-green-foreground: #1f8a5b;
   --badge-red-surface: #fdeaea;
   --badge-red-foreground: #ba304a;
   --badge-blue-surface: #e8f1fd;
@@ -190,34 +198,34 @@
   --popover-foreground: var(--foreground);
   --primary: var(--foreground);
   --primary-foreground: var(--card);
-  --secondary: #f2f2f2;
-  --secondary-foreground: #4d4d4d;
-  --muted: #efefef;
-  --muted-foreground: #6c6c6c;
-  --tertiary-foreground: var(--muted-foreground);
+  --secondary: var(--stone-100);
+  --secondary-foreground: var(--stone-700);
+  --muted: var(--stone-100);
+  --muted-foreground: var(--stone-500);
+  --tertiary-foreground: var(--stone-400);
   --info-foreground: var(--color-blue-700);
-  --disabled-foreground: #b9b9b9;
-  --disabled-input-surface: #f4f4f6;
-  --disabled-input-foreground: #30303a;
+  --disabled-foreground: #c4c4c4;
+  --disabled-input-surface: var(--stone-100);
+  --disabled-input-foreground: var(--foreground);
   --disabled-input-border: var(--border);
-  --card-subtle-surface: #eeeeee;
-  --secondary-card-surface: #efefef;
-  --sunken: #efefef;
+  --card-subtle-surface: var(--stone-50);
+  --secondary-card-surface: var(--stone-100);
+  --sunken: var(--secondary-card-surface);
   --table-header: var(--card);
-  --table-foreground: #313131;
+  --table-foreground: var(--foreground);
   --table-divider: var(--border);
   --table-frame-shadow: 0 0 0 1px var(--border), 0 1px 2px rgb(0 0 0 / 5%);
   --table-checkbox-border: #929292;
-  --table-selected: #efefef;
+  --table-selected: var(--stone-100);
   --table-header-foreground: var(--secondary-foreground);
-  --table-sort-indicator: #a8a8a8;
+  --table-sort-indicator: var(--tertiary-foreground);
   --table-footer: var(--card);
-  --accent: #efefef;
+  --accent: var(--stone-100);
   --accent-foreground: var(--foreground);
-  --active: #dddddd;
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: #ebebeb;
-  --input: var(--border);
+  --active: var(--stone-200);
+  --destructive: #dc2625;
+  --border: var(--stone-200);
+  --input: #cbcbcb;
   --separator: var(--border);
   --ring: oklch(0.708 0 0);
   --chart-1: oklch(0.855 0.138 181.071);
@@ -227,7 +235,7 @@
   --chart-5: oklch(0.437 0.078 188.216);
   --radius: 0.625rem;
   --control-radius: 6px;
-  --sidebar: var(--workspace);
+  --sidebar: var(--stone-50);
   --sidebar-foreground: var(--foreground);
   --sidebar-muted-foreground: var(--secondary-foreground);
   --sidebar-primary: var(--primary);
@@ -271,7 +279,8 @@
   --chart-tooltip-foreground: var(--popover-foreground);
   --chart-tooltip-muted: var(--muted-foreground);
   --background: var(--sidebar);
-  --foreground: #000;
+  --foreground: var(--stone-900);
+  --white-field-autofill-foreground: var(--foreground);
 }
 
 .dark {
@@ -287,6 +296,7 @@
   --button-primary-foreground: #181818;
   --button-primary-hover: #d5d5d5;
   --button-secondary-surface: rgb(255 255 255 / 8%);
+  --button-secondary-foreground: var(--foreground);
   --button-outline-shadow: inset 0 0 0 1px var(--button-outline-edge);
   --notice-info-surface: #142238;
   --notice-info-border: #29466f;
@@ -313,6 +323,7 @@
   --badge-cyan-foreground: #8ed9dd;
   --background: var(--sidebar);
   --foreground: oklch(0.985 0 0);
+  --white-field-autofill-foreground: #202020;
   --table-foreground: var(--foreground);
   --table-frame-shadow: var(--surface-shadow-low);
   --table-checkbox-border: var(--ring);
@@ -344,6 +355,7 @@
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
   --border: oklch(1 0 0 / 10%);
+  --input: var(--border);
   --ring: oklch(0.556 0 0);
   --chart-1: oklch(0.855 0.138 181.071);
   --chart-2: oklch(0.704 0.14 182.503);
@@ -358,6 +370,22 @@
   --sidebar-accent: oklch(0.269 0 0);
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-ring: oklch(0.556 0 0);
+}
+
+/* Retain the original pixel values from the Display P3 reference captures. */
+@media (color-gamut: p3) {
+  :root:not(.dark) {
+    --stone-50: color(display-p3 0.98039216 0.98039216 0.97647059);
+    --stone-100: color(display-p3 0.96078431 0.96078431 0.95686275);
+    --stone-200: color(display-p3 0.93725490 0.92941176 0.92549020);
+    --stone-400: color(display-p3 0.65490196 0.63529412 0.62352941);
+    --stone-500: color(display-p3 0.46666667 0.44313725 0.42745098);
+    --stone-700: color(display-p3 0.26274510 0.25098039 0.23529412);
+    --stone-900: color(display-p3 0.10588235 0.09803922 0.09019608);
+    --badge-green-surface: color(display-p3 0.91372549 0.95686275 0.92941176);
+    --badge-green-foreground: color(display-p3 0.26274510 0.53333333 0.37254902);
+    --destructive: color(display-p3 0.79215686 0.22745098 0.19215686);
+  }
 }
 
 .workspace-segmented {
@@ -417,15 +445,15 @@
 [data-autofill-surface="white"]:-webkit-autofill:active {
   -webkit-box-shadow: 0 0 0 1000px #fff inset !important;
   box-shadow: 0 0 0 1000px #fff inset !important;
-  -webkit-text-fill-color: #202020 !important;
-  color: #202020 !important;
-  caret-color: #202020;
+  -webkit-text-fill-color: var(--white-field-autofill-foreground) !important;
+  color: var(--white-field-autofill-foreground) !important;
+  caret-color: var(--white-field-autofill-foreground);
 }
 
 [data-autofill-surface="white"]:-moz-autofill {
   box-shadow: 0 0 0 1000px #fff inset !important;
-  color: #202020 !important;
-  caret-color: #202020;
+  color: var(--white-field-autofill-foreground) !important;
+  caret-color: var(--white-field-autofill-foreground);
 }
 
 /* Wonder asset table: shared geometry for collection and embedded tables. */
@@ -831,7 +859,7 @@ input:is([type="date"], [type="time"], [type="datetime-local"]) {
 
 @media (width >= 48rem) {
   [data-app-shell] {
-    --app-shell-canvas: #eee;
+    --app-shell-canvas: var(--sidebar);
   }
 
   .dark [data-app-shell] {
@@ -840,11 +868,6 @@ input:is([type="date"], [type="time"], [type="datetime-local"]) {
 
   [data-app-shell] [data-slot="sidebar-inner"] {
     --sidebar: var(--app-shell-canvas);
-  }
-
-  :root:not(.dark) [data-app-shell] [data-slot="sidebar-inner"] {
-    --accent: #e4e4e4;
-    --sidebar-accent: var(--accent);
   }
 }
 
@@ -901,8 +924,6 @@ body:has([data-app-shell]) {
 }
 
 .button-primary:disabled {
-  background-color: var(--muted);
-  color: var(--disabled-foreground);
   opacity: 1;
 }
 
@@ -1947,7 +1968,7 @@ body[data-scroll-locked] [data-component="monitoring-baseline-floating"] {
 
 /* White login fields paint their edge outside the control box. */
 :root [data-field-outline="outer"] {
-  --field-outline-edge: var(--border);
+  --field-outline-edge: var(--input);
   border-width: 0;
   background-clip: border-box;
   box-shadow:

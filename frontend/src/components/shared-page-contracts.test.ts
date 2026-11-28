@@ -310,10 +310,10 @@ test("working papers consumes the shared create dialog instead of a local duplic
   );
 });
 
-test("working paper desktop signing progress hides the redundant count", () => {
+test("working paper desktop signing progress uses shared ordered tiles", () => {
   assert.match(
     pages.workingPapers,
-    /<MonitoringTransactionProgress[\s\S]*?showCount=\{false\}[\s\S]*?ariaLabelOverride=\{`Progres Tanda Tangan:/,
+    /<WorkingPaperSigningProgress\s+signatories=\{paper\.signatories\}/,
   );
   assert.doesNotMatch(pages.workingPapers, /countLabel="TTE"/);
 });
@@ -475,7 +475,7 @@ test("the design-system catalogue documents shared page and collection layout pr
   assert.match(designSystemDocument, /[Cc]ompact status badges/);
   assert.match(designSystemDocument, /MitigationProgressForm/);
   assert.match(designSystemDocument, /MitigationProgressDialog/);
-  assert.match(designSystemDocument, /All application icons use Hugeicons/);
+  assert.match(designSystemDocument, /Application icons use Reicon/);
   assert.match(designSystemDocument, /Sidebar icon motion/);
 });
 
