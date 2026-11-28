@@ -2,7 +2,7 @@
   padding-block-end: max(calc(var(--spacing) * 8), env(safe-area-inset-bottom));
 }
 
-:global([data-risk-detail-tabs-slot]:empty) {
+.riskDetailTabsSlot:empty {
   display: none;
 }
 

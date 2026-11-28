@@ -76,7 +76,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     </div>
                     <div className="ms-auto flex min-w-0 flex-wrap items-center justify-end gap-2">
                       {simulatedTime && <SimulatedTimeNotice date={simulatedTime} />}
-                      <div ref={setRiskDetailTabsTarget} data-risk-detail-tabs-slot="" className="flex shrink-0 items-center" />
+                      <div ref={setRiskDetailTabsTarget} data-risk-detail-tabs-slot="" className={`${styles.riskDetailTabsSlot} flex shrink-0 items-center`} />
                       {headerActions && (
                         <div className="flex shrink-0 items-center gap-2">
                           {headerActions}
